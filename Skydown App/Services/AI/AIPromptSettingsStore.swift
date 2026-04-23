@@ -5,6 +5,8 @@ struct AIPromptSettings: Equatable {
     var textInstruction: String = defaultTextInstruction
     var visualInstruction: String = defaultVisualInstruction
     var agentSystemInstruction: String = defaultAgentSystemInstruction
+    var faqInstruction: String = defaultFAQInstruction
+    var faqKnowledgeBase: String = defaultFAQKnowledgeBase
     var assetLibraryLink: String = ""
     var assetReferenceNotes: String = ""
 
@@ -50,6 +52,71 @@ struct AIRuntimeManusSettings: Equatable {
     var includeVerboseEvents: Bool = false
 }
 
+struct AIRuntimeBotModelPolicy: Equatable {
+    var textPrimaryModel: String = "gemini-2.5-flash-lite"
+    var textFallbackModel: String = "gemini-2.5-flash-lite"
+    var visualPrimaryModel: String = "gemini-2.5-flash-image"
+    var visualFallbackModel: String = "imagen-3.0-generate-002"
+}
+
+struct AIRuntimeBotCostGuard: Equatable {
+    var enabled: Bool = true
+    var preferBriefAnswersWhenCritical: Bool = true
+    var shortAnswerMaxOutputTokens: Int = 240
+    var standardAnswerMaxOutputTokens: Int = 768
+}
+
+struct AIRuntimeBotRoutingPolicy: Equatable {
+    var preferFaqWhenTopicMatched: Bool = true
+    var preferProductGuideForNewUsers: Bool = true
+    var allowVisualGeneration: Bool = true
+}
+
+struct AIRuntimeBotFallbackPolicy: Equatable {
+    var allowTextFallback: Bool = true
+    var allowVisualFallback: Bool = true
+    var exposeFallbackReason: Bool = true
+}
+
+struct AIRuntimeBotSafetyPolicy: Equatable {
+    var safeModeEnabled: Bool = true
+    var strictUnknownHandling: Bool = true
+    var blockSpeculativeFaqAnswers: Bool = true
+}
+
+struct AIRuntimeBotActionLayer: Equatable {
+    var proactiveHintsEnabled: Bool = true
+    var triggerAiLimitNearEnabled: Bool = true
+    var triggerRestoreAvailableEnabled: Bool = true
+    var triggerOrderShippedEnabled: Bool = true
+    var triggerPaymentMethodsChangedEnabled: Bool = true
+    var triggerUsageBasedUpgradeEnabled: Bool = true
+    var warningThresholdPercent: Int = 70
+    var criticalThresholdPercent: Int = 90
+    var upgradeHintFreeToProText: String = "Deine Nutzung ist hoch. Ein Upgrade auf Pro reduziert Abbrueche durch Limits."
+    var upgradeHintProToCreatorText: String = "Deine Nutzung ist hoch. Creator kann dir mehr Workflow-Tiefe und Reserve geben."
+    var faqPriorityMode: String = "live_owner_generic"
+    var promptVersionAlias: String = "bot-max-v1"
+}
+
+struct AIRuntimeBotSettings: Equatable {
+    var promptVersion: String = "bot-max-v1"
+    var qualityMode: String = "balanced"
+    var faqMode: String = "auto"
+    var ownerMode: String = "standard"
+    var answerLength: String = "adaptive"
+    var personalityStyle: String = "calm_precise"
+    var loggingLevel: String = "standard"
+    var diagnosticsMode: String = "owner_only"
+    var killSwitchEnabled: Bool = false
+    var modelPolicy: AIRuntimeBotModelPolicy = AIRuntimeBotModelPolicy()
+    var costGuard: AIRuntimeBotCostGuard = AIRuntimeBotCostGuard()
+    var routingPolicy: AIRuntimeBotRoutingPolicy = AIRuntimeBotRoutingPolicy()
+    var fallbackPolicy: AIRuntimeBotFallbackPolicy = AIRuntimeBotFallbackPolicy()
+    var safetyPolicy: AIRuntimeBotSafetyPolicy = AIRuntimeBotSafetyPolicy()
+    var actionLayer: AIRuntimeBotActionLayer = AIRuntimeBotActionLayer()
+}
+
 struct AIRuntimeSettings: Equatable {
     var costGuardEnabled: Bool = true
     var agentProvider: AIRuntimeAgentProvider = .grok
@@ -57,6 +124,7 @@ struct AIRuntimeSettings: Equatable {
     var hardDailyCaps: AIRuntimeKindLimits = .hardDefaults
     var globalDailyCaps: AIRuntimeKindLimits = .globalDefaults
     var manus: AIRuntimeManusSettings = AIRuntimeManusSettings()
+    var bot: AIRuntimeBotSettings = AIRuntimeBotSettings()
 
     static let `default` = AIRuntimeSettings()
 }
@@ -121,6 +189,14 @@ final class FirestoreAIPromptSettingsService: AIPromptSettingsServicing {
                 data["agentSystemInstruction"] as? String,
                 fallback: defaultAgentSystemInstruction
             ),
+            faqInstruction: normalizeInstruction(
+                data["faqInstruction"] as? String,
+                fallback: defaultFAQInstruction
+            ),
+            faqKnowledgeBase: normalizeInstruction(
+                data["faqKnowledgeBase"] as? String,
+                fallback: defaultFAQKnowledgeBase
+            ),
             assetLibraryLink: normalizePromptLink(data["assetLibraryLink"] as? String) ?? "",
             assetReferenceNotes: normalizeInstruction(
                 data["assetReferenceNotes"] as? String,
@@ -142,6 +218,14 @@ final class FirestoreAIPromptSettingsService: AIPromptSettingsServicing {
             "agentSystemInstruction": normalizeInstruction(
                 settings.agentSystemInstruction,
                 fallback: defaultAgentSystemInstruction
+            ),
+            "faqInstruction": normalizeInstruction(
+                settings.faqInstruction,
+                fallback: defaultFAQInstruction
+            ),
+            "faqKnowledgeBase": normalizeInstruction(
+                settings.faqKnowledgeBase,
+                fallback: defaultFAQKnowledgeBase
             ),
             "assetLibraryLink": normalizePromptLink(settings.assetLibraryLink) ?? "",
             "assetReferenceNotes": normalizeInstruction(
@@ -187,6 +271,13 @@ final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
 
     private static func decode(_ data: [String: Any]) -> AIRuntimeSettings {
         let manusData = data["manus"] as? [String: Any] ?? [:]
+        let botData = data["bot"] as? [String: Any] ?? [:]
+        let botModelPolicy = botData["modelPolicy"] as? [String: Any] ?? [:]
+        let botCostGuard = botData["costGuard"] as? [String: Any] ?? [:]
+        let botRouting = botData["routingPolicy"] as? [String: Any] ?? [:]
+        let botFallback = botData["fallbackPolicy"] as? [String: Any] ?? [:]
+        let botSafety = botData["safetyPolicy"] as? [String: Any] ?? [:]
+        let botActionLayer = botData["actionLayer"] as? [String: Any] ?? [:]
         return AIRuntimeSettings(
             costGuardEnabled: data["costGuardEnabled"] as? Bool ?? true,
             agentProvider: decodeProvider(data["agentProvider"], fallback: .grok),
@@ -240,6 +331,136 @@ final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
                 autoStopOnWaiting: manusData["autoStopOnWaiting"] as? Bool ?? true,
                 blockHighCreditEvents: manusData["blockHighCreditEvents"] as? Bool ?? true,
                 includeVerboseEvents: manusData["includeVerboseEvents"] as? Bool ?? false
+            ),
+            bot: AIRuntimeBotSettings(
+                promptVersion: normalizeShortString(
+                    botData["promptVersion"] as? String,
+                    fallback: AIRuntimeSettings.default.bot.promptVersion
+                ),
+                qualityMode: normalizeAllowedString(
+                    botData["qualityMode"] as? String,
+                    allowed: ["balanced", "high"],
+                    fallback: AIRuntimeSettings.default.bot.qualityMode
+                ),
+                faqMode: normalizeAllowedString(
+                    botData["faqMode"] as? String,
+                    allowed: ["off", "auto", "prefer_faq"],
+                    fallback: AIRuntimeSettings.default.bot.faqMode
+                ),
+                ownerMode: normalizeAllowedString(
+                    botData["ownerMode"] as? String,
+                    allowed: ["standard", "diagnostic"],
+                    fallback: AIRuntimeSettings.default.bot.ownerMode
+                ),
+                answerLength: normalizeAllowedString(
+                    botData["answerLength"] as? String,
+                    allowed: ["adaptive", "short", "detailed"],
+                    fallback: AIRuntimeSettings.default.bot.answerLength
+                ),
+                personalityStyle: normalizeShortString(
+                    botData["personalityStyle"] as? String,
+                    fallback: AIRuntimeSettings.default.bot.personalityStyle,
+                    maxLength: 160
+                ),
+                loggingLevel: normalizeShortString(
+                    botData["loggingLevel"] as? String,
+                    fallback: AIRuntimeSettings.default.bot.loggingLevel,
+                    maxLength: 80
+                ),
+                diagnosticsMode: normalizeAllowedString(
+                    botData["diagnosticsMode"] as? String,
+                    allowed: ["off", "owner_only", "verbose"],
+                    fallback: AIRuntimeSettings.default.bot.diagnosticsMode
+                ),
+                killSwitchEnabled: botData["killSwitchEnabled"] as? Bool ?? false,
+                modelPolicy: AIRuntimeBotModelPolicy(
+                    textPrimaryModel: normalizeShortString(
+                        botModelPolicy["textPrimaryModel"] as? String,
+                        fallback: AIRuntimeSettings.default.bot.modelPolicy.textPrimaryModel
+                    ),
+                    textFallbackModel: normalizeShortString(
+                        botModelPolicy["textFallbackModel"] as? String,
+                        fallback: AIRuntimeSettings.default.bot.modelPolicy.textFallbackModel
+                    ),
+                    visualPrimaryModel: normalizeShortString(
+                        botModelPolicy["visualPrimaryModel"] as? String,
+                        fallback: AIRuntimeSettings.default.bot.modelPolicy.visualPrimaryModel
+                    ),
+                    visualFallbackModel: normalizeShortString(
+                        botModelPolicy["visualFallbackModel"] as? String,
+                        fallback: AIRuntimeSettings.default.bot.modelPolicy.visualFallbackModel
+                    )
+                ),
+                costGuard: AIRuntimeBotCostGuard(
+                    enabled: botCostGuard["enabled"] as? Bool ?? true,
+                    preferBriefAnswersWhenCritical: botCostGuard["preferBriefAnswersWhenCritical"] as? Bool ?? true,
+                    shortAnswerMaxOutputTokens: clampInt(
+                        botCostGuard["shortAnswerMaxOutputTokens"],
+                        fallback: AIRuntimeSettings.default.bot.costGuard.shortAnswerMaxOutputTokens,
+                        min: 80,
+                        max: 1_200
+                    ),
+                    standardAnswerMaxOutputTokens: clampInt(
+                        botCostGuard["standardAnswerMaxOutputTokens"],
+                        fallback: AIRuntimeSettings.default.bot.costGuard.standardAnswerMaxOutputTokens,
+                        min: 120,
+                        max: 2_400
+                    )
+                ),
+                routingPolicy: AIRuntimeBotRoutingPolicy(
+                    preferFaqWhenTopicMatched: botRouting["preferFaqWhenTopicMatched"] as? Bool ?? true,
+                    preferProductGuideForNewUsers: botRouting["preferProductGuideForNewUsers"] as? Bool ?? true,
+                    allowVisualGeneration: botRouting["allowVisualGeneration"] as? Bool ?? true
+                ),
+                fallbackPolicy: AIRuntimeBotFallbackPolicy(
+                    allowTextFallback: botFallback["allowTextFallback"] as? Bool ?? true,
+                    allowVisualFallback: botFallback["allowVisualFallback"] as? Bool ?? true,
+                    exposeFallbackReason: botFallback["exposeFallbackReason"] as? Bool ?? true
+                ),
+                safetyPolicy: AIRuntimeBotSafetyPolicy(
+                    safeModeEnabled: botSafety["safeModeEnabled"] as? Bool ?? true,
+                    strictUnknownHandling: botSafety["strictUnknownHandling"] as? Bool ?? true,
+                    blockSpeculativeFaqAnswers: botSafety["blockSpeculativeFaqAnswers"] as? Bool ?? true
+                ),
+                actionLayer: AIRuntimeBotActionLayer(
+                    proactiveHintsEnabled: botActionLayer["proactiveHintsEnabled"] as? Bool ?? true,
+                    triggerAiLimitNearEnabled: botActionLayer["triggerAiLimitNearEnabled"] as? Bool ?? true,
+                    triggerRestoreAvailableEnabled: botActionLayer["triggerRestoreAvailableEnabled"] as? Bool ?? true,
+                    triggerOrderShippedEnabled: botActionLayer["triggerOrderShippedEnabled"] as? Bool ?? true,
+                    triggerPaymentMethodsChangedEnabled: botActionLayer["triggerPaymentMethodsChangedEnabled"] as? Bool ?? true,
+                    triggerUsageBasedUpgradeEnabled: botActionLayer["triggerUsageBasedUpgradeEnabled"] as? Bool ?? true,
+                    warningThresholdPercent: clampInt(
+                        botActionLayer["warningThresholdPercent"],
+                        fallback: AIRuntimeSettings.default.bot.actionLayer.warningThresholdPercent,
+                        min: 50,
+                        max: 99
+                    ),
+                    criticalThresholdPercent: clampInt(
+                        botActionLayer["criticalThresholdPercent"],
+                        fallback: AIRuntimeSettings.default.bot.actionLayer.criticalThresholdPercent,
+                        min: 60,
+                        max: 100
+                    ),
+                    upgradeHintFreeToProText: normalizeShortString(
+                        botActionLayer["upgradeHintFreeToProText"] as? String,
+                        fallback: AIRuntimeSettings.default.bot.actionLayer.upgradeHintFreeToProText,
+                        maxLength: 220
+                    ),
+                    upgradeHintProToCreatorText: normalizeShortString(
+                        botActionLayer["upgradeHintProToCreatorText"] as? String,
+                        fallback: AIRuntimeSettings.default.bot.actionLayer.upgradeHintProToCreatorText,
+                        maxLength: 220
+                    ),
+                    faqPriorityMode: normalizeAllowedString(
+                        botActionLayer["faqPriorityMode"] as? String,
+                        allowed: ["live_owner_generic", "owner_live_generic", "balanced"],
+                        fallback: AIRuntimeSettings.default.bot.actionLayer.faqPriorityMode
+                    ),
+                    promptVersionAlias: normalizeShortString(
+                        botActionLayer["promptVersionAlias"] as? String,
+                        fallback: AIRuntimeSettings.default.bot.actionLayer.promptVersionAlias
+                    )
+                )
             )
         )
     }
@@ -270,6 +491,116 @@ final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
                 "autoStopOnWaiting": settings.manus.autoStopOnWaiting,
                 "blockHighCreditEvents": settings.manus.blockHighCreditEvents,
                 "includeVerboseEvents": settings.manus.includeVerboseEvents
+            ],
+            "bot": [
+                "promptVersion": normalizeShortString(
+                    settings.bot.promptVersion,
+                    fallback: AIRuntimeSettings.default.bot.promptVersion
+                ),
+                "qualityMode": normalizeAllowedString(
+                    settings.bot.qualityMode,
+                    allowed: ["balanced", "high"],
+                    fallback: AIRuntimeSettings.default.bot.qualityMode
+                ),
+                "faqMode": normalizeAllowedString(
+                    settings.bot.faqMode,
+                    allowed: ["off", "auto", "prefer_faq"],
+                    fallback: AIRuntimeSettings.default.bot.faqMode
+                ),
+                "ownerMode": normalizeAllowedString(
+                    settings.bot.ownerMode,
+                    allowed: ["standard", "diagnostic"],
+                    fallback: AIRuntimeSettings.default.bot.ownerMode
+                ),
+                "answerLength": normalizeAllowedString(
+                    settings.bot.answerLength,
+                    allowed: ["adaptive", "short", "detailed"],
+                    fallback: AIRuntimeSettings.default.bot.answerLength
+                ),
+                "personalityStyle": normalizeShortString(
+                    settings.bot.personalityStyle,
+                    fallback: AIRuntimeSettings.default.bot.personalityStyle,
+                    maxLength: 160
+                ),
+                "loggingLevel": normalizeShortString(
+                    settings.bot.loggingLevel,
+                    fallback: AIRuntimeSettings.default.bot.loggingLevel,
+                    maxLength: 80
+                ),
+                "diagnosticsMode": normalizeAllowedString(
+                    settings.bot.diagnosticsMode,
+                    allowed: ["off", "owner_only", "verbose"],
+                    fallback: AIRuntimeSettings.default.bot.diagnosticsMode
+                ),
+                "killSwitchEnabled": settings.bot.killSwitchEnabled,
+                "modelPolicy": [
+                    "textPrimaryModel": normalizeShortString(
+                        settings.bot.modelPolicy.textPrimaryModel,
+                        fallback: AIRuntimeSettings.default.bot.modelPolicy.textPrimaryModel
+                    ),
+                    "textFallbackModel": normalizeShortString(
+                        settings.bot.modelPolicy.textFallbackModel,
+                        fallback: AIRuntimeSettings.default.bot.modelPolicy.textFallbackModel
+                    ),
+                    "visualPrimaryModel": normalizeShortString(
+                        settings.bot.modelPolicy.visualPrimaryModel,
+                        fallback: AIRuntimeSettings.default.bot.modelPolicy.visualPrimaryModel
+                    ),
+                    "visualFallbackModel": normalizeShortString(
+                        settings.bot.modelPolicy.visualFallbackModel,
+                        fallback: AIRuntimeSettings.default.bot.modelPolicy.visualFallbackModel
+                    )
+                ],
+                "costGuard": [
+                    "enabled": settings.bot.costGuard.enabled,
+                    "preferBriefAnswersWhenCritical": settings.bot.costGuard.preferBriefAnswersWhenCritical,
+                    "shortAnswerMaxOutputTokens": max(80, settings.bot.costGuard.shortAnswerMaxOutputTokens),
+                    "standardAnswerMaxOutputTokens": max(120, settings.bot.costGuard.standardAnswerMaxOutputTokens)
+                ],
+                "routingPolicy": [
+                    "preferFaqWhenTopicMatched": settings.bot.routingPolicy.preferFaqWhenTopicMatched,
+                    "preferProductGuideForNewUsers": settings.bot.routingPolicy.preferProductGuideForNewUsers,
+                    "allowVisualGeneration": settings.bot.routingPolicy.allowVisualGeneration
+                ],
+                "fallbackPolicy": [
+                    "allowTextFallback": settings.bot.fallbackPolicy.allowTextFallback,
+                    "allowVisualFallback": settings.bot.fallbackPolicy.allowVisualFallback,
+                    "exposeFallbackReason": settings.bot.fallbackPolicy.exposeFallbackReason
+                ],
+                "safetyPolicy": [
+                    "safeModeEnabled": settings.bot.safetyPolicy.safeModeEnabled,
+                    "strictUnknownHandling": settings.bot.safetyPolicy.strictUnknownHandling,
+                    "blockSpeculativeFaqAnswers": settings.bot.safetyPolicy.blockSpeculativeFaqAnswers
+                ],
+                "actionLayer": [
+                    "proactiveHintsEnabled": settings.bot.actionLayer.proactiveHintsEnabled,
+                    "triggerAiLimitNearEnabled": settings.bot.actionLayer.triggerAiLimitNearEnabled,
+                    "triggerRestoreAvailableEnabled": settings.bot.actionLayer.triggerRestoreAvailableEnabled,
+                    "triggerOrderShippedEnabled": settings.bot.actionLayer.triggerOrderShippedEnabled,
+                    "triggerPaymentMethodsChangedEnabled": settings.bot.actionLayer.triggerPaymentMethodsChangedEnabled,
+                    "triggerUsageBasedUpgradeEnabled": settings.bot.actionLayer.triggerUsageBasedUpgradeEnabled,
+                    "warningThresholdPercent": Swift.max(50, Swift.min(99, settings.bot.actionLayer.warningThresholdPercent)),
+                    "criticalThresholdPercent": Swift.max(60, Swift.min(100, settings.bot.actionLayer.criticalThresholdPercent)),
+                    "upgradeHintFreeToProText": normalizeShortString(
+                        settings.bot.actionLayer.upgradeHintFreeToProText,
+                        fallback: AIRuntimeSettings.default.bot.actionLayer.upgradeHintFreeToProText,
+                        maxLength: 220
+                    ),
+                    "upgradeHintProToCreatorText": normalizeShortString(
+                        settings.bot.actionLayer.upgradeHintProToCreatorText,
+                        fallback: AIRuntimeSettings.default.bot.actionLayer.upgradeHintProToCreatorText,
+                        maxLength: 220
+                    ),
+                    "faqPriorityMode": normalizeAllowedString(
+                        settings.bot.actionLayer.faqPriorityMode,
+                        allowed: ["live_owner_generic", "owner_live_generic", "balanced"],
+                        fallback: AIRuntimeSettings.default.bot.actionLayer.faqPriorityMode
+                    ),
+                    "promptVersionAlias": normalizeShortString(
+                        settings.bot.actionLayer.promptVersionAlias,
+                        fallback: AIRuntimeSettings.default.bot.actionLayer.promptVersionAlias
+                    )
+                ]
             ],
             "updatedAt": FieldValue.serverTimestamp()
         ]
@@ -309,6 +640,27 @@ final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
         }
 
         return Swift.max(min, Swift.min(max, numericValue))
+    }
+
+    private static func normalizeAllowedString(
+        _ value: String?,
+        allowed: [String],
+        fallback: String
+    ) -> String {
+        let normalized = value?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+        return allowed.contains(normalized) ? normalized : fallback
+    }
+
+    private static func normalizeShortString(
+        _ value: String?,
+        fallback: String,
+        maxLength: Int = 120
+    ) -> String {
+        let normalized = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !normalized.isEmpty else { return fallback }
+        return String(normalized.prefix(maxLength))
     }
 }
 
@@ -484,4 +836,151 @@ Wenn du planen sollst, liefere eine umsetzbare Struktur.
 Wenn du ein Briefing schreiben sollst, liefere ein copy-pastebares Briefing.
 Wenn Infos fehlen, triff sinnvolle Annahmen und kennzeichne sie kurz. Frage nur dann gezielt nach, wenn ohne die Info ein schlechter Plan entstehen wuerde.
 Bevorzuge kurze klare Abschnitte wie Ziel, Deliverables, Schritte, Timing, Assets, Risiken, Naechste Schritte.
+"""
+
+private let defaultFAQInstruction = """
+Du bist der SkyOS FAQ Core.
+Antworte ruhig, klar und ehrlich.
+Nutze nur bekannte Produktfakten und sage offen, wenn etwas nicht sicher vorliegt.
+Erfinde keine Membership-, Versand-, Account- oder Support-Regeln.
+Wenn die Antwort kurz sein kann, antworte kurz. Wenn mehr Tiefe gefragt ist, strukturiere sie sauber.
+Prioritaet fuer Fakten: 1) Live Facts aus dem System, 2) Owner Knowledge, 3) vorsichtige generische Hilfe.
+Antworte auf Deutsch.
+"""
+
+private let defaultFAQKnowledgeBase = """
+SkyOS FAQ Knowledge Base v2
+
+Grundprinzip:
+- Ziel ist echte Hilfe, nicht Marketing-Blabla.
+- Keine erfundenen Preise, Fristen, Versandversprechen, Rechtsaussagen oder Entitlements.
+- Wenn ein Fakt fehlt: klar sagen, dass er nicht sicher vorliegt, und den naechsten sinnvollen Schritt nennen.
+- Bei Membership, Checkout, Restore, Orders, AI-Limits und Legal immer zuerst Live Facts nutzen.
+
+Schnellfakten:
+- SkyOS verbindet Home, AI, Music, Video, Shop, Profile und Settings.
+- Bot: schnelle Hilfe, FAQ, Copy und Ideen.
+- Agent: strukturierte Aufgaben, Planung, Briefings und Workflows.
+- Membership ist faehigkeitsbasiert und kein Token-Shop.
+- Kaeufe und Restore koennen kurze Synchronisierungszeit brauchen.
+- Support: skydownent@gmail.com
+- Betreiberhinweis: Skydown OS, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland.
+
+Kernfragen mit Zielantworten:
+
+[Einstieg / Getting Started]
+Q1: Was ist SkyOS in einem Satz?
+A1: SkyOS ist eine Creator-App, die AI, Media und Commerce in einem Flow verbindet.
+Q2: Wie starte ich am besten als neuer Nutzer?
+A2: Melde dich zuerst an, oeffne Home zur Orientierung und starte dann mit einer klaren Frage im Bot.
+Q3: Wo sehe ich, was ich als naechstes tun soll?
+A3: Nutze Home fuer Einstieg und wechsel dann gezielt in AI, Shop, Music oder Video.
+Q4: Ist SkyOS eher fuer Creator oder normale Nutzer?
+A4: Beides ist moeglich; Creator profitieren besonders von AI- und Workflow-Funktionen.
+
+[Login / Account]
+Q5: Ich komme nicht rein. Was pruefe ich zuerst?
+A5: Verbindung pruefen, App neu oeffnen, erneut anmelden und danach Login-Methode kontrollieren.
+Q6: Was tun, wenn Login weiter fehlschlaegt?
+A6: Support mit Konto-E-Mail, Plattform, Uhrzeit und Screenshot kontaktieren.
+Q7: Warum sehe ich manche Bereiche nicht?
+A7: Meist fehlen Rolle, Freigabe oder ein aktives Entitlement.
+Q8: Wird mein Verlauf beim Account-Wechsel behalten?
+A8: Verlauf ist kontoabhaengig; bei Wechsel ist anderer Kontext sichtbar.
+
+[Membership / Abo / Restore]
+Q9: Welche Membership habe ich?
+A9: Der Plan soll aus Live Entitlements gelesen werden, nicht aus rein lokalem UI-Status.
+Q10: Welche Membership passt zu mir?
+A10: Free fuer Einstieg, Pro fuer regelmaessigen Creator-Flow, Creator fuer tiefere Workflows und Prioritaet.
+Q11: Warum lohnt sich ein Upgrade?
+A11: Ein Upgrade reduziert Reibung bei Limits und schaltet staerkere AI-Nutzung fuer echte Produktionsarbeit frei.
+Q12: Wie restore ich mein Abo?
+A12: Restore im Membership-Bereich ausloesen und kurz auf Synchronisierung warten.
+Q13: Restore klappt nicht. Was dann?
+A13: Store-Account pruefen, App neu starten, erneut Restore; danach Support mit Konto und Zeitstempel.
+Q14: Wie kuendige ich mein Abo?
+A14: Kuendigung laeuft ueber den jeweiligen Store-/Abo-Manager, nicht direkt im Chat.
+Q15: Wird beim Upgrade sofort umgestellt?
+A15: In der Regel ja, aber die Entitlement-Sync kann kurz dauern.
+
+[AI Features / Limits / Freischaltung]
+Q16: Warum ist AI gesperrt?
+A16: Haeufige Gruende sind fehlende Freigabe, Rolle, Entitlement oder ein aktiver Sicherheits-/Runtime-Block.
+Q17: Warum kann ich gerade nichts mehr senden?
+A17: Wahrscheinlich ist ein Tageslimit oder Cost Guard erreicht; Bot soll den Grund lesbar nennen.
+Q18: Was ist der Unterschied zwischen Bot und Agent?
+A18: Bot fuer schnelle Antworten, Agent fuer strukturierte laengere Aufgaben.
+Q19: Warum ist eine Antwort kuerzer als erwartet?
+A19: Bei aktivem Cost Guard oder knappem Limit kann die Antwort bewusst verkuerzt werden.
+Q20: Welche Prompts geben bessere Ergebnisse?
+A20: Klare Ziele, gewuenschter Stil, Format, Plattform und Tiefe in einem Satz helfen am meisten.
+
+[Merch / Bestellung / Versand]
+Q21: Wo ist meine Bestellung?
+A21: Im Order-Bereich den Live-Status pruefen; ohne Orderdaten keine Versandprognose erfinden.
+Q22: Wann kommt meine Bestellung an?
+A22: Nur konkrete ETA nennen, wenn Live Versanddaten verfuegbar sind.
+Q23: Ist Versand kostenlos?
+A23: Nur beantworten, wenn Commerce-/Checkout-Facts es klar zeigen; sonst offen als unbekannt markieren.
+Q24: Kann ich Bestellung oder Adresse nachtraeglich aendern?
+A24: Das haengt vom Orderstatus und Shop-Prozess ab; ohne Fakt keine feste Zusage geben.
+Q25: Warum sehe ich keine Trackingnummer?
+A25: Tracking erscheint erst, wenn Versanddaten vom Fulfillment vorliegen.
+
+[Zahlungsarten / Checkout]
+Q26: Welche Zahlungsarten gibt es?
+A26: Nur die aktuell verfuegbaren Payment Methods aus Live Facts nennen.
+Q27: Checkout ist fehlgeschlagen. Was jetzt?
+A27: Nicht mehrfach triggern, kurz warten, dann erneut versuchen und bei Fehlercode Support kontaktieren.
+Q28: Wurde ich doppelt belastet?
+A28: Erst Order-/Payment-Status pruefen; bei Unsicherheit Zahlungsreferenz und Zeitstempel an Support senden.
+Q29: Warum ist meine Zahlung pending?
+A29: Je nach Provider kann Autorisierung und Bestaetigung verzoegert eintreffen.
+
+[Datenschutz / AGB / Hilfe]
+Q30: Welche Daten speichert SkyOS?
+A30: Nur bestaetigte Datenkategorien nennen; falls Legal Content fehlt, klar als nicht sicher markieren.
+Q31: Wo finde ich Datenschutz und AGB?
+A31: Im Legal-/Settings-Bereich; bei fehlender Anzeige Support kontaktieren.
+Q32: Gibt SkyOS Daten an Dritte weiter?
+A32: Nur nach legal bestaetigten Inhalten beantworten, keine Vermutungen.
+Q33: Welche Daten soll ich nicht in den Bot schreiben?
+A33: Keine Passwoerter, Private Keys, volle Kartendaten oder sensible Fremddaten.
+
+[App Nutzung / Features]
+Q34: Wie nutze ich SkyOS effizient im Alltag?
+A34: Mit klarem Tagesziel starten, Bot fuer schnelle Aufgaben nutzen und Agent fuer tiefe Ausarbeitung.
+Q35: Kann ich SkyOS auch nur fuer Content-Ideen nutzen?
+A35: Ja, Bot eignet sich genau fuer schnelle Hooks, Captions und kreative Varianten.
+Q36: Warum unterscheidet sich Antwortqualitaet manchmal?
+A36: Modus, Promptqualitaet, Runtime-Limits und verfuegbare Fakten beeinflussen die Ausgabe.
+
+[Creator / Owner]
+Q37: Wie kann Owner eigenes FAQ-Wissen hinterlegen?
+A37: Ueber FAQ / Owner Knowledge in den Prompt-Settings, damit Bot auf reale Owner-Fakten zugreift.
+Q38: Was passiert ohne Owner-Eintrag?
+A38: Dann nutzt der Bot nur Standardwissen und Live Facts, ohne Owner-Regeln zu erfinden.
+Q39: Kann ich FAQ-Antworten markenspezifisch steuern?
+A39: Ja, ueber FAQ Instruction und Owner Knowledge, solange Fakten korrekt bleiben.
+
+[Vertrauen / Sicherheit]
+Q40: Warum sollte ich der FAQ vertrauen?
+A40: Weil sie unbekannte Punkte offen kennzeichnet und keine Policies halluziniert.
+Q41: Wann soll ich direkt Support kontaktieren?
+A41: Bei Login-Blockern, Restore-Problemen, fehlgeschlagenem Checkout, unklaren Orders oder rechtlichen Fragen.
+Q42: Was braucht Support fuer schnelle Loesung?
+A42: Konto-E-Mail, Plattform, betroffener Bereich, Zeitpunkt, Screenshot und ggf. Referenznummer.
+
+[Revenue-orientierte, aber faire Hilfe]
+Q43: Warum lohnt sich Creator oder Pro ohne Hard-Sell?
+A43: Wenn AI Teil deines Workflows ist, sparen hoehere Plaene Zeit, Abbrueche und Kontextwechsel.
+Q44: Ich bin unsicher beim Upgrade - was ist die sichere Empfehlung?
+A44: Mit dem kleineren passenden Plan starten, Nutzung beobachten und bei Bedarf spaeter hochstufen.
+Q45: Wie antworte ich auf "zu teuer" fair?
+A45: Transparent auf Nutzen und Arbeitsersparnis verweisen, nie Druck aufbauen.
+
+[Owner definierte Fragen]
+- Owner-spezifisches FAQ-Wissen kann zusaetzlich im Feld FAQ / Owner Knowledge hinterlegt werden.
+- Wenn dort nichts hinterlegt ist, darf der Bot keine erfundenen Owner-Regeln behaupten.
 """

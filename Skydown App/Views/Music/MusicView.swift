@@ -243,7 +243,6 @@ struct MusicView: View {
                                     VStack(alignment: .leading, spacing: layout.sectionSpacing) {
                                         artistsCard
                                             .id(MusicSectionAnchor.artists.rawValue)
-                                        instagramCard
                                         shortcutHubCard
                                     }
                                     .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -263,7 +262,6 @@ struct MusicView: View {
                                     .id(MusicSectionAnchor.tracks.rawValue)
                                 artistsCard
                                     .id(MusicSectionAnchor.artists.rawValue)
-                                instagramCard
                                 spotifyCard
                                     .id(MusicSectionAnchor.spotify.rawValue)
                                 shortcutHubCard
@@ -1508,18 +1506,6 @@ struct MusicView: View {
         )
     }
 
-    @ViewBuilder
-    private var instagramCard: some View {
-        let destinations = musicInstagramDestinations()
-        if !destinations.isEmpty {
-            MusicInstagramHubCard(
-                selectedArtist: selectedArtist,
-                destinations: destinations,
-                colorScheme: colorScheme
-            )
-        }
-    }
-
     private var tracksCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Tracks")
@@ -1744,16 +1730,6 @@ struct MusicView: View {
         hasHandledInitialSelection = true
     }
 
-    private func musicInstagramDestinations() -> [MusicInstagramDestination] {
-        let artistDestinations = artists.compactMap { artistInstagramDestinations[$0] }
-
-        switch brand {
-        case .skydown:
-            return artistDestinations + [skydownMusicInstagramDestination]
-        case .zweizwei:
-            return [zweizweiInstagramDestination] + artistDestinations
-        }
-    }
 }
 
 private enum MusicPresentedSheet: String, Identifiable, Equatable {

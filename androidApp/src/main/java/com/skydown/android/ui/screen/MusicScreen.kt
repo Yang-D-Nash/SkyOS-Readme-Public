@@ -522,17 +522,6 @@ fun MusicScreen(
                         }
                     }
 
-                    if (uiState.instagramHubDestinations.isNotEmpty()) {
-                        item {
-                            MusicInstagramHubCard(
-                                destinations = uiState.instagramHubDestinations,
-                                onOpenLink = { url ->
-                                    openExternalLink(context, url)
-                                },
-                            )
-                        }
-                    }
-
                     if (onOpenBeatHub != null || onOpenStudio != null) {
                         item {
                             MusicShortcutHubCard(

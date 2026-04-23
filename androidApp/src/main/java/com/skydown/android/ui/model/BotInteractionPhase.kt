@@ -5,16 +5,32 @@ package com.skydown.android.ui.model
  */
 enum class BotInteractionPhase {
     Idle,
-    GeneratingText,
-    GeneratingVisual;
+    Typing,
+    Sending,
+    Streaming,
+    Complete,
+    Degraded,
+    Blocked,
+    Retryable,
+    FaqAnswer,
+    ToolPending,
+    OwnerDiagnostic;
 
     val isBusy: Boolean
-        get() = this != Idle
+        get() = this == Sending || this == Streaming || this == ToolPending
 
     val composerStatusLabel: String?
         get() = when (this) {
             Idle -> null
-            GeneratingText -> "Bot · Antwort entsteht"
-            GeneratingVisual -> "Bot · Visual entsteht"
+            Typing -> "Bot · bereit"
+            Sending -> "Bot · sendet"
+            Streaming -> "Bot · Antwort entsteht"
+            Complete -> "Bot · fertig"
+            Degraded -> "Bot · abgesichert"
+            Blocked -> "Bot · blockiert"
+            Retryable -> "Bot · retry moeglich"
+            FaqAnswer -> "Bot · FAQ-Antwort"
+            ToolPending -> "Bot · Visual-Pipeline"
+            OwnerDiagnostic -> "Bot · Owner-Diagnostik"
         }
 }

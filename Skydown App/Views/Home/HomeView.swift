@@ -100,6 +100,13 @@ struct HomeViewContent: View {
                         )
                         .homeReveal(0)
 
+                        MusicInstagramHubCard(
+                            selectedArtist: "Community",
+                            destinations: homeSocialDestinations,
+                            colorScheme: colorScheme
+                        )
+                        .homeReveal(1)
+
                         HomeDailyOpsStrip(
                             colorScheme: colorScheme,
                             activeSignalCount: homeTrackedSignalCount(viewModel),
@@ -112,7 +119,7 @@ struct HomeViewContent: View {
                             onOpenBeat: openBeatSection,
                             onOpenVideo: openVideoSection
                         )
-                        .homeReveal(1)
+                        .homeReveal(2)
 
                         let commandPriorityTarget = homeCommandPriorityTarget(viewModel)
 
@@ -123,7 +130,7 @@ struct HomeViewContent: View {
                             onOpenCart: onOpenCart,
                             onOpenSettings: onOpenSettings
                         )
-                        .homeReveal(2)
+                        .homeReveal(3)
 
                         HomeUtilityRow(
                             colorScheme: colorScheme,
@@ -134,7 +141,7 @@ struct HomeViewContent: View {
                             onOpenSearch: openReleaseSection,
                             onOpenSettings: onOpenSettings
                         )
-                        .homeReveal(3)
+                        .homeReveal(4)
 
                         HomeLiveSignalSection(
                             colorScheme: colorScheme,
@@ -153,7 +160,7 @@ struct HomeViewContent: View {
                             recoverableError: viewModel.recoverableError,
                             contentSignal: viewModel.contentSignal
                         )
-                        .homeReveal(4)
+                        .homeReveal(5)
 
                         HomeMediaClusterSection(
                             colorScheme: colorScheme,
@@ -164,7 +171,7 @@ struct HomeViewContent: View {
                             onOpenVideoHub: openVideoHubFromMediaCluster(video:),
                             onOpenOriginal: openOriginalFromMediaCluster(video:)
                         )
-                        .homeReveal(5)
+                        .homeReveal(6)
 
                         Text("SkyOS Home fuehrt ruhig: Signal lesen, Fokus setzen, naechsten Schritt ausfuehren.")
                             .font(.footnote)
@@ -294,6 +301,17 @@ struct HomeViewContent: View {
         openOriginalVideo(video)
     }
 }
+
+private let homeSocialDestinations: [MusicInstagramDestination] = [
+    skydownMusicInstagramDestination,
+    zweizweiInstagramDestination,
+    artistInstagramDestinations["Yang D. Nash"],
+    artistInstagramDestinations["JANNO"],
+    artistInstagramDestinations["ThaDude"],
+    artistInstagramDestinations["MAVE"],
+    artistInstagramDestinations["TANGAJOE007"]
+]
+    .compactMap { $0 }
 
 @MainActor
 private func homeTrackedSignalCount(_ viewModel: HomeViewModel) -> Int {

@@ -195,6 +195,9 @@ struct AIView: View {
                                     membershipCoordinator.openMembership(reason: .manual, surface: "ai_empty")
                                 }
                         }
+                        if let decision = viewModel.lastDecision {
+                            AIDecisionTransparencyCard(decision: decision, colorScheme: colorScheme)
+                        }
                         aiSessionDeck
 
                         AIQuickPromptCard(
@@ -241,6 +244,9 @@ struct AIView: View {
                                             }
                                             membershipCoordinator.openMembership(reason: .manual, surface: "ai_chat")
                                         }
+                                }
+                                if let decision = viewModel.lastDecision {
+                                    AIDecisionTransparencyCard(decision: decision, colorScheme: colorScheme)
                                 }
                                 aiSessionDeck
 
@@ -441,6 +447,109 @@ private struct AIRevenueUsageCard: View {
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.15), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+private struct AIDecisionTransparencyCard: View {
+    let decision: AIBotDecision
+    let colorScheme: ColorScheme
+
+    private var stateLabel: String {
+        switch decision.state {
+        case "faq_answer":
+            return "FAQ"
+        case "degraded":
+            return "Degraded"
+        case "blocked":
+            return "Blocked"
+        case "retryable":
+            return "Retry"
+        default:
+            return "Live"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text("Why")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(AppColors.accentMystic(for: colorScheme).opacity(0.12))
+                    )
+                Text(stateLabel)
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(AppColors.accent(for: colorScheme).opacity(0.12))
+                    )
+                if !decision.selectedModel.isEmpty {
+                    Text(decision.selectedModel)
+                        .font(.caption2.weight(.bold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+
+            Text(decision.summary.isEmpty ? "Antwortpfad dokumentiert." : decision.summary)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            if !decision.topic.isEmpty {
+                Text("Topic: \(decision.topic)")
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            if decision.fallbackActivated && !decision.fallbackReason.isEmpty {
+                Text("Fallback: \(decision.fallbackReason)")
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            if decision.responseLimited && !decision.responseLimitReason.isEmpty {
+                Text("Limit: \(decision.responseLimitReason)")
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            if decision.blocked && !decision.blockReason.isEmpty {
+                Text("Block: \(decision.blockReason)")
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+
+            if decision.retryable && !decision.retryReason.isEmpty {
+                Text("Retry: \(decision.retryReason)")
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            if !decision.trace.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(decision.trace.prefix(3), id: \.self) { item in
+                        Text(item)
+                            .font(.caption2)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }

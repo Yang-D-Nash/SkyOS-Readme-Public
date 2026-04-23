@@ -22,6 +22,7 @@ struct SettingsView: View {
     @ObservedObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
     @ObservedObject private var aiPromptSettingsStore = AIPromptSettingsStore.shared
     @ObservedObject private var aiRuntimeSettingsStore = AIRuntimeSettingsStore.shared
+    @ObservedObject private var aiFaqOwnerReviewLoopStore = AIFaqOwnerReviewLoopStore.shared
     @ObservedObject private var adminUserManagementStore = AdminUserManagementStore.shared
     @ObservedObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @ObservedObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
@@ -128,9 +129,50 @@ struct SettingsView: View {
     @State private var aiTextInstructionDraft = ""
     @State private var aiVisualInstructionDraft = ""
     @State private var aiAgentSystemInstructionDraft = ""
+    @State private var aiFAQInstructionDraft = ""
+    @State private var aiFAQKnowledgeBaseDraft = ""
     @State private var aiAssetLibraryLinkDraft = ""
     @State private var aiAssetReferenceNotesDraft = ""
     @State private var aiCostGuardEnabledDraft = true
+    @State private var aiBotPromptVersionDraft = ""
+    @State private var aiBotQualityModeDraft = "balanced"
+    @State private var aiBotFAQModeDraft = "auto"
+    @State private var aiBotOwnerModeDraft = "standard"
+    @State private var aiBotAnswerLengthDraft = "adaptive"
+    @State private var aiBotPersonalityStyleDraft = ""
+    @State private var aiBotLoggingLevelDraft = ""
+    @State private var aiBotDiagnosticsModeDraft = "owner_only"
+    @State private var aiBotKillSwitchDraft = false
+    @State private var aiBotTextPrimaryModelDraft = ""
+    @State private var aiBotTextFallbackModelDraft = ""
+    @State private var aiBotVisualPrimaryModelDraft = ""
+    @State private var aiBotVisualFallbackModelDraft = ""
+    @State private var aiBotCostGuardEnabledDraft = true
+    @State private var aiBotPreferBriefCriticalDraft = true
+    @State private var aiBotShortAnswerMaxTokensDraft = ""
+    @State private var aiBotStandardAnswerMaxTokensDraft = ""
+    @State private var aiBotPreferFaqRoutingDraft = true
+    @State private var aiBotPreferProductGuideDraft = true
+    @State private var aiBotAllowVisualGenerationDraft = true
+    @State private var aiBotAllowTextFallbackDraft = true
+    @State private var aiBotAllowVisualFallbackDraft = true
+    @State private var aiBotExposeFallbackReasonDraft = true
+    @State private var aiBotSafeModeEnabledDraft = true
+    @State private var aiBotStrictUnknownHandlingDraft = true
+    @State private var aiBotBlockSpeculativeFAQDraft = true
+    @State private var aiBotProactiveHintsEnabledDraft = true
+    @State private var aiBotTriggerAiLimitNearEnabledDraft = true
+    @State private var aiBotTriggerRestoreAvailableEnabledDraft = true
+    @State private var aiBotTriggerOrderShippedEnabledDraft = true
+    @State private var aiBotTriggerPaymentMethodsChangedEnabledDraft = true
+    @State private var aiBotTriggerUsageBasedUpgradeEnabledDraft = true
+    @State private var aiBotWarningThresholdPercentDraft = ""
+    @State private var aiBotCriticalThresholdPercentDraft = ""
+    @State private var aiBotUpgradeHintFreeToProTextDraft = ""
+    @State private var aiBotUpgradeHintProToCreatorTextDraft = ""
+    @State private var aiBotFaqPriorityModeDraft = "live_owner_generic"
+    @State private var aiBotPromptVersionAliasDraft = ""
+    @State private var aiFaqReviewLoopWindowDays = 30
     @State private var aiAgentProviderDraft: AIRuntimeAgentProvider = .grok
     @State private var aiFallbackAgentProviderDraft: AIRuntimeAgentProvider = .gemini
     @State private var aiManusEnabledDraft = false
@@ -2275,23 +2317,29 @@ struct SettingsView: View {
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                    HStack(spacing: 10) {
-                        SettingsBadge(
-                            text: "Text \(aiTextInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
-                            colorScheme: effectiveColorScheme
-                        )
-                        SettingsBadge(
-                            text: "Visual \(aiVisualInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
-                            colorScheme: effectiveColorScheme
-                        )
-                        SettingsBadge(
-                            text: "Agent \(aiAgentSystemInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
-                            colorScheme: effectiveColorScheme
-                        )
-                        SettingsBadge(
-                            text: aiAssetLibraryLinkDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Assets aus" : "Assets aktiv",
-                            colorScheme: effectiveColorScheme
-                        )
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            SettingsBadge(
+                                text: "Text \(aiTextInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: "Visual \(aiVisualInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: "Agent \(aiAgentSystemInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: "FAQ \(aiFAQInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: aiAssetLibraryLinkDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Assets aus" : "Assets aktiv",
+                                colorScheme: effectiveColorScheme
+                            )
+                        }
                     }
 
                     SettingsMultilineInputField(
@@ -2316,6 +2364,22 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme,
                         placeholder: "Globale Systemrolle fuer den Agent.",
                         minHeight: 140
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "FAQ System-Anweisung",
+                        text: $aiFAQInstructionDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Globale Regel fuer ehrliche, klare FAQ- und Help-Antworten.",
+                        minHeight: 120
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "FAQ / Owner Knowledge",
+                        text: $aiFAQKnowledgeBaseDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Owner-definierte Fragen, Produktwissen, Help-Center-Fakten, Membership-Hinweise, Shipping-/Support-Regeln.",
+                        minHeight: 160
                     )
 
                     SettingsInputField(
@@ -2353,24 +2417,356 @@ struct SettingsView: View {
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                    Text("Agent: Gemini oder Manus — Server-Limits.")
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("FAQ Review Loop (30d)")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(AppColors.text(for: effectiveColorScheme))
+                            Spacer()
+                            if aiFaqOwnerReviewLoopStore.isLoading {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Button("Aktualisieren") {
+                                    Task { await aiFaqOwnerReviewLoopStore.refresh(windowDays: aiFaqReviewLoopWindowDays) }
+                                }
+                                .font(.caption.weight(.semibold))
+                            }
+                        }
+                        .padding(.top, 2)
+                        if let actionMessage = aiFaqOwnerReviewLoopStore.lastActionMessage, !actionMessage.isEmpty {
+                            Text(actionMessage)
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                        }
+                        if let metricsSnapshot = aiFaqOwnerReviewLoopStore.lastMetricsSnapshot, !metricsSnapshot.isEmpty {
+                            Text(metricsSnapshot)
+                                .font(.caption2)
+                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                        }
+
+                        if let errorMessage = aiFaqOwnerReviewLoopStore.lastErrorMessage, !errorMessage.isEmpty {
+                            Text("Review Loop konnte nicht geladen werden: \(errorMessage)")
+                                .font(.footnote)
+                                .foregroundColor(.red)
+                        } else {
+                            HStack(spacing: 8) {
+                                SettingsBadge(text: "Strong \(aiFaqOwnerReviewLoopStore.strongestTriggers.count)", colorScheme: effectiveColorScheme)
+                                SettingsBadge(text: "Weak \(aiFaqOwnerReviewLoopStore.weakTriggers.count)", colorScheme: effectiveColorScheme)
+                                SettingsBadge(text: "Useless \(aiFaqOwnerReviewLoopStore.likelyUselessTriggers.count)", colorScheme: effectiveColorScheme)
+                                SettingsBadge(text: "Repeat \(aiFaqOwnerReviewLoopStore.repeatHeavyTopics.count)", colorScheme: effectiveColorScheme)
+                            }
+                            .padding(.bottom, 2)
+
+                            if let topStrong = aiFaqOwnerReviewLoopStore.strongestTriggers.first {
+                                Text("Strongest Trigger: \(topStrong.triggerKey) · Conv \(Int(topStrong.conversionRate * 100))% · Repeat \(Int(topStrong.repeatRate * 100))%")
+                                    .font(.footnote)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                            }
+                            if let topWeak = aiFaqOwnerReviewLoopStore.weakTriggers.first {
+                                Text("Weak Trigger: \(topWeak.triggerKey) · Conv \(Int(topWeak.conversionRate * 100))% · Repeat \(Int(topWeak.repeatRate * 100))%")
+                                    .font(.footnote)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                            }
+                            if let topRepeat = aiFaqOwnerReviewLoopStore.repeatHeavyTopics.first {
+                                Text("Repeat-Heavy Topic: \(topRepeat.key) (\(topRepeat.value)x, \(Int(topRepeat.share * 100))%)")
+                                    .font(.footnote)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                            }
+
+                            ForEach(aiFaqOwnerReviewLoopStore.strategyInsights.prefix(3)) { insight in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(insight.title)
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+                                    Text(insight.summary)
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                                    Text("Erwartete Wirkung: \(insight.expectedImpact)")
+                                        .font(.caption2)
+                                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                                }
+                                .padding(10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(AppColors.cardBackground(for: effectiveColorScheme))
+                                )
+                            }
+
+                            ForEach(aiFaqOwnerReviewLoopStore.recommendations.prefix(3)) { recommendation in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(recommendation.title)
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+                                    Text(recommendation.summary)
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                                    Text("Action: \(recommendation.actionType) · Target: \(recommendation.targetField) · Suggest: \(recommendation.suggestedValueLabel)")
+                                        .font(.caption2)
+                                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                                    HStack(spacing: 8) {
+                                        Button("Preview") {
+                                            Task {
+                                                let message = await aiFaqOwnerReviewLoopStore.preview(
+                                                    recommendation: recommendation,
+                                                    windowDays: aiFaqReviewLoopWindowDays
+                                                )
+                                                showToastMessage(message, style: .info)
+                                            }
+                                        }
+                                        .font(.caption.weight(.semibold))
+                                        .buttonStyle(.bordered)
+
+                                        Button("Apply") {
+                                            Task {
+                                                let message = await aiFaqOwnerReviewLoopStore.apply(
+                                                    recommendation: recommendation,
+                                                    windowDays: aiFaqReviewLoopWindowDays
+                                                )
+                                                showToastMessage(message, style: message.contains("blockiert") ? .warning : .success)
+                                            }
+                                        }
+                                        .font(.caption.weight(.semibold))
+                                        .buttonStyle(.borderedProminent)
+                                    }
+                                }
+                                .padding(10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(AppColors.cardBackground(for: effectiveColorScheme))
+                                )
+                            }
+                            Button("Revert Last Change") {
+                                Task {
+                                    let message = await aiFaqOwnerReviewLoopStore.revertLastChange(windowDays: aiFaqReviewLoopWindowDays)
+                                    showToastMessage(message, style: message.contains("revert") ? .success : .info)
+                                }
+                            }
+                            .font(.caption.weight(.semibold))
+                            .buttonStyle(.bordered)
+                        }
+                    }
+
+                    Text("Bot-Core + Agent-Provider — gleiche Governance fuer iOS und Android.")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                    HStack(spacing: 10) {
-                        SettingsBadge(
-                            text: "Provider \(aiAgentProviderDraft.displayTitle)",
-                            colorScheme: effectiveColorScheme
-                        )
-                        SettingsBadge(
-                            text: aiCostGuardEnabledDraft ? "Kosten-Guard an" : "Kosten-Guard aus",
-                            colorScheme: effectiveColorScheme
-                        )
-                        SettingsBadge(
-                            text: aiManusEnabledDraft ? "Manus aktiv" : "Manus aus",
-                            colorScheme: effectiveColorScheme
-                        )
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            SettingsBadge(
+                                text: aiBotPromptVersionDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Prompt v?" : aiBotPromptVersionDraft,
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: "FAQ \(aiBotFAQModeDraft)",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: "Qualitaet \(aiBotQualityModeDraft)",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: "Provider \(aiAgentProviderDraft.displayTitle)",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: aiCostGuardEnabledDraft ? "Kosten-Guard an" : "Kosten-Guard aus",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: aiManusEnabledDraft ? "Manus aktiv" : "Manus aus",
+                                colorScheme: effectiveColorScheme
+                            )
+                        }
                     }
+
+                    Text("Bot Core (`adminConfig/aiRuntime.bot`)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                    SettingsInputField(
+                        title: "Prompt Version",
+                        text: $aiBotPromptVersionDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "bot-max-v1"
+                    )
+
+                    SettingsInputField(
+                        title: "AI Personality Stil",
+                        text: $aiBotPersonalityStyleDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "z. B. calm_precise"
+                    )
+
+                    SettingsInputField(
+                        title: "Logging Level",
+                        text: $aiBotLoggingLevelDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "standard / verbose"
+                    )
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        SettingsFieldTitle(title: "Quality Mode", colorScheme: effectiveColorScheme)
+                        Picker("Quality Mode", selection: $aiBotQualityModeDraft) {
+                            Text("Balanced").tag("balanced")
+                            Text("High").tag("high")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        SettingsFieldTitle(title: "FAQ Mode", colorScheme: effectiveColorScheme)
+                        Picker("FAQ Mode", selection: $aiBotFAQModeDraft) {
+                            Text("Off").tag("off")
+                            Text("Auto").tag("auto")
+                            Text("Prefer").tag("prefer_faq")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        SettingsFieldTitle(title: "Owner Mode", colorScheme: effectiveColorScheme)
+                        Picker("Owner Mode", selection: $aiBotOwnerModeDraft) {
+                            Text("Standard").tag("standard")
+                            Text("Diagnostic").tag("diagnostic")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        SettingsFieldTitle(title: "Antwortlaenge", colorScheme: effectiveColorScheme)
+                        Picker("Antwortlaenge", selection: $aiBotAnswerLengthDraft) {
+                            Text("Adaptive").tag("adaptive")
+                            Text("Kurz").tag("short")
+                            Text("Tief").tag("detailed")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        SettingsFieldTitle(title: "Diagnostics", colorScheme: effectiveColorScheme)
+                        Picker("Diagnostics", selection: $aiBotDiagnosticsModeDraft) {
+                            Text("Off").tag("off")
+                            Text("Owner").tag("owner_only")
+                            Text("Verbose").tag("verbose")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    Toggle("Kill Switch aktiv", isOn: $aiBotKillSwitchDraft)
+                    Toggle("Bot Cost Guard aktiv", isOn: $aiBotCostGuardEnabledDraft)
+                    Toggle("Kurze Antworten bei Critical Guard", isOn: $aiBotPreferBriefCriticalDraft)
+                    Toggle("FAQ priorisieren bei Topic-Match", isOn: $aiBotPreferFaqRoutingDraft)
+                    Toggle("Produkt-Guide fuer neue Nutzer bevorzugen", isOn: $aiBotPreferProductGuideDraft)
+                    Toggle("Visual-Generierung erlauben", isOn: $aiBotAllowVisualGenerationDraft)
+                    Toggle("Text-Fallback erlauben", isOn: $aiBotAllowTextFallbackDraft)
+                    Toggle("Visual-Fallback erlauben", isOn: $aiBotAllowVisualFallbackDraft)
+                    Toggle("Fallback-Grund anzeigen", isOn: $aiBotExposeFallbackReasonDraft)
+                    Toggle("Safe Mode aktiv", isOn: $aiBotSafeModeEnabledDraft)
+                    Toggle("Strenges Unknown-Handling", isOn: $aiBotStrictUnknownHandlingDraft)
+                    Toggle("Spekulative FAQ blocken", isOn: $aiBotBlockSpeculativeFAQDraft)
+                    Toggle("Proaktive Hinweise aktiv", isOn: $aiBotProactiveHintsEnabledDraft)
+                    Toggle("Trigger: AI-Limit fast erreicht", isOn: $aiBotTriggerAiLimitNearEnabledDraft)
+                    Toggle("Trigger: Restore verfuegbar", isOn: $aiBotTriggerRestoreAvailableEnabledDraft)
+                    Toggle("Trigger: Bestellung versendet", isOn: $aiBotTriggerOrderShippedEnabledDraft)
+                    Toggle("Trigger: Payment-Methode geaendert", isOn: $aiBotTriggerPaymentMethodsChangedEnabledDraft)
+                    Toggle("Trigger: Upgrade nach Nutzung", isOn: $aiBotTriggerUsageBasedUpgradeEnabledDraft)
+
+                    SettingsInputField(
+                        title: "Proaktiv Warning Threshold (%)",
+                        text: $aiBotWarningThresholdPercentDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "70",
+                        keyboardType: .numberPad
+                    )
+
+                    SettingsInputField(
+                        title: "Proaktiv Critical Threshold (%)",
+                        text: $aiBotCriticalThresholdPercentDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "90",
+                        keyboardType: .numberPad
+                    )
+
+                    SettingsInputField(
+                        title: "Upgrade Hint Free -> Pro",
+                        text: $aiBotUpgradeHintFreeToProTextDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Hint bei hoher Free-Nutzung"
+                    )
+
+                    SettingsInputField(
+                        title: "Upgrade Hint Pro -> Creator",
+                        text: $aiBotUpgradeHintProToCreatorTextDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Hint bei hoher Pro-Nutzung"
+                    )
+
+                    SettingsInputField(
+                        title: "Prompt Version Alias",
+                        text: $aiBotPromptVersionAliasDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "bot-max-v1"
+                    )
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        SettingsFieldTitle(title: "FAQ Prioritaet", colorScheme: effectiveColorScheme)
+                        Picker("FAQ Prioritaet", selection: $aiBotFaqPriorityModeDraft) {
+                            Text("Live -> Owner -> Generic").tag("live_owner_generic")
+                            Text("Owner -> Live -> Generic").tag("owner_live_generic")
+                            Text("Balanced").tag("balanced")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    SettingsInputField(
+                        title: "Text Primary Model",
+                        text: $aiBotTextPrimaryModelDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "gemini-2.5-flash-lite"
+                    )
+
+                    SettingsInputField(
+                        title: "Text Fallback Model",
+                        text: $aiBotTextFallbackModelDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "gemini-2.5-flash-lite"
+                    )
+
+                    SettingsInputField(
+                        title: "Visual Primary Model",
+                        text: $aiBotVisualPrimaryModelDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "gemini-2.5-flash-image"
+                    )
+
+                    SettingsInputField(
+                        title: "Visual Fallback Model",
+                        text: $aiBotVisualFallbackModelDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "imagen-3.0-generate-002"
+                    )
+
+                    SettingsInputField(
+                        title: "Short Answer Max Tokens",
+                        text: $aiBotShortAnswerMaxTokensDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "240",
+                        keyboardType: .numberPad
+                    )
+
+                    SettingsInputField(
+                        title: "Standard Answer Max Tokens",
+                        text: $aiBotStandardAnswerMaxTokensDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "768",
+                        keyboardType: .numberPad
+                    )
+
+                    Divider()
+                        .padding(.vertical, 4)
 
                     Toggle("Kosten-Guard aktiv", isOn: $aiCostGuardEnabledDraft)
 
@@ -2850,6 +3246,8 @@ struct SettingsView: View {
         aiTextInstructionDraft = settings.textInstruction
         aiVisualInstructionDraft = settings.visualInstruction
         aiAgentSystemInstructionDraft = settings.agentSystemInstruction
+        aiFAQInstructionDraft = settings.faqInstruction
+        aiFAQKnowledgeBaseDraft = settings.faqKnowledgeBase
         aiAssetLibraryLinkDraft = settings.assetLibraryLink
         aiAssetReferenceNotesDraft = settings.assetReferenceNotes
     }
@@ -2874,6 +3272,44 @@ struct SettingsView: View {
         aiGlobalTextLimitDraft = String(settings.globalDailyCaps.text)
         aiGlobalVisualLimitDraft = String(settings.globalDailyCaps.visual)
         aiGlobalAgentLimitDraft = String(settings.globalDailyCaps.agent)
+        aiBotPromptVersionDraft = settings.bot.promptVersion
+        aiBotQualityModeDraft = settings.bot.qualityMode
+        aiBotFAQModeDraft = settings.bot.faqMode
+        aiBotOwnerModeDraft = settings.bot.ownerMode
+        aiBotAnswerLengthDraft = settings.bot.answerLength
+        aiBotPersonalityStyleDraft = settings.bot.personalityStyle
+        aiBotLoggingLevelDraft = settings.bot.loggingLevel
+        aiBotDiagnosticsModeDraft = settings.bot.diagnosticsMode
+        aiBotKillSwitchDraft = settings.bot.killSwitchEnabled
+        aiBotTextPrimaryModelDraft = settings.bot.modelPolicy.textPrimaryModel
+        aiBotTextFallbackModelDraft = settings.bot.modelPolicy.textFallbackModel
+        aiBotVisualPrimaryModelDraft = settings.bot.modelPolicy.visualPrimaryModel
+        aiBotVisualFallbackModelDraft = settings.bot.modelPolicy.visualFallbackModel
+        aiBotCostGuardEnabledDraft = settings.bot.costGuard.enabled
+        aiBotPreferBriefCriticalDraft = settings.bot.costGuard.preferBriefAnswersWhenCritical
+        aiBotShortAnswerMaxTokensDraft = String(settings.bot.costGuard.shortAnswerMaxOutputTokens)
+        aiBotStandardAnswerMaxTokensDraft = String(settings.bot.costGuard.standardAnswerMaxOutputTokens)
+        aiBotPreferFaqRoutingDraft = settings.bot.routingPolicy.preferFaqWhenTopicMatched
+        aiBotPreferProductGuideDraft = settings.bot.routingPolicy.preferProductGuideForNewUsers
+        aiBotAllowVisualGenerationDraft = settings.bot.routingPolicy.allowVisualGeneration
+        aiBotAllowTextFallbackDraft = settings.bot.fallbackPolicy.allowTextFallback
+        aiBotAllowVisualFallbackDraft = settings.bot.fallbackPolicy.allowVisualFallback
+        aiBotExposeFallbackReasonDraft = settings.bot.fallbackPolicy.exposeFallbackReason
+        aiBotSafeModeEnabledDraft = settings.bot.safetyPolicy.safeModeEnabled
+        aiBotStrictUnknownHandlingDraft = settings.bot.safetyPolicy.strictUnknownHandling
+        aiBotBlockSpeculativeFAQDraft = settings.bot.safetyPolicy.blockSpeculativeFaqAnswers
+        aiBotProactiveHintsEnabledDraft = settings.bot.actionLayer.proactiveHintsEnabled
+        aiBotTriggerAiLimitNearEnabledDraft = settings.bot.actionLayer.triggerAiLimitNearEnabled
+        aiBotTriggerRestoreAvailableEnabledDraft = settings.bot.actionLayer.triggerRestoreAvailableEnabled
+        aiBotTriggerOrderShippedEnabledDraft = settings.bot.actionLayer.triggerOrderShippedEnabled
+        aiBotTriggerPaymentMethodsChangedEnabledDraft = settings.bot.actionLayer.triggerPaymentMethodsChangedEnabled
+        aiBotTriggerUsageBasedUpgradeEnabledDraft = settings.bot.actionLayer.triggerUsageBasedUpgradeEnabled
+        aiBotWarningThresholdPercentDraft = String(settings.bot.actionLayer.warningThresholdPercent)
+        aiBotCriticalThresholdPercentDraft = String(settings.bot.actionLayer.criticalThresholdPercent)
+        aiBotUpgradeHintFreeToProTextDraft = settings.bot.actionLayer.upgradeHintFreeToProText
+        aiBotUpgradeHintProToCreatorTextDraft = settings.bot.actionLayer.upgradeHintProToCreatorText
+        aiBotFaqPriorityModeDraft = settings.bot.actionLayer.faqPriorityMode
+        aiBotPromptVersionAliasDraft = settings.bot.actionLayer.promptVersionAlias
     }
 
     private func syncLegalContentDrafts(with settings: LegalContentSettings) {
@@ -2908,6 +3344,11 @@ struct SettingsView: View {
         )
         aiPromptSettingsStore.setObservationEnabled(shouldObserveAIPrompts)
         aiRuntimeSettingsStore.setObservationEnabled(shouldObserveAIPrompts)
+        if shouldObserveAIPrompts {
+            Task { await aiFaqOwnerReviewLoopStore.refresh(windowDays: aiFaqReviewLoopWindowDays) }
+        } else {
+            aiFaqOwnerReviewLoopStore.clear()
+        }
     }
 
     private func presentSheet(_ sheet: SettingsPresentedSheet) {
@@ -3197,6 +3638,8 @@ struct SettingsView: View {
             updated.textInstruction = aiTextInstructionDraft
             updated.visualInstruction = aiVisualInstructionDraft
             updated.agentSystemInstruction = aiAgentSystemInstructionDraft
+            updated.faqInstruction = aiFAQInstructionDraft
+            updated.faqKnowledgeBase = aiFAQKnowledgeBaseDraft
             updated.assetLibraryLink = aiAssetLibraryLinkDraft
             updated.assetReferenceNotes = aiAssetReferenceNotesDraft
 
@@ -3292,6 +3735,64 @@ struct SettingsView: View {
             updated.manus.autoStopOnWaiting = aiManusAutoStopOnWaitingDraft
             updated.manus.blockHighCreditEvents = aiManusBlockHighCreditEventsDraft
             updated.manus.includeVerboseEvents = aiManusIncludeVerboseEventsDraft
+            updated.bot.promptVersion = aiBotPromptVersionDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.bot.qualityMode = aiBotQualityModeDraft
+            updated.bot.faqMode = aiBotFAQModeDraft
+            updated.bot.ownerMode = aiBotOwnerModeDraft
+            updated.bot.answerLength = aiBotAnswerLengthDraft
+            updated.bot.personalityStyle = aiBotPersonalityStyleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.bot.loggingLevel = aiBotLoggingLevelDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.bot.diagnosticsMode = aiBotDiagnosticsModeDraft
+            updated.bot.killSwitchEnabled = aiBotKillSwitchDraft
+            updated.bot.modelPolicy.textPrimaryModel = aiBotTextPrimaryModelDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.bot.modelPolicy.textFallbackModel = aiBotTextFallbackModelDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.bot.modelPolicy.visualPrimaryModel = aiBotVisualPrimaryModelDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.bot.modelPolicy.visualFallbackModel = aiBotVisualFallbackModelDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.bot.costGuard.enabled = aiBotCostGuardEnabledDraft
+            updated.bot.costGuard.preferBriefAnswersWhenCritical = aiBotPreferBriefCriticalDraft
+            updated.bot.costGuard.shortAnswerMaxOutputTokens = parseIntegerDraft(
+                aiBotShortAnswerMaxTokensDraft,
+                fallback: updated.bot.costGuard.shortAnswerMaxOutputTokens,
+                min: 80,
+                max: 1_200
+            )
+            updated.bot.costGuard.standardAnswerMaxOutputTokens = parseIntegerDraft(
+                aiBotStandardAnswerMaxTokensDraft,
+                fallback: updated.bot.costGuard.standardAnswerMaxOutputTokens,
+                min: 120,
+                max: 2_400
+            )
+            updated.bot.routingPolicy.preferFaqWhenTopicMatched = aiBotPreferFaqRoutingDraft
+            updated.bot.routingPolicy.preferProductGuideForNewUsers = aiBotPreferProductGuideDraft
+            updated.bot.routingPolicy.allowVisualGeneration = aiBotAllowVisualGenerationDraft
+            updated.bot.fallbackPolicy.allowTextFallback = aiBotAllowTextFallbackDraft
+            updated.bot.fallbackPolicy.allowVisualFallback = aiBotAllowVisualFallbackDraft
+            updated.bot.fallbackPolicy.exposeFallbackReason = aiBotExposeFallbackReasonDraft
+            updated.bot.safetyPolicy.safeModeEnabled = aiBotSafeModeEnabledDraft
+            updated.bot.safetyPolicy.strictUnknownHandling = aiBotStrictUnknownHandlingDraft
+            updated.bot.safetyPolicy.blockSpeculativeFaqAnswers = aiBotBlockSpeculativeFAQDraft
+            updated.bot.actionLayer.proactiveHintsEnabled = aiBotProactiveHintsEnabledDraft
+            updated.bot.actionLayer.triggerAiLimitNearEnabled = aiBotTriggerAiLimitNearEnabledDraft
+            updated.bot.actionLayer.triggerRestoreAvailableEnabled = aiBotTriggerRestoreAvailableEnabledDraft
+            updated.bot.actionLayer.triggerOrderShippedEnabled = aiBotTriggerOrderShippedEnabledDraft
+            updated.bot.actionLayer.triggerPaymentMethodsChangedEnabled = aiBotTriggerPaymentMethodsChangedEnabledDraft
+            updated.bot.actionLayer.triggerUsageBasedUpgradeEnabled = aiBotTriggerUsageBasedUpgradeEnabledDraft
+            updated.bot.actionLayer.warningThresholdPercent = parseIntegerDraft(
+                aiBotWarningThresholdPercentDraft,
+                fallback: updated.bot.actionLayer.warningThresholdPercent,
+                min: 50,
+                max: 99
+            )
+            updated.bot.actionLayer.criticalThresholdPercent = parseIntegerDraft(
+                aiBotCriticalThresholdPercentDraft,
+                fallback: updated.bot.actionLayer.criticalThresholdPercent,
+                min: 60,
+                max: 100
+            )
+            updated.bot.actionLayer.upgradeHintFreeToProText = aiBotUpgradeHintFreeToProTextDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.bot.actionLayer.upgradeHintProToCreatorText = aiBotUpgradeHintProToCreatorTextDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.bot.actionLayer.faqPriorityMode = aiBotFaqPriorityModeDraft
+            updated.bot.actionLayer.promptVersionAlias = aiBotPromptVersionAliasDraft.trimmingCharacters(in: .whitespacesAndNewlines)
 
             do {
                 try await aiRuntimeSettingsStore.save(updated)

@@ -160,10 +160,25 @@ const DEFAULT_COMMERCE_SETTINGS = Object.freeze({
     euCost: 6.90,
     internationalCost: 11.90,
     freeShippingThreshold: 89.0,
+    shippingNotes: "",
   },
   invoice: {
+    companyName: "Skydown OS",
+    companyAddress: "",
+    taxNumber: "",
+    vatId: "",
     taxRate: 19.0,
+    invoicePrefix: "SD",
+    supportEmail: "skydownent@gmail.com",
   },
+});
+const DEFAULT_LEGAL_CONTENT_SETTINGS = Object.freeze({
+  brandName: "SkyOS",
+  operatorName: "Skydown OS",
+  rightsHolderName: "Skydown OS",
+  supportEmail: "skydownent@gmail.com",
+  lastUpdatedLabel: "20. April 2026",
+  imprintReference: "Anbieter: Skydown OS · Erich-Plate-Weg 44 · 22419 Hamburg · DE · skydownent@gmail.com",
 });
 const EU_COUNTRY_CODES = new Set([
   "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU",
@@ -192,7 +207,7 @@ const agentFlowRequestSchema = agentRequestSchema.omit({
 
 const aiTextRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(12000),
-  mode: z.enum(["general", "caption", "release_plan", "briefing", "merch_copy", "video_concept"]).default("general"),
+  mode: z.enum(["general", "faq", "caption", "release_plan", "briefing", "merch_copy", "video_concept"]).default("general"),
 });
 
 const aiVisualRequestSchema = z.object({
@@ -229,6 +244,22 @@ Liefere neben dem Bild nur eine kurze Ein-Zeilen-Beschreibung des Looks.
 Antworte auf Deutsch.
 `.trim();
 
+const DEFAULT_AI_FAQ_INSTRUCTION = `
+Du bist der SkyOS FAQ Core.
+Deine Aufgabe ist nicht kreatives Schreiben, sondern praezise, ehrliche, vertrauenswuerdige Hilfe.
+
+Arbeitsregeln:
+- Antworte klar, ruhig und konkret.
+- Nutze zuerst die bereitgestellten Fakten und Produktregeln.
+- Wenn eine Information nicht in den Fakten steht, sage klar "Das weiss ich gerade nicht sicher."
+- Erfinde keine Policies, Preise, Versandzeiten, Account-Regeln oder Membership-Rechte.
+- Wenn sinnvoll, gib eine kurze Antwort zuerst und danach optional 2 bis 4 hilfreiche Punkte.
+- Wenn die Frage eher Support, Debug oder Kontakt braucht, sage den naechsten sinnvollen Schritt statt zu halluzinieren.
+- Wenn die Frage nach App-Nutzung, Membership, Login, Orders, Datenschutz, AI oder Help klingt, behandle sie als FAQ-/Help-Anfrage.
+- Prioritaet fuer Fakten: 1) Live Facts aus dem System, 2) Owner Knowledge, 3) vorsichtige generische Hilfe.
+- Antworte auf Deutsch.
+`.trim();
+
 const AI_VISUAL_PHOTOGRAPHY_DIRECTION = `
 Wenn die Anfrage wie ein Foto, Portrait, Street-Shot, Editorial, Produktfoto oder realistischer Kamera-Frame wirkt:
 - Inszeniere das Motiv wie ein hochwertiges Filmstill oder Editorial-Foto, nicht wie generische AI-Art.
@@ -259,10 +290,183 @@ Wenn Infos fehlen, triff sinnvolle Annahmen und kennzeichne sie kurz. Frage nur 
 Bevorzuge kurze klare Abschnitte wie Ziel, Deliverables, Schritte, Timing, Assets, Risiken, Naechste Schritte.
 `.trim();
 
+const DEFAULT_AI_FAQ_KNOWLEDGE_BASE = `
+SkyOS FAQ Knowledge Base v2
+
+Grundprinzip:
+- Ziel ist echte Hilfe, nicht Marketing-Blabla.
+- Keine erfundenen Preise, Fristen, Versandversprechen, Rechtsaussagen oder Entitlements.
+- Wenn ein Fakt fehlt: klar sagen, dass er nicht sicher vorliegt, und den naechsten sinnvollen Schritt nennen.
+- Bei Membership, Checkout, Restore, Orders, AI-Limits und Legal immer zuerst Live Facts nutzen.
+
+Schnellfakten:
+- SkyOS verbindet Home, AI, Music, Video, Shop, Profile und Settings.
+- Bot: schnelle Hilfe, FAQ, Copy und Ideen.
+- Agent: strukturierte Aufgaben, Planung, Briefings und Workflows.
+- Membership ist faehigkeitsbasiert und kein Token-Shop.
+- Kaeufe und Restore koennen kurze Synchronisierungszeit brauchen.
+- Support: skydownent@gmail.com
+- Betreiberhinweis: Skydown OS, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland.
+
+Kernfragen mit Zielantworten:
+
+[Einstieg / Getting Started]
+Q1: Was ist SkyOS in einem Satz?
+A1: SkyOS ist eine Creator-App, die AI, Media und Commerce in einem Flow verbindet.
+
+Q2: Wie starte ich am besten als neuer Nutzer?
+A2: Melde dich zuerst an, oeffne Home zur Orientierung und starte dann mit einer klaren Frage im Bot.
+
+Q3: Wo sehe ich, was ich als naechstes tun soll?
+A3: Nutze Home fuer Einstieg und wechsel dann gezielt in AI, Shop, Music oder Video.
+
+Q4: Ist SkyOS eher fuer Creator oder normale Nutzer?
+A4: Beides ist moeglich; Creator profitieren besonders von AI- und Workflow-Funktionen.
+
+[Login / Account]
+Q5: Ich komme nicht rein. Was pruefe ich zuerst?
+A5: Verbindung pruefen, App neu oeffnen, erneut anmelden und danach Login-Methode kontrollieren.
+
+Q6: Was tun, wenn Login weiter fehlschlaegt?
+A6: Support mit Konto-E-Mail, Plattform, Uhrzeit und Screenshot kontaktieren.
+
+Q7: Warum sehe ich manche Bereiche nicht?
+A7: Meist fehlen Rolle, Freigabe oder ein aktives Entitlement.
+
+Q8: Wird mein Verlauf beim Account-Wechsel behalten?
+A8: Verlauf ist kontoabhaengig; bei Wechsel ist anderer Kontext sichtbar.
+
+[Membership / Abo / Restore]
+Q9: Welche Membership habe ich?
+A9: Der Plan soll aus Live Entitlements gelesen werden, nicht aus rein lokalem UI-Status.
+
+Q10: Welche Membership passt zu mir?
+A10: Free fuer Einstieg, Pro fuer regelmaessigen Creator-Flow, Creator fuer tiefere Workflows und Prioritaet.
+
+Q11: Warum lohnt sich ein Upgrade?
+A11: Ein Upgrade reduziert Reibung bei Limits und schaltet staerkere AI-Nutzung fuer echte Produktionsarbeit frei.
+
+Q12: Wie restore ich mein Abo?
+A12: Restore im Membership-Bereich ausloesen und kurz auf Synchronisierung warten.
+
+Q13: Restore klappt nicht. Was dann?
+A13: Store-Account pruefen, App neu starten, erneut Restore; danach Support mit Konto und Zeitstempel.
+
+Q14: Wie kuendige ich mein Abo?
+A14: Kuendigung laeuft ueber den jeweiligen Store-/Abo-Manager, nicht direkt im Chat.
+
+Q15: Wird beim Upgrade sofort umgestellt?
+A15: In der Regel ja, aber die Entitlement-Sync kann kurz dauern.
+
+[AI Features / Limits / Freischaltung]
+Q16: Warum ist AI gesperrt?
+A16: Haeufige Gruende sind fehlende Freigabe, Rolle, Entitlement oder ein aktiver Sicherheits-/Runtime-Block.
+
+Q17: Warum kann ich gerade nichts mehr senden?
+A17: Wahrscheinlich ist ein Tageslimit oder Cost Guard erreicht; Bot soll den Grund lesbar nennen.
+
+Q18: Was ist der Unterschied zwischen Bot und Agent?
+A18: Bot fuer schnelle Antworten, Agent fuer strukturierte laengere Aufgaben.
+
+Q19: Warum ist eine Antwort kuerzer als erwartet?
+A19: Bei aktivem Cost Guard oder knappem Limit kann die Antwort bewusst verkuerzt werden.
+
+Q20: Welche Prompts geben bessere Ergebnisse?
+A20: Klare Ziele, gewuenschter Stil, Format, Plattform und Tiefe in einem Satz helfen am meisten.
+
+[Merch / Bestellung / Versand]
+Q21: Wo ist meine Bestellung?
+A21: Im Order-Bereich den Live-Status pruefen; ohne Orderdaten keine Versandprognose erfinden.
+
+Q22: Wann kommt meine Bestellung an?
+A22: Nur konkrete ETA nennen, wenn Live Versanddaten verfuegbar sind.
+
+Q23: Ist Versand kostenlos?
+A23: Nur beantworten, wenn Commerce-/Checkout-Facts es klar zeigen; sonst offen als unbekannt markieren.
+
+Q24: Kann ich Bestellung oder Adresse nachtraeglich aendern?
+A24: Das haengt vom Orderstatus und Shop-Prozess ab; ohne Fakt keine feste Zusage geben.
+
+Q25: Warum sehe ich keine Trackingnummer?
+A25: Tracking erscheint erst, wenn Versanddaten vom Fulfillment vorliegen.
+
+[Zahlungsarten / Checkout]
+Q26: Welche Zahlungsarten gibt es?
+A26: Nur die aktuell verfuegbaren Payment Methods aus Live Facts nennen.
+
+Q27: Checkout ist fehlgeschlagen. Was jetzt?
+A27: Nicht mehrfach triggern, kurz warten, dann erneut versuchen und bei Fehlercode Support kontaktieren.
+
+Q28: Wurde ich doppelt belastet?
+A28: Erst Order-/Payment-Status pruefen; bei Unsicherheit Zahlungsreferenz und Zeitstempel an Support senden.
+
+Q29: Warum ist meine Zahlung pending?
+A29: Je nach Provider kann Autorisierung und Bestaetigung verzoegert eintreffen.
+
+[Datenschutz / AGB / Hilfe]
+Q30: Welche Daten speichert SkyOS?
+A30: Nur bestaetigte Datenkategorien nennen; falls Legal Content fehlt, klar als nicht sicher markieren.
+
+Q31: Wo finde ich Datenschutz und AGB?
+A31: Im Legal-/Settings-Bereich; bei fehlender Anzeige Support kontaktieren.
+
+Q32: Gibt SkyOS Daten an Dritte weiter?
+A32: Nur nach legal bestaetigten Inhalten beantworten, keine Vermutungen.
+
+Q33: Welche Daten soll ich nicht in den Bot schreiben?
+A33: Keine Passwoerter, Private Keys, volle Kartendaten oder sensible Fremddaten.
+
+[App Nutzung / Features]
+Q34: Wie nutze ich SkyOS effizient im Alltag?
+A34: Mit klarem Tagesziel starten, Bot fuer schnelle Aufgaben nutzen und Agent fuer tiefe Ausarbeitung.
+
+Q35: Kann ich SkyOS auch nur fuer Content-Ideen nutzen?
+A35: Ja, Bot eignet sich genau fuer schnelle Hooks, Captions und kreative Varianten.
+
+Q36: Warum unterscheidet sich Antwortqualitaet manchmal?
+A36: Modus, Promptqualitaet, Runtime-Limits und verfuegbare Fakten beeinflussen die Ausgabe.
+
+[Creator / Owner]
+Q37: Wie kann Owner eigenes FAQ-Wissen hinterlegen?
+A37: Ueber FAQ / Owner Knowledge in den Prompt-Settings, damit Bot auf reale Owner-Fakten zugreift.
+
+Q38: Was passiert ohne Owner-Eintrag?
+A38: Dann nutzt der Bot nur Standardwissen und Live Facts, ohne Owner-Regeln zu erfinden.
+
+Q39: Kann ich FAQ-Antworten markenspezifisch steuern?
+A39: Ja, ueber FAQ Instruction und Owner Knowledge, solange Fakten korrekt bleiben.
+
+[Vertrauen / Sicherheit]
+Q40: Warum sollte ich der FAQ vertrauen?
+A40: Weil sie unbekannte Punkte offen kennzeichnet und keine Policies halluziniert.
+
+Q41: Wann soll ich direkt Support kontaktieren?
+A41: Bei Login-Blockern, Restore-Problemen, fehlgeschlagenem Checkout, unklaren Orders oder rechtlichen Fragen.
+
+Q42: Was braucht Support fuer schnelle Loesung?
+A42: Konto-E-Mail, Plattform, betroffener Bereich, Zeitpunkt, Screenshot und ggf. Referenznummer.
+
+[Revenue-orientierte, aber faire Hilfe]
+Q43: Warum lohnt sich Creator oder Pro ohne Hard-Sell?
+A43: Wenn AI Teil deines Workflows ist, sparen hoehere Plaene Zeit, Abbrueche und Kontextwechsel.
+
+Q44: Ich bin unsicher beim Upgrade - was ist die sichere Empfehlung?
+A44: Mit dem kleineren passenden Plan starten, Nutzung beobachten und bei Bedarf spaeter hochstufen.
+
+Q45: Wie antworte ich auf "zu teuer" fair?
+A45: Transparent auf Nutzen und Arbeitsersparnis verweisen, nie Druck aufbauen.
+
+[Owner definierte Fragen]
+- Owner-spezifisches FAQ-Wissen kann zusaetzlich im Feld FAQ / Owner Knowledge hinterlegt werden.
+- Wenn dort nichts hinterlegt ist, darf der Bot keine erfundenen Owner-Regeln behaupten.
+`.trim();
+
 const DEFAULT_AI_PROMPT_SETTINGS = Object.freeze({
   textInstruction: DEFAULT_AI_TEXT_INSTRUCTION,
   visualInstruction: DEFAULT_AI_VISUAL_INSTRUCTION,
   agentSystemInstruction: DEFAULT_AGENT_SYSTEM_PROMPT,
+  faqInstruction: DEFAULT_AI_FAQ_INSTRUCTION,
+  faqKnowledgeBase: DEFAULT_AI_FAQ_KNOWLEDGE_BASE,
   assetLibraryLink: "",
   assetReferenceNotes: "",
 });
@@ -304,6 +508,7 @@ const AI_ACCESS_MODES = {
 
 const AI_TEXT_MODES = {
   general: "general",
+  faq: "faq",
   caption: "caption",
   releasePlan: "release_plan",
   briefing: "briefing",
@@ -343,7 +548,9 @@ const AI_USAGE_METRICS_DOCUMENT_PREFIX = "aiUsageDaily_";
 const AI_USAGE_MONTHLY_METRICS_DOCUMENT_PREFIX = "aiUsageMonthly_";
 const AI_USAGE_EVENTS_COLLECTION = "aiUsageEvents";
 const AI_MEMBERSHIP_EVENTS_COLLECTION = "aiMembershipEvents";
+const AI_FAQ_INTELLIGENCE_DAILY_COLLECTION = "aiFaqIntelligenceDaily";
 const AI_MEMBERSHIP_RECOMMENDATION_LIFECYCLE_COLLECTION = "recommendationLifecycle";
+const AI_FAQ_REVIEW_CHANGE_LOG_COLLECTION = "aiFaqReviewChangeLog";
 const AI_GUARDRAILS_COLLECTION = "guardrails";
 const AI_GUARDRAILS_DAILY_BURN_PREFIX = "aiDailyBurn_";
 const AI_ENTITLEMENTS_SUBCOLLECTION = "entitlements";
@@ -456,6 +663,58 @@ const DEFAULT_AI_RUNTIME_SETTINGS = Object.freeze({
     autoStopOnWaiting: true,
     blockHighCreditEvents: true,
     includeVerboseEvents: false,
+  },
+  bot: {
+    promptVersion: "bot-max-v1",
+    qualityMode: "balanced",
+    faqMode: "auto",
+    ownerMode: "standard",
+    answerLength: "adaptive",
+    personalityStyle: "calm_precise",
+    loggingLevel: "standard",
+    diagnosticsMode: "owner_only",
+    killSwitchEnabled: false,
+    modelPolicy: {
+      textPrimaryModel: "gemini-2.5-flash-lite",
+      textFallbackModel: "gemini-2.5-flash-lite",
+      visualPrimaryModel: "gemini-2.5-flash-image",
+      visualFallbackModel: "imagen-3.0-generate-002",
+    },
+    costGuard: {
+      enabled: true,
+      preferBriefAnswersWhenCritical: true,
+      shortAnswerMaxOutputTokens: 240,
+      standardAnswerMaxOutputTokens: 768,
+    },
+    routingPolicy: {
+      preferFaqWhenTopicMatched: true,
+      preferProductGuideForNewUsers: true,
+      allowVisualGeneration: true,
+    },
+    fallbackPolicy: {
+      allowTextFallback: true,
+      allowVisualFallback: true,
+      exposeFallbackReason: true,
+    },
+    safetyPolicy: {
+      safeModeEnabled: true,
+      strictUnknownHandling: true,
+      blockSpeculativeFaqAnswers: true,
+    },
+    actionLayer: {
+      proactiveHintsEnabled: true,
+      triggerAiLimitNearEnabled: true,
+      triggerRestoreAvailableEnabled: true,
+      triggerOrderShippedEnabled: true,
+      triggerPaymentMethodsChangedEnabled: true,
+      triggerUsageBasedUpgradeEnabled: true,
+      warningThresholdPercent: 70,
+      criticalThresholdPercent: 90,
+      upgradeHintFreeToProText: "Deine Nutzung ist hoch. Ein Upgrade auf Pro reduziert Abbrueche durch Limits.",
+      upgradeHintProToCreatorText: "Deine Nutzung ist hoch. Creator kann dir mehr Workflow-Tiefe und Reserve geben.",
+      faqPriorityMode: "live_owner_generic",
+      promptVersionAlias: "bot-max-v1",
+    },
   },
 });
 
@@ -1111,6 +1370,14 @@ function resolveAiPromptSettings(data = {}) {
         data.agentSystemInstruction,
         DEFAULT_AI_PROMPT_SETTINGS.agentSystemInstruction,
     ),
+    faqInstruction: normalizeAiPromptSetting(
+        data.faqInstruction,
+        DEFAULT_AI_PROMPT_SETTINGS.faqInstruction,
+    ),
+    faqKnowledgeBase: normalizeAiPromptSetting(
+        data.faqKnowledgeBase,
+        DEFAULT_AI_PROMPT_SETTINGS.faqKnowledgeBase,
+    ),
     assetLibraryLink: normalizeUrlString(data.assetLibraryLink) || "",
     assetReferenceNotes: normalizeAiPromptSetting(
         data.assetReferenceNotes,
@@ -1358,6 +1625,440 @@ function membershipHygieneProfile(hygiene = {}) {
   return "balanced";
 }
 
+function resolveBotSettingValue(value, fallback, allowedValues) {
+  const normalized = nonEmptyString(value)?.toLowerCase();
+  if (normalized && allowedValues.includes(normalized)) {
+    return normalized;
+  }
+  return fallback;
+}
+
+function resolveBotStringSetting(value, fallback, maxChars = 120) {
+  const normalized = nonEmptyString(value);
+  if (!normalized) {
+    return fallback;
+  }
+  return normalized.slice(0, maxChars);
+}
+
+function resolveAiBotModelPolicy(raw) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  return {
+    textPrimaryModel: resolveBotStringSetting(
+        source.textPrimaryModel,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.modelPolicy.textPrimaryModel,
+        120,
+    ),
+    textFallbackModel: resolveBotStringSetting(
+        source.textFallbackModel,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.modelPolicy.textFallbackModel,
+        120,
+    ),
+    visualPrimaryModel: resolveBotStringSetting(
+        source.visualPrimaryModel,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.modelPolicy.visualPrimaryModel,
+        120,
+    ),
+    visualFallbackModel: resolveBotStringSetting(
+        source.visualFallbackModel,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.modelPolicy.visualFallbackModel,
+        120,
+    ),
+  };
+}
+
+function resolveAiBotCostGuard(raw) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  return {
+    enabled: source.enabled !== false,
+    preferBriefAnswersWhenCritical: source.preferBriefAnswersWhenCritical !== false,
+    shortAnswerMaxOutputTokens: clampIntegerSetting(
+        source.shortAnswerMaxOutputTokens,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.costGuard.shortAnswerMaxOutputTokens,
+        80,
+        1200,
+    ),
+    standardAnswerMaxOutputTokens: clampIntegerSetting(
+        source.standardAnswerMaxOutputTokens,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.costGuard.standardAnswerMaxOutputTokens,
+        120,
+        2400,
+    ),
+  };
+}
+
+function resolveAiBotRoutingPolicy(raw) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  return {
+    preferFaqWhenTopicMatched: source.preferFaqWhenTopicMatched !== false,
+    preferProductGuideForNewUsers: source.preferProductGuideForNewUsers !== false,
+    allowVisualGeneration: source.allowVisualGeneration !== false,
+  };
+}
+
+function resolveAiBotFallbackPolicy(raw) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  return {
+    allowTextFallback: source.allowTextFallback !== false,
+    allowVisualFallback: source.allowVisualFallback !== false,
+    exposeFallbackReason: source.exposeFallbackReason !== false,
+  };
+}
+
+function resolveAiBotSafetyPolicy(raw) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  return {
+    safeModeEnabled: source.safeModeEnabled !== false,
+    strictUnknownHandling: source.strictUnknownHandling !== false,
+    blockSpeculativeFaqAnswers: source.blockSpeculativeFaqAnswers !== false,
+  };
+}
+
+function resolveAiBotActionLayer(raw) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  return {
+    proactiveHintsEnabled: source.proactiveHintsEnabled !== false,
+    triggerAiLimitNearEnabled: source.triggerAiLimitNearEnabled !== false,
+    triggerRestoreAvailableEnabled: source.triggerRestoreAvailableEnabled !== false,
+    triggerOrderShippedEnabled: source.triggerOrderShippedEnabled !== false,
+    triggerPaymentMethodsChangedEnabled: source.triggerPaymentMethodsChangedEnabled !== false,
+    triggerUsageBasedUpgradeEnabled: source.triggerUsageBasedUpgradeEnabled !== false,
+    warningThresholdPercent: clampIntegerSetting(
+        source.warningThresholdPercent,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.warningThresholdPercent,
+        50,
+        99,
+    ),
+    criticalThresholdPercent: clampIntegerSetting(
+        source.criticalThresholdPercent,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.criticalThresholdPercent,
+        60,
+        100,
+    ),
+    upgradeHintFreeToProText: resolveBotStringSetting(
+        source.upgradeHintFreeToProText,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.upgradeHintFreeToProText,
+        220,
+    ),
+    upgradeHintProToCreatorText: resolveBotStringSetting(
+        source.upgradeHintProToCreatorText,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.upgradeHintProToCreatorText,
+        220,
+    ),
+    faqPriorityMode: resolveBotSettingValue(
+        source.faqPriorityMode,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.faqPriorityMode,
+        ["live_owner_generic", "owner_live_generic", "balanced"],
+    ),
+    promptVersionAlias: resolveBotStringSetting(
+        source.promptVersionAlias,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.promptVersionAlias,
+        120,
+    ),
+  };
+}
+
+function resolveAiBotRuntime(raw) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  return {
+    promptVersion: resolveBotStringSetting(
+        source.promptVersion,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.promptVersion,
+        120,
+    ),
+    qualityMode: resolveBotSettingValue(
+        source.qualityMode,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.qualityMode,
+        ["balanced", "high"],
+    ),
+    faqMode: resolveBotSettingValue(
+        source.faqMode,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.faqMode,
+        ["off", "auto", "prefer_faq"],
+    ),
+    ownerMode: resolveBotSettingValue(
+        source.ownerMode,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.ownerMode,
+        ["standard", "diagnostic"],
+    ),
+    answerLength: resolveBotSettingValue(
+        source.answerLength,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.answerLength,
+        ["adaptive", "short", "detailed"],
+    ),
+    personalityStyle: resolveBotStringSetting(
+        source.personalityStyle,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.personalityStyle,
+        160,
+    ),
+    loggingLevel: resolveBotStringSetting(
+        source.loggingLevel,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.loggingLevel,
+        80,
+    ),
+    diagnosticsMode: resolveBotSettingValue(
+        source.diagnosticsMode,
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.diagnosticsMode,
+        ["off", "owner_only", "verbose"],
+    ),
+    killSwitchEnabled: source.killSwitchEnabled === true,
+    modelPolicy: resolveAiBotModelPolicy(source.modelPolicy),
+    costGuard: resolveAiBotCostGuard(source.costGuard),
+    routingPolicy: resolveAiBotRoutingPolicy(source.routingPolicy),
+    fallbackPolicy: resolveAiBotFallbackPolicy(source.fallbackPolicy),
+    safetyPolicy: resolveAiBotSafetyPolicy(source.safetyPolicy),
+    actionLayer: resolveAiBotActionLayer(source.actionLayer),
+  };
+}
+
+function resolveReviewRecommendationAction({
+  recommendation = {},
+  currentActionLayer = {},
+  repeatHeavyTopics = [],
+}) {
+  const recommendationId = nonEmptyString(recommendation.id) || "";
+  const actionType = nonEmptyString(recommendation.actionType) || "";
+  const targetField = nonEmptyString(recommendation.targetField) || "";
+  const suggestedValue = recommendation.suggestedValue;
+  const recommendationEntry = {recommendationId, actionType, targetField, suggestedValue};
+  const nextActionLayer = {...currentActionLayer};
+  const safeguards = [];
+
+  const triggerFieldByKey = {
+    ai_limit_fast_erreicht: "triggerAiLimitNearEnabled",
+    restore_verfuegbar: "triggerRestoreAvailableEnabled",
+    bestellung_versendet: "triggerOrderShippedEnabled",
+    payment_methode_geaendert: "triggerPaymentMethodsChangedEnabled",
+    upgrade_sinnvoll_basierend_auf_nutzung: "triggerUsageBasedUpgradeEnabled",
+  };
+
+  if (!recommendationId || !actionType || !targetField) {
+    safeguards.push("Recommendation ist unvollstaendig.");
+    return {allowed: false, nextActionLayer, safeguards, recommendationEntry};
+  }
+
+  if (actionType === "adjust_threshold") {
+    const field = targetField === "criticalThresholdPercent" ? "criticalThresholdPercent" : "warningThresholdPercent";
+    const min = field === "warningThresholdPercent" ? 50 : 60;
+    const max = field === "warningThresholdPercent" ? 99 : 100;
+    const fallback = Number(currentActionLayer[field] || DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer[field]);
+    const proposed = clampIntegerSetting(suggestedValue, fallback, min, max);
+    const warning = field === "warningThresholdPercent" ? proposed : Number(currentActionLayer.warningThresholdPercent || DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.warningThresholdPercent);
+    const critical = field === "criticalThresholdPercent" ? proposed : Number(currentActionLayer.criticalThresholdPercent || DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.criticalThresholdPercent);
+    if (warning >= critical) {
+      safeguards.push("Warning Threshold muss unter Critical Threshold liegen.");
+      return {allowed: false, nextActionLayer: {...currentActionLayer}, safeguards, recommendationEntry};
+    }
+    if (Math.abs(proposed - fallback) > 15) {
+      safeguards.push("Threshold-Sprung >15 Punkte ist blockiert.");
+      return {allowed: false, nextActionLayer: {...currentActionLayer}, safeguards, recommendationEntry};
+    }
+    nextActionLayer[field] = proposed;
+    return {allowed: true, nextActionLayer, safeguards, recommendationEntry};
+  }
+
+  if (actionType === "disable_trigger") {
+    const mappedField = triggerFieldByKey[targetField];
+    if (!mappedField) {
+      safeguards.push("Unbekannter Trigger fuer Deaktivierung.");
+      return {allowed: false, nextActionLayer, safeguards, recommendationEntry};
+    }
+    const activeTriggerCount = [
+      "triggerAiLimitNearEnabled",
+      "triggerRestoreAvailableEnabled",
+      "triggerOrderShippedEnabled",
+      "triggerPaymentMethodsChangedEnabled",
+      "triggerUsageBasedUpgradeEnabled",
+    ].reduce((sum, key) => sum + (currentActionLayer[key] !== false ? 1 : 0), 0);
+    if (activeTriggerCount <= 1) {
+      safeguards.push("Mindestens ein Trigger muss aktiv bleiben.");
+      return {allowed: false, nextActionLayer, safeguards, recommendationEntry};
+    }
+    nextActionLayer[mappedField] = false;
+    return {allowed: true, nextActionLayer, safeguards, recommendationEntry};
+  }
+
+  if (actionType === "improve_hint_text") {
+    const field = targetField === "upgradeHintProToCreatorText" ? "upgradeHintProToCreatorText" : "upgradeHintFreeToProText";
+    const source = nonEmptyString(suggestedValue) || nonEmptyString(currentActionLayer[field]) || DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer[field];
+    const nextText = truncateTextBlock(source, 220);
+    if (nextText.length < 24) {
+      safeguards.push("Hint-Text ist zu kurz.");
+      return {allowed: false, nextActionLayer, safeguards, recommendationEntry};
+    }
+    nextActionLayer[field] = nextText;
+    return {allowed: true, nextActionLayer, safeguards, recommendationEntry};
+  }
+
+  if (actionType === "adjust_faq_priority") {
+    const mode = nonEmptyString(suggestedValue);
+    const allowedModes = ["live_owner_generic", "owner_live_generic", "balanced"];
+    if (!mode || !allowedModes.includes(mode)) {
+      safeguards.push("FAQ Priority Mode ist ungueltig.");
+      return {allowed: false, nextActionLayer, safeguards, recommendationEntry};
+    }
+    if (mode === "owner_live_generic" && repeatHeavyTopics.length >= 2) {
+      safeguards.push("Owner->Live bei repeat-heavy Topics blockiert.");
+      return {allowed: false, nextActionLayer, safeguards, recommendationEntry};
+    }
+    nextActionLayer.faqPriorityMode = mode;
+    return {allowed: true, nextActionLayer, safeguards, recommendationEntry};
+  }
+
+  safeguards.push("Action Type nicht unterstuetzt.");
+  return {allowed: false, nextActionLayer, safeguards, recommendationEntry};
+}
+
+function buildFaqStrategyInsights({
+  docs = [],
+  actionLayer = {},
+  triggerInsights = [],
+  repeatHeavyTopics = [],
+}) {
+  const safeDocs = Array.isArray(docs) ? docs : [];
+  const dayRows = safeDocs
+      .map((doc) => doc?.data?.() || {})
+      .filter((row) => row && typeof row === "object");
+  const latest14 = dayRows.slice(-14);
+  const previous14 = dayRows.slice(-28, -14);
+  const aggregateMap = (rows, fieldName) => {
+    const output = {};
+    for (const row of rows) {
+      const source = row?.[fieldName];
+      if (!source || typeof source !== "object" || Array.isArray(source)) continue;
+      for (const [key, value] of Object.entries(source)) {
+        output[key] = (Number(output[key]) || 0) + (Number(value) || 0);
+      }
+    }
+    return output;
+  };
+  const sumField = (rows, fieldName) => rows.reduce((sum, row) => sum + (Number(row?.[fieldName]) || 0), 0);
+  const latestHintTriggers = aggregateMap(latest14, "hintTriggers");
+  const previousHintTriggers = aggregateMap(previous14, "hintTriggers");
+  const latestHintConversions = aggregateMap(latest14, "hintConversions");
+  const previousHintConversions = aggregateMap(previous14, "hintConversions");
+  const latestFaqByTopic = aggregateMap(latest14, "faqByTopic");
+  const previousFaqByTopic = aggregateMap(previous14, "faqByTopic");
+  const latestHintWindows = sumField(latest14, "totalHintWindows");
+  const previousHintWindows = sumField(previous14, "totalHintWindows");
+  const latestRepeatAfterHint = sumField(latest14, "repeatAfterHint");
+  const previousRepeatAfterHint = sumField(previous14, "repeatAfterHint");
+
+  const strategyInsights = [];
+  const pushInsight = (payload) => {
+    if (!payload || !payload.id) return;
+    strategyInsights.push(payload);
+  };
+
+  const triggerDeltas = Object.keys(latestHintTriggers).map((key) => {
+    const latest = Number(latestHintTriggers[key]) || 0;
+    const previous = Number(previousHintTriggers[key]) || 0;
+    const latestConversions = Number(latestHintConversions[key]) || 0;
+    const previousConversions = Number(previousHintConversions[key]) || 0;
+    const latestRate = latest > 0 ? latestConversions / latest : 0;
+    const previousRate = previous > 0 ? previousConversions / previous : 0;
+    return {
+      triggerKey: key,
+      latest,
+      previous,
+      delta: latest - previous,
+      latestRate,
+      previousRate,
+    };
+  }).sort((a, b) => a.latestRate - b.latestRate);
+
+  const underperforming = triggerDeltas.find((entry) => entry.latest >= 5 && entry.latestRate < 0.05);
+  if (underperforming) {
+    pushInsight({
+      id: `trigger_underperform_${underperforming.triggerKey}`,
+      category: "trigger_underperform",
+      title: `Trigger ${underperforming.triggerKey} underperformt seit 14 Tagen`,
+      summary: `Conversion ${Number((underperforming.latestRate * 100).toFixed(1))}% bei ${underperforming.latest} Triggern.`,
+      expectedImpact: "Trigger-Fokus schaerfen kann Repeat-Support reduzieren und Hint-Qualitaet verbessern.",
+      confidence: 0.78,
+      severity: "high",
+    });
+  }
+
+  const repeatTopicDeltas = Object.keys(latestFaqByTopic).map((key) => ({
+    topicKey: key,
+    latest: Number(latestFaqByTopic[key]) || 0,
+    previous: Number(previousFaqByTopic[key]) || 0,
+  }))
+      .map((entry) => ({...entry, growthRate: entry.previous > 0 ? (entry.latest - entry.previous) / entry.previous : (entry.latest > 0 ? 1 : 0)}))
+      .sort((a, b) => b.growthRate - a.growthRate);
+  const risingRepeatTopic = repeatTopicDeltas.find((entry) => entry.latest >= 6 && entry.growthRate >= 0.35);
+  if (risingRepeatTopic) {
+    pushInsight({
+      id: `repeat_topic_rise_${risingRepeatTopic.topicKey}`,
+      category: "repeat_topic_rising",
+      title: `Repeat Topic ${risingRepeatTopic.topicKey} steigt stark`,
+      summary: `14d Volume ${risingRepeatTopic.latest} vs vorher ${risingRepeatTopic.previous}.`,
+      expectedImpact: "FAQ-Prioritaet und Fakten-Tiefe fuer dieses Thema koennen Tickets und Rueckfragen senken.",
+      confidence: 0.74,
+      severity: "medium",
+    });
+  }
+
+  const latestRepeatRate = latestHintWindows > 0 ? latestRepeatAfterHint / latestHintWindows : 0;
+  const previousRepeatRate = previousHintWindows > 0 ? previousRepeatAfterHint / previousHintWindows : 0;
+  const warningThreshold = Number(actionLayer.warningThresholdPercent || DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.warningThresholdPercent);
+  if (latestRepeatRate >= 0.28 && warningThreshold <= 75) {
+    pushInsight({
+      id: "threshold_too_loose",
+      category: "threshold_tuning",
+      title: "Warning Threshold wirkt zu locker",
+      summary: `Repeat-after-hint Rate liegt bei ${Number((latestRepeatRate * 100).toFixed(1))}%.`,
+      expectedImpact: "Hoeherer Warning Threshold reduziert Hint-Rauschen und unnötige Support-Rueckfragen.",
+      confidence: 0.71,
+      severity: "medium",
+    });
+  } else if (latestRepeatRate <= 0.12 && latestHintWindows >= 20 && warningThreshold >= 75) {
+    pushInsight({
+      id: "threshold_too_strict",
+      category: "threshold_tuning",
+      title: "Warning Threshold wirkt zu streng",
+      summary: `Repeat-after-hint Rate ${Number((latestRepeatRate * 100).toFixed(1))}% bei solidem Hint-Volumen.`,
+      expectedImpact: "Leicht niedrigerer Threshold kann fruehere Upgrade-Hinweise und mehr Revenue-Uplift erzeugen.",
+      confidence: 0.68,
+      severity: "medium",
+    });
+  }
+
+  const conversionLeaders = triggerInsights
+      .filter((entry) => Number(entry.triggers) >= 5)
+      .sort((a, b) => Number(b.conversionRate || 0) - Number(a.conversionRate || 0));
+  if (conversionLeaders.length >= 2) {
+    const best = conversionLeaders[0];
+    const second = conversionLeaders[1];
+    if ((Number(best.conversionRate) - Number(second.conversionRate)) >= 0.04) {
+      pushInsight({
+        id: `hint_better_${best.triggerKey}_vs_${second.triggerKey}`,
+        category: "hint_comparison",
+        title: `Upgrade Hint ${best.triggerKey} konvertiert besser als ${second.triggerKey}`,
+        summary: `${Number((best.conversionRate * 100).toFixed(1))}% vs ${Number((second.conversionRate * 100).toFixed(1))}% Conversion.`,
+        expectedImpact: "Top-Hint prominenter nutzen kann Upgrade-Rate erhoehen.",
+        confidence: 0.76,
+        severity: "medium",
+      });
+    }
+  }
+
+  if (!strategyInsights.length && repeatHeavyTopics.length) {
+    pushInsight({
+      id: "strategy_keep_monitoring",
+      category: "stability",
+      title: "Strategie stabil, Monitoring fortsetzen",
+      summary: "Keine harte Verschlechterung im 14d Vergleich erkannt.",
+      expectedImpact: "Weiteres Monitoring haelt den Loop sicher ohne vorschnelle Eingriffe.",
+      confidence: 0.62,
+      severity: "low",
+    });
+  }
+
+  return strategyInsights.slice(0, 6);
+}
+
 function resolveAiRuntimeSettings(data = {}) {
   const manusConfig = data.manus && typeof data.manus === "object" && !Array.isArray(data.manus) ? data.manus : {};
   const agentProvider = resolveAgentProvider(
@@ -1433,6 +2134,7 @@ function resolveAiRuntimeSettings(data = {}) {
       blockHighCreditEvents: manusConfig.blockHighCreditEvents !== false,
       includeVerboseEvents: manusConfig.includeVerboseEvents === true,
     },
+    bot: resolveAiBotRuntime(data.bot),
   };
 }
 
@@ -3846,6 +4548,54 @@ async function persistAgentRunSummary({
   }
 }
 
+const FAQ_TOPIC_DEFINITIONS = Object.freeze([
+  {
+    key: "app_usage",
+    title: "SkyOS App Nutzung",
+    keywords: ["app", "skyos", "nutzen", "benutzen", "home", "music", "video", "shop", "profile", "settings"],
+  },
+  {
+    key: "account_login",
+    title: "Account / Login / Probleme",
+    keywords: ["account", "konto", "login", "anmelden", "einloggen", "passwort", "session", "signin", "sign in"],
+  },
+  {
+    key: "membership",
+    title: "Membership",
+    keywords: ["membership", "abo", "upgrade", "restore", "plan", "creator", "pro", "billing", "subscription"],
+  },
+  {
+    key: "ai_features",
+    title: "AI Features",
+    keywords: ["ai", "bot", "agent", "visual", "image", "workflow", "limit", "quota", "prompt"],
+  },
+  {
+    key: "merch_orders_shipping",
+    title: "Merch / Orders / Versand",
+    keywords: ["merch", "order", "bestellung", "checkout", "cart", "warenkorb", "versand", "shipping", "tracking"],
+  },
+  {
+    key: "music_media",
+    title: "Music / Beat / Media",
+    keywords: ["music", "track", "song", "beat", "artist", "video", "media", "player", "spotify", "youtube"],
+  },
+  {
+    key: "privacy_security",
+    title: "Datenschutz / Sicherheit",
+    keywords: ["privacy", "datenschutz", "security", "sicherheit", "dsgvo", "private", "daten", "legal"],
+  },
+  {
+    key: "contact_help",
+    title: "Kontakt / Hilfe",
+    keywords: ["kontakt", "hilfe", "help", "support", "email", "mail", "error", "fehler", "problem"],
+  },
+  {
+    key: "product_intro",
+    title: "Produkt-Erklaerung fuer neue Nutzer",
+    keywords: ["neu", "new user", "einsteiger", "start", "schnellstart", "was ist", "wofuer", "erklaer", "guide", "faq"],
+  },
+]);
+
 function composeAssetLibraryPromptContext(promptSettings) {
   const lines = [];
   if (promptSettings.assetLibraryLink) {
@@ -3857,8 +4607,175 @@ function composeAssetLibraryPromptContext(promptSettings) {
   return lines.length ? lines.join("\n\n") : "";
 }
 
+function promptLooksLikeFaq(prompt) {
+  const normalized = nonEmptyString(prompt)?.toLowerCase() || "";
+  if (!normalized) {
+    return false;
+  }
+
+  if (normalized.includes("?")) {
+    return true;
+  }
+
+  return [
+    "wie ",
+    "was ",
+    "wo ",
+    "warum ",
+    "wann ",
+    "kann ich",
+    "hilfe",
+    "help",
+    "faq",
+    "problem",
+    "error",
+    "support",
+    "restore",
+    "versand",
+    "login",
+    "konto",
+    "membership",
+  ].some((fragment) => normalized.includes(fragment));
+}
+
+function resolveFaqTopic(prompt) {
+  const normalized = nonEmptyString(prompt)?.toLowerCase() || "";
+  if (!normalized) {
+    return null;
+  }
+
+  for (const definition of FAQ_TOPIC_DEFINITIONS) {
+    if (definition.keywords.some((keyword) => normalized.includes(keyword))) {
+      return definition;
+    }
+  }
+
+  if (promptLooksLikeFaq(normalized)) {
+    return {
+      key: "general",
+      title: "Allgemeine Hilfe",
+      keywords: [],
+    };
+  }
+
+  return null;
+}
+
+function resolveFaqRoute({prompt, mode, botRuntime}) {
+  const topic = resolveFaqTopic(prompt);
+  const looksLikeFaq = promptLooksLikeFaq(prompt);
+
+  if (mode === AI_TEXT_MODES.faq) {
+    return {
+      useFaq: true,
+      topic,
+      routeReason: topic ?
+        `FAQ-Modus explizit gewaehlt (${topic.title}).` :
+        "FAQ-Modus explizit gewaehlt.",
+    };
+  }
+
+  if (botRuntime.faqMode === "off") {
+    return {
+      useFaq: false,
+      topic,
+      routeReason: "FAQ-Routing ist owner-seitig deaktiviert.",
+    };
+  }
+
+  if (!botRuntime.routingPolicy.preferFaqWhenTopicMatched) {
+    return {
+      useFaq: false,
+      topic,
+      routeReason: "Freier Assistant-Modus ohne automatische FAQ-Priorisierung.",
+    };
+  }
+
+  if (botRuntime.faqMode === "prefer_faq" && (topic || looksLikeFaq)) {
+    return {
+      useFaq: true,
+      topic,
+      routeReason: topic ?
+        `FAQ priorisiert, weil die Anfrage wie ${topic.title} aussieht.` :
+        "FAQ priorisiert, weil die Anfrage wie eine Hilfe-Frage aussieht.",
+    };
+  }
+
+  if (botRuntime.faqMode === "auto" && topic && (looksLikeFaq || topic.key === "product_intro")) {
+    return {
+      useFaq: true,
+      topic,
+      routeReason: `FAQ automatisch gewaehlt, weil die Anfrage zu ${topic.title} passt.`,
+    };
+  }
+
+  return {
+    useFaq: false,
+    topic,
+    routeReason: topic ?
+      `Thema ${topic.title} erkannt, aber die Anfrage wirkt eher offen/kreativ.` :
+      "Keine klare FAQ-/Help-Anfrage erkannt.",
+  };
+}
+
+function shouldExposeVerboseBotDiagnostics(botRuntime, role) {
+  if (botRuntime.diagnosticsMode === "verbose") {
+    return true;
+  }
+  return botRuntime.diagnosticsMode === "owner_only" && role === USER_ROLES.owner;
+}
+
+function resolveTextGenerationConfig({botRuntime, isFaq, warningLevel}) {
+  const qualityMode = botRuntime.qualityMode;
+  const answerLength = botRuntime.answerLength;
+  const shortMax = botRuntime.costGuard.shortAnswerMaxOutputTokens;
+  const standardMax = botRuntime.costGuard.standardAnswerMaxOutputTokens;
+
+  let maxOutputTokens = isFaq ? Math.min(420, standardMax) : standardMax;
+  let temperature = isFaq ? 0.24 : (qualityMode === "high" ? 0.62 : 0.7);
+  let responseLimited = false;
+  let responseLimitReason = "";
+
+  if (answerLength === "short") {
+    maxOutputTokens = Math.min(maxOutputTokens, shortMax);
+    responseLimited = true;
+    responseLimitReason = "Antwortlaenge ist owner-seitig auf kurz gestellt.";
+  } else if (answerLength === "detailed") {
+    maxOutputTokens = Math.min(Math.max(maxOutputTokens, isFaq ? 560 : 960), 1400);
+  }
+
+  if (botRuntime.costGuard.enabled &&
+    botRuntime.costGuard.preferBriefAnswersWhenCritical &&
+    warningLevel === "critical") {
+    maxOutputTokens = Math.min(maxOutputTokens, shortMax);
+    responseLimited = true;
+    responseLimitReason = "Antwort wurde wegen aktivem Cost Guard kuerzer gehalten.";
+  }
+
+  if (isFaq) {
+    temperature = qualityMode === "high" ? 0.18 : 0.24;
+  }
+
+  return {
+    temperature,
+    maxOutputTokens,
+    responseLimited,
+    responseLimitReason,
+  };
+}
+
+function composeFaqKnowledge(promptSettings) {
+  const sections = [promptSettings.faqKnowledgeBase];
+  if (promptSettings.assetReferenceNotes) {
+    sections.push(`Owner / Zusatzkontext:\n${promptSettings.assetReferenceNotes}`);
+  }
+  return sections.filter(Boolean).join("\n\n");
+}
+
 function aiTextModeHint(mode) {
   switch (mode) {
+    case AI_TEXT_MODES.faq:
+      return "Modus FAQ: Gib eine kurze, ehrliche Hilfe-Antwort. Nur wenn Fakten fehlen, sage klar, dass du es nicht sicher weisst.";
     case AI_TEXT_MODES.caption:
       return "Modus Caption: Liefere eine starke Hauptversion, danach 3 Varianten, 1 CTA-Zeile und bis zu 5 passende Hashtags.";
     case AI_TEXT_MODES.releasePlan:
@@ -3875,9 +4792,18 @@ function aiTextModeHint(mode) {
   }
 }
 
-function composeTextGenerationPrompt(inputPrompt, textInstruction, mode, assetContext) {
+function composeTextGenerationPrompt(inputPrompt, textInstruction, mode, assetContext, botRuntime = null) {
+  const runtimeLines = botRuntime ? `
+Bot Runtime:
+- promptVersion: ${botRuntime.promptVersion}
+- qualityMode: ${botRuntime.qualityMode}
+- personalityStyle: ${botRuntime.personalityStyle}
+- answerLength: ${botRuntime.answerLength}
+` : "";
   return `
 ${textInstruction}
+
+${runtimeLines}
 
 ${aiTextModeHint(mode)}
 
@@ -3888,9 +4814,65 @@ ${inputPrompt}
   `.trim();
 }
 
-function composeVisualGenerationPrompt(inputPrompt, visualInstruction, assetContext) {
+function composeFaqPrompt({
+  inputPrompt,
+  promptSettings,
+  botRuntime,
+  topic,
+  liveFacts,
+}) {
+  const faqKnowledge = composeFaqKnowledge(promptSettings);
+  const safetyNotes = botRuntime.safetyPolicy.safeModeEnabled ?
+    "- Safe Mode ist aktiv: keine riskanten Behauptungen, keine faulen Schluessen.\n" :
+    "";
+  const unknownHandling = botRuntime.safetyPolicy.strictUnknownHandling ?
+    "- Wenn Fakten fehlen oder unsicher sind, sag klar, dass die Information gerade nicht sicher vorliegt.\n" :
+    "";
+  const speculationBlock = botRuntime.safetyPolicy.blockSpeculativeFaqAnswers ?
+    "- Erfinde keine Preis-, Versand-, Account- oder Membership-Details.\n" :
+    "";
+  const faqPriorityMode = botRuntime?.actionLayer?.faqPriorityMode || "live_owner_generic";
+  const priorityHint = liveFacts ?
+    (faqPriorityMode === "owner_live_generic" ?
+      "Prioritaet: Nutze zuerst Owner Knowledge. Nutze Live FAQ-Fakten danach fuer Verifizierung und Aktualitaet.\n" :
+      faqPriorityMode === "balanced" ?
+        "Prioritaet: Balanciere Live FAQ-Fakten und Owner Knowledge. Bei Konflikten bevorzugt die verifizierbare Live-Faktlage.\n" :
+        "Prioritaet: Nutze zuerst die Live FAQ-Fakten aus dem System. Nutze Owner-Wissen danach als Zusatzkontext.\n") :
+    "";
+
+  return `
+${promptSettings.faqInstruction}
+
+Bot Runtime:
+- promptVersion: ${botRuntime.promptVersion}
+- qualityMode: ${botRuntime.qualityMode}
+- faqMode: ${botRuntime.faqMode}
+- ownerMode: ${botRuntime.ownerMode}
+- answerLength: ${botRuntime.answerLength}
+- personalityStyle: ${botRuntime.personalityStyle}
+
+${safetyNotes}${unknownHandling}${speculationBlock}${priorityHint}
+Erkannter FAQ-Bereich: ${topic?.title || "Allgemeine Hilfe"}
+
+${liveFacts ? `Live FAQ-Fakten aus SkyOS:\n${liveFacts}\n\n` : ""}Verfuegbare FAQ-/Help-Fakten aus Owner Knowledge:
+${faqKnowledge}
+
+Nutzeranfrage:
+${inputPrompt}
+  `.trim();
+}
+
+function composeVisualGenerationPrompt(inputPrompt, visualInstruction, assetContext, botRuntime = null) {
+  const runtimeLines = botRuntime ? `
+Bot Runtime:
+- promptVersion: ${botRuntime.promptVersion}
+- qualityMode: ${botRuntime.qualityMode}
+- personalityStyle: ${botRuntime.personalityStyle}
+` : "";
   return `
 ${visualInstruction}
+
+${runtimeLines}
 
 ${AI_VISUAL_PHOTOGRAPHY_DIRECTION}
 
@@ -3957,55 +4939,256 @@ function extractInlineBase64Media(dataUrl, contentType = null) {
   };
 }
 
-async function generateAiTextReply({prompt, mode}) {
+function buildBotDecision({
+  state = "complete",
+  route = "assistant",
+  routeReason = "",
+  summary = "",
+  topic = "",
+  runtimeSettings,
+  model = "",
+  provider = "google_vertex",
+  fallbackActivated = false,
+  fallbackReason = "",
+  responseLimited = false,
+  responseLimitReason = "",
+  blocked = false,
+  blockReason = "",
+  retryable = false,
+  retryReason = "",
+  diagnostics = [],
+  role = USER_ROLES.user,
+}) {
+  const botRuntime = runtimeSettings.bot;
+  const verboseDiagnostics = shouldExposeVerboseBotDiagnostics(botRuntime, role);
+  const trace = [
+    routeReason,
+    model ? `Modell: ${model}` : "",
+    fallbackActivated && fallbackReason ? `Fallback: ${fallbackReason}` : "",
+    responseLimited && responseLimitReason ? `Limitierung: ${responseLimitReason}` : "",
+    blocked && blockReason ? `Block: ${blockReason}` : "",
+    retryable && retryReason ? `Retry: ${retryReason}` : "",
+    ...diagnostics,
+  ].filter(Boolean);
+
+  return {
+    state,
+    route,
+    topic,
+    summary: summary || routeReason || "Antwort wurde verarbeitet.",
+    promptVersion: botRuntime.promptVersion,
+    qualityMode: botRuntime.qualityMode,
+    faqMode: botRuntime.faqMode,
+    ownerMode: botRuntime.ownerMode,
+    answerLength: botRuntime.answerLength,
+    personalityStyle: botRuntime.personalityStyle,
+    loggingLevel: botRuntime.loggingLevel,
+    diagnosticsMode: botRuntime.diagnosticsMode,
+    ownerDiagnosticActive: verboseDiagnostics && botRuntime.ownerMode === "diagnostic",
+    selectedModel: model,
+    selectedProvider: provider,
+    fallbackActivated,
+    fallbackReason,
+    responseLimited,
+    responseLimitReason,
+    blocked,
+    blockReason,
+    retryable,
+    retryReason,
+    trace: verboseDiagnostics ? trace : trace.slice(0, 2),
+  };
+}
+
+async function generateTextWithModel({
+  modelName,
+  prompt,
+  temperature,
+  maxOutputTokens,
+}) {
+  const response = await ai.generate({
+    model: vertexAI.model(modelName),
+    prompt,
+    config: {
+      temperature,
+      maxOutputTokens,
+    },
+  });
+
+  return nonEmptyString(response.text);
+}
+
+async function generateAiTextReply({
+  prompt,
+  mode,
+  runtimeSettings,
+  usage,
+  auth,
+}) {
   const promptSettings = await loadAiPromptSettings();
   const assetContext = composeAssetLibraryPromptContext(promptSettings);
-  const response = await ai.generate({
-    prompt: composeTextGenerationPrompt(
+  const botRuntime = runtimeSettings.bot;
+  const faqRoute = resolveFaqRoute({
+    prompt,
+    mode,
+    botRuntime,
+  });
+  const textConfig = resolveTextGenerationConfig({
+    botRuntime,
+    isFaq: faqRoute.useFaq,
+    warningLevel: usage.warningLevel || "ok",
+  });
+  const faqLiveFacts = faqRoute.useFaq ?
+    await loadFaqLiveFacts({auth, runtimeSettings}) :
+    "";
+  const requestPrompt = faqRoute.useFaq ?
+    composeFaqPrompt({
+      inputPrompt: prompt,
+      promptSettings,
+      botRuntime,
+      topic: faqRoute.topic,
+      liveFacts: faqLiveFacts,
+    }) :
+    composeTextGenerationPrompt(
         prompt,
         promptSettings.textInstruction,
         mode,
         assetContext,
-    ),
-    config: {
-      temperature: 0.7,
-      maxOutputTokens: 768,
-    },
-  });
+        botRuntime,
+    );
 
-  const reply = nonEmptyString(response.text);
+  if (faqRoute.useFaq && nonEmptyString(auth?.uid)) {
+    try {
+      await recordFaqOwnerIntelligence({
+        uid: auth.uid,
+        prompt,
+        topicKey: faqRoute.topic?.key || "unknown",
+        proactiveHintKeys: resolveProactiveHintKeysFromFacts(faqLiveFacts),
+      });
+    } catch (error) {
+      logger.warn("FAQ owner intelligence record failed.", {
+        uid: auth.uid,
+        error: error instanceof Error ? error.message : `${error}`,
+      });
+    }
+  }
+
+  const primaryModel = botRuntime.modelPolicy.textPrimaryModel;
+  const fallbackModel = botRuntime.modelPolicy.textFallbackModel;
+  let reply = "";
+  let selectedModel = primaryModel;
+  let fallbackActivated = false;
+  let fallbackReason = "";
+
+  try {
+    reply = await generateTextWithModel({
+      modelName: primaryModel,
+      prompt: requestPrompt,
+      temperature: textConfig.temperature,
+      maxOutputTokens: textConfig.maxOutputTokens,
+    });
+  } catch (error) {
+    if (!botRuntime.fallbackPolicy.allowTextFallback || fallbackModel === primaryModel) {
+      throw error;
+    }
+    reply = await generateTextWithModel({
+      modelName: fallbackModel,
+      prompt: requestPrompt,
+      temperature: textConfig.temperature,
+      maxOutputTokens: textConfig.maxOutputTokens,
+    });
+    selectedModel = fallbackModel;
+    fallbackActivated = true;
+    fallbackReason = "Primermodell war nicht stabil erreichbar. Text-Fallback wurde genutzt.";
+  }
+
   if (!reply) {
     throw new HttpsError("internal", "Skydown Bot konnte keine Antwort erzeugen.");
   }
 
-  return reply;
+  const decisionState = faqRoute.useFaq ?
+    "faq_answer" :
+    (fallbackActivated || textConfig.responseLimited ? "degraded" : "complete");
+
+  return {
+    reply,
+    decision: buildBotDecision({
+      state: decisionState,
+      route: faqRoute.useFaq ? "faq" : "assistant",
+      routeReason: faqRoute.routeReason,
+      summary: faqRoute.useFaq ?
+        "FAQ-/Help-Antwort priorisiert." :
+        "Standard-Assistant-Antwort genutzt.",
+      topic: faqRoute.topic?.key || "",
+      runtimeSettings,
+      model: selectedModel,
+      provider: "google_vertex",
+      fallbackActivated,
+      fallbackReason: botRuntime.fallbackPolicy.exposeFallbackReason ? fallbackReason : "",
+      responseLimited: textConfig.responseLimited,
+      responseLimitReason: textConfig.responseLimited ? textConfig.responseLimitReason : "",
+      diagnostics: [
+        `qualityMode=${botRuntime.qualityMode}`,
+        `answerLength=${botRuntime.answerLength}`,
+        `promptVersion=${botRuntime.promptVersion}`,
+        faqRoute.useFaq ? `faqLiveFacts=${faqLiveFacts ? "enabled" : "unavailable"}` : "",
+      ],
+      role: usage.role || USER_ROLES.user,
+    }),
+  };
 }
 
-async function generateAiVisualResult(prompt) {
+async function generateAiVisualResult(prompt, runtimeSettings, usage) {
   const promptSettings = await loadAiPromptSettings();
+  const botRuntime = runtimeSettings.bot;
   const assetContext = composeAssetLibraryPromptContext(promptSettings);
+  const primaryModel = botRuntime.modelPolicy.visualPrimaryModel;
+  const fallbackModel = botRuntime.modelPolicy.visualFallbackModel;
   const primaryResult = await generateAiVisualWithRetries({
-    modelName: "gemini-2.5-flash-image",
+    modelName: primaryModel,
     prompt: composeVisualGenerationPrompt(
         prompt,
         promptSettings.visualInstruction,
         assetContext,
+        botRuntime,
     ),
     responseModalities: ["TEXT", "IMAGE"],
     defaultText: "Visual generiert.",
   });
   if (primaryResult) {
-    return primaryResult;
+    return {
+      ...primaryResult,
+      decision: buildBotDecision({
+        state: "complete",
+        route: "visual",
+        routeReason: "Visual-Pipeline direkt ueber das Primaermodell ausgefuehrt.",
+        summary: "Visual ueber den Standard-Bildpfad erzeugt.",
+        runtimeSettings,
+        model: primaryModel,
+        provider: "google_vertex",
+        diagnostics: [
+          `qualityMode=${botRuntime.qualityMode}`,
+          `promptVersion=${botRuntime.promptVersion}`,
+        ],
+        role: usage.role || USER_ROLES.user,
+      }),
+    };
   }
 
-  logger.warn("Primary visual model failed. Falling back to Imagen.", {
+  logger.warn("Primary visual model failed. Falling back to secondary visual model.", {
     promptLength: typeof prompt === "string" ? prompt.length : 0,
-    primaryModel: "gemini-2.5-flash-image",
-    fallbackModel: "imagen-3.0-generate-002",
+    primaryModel,
+    fallbackModel,
   });
 
+  if (!botRuntime.fallbackPolicy.allowVisualFallback) {
+    throw new HttpsError(
+        "internal",
+        "Das Primaermodell fuer Visuals ist gerade nicht stabil verfuegbar.",
+    );
+  }
+
   const fallbackResult = await generateAiVisualWithRetries({
-    modelName: "imagen-3.0-generate-002",
+    modelName: fallbackModel,
     prompt: composeVisualImageOnlyPrompt(
         prompt,
         promptSettings.visualInstruction,
@@ -4014,7 +5197,27 @@ async function generateAiVisualResult(prompt) {
     defaultText: "Cineastisches Visual generiert.",
   });
   if (fallbackResult) {
-    return fallbackResult;
+    return {
+      ...fallbackResult,
+      decision: buildBotDecision({
+        state: "degraded",
+        route: "visual",
+        routeReason: "Visual-Fallback aktiviert, weil das Primaermodell ausgefallen ist.",
+        summary: "Visual ueber den Fallback-Bildpfad erzeugt.",
+        runtimeSettings,
+        model: fallbackModel,
+        provider: "google_vertex",
+        fallbackActivated: true,
+        fallbackReason: botRuntime.fallbackPolicy.exposeFallbackReason ?
+          "Das Primaermodell fuer Visuals hat nicht stabil geantwortet." :
+          "",
+        diagnostics: [
+          `qualityMode=${botRuntime.qualityMode}`,
+          `promptVersion=${botRuntime.promptVersion}`,
+        ],
+        role: usage.role || USER_ROLES.user,
+      }),
+    };
   }
 
   throw new HttpsError(
@@ -4164,17 +5367,39 @@ async function loadPaymentMethodSettings() {
       .get();
   const data = snapshot.data() || {};
   const stripe = data.stripe || {};
+  const paypal = data.paypal || {};
   const klarna = data.klarna || {};
+  const bankTransfer = data.bankTransfer || {};
   const aiSubscriptions = data.aiSubscriptions || {};
+  const paymentMethodsUpdatedAtEpochMillis = resolveDateValueToEpochMillis(
+      data.updatedAt ||
+      data.lastUpdatedAt ||
+      data.updatedAtEpochMillis,
+  );
 
   return {
     stripe: {
       connected: stripe.connected === true,
       enabled: stripe.enabled === true,
+      accountHint: nonEmptyString(stripe.accountHint) || "",
+    },
+    paypal: {
+      connected: paypal.connected === true,
+      enabled: paypal.enabled === true,
+      accountHint: nonEmptyString(paypal.accountHint) || "",
     },
     klarna: {
       connected: klarna.connected === true,
       enabled: klarna.enabled === true,
+      accountHint: nonEmptyString(klarna.accountHint) || "",
+    },
+    bankTransfer: {
+      enabled: bankTransfer.enabled === true,
+      accountHolder: nonEmptyString(bankTransfer.accountHolder) || "",
+      iban: nonEmptyString(bankTransfer.iban) || "",
+      bic: nonEmptyString(bankTransfer.bic) || "",
+      bankName: nonEmptyString(bankTransfer.bankName) || "",
+      paymentInstructions: nonEmptyString(bankTransfer.paymentInstructions) || "",
     },
     aiSubscriptions: {
       enabled: aiSubscriptions.enabled === true,
@@ -4189,9 +5414,28 @@ async function loadPaymentMethodSettings() {
       androidStudioProductId: nonEmptyString(aiSubscriptions.androidStudioProductId) || "",
       androidCreatorYearlyProductId: nonEmptyString(aiSubscriptions.androidCreatorYearlyProductId) || "",
       androidStudioYearlyProductId: nonEmptyString(aiSubscriptions.androidStudioYearlyProductId) || "",
+      annualDiscountCopy: nonEmptyString(aiSubscriptions.annualDiscountCopy) || "",
+      planOrder: Array.isArray(aiSubscriptions.planOrder) ?
+        aiSubscriptions.planOrder.map((entry) => nonEmptyString(entry)).filter(Boolean) :
+        ["free", "pro", "creator"],
+      defaultAnnualToggle: aiSubscriptions.defaultAnnualToggle === true,
+      highlightedPlan: nonEmptyString(aiSubscriptions.highlightedPlan) || "creator",
+      warningThresholdPercent: clampIntegerSetting(
+          aiSubscriptions.warningThresholdPercent,
+          70,
+          1,
+          99,
+      ),
+      criticalThresholdPercent: clampIntegerSetting(
+          aiSubscriptions.criticalThresholdPercent,
+          90,
+          1,
+          100,
+      ),
       revenueCatEntitlementCreator: nonEmptyString(aiSubscriptions.revenueCatEntitlementCreator) || "skyos_ai_creator",
       revenueCatEntitlementStudio: nonEmptyString(aiSubscriptions.revenueCatEntitlementStudio) || "skyos_ai_studio",
     },
+    updatedAtEpochMillis: paymentMethodsUpdatedAtEpochMillis,
   };
 }
 
@@ -4468,11 +5712,684 @@ async function loadCommerceSettings() {
           0,
           parsePrice(shipping.freeShippingThreshold || DEFAULT_COMMERCE_SETTINGS.shipping.freeShippingThreshold),
       ),
+      shippingNotes: nonEmptyString(shipping.shippingNotes) || "",
     },
     invoice: {
+      companyName: nonEmptyString(invoice.companyName) || DEFAULT_COMMERCE_SETTINGS.invoice.companyName,
+      companyAddress: nonEmptyString(invoice.companyAddress) || "",
+      taxNumber: nonEmptyString(invoice.taxNumber) || "",
+      vatId: nonEmptyString(invoice.vatId) || "",
       taxRate: Math.max(0, parsePrice(invoice.taxRate || DEFAULT_COMMERCE_SETTINGS.invoice.taxRate)),
+      invoicePrefix: nonEmptyString(invoice.invoicePrefix) || DEFAULT_COMMERCE_SETTINGS.invoice.invoicePrefix,
+      supportEmail: nonEmptyString(invoice.supportEmail) || DEFAULT_COMMERCE_SETTINGS.invoice.supportEmail,
     },
   };
+}
+
+async function loadLegalContentSettings() {
+  const snapshot = await admin.firestore()
+      .collection("appConfig")
+      .doc("legalContent")
+      .get();
+  const data = snapshot.data() || {};
+
+  return {
+    brandName: nonEmptyString(data.brandName) || DEFAULT_LEGAL_CONTENT_SETTINGS.brandName,
+    operatorName: nonEmptyString(data.operatorName) || DEFAULT_LEGAL_CONTENT_SETTINGS.operatorName,
+    rightsHolderName: nonEmptyString(data.rightsHolderName) || DEFAULT_LEGAL_CONTENT_SETTINGS.rightsHolderName,
+    supportEmail: nonEmptyString(data.supportEmail) || DEFAULT_LEGAL_CONTENT_SETTINGS.supportEmail,
+    lastUpdatedLabel: nonEmptyString(data.lastUpdatedLabel) || DEFAULT_LEGAL_CONTENT_SETTINGS.lastUpdatedLabel,
+    imprintReference: nonEmptyString(data.imprintReference) || DEFAULT_LEGAL_CONTENT_SETTINGS.imprintReference,
+  };
+}
+
+async function loadRecentOrdersForFaq(uid, email = "") {
+  const firestore = admin.firestore();
+  const normalizedUid = nonEmptyString(uid);
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedUid && !normalizedEmail) {
+    return [];
+  }
+
+  const queries = [];
+  if (normalizedUid) {
+    queries.push(
+        firestore.collection("orders")
+            .where("orderOwnerUid", "==", normalizedUid)
+            .get(),
+    );
+  }
+  if (normalizedEmail) {
+    queries.push(
+        firestore.collection("orders")
+            .where("userEmail", "==", normalizedEmail)
+            .get(),
+    );
+  }
+
+  const snapshots = await Promise.all(queries);
+  const documents = Array.from(
+      new Map(
+          snapshots
+              .flatMap((snapshot) => snapshot.docs)
+              .map((document) => [document.id, document]),
+      ).values(),
+  );
+
+  return documents
+      .map((document) => ({
+        id: document.id,
+        ...document.data(),
+      }))
+      .sort((left, right) => (
+        resolveDateValueToEpochMillis(right.timestamp) - resolveDateValueToEpochMillis(left.timestamp)
+      ))
+      .slice(0, 3);
+}
+
+function buildFaqOrderFact(orderData = {}) {
+  const orderId = nonEmptyString(orderData.id) || "ohne-id";
+  const totalAmount = formatEuroAmount(orderData.totalAmount);
+  const paymentStatus = nonEmptyString(orderData.paymentStatus) || "unbekannt";
+  const fulfillmentStatus = nonEmptyString(orderData.fulfillmentStatus) || "unbekannt";
+  const checkoutStatus = nonEmptyString(orderData.stripeCheckoutStatus);
+  const orderDate = formatEpochMillisAsIsoDate(orderData.timestamp);
+  const orderName = nonEmptyString(orderData.shopifyOrderName);
+  const carrier = nonEmptyString(orderData.carrier) ||
+    nonEmptyString(orderData.shippingCarrier) ||
+    nonEmptyString(orderData.fulfillmentCarrier);
+  const trackingUrl = nonEmptyString(orderData.trackingUrl) ||
+    nonEmptyString(orderData.shippingTrackingUrl) ||
+    nonEmptyString(orderData.fulfillmentTrackingUrl);
+  const latestTrackingEvent = nonEmptyString(orderData.latestTrackingEvent) ||
+    nonEmptyString(orderData.shippingLatestTrackingEvent) ||
+    nonEmptyString(orderData.fulfillmentLatestTrackingEvent);
+  const etaWindow = nonEmptyString(orderData.etaWindow) ||
+    nonEmptyString(orderData.shippingEtaWindow) ||
+    nonEmptyString(orderData.fulfillmentEtaWindow);
+  const lastStatusUpdateAt = formatEpochMillisAsIsoDate(
+      orderData.lastStatusUpdateAt ||
+      orderData.lastTrackingUpdateAt ||
+      orderData.fulfillmentUpdatedAt ||
+      orderData.updatedAt,
+  );
+
+  return [
+    `Order ${orderId}`,
+    orderName ? `Shopify ${orderName}` : "",
+    orderDate ? `vom ${orderDate}` : "",
+    totalAmount ? `Gesamt ${totalAmount}` : "",
+    `Zahlung ${paymentStatus}`,
+    `Fulfillment ${fulfillmentStatus}`,
+    checkoutStatus ? `Checkout ${checkoutStatus}` : "",
+    carrier ? `Carrier ${carrier}` : "",
+    trackingUrl ? `Tracking ${truncateTextBlock(trackingUrl, 160)}` : "",
+    latestTrackingEvent ? `Letztes Tracking-Event ${truncateTextBlock(latestTrackingEvent, 120)}` : "",
+    etaWindow ? `ETA ${truncateTextBlock(etaWindow, 90)}` : "",
+    lastStatusUpdateAt ? `Letztes Status-Update ${lastStatusUpdateAt}` : "",
+  ].filter(Boolean).join(" · ");
+}
+
+async function loadCurrentAiUsageForFaq(uid) {
+  const normalizedUid = nonEmptyString(uid);
+  if (!normalizedUid) {
+    return {};
+  }
+  const snapshot = await admin.firestore()
+      .collection("users")
+      .doc(normalizedUid)
+      .collection("aiUsage")
+      .doc(aiUsageDateKey())
+      .get();
+  return snapshot.exists ? (snapshot.data() || {}) : {};
+}
+
+function normalizeBillingIntervalFromProductId(productId = "") {
+  const normalized = nonEmptyString(productId)?.toLowerCase() || "";
+  if (!normalized) return "unbekannt";
+  if (/(year|annual|jahr)/.test(normalized)) {
+    return "yearly";
+  }
+  return "monthly";
+}
+
+function resolvePlanFitHint(currentPlan, targetPlan) {
+  const normalizedCurrent = normalizeAiSubscriptionPlan(currentPlan) || USER_QUOTA_PLANS.free;
+  const normalizedTarget = normalizeAiSubscriptionPlan(targetPlan);
+  if (!normalizedTarget) {
+    return "kein plan mapping";
+  }
+  if (normalizedCurrent === normalizedTarget) {
+    return "passt zu deinem aktuellen Plan";
+  }
+  if (normalizedCurrent === USER_QUOTA_PLANS.free && normalizedTarget === USER_QUOTA_PLANS.creator) {
+    return "naechster Schritt fuer regelmaessige Nutzung";
+  }
+  if (normalizedCurrent === USER_QUOTA_PLANS.free && normalizedTarget === USER_QUOTA_PLANS.studio) {
+    return "power-upgrade fuer hohe AI-Last";
+  }
+  if (normalizedCurrent === USER_QUOTA_PLANS.creator && normalizedTarget === USER_QUOTA_PLANS.studio) {
+    return "upgrade fuer Workflow-Tiefe und Premium Outputs";
+  }
+  if (normalizedCurrent === USER_QUOTA_PLANS.studio && normalizedTarget === USER_QUOTA_PLANS.creator) {
+    return "downshift moeglich, falls weniger Bedarf";
+  }
+  return "plan fit individuell pruefen";
+}
+
+function resolveConfiguredMembershipPriceSnapshot(aiSubscriptions = {}) {
+  const mapping = {
+    iosCreatorProductId: USER_QUOTA_PLANS.creator,
+    iosStudioProductId: USER_QUOTA_PLANS.studio,
+    iosCreatorYearlyProductId: USER_QUOTA_PLANS.creator,
+    iosStudioYearlyProductId: USER_QUOTA_PLANS.studio,
+    androidCreatorProductId: USER_QUOTA_PLANS.creator,
+    androidStudioProductId: USER_QUOTA_PLANS.studio,
+    androidCreatorYearlyProductId: USER_QUOTA_PLANS.creator,
+    androidStudioYearlyProductId: USER_QUOTA_PLANS.studio,
+  };
+  const entries = [];
+  const snapshotByProductId = aiSubscriptions.priceSnapshotByProductId &&
+    typeof aiSubscriptions.priceSnapshotByProductId === "object" &&
+    !Array.isArray(aiSubscriptions.priceSnapshotByProductId) ?
+      aiSubscriptions.priceSnapshotByProductId :
+      {};
+
+  for (const [configKey, plan] of Object.entries(mapping)) {
+    const productId = nonEmptyString(aiSubscriptions[configKey]);
+    if (!productId) continue;
+    const rawSnapshot = snapshotByProductId[productId];
+    const snapshot = rawSnapshot && typeof rawSnapshot === "object" && !Array.isArray(rawSnapshot) ? rawSnapshot : {};
+    const rawAmount = snapshot.price ?? snapshot.amount ?? snapshot.localizedAmount ?? "";
+    const amountLabel = typeof rawAmount === "number" ?
+      formatEuroAmount(rawAmount) :
+      nonEmptyString(rawAmount) || "nicht hinterlegt";
+    const currency = nonEmptyString(snapshot.currency) || nonEmptyString(snapshot.currencyCode) || "unbekannt";
+    const billingInterval = nonEmptyString(snapshot.billingInterval)?.toLowerCase() || normalizeBillingIntervalFromProductId(productId);
+    const sourcePlatform = configKey.startsWith("ios") ? "iOS" : "Android";
+    const snapshotUpdatedAt = formatEpochMillisAsIsoDate(snapshot.updatedAtEpochMillis || snapshot.updatedAt);
+
+    entries.push({
+      sourcePlatform,
+      productId,
+      plan,
+      amountLabel,
+      currency,
+      billingInterval,
+      snapshotUpdatedAt,
+    });
+  }
+
+  return entries;
+}
+
+function buildProactiveFaqHints({
+  profile,
+  currentUsage,
+  aiSubscriptions,
+  entitlementState,
+  recentOrders,
+  paymentSettings,
+  activeCheckoutMethods,
+  actionLayer,
+}) {
+  if (actionLayer?.proactiveHintsEnabled === false) {
+    return [];
+  }
+  const hints = [];
+  const warningThreshold = Number(actionLayer?.warningThresholdPercent || aiSubscriptions?.warningThresholdPercent || 70);
+  const textRatio = profile.aiLimits.text > 0 ? (Number(currentUsage?.textRequests || 0) / profile.aiLimits.text) * 100 : 0;
+  const visualRatio = profile.aiLimits.visual > 0 ? (Number(currentUsage?.visualRequests || 0) / profile.aiLimits.visual) * 100 : 0;
+  const agentRatio = profile.aiLimits.agent > 0 ? (Number(currentUsage?.agentRequests || 0) / profile.aiLimits.agent) * 100 : 0;
+  const nearLimitKinds = [
+    textRatio >= warningThreshold ? `Text ${Math.floor(textRatio)}%` : "",
+    visualRatio >= warningThreshold ? `Visual ${Math.floor(visualRatio)}%` : "",
+    agentRatio >= warningThreshold ? `Agent ${Math.floor(agentRatio)}%` : "",
+  ].filter(Boolean);
+  if (actionLayer?.triggerAiLimitNearEnabled !== false && nearLimitKinds.length) {
+    hints.push(`[AI Limit fast erreicht] Heute nahe am Limit: ${nearLimitKinds.join(" · ")}. Empfehlung: kurze, fokussierte Prompts und bei regelmaessiger hoher Nutzung passendes Upgrade pruefen.`);
+  }
+
+  const hasStoreRestorePath = Boolean(
+      aiSubscriptions?.enabled === true &&
+      ((aiSubscriptions?.iosCreatorProductId && aiSubscriptions?.iosStudioProductId) ||
+      (aiSubscriptions?.androidCreatorProductId && aiSubscriptions?.androidStudioProductId)),
+  );
+  const entitlementStatus = nonEmptyString(entitlementState?.status) || "inactive";
+  if (actionLayer?.triggerRestoreAvailableEnabled !== false && hasStoreRestorePath && entitlementStatus !== "active") {
+    hints.push("[Restore verfuegbar] Dein Entitlement ist aktuell nicht aktiv. Restore kann jetzt sinnvoll sein (Store-Konto pruefen, einmal ausloesen, kurz auf Sync warten).");
+  }
+
+  const shippedOrder = (recentOrders || []).find((order) => {
+    const fulfillmentStatus = nonEmptyString(order?.fulfillmentStatus)?.toLowerCase() || "";
+    return ["shipped", "in_transit", "fulfilled", "delivered", "versendet"].includes(fulfillmentStatus);
+  });
+  if (actionLayer?.triggerOrderShippedEnabled !== false && shippedOrder) {
+    const trackingUrl = nonEmptyString(shippedOrder.trackingUrl) ||
+      nonEmptyString(shippedOrder.shippingTrackingUrl) ||
+      nonEmptyString(shippedOrder.fulfillmentTrackingUrl);
+    hints.push(`[Bestellung versendet] Order ${nonEmptyString(shippedOrder.id) || "ohne-id"} scheint versendet. ${trackingUrl ? `Tracking-Link verfuegbar: ${truncateTextBlock(trackingUrl, 140)}.` : "Tracking-Link im Order-Datensatz nicht sicher vorhanden."}`);
+  }
+
+  const paymentMethodsUpdatedAt = formatEpochMillisAsIsoDate(paymentSettings?.updatedAtEpochMillis);
+  const paymentMethodsUpdatedAtMs = Number(paymentSettings?.updatedAtEpochMillis || 0);
+  const changedRecently = Number.isFinite(paymentMethodsUpdatedAtMs) &&
+    paymentMethodsUpdatedAtMs > 0 &&
+    (Date.now() - paymentMethodsUpdatedAtMs) <= (14 * 24 * 60 * 60 * 1000);
+  if (actionLayer?.triggerPaymentMethodsChangedEnabled !== false && changedRecently && activeCheckoutMethods.length) {
+    hints.push(`[Payment Methode geaendert] Checkout-Konfiguration wurde kuerzlich aktualisiert (${paymentMethodsUpdatedAt || "kuerzlich"}). Aktive Methoden: ${activeCheckoutMethods.join(", ")}.`);
+  }
+
+  const normalizedPlan = normalizeAiSubscriptionPlan(entitlementState?.plan || profile?.aiLimits?.quotaPlan);
+  const heavyUsage = [textRatio, visualRatio, agentRatio].some((value) => value >= Math.max(80, warningThreshold));
+  if (actionLayer?.triggerUsageBasedUpgradeEnabled !== false &&
+    (normalizedPlan === USER_QUOTA_PLANS.free || normalizedPlan === USER_QUOTA_PLANS.creator) &&
+    heavyUsage) {
+    const hintText = normalizedPlan === USER_QUOTA_PLANS.free ?
+      nonEmptyString(actionLayer?.upgradeHintFreeToProText) ||
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.upgradeHintFreeToProText :
+      nonEmptyString(actionLayer?.upgradeHintProToCreatorText) ||
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.upgradeHintProToCreatorText;
+    hints.push(`[Upgrade sinnvoll basierend auf Nutzung] ${hintText}`);
+  }
+
+  return hints;
+}
+
+function resolveCurrentAiAccessForFaq({featureConfig, profile}) {
+  if (!featureConfig?.isEnabled) {
+    return false;
+  }
+
+  if (featureConfig.accessMode === AI_ACCESS_MODES.off) {
+    return false;
+  }
+
+  if (!profile?.aiAccessEnabled) {
+    return false;
+  }
+
+  if (featureConfig.accessMode === AI_ACCESS_MODES.adminOnly) {
+    return profile?.isStaff === true;
+  }
+
+  return true;
+}
+
+async function loadFaqLiveFacts({auth, runtimeSettings = null}) {
+  const uid = nonEmptyString(auth?.uid);
+  if (!uid) {
+    return "";
+  }
+
+  const [
+    paymentSettings,
+    commerceSettings,
+    legalContent,
+    userData,
+    featureConfig,
+    canonicalEntitlement,
+    currentUsage,
+  ] = await Promise.all([
+    loadFaqSource("payment_methods", () => loadPaymentMethodSettings(), null),
+    loadFaqSource("commerce_settings", () => loadCommerceSettings(), null),
+    loadFaqSource("legal_content", () => loadLegalContentSettings(), null),
+    loadFaqSource("user_data", () => loadUserData(uid), null),
+    loadFaqSource("ai_feature_config", () => loadAiFeatureConfig(), {
+      isEnabled: true,
+      accessMode: AI_ACCESS_MODES.signedIn,
+    }),
+    loadFaqSource("canonical_entitlement", () => loadCanonicalAiEntitlement(uid), null),
+    loadFaqSource("current_ai_usage", () => loadCurrentAiUsageForFaq(uid), {}),
+  ]);
+
+  const rawUserData = userData || {};
+  const entitlementState = canonicalEntitlement || resolveLegacyAiEntitlement(rawUserData);
+  const effectiveUserData = applyEntitlementToUserData(rawUserData, entitlementState);
+  const profile = buildUserProfile(effectiveUserData);
+  const email = normalizeEmail(effectiveUserData.email) || normalizeEmail(auth?.token?.email) || "";
+  const recentOrders = await loadFaqSource(
+      "recent_orders",
+      () => loadRecentOrdersForFaq(uid, email),
+      [],
+  );
+  const aiCapabilities = entitlementState?.capabilities || resolveAiCapabilities({
+    plan: entitlementState?.plan || null,
+    status: entitlementState?.status || "inactive",
+    role: profile.role,
+  });
+  const aiSubscriptions = paymentSettings?.aiSubscriptions || {};
+  const bankTransferConfigured = paymentSettings?.bankTransfer?.enabled === true &&
+    !!paymentSettings?.bankTransfer?.accountHolder &&
+    !!paymentSettings?.bankTransfer?.iban &&
+    !!paymentSettings?.bankTransfer?.bankName;
+  const activeCheckoutMethods = [
+    paymentSettings?.stripe?.connected === true && paymentSettings?.stripe?.enabled === true ? "Stripe" : "",
+    paymentSettings?.paypal?.connected === true && paymentSettings?.paypal?.enabled === true ? "PayPal" : "",
+    paymentSettings?.klarna?.connected === true && paymentSettings?.klarna?.enabled === true ? "Klarna" : "",
+    bankTransferConfigured ? "Bankueberweisung" : "",
+  ].filter(Boolean);
+  const supportEmail = nonEmptyString(legalContent?.supportEmail) ||
+    nonEmptyString(commerceSettings?.invoice?.supportEmail) ||
+    DEFAULT_LEGAL_CONTENT_SETTINGS.supportEmail;
+  const currentPlan = resolveFaqPlanLabel(
+      entitlementState?.plan ||
+      profile.aiLimits?.quotaPlan ||
+      effectiveUserData.quotaPlan,
+  );
+  const currentStatus = nonEmptyString(entitlementState?.status) || "inactive";
+  const currentProvider = nonEmptyString(entitlementState?.provider) || "kein_provider";
+  const currentSource = nonEmptyString(entitlementState?.source) || "kein_source";
+  const currentPeriodEnd = formatEpochMillisAsIsoDate(
+      Number(entitlementState?.periodEndEpochSeconds || 0) * 1000,
+  );
+  const registrationDate = formatEpochMillisAsIsoDate(effectiveUserData.registrationDateEpochMillis);
+  const contactMask = maskEmail(email);
+  const membershipPriceSnapshot = resolveConfiguredMembershipPriceSnapshot(aiSubscriptions);
+  const membershipPriceSnapshotLines = membershipPriceSnapshot.length ?
+    membershipPriceSnapshot
+        .map((entry) => {
+          const intervalLabel = entry.billingInterval === "yearly" ? "yearly" : "monthly";
+          const planLabel = resolveFaqPlanLabel(entry.plan);
+          const fitHint = resolvePlanFitHint(entitlementState?.plan || currentPlan, entry.plan);
+          return `${entry.sourcePlatform} ${planLabel} (${intervalLabel}) · Preis ${entry.amountLabel} · Waehrung ${entry.currency} · Product ${entry.productId} · Plan-Fit ${fitHint}${entry.snapshotUpdatedAt ? ` · Snapshot ${entry.snapshotUpdatedAt}` : ""}`;
+        }) :
+    [
+      "Keine Membership Price Snapshots pro Plattform im Payment-Config hinterlegt.",
+      "Felder erwartet: paymentMethods.aiSubscriptions.priceSnapshotByProductId[productId] mit price, currency und optional billingInterval, updatedAt.",
+    ];
+  const iosBillingConfigured = Boolean(
+      aiSubscriptions.iosCreatorProductId &&
+      aiSubscriptions.iosStudioProductId &&
+      aiSubscriptions.iosAppAppleId,
+  );
+  const androidBillingConfigured = Boolean(
+      aiSubscriptions.androidCreatorProductId &&
+      aiSubscriptions.androidStudioProductId,
+  );
+  const normalizedSource = nonEmptyString(entitlementState?.source)?.toLowerCase() || "";
+  const restoreSourceHint = normalizedSource.includes("app") || normalizedSource.includes("ios") ?
+    "iOS/App Store" :
+    normalizedSource.includes("play") || normalizedSource.includes("android") ?
+      "Android/Google Play" :
+      "Plattform unklar";
+  const textUsage = Number(currentUsage?.textRequests || 0);
+  const visualUsage = Number(currentUsage?.visualRequests || 0);
+  const agentUsage = Number(currentUsage?.agentRequests || 0);
+  const reachedKinds = [
+    profile.aiLimits.text > 0 && textUsage >= profile.aiLimits.text ? "Text" : "",
+    profile.aiLimits.visual > 0 && visualUsage >= profile.aiLimits.visual ? "Visual" : "",
+    profile.aiLimits.agent > 0 && agentUsage >= profile.aiLimits.agent ? "Agent" : "",
+  ].filter(Boolean);
+  const aiBlockedReasons = [
+    featureConfig?.isEnabled === false ? "Remote Config: AI global deaktiviert" : "",
+    featureConfig?.accessMode === AI_ACCESS_MODES.off ? "Access Mode steht auf off" : "",
+    profile.aiAccessEnabled !== true ? "Konto hat AI Access nicht aktiv" : "",
+    featureConfig?.accessMode === AI_ACCESS_MODES.adminOnly && !profile.isStaff ?
+      "Access Mode admin_only, Konto ist kein Staff" :
+      "",
+  ].filter(Boolean);
+  const recoveryFacts = [
+    [
+      "[Restore failed]",
+      `Moegliche Ursachen: Entitlement aktuell ${currentStatus}; Billing-Setup iOS ${formatYesNo(iosBillingConfigured)} / Android ${formatYesNo(androidBillingConfigured)}; erkannte Source ${restoreSourceHint}.`,
+      "Naechste Schritte: Restore genau einmal im Membership-Sheet ausloesen, 30-90s Sync abwarten, mit demselben Store-Konto pruefen, danach Support mit Konto-E-Mail + Plattform + Zeitstempel + Purchase-Referenz kontaktieren.",
+    ].join(" "),
+    [
+      "[Purchase failed]",
+      `Moegliche Ursachen: AI Membership global ${formatYesNo(aiSubscriptions.enabled === true)}; aktive Checkout-Methoden ${activeCheckoutMethods.length ? activeCheckoutMethods.join(", ") : "keine bestaetigt"}; mobile Flows erwarten nativen Store-Billing-Flow.`,
+      "Naechste Schritte: Kauf nur einmal starten (keine Doppel-Taps), Store-Account + Netzwerk pruefen, bei erneutem Fehlschlag Support mit Plattform, Plan, Uhrzeit und Fehlertext.",
+    ].join(" "),
+    [
+      "[Login failed]",
+      `Moegliche Ursachen: Konto-E-Mail ${contactMask || "nicht im FAQ-Kontext sichtbar"}; Rolle ${profile.role}; AI-Zugriff ${formatYesNo(profile.aiAccessEnabled)}.`,
+      "Naechste Schritte: Session erneuern (ab-/anmelden), Login-Methode pruefen, danach Support mit Plattform, Login-Zeit und Screenshot.",
+    ].join(" "),
+    [
+      "[AI blocked]",
+      `Moegliche Ursachen: ${aiBlockedReasons.length ? aiBlockedReasons.join(" | ") : "kein harter Block aus Live Facts sichtbar; moeglich sind modell-/guardrail-spezifische Laufzeitregeln"}.`,
+      "Naechste Schritte: Bot im FAQ-/Text-Modus neu versuchen, bei persistentem Block Plan-/Rollenfreigabe und Runtime-Status pruefen, dann Support mit Anfragezeit + Bereich + Konto.",
+    ].join(" "),
+    [
+      "[Limit reached]",
+      `Moegliche Ursachen: heutige Nutzung Text ${textUsage}/${profile.aiLimits.text}, Visual ${visualUsage}/${profile.aiLimits.visual}, Agent ${agentUsage}/${profile.aiLimits.agent}; erreicht: ${reachedKinds.length ? reachedKinds.join(", ") : "laut Snapshot keines sicher erreicht"}.`,
+      "Naechste Schritte: auf naechstes UTC-Reset warten, niedrigere Last (kurzere Prompts) nutzen, oder passendes Upgrade pruefen.",
+    ].join(" "),
+  ];
+  const proactiveHints = buildProactiveFaqHints({
+    profile,
+    currentUsage,
+    aiSubscriptions,
+    entitlementState,
+    recentOrders,
+    paymentSettings,
+    activeCheckoutMethods,
+    actionLayer: runtimeSettings?.bot?.actionLayer || null,
+  });
+
+  return [
+    composeFaqFactSection("Membership Facts", [
+      `AI Membership global aktiviert: ${formatYesNo(aiSubscriptions.enabled === true)}`,
+      `Aktueller Entitlement-Stand: Plan ${currentPlan} · Status ${currentStatus} · Provider ${currentProvider} · Source ${currentSource}`,
+      currentPeriodEnd ? `Aktuelle Laufzeit endet laut Entitlement am ${currentPeriodEnd}` : "",
+      `Quota-Plan im Konto: ${resolveFaqPlanLabel(profile.aiLimits.quotaPlan)}`,
+      `Tageslimits: Text ${profile.aiLimits.text} · Visual ${profile.aiLimits.visual} · Agent ${profile.aiLimits.agent} · History ${profile.aiLimits.historyRetentionDays} Tage`,
+      `Native Billing Konfiguration: iOS ${formatYesNo(Boolean(aiSubscriptions.iosCreatorProductId && aiSubscriptions.iosStudioProductId && aiSubscriptions.iosAppAppleId))} · Android ${formatYesNo(Boolean(aiSubscriptions.androidCreatorProductId && aiSubscriptions.androidStudioProductId))}`,
+      `Yearly Offers konfiguriert: iOS ${formatYesNo(Boolean(aiSubscriptions.iosCreatorYearlyProductId && aiSubscriptions.iosStudioYearlyProductId))} · Android ${formatYesNo(Boolean(aiSubscriptions.androidCreatorYearlyProductId && aiSubscriptions.androidStudioYearlyProductId))}`,
+      aiSubscriptions.annualDiscountCopy ? `Annual Offer Copy: ${truncateTextBlock(aiSubscriptions.annualDiscountCopy, 160)}` : "",
+      Array.isArray(aiSubscriptions.planOrder) && aiSubscriptions.planOrder.length ?
+        `Plan-Reihenfolge in Membership-UI: ${aiSubscriptions.planOrder.join(" -> ")}` :
+        "",
+      aiSubscriptions.highlightedPlan ? `Hervorgehobener Membership-Plan: ${aiSubscriptions.highlightedPlan}` : "",
+      `Usage-Warnschwellen in Membership-UI: warning ${aiSubscriptions.warningThresholdPercent || 70}% · critical ${aiSubscriptions.criticalThresholdPercent || 90}%`,
+      "Wichtige Mapping-Notiz: interner Plan 'creator' wird in Teilen der App als 'Pro' angezeigt; interner Plan 'studio' wird in Teilen der App als 'Creator' angezeigt.",
+      "Mobile AI-Abos sind fuer iOS/Android auf nativen Store-Billing-Flow ausgelegt; serverseitiger Stripe-Abo-Checkout blockt mobile Plattformangaben bewusst.",
+    ]),
+    composeFaqFactSection("Membership Price Snapshot Facts", membershipPriceSnapshotLines),
+    composeFaqFactSection("Account Facts", [
+      `Kontorolle ${profile.role} · Staff ${formatYesNo(profile.isStaff)} · AI-Zugriff auf Kontoebene ${formatYesNo(profile.aiAccessEnabled)}`,
+      effectiveUserData.username ? `Username im Konto: ${truncateTextBlock(effectiveUserData.username, 80)}` : "",
+      contactMask ? `Hinterlegte Konto-E-Mail (maskiert): ${contactMask}` : "",
+      registrationDate ? `Registrierung im Nutzerdokument seit: ${registrationDate}` : "",
+      effectiveUserData.whatsApp ? "WhatsApp im Konto vorhanden: ja" : "WhatsApp im Konto vorhanden: nein",
+      effectiveUserData.instagramHandle ? "Instagram im Konto vorhanden: ja" : "Instagram im Konto vorhanden: nein",
+      effectiveUserData.profileTagline ? "Profil-Tagline vorhanden: ja" : "Profil-Tagline vorhanden: nein",
+      effectiveUserData.profileBio ? "Profil-Bio vorhanden: ja" : "Profil-Bio vorhanden: nein",
+    ]),
+    composeFaqFactSection("App Feature Facts", [
+      `Remote Config fuer AI: enabled ${formatYesNo(featureConfig?.isEnabled !== false)} · accessMode ${resolveFaqAccessModeLabel(featureConfig?.accessMode)}`,
+      `AI fuer dieses Konto aktuell nutzbar: ${formatYesNo(resolveCurrentAiAccessForFaq({featureConfig, profile}))}`,
+      `Capabilities aus Entitlement: botText ${formatYesNo(featureAllowedByCapability(aiCapabilities, AI_FEATURE_CLASSES.text))} · image ${formatYesNo(featureAllowedByCapability(aiCapabilities, AI_FEATURE_CLASSES.image))} · agent ${formatYesNo(featureAllowedByCapability(aiCapabilities, AI_FEATURE_CLASSES.agent))} · workflow ${formatYesNo(featureAllowedByCapability(aiCapabilities, AI_FEATURE_CLASSES.workflow))} · premiumOutputs ${formatYesNo(aiCapabilities.premiumOutputs === true)}`,
+      "Es gibt aktuell keine zentrale Live-Feature-Registry fuer Music, Video, Shop oder Profile jenseits der bekannten Produktfakten und AI-Remote-Config.",
+    ]),
+    composeFaqFactSection("Support Facts", [
+      `Support-E-Mail: ${supportEmail}`,
+      legalContent?.operatorName ? `Betreiber: ${legalContent.operatorName}` : "",
+      legalContent?.brandName ? `Brand: ${legalContent.brandName}` : "",
+      legalContent?.rightsHolderName ? `Rights Holder: ${legalContent.rightsHolderName}` : "",
+      legalContent?.imprintReference ? `Imprint/Anbieterhinweis: ${truncateTextBlock(legalContent.imprintReference, 220)}` : "",
+      legalContent?.lastUpdatedLabel ? `Legal Stand laut App: ${legalContent.lastUpdatedLabel}` : "",
+      activeCheckoutMethods.length ? `Aktive Checkout-/Zahlungswege laut Config: ${activeCheckoutMethods.join(", ")}` : "Aktive Checkout-/Zahlungswege laut Config: keine sicher bestaetigt",
+      commerceSettings?.shipping ? `Versandkosten laut Config: DE ${formatEuroAmount(commerceSettings.shipping.domesticCost)} · EU ${formatEuroAmount(commerceSettings.shipping.euCost)} · INTL ${formatEuroAmount(commerceSettings.shipping.internationalCost)} · kostenlos ab ${formatEuroAmount(commerceSettings.shipping.freeShippingThreshold)}` : "",
+      commerceSettings?.shipping?.shippingNotes ? `Shipping Notes: ${truncateTextBlock(commerceSettings.shipping.shippingNotes, 220)}` : "",
+      commerceSettings?.invoice?.companyName ? `Rechnungssteller laut Commerce-Config: ${commerceSettings.invoice.companyName}` : "",
+      commerceSettings?.invoice?.supportEmail ? `Commerce Support-E-Mail: ${commerceSettings.invoice.supportEmail}` : "",
+      "Wenn Support noetig ist, sind besonders hilfreich: Plattform, betroffener Bereich, Uhrzeit, Screenshots, Referenz-ID und die Konto-E-Mail.",
+    ]),
+    composeFaqFactSection("Order Facts", recentOrders.length ?
+      recentOrders.map((order) => buildFaqOrderFact(order)) :
+      ["Keine Bestellungen fuer dieses Konto im aktuellen FAQ-Kontext gefunden."]),
+    composeFaqFactSection("Recovery Facts", recoveryFacts),
+    composeFaqFactSection("Proaktive Hinweise", proactiveHints.length ?
+      proactiveHints :
+      ["Keine proaktiven Hinweise mit hohem Nutzen im aktuellen Snapshot."]),
+    composeFaqFactSection("Known Data Limits", [
+      "Keine live Store-Preisbetraege aus App Store oder Google Play im FAQ-Kontext.",
+      "Keine Carrier-Tracking-API und keine live Versandlaufzeiten ausser vorhandenen Order-/Fulfillment-Feldern.",
+      "Keine Support-Ticket-Datenbank und keine provider-spezifischen Auth-/Login-Fehlerlogs im FAQ-Kontext.",
+      "Keine zentrale Live-Feature-Registry fuer nicht-AI-Bereiche wie Music, Video, Shop oder Profile.",
+    ]),
+  ].filter(Boolean).join("\n\n");
+}
+
+function normalizeFaqQuestionKey(prompt) {
+  const base = nonEmptyString(prompt) || "";
+  const normalized = base
+      .toLowerCase()
+      .replace(/[^a-z0-9\u00c0-\u017f\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim() || "";
+  if (!normalized) {
+    return "empty";
+  }
+  return normalized.slice(0, 120);
+}
+
+function extractFaqSectionLines(factsText, sectionTitle) {
+  const text = typeof factsText === "string" ? factsText : "";
+  if (!text || !sectionTitle) {
+    return [];
+  }
+  const escapedTitle = sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`\\[${escapedTitle}\\]\\n([\\s\\S]*?)(?:\\n\\n\\[|$)`, "i");
+  const match = text.match(regex);
+  if (!match?.[1]) {
+    return [];
+  }
+  return match[1]
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("- "))
+      .map((line) => line.slice(2).trim())
+      .filter(Boolean);
+}
+
+function resolveProactiveHintKeysFromFacts(factsText) {
+  const lines = extractFaqSectionLines(factsText, "Proaktive Hinweise");
+  return uniqueStrings(lines.map((line) => {
+    const bracketMatch = line.match(/^\[([^\]]+)\]/);
+    const label = bracketMatch?.[1] || line.slice(0, 48);
+    return aiMetricKey(label, "hint");
+  }));
+}
+
+function toEpochMillis(value) {
+  if (value instanceof admin.firestore.Timestamp) {
+    return value.toMillis();
+  }
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return numeric;
+  }
+  const parsed = Date.parse(nonEmptyString(value) || "");
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+async function recordFaqOwnerIntelligence({
+  uid,
+  prompt,
+  topicKey,
+  proactiveHintKeys,
+}) {
+  const normalizedUid = nonEmptyString(uid);
+  if (!normalizedUid) {
+    return;
+  }
+  const dateKey = aiUsageDateKey();
+  const dayRef = admin.firestore().collection(AI_FAQ_INTELLIGENCE_DAILY_COLLECTION).doc(dateKey);
+  const userRef = dayRef.collection("userState").doc(normalizedUid);
+  const nowMs = Date.now();
+  const questionKey = normalizeFaqQuestionKey(prompt);
+  const normalizedTopic = aiMetricKey(topicKey, "unknown");
+  const hintKeys = uniqueStrings((proactiveHintKeys || []).map((key) => aiMetricKey(key, "hint")));
+
+  await admin.firestore().runTransaction(async (transaction) => {
+    const userSnapshot = await transaction.get(userRef);
+    const previous = userSnapshot.exists ? (userSnapshot.data() || {}) : {};
+    const lastQuestionKey = nonEmptyString(previous.lastQuestionKey) || "";
+    const lastAskedAt = toEpochMillis(previous.lastAskedAtEpochMillis);
+    const lastHintAt = toEpochMillis(previous.lastHintAtEpochMillis);
+    const previousHintKeys = Array.isArray(previous.lastHintKeys) ?
+      previous.lastHintKeys.map((value) => aiMetricKey(value, "hint")).filter(Boolean) :
+      [];
+    const isRepeatQuestion = lastQuestionKey === questionKey &&
+      lastAskedAt > 0 &&
+      (nowMs - lastAskedAt) <= (24 * 60 * 60 * 1000);
+    const repeatAfterHint = isRepeatQuestion &&
+      lastHintAt > 0 &&
+      (nowMs - lastHintAt) <= (24 * 60 * 60 * 1000) &&
+      previousHintKeys.length > 0;
+
+    const updates = {
+      dateKey,
+      totalFaqAnswers: admin.firestore.FieldValue.increment(1),
+      [`faqByTopic.${normalizedTopic}`]: admin.firestore.FieldValue.increment(1),
+      [`faqByQuestion.${questionKey}`]: admin.firestore.FieldValue.increment(1),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    if (hintKeys.length > 0) {
+      updates.totalHintWindows = admin.firestore.FieldValue.increment(1);
+      for (const hintKey of hintKeys) {
+        updates[`hintTriggers.${hintKey}`] = admin.firestore.FieldValue.increment(1);
+      }
+    }
+    if (isRepeatQuestion) {
+      updates.repeatQuestions = admin.firestore.FieldValue.increment(1);
+    }
+    if (repeatAfterHint) {
+      updates.repeatAfterHint = admin.firestore.FieldValue.increment(1);
+      for (const hintKey of previousHintKeys) {
+        updates[`repeatAfterHintByTrigger.${hintKey}`] = admin.firestore.FieldValue.increment(1);
+      }
+    }
+    transaction.set(dayRef, updates, {merge: true});
+
+    transaction.set(userRef, {
+      uid: normalizedUid,
+      lastQuestionKey: questionKey,
+      lastAskedAtEpochMillis: nowMs,
+      lastHintKeys: hintKeys,
+      lastHintAtEpochMillis: hintKeys.length ? nowMs : previous.lastHintAtEpochMillis || 0,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+  });
+}
+
+async function attributeHintConversionToMembershipEvent({uid, eventName}) {
+  const normalizedUid = nonEmptyString(uid);
+  const normalizedEventName = normalizeMembershipEventName(eventName);
+  if (!normalizedUid || !["purchase_success", "upgrade_after_warning", "upgrade_after_deny"].includes(normalizedEventName)) {
+    return;
+  }
+  const dateKey = aiUsageDateKey();
+  const dayRef = admin.firestore().collection(AI_FAQ_INTELLIGENCE_DAILY_COLLECTION).doc(dateKey);
+  const userRef = dayRef.collection("userState").doc(normalizedUid);
+  const nowMs = Date.now();
+
+  await admin.firestore().runTransaction(async (transaction) => {
+    const userSnapshot = await transaction.get(userRef);
+    if (!userSnapshot.exists) {
+      return;
+    }
+    const state = userSnapshot.data() || {};
+    const lastHintAt = toEpochMillis(state.lastHintAtEpochMillis);
+    const hintKeys = Array.isArray(state.lastHintKeys) ?
+      state.lastHintKeys.map((value) => aiMetricKey(value, "hint")).filter(Boolean) :
+      [];
+    if (lastHintAt <= 0 || hintKeys.length === 0 || (nowMs - lastHintAt) > (48 * 60 * 60 * 1000)) {
+      return;
+    }
+    const updates = {
+      dateKey,
+      totalHintAttributedUpgrades: admin.firestore.FieldValue.increment(1),
+      [`hintAttributedByEvent.${normalizedEventName}`]: admin.firestore.FieldValue.increment(1),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    for (const hintKey of hintKeys) {
+      updates[`hintConversions.${hintKey}`] = admin.firestore.FieldValue.increment(1);
+    }
+    transaction.set(dayRef, updates, {merge: true});
+  });
 }
 
 function isHostedPaymentMethodEnabled(paymentSettings, paymentMethod) {
@@ -4929,6 +6846,123 @@ function stripHtml(value) {
 
 function nonEmptyString(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function truncateTextBlock(value, maxChars = 600) {
+  const normalized = nonEmptyString(value);
+  if (!normalized) {
+    return "";
+  }
+
+  return normalized.length <= maxChars ?
+    normalized :
+    `${normalized.slice(0, Math.max(0, maxChars - 1)).trim()}…`;
+}
+
+function maskEmail(email) {
+  const normalized = normalizeEmail(email);
+  if (!normalized || !normalized.includes("@")) {
+    return "";
+  }
+
+  const [localPart, domainPart] = normalized.split("@");
+  if (!localPart || !domainPart) {
+    return "";
+  }
+
+  const prefix = localPart.length <= 2 ? localPart[0] || "*" : localPart.slice(0, 2);
+  return `${prefix}***@${domainPart}`;
+}
+
+function resolveDateValueToEpochMillis(value) {
+  if (!value) {
+    return 0;
+  }
+
+  if (typeof value?.toMillis === "function") {
+    return Number(value.toMillis()) || 0;
+  }
+
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue) && numericValue > 0) {
+    return Math.floor(numericValue);
+  }
+
+  const parsed = Date.parse(`${value}`);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function formatEpochMillisAsIsoDate(value) {
+  const epochMillis = resolveDateValueToEpochMillis(value);
+  if (!epochMillis) {
+    return "";
+  }
+
+  return new Date(epochMillis).toISOString().slice(0, 10);
+}
+
+function formatEuroAmount(value) {
+  const amount = parsePrice(value);
+  return Number.isFinite(amount) ? `${amount.toFixed(2)} EUR` : "";
+}
+
+function formatYesNo(value) {
+  return value === true ? "ja" : "nein";
+}
+
+function resolveFaqPlanLabel(plan) {
+  const normalizedPlan = nonEmptyString(plan)?.toLowerCase() || "";
+  switch (normalizedPlan) {
+    case USER_QUOTA_PLANS.creator:
+      return "creator (in Teilen der mobilen UI als Pro gezeigt)";
+    case USER_QUOTA_PLANS.studio:
+      return "studio (in Teilen der mobilen UI als Creator gezeigt)";
+    case USER_QUOTA_PLANS.ownerUnlimited:
+      return "owner_unlimited";
+    case USER_QUOTA_PLANS.internalTeam:
+      return "internal_team";
+    case USER_QUOTA_PLANS.free:
+      return "free";
+    default:
+      return normalizedPlan || "unbekannt";
+  }
+}
+
+function resolveFaqAccessModeLabel(accessMode) {
+  switch (nonEmptyString(accessMode)?.toLowerCase()) {
+    case AI_ACCESS_MODES.off:
+      return "off";
+    case AI_ACCESS_MODES.adminOnly:
+      return "admin_only";
+    case AI_ACCESS_MODES.signedIn:
+    default:
+      return "signed_in";
+  }
+}
+
+function composeFaqFactSection(title, facts) {
+  const lines = Array.isArray(facts) ? facts.filter(Boolean) : [];
+  if (lines.length === 0) {
+    return "";
+  }
+
+  return `[${title}]\n${lines.map((line) => `- ${line}`).join("\n")}`;
+}
+
+async function loadFaqSource(sourceName, loader, fallbackValue) {
+  try {
+    return await loader();
+  } catch (error) {
+    logger.warn("FAQ source could not be loaded.", {
+      source: sourceName,
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+    return fallbackValue;
+  }
 }
 
 function normalizeComparableString(value) {
@@ -7491,10 +9525,495 @@ exports.recordAiMembershipEvent = onCall({
       .doc(eventId)
       .set(payload, {merge: true});
 
+  await attributeHintConversionToMembershipEvent({
+    uid,
+    eventName,
+  });
+
   return {
     status: "recorded",
     eventId,
     eventName,
+  };
+});
+
+exports.getAiFaqOwnerIntelligence = onCall({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request) => {
+  await assertCallableSecurity(request, "getAiFaqOwnerIntelligence");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) {
+    throw new HttpsError("permission-denied", "Nur Owner/Admin darf FAQ-Intelligence sehen.");
+  }
+
+  const windowDaysRaw = Number(request.data?.windowDays);
+  const windowDays = [7, 14, 30, 60].includes(windowDaysRaw) ? windowDaysRaw : 30;
+  const range = rollingWindowRange(windowDays);
+  const startDateKey = new Date(range.startMs).toISOString().slice(0, 10);
+  const [snapshot, runtimeSettings] = await Promise.all([
+    admin.firestore()
+        .collection(AI_FAQ_INTELLIGENCE_DAILY_COLLECTION)
+        .where("dateKey", ">=", startDateKey)
+        .orderBy("dateKey", "asc")
+        .limit(120)
+        .get(),
+    loadAiRuntimeSettings(),
+  ]);
+
+  const aggregateMap = (fieldName) => {
+    const output = {};
+    for (const doc of snapshot.docs) {
+      const source = doc.data()?.[fieldName];
+      if (!source || typeof source !== "object" || Array.isArray(source)) continue;
+      for (const [key, value] of Object.entries(source)) {
+        output[key] = (Number(output[key]) || 0) + (Number(value) || 0);
+      }
+    }
+    return output;
+  };
+
+  const totalFaqAnswers = snapshot.docs.reduce((sum, doc) => sum + (Number(doc.data()?.totalFaqAnswers) || 0), 0);
+  const totalHintWindows = snapshot.docs.reduce((sum, doc) => sum + (Number(doc.data()?.totalHintWindows) || 0), 0);
+  const totalHintAttributedUpgrades = snapshot.docs.reduce((sum, doc) => sum + (Number(doc.data()?.totalHintAttributedUpgrades) || 0), 0);
+  const repeatQuestions = snapshot.docs.reduce((sum, doc) => sum + (Number(doc.data()?.repeatQuestions) || 0), 0);
+  const repeatAfterHint = snapshot.docs.reduce((sum, doc) => sum + (Number(doc.data()?.repeatAfterHint) || 0), 0);
+  const faqByTopic = aggregateMap("faqByTopic");
+  const faqByQuestion = aggregateMap("faqByQuestion");
+  const hintTriggers = aggregateMap("hintTriggers");
+  const hintConversions = aggregateMap("hintConversions");
+  const repeatAfterHintByTrigger = aggregateMap("repeatAfterHintByTrigger");
+
+  const triggerInsights = Object.keys(hintTriggers)
+      .map((key) => {
+        const triggers = Number(hintTriggers[key]) || 0;
+        const conversions = Number(hintConversions[key]) || 0;
+        const repeats = Number(repeatAfterHintByTrigger[key]) || 0;
+        const conversionRate = triggers > 0 ? Number((conversions / triggers).toFixed(4)) : 0;
+        const repeatRate = triggers > 0 ? Number((repeats / triggers).toFixed(4)) : 0;
+        return {
+          triggerKey: key,
+          triggers,
+          conversions,
+          repeatsAfterHint: repeats,
+          conversionRate,
+          repeatRate,
+          likelyUseless: triggers >= 5 && conversionRate < 0.05 && repeatRate > 0.25,
+        };
+      })
+      .sort((a, b) => b.triggers - a.triggers);
+
+  const strongestTriggers = triggerInsights
+      .filter((entry) => entry.triggers >= 3)
+      .sort((a, b) => {
+        if (b.conversionRate !== a.conversionRate) return b.conversionRate - a.conversionRate;
+        if (a.repeatRate !== b.repeatRate) return a.repeatRate - b.repeatRate;
+        return b.triggers - a.triggers;
+      })
+      .slice(0, 5);
+  const weakTriggers = triggerInsights
+      .filter((entry) => !entry.likelyUseless && entry.triggers >= 5 && (entry.conversionRate < 0.08 || entry.repeatRate > 0.25))
+      .sort((a, b) => {
+        if (a.conversionRate !== b.conversionRate) return a.conversionRate - b.conversionRate;
+        if (b.repeatRate !== a.repeatRate) return b.repeatRate - a.repeatRate;
+        return b.triggers - a.triggers;
+      })
+      .slice(0, 5);
+  const likelyUselessTriggers = triggerInsights.filter((entry) => entry.likelyUseless).slice(0, 5);
+
+  const topTopics = collectTopEntries(faqByTopic, 10);
+  const totalTopicVolume = topTopics.reduce((sum, entry) => sum + (Number(entry.value) || 0), 0);
+  const repeatHeavyTopics = topTopics
+      .map((entry) => ({
+        ...entry,
+        share: totalTopicVolume > 0 ? Number(((Number(entry.value) || 0) / totalTopicVolume).toFixed(4)) : 0,
+      }))
+      .filter((entry) => Number(entry.value) >= 5 && entry.share >= 0.18)
+      .slice(0, 5);
+
+  const actionLayer = runtimeSettings?.bot?.actionLayer || DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer;
+  const recommendations = [];
+  const pushReviewRecommendation = (recommendation) => {
+    if (!recommendation || typeof recommendation !== "object") return;
+    if (!nonEmptyString(recommendation.id)) return;
+    recommendations.push({
+      priority: "medium",
+      confidence: 0.6,
+      ...recommendation,
+      confidence: Number(Math.max(0, Math.min(1, Number(recommendation.confidence || 0.6))).toFixed(2)),
+    });
+  };
+
+  const aiLimitEntry = triggerInsights.find((entry) => entry.triggerKey === "ai_limit_fast_erreicht");
+  if (aiLimitEntry) {
+    if (aiLimitEntry.triggers >= 8 && aiLimitEntry.repeatRate >= 0.3 && aiLimitEntry.conversionRate < 0.06) {
+      pushReviewRecommendation({
+        id: "raise_warning_threshold",
+        actionType: "adjust_threshold",
+        targetField: "warningThresholdPercent",
+        suggestedValue: Math.min(95, Number(actionLayer.warningThresholdPercent || 70) + 5),
+        title: "Warning Threshold leicht anheben",
+        summary: "AI-Limit-Hinweis erzeugt viele Wiederholungen bei niedriger Conversion. Hoeherer Threshold reduziert Hinweis-Rauschen.",
+        rationale: `Trigger ${aiLimitEntry.triggers}x, Conversion ${aiLimitEntry.conversionRate}, Repeat ${aiLimitEntry.repeatRate}`,
+        priority: "high",
+        confidence: 0.77,
+      });
+    } else if (aiLimitEntry.triggers >= 10 && aiLimitEntry.conversionRate >= 0.12 && aiLimitEntry.repeatRate <= 0.12) {
+      pushReviewRecommendation({
+        id: "lower_warning_threshold",
+        actionType: "adjust_threshold",
+        targetField: "warningThresholdPercent",
+        suggestedValue: Math.max(55, Number(actionLayer.warningThresholdPercent || 70) - 5),
+        title: "Warning Threshold leicht senken",
+        summary: "AI-Limit-Hinweis konvertiert gut ohne Support-Spikes. Frueheres Triggern kann Upside vergroessern.",
+        rationale: `Trigger ${aiLimitEntry.triggers}x, Conversion ${aiLimitEntry.conversionRate}, Repeat ${aiLimitEntry.repeatRate}`,
+        priority: "medium",
+        confidence: 0.71,
+      });
+    }
+  }
+
+  for (const entry of likelyUselessTriggers.slice(0, 2)) {
+    pushReviewRecommendation({
+      id: `disable_${entry.triggerKey}`,
+      actionType: "disable_trigger",
+      targetField: entry.triggerKey,
+      suggestedValue: false,
+      title: `Trigger pruefen: ${entry.triggerKey}`,
+      summary: "Trigger wirkt aktuell schwach (niedrige Conversion bei hoher Repeat-Last). Testweise deaktivieren und 7 Tage beobachten.",
+      rationale: `Trigger ${entry.triggers}x, Conversion ${entry.conversionRate}, Repeat ${entry.repeatRate}`,
+      priority: "high",
+      confidence: 0.84,
+    });
+  }
+
+  const usageTrigger = triggerInsights.find((entry) => entry.triggerKey === "upgrade_sinnvoll_basierend_auf_nutzung");
+  if (usageTrigger && usageTrigger.triggers >= 6 && usageTrigger.conversionRate < 0.08) {
+    pushReviewRecommendation({
+      id: "improve_upgrade_hint_text",
+      actionType: "improve_hint_text",
+      targetField: "upgradeHintFreeToProText",
+      suggestedValue: nonEmptyString(actionLayer.upgradeHintFreeToProText) || DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.upgradeHintFreeToProText,
+      title: "Upgrade-Hint Text schaerfen",
+      summary: "Usage-basierter Upgrade-Hinweis triggert oft, konvertiert aber schwach. Text klarer auf konkreten Nutzen ausrichten.",
+      rationale: `Trigger ${usageTrigger.triggers}x, Conversion ${usageTrigger.conversionRate}`,
+      priority: "medium",
+      confidence: 0.69,
+    });
+  }
+
+  if (repeatHeavyTopics.length >= 2 && actionLayer.faqPriorityMode !== "live_owner_generic") {
+    pushReviewRecommendation({
+      id: "prefer_live_facts_faq",
+      actionType: "adjust_faq_priority",
+      targetField: "faqPriorityMode",
+      suggestedValue: "live_owner_generic",
+      title: "FAQ-Prioritaet auf Live Facts stellen",
+      summary: "Wiederholte FAQ-Themen deuten auf fehlende Praezision hin. Live Facts zuerst reduziert Rueckfragen.",
+      rationale: `Repeat-heavy Topics: ${repeatHeavyTopics.map((entry) => entry.key).join(", ")}`,
+      priority: "medium",
+      confidence: 0.73,
+    });
+  }
+  const strategyInsights = buildFaqStrategyInsights({
+    docs: snapshot.docs,
+    actionLayer,
+    triggerInsights,
+    repeatHeavyTopics,
+  });
+
+  return {
+    generatedAtEpochMillis: Date.now(),
+    windowDays,
+    totals: {
+      faqAnswers: totalFaqAnswers,
+      hintWindows: totalHintWindows,
+      hintAttributedUpgrades: totalHintAttributedUpgrades,
+      repeatQuestions,
+      repeatAfterHint,
+      hintUpgradeRate: totalHintWindows > 0 ? Number((totalHintAttributedUpgrades / totalHintWindows).toFixed(4)) : 0,
+      repeatAfterHintRate: totalHintWindows > 0 ? Number((repeatAfterHint / totalHintWindows).toFixed(4)) : 0,
+    },
+    topFaqTopics: topTopics,
+    topFaqQuestions: collectTopEntries(faqByQuestion, 20),
+    triggerInsights,
+    uselessTriggers: likelyUselessTriggers,
+    reviewLoop: {
+      strongestTriggers,
+      weakTriggers,
+      likelyUselessTriggers,
+      repeatHeavyTopics,
+      recommendations: recommendations.slice(0, 8),
+      strategyInsights,
+      actionLayerSnapshot: {
+        warningThresholdPercent: Number(actionLayer.warningThresholdPercent || 70),
+        criticalThresholdPercent: Number(actionLayer.criticalThresholdPercent || 90),
+        faqPriorityMode: nonEmptyString(actionLayer.faqPriorityMode) || "live_owner_generic",
+        proactiveHintsEnabled: actionLayer.proactiveHintsEnabled !== false,
+      },
+    },
+    dataNotes: {
+      source: AI_FAQ_INTELLIGENCE_DAILY_COLLECTION,
+      attributionWindowHours: 48,
+      repeatWindowHours: 24,
+    },
+  };
+});
+
+async function loadFaqReviewLoopForWindow(windowDays = 30) {
+  const normalizedWindow = [7, 14, 30, 60].includes(Number(windowDays)) ? Number(windowDays) : 30;
+  const range = rollingWindowRange(normalizedWindow);
+  const startDateKey = new Date(range.startMs).toISOString().slice(0, 10);
+  const [snapshot, runtimeSettings] = await Promise.all([
+    admin.firestore()
+        .collection(AI_FAQ_INTELLIGENCE_DAILY_COLLECTION)
+        .where("dateKey", ">=", startDateKey)
+        .orderBy("dateKey", "asc")
+        .limit(120)
+        .get(),
+    loadAiRuntimeSettings(),
+  ]);
+
+  const aggregateMap = (fieldName) => {
+    const output = {};
+    for (const doc of snapshot.docs) {
+      const source = doc.data()?.[fieldName];
+      if (!source || typeof source !== "object" || Array.isArray(source)) continue;
+      for (const [key, value] of Object.entries(source)) {
+        output[key] = (Number(output[key]) || 0) + (Number(value) || 0);
+      }
+    }
+    return output;
+  };
+
+  const hintTriggers = aggregateMap("hintTriggers");
+  const hintConversions = aggregateMap("hintConversions");
+  const repeatAfterHintByTrigger = aggregateMap("repeatAfterHintByTrigger");
+  const faqByTopic = aggregateMap("faqByTopic");
+  const triggerInsights = Object.keys(hintTriggers)
+      .map((key) => {
+        const triggers = Number(hintTriggers[key]) || 0;
+        const conversions = Number(hintConversions[key]) || 0;
+        const repeats = Number(repeatAfterHintByTrigger[key]) || 0;
+        const conversionRate = triggers > 0 ? Number((conversions / triggers).toFixed(4)) : 0;
+        const repeatRate = triggers > 0 ? Number((repeats / triggers).toFixed(4)) : 0;
+        return {
+          triggerKey: key,
+          triggers,
+          conversions,
+          repeatsAfterHint: repeats,
+          conversionRate,
+          repeatRate,
+          likelyUseless: triggers >= 5 && conversionRate < 0.05 && repeatRate > 0.25,
+        };
+      })
+      .sort((a, b) => b.triggers - a.triggers);
+  const likelyUselessTriggers = triggerInsights.filter((entry) => entry.likelyUseless).slice(0, 5);
+  const topTopics = collectTopEntries(faqByTopic, 10);
+  const totalTopicVolume = topTopics.reduce((sum, entry) => sum + (Number(entry.value) || 0), 0);
+  const repeatHeavyTopics = topTopics
+      .map((entry) => ({
+        ...entry,
+        share: totalTopicVolume > 0 ? Number(((Number(entry.value) || 0) / totalTopicVolume).toFixed(4)) : 0,
+      }))
+      .filter((entry) => Number(entry.value) >= 5 && entry.share >= 0.18)
+      .slice(0, 5);
+  const actionLayer = runtimeSettings?.bot?.actionLayer || DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer;
+
+  const recommendations = [];
+  const aiLimitEntry = triggerInsights.find((entry) => entry.triggerKey === "ai_limit_fast_erreicht");
+  if (aiLimitEntry?.triggers >= 8 && aiLimitEntry.repeatRate >= 0.3 && aiLimitEntry.conversionRate < 0.06) {
+    recommendations.push({
+      id: "raise_warning_threshold",
+      actionType: "adjust_threshold",
+      targetField: "warningThresholdPercent",
+      suggestedValue: Math.min(95, Number(actionLayer.warningThresholdPercent || 70) + 5),
+    });
+  } else if (aiLimitEntry?.triggers >= 10 && aiLimitEntry.conversionRate >= 0.12 && aiLimitEntry.repeatRate <= 0.12) {
+    recommendations.push({
+      id: "lower_warning_threshold",
+      actionType: "adjust_threshold",
+      targetField: "warningThresholdPercent",
+      suggestedValue: Math.max(55, Number(actionLayer.warningThresholdPercent || 70) - 5),
+    });
+  }
+  for (const entry of likelyUselessTriggers.slice(0, 2)) {
+    recommendations.push({
+      id: `disable_${entry.triggerKey}`,
+      actionType: "disable_trigger",
+      targetField: entry.triggerKey,
+      suggestedValue: false,
+    });
+  }
+  const usageTrigger = triggerInsights.find((entry) => entry.triggerKey === "upgrade_sinnvoll_basierend_auf_nutzung");
+  if (usageTrigger && usageTrigger.triggers >= 6 && usageTrigger.conversionRate < 0.08) {
+    recommendations.push({
+      id: "improve_upgrade_hint_text",
+      actionType: "improve_hint_text",
+      targetField: "upgradeHintFreeToProText",
+      suggestedValue: nonEmptyString(actionLayer.upgradeHintFreeToProText) || DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer.upgradeHintFreeToProText,
+    });
+  }
+  if (repeatHeavyTopics.length >= 2 && actionLayer.faqPriorityMode !== "live_owner_generic") {
+    recommendations.push({
+      id: "prefer_live_facts_faq",
+      actionType: "adjust_faq_priority",
+      targetField: "faqPriorityMode",
+      suggestedValue: "live_owner_generic",
+    });
+  }
+  const strategyInsights = buildFaqStrategyInsights({
+    docs: snapshot.docs,
+    actionLayer,
+    triggerInsights,
+    repeatHeavyTopics,
+  });
+
+  const totals = {
+    hintWindows: snapshot.docs.reduce((sum, doc) => sum + (Number(doc.data()?.totalHintWindows) || 0), 0),
+    hintAttributedUpgrades: snapshot.docs.reduce((sum, doc) => sum + (Number(doc.data()?.totalHintAttributedUpgrades) || 0), 0),
+    repeatAfterHint: snapshot.docs.reduce((sum, doc) => sum + (Number(doc.data()?.repeatAfterHint) || 0), 0),
+  };
+  return {
+    runtimeSettings,
+    actionLayer,
+    repeatHeavyTopics,
+    triggerInsights,
+    recommendations,
+    strategyInsights,
+    totals,
+    windowDays: normalizedWindow,
+  };
+}
+
+exports.previewAiFaqReviewRecommendation = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "previewAiFaqReviewRecommendation");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) throw new HttpsError("permission-denied", "Nur Owner/Admin.");
+  const recommendation = request.data?.recommendation || {};
+  const windowDays = Number(request.data?.windowDays) || 30;
+  const reviewLoop = await loadFaqReviewLoopForWindow(windowDays);
+  const matched = reviewLoop.recommendations.find((entry) => entry.id === recommendation.id);
+  const candidate = matched || recommendation;
+  const resolution = resolveReviewRecommendationAction({
+    recommendation: candidate,
+    currentActionLayer: reviewLoop.actionLayer,
+    repeatHeavyTopics: reviewLoop.repeatHeavyTopics,
+  });
+  return {
+    allowed: resolution.allowed,
+    safeguards: resolution.safeguards,
+    recommendation: resolution.recommendationEntry,
+    before: {
+      actionLayer: reviewLoop.actionLayer,
+      metrics: reviewLoop.totals,
+    },
+    after: {
+      actionLayer: resolution.nextActionLayer,
+      metrics: reviewLoop.totals,
+    },
+  };
+});
+
+exports.applyAiFaqReviewRecommendation = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "applyAiFaqReviewRecommendation");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) throw new HttpsError("permission-denied", "Nur Owner/Admin.");
+
+  const reviewLoop = await loadFaqReviewLoopForWindow(Number(request.data?.windowDays) || 30);
+  const inputId = nonEmptyString(request.data?.recommendationId) || nonEmptyString(request.data?.recommendation?.id) || "";
+  const matched = reviewLoop.recommendations.find((entry) => entry.id === inputId);
+  if (!matched) throw new HttpsError("failed-precondition", "Recommendation nicht mehr aktuell. Bitte refresh.");
+  const resolution = resolveReviewRecommendationAction({
+    recommendation: matched,
+    currentActionLayer: reviewLoop.actionLayer,
+    repeatHeavyTopics: reviewLoop.repeatHeavyTopics,
+  });
+  if (!resolution.allowed) {
+    return {
+      status: "blocked",
+      safeguards: resolution.safeguards,
+      recommendation: resolution.recommendationEntry,
+    };
+  }
+
+  const runtimeRef = admin.firestore().collection(AI_RUNTIME_CONFIG_COLLECTION).doc(AI_RUNTIME_CONFIG_DOCUMENT);
+  await runtimeRef.set({
+    bot: {actionLayer: resolution.nextActionLayer},
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+  const changeId = `faq_tune_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  await admin.firestore().collection(AI_FAQ_REVIEW_CHANGE_LOG_COLLECTION).doc(changeId).set({
+    changeId,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAtEpochMillis: Date.now(),
+    createdByUid: nonEmptyString(request.auth?.uid) || "",
+    reverted: false,
+    recommendation: resolution.recommendationEntry,
+    before: {
+      actionLayer: reviewLoop.actionLayer,
+      metrics: reviewLoop.totals,
+    },
+    after: {
+      actionLayer: resolution.nextActionLayer,
+      metrics: reviewLoop.totals,
+    },
+  }, {merge: true});
+  aiRuntimeSettingsCache.expiresAt = 0;
+  return {
+    status: "applied",
+    changeId,
+    before: {actionLayer: reviewLoop.actionLayer, metrics: reviewLoop.totals},
+    after: {actionLayer: resolution.nextActionLayer, metrics: reviewLoop.totals},
+    safeguards: resolution.safeguards,
+  };
+});
+
+exports.revertLastAiFaqReviewChange = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "revertLastAiFaqReviewChange");
+  const isOwner = await isOwnerAuth(request.auth);
+  const isAdmin = await isAdminAuth(request.auth);
+  if (!isOwner && !isAdmin) throw new HttpsError("permission-denied", "Nur Owner/Admin.");
+
+  const snapshot = await admin.firestore()
+      .collection(AI_FAQ_REVIEW_CHANGE_LOG_COLLECTION)
+      .where("reverted", "==", false)
+      .orderBy("createdAtEpochMillis", "desc")
+      .limit(1)
+      .get();
+  if (snapshot.empty) {
+    return {status: "noop", message: "Kein offener Change zum Revertieren."};
+  }
+  const doc = snapshot.docs[0];
+  const data = doc.data() || {};
+  const beforeActionLayer = data.before?.actionLayer || DEFAULT_AI_RUNTIME_SETTINGS.bot.actionLayer;
+  const runtimeRef = admin.firestore().collection(AI_RUNTIME_CONFIG_COLLECTION).doc(AI_RUNTIME_CONFIG_DOCUMENT);
+  await runtimeRef.set({
+    bot: {actionLayer: beforeActionLayer},
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+  await doc.ref.set({
+    reverted: true,
+    revertedAt: admin.firestore.FieldValue.serverTimestamp(),
+    revertedByUid: nonEmptyString(request.auth?.uid) || "",
+  }, {merge: true});
+  aiRuntimeSettingsCache.expiresAt = 0;
+  return {
+    status: "reverted",
+    changeId: data.changeId || doc.id,
+    restoredActionLayer: beforeActionLayer,
   };
 });
 
@@ -8380,6 +10899,10 @@ exports.generateAiText = onCall({
   timeoutSeconds: 60,
 }, async (request) => {
   await assertCallableSecurity(request, "generateAiText");
+  const runtimeSettings = await loadAiRuntimeSettings();
+  if (runtimeSettings.bot.killSwitchEnabled) {
+    throw new HttpsError("permission-denied", "Der SkyOS Bot ist owner-seitig pausiert.");
+  }
   const input = parseCallableInput(
       aiTextRequestSchema,
       request.data,
@@ -8399,14 +10922,18 @@ exports.generateAiText = onCall({
     estimatedCostMicros: 12_000,
     requestId: nonEmptyString(request.data?.requestId) || "",
   });
-  const reply = await generateAiTextReply({
+  const textResult = await generateAiTextReply({
     prompt: input.prompt,
     mode: input.mode,
+    runtimeSettings,
+    usage,
+    auth: request.auth,
   });
 
   return {
-    reply,
+    reply: textResult.reply,
     mode: input.mode,
+    botDecision: textResult.decision,
     historyRetentionDays: usage.historyRetentionDays,
     usage: {
       kind: usage.kind,
@@ -8426,6 +10953,13 @@ exports.generateAiVisual = onCall({
   timeoutSeconds: 120,
 }, async (request) => {
   await assertCallableSecurity(request, "generateAiVisual");
+  const runtimeSettings = await loadAiRuntimeSettings();
+  if (runtimeSettings.bot.killSwitchEnabled) {
+    throw new HttpsError("permission-denied", "Der SkyOS Bot ist owner-seitig pausiert.");
+  }
+  if (!runtimeSettings.bot.routingPolicy.allowVisualGeneration) {
+    throw new HttpsError("failed-precondition", "Visual-Generierung ist owner-seitig pausiert.");
+  }
   const input = parseCallableInput(
       aiVisualRequestSchema,
       request.data,
@@ -8445,10 +10979,11 @@ exports.generateAiVisual = onCall({
       estimatedCostMicros: 95_000,
       requestId: nonEmptyString(request.data?.requestId) || "",
     });
-    const visual = await generateAiVisualResult(input.prompt);
+    const visual = await generateAiVisualResult(input.prompt, runtimeSettings, usage);
 
     return {
       ...visual,
+      botDecision: visual.decision,
       historyRetentionDays: usage.historyRetentionDays,
       usage: {
         kind: usage.kind,

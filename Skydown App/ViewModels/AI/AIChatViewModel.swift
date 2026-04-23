@@ -24,6 +24,7 @@ enum AIComposerMode: String, CaseIterable, Identifiable {
 
 enum AITextMode: String, CaseIterable, Identifiable {
     case general = "general"
+    case faq = "faq"
     case caption = "caption"
     case releasePlan = "release_plan"
     case briefing = "briefing"
@@ -36,6 +37,8 @@ enum AITextMode: String, CaseIterable, Identifiable {
         switch self {
         case .general:
             return "Allgemein"
+        case .faq:
+            return "FAQ"
         case .caption:
             return "Captions"
         case .releasePlan:
@@ -53,6 +56,8 @@ enum AITextMode: String, CaseIterable, Identifiable {
         switch self {
         case .general:
             return "Zum Beispiel: Copy fuer den naechsten Drop."
+        case .faq:
+            return "Zum Beispiel: Wie funktioniert Membership oder Restore?"
         case .caption:
             return "Zum Beispiel: Caption fuer den neuen Track."
         case .releasePlan:
@@ -74,6 +79,13 @@ enum AITextMode: String, CaseIterable, Identifiable {
                 "Gib mir eine markentaugliche Ansage fuer einen Story-Slide.",
                 "Mach mir eine klare Promo-Line fuer einen neuen Drop.",
                 "Ueberarbeite diesen Text moderner und druckvoller."
+            ]
+        case .faq:
+            return [
+                "Wie stelle ich mein Abo wieder her?",
+                "Wo ist meine Bestellung und wie pruefe ich den Status sauber?",
+                "Welche Membership habe ich gerade und was bringt ein Upgrade?",
+                "Warum ist AI gesperrt und was kann ich konkret tun?"
             ]
         case .caption:
             return [
@@ -157,7 +169,19 @@ final class AIChatViewModel: ObservableObject {
     }
 
     @Published var messages: [AIChatMessage] = []
-    @Published var draft = ""
+    @Published var draft = "" {
+        didSet {
+            guard !phase.isBusy else { return }
+            let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                if phase == .typing {
+                    phase = .idle
+                }
+            } else {
+                phase = .typing
+            }
+        }
+    }
     @Published var composerMode: AIComposerMode = .text
     @Published var textMode: AITextMode = .general
     /// Bot-only lifecycle (text vs visual). Use `phase.isBusy` instead of a shared `isSending` flag.
@@ -166,6 +190,7 @@ final class AIChatViewModel: ObservableObject {
     @Published var toastMessage = ""
     @Published var toastStyle: ToastStyle = .info
     @Published private(set) var revenueUsage: RevenueUsageState?
+    @Published private(set) var lastDecision: AIBotDecision?
 
     var quickPrompts: [String] {
         textMode.quickPrompts
@@ -217,6 +242,9 @@ final class AIChatViewModel: ObservableObject {
         guard normalizedUserKey != currentUserKey else { return }
         currentUserKey = normalizedUserKey
         restoreHistory()
+        if messages.isEmpty && draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            phase = .idle
+        }
     }
 
     func sendDraft() {
@@ -231,7 +259,8 @@ final class AIChatViewModel: ObservableObject {
     func sendPrompt(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty, !phase.isBusy else { return }
-        phase = .generatingText
+        phase = .sending
+        lastDecision = nil
 
         var appendedAssistantID: UUID?
         Task {
@@ -242,6 +271,7 @@ final class AIChatViewModel: ObservableObject {
                 messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
                 messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
                 draft = ""
+                phase = .streaming
 
                 let result = try await service.generateText(
                     prompt: buildPrompt(for: trimmedPrompt, history: history),
@@ -249,6 +279,7 @@ final class AIChatViewModel: ObservableObject {
                 )
                 historyStore.updateRetentionDays(result.historyRetentionDays)
                 applyUsage(result.usage)
+                lastDecision = result.decision
 
                 updateAssistantMessage(
                     id: assistantID,
@@ -261,10 +292,11 @@ final class AIChatViewModel: ObservableObject {
                     prompt: trimmedPrompt,
                     response: result.text
                 )
-                phase = .idle
+                phase = resolvedTerminalPhase(for: result.decision)
             } catch {
-                phase = .idle
                 let assistantText = userFacingErrorMessage(for: error)
+                lastDecision = decision(for: error)
+                phase = resolvedTerminalPhase(for: lastDecision)
                 if let assistantID = appendedAssistantID {
                     updateAssistantMessage(id: assistantID, text: assistantText, isStreaming: false)
                 }
@@ -282,7 +314,8 @@ final class AIChatViewModel: ObservableObject {
     func generateVisual(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty, !phase.isBusy else { return }
-        phase = .generatingVisual
+        phase = .sending
+        lastDecision = nil
 
         var appendedAssistantID: UUID?
         Task {
@@ -292,10 +325,12 @@ final class AIChatViewModel: ObservableObject {
                 messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
                 messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
                 draft = ""
+                phase = .toolPending
 
                 let result = try await service.generateVisual(prompt: buildVisualPrompt(for: trimmedPrompt))
                 historyStore.updateRetentionDays(result.historyRetentionDays)
                 applyUsage(result.usage)
+                lastDecision = result.decision
                 updateAssistantMessage(
                     id: assistantID,
                     text: result.text,
@@ -309,10 +344,11 @@ final class AIChatViewModel: ObservableObject {
                     response: result.text,
                     imageData: result.imageData
                 )
-                phase = .idle
+                phase = resolvedTerminalPhase(for: result.decision)
             } catch {
-                phase = .idle
                 let assistantText = userFacingErrorMessage(for: error)
+                lastDecision = decision(for: error)
+                phase = resolvedTerminalPhase(for: lastDecision)
                 if let assistantID = appendedAssistantID {
                     updateAssistantMessage(id: assistantID, text: assistantText, isStreaming: false)
                 }
@@ -330,6 +366,8 @@ final class AIChatViewModel: ObservableObject {
     func resetConversation() {
         historyStore.clearEntries(userKey: currentUserKey, source: .bot)
         messages = []
+        lastDecision = nil
+        phase = draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .idle : .typing
     }
 
     private func updateAssistantMessage(id: UUID, text: String, isStreaming: Bool, imageData: Data? = nil) {
@@ -419,6 +457,118 @@ final class AIChatViewModel: ObservableObject {
             resetHint: usage.resetHint,
             retryAfterSeconds: usage.retryAfterSeconds,
             lowerCostOption: usage.lowerCostOption
+        )
+    }
+
+    private func resolvedTerminalPhase(for decision: AIBotDecision?) -> BotInteractionPhase {
+        guard let decision else { return .complete }
+        if decision.ownerDiagnosticActive {
+            return .ownerDiagnostic
+        }
+
+        switch decision.state {
+        case "faq_answer":
+            return .faqAnswer
+        case "degraded":
+            return .degraded
+        case "blocked":
+            return .blocked
+        case "retryable":
+            return .retryable
+        default:
+            return .complete
+        }
+    }
+
+    private func decision(for error: Error) -> AIBotDecision {
+        let nsError = error as NSError
+        let description = userFacingErrorMessage(for: error)
+
+        if nsError.domain == FunctionsErrorDomain,
+           let code = FunctionsErrorCode(rawValue: nsError.code) {
+            switch code {
+            case .unavailable, .deadlineExceeded, .internal:
+                return AIBotDecision(
+                    state: "retryable",
+                    route: composerMode == .visual ? "visual" : "assistant",
+                    topic: "",
+                    summary: "Antwort ist aktuell retrybar.",
+                    promptVersion: "",
+                    qualityMode: "",
+                    faqMode: "",
+                    ownerMode: "",
+                    answerLength: "",
+                    personalityStyle: "",
+                    loggingLevel: "",
+                    diagnosticsMode: "",
+                    ownerDiagnosticActive: false,
+                    selectedModel: "",
+                    selectedProvider: "",
+                    fallbackActivated: false,
+                    fallbackReason: "",
+                    responseLimited: false,
+                    responseLimitReason: "",
+                    blocked: false,
+                    blockReason: "",
+                    retryable: true,
+                    retryReason: description,
+                    trace: [description]
+                )
+            default:
+                return AIBotDecision(
+                    state: "blocked",
+                    route: composerMode == .visual ? "visual" : "assistant",
+                    topic: "",
+                    summary: "Antwort wurde blockiert oder gestoppt.",
+                    promptVersion: "",
+                    qualityMode: "",
+                    faqMode: "",
+                    ownerMode: "",
+                    answerLength: "",
+                    personalityStyle: "",
+                    loggingLevel: "",
+                    diagnosticsMode: "",
+                    ownerDiagnosticActive: false,
+                    selectedModel: "",
+                    selectedProvider: "",
+                    fallbackActivated: false,
+                    fallbackReason: "",
+                    responseLimited: false,
+                    responseLimitReason: "",
+                    blocked: true,
+                    blockReason: description,
+                    retryable: false,
+                    retryReason: "",
+                    trace: [description]
+                )
+            }
+        }
+
+        return AIBotDecision(
+            state: "retryable",
+            route: composerMode == .visual ? "visual" : "assistant",
+            topic: "",
+            summary: "Antwort ist aktuell retrybar.",
+            promptVersion: "",
+            qualityMode: "",
+            faqMode: "",
+            ownerMode: "",
+            answerLength: "",
+            personalityStyle: "",
+            loggingLevel: "",
+            diagnosticsMode: "",
+            ownerDiagnosticActive: false,
+            selectedModel: "",
+            selectedProvider: "",
+            fallbackActivated: false,
+            fallbackReason: "",
+            responseLimited: false,
+            responseLimitReason: "",
+            blocked: false,
+            blockReason: "",
+            retryable: true,
+            retryReason: description,
+            trace: [description]
         )
     }
 

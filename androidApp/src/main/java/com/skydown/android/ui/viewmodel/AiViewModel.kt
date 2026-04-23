@@ -60,7 +60,17 @@ class AiViewModel : ViewModel() {
     }
 
     fun updateDraft(draft: String) {
-        _uiState.update { it.copy(draft = draft) }
+        _uiState.update { state ->
+            state.copy(
+                draft = draft,
+                botPhase = when {
+                    state.botPhase.isBusy -> state.botPhase
+                    draft.trim().isBlank() && state.botPhase == BotInteractionPhase.Typing -> BotInteractionPhase.Idle
+                    draft.trim().isNotBlank() -> BotInteractionPhase.Typing
+                    else -> state.botPhase
+                },
+            )
+        }
     }
 
     fun updateComposerMode(mode: AiComposerMode) {
@@ -100,7 +110,13 @@ class AiViewModel : ViewModel() {
             return
         }
         if (trimmedPrompt.isBlank() || _uiState.value.botPhase.isBusy) return
-        _uiState.update { it.copy(botPhase = BotInteractionPhase.GeneratingText, errorMessage = null) }
+        _uiState.update {
+            it.copy(
+                botPhase = BotInteractionPhase.Sending,
+                errorMessage = null,
+                lastDecision = null,
+            )
+        }
 
         viewModelScope.launch {
             val assistantMessage = AiMessage(
@@ -120,7 +136,7 @@ class AiViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         draft = "",
-                        botPhase = BotInteractionPhase.GeneratingText,
+                        botPhase = BotInteractionPhase.Streaming,
                         errorMessage = null,
                         messages = it.messages + userMessage + assistantMessage,
                     )
@@ -135,7 +151,12 @@ class AiViewModel : ViewModel() {
                 )
             }.onSuccess { result ->
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
-                _uiState.update { it.copy(usageSnapshot = result.usage) }
+                _uiState.update {
+                    it.copy(
+                        usageSnapshot = result.usage,
+                        lastDecision = result.decision,
+                    )
+                }
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = result.text,
@@ -147,9 +168,12 @@ class AiViewModel : ViewModel() {
                     prompt = trimmedPrompt,
                     response = result.text,
                 )
-                _uiState.update { it.copy(botPhase = BotInteractionPhase.Idle) }
+                _uiState.update {
+                    it.copy(botPhase = resolveTerminalPhase(result.decision))
+                }
             }.onFailure { error ->
                 val assistantText = userFacingErrorMessage(error)
+                val decision = decisionFor(error)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = assistantText,
@@ -163,8 +187,9 @@ class AiViewModel : ViewModel() {
                 )
                 _uiState.update {
                     it.copy(
-                        botPhase = BotInteractionPhase.Idle,
+                        botPhase = resolveTerminalPhase(decision),
                         errorMessage = userFacingErrorMessage(error),
+                        lastDecision = decision,
                     )
                 }
             }
@@ -188,7 +213,13 @@ class AiViewModel : ViewModel() {
             return
         }
         if (trimmedPrompt.isBlank() || _uiState.value.botPhase.isBusy) return
-        _uiState.update { it.copy(botPhase = BotInteractionPhase.GeneratingVisual, errorMessage = null) }
+        _uiState.update {
+            it.copy(
+                botPhase = BotInteractionPhase.Sending,
+                errorMessage = null,
+                lastDecision = null,
+            )
+        }
 
         viewModelScope.launch {
             val assistantMessage = AiMessage(
@@ -206,7 +237,7 @@ class AiViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         draft = "",
-                        botPhase = BotInteractionPhase.GeneratingVisual,
+                        botPhase = BotInteractionPhase.ToolPending,
                         errorMessage = null,
                         messages = it.messages + userMessage + assistantMessage,
                     )
@@ -215,7 +246,12 @@ class AiViewModel : ViewModel() {
                 aiImageClient.generateVisual(buildVisualPrompt(trimmedPrompt))
             }.onSuccess { result ->
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
-                _uiState.update { it.copy(usageSnapshot = result.usage) }
+                _uiState.update {
+                    it.copy(
+                        usageSnapshot = result.usage,
+                        lastDecision = result.decision,
+                    )
+                }
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = result.text,
@@ -229,9 +265,12 @@ class AiViewModel : ViewModel() {
                     prompt = trimmedPrompt,
                     response = result.text,
                 )
-                _uiState.update { it.copy(botPhase = BotInteractionPhase.Idle) }
+                _uiState.update {
+                    it.copy(botPhase = resolveTerminalPhase(result.decision))
+                }
             }.onFailure { error ->
                 val assistantText = userFacingErrorMessage(error)
+                val decision = decisionFor(error)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = assistantText,
@@ -245,8 +284,9 @@ class AiViewModel : ViewModel() {
                 )
                 _uiState.update {
                     it.copy(
-                        botPhase = BotInteractionPhase.Idle,
+                        botPhase = resolveTerminalPhase(decision),
                         errorMessage = userFacingErrorMessage(error),
+                        lastDecision = decision,
                     )
                 }
             }
@@ -265,6 +305,7 @@ class AiViewModel : ViewModel() {
                 composerMode = currentState.composerMode,
                 textMode = currentState.textMode,
                 quickPrompts = currentState.quickPrompts,
+                lastDecision = null,
             )
         }
     }
@@ -407,5 +448,57 @@ class AiViewModel : ViewModel() {
                 message ?: "Der SkyOS Bot ist gerade kurz pausiert."
             }
         }
+    }
+
+    private fun resolveTerminalPhase(decision: com.skydown.android.data.AiBotDecision?): BotInteractionPhase {
+        if (decision?.ownerDiagnosticActive == true) {
+            return BotInteractionPhase.OwnerDiagnostic
+        }
+        return when (decision?.state) {
+            "faq_answer" -> BotInteractionPhase.FaqAnswer
+            "degraded" -> BotInteractionPhase.Degraded
+            "blocked" -> BotInteractionPhase.Blocked
+            "retryable" -> BotInteractionPhase.Retryable
+            else -> BotInteractionPhase.Complete
+        }
+    }
+
+    private fun decisionFor(error: Throwable): com.skydown.android.data.AiBotDecision {
+        val description = userFacingErrorMessage(error)
+        val isRetryable = error is FirebaseFunctionsException && when (error.code) {
+            FirebaseFunctionsException.Code.UNAVAILABLE,
+            FirebaseFunctionsException.Code.DEADLINE_EXCEEDED,
+            FirebaseFunctionsException.Code.INTERNAL,
+            -> true
+
+            else -> false
+        }
+
+        return com.skydown.android.data.AiBotDecision(
+            state = if (isRetryable) "retryable" else "blocked",
+            route = if (_uiState.value.composerMode == AiComposerMode.Visual) "visual" else "assistant",
+            topic = "",
+            summary = if (isRetryable) "Antwort ist aktuell retrybar." else "Antwort wurde blockiert oder gestoppt.",
+            promptVersion = "",
+            qualityMode = "",
+            faqMode = "",
+            ownerMode = "",
+            answerLength = "",
+            personalityStyle = "",
+            loggingLevel = "",
+            diagnosticsMode = "",
+            ownerDiagnosticActive = false,
+            selectedModel = "",
+            selectedProvider = "",
+            fallbackActivated = false,
+            fallbackReason = "",
+            responseLimited = false,
+            responseLimitReason = "",
+            blocked = !isRetryable,
+            blockReason = if (isRetryable) "" else description,
+            retryable = isRetryable,
+            retryReason = if (isRetryable) description else "",
+            trace = listOf(description),
+        )
     }
 }

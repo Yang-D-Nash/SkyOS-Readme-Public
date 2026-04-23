@@ -442,6 +442,15 @@ fun HomeScreen(
 
                 item {
                     HomeAnimatedItem(order = 4) {
+                        HomeStoryCard(
+                            onOpenBeatHub = { activeDestination = homeDestinationBeatHub },
+                            onOpenNicma = { activeDestination = homeDestinationNicmaProducer },
+                        )
+                    }
+                }
+
+                item {
+                    HomeAnimatedItem(order = 5) {
                         HomeLiveSignalSurface(
                             hasTrackSignal = uiState.featuredTrack != null,
                             hasBeatSignal = uiState.featuredBeat != null,
@@ -463,7 +472,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    HomeAnimatedItem(order = 5) {
+                    HomeAnimatedItem(order = 6) {
                         HomeMediaCluster(
                             uiState = uiState,
                             isTrackPlaying = currentAudioKey == uiState.featuredTrack?.let(::homeTrackAudioKey),
@@ -1594,15 +1603,15 @@ private fun HomeStoryCard(
     val colorScheme = MaterialTheme.colorScheme
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         HomeSectionBanner(
-            title = "Quick Links",
-            subtitle = "Die wichtigsten Wege zu Beats, Studio und Kontakt.",
+            title = "Community",
+            subtitle = "Brand- und Artist-Profile klar gebuendelt auf Home.",
             icon = Icons.Default.AutoAwesome,
             accent = colorScheme.skydownAccent(),
             tag = "LINKS",
         )
 
         Text(
-            text = "Die wichtigsten Wege sind hier gebuendelt und sofort erreichbar.",
+            text = "Social Reach first: direkte Wege zu Brand und Artists ohne Songs-Kontext.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1621,8 +1630,8 @@ private fun HomeStoryCard(
             )
 
             HomeLaneSection(
-                title = "Music Links",
-                subtitle = "Releases, Beats und Studio.",
+                title = "Social Profiles",
+                subtitle = "Brand und Artists.",
                 accent = colorScheme.skydownSpotify(),
             ) {
                 homeZweizweiSocialLinks.forEach { link ->
@@ -1649,8 +1658,8 @@ private fun HomeStoryCard(
             }
 
             HomeLaneSection(
-                title = "Video Links",
-                subtitle = "Clips & Mail.",
+                title = "Support & Media",
+                subtitle = "Instagram plus Kontakt.",
                 accent = colorScheme.skydownAccentHighlight(),
             ) {
                 HomeStoryLinkButton(

@@ -5,6 +5,7 @@ struct AITextResponse {
     let text: String
     let historyRetentionDays: Int
     let usage: AIUsageSnapshot?
+    let decision: AIBotDecision?
 }
 
 struct AIGeneratedVisual {
@@ -13,6 +14,7 @@ struct AIGeneratedVisual {
     let mimeType: String
     let historyRetentionDays: Int
     let usage: AIUsageSnapshot?
+    let decision: AIBotDecision?
 }
 
 struct AIUsageSnapshot {
@@ -24,6 +26,33 @@ struct AIUsageSnapshot {
     let resetHint: String
     let retryAfterSeconds: Int
     let lowerCostOption: String
+}
+
+struct AIBotDecision: Equatable {
+    let state: String
+    let route: String
+    let topic: String
+    let summary: String
+    let promptVersion: String
+    let qualityMode: String
+    let faqMode: String
+    let ownerMode: String
+    let answerLength: String
+    let personalityStyle: String
+    let loggingLevel: String
+    let diagnosticsMode: String
+    let ownerDiagnosticActive: Bool
+    let selectedModel: String
+    let selectedProvider: String
+    let fallbackActivated: Bool
+    let fallbackReason: String
+    let responseLimited: Bool
+    let responseLimitReason: String
+    let blocked: Bool
+    let blockReason: String
+    let retryable: Bool
+    let retryReason: String
+    let trace: [String]
 }
 
 protocol AIChatServicing {
@@ -70,7 +99,8 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
             text: reply,
             historyRetentionDays: (payload["historyRetentionDays"] as? NSNumber)?.intValue
                 ?? UserRole.user.defaultAIHistoryRetentionDays,
-            usage: Self.parseUsage(payload["usage"] as? [String: Any])
+            usage: Self.parseUsage(payload["usage"] as? [String: Any]),
+            decision: Self.parseDecision(payload["botDecision"] as? [String: Any])
         )
     }
 
@@ -124,7 +154,8 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
             mimeType: (payload["mimeType"] as? String)?.trimmedNilIfEmpty ?? "image/png",
             historyRetentionDays: (payload["historyRetentionDays"] as? NSNumber)?.intValue
                 ?? UserRole.user.defaultAIHistoryRetentionDays,
-            usage: Self.parseUsage(payload["usage"] as? [String: Any])
+            usage: Self.parseUsage(payload["usage"] as? [String: Any]),
+            decision: Self.parseDecision(payload["botDecision"] as? [String: Any])
         )
     }
 
@@ -140,6 +171,36 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
             resetHint: (hints?["resetHint"] as? String) ?? "",
             retryAfterSeconds: (hints?["retryAfterSeconds"] as? NSNumber)?.intValue ?? 0,
             lowerCostOption: (hints?["lowerCostOption"] as? String) ?? ""
+        )
+    }
+
+    private static func parseDecision(_ payload: [String: Any]?) -> AIBotDecision? {
+        guard let payload else { return nil }
+        return AIBotDecision(
+            state: (payload["state"] as? String) ?? "complete",
+            route: (payload["route"] as? String) ?? "assistant",
+            topic: (payload["topic"] as? String) ?? "",
+            summary: (payload["summary"] as? String) ?? "",
+            promptVersion: (payload["promptVersion"] as? String) ?? "",
+            qualityMode: (payload["qualityMode"] as? String) ?? "",
+            faqMode: (payload["faqMode"] as? String) ?? "",
+            ownerMode: (payload["ownerMode"] as? String) ?? "",
+            answerLength: (payload["answerLength"] as? String) ?? "",
+            personalityStyle: (payload["personalityStyle"] as? String) ?? "",
+            loggingLevel: (payload["loggingLevel"] as? String) ?? "",
+            diagnosticsMode: (payload["diagnosticsMode"] as? String) ?? "",
+            ownerDiagnosticActive: payload["ownerDiagnosticActive"] as? Bool ?? false,
+            selectedModel: (payload["selectedModel"] as? String) ?? "",
+            selectedProvider: (payload["selectedProvider"] as? String) ?? "",
+            fallbackActivated: payload["fallbackActivated"] as? Bool ?? false,
+            fallbackReason: (payload["fallbackReason"] as? String) ?? "",
+            responseLimited: payload["responseLimited"] as? Bool ?? false,
+            responseLimitReason: (payload["responseLimitReason"] as? String) ?? "",
+            blocked: payload["blocked"] as? Bool ?? false,
+            blockReason: (payload["blockReason"] as? String) ?? "",
+            retryable: payload["retryable"] as? Bool ?? false,
+            retryReason: (payload["retryReason"] as? String) ?? "",
+            trace: payload["trace"] as? [String] ?? []
         )
     }
 

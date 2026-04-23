@@ -99,6 +99,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.R
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.AiFaqOwnerReviewLoop
 import com.skydown.android.data.AiRuntimeAgentProvider
 import com.skydown.android.data.ArtistPageUi
 import com.skydown.android.data.ArtistPagesStore
@@ -266,6 +267,7 @@ fun SettingsScreen(
     val coroutineScope = rememberCoroutineScope()
     val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
     val membershipOpsRepository = remember { AppContainer.membershipOpsAdminRepository }
+    val faqOwnerReviewRepository = remember { AppContainer.aiFaqOwnerReviewRepository }
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var feedbackType by remember { mutableStateOf(ToastType.Info) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -335,9 +337,54 @@ fun SettingsScreen(
     var aiTextInstructionDraft by rememberSaveable { mutableStateOf("") }
     var aiVisualInstructionDraft by rememberSaveable { mutableStateOf("") }
     var aiAgentSystemInstructionDraft by rememberSaveable { mutableStateOf("") }
+    var aiFaqInstructionDraft by rememberSaveable { mutableStateOf("") }
+    var aiFaqKnowledgeBaseDraft by rememberSaveable { mutableStateOf("") }
     var aiAssetLibraryLinkDraft by rememberSaveable { mutableStateOf("") }
     var aiAssetReferenceNotesDraft by rememberSaveable { mutableStateOf("") }
     var aiCostGuardEnabledDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotPromptVersionDraft by rememberSaveable { mutableStateOf("") }
+    var aiBotQualityModeDraft by rememberSaveable { mutableStateOf("balanced") }
+    var aiBotFaqModeDraft by rememberSaveable { mutableStateOf("auto") }
+    var aiBotOwnerModeDraft by rememberSaveable { mutableStateOf("standard") }
+    var aiBotAnswerLengthDraft by rememberSaveable { mutableStateOf("adaptive") }
+    var aiBotPersonalityStyleDraft by rememberSaveable { mutableStateOf("") }
+    var aiBotLoggingLevelDraft by rememberSaveable { mutableStateOf("") }
+    var aiBotDiagnosticsModeDraft by rememberSaveable { mutableStateOf("owner_only") }
+    var aiBotKillSwitchDraft by rememberSaveable { mutableStateOf(false) }
+    var aiBotTextPrimaryModelDraft by rememberSaveable { mutableStateOf("") }
+    var aiBotTextFallbackModelDraft by rememberSaveable { mutableStateOf("") }
+    var aiBotVisualPrimaryModelDraft by rememberSaveable { mutableStateOf("") }
+    var aiBotVisualFallbackModelDraft by rememberSaveable { mutableStateOf("") }
+    var aiBotCostGuardEnabledDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotPreferBriefCriticalDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotShortAnswerMaxTokensDraft by rememberSaveable { mutableStateOf("") }
+    var aiBotStandardAnswerMaxTokensDraft by rememberSaveable { mutableStateOf("") }
+    var aiBotPreferFaqRoutingDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotPreferProductGuideDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotAllowVisualGenerationDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotAllowTextFallbackDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotAllowVisualFallbackDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotExposeFallbackReasonDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotSafeModeEnabledDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotStrictUnknownHandlingDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotBlockSpeculativeFaqDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotProactiveHintsEnabledDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotTriggerAiLimitNearEnabledDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotTriggerRestoreAvailableEnabledDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotTriggerOrderShippedEnabledDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotTriggerPaymentMethodsChangedEnabledDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotTriggerUsageBasedUpgradeEnabledDraft by rememberSaveable { mutableStateOf(true) }
+    var aiBotWarningThresholdPercentDraft by rememberSaveable { mutableStateOf("70") }
+    var aiBotCriticalThresholdPercentDraft by rememberSaveable { mutableStateOf("90") }
+    var aiBotUpgradeHintFreeToProTextDraft by rememberSaveable { mutableStateOf("") }
+    var aiBotUpgradeHintProToCreatorTextDraft by rememberSaveable { mutableStateOf("") }
+    var aiBotFaqPriorityModeDraft by rememberSaveable { mutableStateOf("live_owner_generic") }
+    var aiBotPromptVersionAliasDraft by rememberSaveable { mutableStateOf("bot-max-v1") }
+    var aiFaqReviewLoopLoading by rememberSaveable { mutableStateOf(false) }
+    var aiFaqReviewLoopError by rememberSaveable { mutableStateOf("") }
+    var aiFaqReviewLoop by remember { mutableStateOf(AiFaqOwnerReviewLoop()) }
+    var aiFaqReviewActionMessage by rememberSaveable { mutableStateOf("") }
+    var aiFaqReviewMetricsSnapshot by rememberSaveable { mutableStateOf("") }
     var aiAgentProviderDraft by rememberSaveable { mutableStateOf(AiRuntimeAgentProvider.Grok.rawValue) }
     var aiFallbackAgentProviderDraft by rememberSaveable { mutableStateOf(AiRuntimeAgentProvider.Gemini.rawValue) }
     var aiManusEnabledDraft by rememberSaveable { mutableStateOf(false) }
@@ -533,6 +580,8 @@ fun SettingsScreen(
         aiTextInstructionDraft = uiState.aiPromptSettings.textInstruction
         aiVisualInstructionDraft = uiState.aiPromptSettings.visualInstruction
         aiAgentSystemInstructionDraft = uiState.aiPromptSettings.agentSystemInstruction
+        aiFaqInstructionDraft = uiState.aiPromptSettings.faqInstruction
+        aiFaqKnowledgeBaseDraft = uiState.aiPromptSettings.faqKnowledgeBase
         aiAssetLibraryLinkDraft = uiState.aiPromptSettings.assetLibraryLink
         aiAssetReferenceNotesDraft = uiState.aiPromptSettings.assetReferenceNotes
     }
@@ -557,6 +606,44 @@ fun SettingsScreen(
         aiGlobalTextLimitDraft = uiState.aiRuntimeSettings.globalDailyCaps.text.toString()
         aiGlobalVisualLimitDraft = uiState.aiRuntimeSettings.globalDailyCaps.visual.toString()
         aiGlobalAgentLimitDraft = uiState.aiRuntimeSettings.globalDailyCaps.agent.toString()
+        aiBotPromptVersionDraft = uiState.aiRuntimeSettings.bot.promptVersion
+        aiBotQualityModeDraft = uiState.aiRuntimeSettings.bot.qualityMode
+        aiBotFaqModeDraft = uiState.aiRuntimeSettings.bot.faqMode
+        aiBotOwnerModeDraft = uiState.aiRuntimeSettings.bot.ownerMode
+        aiBotAnswerLengthDraft = uiState.aiRuntimeSettings.bot.answerLength
+        aiBotPersonalityStyleDraft = uiState.aiRuntimeSettings.bot.personalityStyle
+        aiBotLoggingLevelDraft = uiState.aiRuntimeSettings.bot.loggingLevel
+        aiBotDiagnosticsModeDraft = uiState.aiRuntimeSettings.bot.diagnosticsMode
+        aiBotKillSwitchDraft = uiState.aiRuntimeSettings.bot.killSwitchEnabled
+        aiBotTextPrimaryModelDraft = uiState.aiRuntimeSettings.bot.modelPolicy.textPrimaryModel
+        aiBotTextFallbackModelDraft = uiState.aiRuntimeSettings.bot.modelPolicy.textFallbackModel
+        aiBotVisualPrimaryModelDraft = uiState.aiRuntimeSettings.bot.modelPolicy.visualPrimaryModel
+        aiBotVisualFallbackModelDraft = uiState.aiRuntimeSettings.bot.modelPolicy.visualFallbackModel
+        aiBotCostGuardEnabledDraft = uiState.aiRuntimeSettings.bot.costGuard.enabled
+        aiBotPreferBriefCriticalDraft = uiState.aiRuntimeSettings.bot.costGuard.preferBriefAnswersWhenCritical
+        aiBotShortAnswerMaxTokensDraft = uiState.aiRuntimeSettings.bot.costGuard.shortAnswerMaxOutputTokens.toString()
+        aiBotStandardAnswerMaxTokensDraft = uiState.aiRuntimeSettings.bot.costGuard.standardAnswerMaxOutputTokens.toString()
+        aiBotPreferFaqRoutingDraft = uiState.aiRuntimeSettings.bot.routingPolicy.preferFaqWhenTopicMatched
+        aiBotPreferProductGuideDraft = uiState.aiRuntimeSettings.bot.routingPolicy.preferProductGuideForNewUsers
+        aiBotAllowVisualGenerationDraft = uiState.aiRuntimeSettings.bot.routingPolicy.allowVisualGeneration
+        aiBotAllowTextFallbackDraft = uiState.aiRuntimeSettings.bot.fallbackPolicy.allowTextFallback
+        aiBotAllowVisualFallbackDraft = uiState.aiRuntimeSettings.bot.fallbackPolicy.allowVisualFallback
+        aiBotExposeFallbackReasonDraft = uiState.aiRuntimeSettings.bot.fallbackPolicy.exposeFallbackReason
+        aiBotSafeModeEnabledDraft = uiState.aiRuntimeSettings.bot.safetyPolicy.safeModeEnabled
+        aiBotStrictUnknownHandlingDraft = uiState.aiRuntimeSettings.bot.safetyPolicy.strictUnknownHandling
+        aiBotBlockSpeculativeFaqDraft = uiState.aiRuntimeSettings.bot.safetyPolicy.blockSpeculativeFaqAnswers
+        aiBotProactiveHintsEnabledDraft = uiState.aiRuntimeSettings.bot.actionLayer.proactiveHintsEnabled
+        aiBotTriggerAiLimitNearEnabledDraft = uiState.aiRuntimeSettings.bot.actionLayer.triggerAiLimitNearEnabled
+        aiBotTriggerRestoreAvailableEnabledDraft = uiState.aiRuntimeSettings.bot.actionLayer.triggerRestoreAvailableEnabled
+        aiBotTriggerOrderShippedEnabledDraft = uiState.aiRuntimeSettings.bot.actionLayer.triggerOrderShippedEnabled
+        aiBotTriggerPaymentMethodsChangedEnabledDraft = uiState.aiRuntimeSettings.bot.actionLayer.triggerPaymentMethodsChangedEnabled
+        aiBotTriggerUsageBasedUpgradeEnabledDraft = uiState.aiRuntimeSettings.bot.actionLayer.triggerUsageBasedUpgradeEnabled
+        aiBotWarningThresholdPercentDraft = uiState.aiRuntimeSettings.bot.actionLayer.warningThresholdPercent.toString()
+        aiBotCriticalThresholdPercentDraft = uiState.aiRuntimeSettings.bot.actionLayer.criticalThresholdPercent.toString()
+        aiBotUpgradeHintFreeToProTextDraft = uiState.aiRuntimeSettings.bot.actionLayer.upgradeHintFreeToProText
+        aiBotUpgradeHintProToCreatorTextDraft = uiState.aiRuntimeSettings.bot.actionLayer.upgradeHintProToCreatorText
+        aiBotFaqPriorityModeDraft = uiState.aiRuntimeSettings.bot.actionLayer.faqPriorityMode
+        aiBotPromptVersionAliasDraft = uiState.aiRuntimeSettings.bot.actionLayer.promptVersionAlias
     }
 
     LaunchedEffect(uiState.legalContentSettings) {
@@ -673,6 +760,27 @@ fun SettingsScreen(
             membershipOpsError = error.localizedMessage ?: "Membership Command Center konnte nicht geladen werden."
         }
         membershipOpsLoading = false
+    }
+
+    LaunchedEffect(activeAdminWorkspace, uiState.isOwner) {
+        if (!uiState.isOwner || activeAdminWorkspace != AdminWorkspaceSection.AiPrompts) {
+            aiFaqReviewLoopLoading = false
+            aiFaqReviewLoopError = ""
+            aiFaqReviewLoop = AiFaqOwnerReviewLoop()
+            aiFaqReviewActionMessage = ""
+            aiFaqReviewMetricsSnapshot = ""
+            return@LaunchedEffect
+        }
+        aiFaqReviewLoopLoading = true
+        aiFaqReviewLoopError = ""
+        runCatching {
+            faqOwnerReviewRepository.loadReviewLoop(windowDays = 30)
+        }.onSuccess { review ->
+            aiFaqReviewLoop = review
+        }.onFailure { error ->
+            aiFaqReviewLoopError = error.localizedMessage ?: "FAQ Review Loop konnte nicht geladen werden."
+        }
+        aiFaqReviewLoopLoading = false
     }
 
     val currentHeaderImageUrl: (SettingsHeaderImageTarget) -> String = { target ->
@@ -2113,6 +2221,13 @@ fun SettingsScreen(
                     }
                     item {
                         SettingsBadge(
+                            text = "FAQ ${aiFaqInstructionDraft.trim().length}",
+                            icon = Icons.Default.Email,
+                            isActive = aiFaqInstructionDraft.isNotBlank(),
+                        )
+                    }
+                    item {
+                        SettingsBadge(
                             text = if (aiAssetLibraryLinkDraft.isBlank()) "Assets aus" else "Assets aktiv",
                             icon = Icons.Default.Link,
                             isActive = aiAssetLibraryLinkDraft.isNotBlank(),
@@ -2154,6 +2269,28 @@ fun SettingsScreen(
                 )
 
                 OutlinedTextField(
+                    value = aiFaqInstructionDraft,
+                    onValueChange = { aiFaqInstructionDraft = it.take(12000) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("FAQ System-Anweisung") },
+                    minLines = 5,
+                    maxLines = 12,
+                )
+
+                OutlinedTextField(
+                    value = aiFaqKnowledgeBaseDraft,
+                    onValueChange = { aiFaqKnowledgeBaseDraft = it.take(12000) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("FAQ / Owner Knowledge") },
+                    minLines = 6,
+                    maxLines = 16,
+                )
+
+                OutlinedTextField(
                     value = aiAssetLibraryLinkDraft,
                     onValueChange = { aiAssetLibraryLinkDraft = it.take(2000) },
                     modifier = Modifier
@@ -2189,6 +2326,8 @@ fun SettingsScreen(
                                 textInstruction = aiTextInstructionDraft,
                                 visualInstruction = aiVisualInstructionDraft,
                                 agentSystemInstruction = aiAgentSystemInstructionDraft,
+                                faqInstruction = aiFaqInstructionDraft,
+                                faqKnowledgeBase = aiFaqKnowledgeBaseDraft,
                                 assetLibraryLink = aiAssetLibraryLinkDraft,
                                 assetReferenceNotes = aiAssetReferenceNotesDraft,
                             ),
@@ -2210,16 +2349,239 @@ fun SettingsScreen(
                 )
 
                 Text(
-                    text = "Hier steuerst du, ob der Agent ueber Gemini oder Manus laeuft und welche serverseitigen Tageslimits aktiv sind.",
+                    text = "Hier steuerst du Bot-Core, FAQ-Prioritaet, Diagnostics, Fallbacks sowie Agent-Provider und Limits serverseitig fuer iOS und Android gemeinsam.",
                     modifier = Modifier.padding(top = 4.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     style = MaterialTheme.typography.bodySmall,
                 )
 
+                Text(
+                    text = "FAQ Review Loop (30d)",
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                if (aiFaqReviewActionMessage.isNotBlank()) {
+                    Text(
+                        text = aiFaqReviewActionMessage,
+                        modifier = Modifier.padding(top = 6.dp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                if (aiFaqReviewMetricsSnapshot.isNotBlank()) {
+                    Text(
+                        text = aiFaqReviewMetricsSnapshot,
+                        modifier = Modifier.padding(top = 4.dp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+
+                if (aiFaqReviewLoopLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .padding(top = 10.dp)
+                            .size(18.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else if (aiFaqReviewLoopError.isNotBlank()) {
+                    Text(
+                        text = aiFaqReviewLoopError,
+                        modifier = Modifier.padding(top = 8.dp),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                } else {
+                    LazyRow(
+                        modifier = Modifier.padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        item {
+                            SettingsBadge(
+                                text = "Strong ${aiFaqReviewLoop.strongestTriggers.size}",
+                                icon = Icons.Default.CheckCircle,
+                                isActive = aiFaqReviewLoop.strongestTriggers.isNotEmpty(),
+                            )
+                        }
+                        item {
+                            SettingsBadge(
+                                text = "Weak ${aiFaqReviewLoop.weakTriggers.size}",
+                                icon = Icons.Default.Settings,
+                                isActive = aiFaqReviewLoop.weakTriggers.isNotEmpty(),
+                            )
+                        }
+                        item {
+                            SettingsBadge(
+                                text = "Useless ${aiFaqReviewLoop.likelyUselessTriggers.size}",
+                                icon = Icons.Default.Lock,
+                                isActive = aiFaqReviewLoop.likelyUselessTriggers.isNotEmpty(),
+                            )
+                        }
+                        item {
+                            SettingsBadge(
+                                text = "Repeat ${aiFaqReviewLoop.repeatHeavyTopics.size}",
+                                icon = Icons.Default.Email,
+                                isActive = aiFaqReviewLoop.repeatHeavyTopics.isNotEmpty(),
+                            )
+                        }
+                    }
+
+                    aiFaqReviewLoop.strongestTriggers.firstOrNull()?.let { entry ->
+                        Text(
+                            text = "Strongest: ${entry.triggerKey} · Conv ${(entry.conversionRate * 100).toInt()}% · Repeat ${(entry.repeatRate * 100).toInt()}%",
+                            modifier = Modifier.padding(top = 8.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    aiFaqReviewLoop.weakTriggers.firstOrNull()?.let { entry ->
+                        Text(
+                            text = "Weak: ${entry.triggerKey} · Conv ${(entry.conversionRate * 100).toInt()}% · Repeat ${(entry.repeatRate * 100).toInt()}%",
+                            modifier = Modifier.padding(top = 4.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    aiFaqReviewLoop.repeatHeavyTopics.firstOrNull()?.let { topic ->
+                        Text(
+                            text = "Repeat-Heavy Topic: ${topic.key} (${topic.value}x, ${(topic.share * 100).toInt()}%)",
+                            modifier = Modifier.padding(top = 4.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+
+                    aiFaqReviewLoop.strategyInsights.take(3).forEach { insight ->
+                        SkydownCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = insight.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = insight.summary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                                )
+                                Text(
+                                    text = "Erwartete Wirkung: ${insight.expectedImpact}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                                )
+                            }
+                        }
+                    }
+
+                    aiFaqReviewLoop.recommendations.take(3).forEach { recommendation ->
+                        SkydownCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = recommendation.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = recommendation.summary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                                )
+                                Text(
+                                    text = "Action: ${recommendation.actionType} · Target: ${recommendation.targetField} · Suggest: ${recommendation.suggestedValueLabel}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                val preview = faqOwnerReviewRepository.previewRecommendation(recommendation, 30)
+                                                aiFaqReviewActionMessage = preview.message
+                                                aiFaqReviewMetricsSnapshot = preview.metricsSnapshot
+                                                feedbackMessage = preview.message
+                                                feedbackType = if (preview.status == "blocked") ToastType.Warning else ToastType.Info
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                    ) {
+                                        Text("Preview")
+                                    }
+                                    Button(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                val applyResult = faqOwnerReviewRepository.applyRecommendation(recommendation.id, 30)
+                                                aiFaqReviewActionMessage = applyResult.message
+                                                aiFaqReviewMetricsSnapshot = applyResult.metricsSnapshot
+                                                feedbackMessage = applyResult.message
+                                                feedbackType = if (applyResult.status == "applied") ToastType.Success else ToastType.Warning
+                                                if (applyResult.status == "applied") {
+                                                    aiFaqReviewLoop = faqOwnerReviewRepository.loadReviewLoop(windowDays = 30)
+                                                }
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                    ) {
+                                        Text("Apply")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                val revert = faqOwnerReviewRepository.revertLastChange()
+                                aiFaqReviewActionMessage = revert.message
+                                feedbackMessage = revert.message
+                                feedbackType = if (revert.status == "reverted") ToastType.Success else ToastType.Info
+                                if (revert.status == "reverted") {
+                                    aiFaqReviewLoop = faqOwnerReviewRepository.loadReviewLoop(windowDays = 30)
+                                }
+                            }
+                        },
+                        modifier = Modifier.padding(top = 8.dp),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text("Revert Last Change")
+                    }
+                }
+
                 LazyRow(
                     modifier = Modifier.padding(top = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    item {
+                        SettingsBadge(
+                            text = if (aiBotPromptVersionDraft.isBlank()) "Prompt v?" else aiBotPromptVersionDraft,
+                            icon = Icons.Default.Settings,
+                            isActive = aiBotPromptVersionDraft.isNotBlank(),
+                        )
+                    }
+                    item {
+                        SettingsBadge(
+                            text = "FAQ $aiBotFaqModeDraft",
+                            icon = Icons.Default.Email,
+                            isActive = true,
+                        )
+                    }
+                    item {
+                        SettingsBadge(
+                            text = "Q $aiBotQualityModeDraft",
+                            icon = Icons.Default.CheckCircle,
+                            isActive = true,
+                        )
+                    }
                     item {
                         SettingsBadge(
                             text = "Provider ${AiRuntimeAgentProvider.resolve(aiAgentProviderDraft).displayTitle}",
@@ -2242,6 +2604,449 @@ fun SettingsScreen(
                         )
                     }
                 }
+
+                Text(
+                    text = "Bot Core (`adminConfig/aiRuntime.bot`)",
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+
+                OutlinedTextField(
+                    value = aiBotPromptVersionDraft,
+                    onValueChange = { aiBotPromptVersionDraft = it.take(120) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Prompt Version") },
+                    singleLine = true,
+                )
+
+                OutlinedTextField(
+                    value = aiBotPersonalityStyleDraft,
+                    onValueChange = { aiBotPersonalityStyleDraft = it.take(160) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("AI Personality Stil") },
+                    singleLine = true,
+                )
+
+                OutlinedTextField(
+                    value = aiBotLoggingLevelDraft,
+                    onValueChange = { aiBotLoggingLevelDraft = it.take(80) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Logging Level") },
+                    singleLine = true,
+                )
+
+                Text(
+                    text = "Quality Mode",
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+                LazyRow(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf("balanced" to "Balanced", "high" to "High").forEach { (value, label) ->
+                        item {
+                            val isSelected = aiBotQualityModeDraft == value
+                            OutlinedButton(
+                                onClick = { aiBotQualityModeDraft = value },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                            ) { Text(label) }
+                        }
+                    }
+                }
+
+                Text(
+                    text = "FAQ Mode",
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+                LazyRow(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf("off" to "Off", "auto" to "Auto", "prefer_faq" to "Prefer").forEach { (value, label) ->
+                        item {
+                            val isSelected = aiBotFaqModeDraft == value
+                            OutlinedButton(
+                                onClick = { aiBotFaqModeDraft = value },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                            ) { Text(label) }
+                        }
+                    }
+                }
+
+                Text(
+                    text = "Owner Mode",
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+                LazyRow(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf("standard" to "Standard", "diagnostic" to "Diagnostic").forEach { (value, label) ->
+                        item {
+                            val isSelected = aiBotOwnerModeDraft == value
+                            OutlinedButton(
+                                onClick = { aiBotOwnerModeDraft = value },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                            ) { Text(label) }
+                        }
+                    }
+                }
+
+                Text(
+                    text = "Antwortlaenge",
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+                LazyRow(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf("adaptive" to "Adaptive", "short" to "Kurz", "detailed" to "Tief").forEach { (value, label) ->
+                        item {
+                            val isSelected = aiBotAnswerLengthDraft == value
+                            OutlinedButton(
+                                onClick = { aiBotAnswerLengthDraft = value },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                            ) { Text(label) }
+                        }
+                    }
+                }
+
+                Text(
+                    text = "Diagnostics",
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+                LazyRow(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf("off" to "Off", "owner_only" to "Owner", "verbose" to "Verbose").forEach { (value, label) ->
+                        item {
+                            val isSelected = aiBotDiagnosticsModeDraft == value
+                            OutlinedButton(
+                                onClick = { aiBotDiagnosticsModeDraft = value },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                            ) { Text(label) }
+                        }
+                    }
+                }
+
+                SettingsToggleRow(
+                    title = "Kill Switch aktiv",
+                    body = "Blockiert Bot-Anfragen owner-seitig sofort.",
+                    checked = aiBotKillSwitchDraft,
+                    onCheckedChange = { aiBotKillSwitchDraft = it },
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Bot Cost Guard aktiv",
+                    body = "Kurzere Antworten und ruhigere Limits im Bot-Core.",
+                    checked = aiBotCostGuardEnabledDraft,
+                    onCheckedChange = { aiBotCostGuardEnabledDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Kurz bei Critical Guard",
+                    body = "Verkuerzt Antworten, wenn Cost Guard kritisch wird.",
+                    checked = aiBotPreferBriefCriticalDraft,
+                    onCheckedChange = { aiBotPreferBriefCriticalDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "FAQ priorisieren bei Topic-Match",
+                    body = "Zieht FAQ-Antworten bei passenden Help-/Guide-Fragen nach vorne.",
+                    checked = aiBotPreferFaqRoutingDraft,
+                    onCheckedChange = { aiBotPreferFaqRoutingDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Produkt-Guide fuer neue Nutzer bevorzugen",
+                    body = "Erklaert Einsteigerfragen eher als Produktfuehrung.",
+                    checked = aiBotPreferProductGuideDraft,
+                    onCheckedChange = { aiBotPreferProductGuideDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Visual-Generierung erlauben",
+                    body = "Schaltet die Visual-Pipeline im Bot-Core frei.",
+                    checked = aiBotAllowVisualGenerationDraft,
+                    onCheckedChange = { aiBotAllowVisualGenerationDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Text-Fallback erlauben",
+                    body = "Darf bei Modellproblemen einen Text-Fallback nutzen.",
+                    checked = aiBotAllowTextFallbackDraft,
+                    onCheckedChange = { aiBotAllowTextFallbackDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Visual-Fallback erlauben",
+                    body = "Darf bei Bildproblemen auf das Fallback-Modell gehen.",
+                    checked = aiBotAllowVisualFallbackDraft,
+                    onCheckedChange = { aiBotAllowVisualFallbackDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Fallback-Grund anzeigen",
+                    body = "Legt offen, warum ein Fallback genutzt wurde.",
+                    checked = aiBotExposeFallbackReasonDraft,
+                    onCheckedChange = { aiBotExposeFallbackReasonDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Safe Mode aktiv",
+                    body = "Reduziert riskante Behauptungen im FAQ-/Help-Modus.",
+                    checked = aiBotSafeModeEnabledDraft,
+                    onCheckedChange = { aiBotSafeModeEnabledDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Strict Unknown Handling",
+                    body = "Sagt offen 'weiss ich nicht sicher', statt zu erfinden.",
+                    checked = aiBotStrictUnknownHandlingDraft,
+                    onCheckedChange = { aiBotStrictUnknownHandlingDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Spekulative FAQ blocken",
+                    body = "Verhindert erfundene Membership-, Versand- oder Account-Regeln.",
+                    checked = aiBotBlockSpeculativeFaqDraft,
+                    onCheckedChange = { aiBotBlockSpeculativeFaqDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Proaktive Hinweise aktiv",
+                    body = "Aktiviert den Action Layer fuer hohe-Nutzen-Hinweise.",
+                    checked = aiBotProactiveHintsEnabledDraft,
+                    onCheckedChange = { aiBotProactiveHintsEnabledDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Trigger: AI-Limit fast erreicht",
+                    body = "Hinweis kurz vor dem Tageslimit.",
+                    checked = aiBotTriggerAiLimitNearEnabledDraft,
+                    onCheckedChange = { aiBotTriggerAiLimitNearEnabledDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Trigger: Restore verfuegbar",
+                    body = "Hinweis wenn Entitlement inaktiv, aber Restore moeglich.",
+                    checked = aiBotTriggerRestoreAvailableEnabledDraft,
+                    onCheckedChange = { aiBotTriggerRestoreAvailableEnabledDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Trigger: Bestellung versendet",
+                    body = "Hinweis bei shipped/in_transit Fulfillment.",
+                    checked = aiBotTriggerOrderShippedEnabledDraft,
+                    onCheckedChange = { aiBotTriggerOrderShippedEnabledDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Trigger: Payment-Methode geaendert",
+                    body = "Hinweis bei kuerzlich aktualisierten Payment-Settings.",
+                    checked = aiBotTriggerPaymentMethodsChangedEnabledDraft,
+                    onCheckedChange = { aiBotTriggerPaymentMethodsChangedEnabledDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                SettingsToggleRow(
+                    title = "Trigger: Upgrade nach Nutzung",
+                    body = "Hint nur bei hoher realer Nutzung.",
+                    checked = aiBotTriggerUsageBasedUpgradeEnabledDraft,
+                    onCheckedChange = { aiBotTriggerUsageBasedUpgradeEnabledDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+
+                OutlinedTextField(
+                    value = aiBotWarningThresholdPercentDraft,
+                    onValueChange = { aiBotWarningThresholdPercentDraft = it.take(3) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Warning Threshold (%)") },
+                    singleLine = true,
+                )
+
+                OutlinedTextField(
+                    value = aiBotCriticalThresholdPercentDraft,
+                    onValueChange = { aiBotCriticalThresholdPercentDraft = it.take(3) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Critical Threshold (%)") },
+                    singleLine = true,
+                )
+
+                OutlinedTextField(
+                    value = aiBotUpgradeHintFreeToProTextDraft,
+                    onValueChange = { aiBotUpgradeHintFreeToProTextDraft = it.take(220) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Upgrade Hint Free -> Pro") },
+                    singleLine = false,
+                    minLines = 2,
+                    maxLines = 3,
+                )
+
+                OutlinedTextField(
+                    value = aiBotUpgradeHintProToCreatorTextDraft,
+                    onValueChange = { aiBotUpgradeHintProToCreatorTextDraft = it.take(220) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Upgrade Hint Pro -> Creator") },
+                    singleLine = false,
+                    minLines = 2,
+                    maxLines = 3,
+                )
+
+                OutlinedTextField(
+                    value = aiBotPromptVersionAliasDraft,
+                    onValueChange = { aiBotPromptVersionAliasDraft = it.take(120) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Prompt Version Alias") },
+                    singleLine = true,
+                )
+
+                Text(
+                    text = "FAQ Prioritaet",
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+                LazyRow(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf(
+                        "live_owner_generic" to "Live->Owner",
+                        "owner_live_generic" to "Owner->Live",
+                        "balanced" to "Balanced",
+                    ).forEach { (value, label) ->
+                        item {
+                            val isSelected = aiBotFaqPriorityModeDraft == value
+                            OutlinedButton(
+                                onClick = { aiBotFaqPriorityModeDraft = value },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                            ) { Text(label) }
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = aiBotTextPrimaryModelDraft,
+                    onValueChange = { aiBotTextPrimaryModelDraft = it.take(120) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Text Primary Model") },
+                    singleLine = true,
+                )
+
+                OutlinedTextField(
+                    value = aiBotTextFallbackModelDraft,
+                    onValueChange = { aiBotTextFallbackModelDraft = it.take(120) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Text Fallback Model") },
+                    singleLine = true,
+                )
+
+                OutlinedTextField(
+                    value = aiBotVisualPrimaryModelDraft,
+                    onValueChange = { aiBotVisualPrimaryModelDraft = it.take(120) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Visual Primary Model") },
+                    singleLine = true,
+                )
+
+                OutlinedTextField(
+                    value = aiBotVisualFallbackModelDraft,
+                    onValueChange = { aiBotVisualFallbackModelDraft = it.take(120) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Visual Fallback Model") },
+                    singleLine = true,
+                )
+
+                OutlinedTextField(
+                    value = aiBotShortAnswerMaxTokensDraft,
+                    onValueChange = { aiBotShortAnswerMaxTokensDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Short Answer Max Tokens") },
+                    singleLine = true,
+                )
+
+                OutlinedTextField(
+                    value = aiBotStandardAnswerMaxTokensDraft,
+                    onValueChange = { aiBotStandardAnswerMaxTokensDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Standard Answer Max Tokens") },
+                    singleLine = true,
+                )
 
                 SettingsToggleRow(
                     title = "Kosten-Guard aktiv",
@@ -2515,6 +3320,74 @@ fun SettingsScreen(
                                 autoStopOnWaiting = aiManusAutoStopOnWaitingDraft,
                                 blockHighCreditEvents = aiManusBlockHighCreditEventsDraft,
                                 includeVerboseEvents = aiManusIncludeVerboseEventsDraft,
+                            ),
+                            bot = currentRuntime.bot.copy(
+                                promptVersion = aiBotPromptVersionDraft,
+                                qualityMode = aiBotQualityModeDraft,
+                                faqMode = aiBotFaqModeDraft,
+                                ownerMode = aiBotOwnerModeDraft,
+                                answerLength = aiBotAnswerLengthDraft,
+                                personalityStyle = aiBotPersonalityStyleDraft,
+                                loggingLevel = aiBotLoggingLevelDraft,
+                                diagnosticsMode = aiBotDiagnosticsModeDraft,
+                                killSwitchEnabled = aiBotKillSwitchDraft,
+                                modelPolicy = currentRuntime.bot.modelPolicy.copy(
+                                    textPrimaryModel = aiBotTextPrimaryModelDraft,
+                                    textFallbackModel = aiBotTextFallbackModelDraft,
+                                    visualPrimaryModel = aiBotVisualPrimaryModelDraft,
+                                    visualFallbackModel = aiBotVisualFallbackModelDraft,
+                                ),
+                                costGuard = currentRuntime.bot.costGuard.copy(
+                                    enabled = aiBotCostGuardEnabledDraft,
+                                    preferBriefAnswersWhenCritical = aiBotPreferBriefCriticalDraft,
+                                    shortAnswerMaxOutputTokens = aiBotShortAnswerMaxTokensDraft.parseIntInRangeOrDefault(
+                                        fallback = currentRuntime.bot.costGuard.shortAnswerMaxOutputTokens,
+                                        min = 80,
+                                        max = 1200,
+                                    ),
+                                    standardAnswerMaxOutputTokens = aiBotStandardAnswerMaxTokensDraft.parseIntInRangeOrDefault(
+                                        fallback = currentRuntime.bot.costGuard.standardAnswerMaxOutputTokens,
+                                        min = 120,
+                                        max = 2400,
+                                    ),
+                                ),
+                                routingPolicy = currentRuntime.bot.routingPolicy.copy(
+                                    preferFaqWhenTopicMatched = aiBotPreferFaqRoutingDraft,
+                                    preferProductGuideForNewUsers = aiBotPreferProductGuideDraft,
+                                    allowVisualGeneration = aiBotAllowVisualGenerationDraft,
+                                ),
+                                fallbackPolicy = currentRuntime.bot.fallbackPolicy.copy(
+                                    allowTextFallback = aiBotAllowTextFallbackDraft,
+                                    allowVisualFallback = aiBotAllowVisualFallbackDraft,
+                                    exposeFallbackReason = aiBotExposeFallbackReasonDraft,
+                                ),
+                                safetyPolicy = currentRuntime.bot.safetyPolicy.copy(
+                                    safeModeEnabled = aiBotSafeModeEnabledDraft,
+                                    strictUnknownHandling = aiBotStrictUnknownHandlingDraft,
+                                    blockSpeculativeFaqAnswers = aiBotBlockSpeculativeFaqDraft,
+                                ),
+                                actionLayer = currentRuntime.bot.actionLayer.copy(
+                                    proactiveHintsEnabled = aiBotProactiveHintsEnabledDraft,
+                                    triggerAiLimitNearEnabled = aiBotTriggerAiLimitNearEnabledDraft,
+                                    triggerRestoreAvailableEnabled = aiBotTriggerRestoreAvailableEnabledDraft,
+                                    triggerOrderShippedEnabled = aiBotTriggerOrderShippedEnabledDraft,
+                                    triggerPaymentMethodsChangedEnabled = aiBotTriggerPaymentMethodsChangedEnabledDraft,
+                                    triggerUsageBasedUpgradeEnabled = aiBotTriggerUsageBasedUpgradeEnabledDraft,
+                                    warningThresholdPercent = aiBotWarningThresholdPercentDraft.parseIntInRangeOrDefault(
+                                        fallback = currentRuntime.bot.actionLayer.warningThresholdPercent,
+                                        min = 50,
+                                        max = 99,
+                                    ),
+                                    criticalThresholdPercent = aiBotCriticalThresholdPercentDraft.parseIntInRangeOrDefault(
+                                        fallback = currentRuntime.bot.actionLayer.criticalThresholdPercent,
+                                        min = 60,
+                                        max = 100,
+                                    ),
+                                    upgradeHintFreeToProText = aiBotUpgradeHintFreeToProTextDraft,
+                                    upgradeHintProToCreatorText = aiBotUpgradeHintProToCreatorTextDraft,
+                                    faqPriorityMode = aiBotFaqPriorityModeDraft,
+                                    promptVersionAlias = aiBotPromptVersionAliasDraft,
+                                ),
                             ),
                         )
                         viewModel.saveAiRuntimeSettings(updatedRuntime)

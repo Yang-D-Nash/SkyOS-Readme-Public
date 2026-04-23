@@ -1,5 +1,6 @@
 package com.skydown.android.ui.model
 
+import com.skydown.android.data.AiBotDecision
 import com.skydown.android.data.AiUsageSnapshot
 
 enum class AiComposerMode {
@@ -9,6 +10,7 @@ enum class AiComposerMode {
 
 enum class AiTextMode(val rawValue: String, val title: String, val placeholder: String) {
     General("general", "Allgemein", "Zum Beispiel: Copy fuer den naechsten Drop."),
+    Faq("faq", "FAQ", "Zum Beispiel: Wie funktioniert Membership oder Restore?"),
     Caption("caption", "Captions", "Zum Beispiel: Caption fuer den neuen Track."),
     ReleasePlan("release_plan", "Release", "Zum Beispiel: 7-Tage-Plan fuer den Release."),
     Briefing("briefing", "Briefing", "Zum Beispiel: Briefing fuer Foto- oder Video-Team."),
@@ -50,6 +52,7 @@ data class AiUiState(
     ),
     val usageSnapshot: AiUsageSnapshot? = null,
     val planLabel: String = "Free",
+    val lastDecision: AiBotDecision? = null,
 )
 
 fun aiQuickPromptsFor(mode: AiTextMode): List<String> = when (mode) {
@@ -58,6 +61,12 @@ fun aiQuickPromptsFor(mode: AiTextMode): List<String> = when (mode) {
         "Gib mir eine markentaugliche Ansage fuer einen Story-Slide.",
         "Mach mir eine klare Promo-Line fuer einen neuen Drop.",
         "Ueberarbeite diesen Text moderner und druckvoller.",
+    )
+    AiTextMode.Faq -> listOf(
+        "Wie stelle ich mein Abo wieder her?",
+        "Wo ist meine Bestellung und wie pruefe ich den Status sauber?",
+        "Welche Membership habe ich gerade und was bringt ein Upgrade?",
+        "Warum ist AI gesperrt und was kann ich konkret tun?",
     )
     AiTextMode.Caption -> listOf(
         "Schreib 3 Instagram Captions fuer einen neuen Track mit CTA und 5 Hashtags.",

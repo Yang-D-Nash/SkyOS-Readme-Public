@@ -264,6 +264,9 @@ fun AiScreen(
                                 membershipCoordinator.openMembership(MembershipOpenReason.Manual, surface = "ai_empty")
                             },
                         )
+                        uiState.lastDecision?.let { decision ->
+                            AiDecisionCard(decision = decision)
+                        }
                         AiSessionStrip(
                             composerMode = uiState.composerMode,
                             textMode = uiState.textMode,
@@ -327,6 +330,12 @@ fun AiScreen(
                                         membershipCoordinator.openMembership(MembershipOpenReason.Manual, surface = "ai_chat")
                                     },
                                 )
+                            }
+
+                            uiState.lastDecision?.let { decision ->
+                                item {
+                                    AiDecisionCard(decision = decision)
+                                }
                             }
 
                             item {
@@ -508,6 +517,91 @@ private fun AiRevenueUsageCard(
                 text = usage.resetHint,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AiDecisionCard(
+    decision: com.skydown.android.data.AiBotDecision,
+) {
+    SkydownCard(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            BrandStatusChip(text = "Why", accent = MaterialTheme.colorScheme.tertiary, isActive = true)
+            BrandStatusChip(
+                text = when (decision.state) {
+                    "faq_answer" -> "FAQ"
+                    "degraded" -> "Degraded"
+                    "blocked" -> "Blocked"
+                    "retryable" -> "Retry"
+                    else -> "Live"
+                },
+                accent = MaterialTheme.colorScheme.primary,
+                isActive = true,
+            )
+        }
+        Text(
+            text = decision.summary.ifBlank { "Antwortpfad dokumentiert." },
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        if (decision.selectedModel.isNotBlank()) {
+            Text(
+                text = "Model: ${decision.selectedModel}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        if (decision.topic.isNotBlank()) {
+            Text(
+                text = "Topic: ${decision.topic}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        if (decision.fallbackActivated && decision.fallbackReason.isNotBlank()) {
+            Text(
+                text = "Fallback: ${decision.fallbackReason}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        if (decision.responseLimited && decision.responseLimitReason.isNotBlank()) {
+            Text(
+                text = "Limit: ${decision.responseLimitReason}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        if (decision.blocked && decision.blockReason.isNotBlank()) {
+            Text(
+                text = "Block: ${decision.blockReason}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        if (decision.retryable && decision.retryReason.isNotBlank()) {
+            Text(
+                text = "Retry: ${decision.retryReason}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        decision.trace.take(3).forEach { traceLine ->
+            Text(
+                text = traceLine,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
                 modifier = Modifier.padding(top = 4.dp),
             )
         }

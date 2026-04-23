@@ -59,6 +59,71 @@ data class AiRuntimeManusSettings(
     val includeVerboseEvents: Boolean = false,
 )
 
+data class AiRuntimeBotModelPolicy(
+    val textPrimaryModel: String = "gemini-2.5-flash-lite",
+    val textFallbackModel: String = "gemini-2.5-flash-lite",
+    val visualPrimaryModel: String = "gemini-2.5-flash-image",
+    val visualFallbackModel: String = "imagen-3.0-generate-002",
+)
+
+data class AiRuntimeBotCostGuard(
+    val enabled: Boolean = true,
+    val preferBriefAnswersWhenCritical: Boolean = true,
+    val shortAnswerMaxOutputTokens: Int = 240,
+    val standardAnswerMaxOutputTokens: Int = 768,
+)
+
+data class AiRuntimeBotRoutingPolicy(
+    val preferFaqWhenTopicMatched: Boolean = true,
+    val preferProductGuideForNewUsers: Boolean = true,
+    val allowVisualGeneration: Boolean = true,
+)
+
+data class AiRuntimeBotFallbackPolicy(
+    val allowTextFallback: Boolean = true,
+    val allowVisualFallback: Boolean = true,
+    val exposeFallbackReason: Boolean = true,
+)
+
+data class AiRuntimeBotSafetyPolicy(
+    val safeModeEnabled: Boolean = true,
+    val strictUnknownHandling: Boolean = true,
+    val blockSpeculativeFaqAnswers: Boolean = true,
+)
+
+data class AiRuntimeBotActionLayer(
+    val proactiveHintsEnabled: Boolean = true,
+    val triggerAiLimitNearEnabled: Boolean = true,
+    val triggerRestoreAvailableEnabled: Boolean = true,
+    val triggerOrderShippedEnabled: Boolean = true,
+    val triggerPaymentMethodsChangedEnabled: Boolean = true,
+    val triggerUsageBasedUpgradeEnabled: Boolean = true,
+    val warningThresholdPercent: Int = 70,
+    val criticalThresholdPercent: Int = 90,
+    val upgradeHintFreeToProText: String = "Deine Nutzung ist hoch. Ein Upgrade auf Pro reduziert Abbrueche durch Limits.",
+    val upgradeHintProToCreatorText: String = "Deine Nutzung ist hoch. Creator kann dir mehr Workflow-Tiefe und Reserve geben.",
+    val faqPriorityMode: String = "live_owner_generic",
+    val promptVersionAlias: String = "bot-max-v1",
+)
+
+data class AiRuntimeBotSettings(
+    val promptVersion: String = "bot-max-v1",
+    val qualityMode: String = "balanced",
+    val faqMode: String = "auto",
+    val ownerMode: String = "standard",
+    val answerLength: String = "adaptive",
+    val personalityStyle: String = "calm_precise",
+    val loggingLevel: String = "standard",
+    val diagnosticsMode: String = "owner_only",
+    val killSwitchEnabled: Boolean = false,
+    val modelPolicy: AiRuntimeBotModelPolicy = AiRuntimeBotModelPolicy(),
+    val costGuard: AiRuntimeBotCostGuard = AiRuntimeBotCostGuard(),
+    val routingPolicy: AiRuntimeBotRoutingPolicy = AiRuntimeBotRoutingPolicy(),
+    val fallbackPolicy: AiRuntimeBotFallbackPolicy = AiRuntimeBotFallbackPolicy(),
+    val safetyPolicy: AiRuntimeBotSafetyPolicy = AiRuntimeBotSafetyPolicy(),
+    val actionLayer: AiRuntimeBotActionLayer = AiRuntimeBotActionLayer(),
+)
+
 data class AiRuntimeSettings(
     val costGuardEnabled: Boolean = true,
     val agentProvider: AiRuntimeAgentProvider = AiRuntimeAgentProvider.Grok,
@@ -66,6 +131,7 @@ data class AiRuntimeSettings(
     val hardDailyCaps: AiRuntimeKindLimits = AiRuntimeKindLimits.hardDefaults,
     val globalDailyCaps: AiRuntimeKindLimits = AiRuntimeKindLimits.globalDefaults,
     val manus: AiRuntimeManusSettings = AiRuntimeManusSettings(),
+    val bot: AiRuntimeBotSettings = AiRuntimeBotSettings(),
 )
 
 class AiRuntimeSettingsRepository(
@@ -97,6 +163,13 @@ class AiRuntimeSettingsRepository(
 
 private fun Map<String, Any>.toAiRuntimeSettings(): AiRuntimeSettings {
     val manusMap = this["manus"].asStringKeyedMap()
+    val botMap = this["bot"].asStringKeyedMap()
+    val botModelPolicyMap = botMap["modelPolicy"].asStringKeyedMap()
+    val botCostGuardMap = botMap["costGuard"].asStringKeyedMap()
+    val botRoutingMap = botMap["routingPolicy"].asStringKeyedMap()
+    val botFallbackMap = botMap["fallbackPolicy"].asStringKeyedMap()
+    val botSafetyMap = botMap["safetyPolicy"].asStringKeyedMap()
+    val botActionLayerMap = botMap["actionLayer"].asStringKeyedMap()
     return AiRuntimeSettings(
         costGuardEnabled = this["costGuardEnabled"] as? Boolean ?: true,
         agentProvider = AiRuntimeAgentProvider.resolve(this["agentProvider"] as? String),
@@ -151,6 +224,136 @@ private fun Map<String, Any>.toAiRuntimeSettings(): AiRuntimeSettings {
             blockHighCreditEvents = manusMap["blockHighCreditEvents"] as? Boolean ?: true,
             includeVerboseEvents = manusMap["includeVerboseEvents"] as? Boolean ?: false,
         ),
+        bot = AiRuntimeBotSettings(
+            promptVersion = normalizeRuntimeString(
+                botMap["promptVersion"] as? String,
+                fallback = AiRuntimeBotSettings().promptVersion,
+            ),
+            qualityMode = normalizeAllowedRuntimeString(
+                botMap["qualityMode"] as? String,
+                allowed = setOf("balanced", "high"),
+                fallback = AiRuntimeBotSettings().qualityMode,
+            ),
+            faqMode = normalizeAllowedRuntimeString(
+                botMap["faqMode"] as? String,
+                allowed = setOf("off", "auto", "prefer_faq"),
+                fallback = AiRuntimeBotSettings().faqMode,
+            ),
+            ownerMode = normalizeAllowedRuntimeString(
+                botMap["ownerMode"] as? String,
+                allowed = setOf("standard", "diagnostic"),
+                fallback = AiRuntimeBotSettings().ownerMode,
+            ),
+            answerLength = normalizeAllowedRuntimeString(
+                botMap["answerLength"] as? String,
+                allowed = setOf("adaptive", "short", "detailed"),
+                fallback = AiRuntimeBotSettings().answerLength,
+            ),
+            personalityStyle = normalizeRuntimeString(
+                botMap["personalityStyle"] as? String,
+                fallback = AiRuntimeBotSettings().personalityStyle,
+                maxLength = 160,
+            ),
+            loggingLevel = normalizeRuntimeString(
+                botMap["loggingLevel"] as? String,
+                fallback = AiRuntimeBotSettings().loggingLevel,
+                maxLength = 80,
+            ),
+            diagnosticsMode = normalizeAllowedRuntimeString(
+                botMap["diagnosticsMode"] as? String,
+                allowed = setOf("off", "owner_only", "verbose"),
+                fallback = AiRuntimeBotSettings().diagnosticsMode,
+            ),
+            killSwitchEnabled = botMap["killSwitchEnabled"] as? Boolean ?: false,
+            modelPolicy = AiRuntimeBotModelPolicy(
+                textPrimaryModel = normalizeRuntimeString(
+                    botModelPolicyMap["textPrimaryModel"] as? String,
+                    fallback = AiRuntimeBotModelPolicy().textPrimaryModel,
+                ),
+                textFallbackModel = normalizeRuntimeString(
+                    botModelPolicyMap["textFallbackModel"] as? String,
+                    fallback = AiRuntimeBotModelPolicy().textFallbackModel,
+                ),
+                visualPrimaryModel = normalizeRuntimeString(
+                    botModelPolicyMap["visualPrimaryModel"] as? String,
+                    fallback = AiRuntimeBotModelPolicy().visualPrimaryModel,
+                ),
+                visualFallbackModel = normalizeRuntimeString(
+                    botModelPolicyMap["visualFallbackModel"] as? String,
+                    fallback = AiRuntimeBotModelPolicy().visualFallbackModel,
+                ),
+            ),
+            costGuard = AiRuntimeBotCostGuard(
+                enabled = botCostGuardMap["enabled"] as? Boolean ?: true,
+                preferBriefAnswersWhenCritical = botCostGuardMap["preferBriefAnswersWhenCritical"] as? Boolean ?: true,
+                shortAnswerMaxOutputTokens = parseRuntimeInt(
+                    botCostGuardMap["shortAnswerMaxOutputTokens"],
+                    fallback = AiRuntimeBotCostGuard().shortAnswerMaxOutputTokens,
+                    min = 80,
+                    max = 1200,
+                ),
+                standardAnswerMaxOutputTokens = parseRuntimeInt(
+                    botCostGuardMap["standardAnswerMaxOutputTokens"],
+                    fallback = AiRuntimeBotCostGuard().standardAnswerMaxOutputTokens,
+                    min = 120,
+                    max = 2400,
+                ),
+            ),
+            routingPolicy = AiRuntimeBotRoutingPolicy(
+                preferFaqWhenTopicMatched = botRoutingMap["preferFaqWhenTopicMatched"] as? Boolean ?: true,
+                preferProductGuideForNewUsers = botRoutingMap["preferProductGuideForNewUsers"] as? Boolean ?: true,
+                allowVisualGeneration = botRoutingMap["allowVisualGeneration"] as? Boolean ?: true,
+            ),
+            fallbackPolicy = AiRuntimeBotFallbackPolicy(
+                allowTextFallback = botFallbackMap["allowTextFallback"] as? Boolean ?: true,
+                allowVisualFallback = botFallbackMap["allowVisualFallback"] as? Boolean ?: true,
+                exposeFallbackReason = botFallbackMap["exposeFallbackReason"] as? Boolean ?: true,
+            ),
+            safetyPolicy = AiRuntimeBotSafetyPolicy(
+                safeModeEnabled = botSafetyMap["safeModeEnabled"] as? Boolean ?: true,
+                strictUnknownHandling = botSafetyMap["strictUnknownHandling"] as? Boolean ?: true,
+                blockSpeculativeFaqAnswers = botSafetyMap["blockSpeculativeFaqAnswers"] as? Boolean ?: true,
+            ),
+            actionLayer = AiRuntimeBotActionLayer(
+                proactiveHintsEnabled = botActionLayerMap["proactiveHintsEnabled"] as? Boolean ?: true,
+                triggerAiLimitNearEnabled = botActionLayerMap["triggerAiLimitNearEnabled"] as? Boolean ?: true,
+                triggerRestoreAvailableEnabled = botActionLayerMap["triggerRestoreAvailableEnabled"] as? Boolean ?: true,
+                triggerOrderShippedEnabled = botActionLayerMap["triggerOrderShippedEnabled"] as? Boolean ?: true,
+                triggerPaymentMethodsChangedEnabled = botActionLayerMap["triggerPaymentMethodsChangedEnabled"] as? Boolean ?: true,
+                triggerUsageBasedUpgradeEnabled = botActionLayerMap["triggerUsageBasedUpgradeEnabled"] as? Boolean ?: true,
+                warningThresholdPercent = parseRuntimeInt(
+                    botActionLayerMap["warningThresholdPercent"],
+                    fallback = AiRuntimeBotActionLayer().warningThresholdPercent,
+                    min = 50,
+                    max = 99,
+                ),
+                criticalThresholdPercent = parseRuntimeInt(
+                    botActionLayerMap["criticalThresholdPercent"],
+                    fallback = AiRuntimeBotActionLayer().criticalThresholdPercent,
+                    min = 60,
+                    max = 100,
+                ),
+                upgradeHintFreeToProText = normalizeRuntimeString(
+                    botActionLayerMap["upgradeHintFreeToProText"] as? String,
+                    fallback = AiRuntimeBotActionLayer().upgradeHintFreeToProText,
+                    maxLength = 220,
+                ),
+                upgradeHintProToCreatorText = normalizeRuntimeString(
+                    botActionLayerMap["upgradeHintProToCreatorText"] as? String,
+                    fallback = AiRuntimeBotActionLayer().upgradeHintProToCreatorText,
+                    maxLength = 220,
+                ),
+                faqPriorityMode = normalizeAllowedRuntimeString(
+                    botActionLayerMap["faqPriorityMode"] as? String,
+                    allowed = setOf("live_owner_generic", "owner_live_generic", "balanced"),
+                    fallback = AiRuntimeBotActionLayer().faqPriorityMode,
+                ),
+                promptVersionAlias = normalizeRuntimeString(
+                    botActionLayerMap["promptVersionAlias"] as? String,
+                    fallback = AiRuntimeBotActionLayer().promptVersionAlias,
+                ),
+            ),
+        ),
     )
 }
 
@@ -180,6 +383,73 @@ private fun AiRuntimeSettings.toMap(): Map<String, Any> {
             "autoStopOnWaiting" to manus.autoStopOnWaiting,
             "blockHighCreditEvents" to manus.blockHighCreditEvents,
             "includeVerboseEvents" to manus.includeVerboseEvents,
+        ),
+        "bot" to mapOf(
+            "promptVersion" to normalizeRuntimeString(bot.promptVersion, AiRuntimeBotSettings().promptVersion),
+            "qualityMode" to normalizeAllowedRuntimeString(bot.qualityMode, setOf("balanced", "high"), AiRuntimeBotSettings().qualityMode),
+            "faqMode" to normalizeAllowedRuntimeString(bot.faqMode, setOf("off", "auto", "prefer_faq"), AiRuntimeBotSettings().faqMode),
+            "ownerMode" to normalizeAllowedRuntimeString(bot.ownerMode, setOf("standard", "diagnostic"), AiRuntimeBotSettings().ownerMode),
+            "answerLength" to normalizeAllowedRuntimeString(bot.answerLength, setOf("adaptive", "short", "detailed"), AiRuntimeBotSettings().answerLength),
+            "personalityStyle" to normalizeRuntimeString(bot.personalityStyle, AiRuntimeBotSettings().personalityStyle, maxLength = 160),
+            "loggingLevel" to normalizeRuntimeString(bot.loggingLevel, AiRuntimeBotSettings().loggingLevel, maxLength = 80),
+            "diagnosticsMode" to normalizeAllowedRuntimeString(bot.diagnosticsMode, setOf("off", "owner_only", "verbose"), AiRuntimeBotSettings().diagnosticsMode),
+            "killSwitchEnabled" to bot.killSwitchEnabled,
+            "modelPolicy" to mapOf(
+                "textPrimaryModel" to normalizeRuntimeString(bot.modelPolicy.textPrimaryModel, AiRuntimeBotModelPolicy().textPrimaryModel),
+                "textFallbackModel" to normalizeRuntimeString(bot.modelPolicy.textFallbackModel, AiRuntimeBotModelPolicy().textFallbackModel),
+                "visualPrimaryModel" to normalizeRuntimeString(bot.modelPolicy.visualPrimaryModel, AiRuntimeBotModelPolicy().visualPrimaryModel),
+                "visualFallbackModel" to normalizeRuntimeString(bot.modelPolicy.visualFallbackModel, AiRuntimeBotModelPolicy().visualFallbackModel),
+            ),
+            "costGuard" to mapOf(
+                "enabled" to bot.costGuard.enabled,
+                "preferBriefAnswersWhenCritical" to bot.costGuard.preferBriefAnswersWhenCritical,
+                "shortAnswerMaxOutputTokens" to bot.costGuard.shortAnswerMaxOutputTokens.coerceAtLeast(80),
+                "standardAnswerMaxOutputTokens" to bot.costGuard.standardAnswerMaxOutputTokens.coerceAtLeast(120),
+            ),
+            "routingPolicy" to mapOf(
+                "preferFaqWhenTopicMatched" to bot.routingPolicy.preferFaqWhenTopicMatched,
+                "preferProductGuideForNewUsers" to bot.routingPolicy.preferProductGuideForNewUsers,
+                "allowVisualGeneration" to bot.routingPolicy.allowVisualGeneration,
+            ),
+            "fallbackPolicy" to mapOf(
+                "allowTextFallback" to bot.fallbackPolicy.allowTextFallback,
+                "allowVisualFallback" to bot.fallbackPolicy.allowVisualFallback,
+                "exposeFallbackReason" to bot.fallbackPolicy.exposeFallbackReason,
+            ),
+            "safetyPolicy" to mapOf(
+                "safeModeEnabled" to bot.safetyPolicy.safeModeEnabled,
+                "strictUnknownHandling" to bot.safetyPolicy.strictUnknownHandling,
+                "blockSpeculativeFaqAnswers" to bot.safetyPolicy.blockSpeculativeFaqAnswers,
+            ),
+            "actionLayer" to mapOf(
+                "proactiveHintsEnabled" to bot.actionLayer.proactiveHintsEnabled,
+                "triggerAiLimitNearEnabled" to bot.actionLayer.triggerAiLimitNearEnabled,
+                "triggerRestoreAvailableEnabled" to bot.actionLayer.triggerRestoreAvailableEnabled,
+                "triggerOrderShippedEnabled" to bot.actionLayer.triggerOrderShippedEnabled,
+                "triggerPaymentMethodsChangedEnabled" to bot.actionLayer.triggerPaymentMethodsChangedEnabled,
+                "triggerUsageBasedUpgradeEnabled" to bot.actionLayer.triggerUsageBasedUpgradeEnabled,
+                "warningThresholdPercent" to bot.actionLayer.warningThresholdPercent.coerceIn(50, 99),
+                "criticalThresholdPercent" to bot.actionLayer.criticalThresholdPercent.coerceIn(60, 100),
+                "upgradeHintFreeToProText" to normalizeRuntimeString(
+                    bot.actionLayer.upgradeHintFreeToProText,
+                    fallback = AiRuntimeBotActionLayer().upgradeHintFreeToProText,
+                    maxLength = 220,
+                ),
+                "upgradeHintProToCreatorText" to normalizeRuntimeString(
+                    bot.actionLayer.upgradeHintProToCreatorText,
+                    fallback = AiRuntimeBotActionLayer().upgradeHintProToCreatorText,
+                    maxLength = 220,
+                ),
+                "faqPriorityMode" to normalizeAllowedRuntimeString(
+                    bot.actionLayer.faqPriorityMode,
+                    allowed = setOf("live_owner_generic", "owner_live_generic", "balanced"),
+                    fallback = AiRuntimeBotActionLayer().faqPriorityMode,
+                ),
+                "promptVersionAlias" to normalizeRuntimeString(
+                    bot.actionLayer.promptVersionAlias,
+                    fallback = AiRuntimeBotActionLayer().promptVersionAlias,
+                ),
+            ),
         ),
         "updatedAt" to FieldValue.serverTimestamp(),
     )
@@ -217,4 +487,22 @@ private fun parseRuntimeInt(
     } ?: return fallback
 
     return parsed.coerceIn(min, max)
+}
+
+private fun normalizeAllowedRuntimeString(
+    value: String?,
+    allowed: Set<String>,
+    fallback: String,
+): String {
+    val normalized = value?.trim()?.lowercase().orEmpty()
+    return if (allowed.contains(normalized)) normalized else fallback
+}
+
+private fun normalizeRuntimeString(
+    value: String?,
+    fallback: String,
+    maxLength: Int = 120,
+): String {
+    val normalized = value?.trim().orEmpty()
+    return if (normalized.isBlank()) fallback else normalized.take(maxLength)
 }

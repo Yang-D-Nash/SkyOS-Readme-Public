@@ -11,6 +11,7 @@ data class AiGeneratedVisualResult(
     val mimeType: String,
     val historyRetentionDays: Int,
     val usage: AiUsageSnapshot? = null,
+    val decision: AiBotDecision? = null,
 )
 
 open class AiImageClient(
@@ -58,6 +59,7 @@ open class AiImageClient(
             mimeType = (data["mimeType"] as? String)?.takeIf { it.isNotBlank() } ?: "image/png",
             historyRetentionDays = (data["historyRetentionDays"] as? Number)?.toInt() ?: 3,
             usage = parseAiUsageSnapshot(data["usage"]),
+            decision = parseAiBotDecision(data["botDecision"]),
         )
     }
 }

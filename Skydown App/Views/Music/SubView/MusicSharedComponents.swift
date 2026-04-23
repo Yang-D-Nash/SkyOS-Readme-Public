@@ -74,7 +74,7 @@ struct MusicInstagramHubCard: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Direkt zu Artists, 22 und Skydown.")
+            Text("Community- und Brand-Profile auf einen Blick.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
