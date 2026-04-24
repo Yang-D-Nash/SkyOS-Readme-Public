@@ -23,9 +23,9 @@ Scope:
   - `AVV/DPA Status` ist fuer zentrale Verarbeiter nicht auf `OK`, sondern `IN PROGRESS`/`OPEN`.
   - Betriebsregel fordert bei `!= OK` eine Risikomarkierung.
 - Referenzen:
-  - `/Users/nash/Documents/Skydown-App/docs/compliance/AVV_VERARBEITER_REGISTER.md:25`
-  - `/Users/nash/Documents/Skydown-App/docs/compliance/AVV_VERARBEITER_REGISTER.md:26`
-  - `/Users/nash/Documents/Skydown-App/docs/compliance/AVV_VERARBEITER_REGISTER.md:54`
+  - `docs/compliance/AVV_VERARBEITER_REGISTER.md:25`
+  - `docs/compliance/AVV_VERARBEITER_REGISTER.md:26`
+  - `docs/compliance/AVV_VERARBEITER_REGISTER.md:54`
 - Risiko:
   - Juristischer Release-Blocker trotz stabilem Technikstand.
 - Empfehlung:
@@ -36,10 +36,10 @@ Scope:
 - Evidenz:
   - Offene Punkte bei Monitoring/Alerting, Recovery-Strategie, Incident-Rollen und Team-Drill.
 - Referenzen:
-  - `/Users/nash/Documents/Skydown-App/docs/compliance/TOMS_CHECKLIST.md:48`
-  - `/Users/nash/Documents/Skydown-App/docs/compliance/TOMS_CHECKLIST.md:49`
-  - `/Users/nash/Documents/Skydown-App/docs/compliance/TOMS_CHECKLIST.md:68`
-  - `/Users/nash/Documents/Skydown-App/docs/compliance/TOMS_CHECKLIST.md:69`
+  - `docs/compliance/TOMS_CHECKLIST.md:48`
+  - `docs/compliance/TOMS_CHECKLIST.md:49`
+  - `docs/compliance/TOMS_CHECKLIST.md:68`
+  - `docs/compliance/TOMS_CHECKLIST.md:69`
 - Risiko:
   - Bei Vorfall fehlen belastbare Betriebsnachweise fuer Art. 32/33 DSGVO.
 - Empfehlung:
@@ -50,8 +50,8 @@ Scope:
 - Evidenz:
   - Auskunfts- und Loeschprozess sind dokumentiert, aber als Probelauf noch offen.
 - Referenzen:
-  - `/Users/nash/Documents/Skydown-App/docs/compliance/DSGVO_RELEASE_CHECKLIST.md:50`
-  - `/Users/nash/Documents/Skydown-App/docs/compliance/DSGVO_RELEASE_CHECKLIST.md:51`
+  - `docs/compliance/DSGVO_RELEASE_CHECKLIST.md:50`
+  - `docs/compliance/DSGVO_RELEASE_CHECKLIST.md:51`
 - Risiko:
   - Prozess ist konzeptionell vorhanden, aber ohne geuebten Nachweis schwach auditierbar.
 - Empfehlung:
@@ -62,8 +62,8 @@ Scope:
 - Evidenz:
   - Cleanup wurde um `adminConfig/agentProfile_<uid>` ergaenzt.
 - Referenzen:
-  - `/Users/nash/Documents/Skydown-App/functions/index.js:1153`
-  - `/Users/nash/Documents/Skydown-App/functions/index.js:1154`
+  - `functions/index.js:1153`
+  - `functions/index.js:1154`
 - Risiko:
   - Vor Fix blieb ein personenbezogenes Konfigurationsdokument zurueck.
 - Status:
@@ -77,8 +77,8 @@ Scope:
 - iOS Release nutzt in Production keinen Debug-App-Check-Provider.
 
 Nachweisdateien:
-- `/Users/nash/Documents/Skydown-App/docs/compliance/DSGVO_RELEASE_CHECKLIST.md`
-- `/Users/nash/Documents/Skydown-App/docs/compliance/RELEASE_READINESS_2026-04-15.md`
+- `docs/compliance/DSGVO_RELEASE_CHECKLIST.md`
+- `docs/compliance/RELEASE_READINESS_2026-04-15.md`
 
 ## Figma Board Pack (Copy/Paste)
 

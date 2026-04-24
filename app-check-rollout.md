@@ -17,22 +17,22 @@ Der Rollout ist bewusst zweistufig:
 
 ### Android
 
-- Datei: [androidApp/src/main/java/com/skydown/android/SkydownApplication.kt](/Users/nash/Documents/Skydown-App/androidApp/src/main/java/com/skydown/android/SkydownApplication.kt)
+- Datei: [`androidApp/src/main/java/com/skydown/android/SkydownApplication.kt`](androidApp/src/main/java/com/skydown/android/SkydownApplication.kt)
 - `Debug`: `DebugAppCheckProviderFactory`
 - `Release`: `PlayIntegrityAppCheckProviderFactory`
 
 ### iOS
 
-- Datei: [Skydown App/FirebaseAppCheckProvider.swift](/Users/nash/Documents/Skydown-App/Skydown%20App/FirebaseAppCheckProvider.swift)
-- Datei: [Skydown App/SkydownApp.swift](/Users/nash/Documents/Skydown-App/Skydown%20App/SkydownApp.swift)
+- Datei: [`Skydown App/FirebaseAppCheckProvider.swift`](Skydown%20App/FirebaseAppCheckProvider.swift)
+- Datei: [`Skydown App/SkydownApp.swift`](Skydown%20App/SkydownApp.swift)
 - `Debug` und `Simulator`: `AppCheckDebugProvider`
 - `Release` auf echten Geraeten: `DeviceCheckProvider`
 - Hinweis: `AppAttestProvider` kann spaeter kontrolliert wieder aktiviert werden.
 
 ### Functions
 
-- Datei: [functions/src/security/app-check.js](/Users/nash/Documents/Skydown-App/functions/src/security/app-check.js)
-- Datei: [functions/index.js](/Users/nash/Documents/Skydown-App/functions/index.js)
+- Datei: [`functions/src/security/app-check.js`](functions/src/security/app-check.js)
+- Datei: [`functions/index.js`](functions/index.js)
 - sensibler Callable-Pfad wird serverseitig gegen App Check geprueft
 
 ## Schritt-fuer-Schritt

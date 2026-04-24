@@ -13,14 +13,14 @@ Scope: aktueller Release-Stand fuer iOS TestFlight, Android Bundle, Functions un
 - iOS Buildnummer:
   `CURRENT_PROJECT_VERSION = 35`
 - Android Release Bundle Smoke-Test:
-  `ANDROID_HOME=/Users/nash/Library/Android/sdk ./gradlew :androidApp:bundleRelease -PallowDebugReleaseSigning=true`
+  `ANDROID_HOME=<android-sdk-path> ./gradlew :androidApp:bundleRelease -PallowDebugReleaseSigning=true`
   Ergebnis: `BUILD SUCCESSFUL`
 - Android Release Lint:
-  `ANDROID_HOME=/Users/nash/Library/Android/sdk ./gradlew :androidApp:lintRelease -PallowDebugReleaseSigning=true`
+  `ANDROID_HOME=<android-sdk-path> ./gradlew :androidApp:lintRelease -PallowDebugReleaseSigning=true`
   Ergebnis: `No errors or warnings`
   Report: `androidApp/build/reports/lint-results-release.html`
 - Android Unit-Test-Gate:
-  `ANDROID_HOME=/Users/nash/Library/Android/sdk ./gradlew :androidApp:testDebugUnitTest`
+  `ANDROID_HOME=<android-sdk-path> ./gradlew :androidApp:testDebugUnitTest`
   Ergebnis: `BUILD SUCCESSFUL` (`NO-SOURCE`, aktuell keine JVM-Unit-Tests definiert).
 - Android Versionsstand:
   `versionCode = 35`, `versionName = "1"`

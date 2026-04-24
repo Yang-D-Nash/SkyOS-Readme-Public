@@ -15,10 +15,10 @@ Scope: technischer + dokumentarischer Endspurt vor dem Produktions-Release.
 ## 2) Verifizierte technische Gates
 
 - Android Build:
-  `ANDROID_HOME=/Users/nash/Library/Android/sdk ./gradlew :androidApp:compileDebugKotlin`
+  `ANDROID_HOME=<android-sdk-path> ./gradlew :androidApp:compileDebugKotlin`
   Ergebnis: `BUILD SUCCESSFUL` (2026-04-15)
 - Android Unit-Test-Gate:
-  `ANDROID_HOME=/Users/nash/Library/Android/sdk ./gradlew :androidApp:testDebugUnitTest`
+  `ANDROID_HOME=<android-sdk-path> ./gradlew :androidApp:testDebugUnitTest`
   Ergebnis: `BUILD SUCCESSFUL` (2026-04-15, keine Unit-Tests definiert)
 - iOS Release Build (ohne Signing):
   `xcodebuild -project 'Skydown App.xcodeproj' -scheme 'Skydown App' -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build`
