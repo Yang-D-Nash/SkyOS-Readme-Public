@@ -1031,7 +1031,7 @@ private fun MusicOverviewCard(
     val colorScheme = MaterialTheme.colorScheme
     val beatAccent = colorScheme.skydownAccent()
     val statusAccent = colorScheme.skydownAccentMystic()
-        BrandHeroCard(
+    BrandHeroCard(
         eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
         title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
         subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank {

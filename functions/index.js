@@ -72,8 +72,8 @@ const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 const shopifyAdminAccessToken = defineSecret("SHOPIFY_ADMIN_ACCESS_TOKEN");
 const manusApiKey = defineSecret("MANUS_API_KEY");
 const xaiApiKey = defineSecret("XAI_API_KEY");
-const OWNER_EMAIL = "nash.lioncorna@gmail.com";
-const IOS_APP_BUNDLE_ID = "com.skydown.ios";
+const OWNER_EMAIL = normalizeEmail(process.env.SKYOS_OWNER_EMAIL || process.env.SKYDOWN_OWNER_EMAIL) || "nash.lioncorna@gmail.com";
+const IOS_APP_BUNDLE_ID = nonEmptyString(process.env.SKYOS_IOS_APP_BUNDLE_ID) || "com.skydown.ios";
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
 const SHOPIFY_API_VERSION = "2026-01";
 const SHOPIFY_CONFIG_COLLECTION = "appConfig";
@@ -2726,13 +2726,13 @@ function decodeWorkflowAutomationSettings(data = {}) {
     provider: normalizedProvider,
     isEnabled: data.isEnabled === true,
     sendsUserContext: data.sendsUserContext !== false,
-    workflowName: nonEmptyString(data.workflowName) || "Skydown Automation",
+    workflowName: nonEmptyString(data.workflowName) || "SkyOS Automation",
     baseURL: normalizeUrlString(data.baseURL) || "",
     webhookPath: normalizeAutomationWebhookPath(data.webhookPath) || "",
     authHeaderName: nonEmptyString(data.authHeaderName) || "",
     authHeaderValue: nonEmptyString(data.authHeaderValue) || "",
     signingEnabled: data.signingEnabled === true,
-    signatureHeaderName: nonEmptyString(data.signatureHeaderName) || "x-skydown-signature",
+    signatureHeaderName: nonEmptyString(data.signatureHeaderName) || "x-skyos-signature",
     signingSecret: nonEmptyString(data.signingSecret) || "",
     timeoutMs: clampIntegerSetting(data.timeoutMs, 12000, 2000, 30000),
     retryAttempts: clampIntegerSetting(data.retryAttempts, 2, 0, 4),
@@ -2897,6 +2897,7 @@ async function triggerWorkflowAutomationWebhook({trigger, source, auth, data = {
   const headers = {
     "Content-Type": "application/json",
     "Accept": "application/json",
+    "x-skyos-request-id": requestId,
     "x-skydown-request-id": requestId,
   };
 

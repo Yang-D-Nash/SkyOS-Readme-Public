@@ -15,14 +15,16 @@ if (releaseKeystorePropertiesFile.exists()) {
     releaseKeystorePropertiesFile.inputStream().use(releaseKeystoreProperties::load)
 }
 
-fun releaseSigningValue(key: String): String? =
-    releaseKeystoreProperties.getProperty(key)
-        ?: providers.environmentVariable(key).orNull
+fun releaseSigningValue(primaryKey: String, legacyKey: String): String? =
+    releaseKeystoreProperties.getProperty(primaryKey)
+        ?: providers.environmentVariable(primaryKey).orNull
+        ?: releaseKeystoreProperties.getProperty(legacyKey)
+        ?: providers.environmentVariable(legacyKey).orNull
 
-val releaseStoreFilePath = releaseSigningValue("SKYDOWN_UPLOAD_STORE_FILE")
-val releaseStorePassword = releaseSigningValue("SKYDOWN_UPLOAD_STORE_PASSWORD")
-val releaseKeyAlias = releaseSigningValue("SKYDOWN_UPLOAD_KEY_ALIAS")
-val releaseKeyPassword = releaseSigningValue("SKYDOWN_UPLOAD_KEY_PASSWORD")
+val releaseStoreFilePath = releaseSigningValue("SKYOS_UPLOAD_STORE_FILE", "SKYDOWN_UPLOAD_STORE_FILE")
+val releaseStorePassword = releaseSigningValue("SKYOS_UPLOAD_STORE_PASSWORD", "SKYDOWN_UPLOAD_STORE_PASSWORD")
+val releaseKeyAlias = releaseSigningValue("SKYOS_UPLOAD_KEY_ALIAS", "SKYDOWN_UPLOAD_KEY_ALIAS")
+val releaseKeyPassword = releaseSigningValue("SKYOS_UPLOAD_KEY_PASSWORD", "SKYDOWN_UPLOAD_KEY_PASSWORD")
 val allowDebugReleaseSigning =
     providers.gradleProperty("allowDebugReleaseSigning")
         .map { value -> value.equals("true", ignoreCase = true) }
@@ -44,8 +46,8 @@ android {
         applicationId = "com.skydown.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 35
-        versionName = "1"
+        versionCode = 10000
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -102,7 +104,8 @@ android {
 val releaseSigningErrorMessage =
     """
     Android release signing is not configured.
-    Copy keystore.properties.example to keystore.properties or set SKYDOWN_UPLOAD_* env vars.
+    Copy keystore.properties.example to keystore.properties or set SKYOS_UPLOAD_* env vars.
+    Legacy SKYDOWN_UPLOAD_* values are still accepted for existing local setups.
     For local non-store smoke tests only, you can pass -PallowDebugReleaseSigning=true.
     """.trimIndent()
 

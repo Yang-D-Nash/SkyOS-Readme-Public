@@ -1,11 +1,14 @@
 {
-  "name": "skydown-agent-functions",
+  "name": "skyos-functions",
+  "version": "1.0.0",
   "private": true,
   "main": "index.js",
   "engines": {
     "node": "22"
   },
   "scripts": {
+    "build": "node --check index.js",
+    "lint": "node --check index.js",
     "test": "npm run test:node && npm run test:rules",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",

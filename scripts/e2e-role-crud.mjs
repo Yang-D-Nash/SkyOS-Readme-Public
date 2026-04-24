@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 
-const API_KEY = process.env.SKYDOWN_FIREBASE_WEB_API_KEY || "";
-const PROJECT_ID = "skydown-a6add";
-const REGION = "us-central1";
+const API_KEY = process.env.SKYOS_FIREBASE_WEB_API_KEY || process.env.SKYDOWN_FIREBASE_WEB_API_KEY || "";
+const PROJECT_ID = process.env.SKYOS_FIREBASE_PROJECT_ID || process.env.SKYDOWN_FIREBASE_PROJECT_ID || "skydown-a6add";
+const REGION = process.env.SKYOS_FIREBASE_FUNCTIONS_REGION || process.env.SKYDOWN_FIREBASE_FUNCTIONS_REGION || "us-central1";
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
-const OWNER_EMAIL = process.env.SKYDOWN_OWNER_EMAIL || "";
-const OWNER_PASSWORD = process.env.SKYDOWN_OWNER_PASSWORD || "";
+const OWNER_EMAIL = process.env.SKYOS_OWNER_EMAIL || process.env.SKYDOWN_OWNER_EMAIL || "";
+const OWNER_PASSWORD = process.env.SKYOS_OWNER_PASSWORD || process.env.SKYDOWN_OWNER_PASSWORD || "";
 
 function requireOwnerCredentials() {
   if (!OWNER_EMAIL || !OWNER_PASSWORD) {
-    throw new Error("Missing SKYDOWN_OWNER_EMAIL or SKYDOWN_OWNER_PASSWORD.");
+    throw new Error("Missing SKYOS_OWNER_EMAIL/SKYOS_OWNER_PASSWORD.");
   }
   if (!API_KEY) {
-    throw new Error("Missing SKYDOWN_FIREBASE_WEB_API_KEY.");
+    throw new Error("Missing SKYOS_FIREBASE_WEB_API_KEY.");
   }
 }
 

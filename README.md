@@ -10,7 +10,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20iOS%20%7C%20Android-0A84FF?style=for-the-badge" alt="Platforms" />
   <img src="https://img.shields.io/badge/architecture-KMP%20%2B%20SwiftUI%20%2B%20Compose-111827?style=for-the-badge" alt="Architecture" />
-  <img src="https://img.shields.io/badge/status-Release%20Candidate-16A34A?style=for-the-badge" alt="Status" />
+  <img src="https://img.shields.io/badge/status-v1.0.0-16A34A?style=for-the-badge" alt="Status" />
 </p>
 
 ---
@@ -83,7 +83,7 @@ Ziel ist eine konsistente Erfahrung ueber Desktop und Mobile, bei der alle Featu
 
 | Bereich | Stand |
 | --- | --- |
-| Produktstatus | `GO mit Legal-Review-Vorbehalt` |
+| Produktstatus | `SkyOS v1.0.0 build-faehig mit Legal-Review-Vorbehalt` |
 | Branch | `main` |
 | Plattform-Fokus | `macOS`, `iOS`, `Android` |
 | Letzter dokumentierter Smoke | Android `PASS`, iOS `PASS` |
@@ -145,21 +145,26 @@ flowchart TB
 | Plattform | Modul | Build-Referenz |
 | --- | --- | --- |
 | macOS / iOS | `Skydown App.xcodeproj` | `xcodebuild` mit passender Destination |
-| Android | `androidApp/` | `./gradlew :androidApp:compileDebugKotlin` |
+| Android | `androidApp/` | `./gradlew :androidApp:assembleRelease` |
 | Shared | `shared/` | Wird in Apple- und Android-Builds eingebunden |
-| Functions | `functions/` | `npm ci --prefix functions` und `npm test --prefix functions` |
+| Functions | `functions/` | `npm ci --prefix functions`, `npm run build --prefix functions`, `npm test --prefix functions` |
 
 ```bash
 # Backend
 npm ci --prefix functions
+npm run build --prefix functions
 npm test --prefix functions
 
 # Android
-./gradlew :androidApp:compileDebugKotlin
+./gradlew :androidApp:assembleRelease
 
 # Apple (iOS Simulator Beispiel)
 xcodebuild -project "Skydown App.xcodeproj" -scheme "Skydown App" -configuration Debug -destination "generic/platform=iOS Simulator" build
 ```
+
+Fuer lokale Release-Smokes ohne Store-Signing kann Android mit
+`./gradlew :androidApp:assembleRelease -PallowDebugReleaseSigning=true` gebaut werden. Store-faehige
+Builds benoetigen `keystore.properties` oder `SKYOS_UPLOAD_*` Secrets.
 
 ## App-Icons und Branding
 

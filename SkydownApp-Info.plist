@@ -46,7 +46,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Skydown benötigt Zugriff auf deine Fotomediathek, damit Admins Merch-Bilder auswählen und hochladen können.</string>
+	<string>SkyOS benoetigt Zugriff auf deine Fotomediathek, damit Admins Merch-Bilder auswaehlen und hochladen koennen.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Syne-Regular.ttf</string>

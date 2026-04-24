@@ -273,6 +273,14 @@ fun SettingsScreen(
     val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
     val membershipOpsRepository = remember { AppContainer.membershipOpsAdminRepository }
     val faqOwnerReviewRepository = remember { AppContainer.aiFaqOwnerReviewRepository }
+    val adminHeadersOwnerOnlyMessage = stringResource(R.string.settings_admin_headers_owner_only)
+    val membershipOpsExperimentStartedMessage = stringResource(R.string.settings_membership_ops_experiment_started)
+    val membershipOpsRecommendationRejectedMessage = stringResource(R.string.settings_membership_ops_recommendation_rejected)
+    val membershipOpsExperimentCompletedMessage = stringResource(R.string.settings_membership_ops_experiment_completed)
+    val membershipOpsHygieneSavedMessage = stringResource(R.string.settings_membership_ops_hygiene_saved)
+    val membershipOpsHygieneSaveFailedMessage = stringResource(R.string.settings_membership_ops_hygiene_save_failed)
+    val membershipOpsHygieneDefaultsRestoredMessage = stringResource(R.string.settings_membership_ops_hygiene_defaults_restored)
+    val membershipOpsTimelineLoadFailedMessage = stringResource(R.string.settings_membership_ops_timeline_load_failed)
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var feedbackType by remember { mutableStateOf(ToastType.Info) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -1275,7 +1283,7 @@ fun SettingsScreen(
                 Button(
                     onClick = {
                         if (!uiState.isOwner) {
-                            feedbackMessage = context.getString(R.string.settings_admin_headers_owner_only)
+                            feedbackMessage = adminHeadersOwnerOnlyMessage
                             feedbackType = ToastType.Error
                         } else {
                             coroutineScope.launch {
@@ -3542,7 +3550,7 @@ fun SettingsScreen(
                                                             )
                                                             experimentLifecycleIdDraft = lifecycleId
                                                             selectedRecommendationId = recommendation.id
-                                                            feedbackMessage = context.getString(R.string.settings_membership_ops_experiment_started)
+                                                            feedbackMessage = membershipOpsExperimentStartedMessage
                                                             feedbackType = ToastType.Success
                                                         }
                                                     },
@@ -3556,7 +3564,7 @@ fun SettingsScreen(
                                                                 recommendationType = recommendation.recommendationType,
                                                                 notes = "Rejected from Android Membership Command Center",
                                                             )
-                                                            feedbackMessage = context.getString(R.string.settings_membership_ops_recommendation_rejected)
+                                                            feedbackMessage = membershipOpsRecommendationRejectedMessage
                                                             feedbackType = ToastType.Warning
                                                         }
                                                     },
@@ -3622,7 +3630,7 @@ fun SettingsScreen(
                                                 learnings = experimentLearningsDraft,
                                             )
                                         }.onSuccess {
-                                            feedbackMessage = context.getString(R.string.settings_membership_ops_experiment_completed)
+                                            feedbackMessage = membershipOpsExperimentCompletedMessage
                                             feedbackType = ToastType.Success
                                         }.onFailure { error ->
                                             feedbackMessage = error.localizedMessage ?: "Experiment konnte nicht abgeschlossen werden."
@@ -3744,10 +3752,10 @@ fun SettingsScreen(
                                                     )
                                                 }.onSuccess { result ->
                                                     hygieneProfileLabel = result["profile"] as? String ?: hygieneProfileLabel
-                                                    feedbackMessage = context.getString(R.string.settings_membership_ops_hygiene_saved)
+                                                    feedbackMessage = membershipOpsHygieneSavedMessage
                                                     feedbackType = ToastType.Success
                                                 }.onFailure { error ->
-                                                    feedbackMessage = error.localizedMessage ?: context.getString(R.string.settings_membership_ops_hygiene_save_failed)
+                                                    feedbackMessage = error.localizedMessage ?: membershipOpsHygieneSaveFailedMessage
                                                     feedbackType = ToastType.Error
                                                 }
                                             }
@@ -3773,7 +3781,7 @@ fun SettingsScreen(
                                                     hygieneFreshnessFloorDraft = (hygiene["freshnessFloor"] as? Number)?.toDouble()?.toString() ?: "0.20"
                                                     hygieneDuplicateMergeWindowDraft = (hygiene["duplicateMergeWindowDays"] as? Number)?.toInt()?.toString() ?: "14"
                                                     hygieneProfileLabel = result["profile"] as? String ?: "balanced"
-                                                    feedbackMessage = context.getString(R.string.settings_membership_ops_hygiene_defaults_restored)
+                                                    feedbackMessage = membershipOpsHygieneDefaultsRestoredMessage
                                                     feedbackType = ToastType.Success
                                                 }.onFailure { error ->
                                                     feedbackMessage = error.localizedMessage ?: "Reset auf Defaults fehlgeschlagen."
@@ -3805,7 +3813,7 @@ fun SettingsScreen(
                                                 }.onSuccess { timeline ->
                                                     membershipTimeline = timeline
                                                 }.onFailure { error ->
-                                                    feedbackMessage = error.localizedMessage ?: context.getString(R.string.settings_membership_ops_timeline_load_failed)
+                                                    feedbackMessage = error.localizedMessage ?: membershipOpsTimelineLoadFailedMessage
                                                     feedbackType = ToastType.Error
                                                 }
                                             }

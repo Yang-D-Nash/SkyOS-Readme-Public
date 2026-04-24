@@ -23,6 +23,7 @@ functions/firestore-debug.log
 *.xcarchive
 .env
 .env.*
+!.env.example
 
 .idea/
 

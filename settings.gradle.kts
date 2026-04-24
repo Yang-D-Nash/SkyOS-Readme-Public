@@ -17,7 +17,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Skydown"
+rootProject.name = "SkyOS"
 
 include(":shared")
 include(":androidApp")
