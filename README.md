@@ -7,8 +7,6 @@
   AI &middot; Music &middot; Video &middot; Commerce
 </p>
 
-# Skydown
-
 Skydown ist das native Cross-Platform-Produkt fuer iOS und Android. Die App verbindet AI,
 Agent-Workflows, Music, Video, Merch, Auth, Legal-Flaechen und Runtime-Governance in einem ruhigen,
 zusammenhaengenden Produktfluss. SkyOS beschreibt dabei die System- und Design-Sprache hinter dem
