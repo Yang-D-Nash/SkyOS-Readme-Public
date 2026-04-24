@@ -97,48 +97,63 @@ struct AgentView: View {
         [agentProviderStatusLine, "Modus: \(viewModel.selectedMode.title)"]
     }
 
+    private var usesCompactImmersiveLayout: Bool {
+        !showsNavigation
+    }
+
     private var content: some View {
         VStack(spacing: 0) {
             if featureFlags.isAIEnabled {
                 if viewModel.messages.isEmpty {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Spacer(minLength: showsNavigation ? 8 : 4)
-
-                        AgentHeroCard(colorScheme: colorScheme, badges: agentWorkspaceHeroBadges)
-                        AgentEmptyStateHeader(colorScheme: colorScheme)
-                        if let usage = viewModel.revenueUsage {
-                            AgentRevenueUsageCard(usage: usage, colorScheme: colorScheme)
-                                .onTapGesture {
-                                    if !usage.userFacingReason.isEmpty {
-                                        MembershipAnalyticsTracker().track(
-                                            "upgrade_after_deny",
-                                            reason: membershipCoordinator.lastOpenReason.rawValue,
-                                            surface: "agent_empty",
-                                            currentPlan: membershipCoordinator.currentPlanCache.rawValue
-                                        )
-                                    }
-                                    membershipCoordinator.openMembership(reason: .manual, surface: "agent_empty")
-                                }
-                        } else {
-                            AgentPlanPreviewCard(colorScheme: colorScheme)
-                                .onTapGesture { membershipCoordinator.openMembership(reason: .manual, surface: "agent_empty") }
-                        }
-                        serviceStatusCard
-
-                        AgentQuickPromptCard(
-                            colorScheme: colorScheme,
-                            prompts: viewModel.quickPrompts,
-                            onPromptSelected: { prompt in
-                                isComposerFocused = false
-                                viewModel.sendPrompt(prompt)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: usesCompactImmersiveLayout ? 12 : 14) {
+                            if !usesCompactImmersiveLayout {
+                                AgentHeroCard(colorScheme: colorScheme, badges: agentWorkspaceHeroBadges)
                             }
-                        )
 
-                        Spacer(minLength: 12)
+                            AgentEmptyStateHeader(
+                                colorScheme: colorScheme,
+                                isCompact: usesCompactImmersiveLayout
+                            )
+
+                            AgentQuickPromptCard(
+                                colorScheme: colorScheme,
+                                prompts: viewModel.quickPrompts,
+                                onPromptSelected: { prompt in
+                                    isComposerFocused = false
+                                    viewModel.sendPrompt(prompt)
+                                }
+                            )
+
+                            if let usage = viewModel.revenueUsage {
+                                AgentRevenueUsageCard(usage: usage, colorScheme: colorScheme)
+                                    .onTapGesture {
+                                        if !usage.userFacingReason.isEmpty {
+                                            MembershipAnalyticsTracker().track(
+                                                "upgrade_after_deny",
+                                                reason: membershipCoordinator.lastOpenReason.rawValue,
+                                                surface: "agent_empty",
+                                                currentPlan: membershipCoordinator.currentPlanCache.rawValue
+                                            )
+                                        }
+                                        membershipCoordinator.openMembership(reason: .manual, surface: "agent_empty")
+                                    }
+                            } else {
+                                AgentPlanPreviewCard(colorScheme: colorScheme)
+                                    .onTapGesture { membershipCoordinator.openMembership(reason: .manual, surface: "agent_empty") }
+                            }
+
+                            if !usesCompactImmersiveLayout {
+                                serviceStatusCard
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        .padding(.top, showsNavigation ? 8 : 6)
+                        .padding(.bottom, usesCompactImmersiveLayout ? 16 : 12)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.bottom, 6)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .scrollIndicators(.hidden)
                 } else {
                     ScrollViewReader { proxy in
                         let scrollToken = viewModel.messages.last.map { message in
@@ -263,6 +278,7 @@ struct AgentView: View {
             }
         }
         .background(backgroundGradient.ignoresSafeArea())
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private var backgroundGradient: LinearGradient {
@@ -806,24 +822,31 @@ private struct AgentServicePill: View {
 
 private struct AgentEmptyStateHeader: View {
     let colorScheme: ColorScheme
+    var isCompact: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: isCompact ? 6 : 8) {
             Text("Wobei soll ich dich strukturieren?")
-                .font(.system(size: 28, weight: .black, design: .rounded))
+                .font(
+                    isCompact
+                        ? .system(size: 24, weight: .black, design: .rounded)
+                        : .system(size: 28, weight: .black, design: .rounded)
+                )
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             Text("Nutze den Agent fuer Briefings, Shotlists, Release-Plaene und klare naechste Schritte. Schreib direkt unten los oder starte mit einem Prompt.")
-                .font(.subheadline.weight(.medium))
+                .font(isCompact ? .subheadline.weight(.semibold) : .subheadline.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            Text("Auch der Agent fuehrt den Verlauf pro Konto weiter, damit Briefings und To-dos anschlussfaehig bleiben.")
-                .font(.footnote.weight(.semibold))
-                .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.9))
+            if !isCompact {
+                Text("Auch der Agent fuehrt den Verlauf pro Konto weiter, damit Briefings und To-dos anschlussfaehig bleiben.")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.9))
 
-            Text(AppLocalized.text("agent.empty.first_step", fallback: "Type below or pick a quick prompt. The agent keeps the run structured."))
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                Text(AppLocalized.text("agent.empty.first_step", fallback: "Type below or pick a quick prompt. The agent keeps the run structured."))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
+            }
         }
     }
 }
@@ -1314,6 +1337,19 @@ private struct AgentComposerBar: View {
         isFocused.wrappedValue ? keyboardObserver.bottomInset : 0
     }
 
+    private var restingBottomSafeAreaInset: CGFloat {
+        isFocused.wrappedValue ? 0 : keyWindowSafeAreaBottomInset
+    }
+
+    private var keyWindowSafeAreaBottomInset: CGFloat {
+        let windowScenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let foregroundScene = windowScenes.first {
+            $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive
+        }
+        let keyWindow = foregroundScene?.windows.first(where: \.isKeyWindow) ?? foregroundScene?.windows.first
+        return keyWindow?.safeAreaInsets.bottom ?? 0
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if let status = interactionPhase.composerStatusLabel {
@@ -1479,7 +1515,7 @@ private struct AgentComposerBar: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, canTriggerAutomation || !AgentExecutionMode.allCases.isEmpty ? 8 : 10)
-            .padding(.bottom, 10)
+            .padding(.bottom, 10 + restingBottomSafeAreaInset)
             .background(
                 Rectangle()
                     .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))

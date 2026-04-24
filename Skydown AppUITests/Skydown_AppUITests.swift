@@ -251,6 +251,45 @@ final class Skydown_AppUITests: XCTestCase {
     }
 
     @MainActor
+    func testAIUsageNoticeCanOpenFromSettings() throws {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-AppleLanguages",
+            "(en)",
+            "-AppleLocale",
+            "en_US",
+            "-ui_test_signed_in",
+        ]
+        app.launch()
+
+        enterMainShellIfNeeded(app: app)
+        openSettings(app: app)
+
+        let aiUsageNotice = app.buttons["AI usage notice"].firstMatch
+        scrollToElementIfNeeded(aiUsageNotice, in: app, maxSwipes: 10)
+        tapElementReliably(
+            aiUsageNotice,
+            in: app,
+            timeout: 20,
+            failureMessage: "AI usage notice should open from Settings."
+        )
+
+        let policyTitle = app.navigationBars["AI usage notice"].firstMatch
+        XCTAssertTrue(
+            policyTitle.waitForExistence(timeout: 20),
+            "AI usage notice sheet should present a visible title."
+        )
+
+        XCTAssertFalse(
+            app.staticTexts["support@example.com"].firstMatch.exists,
+            "Visible legal content should not expose the sample support address."
+        )
+
+        waitForUISettle()
+        saveScreenshot(name: "08-legal-ai-usage")
+    }
+
+    @MainActor
     func testRoleMatrixSmoke() throws {
         let roles: [(key: String, expectedRoleLabel: String)] = [
             ("OWNER", "Owner"),

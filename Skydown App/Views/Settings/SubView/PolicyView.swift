@@ -50,7 +50,7 @@ struct PolicyView: View {
                         Text(
                             AppLocalized.text(
                                 "legal.ui.transparency_note",
-                                fallback: "This screen shows operational information. It is not a substitute for independent legal review. (TODO: Legal sign-off for production use.)"
+                                fallback: "This information is provided for transparency and does not replace legal review. The binding version will be finalized before public release."
                             )
                         )
                         .font(.caption)

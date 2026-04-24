@@ -67,61 +67,96 @@ struct AIView: View {
         ].joined(separator: "|")
     }
 
+    private var usesCompactImmersiveLayout: Bool {
+        !showsNavigation
+    }
+
     private var content: some View {
         VStack(spacing: 0) {
             if featureFlags.isAIEnabled {
                 if viewModel.messages.isEmpty {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Spacer(minLength: showsNavigation ? 20 : 14)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: usesCompactImmersiveLayout ? 12 : 14) {
+                            AIEmptyStateHeader(
+                                colorScheme: colorScheme,
+                                isCompact: usesCompactImmersiveLayout
+                            )
 
-                        AIEmptyStateHeader(colorScheme: colorScheme)
-                        if let usage = viewModel.revenueUsage {
-                            AIRevenueUsageCard(usage: usage, colorScheme: colorScheme)
-                                .onTapGesture {
-                                    if !usage.userFacingReason.isEmpty {
-                                        MembershipAnalyticsTracker().track(
-                                            "upgrade_after_deny",
-                                            reason: membershipCoordinator.lastOpenReason.rawValue,
-                                            surface: "ai_empty",
-                                            currentPlan: membershipCoordinator.currentPlanCache.rawValue
-                                        )
+                            if usesCompactImmersiveLayout {
+                                if viewModel.composerMode == .visual {
+                                    AIVisualPromptCard(
+                                        colorScheme: colorScheme,
+                                        prompts: viewModel.visualPrompts,
+                                        onPromptSelected: { prompt in
+                                            isComposerFocused = false
+                                            viewModel.generateVisual(prompt)
+                                        }
+                                    )
+                                } else {
+                                    AIQuickPromptCard(
+                                        colorScheme: colorScheme,
+                                        prompts: viewModel.quickPrompts,
+                                        onPromptSelected: { prompt in
+                                            isComposerFocused = false
+                                            viewModel.sendPrompt(prompt)
+                                        }
+                                    )
+                                }
+                            }
+
+                            if let usage = viewModel.revenueUsage {
+                                AIRevenueUsageCard(usage: usage, colorScheme: colorScheme)
+                                    .onTapGesture {
+                                        if !usage.userFacingReason.isEmpty {
+                                            MembershipAnalyticsTracker().track(
+                                                "upgrade_after_deny",
+                                                reason: membershipCoordinator.lastOpenReason.rawValue,
+                                                surface: "ai_empty",
+                                                currentPlan: membershipCoordinator.currentPlanCache.rawValue
+                                            )
+                                        }
+                                        membershipCoordinator.openMembership(reason: .manual, surface: "ai_empty")
                                     }
-                                    membershipCoordinator.openMembership(reason: .manual, surface: "ai_empty")
-                                }
-                        } else {
-                            AIPlanPreviewCard(colorScheme: colorScheme)
-                                .onTapGesture {
-                                    membershipCoordinator.openMembership(reason: .manual, surface: "ai_empty")
-                                }
-                        }
-                        if let decision = viewModel.lastDecision {
-                            AIDecisionTransparencyCard(decision: decision, colorScheme: colorScheme)
-                        }
-                        aiSessionDeck
-
-                        AIQuickPromptCard(
-                            colorScheme: colorScheme,
-                            prompts: viewModel.quickPrompts,
-                            onPromptSelected: { prompt in
-                                isComposerFocused = false
-                                viewModel.sendPrompt(prompt)
+                            } else {
+                                AIPlanPreviewCard(colorScheme: colorScheme)
+                                    .onTapGesture {
+                                        membershipCoordinator.openMembership(reason: .manual, surface: "ai_empty")
+                                    }
                             }
-                        )
 
-                        AIVisualPromptCard(
-                            colorScheme: colorScheme,
-                            prompts: viewModel.visualPrompts,
-                            onPromptSelected: { prompt in
-                                isComposerFocused = false
-                                viewModel.generateVisual(prompt)
+                            if let decision = viewModel.lastDecision {
+                                AIDecisionTransparencyCard(decision: decision, colorScheme: colorScheme)
                             }
-                        )
 
-                        Spacer(minLength: 28)
+                            if !usesCompactImmersiveLayout {
+                                aiSessionDeck
+
+                                AIQuickPromptCard(
+                                    colorScheme: colorScheme,
+                                    prompts: viewModel.quickPrompts,
+                                    onPromptSelected: { prompt in
+                                        isComposerFocused = false
+                                        viewModel.sendPrompt(prompt)
+                                    }
+                                )
+
+                                AIVisualPromptCard(
+                                    colorScheme: colorScheme,
+                                    prompts: viewModel.visualPrompts,
+                                    onPromptSelected: { prompt in
+                                        isComposerFocused = false
+                                        viewModel.generateVisual(prompt)
+                                    }
+                                )
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        .padding(.top, showsNavigation ? 20 : 10)
+                        .padding(.bottom, usesCompactImmersiveLayout ? 16 : 28)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    .padding(.bottom, 6)
+                    .scrollIndicators(.hidden)
                 } else {
                     ScrollViewReader { proxy in
                         let scrollToken = viewModel.messages.last.map { message in
@@ -211,6 +246,7 @@ struct AIView: View {
             }
         }
         .background(backgroundGradient.ignoresSafeArea())
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private var backgroundGradient: LinearGradient {
@@ -586,20 +622,23 @@ private struct AIPlanTile: View {
 
 private struct AIEmptyStateHeader: View {
     let colorScheme: ColorScheme
+    var isCompact: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: isCompact ? 8 : 10) {
             Text(AppLocalized.text("ai.empty.title", fallback: "What do you need?"))
-                .font(AppTypography.sectionHeadline)
+                .font(isCompact ? .title2.weight(.bold) : AppTypography.sectionHeadline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             Text(AppLocalized.text("ai.empty.subtitle", fallback: "Write briefly and start calmly."))
-                .font(AppTypography.bodyCaption)
+                .font(isCompact ? .subheadline.weight(.semibold) : AppTypography.bodyCaption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.95))
 
-            Text(AppLocalized.text("ai.empty.memory", fallback: "Your history stays per account, so the bot does not restart from zero each time."))
-                .font(.footnote)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+            if !isCompact {
+                Text(AppLocalized.text("ai.empty.memory", fallback: "Your history stays per account, so the bot does not restart from zero each time."))
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+            }
         }
     }
 }
@@ -894,6 +933,19 @@ private struct AIComposerBar: View {
         isFocused.wrappedValue ? keyboardObserver.bottomInset : 0
     }
 
+    private var restingBottomSafeAreaInset: CGFloat {
+        isFocused.wrappedValue ? 0 : keyWindowSafeAreaBottomInset
+    }
+
+    private var keyWindowSafeAreaBottomInset: CGFloat {
+        let windowScenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let foregroundScene = windowScenes.first {
+            $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive
+        }
+        let keyWindow = foregroundScene?.windows.first(where: \.isKeyWindow) ?? foregroundScene?.windows.first
+        return keyWindow?.safeAreaInsets.bottom ?? 0
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 10) {
@@ -1035,7 +1087,7 @@ private struct AIComposerBar: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)
-            .padding(.bottom, 10)
+            .padding(.bottom, 10 + restingBottomSafeAreaInset)
             .background(
                 Rectangle()
                     .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))

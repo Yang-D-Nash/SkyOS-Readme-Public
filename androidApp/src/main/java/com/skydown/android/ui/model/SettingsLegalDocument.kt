@@ -248,7 +248,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "4. Hinweis",
-                    body = "Regionale Pflichtangaben koennen je nach Rechtsraum variieren und sollten vor Launch rechtlich final geprueft werden.",
+                    body = "Diese Informationen dienen der Transparenz und ersetzen keine individuelle rechtliche Pruefung. Die verbindliche Fassung wird vor Veroeffentlichung final geprueft.",
                 ),
             ),
             contactEmail = supportEmail,

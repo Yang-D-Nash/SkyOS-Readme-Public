@@ -112,7 +112,7 @@
 "policy.title.privacy" = "Datenschutzerklaerung";
 "policy.title.termsOfService" = "Nutzungsbedingungen";
 "legal.ui.last_updated_format" = "Stand: %@";
-"legal.ui.transparency_note" = "Diese Ansicht dient der Transparenz und ersetzt keine anwaltliche Pruefung. TODO: Rechtliche Freigabe vor produktivem Einsatz.";
+"legal.ui.transparency_note" = "Diese Informationen dienen der Transparenz und ersetzen keine individuelle rechtliche Pruefung. Die verbindliche Fassung wird vor Veroeffentlichung final geprueft.";
 "legal.ui.transparency_a11y" = "Hinweisbox vor dem Richtext";
 "legal.ui.contact_header" = "Kontakt";
 "cart.legal.checkout_references" = "Fuer Vertrag, Widerruf und Retoure gelten die im Checkout angezeigten Angaben sowie die Rechtstexte unter Einstellungen.";

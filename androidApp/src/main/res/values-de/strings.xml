@@ -93,7 +93,7 @@
     <string name="settings_legal_support_cta">Support-Anfrage senden</string>
     <string name="settings_legal_availability_note">Alle Hilfe- und Rechtstexte sind direkt in der App abrufbar.</string>
     <string name="settings_legal_support_email_placeholder">Echte, oeffentlich erreichbare Support-Adresse (kein Beispiel-Domain-Platzhalter).</string>
-    <string name="legal_ui_transparency_note">Diese Ansicht dient der Transparenz und ersetzt keine anwaltliche Pruefung. TODO: Rechtliche Freigabe vor produktivem Einsatz.</string>
+    <string name="legal_ui_transparency_note">Diese Informationen dienen der Transparenz und ersetzen keine individuelle rechtliche Pruefung. Die verbindliche Fassung wird vor Veroeffentlichung final geprueft.</string>
     <string name="legal_ui_last_updated">Zuletzt aktualisiert: %1$s</string>
     <string name="legal_ui_contact">Kontakt</string>
     <string name="ai_legal_disclosure_short">KI kann fehlerhaft sein. Vollstaendiger Hinweis: Einstellungen → Datenschutz / Recht / Hilfe → KI-Nutzungshinweis.</string>

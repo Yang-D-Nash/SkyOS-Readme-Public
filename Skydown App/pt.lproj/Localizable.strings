@@ -93,7 +93,7 @@
 "policy.title.privacy" = "Privacy policy";
 "policy.title.termsOfService" = "Terms of use";
 "legal.ui.last_updated_format" = "Last updated: %@";
-"legal.ui.transparency_note" = "This screen is for transparency. It is not a substitute for professional legal advice. TODO: Legal sign-off before relying on it as a primary source.";
+"legal.ui.transparency_note" = "This information is provided for transparency and does not replace legal review. The binding version will be finalized before public release.";
 "legal.ui.transparency_a11y" = "Transparency note before the policy text";
 "legal.ui.contact_header" = "Contact";
 "cart.legal.checkout_references" = "Binding terms, cancellation and returns follow the information shown in checkout and the legal documents in Settings.";

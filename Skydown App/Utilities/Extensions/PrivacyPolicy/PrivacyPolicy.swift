@@ -98,7 +98,7 @@ enum LegalTextTemplateFactory {
         \(imprintReference)
 
         Hinweis:
-        Regionale Pflichtangaben koennen je nach Rechtsraum variieren und sind vor Launch rechtlich final zu pruefen.
+        Diese Informationen dienen der Transparenz und ersetzen keine individuelle rechtliche Pruefung. Die verbindliche Fassung wird vor Veroeffentlichung final geprueft.
         """
     }
 
