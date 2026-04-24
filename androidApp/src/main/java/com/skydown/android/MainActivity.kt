@@ -29,6 +29,7 @@ import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.android.data.CheckoutRedirectStore
 import com.skydown.android.data.NotificationPermissionCoordinator
 import com.skydown.android.data.AppSessionStore
+import com.skydown.android.data.MembershipAnalyticsTracker
 import com.skydown.android.data.SpotifyAuthManager
 import com.skydown.android.ui.SkydownApp
 import com.skydown.android.ui.theme.AppearanceMode
@@ -101,6 +102,7 @@ class MainActivity : ComponentActivity() {
             aiAccessMode = if (useMockAiVisualForUiTest || uiTestUser != null) AiAccessMode.SignedIn else null,
         )
         AppFeatureFlagsStore.initialize()
+        MembershipAnalyticsTracker(this).track("app_open", surface = "app_start")
         AiConversationHistoryStore.initialize(applicationContext)
         AiVisualReferenceLibraryPreferences.initialize(applicationContext)
         SpotifyAuthManager.initialize(applicationContext)

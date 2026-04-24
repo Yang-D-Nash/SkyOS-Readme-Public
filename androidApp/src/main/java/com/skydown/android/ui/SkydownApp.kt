@@ -88,6 +88,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -110,6 +111,7 @@ import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.android.data.AppNetworkMonitor
 import com.skydown.android.data.AppSessionStore
 import com.skydown.android.data.ArtistPageBrand
+import com.skydown.android.data.MembershipAnalyticsTracker
 import com.skydown.android.ui.component.BrandArtwork
 import com.skydown.android.ui.component.BrandHeroCard
 import com.skydown.android.ui.component.BrandPill
@@ -182,6 +184,7 @@ fun SkydownApp(
     startRouteOverride: String?,
     skipIntro: Boolean,
 ) {
+    val context = LocalContext.current
     val navController = rememberNavController()
     val isCompactLayout = rememberIsCompactAppLayout()
     val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
@@ -194,9 +197,13 @@ fun SkydownApp(
     var authSheetLocked by rememberSaveable { mutableStateOf(false) }
     var showOrders by rememberSaveable { mutableStateOf(false) }
     var authEntryContext by remember { mutableStateOf(AuthEntryContext.DEFAULT) }
+    var hasTrackedOnboardingStarted by rememberSaveable { mutableStateOf(false) }
+    var hasTrackedOnboardingCompleted by rememberSaveable { mutableStateOf(false) }
+    var hasTrackedFirstValueMoment by rememberSaveable { mutableStateOf(false) }
     var observedAuthUid by rememberSaveable { mutableStateOf<String?>(null) }
     var initialSettingsWorkspaceKey by rememberSaveable { mutableStateOf<String?>(null) }
     val auth = remember { FirebaseAuth.getInstance() }
+    val growthTracker = remember(context) { MembershipAnalyticsTracker(context) }
     val coroutineScope = rememberCoroutineScope()
     val currentAuthSheetLocked by rememberUpdatedState(authSheetLocked)
     val currentSessionUserId = rememberUpdatedState(currentUser?.id)
@@ -268,6 +275,22 @@ fun SkydownApp(
         }
     }
 
+    LaunchedEffect(showIntro) {
+        if (showIntro && !hasTrackedOnboardingStarted) {
+            hasTrackedOnboardingStarted = true
+            growthTracker.track("onboarding_started", surface = "launch_intro")
+        } else if (!showIntro && !hasTrackedOnboardingCompleted) {
+            hasTrackedOnboardingCompleted = true
+            growthTracker.track("onboarding_completed", surface = "launch_landing")
+        }
+    }
+
+    fun trackFirstValueMoment(surface: String) {
+        if (hasTrackedFirstValueMoment) return
+        hasTrackedFirstValueMoment = true
+        growthTracker.track("first_value_moment", surface = surface)
+    }
+
     if (!AppContainer.isUiTestCurrentUserOverrideActive) {
         DisposableAuthSync(
             auth = auth,
@@ -322,9 +345,18 @@ fun SkydownApp(
             )
         } else if (selectedEntryRoute == null) {
             LaunchLandingScreen(
-                onOpenMusic = { selectedEntryRoute = "music" },
-                onOpenVideography = { selectedEntryRoute = "video" },
-                onOpenShop = { selectedEntryRoute = "shop" },
+                onOpenMusic = {
+                    trackFirstValueMoment("launch_entry_music")
+                    selectedEntryRoute = "music"
+                },
+                onOpenVideography = {
+                    trackFirstValueMoment("launch_entry_video")
+                    selectedEntryRoute = "video"
+                },
+                onOpenShop = {
+                    trackFirstValueMoment("launch_entry_shop")
+                    selectedEntryRoute = "shop"
+                },
             )
         } else {
             val startRoute = selectedEntryRoute ?: "home"
@@ -566,6 +598,7 @@ fun SkydownApp(
                         entryContext = authEntryContext,
                     )
                     AuthSheet.Registration -> RegistrationScreen(
+                        growthTracker = growthTracker,
                         onClose = { dismissAuthSheet() },
                         onBusyStateChanged = { authSheetLocked = it },
                     )

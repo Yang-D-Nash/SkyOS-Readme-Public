@@ -13,6 +13,10 @@ struct LaunchScreenView: View {
     @State private var phase: LaunchPhase = .intro
     @State private var player: AVPlayer?
     @State private var hasCompletedIntro = false
+    @State private var hasTrackedOnboardingStarted = false
+    @State private var hasTrackedOnboardingCompleted = false
+    @State private var hasTrackedFirstValueMoment = false
+    private let growthTracker = MembershipAnalyticsTracker()
 
     var body: some View {
         Group {
@@ -31,6 +35,10 @@ struct LaunchScreenView: View {
         }
         .onAppear {
             guard player == nil else { return }
+            if !hasTrackedOnboardingStarted {
+                hasTrackedOnboardingStarted = true
+                growthTracker.track("onboarding_started", surface: "launch_intro")
+            }
             if let url = Bundle.main.url(forResource: "Intro Launch", withExtension: "mp4") {
                 player = AVPlayer(url: url)
             } else {
@@ -114,6 +122,10 @@ struct LaunchScreenView: View {
     private func transitionToLanding() {
         guard !hasCompletedIntro else { return }
         hasCompletedIntro = true
+        if !hasTrackedOnboardingCompleted {
+            hasTrackedOnboardingCompleted = true
+            growthTracker.track("onboarding_completed", surface: "launch_landing")
+        }
         player?.pause()
         deactivateIntroAudioSession()
         withAnimation(SkydownMotion.contentReveal) {
@@ -122,8 +134,27 @@ struct LaunchScreenView: View {
     }
 
     private func openShell(tab: MainTab) {
+        if !hasTrackedFirstValueMoment {
+            hasTrackedFirstValueMoment = true
+            growthTracker.track("first_value_moment", surface: "launch_entry_\(surfaceName(for: tab))")
+        }
         withAnimation(SkydownMotion.screenTransition) {
             phase = .shell(tab)
+        }
+    }
+
+    private func surfaceName(for tab: MainTab) -> String {
+        switch tab {
+        case .hub:
+            return "home"
+        case .zweizwei:
+            return "music"
+        case .skydown:
+            return "video"
+        case .merch:
+            return "shop"
+        case .tools:
+            return "ai"
         }
     }
 }

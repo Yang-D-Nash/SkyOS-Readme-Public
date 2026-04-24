@@ -26,9 +26,14 @@ class RegistrationViewModel: ObservableObject {
     @Published var showToast = false
     @Published var toastStyle: ToastStyle = .info
     private let authService: AuthServicing
+    private let growthTracker: MembershipAnalyticsTracker
 
-    init(authService: AuthServicing = FirebaseAuthService()) {
+    init(
+        authService: AuthServicing = FirebaseAuthService(),
+        growthTracker: MembershipAnalyticsTracker = MembershipAnalyticsTracker()
+    ) {
         self.authService = authService
+        self.growthTracker = growthTracker
     }
 
     var isRegistrationButtonDisabled: Bool {
@@ -76,6 +81,7 @@ class RegistrationViewModel: ObservableObject {
                 password: password,
                 registrationConsent: consent
             )
+            growthTracker.track("signup_complete", surface: "registration_sheet")
             showUserToast("Registrierung erfolgreich!", style: .success)
             isLoading = false
             return true
@@ -108,6 +114,7 @@ class RegistrationViewModel: ObservableObject {
                     consentSource: "ios_registration_google"
                 )
             )
+            growthTracker.track("signup_complete", surface: "registration_google")
             showUserToast("Google-Registrierung erfolgreich!", style: .success)
             isLoading = false
             return true

@@ -569,6 +569,12 @@ const AI_ENTITLEMENTS_SUBCOLLECTION = "entitlements";
 const AI_ENTITLEMENT_DOCUMENT = "ai";
 const AI_ENTITLEMENT_EVENTS_SUBCOLLECTION = "entitlementEvents";
 const AI_MEMBERSHIP_EVENT_TYPES = Object.freeze([
+  "app_open",
+  "signup_start",
+  "signup_complete",
+  "onboarding_started",
+  "onboarding_completed",
+  "first_value_moment",
   "membership_open",
   "membership_reason",
   "plan_selected",

@@ -13,6 +13,8 @@ struct RegistrationSheet: View {
     @ObservedObject private var legalContentStore = LegalContentStore.shared
     @Environment(\.colorScheme) private var colorScheme
     @State private var activeLegalDocument: RegistrationLegalDocument?
+    @State private var hasTrackedSignupStart = false
+    private let growthTracker = MembershipAnalyticsTracker()
 
     private func localized(_ key: String, _ fallback: String) -> String {
         AppLocalized.text(key, fallback: fallback)
@@ -144,6 +146,11 @@ struct RegistrationSheet: View {
         }
         .onChange(of: legalContentStore.settings.resolvedLastUpdatedLabel) { _, newValue in
             viewModel.legalVersionLabel = newValue
+        }
+        .onAppear {
+            guard !hasTrackedSignupStart else { return }
+            hasTrackedSignupStart = true
+            growthTracker.track("signup_start", surface: "registration_sheet")
         }
         .task {
             viewModel.legalVersionLabel = legalContentStore.settings.resolvedLastUpdatedLabel

@@ -41,6 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.common.api.ApiException
 import com.skydown.android.R
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.MembershipAnalyticsTracker
 import com.skydown.android.data.LegalContentSettings
 import com.skydown.android.data.GoogleSignInManager
 import com.skydown.android.ui.component.GoogleAuthButton
@@ -54,6 +55,7 @@ import com.skydown.android.ui.viewmodel.RegistrationViewModel
 @Composable
 fun RegistrationScreen(
     onClose: () -> Unit,
+    growthTracker: MembershipAnalyticsTracker,
     onBusyStateChanged: (Boolean) -> Unit = {},
     viewModel: RegistrationViewModel = viewModel(),
 ) {
@@ -85,7 +87,10 @@ fun RegistrationScreen(
                 googleClient.signOut()
                 viewModel.onGoogleSignInCancelled(googleMissingTokenMessage)
             } else {
-                viewModel.signInWithGoogle(idToken, onClose)
+                viewModel.signInWithGoogle(idToken) {
+                    growthTracker.track("signup_complete", surface = "registration_google")
+                    onClose()
+                }
             }
         } catch (exception: ApiException) {
             googleClient.signOut()
@@ -102,6 +107,10 @@ fun RegistrationScreen(
 
     LaunchedEffect(legalSettings.resolvedLastUpdatedLabel) {
         viewModel.updateLegalVersionLabel(legalSettings.resolvedLastUpdatedLabel)
+    }
+
+    LaunchedEffect(Unit) {
+        growthTracker.track("signup_start", surface = "registration_sheet")
     }
 
     DisposableEffect(Unit) {
@@ -265,7 +274,12 @@ fun RegistrationScreen(
                     }
                 }
                 Button(
-                    onClick = { viewModel.register(onClose) },
+                    onClick = {
+                        viewModel.register {
+                            growthTracker.track("signup_complete", surface = "registration_sheet")
+                            onClose()
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),

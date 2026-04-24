@@ -25,6 +25,8 @@ final class SkydownApplicationDelegate: NSObject, UIApplicationDelegate {}
 struct SkydownApp: App {
     @UIApplicationDelegateAdaptor(SkydownApplicationDelegate.self) private var appDelegate
     @StateObject private var services: AppServices
+    @State private var didTrackAppOpen = false
+    private let growthTracker = MembershipAnalyticsTracker()
 
     init() {
         AppTypography.configure()
@@ -70,6 +72,11 @@ struct SkydownApp: App {
                 }
             }
             .animation(SkydownMotion.statusTransition, value: services.networkStatusMonitor.isOnline)
+            .onAppear {
+                guard !didTrackAppOpen else { return }
+                didTrackAppOpen = true
+                growthTracker.track("app_open", surface: "app_start")
+            }
             .task {
                 await services.notificationPermissionStore.requestAuthorizationIfNeededOnLaunch()
             }
