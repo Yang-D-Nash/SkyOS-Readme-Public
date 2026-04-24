@@ -102,10 +102,17 @@ fun BrandHeroCard(
     secondaryAccent: Color = MaterialTheme.colorScheme.secondary,
     marks: List<BrandArtwork> = emptyList(),
     compactVisualDensity: Boolean = false,
+    /** Flache Unterkante, kein Karten-Schatten — für Home-Gesamtraum. */
+    immersive: Boolean = false,
     footer: @Composable ColumnScope.() -> Unit = {},
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(SkydownUiTokens.heroCornerRadius)
+    val r = SkydownUiTokens.heroCornerRadius
+    val shape = if (immersive) {
+        RoundedCornerShape(topStart = r, topEnd = r, bottomStart = 0.dp, bottomEnd = 0.dp)
+    } else {
+        RoundedCornerShape(r)
+    }
     val hasBackgroundImage = !backgroundImageUrl.isNullOrBlank()
     val titleColor = if (hasBackgroundImage) Color.White else colorScheme.skydownText()
     val subtitleColor = if (hasBackgroundImage) {
@@ -139,30 +146,39 @@ fun BrandHeroCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = if (compactVisualDensity) 15.dp else 18.dp,
-                shape = shape,
-                ambientColor = secondaryAccent.copy(alpha = if (isDarkPalette) 0.04f else 0.07f),
-                spotColor = Color.Black.copy(alpha = if (isDarkPalette) 0.12f else 0.14f),
+            .then(
+                if (immersive) {
+                    Modifier
+                } else {
+                    Modifier.shadow(
+                        elevation = if (compactVisualDensity) 15.dp else 18.dp,
+                        shape = shape,
+                        ambientColor = secondaryAccent.copy(alpha = if (isDarkPalette) 0.04f else 0.07f),
+                        spotColor = Color.Black.copy(alpha = if (isDarkPalette) 0.12f else 0.14f),
+                    )
+                },
             )
             .clip(shape)
             .drawWithContent {
+                val s = if (immersive) 0.74f else 1f
                 val baseBrush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (isDarkPalette) 0.16f else 0.28f),
-                        colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.99f else 0.975f),
-                        colorScheme.skydownSecondaryBackground().copy(alpha = if (isDarkPalette) 0.36f else 0.28f),
-                        accent.copy(alpha = 0.05f),
-                        secondaryAccent.copy(alpha = 0.04f),
-                        Color.Black.copy(alpha = if (isDarkPalette) 0.015f else 0.010f),
+                        Color.White.copy(alpha = (if (isDarkPalette) 0.16f else 0.28f) * s),
+                        colorScheme.skydownCardBackground().copy(
+                            alpha = (if (isDarkPalette) 0.99f else 0.975f) * s,
+                        ),
+                        colorScheme.skydownSecondaryBackground().copy(alpha = (if (isDarkPalette) 0.36f else 0.28f) * s),
+                        accent.copy(alpha = 0.05f * s),
+                        secondaryAccent.copy(alpha = 0.04f * s),
+                        Color.Black.copy(alpha = (if (isDarkPalette) 0.015f else 0.010f) * s),
                     ),
                     start = Offset(size.width * 0.08f, 0f),
                     end = Offset(size.width, size.height),
                 )
                 val upperBloom = Brush.radialGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (isDarkPalette) 0.07f else 0.14f),
-                        accent.copy(alpha = if (isDarkPalette) 0.08f else 0.10f),
+                        Color.White.copy(alpha = (if (isDarkPalette) 0.07f else 0.14f) * s),
+                        accent.copy(alpha = (if (isDarkPalette) 0.08f else 0.10f) * s),
                         Color.Transparent,
                     ),
                     center = Offset(size.width * 0.16f, size.height * 0.12f),
@@ -170,7 +186,7 @@ fun BrandHeroCard(
                 )
                 val lowerMist = Brush.radialGradient(
                     colors = listOf(
-                        secondaryAccent.copy(alpha = if (isDarkPalette) 0.06f else 0.08f),
+                        secondaryAccent.copy(alpha = (if (isDarkPalette) 0.06f else 0.08f) * s),
                         Color.Transparent,
                     ),
                     center = Offset(size.width * 0.86f, size.height * 0.84f),
@@ -182,20 +198,35 @@ fun BrandHeroCard(
                 drawRect(upperBloom, blendMode = BlendMode.Screen)
                 drawContent()
             }
-            .border(
-                width = 0.9.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = if (isDarkPalette) 0.18f else 0.24f),
-                        accent.copy(alpha = 0.12f),
-                        secondaryAccent.copy(alpha = if (isDarkPalette) 0.05f else 0.08f),
-                    ),
-                ),
-                shape = shape,
+            .then(
+                if (immersive) {
+                    Modifier
+                } else {
+                    Modifier.border(
+                        width = 0.9.dp,
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (isDarkPalette) 0.18f else 0.24f),
+                                accent.copy(alpha = 0.12f),
+                                secondaryAccent.copy(alpha = if (isDarkPalette) 0.05f else 0.08f),
+                            ),
+                        ),
+                        shape = shape,
+                    )
+                },
             )
-            .skydownSheen(
-                accent = MaterialTheme.colorScheme.tertiary,
-                alpha = if (isDarkPalette) 0.034f else 0.032f,
+            .then(
+                if (immersive) {
+                    Modifier.skydownSheen(
+                        accent = MaterialTheme.colorScheme.tertiary,
+                        alpha = if (isDarkPalette) 0.012f else 0.010f,
+                    )
+                } else {
+                    Modifier.skydownSheen(
+                        accent = MaterialTheme.colorScheme.tertiary,
+                        alpha = if (isDarkPalette) 0.034f else 0.032f,
+                    )
+                },
             ),
     ) {
         if (hasBackgroundImage) {

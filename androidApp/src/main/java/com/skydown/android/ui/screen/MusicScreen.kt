@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -39,7 +40,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -99,6 +99,7 @@ import com.skydown.android.ui.component.BrandPill
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.TrackRow
+import com.skydown.android.ui.component.TrackRowPresentation
 import com.skydown.android.ui.component.rememberSkydownScreenSectionSpacing
 import com.skydown.android.ui.component.rememberUsesCompactVisualDensity
 import com.skydown.android.ui.component.skydownContentPadding
@@ -135,6 +136,7 @@ fun MusicScreen(
     onOpenCart: (() -> Unit)? = null,
     onOpenProfile: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
+    onGuestSignIn: (() -> Unit)? = null,
     onOpenArtistPage: ((String) -> Unit)? = null,
     viewModel: MusicViewModel = viewModel(),
 ) {
@@ -282,6 +284,7 @@ fun MusicScreen(
                             onOpenCart = onOpenCart,
                             onOpenProfile = onOpenProfile,
                             onOpenSettings = onOpenSettings,
+                            onGuestSignIn = onGuestSignIn,
                             dense = compactVisualDensity,
                         ) {
                             if (uiState.isSpotifyConnected) {
@@ -381,6 +384,8 @@ fun MusicScreen(
                     skydownScreenBrush(
                         primaryColor = colorScheme.skydownAccent(),
                         secondaryColor = colorScheme.skydownSpotify(),
+                        primaryAlpha = 0.022f,
+                        secondaryAlpha = 0.016f,
                     ),
                 ),
         ) {
@@ -432,28 +437,40 @@ fun MusicScreen(
                     }
 
                     item {
-                        MusicSpotlightDeckCard(
-                            uiState = uiState,
-                            selectedTrack = selectedTrack,
-                            artistPage = selectedArtistPage,
-                            isPreviewPlaying = selectedTrack?.trackId == uiState.currentlyPlayingId,
-                            onPlayPreview = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                selectedTrack?.let(viewModel::togglePreview)
-                            },
-                            onOpenArtistPage = onOpenArtistPage?.let { openArtistPage ->
-                                { openArtistPage(uiState.selectedArtist) }
-                            },
-                            onOpenSpotify = {
-                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                openTrackInSpotify(
-                                    context = context,
-                                    spotifyArtistId = selectedTrack?.spotifyArtistId,
-                                    spotifyTrackId = selectedTrack?.spotifyTrackId,
-                                    externalUrl = selectedTrack?.externalUrl,
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 2.dp),
+                            ) {
+                                MusicSpotlightDeckCard(
+                                    uiState = uiState,
+                                    selectedTrack = selectedTrack,
+                                    artistPage = selectedArtistPage,
+                                    isPreviewPlaying = selectedTrack?.trackId == uiState.currentlyPlayingId,
+                                    onPlayPreview = {
+                                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        selectedTrack?.let(viewModel::togglePreview)
+                                    },
+                                    onOpenArtistPage = onOpenArtistPage?.let { openArtistPage ->
+                                        { openArtistPage(uiState.selectedArtist) }
+                                    },
+                                    onOpenSpotify = {
+                                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        openTrackInSpotify(
+                                            context = context,
+                                            spotifyArtistId = selectedTrack?.spotifyArtistId,
+                                            spotifyTrackId = selectedTrack?.spotifyTrackId,
+                                            externalUrl = selectedTrack?.externalUrl,
+                                        )
+                                    },
                                 )
-                            },
-                        )
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                        }
                     }
 
                     item {
@@ -499,16 +516,37 @@ fun MusicScreen(
 
                     if (uiState.tracks.isNotEmpty()) {
                         item {
-                            BrandSectionBanner(
-                                title = "Tracks",
-                                subtitle = "$queueContextText im aktuellen Artist-Set.",
-                                accent = SpotifyGreen,
-                                icon = Icons.Default.MusicNote,
-                                tag = "LIST",
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 2.dp, bottom = 4.dp)
+                                    .testTag("music.tracks.header"),
+                            ) {
+                                Text(
+                                    text = "Aus dem Set",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = queueContextText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                                )
+                            }
                         }
 
-                        items(uiState.tracks, key = { it.trackId }) { track ->
+                        itemsIndexed(uiState.tracks, key = { _, t -> t.trackId }) { index, track ->
+                            val stepPresentation = when {
+                                index == 0 -> TrackRowPresentation.Featured
+                                index == 1 && uiState.tracks.size > 1 -> TrackRowPresentation.Secondary
+                                else -> TrackRowPresentation.Catalog
+                            }
+                            val flowTop = if (index == 2 && uiState.tracks.size > 2) {
+                                8.dp
+                            } else {
+                                0.dp
+                            }
                             TrackRow(
                                 track = track,
                                 isPlaying = uiState.currentlyPlayingId == track.trackId,
@@ -518,6 +556,8 @@ fun MusicScreen(
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     viewModel.togglePreview(track)
                                 },
+                                presentation = stepPresentation,
+                                modifier = Modifier.padding(top = flowTop),
                             )
                         }
                     }
@@ -991,12 +1031,14 @@ private fun MusicOverviewCard(
     val colorScheme = MaterialTheme.colorScheme
     val beatAccent = colorScheme.skydownAccent()
     val statusAccent = colorScheme.skydownAccentMystic()
-    BrandHeroCard(
+        BrandHeroCard(
         eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
         title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
-        subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Atmosphaere, Artist-Fokus und Premium Listening in einem ruhigen Flow." },
+        subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank {
+            "Einstieg – der Hoerpunkt sitzt im naechsten Block."
+        },
         detail = screenHeaderSettings.musicHubDetail.ifBlank {
-            "${uiState.selectedArtist} im Fokus - Featured Drop und direkte Wiedergabe."
+            "${uiState.selectedArtist} · Kontext oben, Erlebnis im Fokus unten."
         },
         backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
         accent = SpotifyGreen,
@@ -1004,7 +1046,7 @@ private fun MusicOverviewCard(
         marks = listOf(BrandArtwork.Zweizwei),
         compactVisualDensity = compactVisualDensity,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1037,39 +1079,13 @@ private fun MusicOverviewCard(
                     onClick = onOpenSpotifyStatus,
                 )
             }
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                MusicListeningModeChip(
-                    title = "Focus",
-                    accent = SpotifyGreen,
-                    onClick = onOpenSpotlight,
-                )
-                MusicListeningModeChip(
-                    title = "Discovery",
-                    accent = beatAccent,
-                    onClick = onOpenTracks,
-                )
-                MusicListeningModeChip(
-                    title = "Artist Hub",
-                    accent = colorScheme.skydownAccentHighlight(),
-                    onClick = onOpenArtistHub,
-                )
-                MusicListeningModeChip(
-                    title = "Live Link",
-                    accent = statusAccent,
-                    onClick = onOpenSpotifyStatus,
-                )
-            }
-
             BoxWithConstraints(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 val stackMetrics = maxWidth < 420.dp
 
                 if (stackMetrics) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         MusicHeroStatusCard(
                             label = "Artist",
                             value = socialProfile?.handle ?: uiState.selectedArtist,
@@ -1098,7 +1114,7 @@ private fun MusicOverviewCard(
                 } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         MusicHeroStatusCard(
                             label = "Artist",
@@ -1128,30 +1144,6 @@ private fun MusicOverviewCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun MusicListeningModeChip(
-    title: String,
-    accent: Color,
-    onClick: () -> Unit,
-) {
-    OutlinedButton(
-        onClick = onClick,
-        shape = RoundedCornerShape(999.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.30f)),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = accent,
-            containerColor = accent.copy(alpha = 0.10f),
-        ),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-        )
     }
 }
 
@@ -1204,7 +1196,7 @@ private fun MusicStageBackdrop(
             drawRect(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        colorScheme.skydownSpotify().copy(alpha = if (isDarkPalette) 0.18f else 0.08f),
+                        colorScheme.skydownSpotify().copy(alpha = if (isDarkPalette) 0.14f else 0.06f),
                         Color.Transparent,
                     ),
                     center = Offset(size.width, 0f),
@@ -1214,7 +1206,7 @@ private fun MusicStageBackdrop(
             drawRect(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        colorScheme.skydownAccentHighlight().copy(alpha = if (isDarkPalette) 0.14f else 0.06f),
+                        colorScheme.skydownAccentHighlight().copy(alpha = if (isDarkPalette) 0.10f else 0.05f),
                         Color.Transparent,
                     ),
                     center = Offset(0f, size.height),
@@ -1247,11 +1239,9 @@ private fun MusicSpotlightDeckCard(
     onOpenArtistPage: (() -> Unit)?,
     onOpenSpotify: () -> Unit,
 ) {
-    val trackLabel = musicTrackLabel(uiState)
     val heroImage = artistPage.heroImageURL ?: selectedTrack?.artworkUrl100
     val colorScheme = MaterialTheme.colorScheme
     val accentFallback = colorScheme.skydownAccent()
-    val statusAccent = colorScheme.skydownAccentMystic()
     val hasPreview = !selectedTrack?.previewUrl.isNullOrBlank()
     val hasSpotifyTrack = selectedTrack != null &&
         musicScreenResolvedSpotifyTrackId(selectedTrack.spotifyTrackId, selectedTrack.externalUrl) != null
@@ -1261,12 +1251,10 @@ private fun MusicSpotlightDeckCard(
     val hasSpotifySearch = selectedTrack?.externalUrl?.isNotBlank() == true &&
         !hasSpotifyTrack &&
         !hasSpotifyArtistLink
-    val spotlightStatus = when {
-        uiState.isSpotifyConnected -> "Spotify live"
-        hasPreview -> "Preview ready"
-        else -> "Ready"
-    }
-    SkydownCard {
+    val spotlightArt = 144.dp
+    SkydownCard(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 18.dp),
+    ) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1275,23 +1263,23 @@ private fun MusicSpotlightDeckCard(
             val stackHero = maxWidth < 380.dp
 
             if (stackHero) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     MusicSpotlightArtwork(
                         imageUrl = heroImage,
                         accent = if (uiState.isSpotifyConnected) SpotifyGreen else accentFallback,
-                        frameSize = 110.dp,
-                        modifier = Modifier.size(110.dp),
+                        frameSize = spotlightArt,
+                        modifier = Modifier.size(spotlightArt),
                     )
 
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "ARTIST DECK",
+                                text = "Im Fokus",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = SpotifyGreen,
                                 fontWeight = FontWeight.Bold,
@@ -1327,8 +1315,8 @@ private fun MusicSpotlightDeckCard(
                             text = artistPage.bio
                                 ?: "Der aktuelle Fokus verbindet Artist-Page, Preview und Spotify direkt in einem Hub.",
                             style = SkydownEditorialCaptionTextStyle,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-                            maxLines = 4,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                            maxLines = 3,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
@@ -1336,26 +1324,26 @@ private fun MusicSpotlightDeckCard(
             } else {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(18.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     MusicSpotlightArtwork(
                         imageUrl = heroImage,
                         accent = if (uiState.isSpotifyConnected) SpotifyGreen else accentFallback,
-                        frameSize = 110.dp,
-                        modifier = Modifier.size(110.dp),
+                        frameSize = spotlightArt,
+                        modifier = Modifier.size(spotlightArt),
                     )
 
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "ARTIST DECK",
+                                text = "Im Fokus",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = SpotifyGreen,
                                 fontWeight = FontWeight.Bold,
@@ -1391,76 +1379,20 @@ private fun MusicSpotlightDeckCard(
                             text = artistPage.bio
                                 ?: "Der aktuelle Fokus verbindet Artist-Page, Preview und Spotify direkt in einem Hub.",
                             style = SkydownEditorialCaptionTextStyle,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-                            maxLines = 4,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                            maxLines = 3,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                }
-            }
-        }
-
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 14.dp),
-                
-        ) {
-            val stackMetrics = maxWidth < 420.dp
-
-            if (stackMetrics) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MusicDeckMetricCard(
-                        label = "Track",
-                        value = trackLabel,
-                        accent = SpotifyGreen,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    MusicDeckMetricCard(
-                        label = "Artist",
-                        value = uiState.selectedArtist,
-                        accent = accentFallback,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    MusicDeckMetricCard(
-                        label = "Status",
-                        value = spotlightStatus,
-                        accent = statusAccent,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    MusicDeckMetricCard(
-                        label = "Track",
-                        value = trackLabel,
-                        accent = SpotifyGreen,
-                        modifier = Modifier.weight(1f),
-                    )
-                    MusicDeckMetricCard(
-                        label = "Artist",
-                        value = uiState.selectedArtist,
-                        accent = accentFallback,
-                        modifier = Modifier.weight(1f),
-                    )
-                    MusicDeckMetricCard(
-                        label = "Status",
-                        value = spotlightStatus,
-                        accent = statusAccent,
-                        modifier = Modifier.weight(1f),
-                    )
                 }
             }
         }
 
         Text(
             text = if (!selectedTrack?.collectionName.isNullOrBlank()) {
-                "Aktuell aus ${selectedTrack.collectionName.orEmpty()}. Ruhige Preview, klarer Queue-Fokus und direkter Spotify-Handover."
+                "Aus ${selectedTrack.collectionName.orEmpty()} · zuerst hoeren, dann in Spotify oeffnen."
             } else {
-                "Preview, Spotify und Artist-Page bleiben direkt in Reichweite, ohne den Listening-Flow zu brechen."
+                "Direkt hoeren, weiter in Spotify, ohne den Ablauf zu brechen."
             },
             style = SkydownEditorialCaptionTextStyle,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),

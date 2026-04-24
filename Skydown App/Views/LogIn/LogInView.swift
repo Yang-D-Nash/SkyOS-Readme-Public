@@ -13,8 +13,14 @@ struct LoginView: View {
     @State private var showingRegistrationSheet = false
     @Environment(\.colorScheme) private var colorScheme
 
+    var entryContext: AuthEntryContext
+
     private func localized(_ key: String, _ fallback: String) -> String {
         AppLocalized.text(key, fallback: fallback)
+    }
+
+    init(entryContext: AuthEntryContext = .standard) {
+        self.entryContext = entryContext
     }
     
     var body: some View {
@@ -26,7 +32,12 @@ struct LoginView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(AppColors.text(for: colorScheme))
-                    Text(localized("auth.login.subtitle", "Sign in for your account and tools."))
+                    Text(
+                        localized(
+                            entryContext.loginSubtitleLocalization.key,
+                            entryContext.loginSubtitleLocalization.fallback
+                        )
+                    )
                         .font(.subheadline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -137,5 +148,5 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView()
+    LoginView(entryContext: .standard)
 }

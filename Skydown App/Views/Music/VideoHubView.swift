@@ -62,17 +62,17 @@ struct VideoHubView: View {
                 VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     heroCard(
                         onOpenVideos: {
-                            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                            withAnimation(SkydownMotion.smoothScroll) {
                                 scrollProxy.scrollTo(VideoHubSectionAnchor.videos.rawValue, anchor: .top)
                             }
                         },
                         onOpenEquipment: {
-                            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                            withAnimation(SkydownMotion.smoothScroll) {
                                 scrollProxy.scrollTo(VideoHubSectionAnchor.equipment.rawValue, anchor: .top)
                             }
                         },
                         onOpenCollaborations: {
-                            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                            withAnimation(SkydownMotion.smoothScroll) {
                                 scrollProxy.scrollTo(VideoHubSectionAnchor.collaborations.rawValue, anchor: .top)
                             }
                         }
@@ -110,7 +110,7 @@ struct VideoHubView: View {
                     colorScheme: colorScheme,
                     isUploadOpen: showingUploadComposer
                 ) {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                    withAnimation(SkydownMotion.screenTransition) {
                         showingUploadComposer.toggle()
                     }
                 }
@@ -124,7 +124,7 @@ struct VideoHubView: View {
         .background(
             AppColors.screenGradient(
                 for: colorScheme,
-                secondaryAccent: AppColors.youtube(for: colorScheme)
+                secondaryAccent: AppColors.accentMystic(for: colorScheme)
             )
             .ignoresSafeArea()
         )
@@ -149,7 +149,7 @@ struct VideoHubView: View {
 
                 if viewModel.isAdmin {
                     Button {
-                        withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                        withAnimation(SkydownMotion.screenTransition) {
                             showingUploadComposer.toggle()
                         }
                     } label: {
@@ -211,7 +211,7 @@ struct VideoHubView: View {
             .background(
                 AppColors.screenGradient(
                     for: colorScheme,
-                    secondaryAccent: AppColors.youtube(for: colorScheme)
+                    secondaryAccent: AppColors.accentMystic(for: colorScheme)
                 )
                 .ignoresSafeArea()
             )
@@ -254,6 +254,12 @@ struct VideoHubView: View {
             urlString: url.absoluteString,
             title: video.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Original" : video.title
         )
+    }
+
+    private func videoHubRowPresentation(index: Int, total: Int) -> VideoHubLibraryRowPresentation {
+        if index == 0 { return .featured }
+        if index == 1, total > 1 { return .secondary }
+        return .catalog
     }
 
     @ViewBuilder
@@ -332,12 +338,12 @@ struct VideoHubView: View {
             colorScheme: colorScheme,
             eyebrow: screenHeaderSettingsStore.settings.resolvedVideoHubEyebrow ?? "Video",
             title: screenHeaderSettingsStore.settings.resolvedVideoHubTitle ?? "Video",
-            subtitle: screenHeaderSettingsStore.settings.resolvedVideoHubSubtitle ?? "Visuals · Collabs · Cinematic Flow",
-            detail: screenHeaderSettingsStore.settings.resolvedVideoHubDetail ?? "Atmosphaerisch, klar und direkt spielbar.",
+            subtitle: screenHeaderSettingsStore.settings.resolvedVideoHubSubtitle ?? "Einstieg – der eigentliche Blick sitzt im Player und in der Clips-Liste unten.",
+            detail: screenHeaderSettingsStore.settings.resolvedVideoHubDetail ?? "Hier Ueberblick waehlen, unten fokussiert schauen – ohne Feed-Gewusel.",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedVideoHubImageURL,
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
-            marks: [.skydown]
+            marks: [.zweizwei]
         ) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -531,7 +537,7 @@ struct VideoHubView: View {
             .disabled(!viewModel.canAddExternalVideo)
             .opacity(viewModel.canAddExternalVideo ? 1 : 0.6)
         }
-        .padding(18)
+        .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 24)
@@ -702,7 +708,7 @@ struct VideoHubView: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 24)
@@ -715,10 +721,20 @@ struct VideoHubView: View {
     }
 
     private var libraryCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Video Library")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Aus deinen Clips")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Text(
+                    viewModel.isAdmin
+                    ? "\(viewModel.videos.count) Titel im Hub"
+                    : "\(viewModel.videos.count) zum Schauen bereit"
+                )
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+            .accessibilityIdentifier("video.hub.library.header")
 
             if viewModel.isLoadingVideos {
                 HStack(spacing: 10) {
@@ -737,13 +753,15 @@ struct VideoHubView: View {
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
             } else {
-                ForEach(viewModel.videos) { video in
+                ForEach(Array(viewModel.videos.enumerated()), id: \.element.id) { index, video in
                     VideoHubLibraryRow(
                         video: video,
                         isAdmin: viewModel.isAdmin,
                         isSelected: playbackManager.selectedVideoID == video.id,
                         isPlaying: playbackManager.playingVideoID == video.id,
                         colorScheme: colorScheme,
+                        rowIndex: index,
+                        presentation: videoHubRowPresentation(index: index, total: viewModel.videos.count),
                         onSelect: { playbackManager.load(video: video) },
                         onPlayToggle: { playbackManager.togglePlayback(for: video) },
                         onOpenReel: {
@@ -766,10 +784,19 @@ struct VideoHubView: View {
                             }
                         }
                     )
+                    .padding(
+                        .top,
+                        (index == 0 && viewModel.videos.count > 1) ? 4
+                            : ((index == 2 && viewModel.videos.count > 2) ? 8 : 0)
+                    )
+                    .padding(
+                        .bottom,
+                        (index == 0 && viewModel.videos.count > 1) ? 8 : 0
+                    )
                 }
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 24)
@@ -783,12 +810,46 @@ struct VideoHubView: View {
 
 }
 
-struct VideoHubLibraryRow: View {
+private enum VideoHubLibraryRowPresentation {
+    case featured
+    case secondary
+    case catalog
+}
+
+fileprivate func youTubeLibraryPosterURL(for video: SkydownVideoHubItem) -> URL? {
+    guard let item = video.youTubeItem else { return nil }
+    let raw = item.urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !raw.isEmpty else { return nil }
+    let url = URL(string: raw) ?? URL(string: "https://\(raw)")
+    guard let url else { return nil }
+    let comp = URLComponents(url: url, resolvingAgainstBaseURL: false)
+    if let v = comp?.queryItems?.first(where: { $0.name == "v" || $0.name == "vi" })?.value,
+       v.count == 11 {
+        return URL(string: "https://img.youtube.com/vi/\(v)/hqdefault.jpg")
+    }
+    if let host = url.host?.lowercased(), host.contains("youtu.be") {
+        if let id = url.path.split(separator: "/").map(String.init).last, id.count == 11 {
+            return URL(string: "https://img.youtube.com/vi/\(id)/hqdefault.jpg")
+        }
+    }
+    let pathParts = url.path.split(separator: "/").map(String.init)
+    if let embed = pathParts.firstIndex(of: "embed"), pathParts.indices.contains(embed + 1) {
+        let id = pathParts[embed + 1]
+        if id.count == 11 {
+            return URL(string: "https://img.youtube.com/vi/\(id)/hqdefault.jpg")
+        }
+    }
+    return nil
+}
+
+private struct VideoHubLibraryRow: View {
     let video: SkydownVideoHubItem
     let isAdmin: Bool
     let isSelected: Bool
     let isPlaying: Bool
     let colorScheme: ColorScheme
+    let rowIndex: Int
+    let presentation: VideoHubLibraryRowPresentation
     let onSelect: () -> Void
     let onPlayToggle: () -> Void
     let onOpenReel: () -> Void
@@ -848,66 +909,289 @@ struct VideoHubLibraryRow: View {
 
     private var libraryRowMetaLine: String {
         let date = skydownVideoDateFormatter.string(from: video.createdAt)
-        var parts = [video.projectName, video.provider.badgeLabel, date]
-        if isAdmin {
-            parts.append(video.isPublic ? "Public" : "Private")
-            if video.isHomeFeatured {
-                parts.append("Home")
+        switch presentation {
+        case .catalog:
+            return "\(video.projectName) · \(date)"
+        case .secondary:
+            var line = "\(video.projectName) · \(date)"
+            if isAdmin {
+                line += " · \(video.isPublic ? "Public" : "Private")"
+                if video.isHomeFeatured { line += " · Home" }
             }
+            return line
+        case .featured:
+            var line = "\(video.projectName) · \(date)"
+            if isAdmin {
+                line += " · \(video.isPublic ? "Public" : "Private")"
+                if video.isHomeFeatured { line += " · Home" }
+            }
+            return line
         }
-        return parts.joined(separator: " · ")
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
-                        .frame(width: 44, height: 44)
+    private var isCatalogOddStripe: Bool {
+        presentation == .catalog && rowIndex % 2 == 1
+    }
 
+    private var thumbSize: (w: CGFloat, h: CGFloat) {
+        switch presentation {
+        case .secondary: (96, 54)
+        case .catalog: (70, 40)
+        case .featured: (0, 0)
+        }
+    }
+
+    private var posterUrl: URL? { youTubeLibraryPosterURL(for: video) }
+
+    var body: some View {
+        Group {
+            if presentation == .featured {
+                featuredImmersive
+            } else {
+                listRow
+            }
+        }
+        .padding(
+            presentation == .featured
+                ? EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
+                : EdgeInsets(
+                    top: presentation == .secondary ? 12 : 9,
+                    leading: presentation == .secondary ? 15 : 12,
+                    bottom: presentation == .secondary ? 12 : 9,
+                    trailing: presentation == .secondary ? 15 : 12
+                )
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(
+                cornerRadius: presentation == .featured ? 26
+                    : (presentation == .secondary ? 20 : 17),
+                style: .continuous
+            )
+            .fill(
+                AppColors.cardBackground(for: colorScheme)
+                    .opacity(
+                        isCatalogOddStripe
+                            ? 0.88
+                            : (presentation == .catalog ? 0.91 : 0.98)
+                    )
+            )
+        )
+        .overlay(
+            RoundedRectangle(
+                cornerRadius: presentation == .featured ? 26
+                    : (presentation == .secondary ? 20 : 17),
+                style: .continuous
+            )
+            .stroke(
+                AppColors.accent(for: colorScheme).opacity(
+                    presentation == .featured ? 0.12
+                        : (isCatalogOddStripe ? 0.11 : (presentation == .secondary ? 0.1 : 0.08))
+                ),
+                lineWidth: presentation == .featured ? 1.0 : 0.75
+            )
+        )
+    }
+
+    @ViewBuilder
+    private var featuredImmersive: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .bottomLeading) {
+                Group {
+                    if let url = posterUrl {
+                        AsyncImage(url: url) { phase in
+                            if case .success(let image) = phase {
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } else {
+                                LinearGradient(
+                                    colors: [
+                                        routeAccent.opacity(0.9),
+                                        AppColors.cinematicShadow(for: colorScheme).opacity(0.82)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            }
+                        }
+                    } else {
+                        LinearGradient(
+                            colors: [
+                                routeAccent.opacity(0.9),
+                                AppColors.cinematicShadow(for: colorScheme).opacity(0.82)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                .clipped()
+                VStack {
+                    Spacer(minLength: 0)
+                    LinearGradient(
+                        colors: [Color.clear, Color.black.opacity(0.72)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 104)
+                }
+                HStack(alignment: .lastTextBaseline, spacing: 12) {
+                    Text(video.title)
+                        .font(.title2.weight(.semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .shadow(color: .black.opacity(0.4), radius: 3, y: 1)
+                    Spacer()
                     Image(systemName: isSelected ? "play.rectangle.fill" : "video.fill")
-                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                        .font(.body)
+                        .foregroundColor(.white.opacity(0.45))
+                }
+                .padding(16)
+            }
+            .clipped()
+            VStack(alignment: .leading, spacing: 10) {
+                Text(libraryRowMetaLine)
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.95))
+                if isAdmin, !video.fileName.isEmpty {
+                    Text(video.fileName)
+                        .font(.caption2)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+                        .lineLimit(1)
+                }
+                if isAdmin, !video.notes.isEmpty {
+                    Text(video.notes)
+                        .font(.caption)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+                        .lineLimit(1)
+                }
+                if isAdmin {
+                    HStack(spacing: 10) {
+                        Button(action: onSelect) {
+                            Label(isSelected ? "Im Player" : "Auswaehlen", systemImage: "rectangle.on.rectangle")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button(action: video.isPlayable ? onPlayToggle : (video.opensOriginalInApp ? onOpenOriginal : onOpenReel)) {
+                            Label(
+                                video.isPlayable
+                                    ? (isPlaying ? "Stoppen" : "Abspielen")
+                                    : (video.opensOriginalInApp ? "Direkt oeffnen" : (video.supportsInlinePlayback ? "Ansehen" : "Oeffnen")),
+                                systemImage: video.isPlayable
+                                    ? (isPlaying ? "stop.fill" : "play.fill")
+                                    : (video.opensOriginalInApp
+                                        ? "rectangle.portrait.and.arrow.right"
+                                        : (video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square"))
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(video.provider == .youTube ? AppColors.youtube(for: colorScheme) : AppColors.accent(for: colorScheme))
+                        .disabled(!video.isPlayable && !video.supportsInlinePlayback && !video.opensOriginalInApp)
+                    }
+                } else {
+                    if video.opensOriginalInApp {
+                        Button(action: onOpenOriginal) {
+                            Label(
+                                video.directOpenActionTitle,
+                                systemImage: video.supportsInlinePlayback
+                                    ? "rectangle.portrait.and.arrow.right"
+                                    : "arrow.up.forward.square"
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(video.supportsInlinePlayback ? AppColors.accentMystic(for: colorScheme) : AppColors.accent(for: colorScheme))
+                    } else if video.supportsInlinePlayback {
+                        Button(action: onOpenReel) {
+                            Label("Direkt im Video", systemImage: "play.rectangle.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.accentMystic(for: colorScheme))
+                    }
                 }
 
+                if isAdmin {
+                    HStack(spacing: 10) {
+                        Button(action: onToggleHomeFeatured) {
+                            Label(video.isHomeFeatured ? "Home aktiv" : "Im Home zeigen", systemImage: "house.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button(role: .destructive, action: onDelete) {
+                            Label("Loeschen", systemImage: "trash")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+            }
+            .padding(16)
+        }
+    }
+
+    @ViewBuilder
+    private var listRow: some View {
+        VStack(alignment: .leading, spacing: presentation == .catalog ? 7 : 9) {
+            HStack(alignment: .top, spacing: presentation == .secondary ? 12 : 7) {
+                listThumb
                 VStack(alignment: .leading, spacing: 4) {
                     Text(video.title)
-                        .font(.headline)
-                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .font(
+                            presentation == .secondary
+                                ? .subheadline.weight(.semibold)
+                                : .subheadline
+                        )
+                        .foregroundColor(
+                            AppColors.text(for: colorScheme)
+                                .opacity(presentation == .catalog ? 0.9 : 1.0)
+                        )
                         .lineLimit(2)
 
                     Text(libraryRowMetaLine)
-                        .font(.subheadline)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .lineLimit(2)
+                        .font(.caption2)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+                        .lineLimit(1)
 
-                    if isAdmin, !video.fileName.isEmpty {
+                    if isAdmin, !video.fileName.isEmpty, presentation == .secondary {
                         Text(video.fileName)
                             .font(.caption2)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
                             .lineLimit(1)
                     }
-
-                    if !video.notes.isEmpty {
+                    if !video.notes.isEmpty, presentation == .secondary {
                         Text(video.notes)
-                            .font(.footnote)
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                            .lineLimit(2)
+                            .font(.caption2)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.85))
+                            .lineLimit(1)
                     }
                 }
-
                 Spacer()
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            if presentation != .catalog {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(routeTitle)
-                    .font(.caption.weight(.bold))
-                    .foregroundColor(routeAccent)
-
-                Text(routeDetail)
-                    .font(.footnote)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    .lineLimit(2)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(routeAccent.opacity(0.95))
+                Text(
+                    presentation == .secondary
+                        ? (isAdmin
+                            ? "Wahl sitzt sofort im Player."
+                            : "Tippen setzt den Fokus, der Player folgt oben."
+                        ) : routeDetail
+                )
+                .font(.caption2)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.92))
+                .lineLimit(presentation == .secondary ? 1 : 2)
+            }
             }
 
             if isAdmin {
@@ -974,10 +1258,50 @@ struct VideoHubLibraryRow: View {
                 }
             }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    @ViewBuilder
+    private var listThumb: some View {
+        ZStack(alignment: .bottomTrailing) {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            routeAccent.opacity(0.88),
+                            AppColors.cinematicShadow(for: colorScheme).opacity(0.72)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            if let url = posterUrl {
+                AsyncImage(url: url) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
+                        Color.clear
+                    }
+                }
+            }
+            LinearGradient(
+                colors: [Color.clear, Color.black.opacity(0.35)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            Image(systemName: isSelected ? "play.rectangle.fill" : "video.fill")
+                .font(.system(size: presentation == .secondary ? 18 : 14, weight: .semibold))
+                .foregroundColor(.white.opacity(0.85))
+                .padding(5)
+        }
+        .frame(width: thumbSize.w, height: thumbSize.h)
+        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+        )
     }
 }
 
@@ -1263,7 +1587,7 @@ struct VideoEquipmentCard: View {
                 }
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 24)
@@ -1997,7 +2321,7 @@ struct VideoPublicConfigEditorCard: View {
             .tint(AppColors.accentMystic(for: colorScheme))
             .disabled(viewModel.isSavingPublicConfig)
         }
-        .padding(18)
+        .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 24)

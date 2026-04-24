@@ -34,32 +34,55 @@ struct HomeUtilityRow: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 2) {
                 ForEach(Array(utilities.enumerated()), id: \.offset) { _, utility in
-                    Button {
-                        SkydownHaptics.selection()
-                        utility.action()
-                    } label: {
-                        switch utility.style {
-                        case .primary:
-                            Label(utility.title, systemImage: utility.icon)
-                        case .iconOnly:
-                            Image(systemName: utility.icon)
-                                .frame(width: 18, height: 18)
-                                .accessibilityLabel(utility.title)
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(AppColors.accent(for: colorScheme))
+                    utilityButton(utility)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
         }
-        .background(AppColors.cardBackground(for: colorScheme).opacity(0.35))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.top, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func utilityButton(_ utility: UtilityItem) -> some View {
+        let isAI = utility.title == "AI"
+        let tint = isAI ? AppColors.accentMystic(for: colorScheme) : AppColors.accent(for: colorScheme)
+        if isAI {
+            Button {
+                SkydownHaptics.selection()
+                utility.action()
+            } label: {
+                switch utility.style {
+                case .primary:
+                    Label(utility.title, systemImage: utility.icon)
+                case .iconOnly:
+                    Image(systemName: utility.icon)
+                        .frame(width: 18, height: 18)
+                        .accessibilityLabel(utility.title)
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .tint(tint.opacity(0.58))
+        } else {
+            Button {
+                SkydownHaptics.selection()
+                utility.action()
+            } label: {
+                switch utility.style {
+                case .primary:
+                    Label(utility.title, systemImage: utility.icon)
+                case .iconOnly:
+                    Image(systemName: utility.icon)
+                        .frame(width: 18, height: 18)
+                        .accessibilityLabel(utility.title)
+                }
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+            .tint(tint.opacity(0.46))
+        }
     }
 }
 
@@ -70,9 +93,11 @@ private struct HomeRevealModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(isVisible ? 1 : 0)
-            .offset(y: isVisible ? 0 : 18)
-            .scaleEffect(isVisible ? 1 : 0.985)
-            .animation(.spring(response: 0.52, dampingFraction: 0.88).delay(Double(order) * 0.05), value: isVisible)
+            .offset(y: isVisible ? 0 : 10)
+            .animation(
+                SkydownMotion.contentReveal.delay(Double(order) * SkydownMotion.listStaggerDelay),
+                value: isVisible
+            )
             .onAppear { isVisible = true }
     }
 }

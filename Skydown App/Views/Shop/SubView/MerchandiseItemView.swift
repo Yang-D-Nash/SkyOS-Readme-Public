@@ -9,11 +9,23 @@ import SwiftUI
 
 struct MerchandiseItemView: View {
     let item: MerchandiseItem
+    var shelfSpotlight: Bool = false
+    var shelfSettled: Bool = false
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedImageIndex = 0
     @State private var showingFullscreenGallery = false
-    private let imageWidth: CGFloat = 112
-    private let imageHeight: CGFloat = 132
+    private var imageWidth: CGFloat {
+        if shelfSpotlight { return 132 }
+        if shelfSettled { return 108 }
+        return 112
+    }
+    private var imageHeight: CGFloat {
+        if shelfSpotlight { return 168 }
+        if shelfSettled { return 128 }
+        return 132
+    }
+    private var rowHSpacing: CGFloat { shelfSettled ? 8 : 12 }
+    private var imageCorner: CGFloat { shelfSpotlight ? 22 : (shelfSettled ? 16 : 18) }
 
     private var displayImageURLs: [String] {
         if let customOverride = item.customImageOverride.takeIfNotBlank() {
@@ -34,7 +46,7 @@ struct MerchandiseItemView: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: rowHSpacing) {
             imagePager
 
             VStack(alignment: .leading, spacing: 8) {
@@ -46,7 +58,7 @@ struct MerchandiseItemView: View {
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("EUR \(item.price, specifier: "%.2f")")
+                Text("\(item.currency) \(item.price, specifier: "%.2f")")
                     .font(AppTypography.metricLabel)
                     .foregroundColor(priceAccentColor)
 
@@ -112,9 +124,9 @@ struct MerchandiseItemView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .frame(width: imageWidth, height: imageHeight)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: imageCorner, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: imageCorner, style: .continuous)
                     .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
             )
 
@@ -126,7 +138,7 @@ struct MerchandiseItemView: View {
                 startPoint: .center,
                 endPoint: .bottom
             )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: imageCorner, style: .continuous))
 
             if safeImageURLs.count > 1 {
                 HStack(spacing: 4) {

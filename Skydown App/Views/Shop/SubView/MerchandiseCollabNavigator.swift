@@ -1,5 +1,41 @@
 import SwiftUI
 
+// MARK: - Merch copy (Android parity, presentation only)
+
+private func shopMerchLocalizedLaneTitle(_ lane: MerchandiseCollabLane) -> String {
+    if lane.id == MerchandiseCollabLane.allID {
+        return AppLocalized.text("shop.lane.all_drops_title", fallback: "All pieces")
+    }
+    return lane.title
+}
+
+private func shopMerchLocalizedLaneBannerSubtitle(_ lane: MerchandiseCollabLane) -> String {
+    if lane.id == MerchandiseCollabLane.allID {
+        return AppLocalized.text("shop.lane.all_drops_subtitle", fallback: "Everything in the current catalog at a glance")
+    }
+    return lane.subtitle
+}
+
+private func shopMerchLocalizedPieces(_ count: Int) -> String {
+    if count == 1 {
+        return AppLocalized.text("shop.pieces.in_lane_one", fallback: "1 product")
+    }
+    return String(
+        format: AppLocalized.text("shop.pieces.in_lane_other", fallback: "%d products"),
+        count
+    )
+}
+
+private func shopMerchLocalizedKind(_ lane: MerchandiseCollabLane) -> String {
+    if lane.id == MerchandiseCollabLane.allID {
+        return AppLocalized.text("shop.lane.kind.all", fallback: "All")
+    }
+    if lane.isCoreLane {
+        return AppLocalized.text("shop.lane.kind.core", fallback: "House")
+    }
+    return AppLocalized.text("shop.lane.kind.collection", fallback: "Collection")
+}
+
 struct MerchandiseCollabLane: Identifiable, Equatable {
     static let allID = "all-drops"
 
@@ -137,14 +173,25 @@ struct MerchandiseCollabSidebar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Drop Map")
-                    .font(AppTypography.sectionHeadline)
-                    .foregroundColor(AppColors.text(for: colorScheme))
-
-                Text("Alle Collections, Collabs und Core Pieces auf einen Blick.")
-                    .font(AppTypography.bodyCaption)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(AppLocalized.text("shop.map.title", fallback: "Collections map"))
+                        .font(AppTypography.sectionHeadline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    Text(AppLocalized.text("shop.map.subtitle", fallback: "Core lines, collabs, and imported collections in one calm list."))
+                        .font(AppTypography.bodyCaption)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+                Spacer(minLength: 0)
+                Text(AppLocalized.text("shop.map.tag", fallback: "MAP"))
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
+                    )
             }
 
             VStack(alignment: .leading, spacing: 10) {
@@ -172,14 +219,25 @@ struct MerchandiseCollabQuickGrid: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Direktliste")
-                    .font(AppTypography.sectionHeadline)
-                    .foregroundColor(AppColors.text(for: colorScheme))
-
-                Text("Swipe oben, Liste hier: jede Collection bleibt direkt erreichbar.")
-                    .font(AppTypography.bodyCaption)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(AppLocalized.text("shop.quick.title", fallback: "Quick access"))
+                        .font(AppTypography.sectionHeadline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    Text(AppLocalized.text("shop.quick.subtitle", fallback: "Jump to a collection when you already know the lane."))
+                        .font(AppTypography.bodyCaption)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+                Spacer(minLength: 0)
+                Text(AppLocalized.text("shop.quick.tag", fallback: "LIST"))
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
+                    )
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -278,16 +336,9 @@ struct MerchandiseCollabSelectionCard: View {
     let totalItemCount: Int
     let colorScheme: ColorScheme
 
-    private var laneLabel: String {
-        selectedLane.itemCount == 1 ? "1 Piece" : "\(selectedLane.itemCount) Pieces"
-    }
+    private var laneLabel: String { shopMerchLocalizedPieces(selectedLane.itemCount) }
 
-    private var laneKindLabel: String {
-        if selectedLane.id == MerchandiseCollabLane.allID {
-            return "Alle"
-        }
-        return selectedLane.isCoreLane ? "Core" : "Collection"
-    }
+    private var laneKindLabel: String { shopMerchLocalizedKind(selectedLane) }
 
     private var coverageLabel: String {
         guard totalItemCount > 0 else { return "0%" }
@@ -295,51 +346,49 @@ struct MerchandiseCollabSelectionCard: View {
         return "\(Int((ratio * 100).rounded()))%"
     }
 
-    private var coverageDetail: String {
-        totalItemCount == selectedLane.itemCount ? "Gesamter Katalog" : "des sichtbaren Katalogs"
-    }
-
-    private var focusTitle: String {
-        selectedLane.id == MerchandiseCollabLane.allID ? "Alle Drops im Fokus" : "Fokus auf \(selectedLane.title)"
-    }
-
     private var focusDetail: String {
         if selectedLane.id == MerchandiseCollabLane.allID {
-            return "Direkt durch alle sichtbaren Pieces browsen."
+            return AppLocalized.text("shop.lane.focus_all", fallback: "Scroll the picks above, then browse everything here.")
         }
-        return "Filtert direkt auf diese Lane und haelt den Rest ruhig im Hintergrund."
+        return String(
+            format: AppLocalized.text(
+                "shop.lane.focus_named",
+                fallback: "Narrowing the shelf to “%@” and keeping the rest out of the way."
+            ),
+            shopMerchLocalizedLaneTitle(selectedLane)
+        )
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Drop Map")
-                        .font(AppTypography.sectionEyebrow)
-                        .foregroundColor(AppColors.accentHighlight(for: colorScheme))
-
-                    Text(selectedLane.title)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: selectedLane.id == MerchandiseCollabLane.allID ? "bag" : "person.2")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(shopMerchLocalizedLaneTitle(selectedLane))
                         .font(AppTypography.cardTitle)
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .lineLimit(2)
-
-                    Text(focusTitle)
-                        .font(AppTypography.bodyCaption)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .lineLimit(2)
+                    Text(
+                        selectedLane.id == MerchandiseCollabLane.allID
+                            ? AppLocalized.text("shop.lane.all_drops_subtitle", fallback: "Everything in the current catalog at a glance")
+                            : shopMerchLocalizedLaneBannerSubtitle(selectedLane)
+                    )
+                    .font(AppTypography.bodyCaption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineLimit(2)
                 }
-
                 Spacer(minLength: 0)
-
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text(laneLabel)
-                        .font(AppTypography.sectionEyebrow)
-                        .foregroundColor(AppColors.accentHighlight(for: colorScheme))
-
-                    Text(coverageLabel)
-                        .font(AppTypography.bodyCaption)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
+                Text(laneLabel)
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
+                    )
             }
 
             Text(focusDetail)
@@ -349,30 +398,34 @@ struct MerchandiseCollabSelectionCard: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     MerchandiseCollabFocusMetric(
-                        title: "Route",
+                        title: AppLocalized.text("shop.lane.metric.type", fallback: "Type"),
                         value: laneKindLabel,
-                        detail: selectedLane.subtitle,
+                        detail: shopMerchLocalizedLaneBannerSubtitle(selectedLane),
                         colorScheme: colorScheme,
                         accent: AppColors.accentMystic(for: colorScheme)
                     )
                     MerchandiseCollabFocusMetric(
-                        title: "Share",
+                        title: AppLocalized.text("shop.lane.metric.coverage", fallback: "Coverage"),
                         value: coverageLabel,
-                        detail: coverageDetail,
+                        detail: totalItemCount == selectedLane.itemCount
+                            ? AppLocalized.text("shop.lane.coverage.detail_full", fallback: "of the full shelf")
+                            : AppLocalized.text("shop.lane.coverage.detail_partial", fallback: "of the visible shelf"),
                         colorScheme: colorScheme,
                         accent: AppColors.accentHighlight(for: colorScheme)
                     )
                     MerchandiseCollabFocusMetric(
-                        title: "Pieces",
+                        title: AppLocalized.text("shop.lane.metric.count", fallback: "Products"),
                         value: laneLabel,
-                        detail: totalItemCount == selectedLane.itemCount ? "Gesamtauswahl" : "Aktiver Filter",
+                        detail: totalItemCount == selectedLane.itemCount
+                            ? AppLocalized.text("shop.lane.count.all", fallback: "Full run")
+                            : AppLocalized.text("shop.lane.count.filter", fallback: "In this view"),
                         colorScheme: colorScheme,
                         accent: AppColors.accent(for: colorScheme)
                     )
                 }
             }
         }
-        .frame(height: 186, alignment: .topLeading)
+        .frame(minHeight: 160, alignment: .topLeading)
         .padding(SkydownLayout.cardPadding)
         .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.accent(for: colorScheme))
     }
@@ -398,14 +451,14 @@ private struct MerchandiseCollabSidebarButton: View {
                         .frame(width: 12, height: 12)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(lane.title)
+                        Text(shopMerchLocalizedLaneTitle(lane))
                             .font(AppTypography.buttonLabel)
                             .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
                             .multilineTextAlignment(.leading)
                             .lineLimit(compact ? 1 : 2)
                             .minimumScaleFactor(0.86)
 
-                        Text(lane.subtitle)
+                        Text(shopMerchLocalizedLaneBannerSubtitle(lane))
                             .font(AppTypography.bodyCaption)
                             .foregroundColor(
                                 isSelected
@@ -420,7 +473,7 @@ private struct MerchandiseCollabSidebarButton: View {
                 }
 
                 HStack(spacing: 8) {
-                    Text(lane.itemCount == 1 ? "1 Piece" : "\(lane.itemCount) Pieces")
+                    Text(shopMerchLocalizedPieces(lane.itemCount))
                         .font(AppTypography.bodyCaption)
                         .foregroundColor(isSelected ? .white : AppColors.accentHighlight(for: colorScheme))
                         .padding(.horizontal, 10)
@@ -434,11 +487,7 @@ private struct MerchandiseCollabSidebarButton: View {
                                 )
                         )
 
-                    Text(
-                        lane.id == MerchandiseCollabLane.allID
-                            ? "Alle"
-                            : (lane.isCoreLane ? "Core" : "Collection")
-                    )
+                    Text(shopMerchLocalizedKind(lane))
                     .font(AppTypography.bodyCaption)
                     .foregroundColor(isSelected ? .white.opacity(0.92) : AppColors.text(for: colorScheme))
                     .padding(.horizontal, 10)

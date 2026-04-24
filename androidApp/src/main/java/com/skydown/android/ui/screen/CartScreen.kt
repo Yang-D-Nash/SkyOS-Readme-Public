@@ -46,10 +46,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.skydown.android.R
 import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.SectionHeader
 import com.skydown.android.ui.component.SkydownCard
@@ -71,6 +73,7 @@ import kotlinx.coroutines.launch
 fun CartScreen(
     onBack: (() -> Unit)? = null,
     onOpenLogin: () -> Unit = {},
+    onGuestSignIn: (() -> Unit)? = null,
     onOpenProfile: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: CartViewModel = viewModel(),
@@ -153,6 +156,7 @@ fun CartScreen(
                     AppTopBarSessionActions(
                         onOpenProfile = onOpenProfile,
                         onOpenSettings = onOpenSettings,
+                        onGuestSignIn = onGuestSignIn,
                     )
                 },
                 colors = skydownTopBarColors(),
@@ -210,9 +214,9 @@ fun CartScreen(
                 if (!uiState.isLoggedIn) {
                     item {
                         SkydownCard {
-                            SectionHeader("Konto fehlt")
+                            SectionHeader(stringResource(R.string.auth_cart_login_title))
                             Text(
-                                text = "Melde dich an, damit du deinen Warenkorb sichern und eine Bestellung abschicken kannst.",
+                                text = stringResource(R.string.auth_cart_login_subtitle),
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                             )
@@ -229,7 +233,7 @@ fun CartScreen(
                                     modifier = Modifier.size(18.dp),
                                 )
                                 Text(
-                                    text = "Anmelden",
+                                    text = stringResource(R.string.auth_cart_login_cta),
                                     modifier = Modifier.padding(start = 8.dp),
                                 )
                             }

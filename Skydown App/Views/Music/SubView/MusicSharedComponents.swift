@@ -138,7 +138,7 @@ struct MusicInstagramHubCard: View {
                 }
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 24)

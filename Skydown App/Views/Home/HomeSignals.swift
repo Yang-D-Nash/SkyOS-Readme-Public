@@ -90,30 +90,42 @@ struct HomeDailyOpsStrip: View {
         }
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "gauge.with.dots.needle.50percent").font(.caption.weight(.bold)).foregroundColor(AppColors.accent(for: colorScheme))
-                Text("Priority Layer").font(.subheadline.weight(.bold)).foregroundColor(AppColors.text(for: colorScheme))
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "gauge.with.dots.needle.50percent")
+                    .font(.caption2.weight(.medium))
+                    .foregroundColor(priorityAccent.opacity(0.5))
+                Text("Aktueller Fokus")
+                    .font(.subheadline.weight(.regular))
+                    .foregroundColor(AppColors.text(for: colorScheme).opacity(0.6))
                 Spacer(minLength: 0)
-                Text("\(activeSignalCount)/\(totalSignalCount) live").font(.caption2.weight(.bold)).foregroundColor(priorityAccent).padding(.horizontal, 8).padding(.vertical, 5).background(Capsule(style: .continuous).fill(priorityAccent.opacity(0.12)))
-            }
-            Text("Ein Fokus. Ein klarer naechster Schritt.").font(.footnote).foregroundColor(AppColors.secondaryText(for: colorScheme))
-            Button(action: triggerPriorityAction) { Label(priorityTitle, systemImage: "target").font(.caption.weight(.bold)).frame(maxWidth: .infinity) }
-                .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
-                .buttonStyle(.borderedProminent).tint(priorityAccent).controlSize(.small)
-            Text(priorityHint).font(.caption).foregroundColor(AppColors.secondaryText(for: colorScheme))
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    HomeStatusCapsule(title: hasTrackSignal ? "Music live" : "Music missing", accent: AppColors.accent(for: colorScheme), isActive: hasTrackSignal, colorScheme: colorScheme)
-                    HomeStatusCapsule(title: hasBeatSignal ? "Beats live" : "Beats missing", accent: AppColors.accentMystic(for: colorScheme), isActive: hasBeatSignal, colorScheme: colorScheme)
-                    HomeStatusCapsule(title: hasVideoSignal ? "Visuals live" : "Visuals missing", accent: AppColors.accentHighlight(for: colorScheme), isActive: hasVideoSignal, colorScheme: colorScheme)
+                Button {
+                    onRefresh()
+                    SkydownHaptics.selection()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(priorityAccent.opacity(0.55))
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Aktualisieren")
+                Text("\(activeSignalCount)/\(totalSignalCount) live")
+                    .font(.caption2.weight(.medium))
+                    .foregroundColor(priorityAccent.opacity(0.7))
             }
+            Text("Hier: ein Schritt, der zu deinen Kernsignalen passt.")
+                .font(.footnote)
+                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
+            Button(action: triggerPriorityAction) {
+                Label(priorityTitle, systemImage: "target").font(.caption.weight(.bold)).frame(maxWidth: .infinity)
+            }
+            .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
+            .buttonStyle(.borderedProminent).tint(priorityAccent).controlSize(.small)
+            Text(priorityHint)
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.85))
         }
-        .padding(12)
-        .background(AppColors.secondaryBackground(for: colorScheme))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(priorityAccent.opacity(0.16), lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(10)
     }
 }
 
@@ -126,31 +138,42 @@ struct HomeCommandDockStrip: View {
     private var priorityAccent: Color { priorityTarget == "music" ? AppColors.accent(for: colorScheme) : (priorityTarget == "beats" ? AppColors.accentMystic(for: colorScheme) : AppColors.accentHighlight(for: colorScheme)) }
     private func actionTint(_ target: String) -> Color {
         let base = target == "music" ? AppColors.accent(for: colorScheme) : (target == "beats" ? AppColors.accentMystic(for: colorScheme) : AppColors.accentHighlight(for: colorScheme))
-        return target == priorityTarget ? base : base.opacity(0.66)
+        return target == priorityTarget ? base : base.opacity(0.55)
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "command").font(.caption.weight(.bold)).foregroundColor(priorityAccent)
-                Text("Action Layer").font(.subheadline.weight(.bold)).foregroundColor(AppColors.text(for: colorScheme))
+            HStack(spacing: 6) {
+                Image(systemName: "command")
+                    .font(.caption2.weight(.medium))
+                    .foregroundColor(priorityAccent.opacity(0.48))
+                Text("Kurzaktionen")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(AppColors.text(for: colorScheme).opacity(0.58))
                 Spacer(minLength: 0)
             }
-            Text("Schnelle Systemaktionen ohne Kontextwechsel.").font(.footnote).foregroundColor(AppColors.secondaryText(for: colorScheme))
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    if let onOpenWorkflow {
-                        Button("KI-Agent", action: onOpenWorkflow).simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() }).buttonStyle(.bordered).tint(actionTint("beats"))
-                    }
-                    Button("Warenkorb", action: onOpenCart).simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() }).buttonStyle(.bordered).tint(actionTint("music"))
-                    Button("Einstellungen", action: onOpenSettings).simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() }).buttonStyle(.bordered).tint(actionTint("visuals"))
+            Text("Agent, Warenkorb, Einstellungen — ohne die Seite zu wechseln.")
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.72))
+            HStack(spacing: 8) {
+                if let onOpenWorkflow {
+                    Button("KI-Agent", action: onOpenWorkflow)
+                        .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
+                        .buttonStyle(.borderedProminent)
+                        .tint(actionTint("beats"))
                 }
+                Button("Warenkorb", action: onOpenCart)
+                    .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
+                    .buttonStyle(.bordered)
+                    .tint(actionTint("music"))
+                Button("Einstellungen", action: onOpenSettings)
+                    .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
+                    .buttonStyle(.bordered)
+                    .tint(actionTint("visuals"))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .controlSize(.small)
         }
-        .padding(10)
-        .background(AppColors.cardBackground(for: colorScheme).opacity(0.35))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(priorityAccent.opacity(0.12), lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(.top, 2)
     }
 }
 
@@ -198,18 +221,28 @@ struct HomeLiveSignalSurface: View {
         return signals
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Live Signals").font(.caption.weight(.semibold)).foregroundColor(AppColors.text(for: colorScheme).opacity(0.86))
-            Text(nowText).font(.footnote).foregroundColor(AppColors.text(for: colorScheme).opacity(0.80))
-            Text(nextText).font(.footnote).foregroundColor(AppColors.secondaryText(for: colorScheme))
-            if let riskText { Text(riskText).font(.footnote).foregroundColor(AppColors.secondaryText(for: colorScheme)) }
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Status / Signale")
+                .font(.caption2.weight(.medium))
+                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
+            Text(nowText)
+                .font(.footnote)
+                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.66))
+            Text(nextText)
+                .font(.footnote)
+                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.55))
+            if let riskText {
+                Text(riskText)
+                    .font(.footnote)
+                    .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
+            }
             ForEach(federatedSignals, id: \.self) { signal in
-                Text(signal).font(.footnote).foregroundColor(AppColors.secondaryText(for: colorScheme))
+                Text(signal)
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
             }
         }
-        .padding(12)
-        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.58))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(.vertical, 6)
+        .padding(.horizontal, 2)
     }
 }

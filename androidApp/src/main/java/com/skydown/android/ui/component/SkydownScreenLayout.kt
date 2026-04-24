@@ -38,6 +38,8 @@ object SkydownUiTokens {
     val screenTopPadding = 14.dp
     val screenBottomPadding = 22.dp
     val cardPadding = 12.dp
+    /// Größere Karten/Module (Music, Video, Profil) — iOS `SkydownLayout.panelPadding` Parität.
+    val panelPadding = 18.dp
     val heroPadding = 17.dp
     val cardCornerRadius = 20.dp
     val heroCornerRadius = 30.dp

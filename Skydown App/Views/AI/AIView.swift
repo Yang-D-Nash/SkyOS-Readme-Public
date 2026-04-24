@@ -72,7 +72,7 @@ struct AIView: View {
             if featureFlags.isAIEnabled {
                 if viewModel.messages.isEmpty {
                     VStack(alignment: .leading, spacing: 14) {
-                        Spacer(minLength: showsNavigation ? 8 : 4)
+                        Spacer(minLength: showsNavigation ? 20 : 14)
 
                         AIEmptyStateHeader(colorScheme: colorScheme)
                         if let usage = viewModel.revenueUsage {
@@ -117,9 +117,9 @@ struct AIView: View {
                             }
                         )
 
-                        Spacer(minLength: 12)
+                        Spacer(minLength: 28)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                     .padding(.bottom, 6)
                 } else {
@@ -588,18 +588,18 @@ private struct AIEmptyStateHeader: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(AppLocalized.text("ai.empty.title", fallback: "What do you need?"))
-                .font(.system(size: 28, weight: .black, design: .rounded))
+                .font(AppTypography.sectionHeadline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             Text(AppLocalized.text("ai.empty.subtitle", fallback: "Write briefly and start calmly."))
-                .font(.subheadline.weight(.medium))
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .font(AppTypography.bodyCaption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.95))
 
             Text(AppLocalized.text("ai.empty.memory", fallback: "Your history stays per account, so the bot does not restart from zero each time."))
-                .font(.footnote.weight(.semibold))
-                .foregroundColor(AppColors.accent(for: colorScheme).opacity(0.9))
+                .font(.footnote)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
         }
     }
 }
@@ -1000,7 +1000,7 @@ private struct AIComposerBar: View {
                             }
                             .buttonStyle(.plain)
                             .skydownTactileAction()
-                            .transition(.scale.combined(with: .opacity))
+                            .transition(.offset(y: 6).combined(with: .opacity))
                         }
 
                         Button(action: {
@@ -1030,7 +1030,7 @@ private struct AIComposerBar: View {
                         .disabled(trimmedDraft.isEmpty || interactionPhase.isBusy)
                         .opacity(trimmedDraft.isEmpty || interactionPhase.isBusy ? 0.6 : 1)
                     }
-                    .animation(.easeOut(duration: 0.16), value: isFocused.wrappedValue)
+                    .animation(SkydownMotion.pressInteraction, value: isFocused.wrappedValue)
                 }
             }
             .padding(.horizontal, 16)

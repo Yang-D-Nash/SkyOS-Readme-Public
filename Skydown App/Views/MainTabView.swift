@@ -38,13 +38,20 @@ private enum ZweizweiDestination: Equatable {
     case nicma
 }
 
-private enum MainTabModal: String, Identifiable, Equatable {
+private enum MainTabModal: Identifiable, Equatable {
     case settings
     case profile
     case cart
-    case login
+    case login(AuthEntryContext)
 
-    var id: String { rawValue }
+    var id: String {
+        switch self {
+        case .settings: return "settings"
+        case .profile: return "profile"
+        case .cart: return "cart"
+        case .login(let context): return "login-\(context.rawValue)"
+        }
+    }
 }
 
 struct MainTabView: View {
@@ -106,13 +113,15 @@ struct MainTabView: View {
                 rootTabView
                     .sheet(item: activeModalBinding) { modal in
                         modalContent(for: modal)
+                            .presentationDragIndicator(.visible)
+                            .presentationCornerRadius(28)
                     }
             }
         }
         .accentColor(selectedTabAccent)
         .background(AppColors.primaryBackground(for: currentScheme).edgesIgnoringSafeArea(.all))
         .preferredColorScheme(preferredScheme)
-        .animation(SkydownMotion.emphasizedTransition, value: selectedTab)
+        .animation(SkydownMotion.tabContextTransition, value: selectedTab)
         .onChange(of: hasAIAccess) { _, allowed in
             if !allowed {
                 showsWorkflowWorkspace = false
@@ -137,13 +146,14 @@ struct MainTabView: View {
                 DeferredView {
                     ShopView(
                         authManager: services.authManager,
-                        onOpenLogin: { presentModal(.login) },
+                        onOpenLogin: { presentLogin(.merchShop) },
                         onOpenCart: { presentModal(.cart) },
                         onOpenProfile: { presentModal(.profile) },
                         onOpenSettings: { presentSettings() },
+                        onGuestSignIn: { presentLogin(.standard) },
                         merchandiseService: services.merchandiseService
                     )
-                    .skydownSceneActivation(isActive: selectedTab == .merch, axis: .horizontal, travel: 28)
+                    .skydownSceneActivation(isActive: selectedTab == .merch, axis: .horizontal, travel: 22)
                 }
                 .tabItem { Label(localized("tabs.merch", "Merch"), systemImage: "bag.fill") }
                 .tag(MainTab.merch)
@@ -152,9 +162,10 @@ struct MainTabView: View {
                     ZweizweiTabView(
                         onOpenCart: { presentModal(.cart) },
                         onOpenProfile: { presentModal(.profile) },
-                        onOpenSettings: { presentSettings() }
+                        onOpenSettings: { presentSettings() },
+                        onGuestSignIn: { presentLogin(.music) }
                     )
-                    .skydownSceneActivation(isActive: selectedTab == .zweizwei, axis: .horizontal, travel: 28)
+                    .skydownSceneActivation(isActive: selectedTab == .zweizwei, axis: .horizontal, travel: 22)
                 }
                 .tabItem { Label(localized("tabs.music", "Music"), systemImage: "waveform.circle.fill") }
                 .tag(MainTab.zweizwei)
@@ -164,6 +175,7 @@ struct MainTabView: View {
                         onOpenCart: { presentModal(.cart) },
                         onOpenProfile: { presentModal(.profile) },
                         onOpenSettings: { presentSettings() },
+                        onGuestSignIn: { presentLogin(.standard) },
                         onOpenWorkflow: hasAIAccess ? {
                             withAnimation(SkydownMotion.screenTransition) {
                                 showsWorkflowWorkspace = true
@@ -171,7 +183,7 @@ struct MainTabView: View {
                             }
                         } : nil
                     )
-                    .skydownSceneActivation(isActive: selectedTab == .hub, axis: .horizontal, travel: 28)
+                    .skydownSceneActivation(isActive: selectedTab == .hub, axis: .horizontal, travel: 22)
                 }
                 .tabItem { Label(localized("tabs.home", "Home"), systemImage: "house.fill") }
                 .tag(MainTab.hub)
@@ -180,9 +192,10 @@ struct MainTabView: View {
                     VideoHubTabView(
                         onOpenCart: { presentModal(.cart) },
                         onOpenProfile: { presentModal(.profile) },
-                        onOpenSettings: { presentSettings() }
+                        onOpenSettings: { presentSettings() },
+                        onGuestSignIn: { presentLogin(.standard) }
                     )
-                    .skydownSceneActivation(isActive: selectedTab == .skydown, axis: .horizontal, travel: 28)
+                    .skydownSceneActivation(isActive: selectedTab == .skydown, axis: .horizontal, travel: 22)
                 }
                 .tabItem { Label(localized("tabs.videos", "Videos"), systemImage: "play.rectangle.fill") }
                 .tag(MainTab.skydown)
@@ -195,12 +208,13 @@ struct MainTabView: View {
                         showsWorkflowWorkspace: $showsWorkflowWorkspace,
                         onExitImmersive: exitAITools,
                         onOpenCart: { presentModal(.cart) },
-                        onOpenLogin: { presentModal(.login) },
+                        onOpenLogin: { presentLogin(.ai) },
+                        onGuestSignIn: { presentLogin(.standard) },
                         onOpenProfile: { presentModal(.profile) },
                         onOpenSettings: { presentSettings() },
                         onOpenAutomationSettings: { presentSettings(initialAdminWorkspaceRawValue: "Automation") }
                     )
-                    .skydownSceneActivation(isActive: selectedTab == .tools, axis: .horizontal, travel: 28)
+                    .skydownSceneActivation(isActive: selectedTab == .tools, axis: .horizontal, travel: 22)
                 }
                 .tabItem { Label(localized("tabs.tools", "AI"), systemImage: "sparkles") }
                 .tag(MainTab.tools)
@@ -270,15 +284,20 @@ struct MainTabView: View {
         case .cart:
             CartView(
                 onOpenProfile: { presentModal(.profile) },
-                onOpenSettings: { presentSettings() }
+                onOpenSettings: { presentSettings() },
+                onGuestSignIn: { presentLogin(.standard) }
             )
-        case .login:
-            LoginView()
+        case .login(let context):
+            LoginView(entryContext: context)
         }
     }
 
     private func presentModal(_ modal: MainTabModal) {
         modalPresentation.request(modal)
+    }
+
+    private func presentLogin(_ context: AuthEntryContext) {
+        presentModal(.login(context))
     }
 
     private func presentSettings(initialAdminWorkspaceRawValue: String? = nil) {
@@ -305,12 +324,13 @@ private struct DeferredSettingsPresentation: View {
     }
 
     var body: some View {
-        Group {
+        ZStack {
             if isReady {
                 SettingsView(
                     colorScheme: $colorScheme,
                     initialAdminWorkspaceRawValue: initialAdminWorkspaceRawValue
                 )
+                .transition(.opacity)
             } else {
                 ZStack {
                     AppColors.screenGradient(
@@ -329,11 +349,14 @@ private struct DeferredSettingsPresentation: View {
                             .foregroundColor(AppColors.text(for: effectiveColorScheme))
                     }
                 }
-                .task {
-                    guard !isReady else { return }
-                    await Task.yield()
-                    isReady = true
-                }
+                .transition(.opacity)
+            }
+        }
+        .task {
+            guard !isReady else { return }
+            await Task.yield()
+            withAnimation(SkydownMotion.statusTransition) {
+                isReady = true
             }
         }
     }
@@ -343,17 +366,20 @@ struct AppSessionToolbarActions: View {
     let onOpenCart: (() -> Void)?
     let onOpenProfile: (() -> Void)?
     let onOpenSettings: () -> Void
+    let onGuestSignIn: (() -> Void)?
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
 
     init(
         onOpenCart: (() -> Void)? = nil,
         onOpenProfile: (() -> Void)? = nil,
-        onOpenSettings: @escaping () -> Void
+        onOpenSettings: @escaping () -> Void,
+        onGuestSignIn: (() -> Void)? = nil
     ) {
         self.onOpenCart = onOpenCart
         self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
+        self.onGuestSignIn = onGuestSignIn
     }
 
     private var displayName: String {
@@ -419,6 +445,16 @@ struct AppSessionToolbarActions: View {
             )
             .buttonStyle(.plain)
             .skydownTactileAction()
+
+            if authManager.userSession == nil, let onGuestSignIn {
+                Button(action: onGuestSignIn) {
+                    Text(AppLocalized.text("auth.session.sign_in", fallback: "Sign in"))
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.72))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("app.toolbar.guest_sign_in")
+            }
 
             if let onOpenCart {
                 SessionToolbarIconButton(
@@ -486,6 +522,7 @@ private struct ZweizweiTabView: View {
     let onOpenCart: () -> Void
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
+    let onGuestSignIn: (() -> Void)?
 
     var body: some View {
         Group {
@@ -673,7 +710,8 @@ private struct ZweizweiTabView: View {
                         AppSessionToolbarActions(
                             onOpenCart: onOpenCart,
                             onOpenProfile: onOpenProfile,
-                            onOpenSettings: onOpenSettings
+                            onOpenSettings: onOpenSettings,
+                            onGuestSignIn: onGuestSignIn
                         )
                     }
                 }
@@ -692,7 +730,8 @@ private struct ZweizweiTabView: View {
                 },
                 onOpenCart: onOpenCart,
                 onOpenProfile: onOpenProfile,
-                onOpenSettings: onOpenSettings
+                onOpenSettings: onOpenSettings,
+                onGuestSignIn: onGuestSignIn
             )
         case .beatHub:
             NavigationStack {
@@ -712,7 +751,7 @@ private struct ZweizweiTabView: View {
                 }
             }
         }
-        .skydownSceneMotion(trigger: destination, axis: .horizontal, travel: 30)
+        .skydownSceneMotion(trigger: destination, axis: .horizontal, travel: 24)
         .skydownSelectionFeedback(trigger: destination)
     }
 }
@@ -871,6 +910,7 @@ private struct AIHubView: View {
     let onExitImmersive: () -> Void
     let onOpenCart: () -> Void
     let onOpenLogin: () -> Void
+    let onGuestSignIn: (() -> Void)?
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
     let onOpenAutomationSettings: () -> Void
@@ -891,6 +931,7 @@ private struct AIHubView: View {
         onExitImmersive: @escaping () -> Void,
         onOpenCart: @escaping () -> Void,
         onOpenLogin: @escaping () -> Void,
+        onGuestSignIn: (() -> Void)?,
         onOpenProfile: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
         onOpenAutomationSettings: @escaping () -> Void
@@ -900,6 +941,7 @@ private struct AIHubView: View {
         self.onExitImmersive = onExitImmersive
         self.onOpenCart = onOpenCart
         self.onOpenLogin = onOpenLogin
+        self.onGuestSignIn = onGuestSignIn
         self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
         self.onOpenAutomationSettings = onOpenAutomationSettings
@@ -947,13 +989,20 @@ private struct AIHubView: View {
                     layout.contentMaxWidth,
                     max(geometry.size.width - (layout.horizontalPadding * 2), 0)
                 )
+                let aiLoginTitle = featureFlags.aiAccessMode == .adminOnly
+                    ? AppLocalized.text("auth.ai.login.title_staff", fallback: "Staff access")
+                    : AppLocalized.text("auth.ai.login.title", fallback: "Keep your AI momentum")
+                let aiLoginMessage = featureFlags.aiAccessMode == .signedIn
+                    ? AppLocalized.text("auth.ai.login.hint_signed_in", fallback: "Save workflows and return to the same thread without losing context.")
+                    : featureFlags.aiAccessMessage(for: nil)
 
                 VStack(spacing: 10) {
                     if authManager.userSession == nil {
                         AIHubLoginCard(
                             colorScheme: colorScheme,
-                            title: featureFlags.aiAccessMode == .adminOnly ? "KI nur fuer freigegebene Konten" : "KI nur mit Konto",
-                            message: featureFlags.aiAccessMessage(for: nil),
+                            title: aiLoginTitle,
+                            message: aiLoginMessage,
+                            ctaTitle: AppLocalized.text("auth.continue_with_account", fallback: "Continue with account"),
                             onOpenLogin: onOpenLogin
                         )
                         .frame(maxWidth: .infinity)
@@ -986,6 +1035,21 @@ private struct AIHubView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.top, 8)
 
+                        Text(
+                            AppLocalized.text(
+                                "ai.legal_disclosure_short",
+                                fallback: "AI can be wrong. Full policy: Settings → Privacy / Legal / Help → AI usage notice."
+                            )
+                        )
+                        .font(.caption2.weight(.medium))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 4)
+                        .accessibilityLabel(
+                            AppLocalized.text("ai.legal_disclosure_short", fallback: "AI can be wrong. Full policy: Settings → Privacy / Legal / Help → AI usage notice.")
+                        )
+
                         Group {
                             if showsWorkflowWorkspace {
                                 AIWorkflowWorkspaceCard(
@@ -1014,7 +1078,7 @@ private struct AIHubView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .skydownSceneMotion(trigger: motionState, axis: .horizontal, travel: 26)
+                        .skydownSceneMotion(trigger: motionState, axis: .horizontal, travel: 22)
                     }
                 }
                 .frame(maxWidth: contentWidth, maxHeight: .infinity, alignment: .top)
@@ -1078,7 +1142,8 @@ private struct AIHubView: View {
                     AppSessionToolbarActions(
                         onOpenCart: onOpenCart,
                         onOpenProfile: onOpenProfile,
-                        onOpenSettings: onOpenSettings
+                        onOpenSettings: onOpenSettings,
+                        onGuestSignIn: onGuestSignIn
                     )
                 }
             }
@@ -1246,6 +1311,7 @@ private struct VideoHubTabView: View {
     let onOpenCart: () -> Void
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
+    let onGuestSignIn: (() -> Void)?
 
     var body: some View {
         NavigationStack {
@@ -1255,7 +1321,8 @@ private struct VideoHubTabView: View {
                         AppSessionToolbarActions(
                             onOpenCart: onOpenCart,
                             onOpenProfile: onOpenProfile,
-                            onOpenSettings: onOpenSettings
+                            onOpenSettings: onOpenSettings,
+                            onGuestSignIn: onGuestSignIn
                         )
                     }
                 }
@@ -1267,6 +1334,7 @@ private struct AIHubLoginCard: View {
     let colorScheme: ColorScheme
     let title: String
     let message: String
+    let ctaTitle: String
     let onOpenLogin: () -> Void
 
     var body: some View {
@@ -1286,7 +1354,7 @@ private struct AIHubLoginCard: View {
             }
 
             Button(action: onOpenLogin) {
-                Text("Jetzt anmelden")
+                Text(ctaTitle)
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)

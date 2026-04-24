@@ -273,7 +273,7 @@ struct BeatHubView: View {
             .disabled(!viewModel.canAddExternalBeat)
             .opacity(viewModel.canAddExternalBeat ? 1 : 0.6)
         }
-        .padding(18)
+        .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 24)
@@ -328,7 +328,7 @@ struct BeatHubView: View {
                 }
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 24)

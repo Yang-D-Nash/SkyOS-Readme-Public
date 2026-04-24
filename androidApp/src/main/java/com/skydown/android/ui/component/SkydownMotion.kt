@@ -1,5 +1,8 @@
 package com.skydown.android.ui.component
 
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -11,27 +14,36 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 
+/**
+ * Calm “premium” motion language aligned with iOS `SkydownMotion`: ease-out, ~150–250ms,
+ * no bouncy springs for standard UI.
+ */
 object SkydownMotionTokens {
-    const val primaryEnterDurationMillis = 340
-    const val primaryExitDurationMillis = 240
-    const val overlayEnterDurationMillis = 300
-    const val overlayExitDurationMillis = 220
-    const val statusEnterDurationMillis = 260
-    const val statusExitDurationMillis = 180
-    const val staggerStepMillis = 12
-    const val premiumAccentTransitionMillis = 380
-    const val premiumLabelTransitionMillis = 260
-    const val premiumPressDampingRatio = 0.86f
-    const val premiumPressStiffness = 700f
-    const val premiumPressAlphaDampingRatio = 0.90f
-    const val premiumPressAlphaStiffness = 720f
-    const val premiumPressLiftDampingRatio = 0.92f
-    const val premiumPressLiftStiffness = 740f
-    const val premiumDockIconDampingRatio = 0.88f
-    const val premiumDockIconStiffness = 560f
-    const val premiumDockLiftDampingRatio = 0.90f
-    const val premiumDockLiftStiffness = 610f
+    const val primaryEnterDurationMillis = 250
+    const val primaryExitDurationMillis = 200
+    const val overlayEnterDurationMillis = 240
+    const val overlayExitDurationMillis = 200
+    const val statusEnterDurationMillis = 220
+    const val statusExitDurationMillis = 170
+    /// Subtle stagger for first-paint reveals (keep short; no “cascade” feel).
+    const val staggerStepMillis = 8
+    const val premiumAccentTransitionMillis = 240
+    const val premiumLabelTransitionMillis = 200
+    const val dockSelectionDurationMillis = 200
+    const val pressDurationMillis = 180
+    const val selectionCrossFadeMillis = 200
+    const val contentRevealEnterMillis = 220
 }
+
+/** Default ease-out spec for float/color motion (matches iOS ease-out curves). */
+fun <T> skydownTween(
+    durationMillis: Int,
+    delayMillis: Int = 0,
+): AnimationSpec<T> = tween(
+    durationMillis = durationMillis,
+    delayMillis = delayMillis,
+    easing = FastOutSlowInEasing,
+)
 
 @Composable
 fun Modifier.skydownLuminousSweep(

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -64,12 +65,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import com.skydown.android.R
 import com.skydown.android.data.AppContainer
 import com.skydown.android.ui.component.AppTopBarSessionActions
 import com.skydown.android.ui.component.BrandActionButton
@@ -84,10 +88,12 @@ import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.component.rememberSkydownScreenSectionSpacing
 import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
+import com.skydown.android.ui.theme.skydownAccentMystic
 import com.skydown.android.ui.model.ShopUiState
 import com.skydown.android.ui.viewmodel.ShopViewModel
 import com.skydown.shared.model.MerchandiseItem
@@ -102,12 +108,14 @@ import kotlinx.coroutines.delay
 @Composable
 fun ShopScreen(
     onOpenLogin: () -> Unit = {},
+    onGuestSignIn: (() -> Unit)? = null,
     onOpenCart: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: ShopViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val mainSectionSpacing = rememberSkydownScreenSectionSpacing() + 3.dp
     val collabLanes = remember(uiState.items) { buildShopCollabLanes(uiState.items) }
     var selectedCollabLaneId by rememberSaveable { mutableStateOf(ShopCollabLane.ALL_ID) }
     val filteredItems = remember(uiState.items, selectedCollabLaneId) {
@@ -171,7 +179,7 @@ fun ShopScreen(
                 title = {
                     SkydownTopBarTitle(
                         "Shop",
-                        "SkyOS Store.",
+                        stringResource(R.string.shop_topbar_subtitle),
                         accent = MaterialTheme.colorScheme.tertiary,
                     )
                 },
@@ -180,6 +188,7 @@ fun ShopScreen(
                         onOpenCart = onOpenCart,
                         onOpenProfile = onOpenProfile,
                         onOpenSettings = onOpenSettings,
+                        onGuestSignIn = onGuestSignIn,
                     ) {
                         IconButton(
                             onClick = viewModel::refresh,
@@ -202,9 +211,9 @@ fun ShopScreen(
                 .background(
                     skydownScreenBrush(
                         primaryColor = MaterialTheme.colorScheme.primary,
-                        secondaryColor = MaterialTheme.colorScheme.tertiary,
-                        primaryAlpha = 0.070f,
-                        secondaryAlpha = 0.048f,
+                        secondaryColor = MaterialTheme.colorScheme.skydownAccentMystic(),
+                        primaryAlpha = 0.028f,
+                        secondaryAlpha = 0.018f,
                     ),
                 ),
         ) {
@@ -214,7 +223,7 @@ fun ShopScreen(
                     .fillMaxSize()
                     .testTag("shop.root"),
                 contentPadding = skydownContentPadding(innerPadding),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(mainSectionSpacing),
             ) {
                 item {
                     ShopOverviewCard(
@@ -223,12 +232,14 @@ fun ShopScreen(
                     )
                 }
 
-                if (editorialPickItems.isNotEmpty()) {
+                if (uiState.items.isNotEmpty()) {
                     item {
-                        ShopLandingCuratedModule(
+                        ShopMerchOpeningBlock(
+                            showFeatured = editorialPickItems.isNotEmpty(),
                             featuredItem = featuredDropItem,
                             editorialPicks = editorialPickItems,
                             onOpenItem = viewModel::selectItem,
+                            showConnectorLineAboveBrowse = editorialPickItems.isNotEmpty(),
                         )
                     }
                 }
@@ -256,11 +267,11 @@ fun ShopScreen(
                 if (!uiState.isStoreOpen && !uiState.isAdmin) {
                     item {
                         ShopMessageCard(
-                            title = "Merch-Store pausiert",
-                            body = "Produkte bleiben sichtbar. Checkout ist kurz pausiert.",
+                            title = stringResource(R.string.shop_paused_title),
+                            body = stringResource(R.string.shop_paused_body),
                             icon = Icons.Default.Close,
                             accent = MaterialTheme.colorScheme.secondary,
-                            tag = "PAUSE",
+                            tag = stringResource(R.string.shop_tag_pause),
                         )
                     }
                 }
@@ -269,112 +280,142 @@ fun ShopScreen(
                     item {
                         val isSyncing = uiState.isCatalogLoading || uiState.isSyncingCatalog
                         ShopMessageCard(
-                            title = when {
-                                isSyncing -> "Shop wird geladen"
-                                else -> "Noch keine Pieces"
-                            },
+                            title = stringResource(
+                                if (isSyncing) {
+                                    R.string.shop_empty_title_loading
+                                } else {
+                                    R.string.shop_empty_title_idle
+                                },
+                            ),
                             body = if (uiState.isAdmin) {
                                 if (isSyncing) {
-                                    "Der Store wird aktualisiert."
+                                    stringResource(R.string.shop_empty_body_loading_admin)
                                 } else {
-                                    "Sobald neue Pieces live sind, erscheinen sie hier."
+                                    stringResource(R.string.shop_empty_body_idle_guest)
                                 }
                             } else {
                                 if (isSyncing) {
-                                    "Neue Pieces werden geladen."
+                                    stringResource(R.string.shop_empty_body_loading_guest)
                                 } else {
-                                    "Sobald neue Pieces live sind, erscheinen sie hier."
+                                    stringResource(R.string.shop_empty_body_idle_guest)
                                 }
                             },
                             icon = if (isSyncing) Icons.Default.Sync else Icons.Default.ShoppingBag,
                             accent = MaterialTheme.colorScheme.primary,
-                            tag = if (isSyncing) "SYNC" else "MERCH",
+                            tag = if (isSyncing) {
+                                stringResource(R.string.shop_empty_tag_sync)
+                            } else {
+                                stringResource(R.string.shop_empty_tag_merch)
+                            },
                         )
                     }
-                } else if (isWideLayout) {
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.Top,
-                        ) {
-                            ShopCollabSidebar(
-                                lanes = collabLanes,
-                                selectedLaneId = selectedCollabLaneId,
-                                onSelect = { lane -> selectedCollabLaneId = lane.id },
-                                modifier = Modifier.width(248.dp),
-                            )
-
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                } else {
+                    if (isWideLayout) {
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.Top,
                             ) {
-                                ShopCollabSelectionCard(
-                                    lane = selectedCollabLane,
-                                    totalItemCount = uiState.items.size,
+                                ShopCollabSidebar(
+                                    lanes = collabLanes,
+                                    selectedLaneId = selectedCollabLaneId,
+                                    onSelect = { lane -> selectedCollabLaneId = lane.id },
+                                    modifier = Modifier.width(248.dp),
                                 )
 
-                                if (filteredItems.isEmpty()) {
-                                    ShopMessageCard(
-                                        title = "Noch keine Pieces",
-                                        body = "In ${selectedCollabLane.title} ist gerade noch kein sichtbarer Merch.",
-                                        icon = Icons.Default.Person,
-                                        accent = MaterialTheme.colorScheme.primary,
-                                        tag = "FILTER",
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                                ) {
+                                    ShopCollabSelectionCard(
+                                        lane = selectedCollabLane,
+                                        totalItemCount = uiState.items.size,
                                     )
-                                } else {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                                    ) {
-                                        filteredItems.forEach { item ->
-                                            MerchandiseCard(
-                                                item = item,
-                                                onTap = viewModel::selectItem,
-                                            )
+
+                                    if (filteredItems.isEmpty()) {
+                                        ShopMessageCard(
+                                            title = stringResource(R.string.shop_filter_empty_title),
+                                            body = stringResource(
+                                                R.string.shop_filter_empty_body,
+                                                shopLaneTitle(selectedCollabLane),
+                                            ),
+                                            icon = Icons.Default.Person,
+                                            accent = MaterialTheme.colorScheme.primary,
+                                            tag = "FILTER",
+                                        )
+                                    } else {
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(9.dp),
+                                        ) {
+                                            filteredItems.forEachIndexed { index, item ->
+                                                MerchandiseCard(
+                                                    item = item,
+                                                    onTap = viewModel::selectItem,
+                                                    modifier = Modifier.padding(
+                                                        top = if (index == 2) 18.dp else 0.dp,
+                                                    ),
+                                                    shelfHighlight = index < 2,
+                                                    shelfSettled = index > 2,
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                } else {
-                    item {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            ShopCollabCarousel(
-                                lanes = collabLanes,
-                                selectedLaneId = selectedCollabLaneId,
-                                totalItemCount = uiState.items.size,
-                                onSelect = { lane -> selectedCollabLaneId = lane.id },
-                            )
-
-                            if (collabLanes.size > 1) {
-                                ShopCollabQuickGrid(
+                    } else {
+                        item {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                            ) {
+                                ShopCollabCarousel(
                                     lanes = collabLanes,
                                     selectedLaneId = selectedCollabLaneId,
+                                    totalItemCount = uiState.items.size,
                                     onSelect = { lane -> selectedCollabLaneId = lane.id },
                                 )
+
+                                if (collabLanes.size > 1) {
+                                    ShopCollabQuickGrid(
+                                        lanes = collabLanes,
+                                        selectedLaneId = selectedCollabLaneId,
+                                        onSelect = { lane -> selectedCollabLaneId = lane.id },
+                                    )
+                                }
                             }
                         }
                     }
 
-                    if (filteredItems.isEmpty()) {
-                        item {
-                            ShopMessageCard(
-                                title = "Noch keine Pieces",
-                                body = "In ${selectedCollabLane.title} ist gerade noch kein sichtbarer Merch.",
-                                icon = Icons.Default.Person,
-                                accent = MaterialTheme.colorScheme.primary,
-                                tag = "FILTER",
-                            )
-                        }
-                    } else {
-                        items(filteredItems, key = { it.id.orEmpty() }) { item ->
-                            MerchandiseCard(
-                                item = item,
-                                onTap = viewModel::selectItem,
-                            )
+                    if (!isWideLayout) {
+                        if (filteredItems.isEmpty()) {
+                            item {
+                                ShopMessageCard(
+                                    title = stringResource(R.string.shop_filter_empty_title),
+                                    body = stringResource(
+                                        R.string.shop_filter_empty_body,
+                                        shopLaneTitle(selectedCollabLane),
+                                    ),
+                                    icon = Icons.Default.Person,
+                                    accent = MaterialTheme.colorScheme.primary,
+                                    tag = "FILTER",
+                                )
+                            }
+                        } else {
+                            itemsIndexed(
+                                filteredItems,
+                                key = { _, it -> it.id.orEmpty() },
+                            ) { index, item ->
+                                MerchandiseCard(
+                                    item = item,
+                                    onTap = viewModel::selectItem,
+                                    modifier = Modifier.padding(
+                                        top = if (index == 2) 18.dp else 0.dp,
+                                    ),
+                                    shelfHighlight = index < 2,
+                                    shelfSettled = index > 2,
+                                )
+                            }
                         }
                     }
                 }
@@ -416,21 +457,21 @@ private fun ShopOverviewCard(
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     val pieceLabel = when {
-        uiState.isCatalogLoading || uiState.isSyncingCatalog -> "Sync live"
-        uiState.items.size == 1 -> "1 Piece"
-        else -> "${uiState.items.size} Pieces"
+        uiState.isCatalogLoading || uiState.isSyncingCatalog -> stringResource(R.string.shop_hero_pill_updating)
+        uiState.items.size == 1 -> stringResource(R.string.shop_hero_pill_product_one)
+        else -> stringResource(R.string.shop_hero_pill_product_other, uiState.items.size)
     }
     BrandHeroCard(
         eyebrow = screenHeaderSettings.shopEyebrow.ifBlank { "SKY OS" },
         title = screenHeaderSettings.shopTitle.ifBlank { "Merch" },
         subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Drops und Pieces." },
         detail = screenHeaderSettings.shopDetail.ifBlank {
-            if (uiState.isCatalogLoading) {
-                "Store wird aktualisiert."
+            if (uiState.isCatalogLoading || uiState.isSyncingCatalog) {
+                stringResource(R.string.shop_hero_detail_updating)
             } else if (uiState.isStoreOpen) {
-                "Checkout ist live."
+                stringResource(R.string.shop_hero_detail_checkout_on)
             } else {
-                "Checkout ist pausiert."
+                stringResource(R.string.shop_hero_detail_checkout_off)
             }
         },
         backgroundImageUrl = screenHeaderSettings.shopImageUrl.ifBlank { null },
@@ -445,17 +486,29 @@ private fun ShopOverviewCard(
             ) {
                 BrandPill(text = pieceLabel, tint = MaterialTheme.colorScheme.primary)
                 BrandPill(
-                    text = if (uiState.isStoreOpen) "Checkout aktiv" else "Checkout pausiert",
+                    text = if (uiState.isStoreOpen) {
+                        stringResource(R.string.shop_hero_pill_checkout_on)
+                    } else {
+                        stringResource(R.string.shop_hero_pill_checkout_off)
+                    },
                     tint = if (uiState.isStoreOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
                 )
                 if (laneCount > 0) {
                     BrandPill(
-                        text = if (laneCount == 1) "1 Lane" else "$laneCount Lanes",
+                        text = if (laneCount == 1) {
+                            stringResource(R.string.shop_hero_pill_collection_one)
+                        } else {
+                            stringResource(R.string.shop_hero_pill_collection_other, laneCount)
+                        },
                         tint = MaterialTheme.colorScheme.secondary,
                     )
                 }
                 BrandPill(
-                    text = if (uiState.isLoggedIn) "Account" else "Gast",
+                    text = if (uiState.isLoggedIn) {
+                        stringResource(R.string.shop_hero_pill_account)
+                    } else {
+                        stringResource(R.string.shop_hero_pill_guest)
+                    },
                     tint = MaterialTheme.colorScheme.tertiary,
                 )
             }
@@ -465,24 +518,36 @@ private fun ShopOverviewCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 ShopHeroStatusCard(
-                    label = "Pieces",
-                    value = if (uiState.isCatalogLoading || uiState.isSyncingCatalog) "Sync" else uiState.items.size.toString(),
+                    label = stringResource(R.string.shop_hero_metric_catalog),
+                    value = if (uiState.isCatalogLoading || uiState.isSyncingCatalog) {
+                        stringResource(R.string.shop_hero_metric_value_updating)
+                    } else {
+                        uiState.items.size.toString()
+                    },
                     icon = Icons.Default.ShoppingBag,
                     accent = MaterialTheme.colorScheme.primary,
                     isActive = uiState.isCatalogLoading || uiState.isSyncingCatalog || uiState.items.isNotEmpty(),
                     modifier = Modifier.weight(1f),
                 )
                 ShopHeroStatusCard(
-                    label = "Store",
-                    value = if (uiState.isStoreOpen) "Live" else "Pause",
+                    label = stringResource(R.string.shop_hero_metric_store),
+                    value = if (uiState.isStoreOpen) {
+                        stringResource(R.string.shop_hero_metric_value_open)
+                    } else {
+                        stringResource(R.string.shop_hero_metric_value_closed)
+                    },
                     icon = Icons.Default.CheckCircle,
                     accent = MaterialTheme.colorScheme.primary,
                     isActive = uiState.isStoreOpen,
                     modifier = Modifier.weight(1f),
                 )
                 ShopHeroStatusCard(
-                    label = "Access",
-                    value = if (uiState.isLoggedIn) "Account" else "Gast",
+                    label = stringResource(R.string.shop_hero_metric_account),
+                    value = if (uiState.isLoggedIn) {
+                        stringResource(R.string.shop_hero_metric_signed_in)
+                    } else {
+                        stringResource(R.string.shop_hero_metric_guest)
+                    },
                     icon = Icons.Default.Person,
                     accent = MaterialTheme.colorScheme.tertiary,
                     isActive = uiState.isLoggedIn,
@@ -494,115 +559,220 @@ private fun ShopOverviewCard(
 }
 
 @Composable
+private fun ShopBrowseEntryHint(
+    showConnectorLine: Boolean,
+) {
+    val edge = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (showConnectorLine) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0f to Color.Transparent,
+                                0.5f to edge,
+                                1f to Color.Transparent,
+                            ),
+                        ),
+                    ),
+            )
+        }
+        Text(
+            text = stringResource(R.string.shop_browse_headline),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            letterSpacing = 0.2.sp,
+        )
+        Text(
+            text = stringResource(R.string.shop_browse_subline),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+        )
+    }
+}
+
+@Composable
+private fun ShopMerchOpeningBlock(
+    showFeatured: Boolean,
+    featuredItem: MerchandiseItem?,
+    editorialPicks: List<MerchandiseItem>,
+    onOpenItem: (MerchandiseItem) -> Unit,
+    showConnectorLineAboveBrowse: Boolean,
+) {
+    Column(
+        modifier = Modifier.padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        if (showFeatured) {
+            ShopLandingCuratedModule(
+                featuredItem = featuredItem,
+                editorialPicks = editorialPicks,
+                onOpenItem = onOpenItem,
+            )
+        }
+        ShopBrowseEntryHint(showConnectorLine = showConnectorLineAboveBrowse)
+    }
+}
+
+@Composable
 private fun ShopLandingCuratedModule(
     featuredItem: MerchandiseItem?,
     editorialPicks: List<MerchandiseItem>,
     onOpenItem: (MerchandiseItem) -> Unit,
 ) {
-    val moodAreas = remember {
-        listOf("SkyOS Drops", "Studio Picks", "Tech Selects", "Limited Finds")
-    }
+    val momentShape = RoundedCornerShape(32.dp)
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            BrandStatusChip(
-                text = "Today’s Selection",
-                accent = MaterialTheme.colorScheme.tertiary,
-                isActive = true,
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BrandStatusChip(
+                    text = stringResource(R.string.shop_featured_chip),
+                    accent = MaterialTheme.colorScheme.tertiary,
+                    isActive = true,
+                )
+                Text(
+                    text = stringResource(R.string.shop_featured_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
             Text(
-                text = "Kuratiert",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
+                text = stringResource(R.string.shop_featured_hint),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    lineHeight = 22.sp,
+                ),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             )
         }
 
         featuredItem?.let { item ->
-            Box(
+            val imageUrl = item.imageUrls.firstOrNull()?.takeIf { it.isNotBlank() }
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f))
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                        shape = RoundedCornerShape(16.dp),
+                    .clip(momentShape)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
                     )
-                    .clickable { onOpenItem(item) }
-                    .padding(horizontal = 12.dp, vertical = 11.dp),
+                    .clickable { onOpenItem(item) },
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(288.dp),
+                ) {
+                    if (imageUrl != null) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
+                                ),
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    colorStops = arrayOf(
+                                        0f to Color.Transparent,
+                                        0.55f to Color.Transparent,
+                                        1f to Color.Black.copy(alpha = 0.2f),
+                                    ),
+                                ),
+                            ),
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 22.dp, vertical = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Text(
-                        text = "Featured Drop",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = stringResource(R.string.shop_featured_badge),
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.6.sp,
                     )
                     Text(
                         text = item.name,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            lineHeight = 32.sp,
+                        ),
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "EUR ${"%.2f".format(item.price)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                        text = "${item.currency} ${"%.2f".format(item.price)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                     )
                 }
             }
         }
 
         Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 2.dp)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             editorialPicks.forEach { item ->
                 Box(
                     modifier = Modifier
-                        .width(156.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.86f))
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                            shape = RoundedCornerShape(12.dp),
+                        .width(132.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
                         )
                         .clickable { onOpenItem(item) }
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                        .padding(horizontal = 10.dp, vertical = 9.dp),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = item.name,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                         )
                         Text(
-                            text = "EUR ${"%.2f".format(item.price)}",
+                            text = "${item.currency} ${"%.2f".format(item.price)}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                         )
                     }
                 }
-            }
-        }
-
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
-        ) {
-            moodAreas.forEach { mood ->
-                BrandPill(
-                    text = mood,
-                    tint = MaterialTheme.colorScheme.secondary,
-                )
             }
         }
     }
@@ -740,8 +910,8 @@ private fun LoginSection(
 ) {
     SkydownCard {
         BrandSectionBanner(
-            title = "Login",
-            subtitle = "Melde dich an, um Checkout und Account-Funktionen zu nutzen.",
+            title = stringResource(R.string.auth_merch_login_banner_title),
+            subtitle = stringResource(R.string.auth_merch_login_banner_subtitle),
             accent = MaterialTheme.colorScheme.primary,
             icon = Icons.Default.Person,
             tag = "ACCESS",
@@ -752,7 +922,7 @@ private fun LoginSection(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
         BrandActionButton(
-            text = "Anmelden",
+            text = stringResource(R.string.auth_merch_login_cta),
             onClick = onOpenLogin,
             accent = MaterialTheme.colorScheme.primary,
             modifier = Modifier
@@ -773,6 +943,32 @@ private data class ShopCollabLane(
     companion object {
         const val ALL_ID = "all-drops"
     }
+}
+
+@Composable
+private fun shopLaneTitle(lane: ShopCollabLane): String = when (lane.id) {
+    ShopCollabLane.ALL_ID -> stringResource(R.string.shop_lane_all_drops_title)
+    else -> lane.title
+}
+
+@Composable
+private fun shopLaneBannerSubtitle(lane: ShopCollabLane): String = when (lane.id) {
+    ShopCollabLane.ALL_ID -> stringResource(R.string.shop_lane_all_drops_subtitle)
+    else -> lane.subtitle
+}
+
+@Composable
+private fun shopLaneKindLabel(lane: ShopCollabLane): String = when {
+    lane.id == ShopCollabLane.ALL_ID -> stringResource(R.string.shop_lane_kind_all)
+    lane.isCoreLane -> stringResource(R.string.shop_lane_kind_core)
+    else -> stringResource(R.string.shop_lane_kind_collection)
+}
+
+@Composable
+private fun shopPiecesLabel(count: Int): String = if (count == 1) {
+    stringResource(R.string.shop_pieces_in_lane_one)
+} else {
+    stringResource(R.string.shop_pieces_in_lane_other, count)
 }
 
 private fun buildShopCollabLanes(items: List<MerchandiseItem>): List<ShopCollabLane> {
@@ -890,11 +1086,11 @@ private fun ShopCollabSidebar(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             BrandSectionBanner(
-                title = "Drop Map",
-                subtitle = "Alle Collections, Collabs und Core Pieces auf einen Blick.",
+                title = stringResource(R.string.shop_map_title),
+                subtitle = stringResource(R.string.shop_map_subtitle),
                 accent = MaterialTheme.colorScheme.primary,
                 icon = Icons.Default.Person,
-                tag = "LANES",
+                tag = stringResource(R.string.shop_map_tag),
             )
 
             Column(
@@ -945,11 +1141,11 @@ private fun ShopCollabQuickGrid(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             BrandSectionBanner(
-                title = "Direktliste",
-                subtitle = "Swipe oben, Liste hier: jede Collection bleibt direkt erreichbar.",
+                title = stringResource(R.string.shop_quick_title),
+                subtitle = stringResource(R.string.shop_quick_subtitle),
                 accent = MaterialTheme.colorScheme.primary,
                 icon = Icons.Default.ShoppingBag,
-                tag = "LIST",
+                tag = stringResource(R.string.shop_quick_tag),
             )
 
             Column(
@@ -1054,21 +1250,17 @@ private fun ShopCollabSelectionCard(
     lane: ShopCollabLane,
     totalItemCount: Int,
 ) {
-    val laneLabel = if (lane.itemCount == 1) "1 Piece" else "${lane.itemCount} Pieces"
-    val laneKindLabel = when {
-        lane.id == ShopCollabLane.ALL_ID -> "Alle"
-        lane.isCoreLane -> "Core"
-        else -> "Collection"
-    }
+    val laneLabel = shopPiecesLabel(lane.itemCount)
+    val laneKindLabel = shopLaneKindLabel(lane)
     val coverageLabel = if (totalItemCount <= 0) {
         "0%"
     } else {
         "${((lane.itemCount.toFloat() / totalItemCount.toFloat()) * 100f).toInt()}%"
     }
     val focusDetail = if (lane.id == ShopCollabLane.ALL_ID) {
-        "Direkt durch alle sichtbaren Pieces browsen."
+        stringResource(R.string.shop_lane_focus_all)
     } else {
-        "Filtert direkt auf diese Lane und haelt den Rest ruhig im Hintergrund."
+        stringResource(R.string.shop_lane_focus_named, shopLaneTitle(lane))
     }
 
     SkydownCard(
@@ -1078,8 +1270,12 @@ private fun ShopCollabSelectionCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             BrandSectionBanner(
-                title = lane.title,
-                subtitle = if (lane.id == ShopCollabLane.ALL_ID) "Alle Drops im Fokus" else "Fokus auf ${lane.title}",
+                title = shopLaneTitle(lane),
+                subtitle = if (lane.id == ShopCollabLane.ALL_ID) {
+                    stringResource(R.string.shop_lane_all_drops_subtitle)
+                } else {
+                    shopLaneBannerSubtitle(lane)
+                },
                 accent = MaterialTheme.colorScheme.primary,
                 icon = if (lane.id == ShopCollabLane.ALL_ID) Icons.Default.ShoppingBag else Icons.Default.Person,
                 tag = laneLabel.uppercase(),
@@ -1096,21 +1292,29 @@ private fun ShopCollabSelectionCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 ShopLaneMetricCard(
-                    title = "Route",
+                    title = stringResource(R.string.shop_lane_metric_group_type),
                     value = laneKindLabel,
-                    detail = lane.subtitle,
+                    detail = shopLaneBannerSubtitle(lane),
                     accent = MaterialTheme.colorScheme.secondary,
                 )
                 ShopLaneMetricCard(
-                    title = "Share",
+                    title = stringResource(R.string.shop_lane_metric_group_coverage),
                     value = coverageLabel,
-                    detail = if (lane.itemCount == totalItemCount) "Gesamter Katalog" else "des sichtbaren Katalogs",
+                    detail = if (lane.itemCount == totalItemCount) {
+                        stringResource(R.string.shop_lane_coverage_detail_full)
+                    } else {
+                        stringResource(R.string.shop_lane_coverage_detail_partial)
+                    },
                     accent = MaterialTheme.colorScheme.tertiary,
                 )
                 ShopLaneMetricCard(
-                    title = "Pieces",
+                    title = stringResource(R.string.shop_lane_metric_group_count),
                     value = laneLabel,
-                    detail = if (lane.itemCount == totalItemCount) "Gesamtauswahl" else "Aktiver Filter",
+                    detail = if (lane.itemCount == totalItemCount) {
+                        stringResource(R.string.shop_lane_count_detail_all)
+                    } else {
+                        stringResource(R.string.shop_lane_count_detail_filter)
+                    },
                     accent = MaterialTheme.colorScheme.primary,
                 )
             }
@@ -1174,7 +1378,7 @@ private fun ShopCollabSidebarButton(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = lane.title,
+                    text = shopLaneTitle(lane),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = contentColor,
@@ -1182,7 +1386,7 @@ private fun ShopCollabSidebarButton(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = lane.subtitle,
+                    text = shopLaneBannerSubtitle(lane),
                     style = MaterialTheme.typography.bodySmall,
                     color = contentColor.copy(alpha = if (isSelected) 0.84f else 0.74f),
                     maxLines = if (compact) 1 else 2,
@@ -1193,15 +1397,11 @@ private fun ShopCollabSidebarButton(
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ShopLaneMetaChip(
-                text = if (lane.itemCount == 1) "1 Piece" else "${lane.itemCount} Pieces",
+                text = shopPiecesLabel(lane.itemCount),
                 isSelected = isSelected,
             )
             ShopLaneMetaChip(
-                text = when {
-                    lane.id == ShopCollabLane.ALL_ID -> "Alle"
-                    lane.isCoreLane -> "Core"
-                    else -> "Collection"
-                },
+                text = shopLaneKindLabel(lane),
                 isSelected = isSelected,
             )
         }

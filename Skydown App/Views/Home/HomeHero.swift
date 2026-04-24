@@ -70,7 +70,14 @@ struct HomeHeroIntroCard: View {
         case .beat: base = AppColors.accentMystic(for: colorScheme)
         case .video: base = AppColors.accentHighlight(for: colorScheme)
         }
-        return heroPriorityTarget == target ? base : base.opacity(0.66)
+        return heroPriorityTarget == target ? base : base.opacity(0.32)
+    }
+    private var heroPillOrder: [HeroPriorityTarget] {
+        switch heroPriorityTarget {
+        case .track: return [.track, .beat, .video]
+        case .beat: return [.beat, .track, .video]
+        case .video: return [.video, .track, .beat]
+        }
     }
 
     var body: some View {
@@ -83,30 +90,50 @@ struct HomeHeroIntroCard: View {
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
-            marks: [.skydownX22]
+            marks: [],
+            immersive: true
         ) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    BrandHeroPill(
-                        text: heroPriorityTarget == .track ? (viewModel.featuredTrack == nil ? "Next: Musik laden" : "Next: Musik") : (viewModel.featuredTrack == nil ? "Musik laedt" : "Musik live"),
-                        colorScheme: colorScheme,
-                        tint: heroPillTint(for: .track),
-                        onTap: onOpenTrack
-                    )
-                    BrandHeroPill(
-                        text: heroPriorityTarget == .beat ? (viewModel.featuredBeat == nil ? "Next: Beats laden" : "Next: Beats") : (viewModel.featuredBeat == nil ? "Beats laden" : "Beats live"),
-                        colorScheme: colorScheme,
-                        tint: heroPillTint(for: .beat),
-                        onTap: onOpenBeat
-                    )
-                    BrandHeroPill(
-                        text: heroPriorityTarget == .video ? (viewModel.featuredVideo == nil ? "Next: Visual laden" : "Next: Visual") : (viewModel.featuredVideo == nil ? "Video laedt" : "Video live"),
-                        colorScheme: colorScheme,
-                        tint: heroPillTint(for: .video),
-                        onTap: onOpenVideo
-                    )
+            HStack(alignment: .top, spacing: 10) {
+                ForEach(Array(heroPillOrder.enumerated()), id: \.offset) { index, target in
+                    let weight: CGFloat = index == 0 ? 1.3 : 1.0
+                    Group {
+                        switch target {
+                        case .track:
+                            BrandHeroPill(
+                                text: heroPriorityTarget == .track
+                                    ? (viewModel.featuredTrack == nil ? "Next: Musik laden" : "Next: Musik")
+                                    : (viewModel.featuredTrack == nil ? "Musik laedt" : "Musik live"),
+                                colorScheme: colorScheme,
+                                tint: heroPillTint(for: .track),
+                                onTap: onOpenTrack
+                            )
+                        case .beat:
+                            BrandHeroPill(
+                                text: heroPriorityTarget == .beat
+                                    ? (viewModel.featuredBeat == nil ? "Next: Beats laden" : "Next: Beats")
+                                    : (viewModel.featuredBeat == nil ? "Beats laden" : "Beats live"),
+                                colorScheme: colorScheme,
+                                tint: heroPillTint(for: .beat),
+                                onTap: onOpenBeat
+                            )
+                        case .video:
+                            BrandHeroPill(
+                                text: heroPriorityTarget == .video
+                                    ? (viewModel.featuredVideo == nil ? "Next: Visual laden" : "Next: Visual")
+                                    : (viewModel.featuredVideo == nil ? "Video laedt" : "Video live"),
+                                colorScheme: colorScheme,
+                                tint: heroPillTint(for: .video),
+                                onTap: onOpenVideo
+                            )
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .layoutPriority(weight)
+                    .padding(.trailing, index == 0 ? 3 : 0)
                 }
             }
+            .padding(.top, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

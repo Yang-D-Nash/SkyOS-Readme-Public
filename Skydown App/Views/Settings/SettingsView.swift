@@ -513,7 +513,7 @@ struct SettingsView: View {
                                         Task {
                                             await authManager.signOut()
                                             await MainActor.run {
-                                                presentSheet(.login)
+                                                presentSheet(.login(.settings))
                                             }
                                         }
                                     } label: {
@@ -536,12 +536,12 @@ struct SettingsView: View {
                             }
                         } else {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text(AppLocalized.text("settings.signin_prompt", fallback: "Sign in for orders and profile."))
+                                Text(AppLocalized.text("auth.settings.guest_hint", fallback: "Sign in or register when you want orders, saved preferences, and personal areas in sync."))
                                     .font(.body)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                                 Button {
-                                    presentSheet(.login)
+                                    presentSheet(.login(.settings))
                                 } label: {
                                     Label(AppLocalized.text("auth.sign_in", fallback: "Sign in"), systemImage: "person.crop.circle.fill.badge.plus")
                                         .frame(maxWidth: .infinity)
@@ -663,19 +663,19 @@ struct SettingsView: View {
                             .buttonStyle(.bordered)
                             .skydownInteractiveFeedback()
 
-                            Button("Subscription Terms") {
+                            Button(AppLocalized.text("settings.legal.subscription_terms", fallback: "Subscription terms")) {
                                 presentSheet(.subscriptionTerms)
                             }
                             .buttonStyle(.bordered)
                             .skydownInteractiveFeedback()
 
-                            Button("AI Usage Notice") {
+                            Button(AppLocalized.text("settings.legal.ai_usage", fallback: "AI usage notice")) {
                                 presentSheet(.aiUsageNotice)
                             }
                             .buttonStyle(.bordered)
                             .skydownInteractiveFeedback()
 
-                            Button("Impressum / Company Info") {
+                            Button(AppLocalized.text("settings.legal.imprint", fallback: "Imprint / company info")) {
                                 presentSheet(.imprintInfo)
                             }
                             .buttonStyle(.bordered)
@@ -742,7 +742,10 @@ struct SettingsView: View {
                                         title: "Support E-Mail",
                                         text: $legalSupportEmailDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "support@example.com"
+                                        placeholder: AppLocalized.text(
+                                            "settings.legal.support_email_placeholder",
+                                            fallback: "Use your organization's real public support address (not a sample domain)."
+                                        )
                                     )
 
                                     SettingsInputField(
@@ -1228,7 +1231,7 @@ struct SettingsView: View {
 
                     Button {
                         if authManager.userSession == nil {
-                            presentSheet(.login)
+                            presentSheet(.login(.settings))
                         } else {
                             presentSheet(.adminWorkspace(.automation))
                         }
@@ -3415,10 +3418,20 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
+    private func policyDocumentView(title: String, text: String) -> some View {
+        PolicyView(
+            title: title,
+            text: text,
+            lastUpdated: legalContentStore.settings.resolvedLastUpdatedLabel,
+            supportEmail: legalContentStore.settings.resolvedSupportEmail
+        )
+    }
+
+    @ViewBuilder
     private func settingsSheetContent(for sheet: SettingsPresentedSheet) -> some View {
         switch sheet {
-        case .login:
-            LoginView()
+        case .login(let context):
+            LoginView(entryContext: context)
         case .registration:
             RegistrationSheet()
         case .orders:
@@ -3429,19 +3442,40 @@ struct SettingsView: View {
                 startsInEditMode: true
             )
         case .appGuide:
-            PolicyView(title: "README / App Guide", text: legalContentStore.settings.appGuideText)
+            policyDocumentView(
+                title: AppLocalized.text("settings.legal.guide_title", fallback: "README / App Guide"),
+                text: legalContentStore.settings.appGuideText
+            )
         case .termsAndConditions:
-            PolicyView(title: "AGB", text: legalContentStore.settings.termsAndConditionsText)
+            policyDocumentView(
+                title: AppLocalized.text("policy.title.agb", fallback: "Terms & Conditions (AGB)"),
+                text: legalContentStore.settings.termsAndConditionsText
+            )
         case .privacyPolicy:
-            PolicyView(title: "Datenschutzbestimmungen", text: legalContentStore.settings.privacyPolicyText)
+            policyDocumentView(
+                title: AppLocalized.text("policy.title.privacy", fallback: "Privacy policy"),
+                text: legalContentStore.settings.privacyPolicyText
+            )
         case .termsOfService:
-            PolicyView(title: "Nutzungsbedingungen", text: legalContentStore.settings.termsOfServiceText)
+            policyDocumentView(
+                title: AppLocalized.text("policy.title.termsOfService", fallback: "Terms of use"),
+                text: legalContentStore.settings.termsOfServiceText
+            )
         case .subscriptionTerms:
-            PolicyView(title: "Subscription Terms", text: legalContentStore.settings.subscriptionTermsText)
+            policyDocumentView(
+                title: AppLocalized.text("settings.legal.subscription_terms", fallback: "Subscription terms"),
+                text: legalContentStore.settings.subscriptionTermsText
+            )
         case .aiUsageNotice:
-            PolicyView(title: "AI Usage Notice", text: legalContentStore.settings.aiUsageNoticeText)
+            policyDocumentView(
+                title: AppLocalized.text("settings.legal.ai_usage", fallback: "AI usage notice"),
+                text: legalContentStore.settings.aiUsageNoticeText
+            )
         case .imprintInfo:
-            PolicyView(title: "Impressum / Company Info", text: legalContentStore.settings.imprintInfoText)
+            policyDocumentView(
+                title: AppLocalized.text("settings.legal.imprint", fallback: "Imprint / company info"),
+                text: legalContentStore.settings.imprintInfoText
+            )
         case .adminWorkspace(let section):
             NavigationStack {
                 ScrollView {
@@ -5279,7 +5313,7 @@ private struct SettingsSectionCard<Content: View>: View {
 
             content
         }
-        .padding(18)
+        .padding(SkydownLayout.panelPadding)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
             RoundedRectangle(cornerRadius: 24)
@@ -6601,7 +6635,7 @@ private enum SettingsEditableImageTarget: String, Identifiable, Equatable {
 }
 
 private enum SettingsPresentedSheet: Identifiable, Equatable {
-    case login
+    case login(AuthEntryContext)
     case registration
     case orders
     case profileEditor
@@ -6618,8 +6652,8 @@ private enum SettingsPresentedSheet: Identifiable, Equatable {
 
     var id: String {
         switch self {
-        case .login:
-            return "login"
+        case .login(let context):
+            return "login-\(context.rawValue)"
         case .registration:
             return "registration"
         case .orders:

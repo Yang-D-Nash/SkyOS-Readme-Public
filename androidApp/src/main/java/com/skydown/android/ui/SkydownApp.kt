@@ -12,7 +12,6 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -43,7 +42,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -127,6 +125,7 @@ import com.skydown.android.ui.component.skydownPanelSurface
 import com.skydown.android.ui.component.skydownPressable
 import com.skydown.android.ui.component.skydownSelectionFeedback
 import com.skydown.android.ui.component.skydownCapsuleSurface
+import com.skydown.android.ui.component.SkydownUiTokens
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.screen.AiHubScreen
@@ -144,6 +143,7 @@ import com.skydown.android.ui.screen.RegistrationScreen
 import com.skydown.android.ui.screen.SettingsScreen
 import com.skydown.android.ui.screen.ShopScreen
 import com.skydown.android.ui.screen.VideoHubScreen
+import com.skydown.android.ui.auth.AuthEntryContext
 import com.skydown.android.ui.theme.BackgroundDark
 import com.skydown.android.ui.theme.SkydownBodyCaptionTextStyle
 import com.skydown.android.ui.theme.SkydownCardTitleTextStyle
@@ -193,6 +193,7 @@ fun SkydownApp(
     var authSheet by rememberSaveable { mutableStateOf<AuthSheet?>(null) }
     var authSheetLocked by rememberSaveable { mutableStateOf(false) }
     var showOrders by rememberSaveable { mutableStateOf(false) }
+    var authEntryContext by remember { mutableStateOf(AuthEntryContext.DEFAULT) }
     var observedAuthUid by rememberSaveable { mutableStateOf<String?>(null) }
     var initialSettingsWorkspaceKey by rememberSaveable { mutableStateOf<String?>(null) }
     val auth = remember { FirebaseAuth.getInstance() }
@@ -236,6 +237,18 @@ fun SkydownApp(
             }
         }
     }
+
+    fun dismissAuthSheet() {
+        if (!authSheetLocked) {
+            authEntryContext = AuthEntryContext.DEFAULT
+            authSheet = null
+        }
+    }
+
+    fun openAuthLogin(context: AuthEntryContext) {
+        authEntryContext = context
+        authSheet = AuthSheet.Login
+    }
     val hasAiAccess = AppFeatureFlagsStore.allowsAiAccess(
         user = currentUser,
         accessMode = aiAccessMode,
@@ -244,6 +257,7 @@ fun SkydownApp(
     LaunchedEffect(currentUser?.id) {
         if (currentUser != null && authSheet != null) {
             authSheetLocked = false
+            authEntryContext = AuthEntryContext.DEFAULT
             authSheet = null
         }
     }
@@ -367,9 +381,7 @@ fun SkydownApp(
             ) {
                 when {
                     authSheet != null -> {
-                        if (!authSheetLocked) {
-                            authSheet = null
-                        }
+                        dismissAuthSheet()
                     }
                     showOrders -> showOrders = false
                     currentDestination?.route == "ai" && showsWorkflowWorkspace -> showsWorkflowWorkspace = false
@@ -423,6 +435,7 @@ fun SkydownApp(
                                 onOpenCart = openCart,
                                 onOpenProfile = openProfile,
                                 onOpenSettings = openSettings,
+                                onGuestSignIn = { openAuthLogin(AuthEntryContext.DEFAULT) },
                                 onOpenWorkflow = if (hasAiAccess) {
                                     {
                                         showsWorkflowWorkspace = true
@@ -435,7 +448,8 @@ fun SkydownApp(
                         }
                         composable("shop") {
                             ShopScreen(
-                                onOpenLogin = { authSheet = AuthSheet.Login },
+                                onOpenLogin = { openAuthLogin(AuthEntryContext.MERCH_SHOP) },
+                                onGuestSignIn = { openAuthLogin(AuthEntryContext.DEFAULT) },
                                 onOpenCart = openCart,
                                 onOpenProfile = openProfile,
                                 onOpenSettings = openSettings,
@@ -446,6 +460,7 @@ fun SkydownApp(
                                 onOpenCart = openCart,
                                 onOpenProfile = openProfile,
                                 onOpenSettings = openSettings,
+                                onGuestSignIn = { openAuthLogin(AuthEntryContext.MUSIC) },
                             )
                         }
                         composable("video") {
@@ -453,12 +468,14 @@ fun SkydownApp(
                                 onOpenCart = openCart,
                                 onOpenProfile = openProfile,
                                 onOpenSettings = openSettings,
+                                onGuestSignIn = { openAuthLogin(AuthEntryContext.DEFAULT) },
                             )
                         }
                         composable("cart") {
                             CartScreen(
                                 onBack = { navController.popBackStack() },
-                                onOpenLogin = { authSheet = AuthSheet.Login },
+                                onOpenLogin = { openAuthLogin(AuthEntryContext.CART) },
+                                onGuestSignIn = { openAuthLogin(AuthEntryContext.DEFAULT) },
                                 onOpenProfile = openProfile,
                                 onOpenSettings = openSettings,
                             )
@@ -477,7 +494,8 @@ fun SkydownApp(
                                         )
                                     }
                                 },
-                                onOpenLogin = { authSheet = AuthSheet.Login },
+                                onOpenLogin = { openAuthLogin(AuthEntryContext.AI) },
+                                onGuestSignIn = { openAuthLogin(AuthEntryContext.DEFAULT) },
                                 onOpenCart = openCart,
                                 onOpenProfile = openProfile,
                                 onOpenSettings = openSettings,
@@ -488,7 +506,7 @@ fun SkydownApp(
                             SettingsScreen(
                                 initialAdminWorkspaceKey = initialSettingsWorkspaceKey,
                                 onClose = { navController.popBackStack() },
-                                onOpenLogin = { authSheet = AuthSheet.Login },
+                                onOpenLogin = { openAuthLogin(AuthEntryContext.SETTINGS) },
                                 onOpenRegistration = { authSheet = AuthSheet.Registration },
                                 onOpenProfile = openProfile,
                                 onOpenOrders = { showOrders = true },
@@ -535,21 +553,20 @@ fun SkydownApp(
         authSheet?.let { sheet ->
             ModalBottomSheet(
                 onDismissRequest = {
-                    if (!authSheetLocked) {
-                        authSheet = null
-                    }
+                    dismissAuthSheet()
                 },
                 sheetState = authSheetState,
                 containerColor = MaterialTheme.colorScheme.surface,
             ) {
                 when (sheet) {
                     AuthSheet.Login -> LoginScreen(
-                        onClose = { authSheet = null },
+                        onClose = { dismissAuthSheet() },
                         onOpenRegistration = { authSheet = AuthSheet.Registration },
                         onBusyStateChanged = { authSheetLocked = it },
+                        entryContext = authEntryContext,
                     )
                     AuthSheet.Registration -> RegistrationScreen(
-                        onClose = { authSheet = null },
+                        onClose = { dismissAuthSheet() },
                         onBusyStateChanged = { authSheetLocked = it },
                     )
                 }
@@ -694,24 +711,24 @@ private fun SkydownFloatingBottomDock(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    val dockIconMotion = remember {
+                        tween<Float>(
+                            durationMillis = SkydownMotionTokens.dockSelectionDurationMillis,
+                            easing = FastOutSlowInEasing,
+                        )
+                    }
                     destinations.forEach { destination ->
                         val selected = isSelected(destination)
                         val itemShape = RoundedCornerShape(22.dp)
                         val itemInteractionSource = remember(destination.route) { MutableInteractionSource() }
                         val iconScale by animateFloatAsState(
                             targetValue = if (selected) 1f else 0.94f,
-                            animationSpec = spring(
-                                dampingRatio = SkydownMotionTokens.premiumDockIconDampingRatio,
-                                stiffness = SkydownMotionTokens.premiumDockIconStiffness,
-                            ),
+                            animationSpec = dockIconMotion,
                             label = "bottomNavIconScale_${destination.route}",
                         )
                         val iconLift by animateFloatAsState(
                             targetValue = if (selected) -1f else 0f,
-                            animationSpec = spring(
-                                dampingRatio = SkydownMotionTokens.premiumDockLiftDampingRatio,
-                                stiffness = SkydownMotionTokens.premiumDockLiftStiffness,
-                            ),
+                            animationSpec = dockIconMotion,
                             label = "bottomNavIconLift_${destination.route}",
                         )
                         val labelAlpha by animateFloatAsState(
@@ -1069,6 +1086,78 @@ private enum class AuthSheet {
     Registration,
 }
 
+private enum class LaunchLandingPathTier {
+    /** Hauptpfad — groesseres Panel, volle Informationsdichte. */
+    Primary,
+
+    /** Alternativen — klar kleiner, weniger visuelles Gewicht. */
+    Secondary,
+}
+
+@Composable
+private fun LaunchLandingCompactSignalStrip() {
+    val colorScheme = MaterialTheme.colorScheme
+    val isDarkPalette = colorScheme.skydownIsDarkPalette()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.06f else 0.14f),
+                        SpotifyGreen.copy(alpha = if (isDarkPalette) 0.07f else 0.05f),
+                        colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.10f else 0.03f),
+                    ),
+                ),
+            )
+            .border(0.5.dp, colorScheme.primary.copy(alpha = 0.045f), RoundedCornerShape(18.dp))
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = "Ein Tap",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = SpotifyGreen.copy(alpha = 0.78f),
+                maxLines = 1,
+            )
+            Text(
+                text = "Du startest direkt in Music, Video oder Merch.",
+                style = SkydownBodyCaptionTextStyle,
+                color = colorScheme.onSurface.copy(alpha = if (isDarkPalette) 0.70f else 0.76f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = "Orientierung",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = colorScheme.tertiary.copy(alpha = 0.72f),
+                maxLines = 1,
+            )
+            Text(
+                text = "Navigation bleibt klar; Tools erreichst du in der App-Leiste.",
+                style = SkydownBodyCaptionTextStyle,
+                color = colorScheme.onSurface.copy(alpha = if (isDarkPalette) 0.66f else 0.72f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
 @Composable
 private fun LaunchLandingScreen(
     onOpenMusic: () -> Unit,
@@ -1076,14 +1165,15 @@ private fun LaunchLandingScreen(
     onOpenShop: () -> Unit,
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
+    val landingScroll = rememberScrollState()
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 skydownScreenBrush(
-                    primaryAlpha = 0.074f,
-                    secondaryAlpha = 0.058f,
+                    primaryAlpha = 0.058f,
+                    secondaryAlpha = 0.044f,
                 ),
             ),
     ) {
@@ -1135,219 +1225,227 @@ private fun LaunchLandingScreen(
                 .blur(if (isWideLayout) 34.dp else 26.dp),
         )
 
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
+                .fillMaxWidth()
                 .statusBarsPadding()
-                .navigationBarsPadding(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .navigationBarsPadding()
+                .verticalScroll(landingScroll)
+                .padding(horizontal = SkydownUiTokens.screenHorizontalPadding, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            item {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.TopCenter,
+            Column(
+                modifier = Modifier
+                    .widthIn(max = contentMaxWidth)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LaunchLandingMetaPill(text = "Sky OS", accent = MaterialTheme.colorScheme.primary)
+                    LaunchLandingMetaPill(text = "One Flow", accent = MaterialTheme.colorScheme.tertiary)
+                    LaunchLandingMetaPill(text = "Direct", accent = SpotifyGreen)
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                BrandHeroCard(
+                    eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Willkommen" },
+                    title = screenHeaderSettings.homeTitle.ifBlank { "SkyOS" },
+                    subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Ein ruhiger Einstieg in Music, Video und Merch." },
+                    detail = screenHeaderSettings.homeDetail.ifBlank {
+                        "Alles greift ineinander — dein naechster Move folgt direkt hier, Music ist der empfohlene Einstieg."
+                    },
+                    backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
+                    accent = MaterialTheme.colorScheme.primary,
+                    secondaryAccent = MaterialTheme.colorScheme.secondary,
+                    marks = listOf(BrandArtwork.Combined),
+                    compactVisualDensity = !isWideLayout,
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .widthIn(max = contentMaxWidth)
-                            .fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            LaunchLandingMetaPill(text = "Sky OS", accent = MaterialTheme.colorScheme.primary)
-                            LaunchLandingMetaPill(text = "One Flow", accent = MaterialTheme.colorScheme.tertiary)
-                            LaunchLandingMetaPill(text = "Direct", accent = SpotifyGreen)
+                            BrandPill(text = "Music", tint = MaterialTheme.colorScheme.primary)
+                            BrandPill(text = "Video", tint = MaterialTheme.colorScheme.tertiary)
+                            BrandPill(text = "Merch", tint = MaterialTheme.colorScheme.secondary)
                         }
-
-                        BrandHeroCard(
-                            eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "SkyOS Home" },
-                            title = screenHeaderSettings.homeTitle.ifBlank { "SkyOS" },
-                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Alles fühlt sich wie eine einzige App an." },
-                            detail = screenHeaderSettings.homeDetail.ifBlank { "Music, Video, Merch und Tools in einem Flow." },
-                            backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
-                            accent = MaterialTheme.colorScheme.primary,
-                            secondaryAccent = MaterialTheme.colorScheme.secondary,
-                            marks = listOf(BrandArtwork.Combined),
-                            compactVisualDensity = !isWideLayout,
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    BrandPill(text = "Music", tint = MaterialTheme.colorScheme.primary)
-                                    BrandPill(text = "Video", tint = MaterialTheme.colorScheme.tertiary)
-                                    BrandPill(text = "Merch", tint = MaterialTheme.colorScheme.secondary)
-                                    BrandPill(text = "AI", tint = MaterialTheme.colorScheme.primary)
-                                }
-                                Text(
-                                    text = "Direkt rein, unten wechseln, frei zurück.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
-                                )
-                            }
-                        }
-
-                        if (isThreeColumnLayout) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                HubSignalCard(
-                                    title = "1 Tap Start",
-                                    value = "Direkt in Music, Video oder Shop.",
-                                    accentColor = SpotifyGreen,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                HubSignalCard(
-                                    title = "Immer Zurück",
-                                    value = "Navigation bleibt klar und frei.",
-                                    accentColor = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                HubSignalCard(
-                                    title = "Ein System",
-                                    value = "Discovery, Playback und Checkout greifen zusammen.",
-                                    accentColor = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                        } else {
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                HubSignalCard(
-                                    title = "1 Tap Start",
-                                    value = "Direkt in Music, Video oder Shop.",
-                                    accentColor = SpotifyGreen,
-                                )
-                                HubSignalCard(
-                                    title = "Immer Zurück",
-                                    value = "Navigation bleibt klar und frei.",
-                                    accentColor = MaterialTheme.colorScheme.tertiary,
-                                )
-                            }
-                        }
+                        Text(
+                            text = "Drei Einstiege, eine Oberfläche — ohne Dashboard-Gefühl.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                        )
                     }
                 }
-            }
 
-            item {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.TopCenter,
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .widthIn(max = contentMaxWidth)
-                            .fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        if (isThreeColumnLayout) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                LaunchLandingChoiceCard(
-                                    eyebrow = "Music",
-                                    title = "Music",
-                                    subtitle = "Songs, Artists und Beats.",
-                                    detail = "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
-                                    chips = listOf("Catalog", "Beats", "Studio"),
-                                    accentColor = MaterialTheme.colorScheme.primary,
-                                    icon = Icons.Default.GraphicEq,
-                                    artwork = BrandArtwork.Zweizwei,
-                                    onClick = onOpenMusic,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                LaunchLandingChoiceCard(
-                                    eyebrow = "Video",
-                                    title = "Videos",
-                                    subtitle = "Reels, Clips und Collabs.",
-                                    detail = "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
-                                    chips = listOf("Playback", "Reels", "Collabs"),
-                                    accentColor = MaterialTheme.colorScheme.tertiary,
-                                    icon = Icons.Default.PlayCircleFilled,
-                                    artwork = BrandArtwork.Skydown,
-                                    onClick = onOpenVideography,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                LaunchLandingChoiceCard(
-                                    eyebrow = "Store",
-                                    title = "Merch",
-                                    subtitle = "Drops und Checkout.",
-                                    detail = "Direkt zu Fits, neuen Pieces und sauber im Checkout bleiben.",
-                                    chips = listOf("Drops", "Fits", "Checkout"),
-                                    accentColor = MaterialTheme.colorScheme.secondary,
-                                    icon = Icons.Default.ShoppingBag,
-                                    artwork = BrandArtwork.Combined,
-                                    onClick = onOpenShop,
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                        } else if (isWideLayout) {
-                            LaunchLandingChoiceCard(
-                                eyebrow = "Music",
-                                title = "Music",
-                                subtitle = "Songs, Artists und Beats.",
-                                detail = "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
-                                chips = listOf("Catalog", "Beats", "Studio"),
-                                accentColor = MaterialTheme.colorScheme.primary,
-                                icon = Icons.Default.GraphicEq,
-                                artwork = BrandArtwork.Zweizwei,
-                                onClick = onOpenMusic,
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                LaunchLandingChoiceCard(
-                                    eyebrow = "Video",
-                                    title = "Videos",
-                                    subtitle = "Reels, Clips und Collabs.",
-                                    detail = "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
-                                    chips = listOf("Playback", "Reels", "Collabs"),
-                                    accentColor = MaterialTheme.colorScheme.tertiary,
-                                    icon = Icons.Default.PlayCircleFilled,
-                                    artwork = BrandArtwork.Skydown,
-                                    onClick = onOpenVideography,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                LaunchLandingChoiceCard(
-                                    eyebrow = "Store",
-                                    title = "Merch",
-                                    subtitle = "Drops und Checkout.",
-                                    detail = "Direkt zu Fits, neuen Pieces und sauber im Checkout bleiben.",
-                                    chips = listOf("Drops", "Fits", "Checkout"),
-                                    accentColor = MaterialTheme.colorScheme.secondary,
-                                    icon = Icons.Default.ShoppingBag,
-                                    artwork = BrandArtwork.Combined,
-                                    onClick = onOpenShop,
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                        } else {
-                            LaunchLandingChoiceCard(
-                                eyebrow = "Music",
-                                title = "Music",
-                                subtitle = "Songs, Artists und Beats.",
-                                detail = "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
-                                chips = listOf("Catalog", "Beats", "Studio"),
-                                accentColor = MaterialTheme.colorScheme.primary,
-                                icon = Icons.Default.GraphicEq,
-                                artwork = BrandArtwork.Zweizwei,
-                                onClick = onOpenMusic,
-                            )
-                            LaunchLandingChoiceCard(
-                                eyebrow = "Video",
-                                title = "Videos",
-                                subtitle = "Reels, Clips und Collabs.",
-                                detail = "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
-                                chips = listOf("Playback", "Reels", "Collabs"),
-                                accentColor = MaterialTheme.colorScheme.tertiary,
-                                icon = Icons.Default.PlayCircleFilled,
-                                artwork = BrandArtwork.Skydown,
-                                onClick = onOpenVideography,
-                            )
-                            LaunchLandingChoiceCard(
-                                eyebrow = "Store",
-                                title = "Merch",
-                                subtitle = "Drops und Checkout.",
-                                detail = "Direkt zu Fits, neuen Pieces und sauber im Checkout bleiben.",
-                                chips = listOf("Drops", "Fits", "Checkout"),
-                                accentColor = MaterialTheme.colorScheme.secondary,
-                                icon = Icons.Default.ShoppingBag,
-                                artwork = BrandArtwork.Combined,
-                                onClick = onOpenShop,
-                            )
-                        }
+                Spacer(modifier = Modifier.height(2.dp))
+
+                if (isThreeColumnLayout) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        HubSignalCard(
+                            title = "1 Tap Start",
+                            value = "Direkt in Music, Video oder Shop.",
+                            accentColor = SpotifyGreen,
+                            modifier = Modifier.weight(1f),
+                        )
+                        HubSignalCard(
+                            title = "Immer Zurück",
+                            value = "Navigation bleibt klar und frei.",
+                            accentColor = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.weight(1f),
+                        )
+                        HubSignalCard(
+                            title = "Ein System",
+                            value = "Discovery, Playback und Checkout greifen zusammen.",
+                            accentColor = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                } else {
+                    LaunchLandingCompactSignalStrip()
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Music ist der natuerliche Start; Video und Merch bleiben als ruhige Alternativen.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp, bottom = 2.dp),
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                if (isThreeColumnLayout) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LaunchLandingChoiceCard(
+                            eyebrow = "Music",
+                            title = "Music",
+                            subtitle = "Songs, Artists und Beats.",
+                            detail = "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
+                            chips = listOf("Catalog", "Beats", "Studio"),
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            icon = Icons.Default.GraphicEq,
+                            artwork = BrandArtwork.Zweizwei,
+                            onClick = onOpenMusic,
+                            modifier = Modifier
+                                .weight(1.12f)
+                                .offset(y = (-2).dp),
+                            emphasized = true,
+                            pathTier = LaunchLandingPathTier.Primary,
+                        )
+                        LaunchLandingChoiceCard(
+                            eyebrow = "Video",
+                            title = "Videos",
+                            subtitle = "Reels, Clips und Collabs.",
+                            detail = "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
+                            chips = listOf("Playback", "Reels", "Collabs"),
+                            accentColor = MaterialTheme.colorScheme.tertiary,
+                            icon = Icons.Default.PlayCircleFilled,
+                            artwork = BrandArtwork.Skydown,
+                            onClick = onOpenVideography,
+                            modifier = Modifier.weight(0.94f),
+                            pathTier = LaunchLandingPathTier.Secondary,
+                        )
+                        LaunchLandingChoiceCard(
+                            eyebrow = "Store",
+                            title = "Merch",
+                            subtitle = "Drops und Checkout.",
+                            detail = "Direkt zu Fits, neuen Pieces und sauber im Checkout bleiben.",
+                            chips = listOf("Drops", "Fits", "Checkout"),
+                            accentColor = MaterialTheme.colorScheme.secondary,
+                            icon = Icons.Default.ShoppingBag,
+                            artwork = BrandArtwork.Combined,
+                            onClick = onOpenShop,
+                            modifier = Modifier.weight(0.94f),
+                            pathTier = LaunchLandingPathTier.Secondary,
+                        )
+                    }
+                } else if (isWideLayout) {
+                    LaunchLandingChoiceCard(
+                        eyebrow = "Music",
+                        title = "Music",
+                        subtitle = "Songs, Artists und Beats.",
+                        detail = "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
+                        chips = listOf("Catalog", "Beats", "Studio"),
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        icon = Icons.Default.GraphicEq,
+                        artwork = BrandArtwork.Zweizwei,
+                        onClick = onOpenMusic,
+                        modifier = Modifier.offset(y = (-2).dp),
+                        emphasized = true,
+                        pathTier = LaunchLandingPathTier.Primary,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        LaunchLandingChoiceCard(
+                            eyebrow = "Video",
+                            title = "Videos",
+                            subtitle = "Reels, Clips und Collabs.",
+                            detail = "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
+                            chips = listOf("Playback", "Reels", "Collabs"),
+                            accentColor = MaterialTheme.colorScheme.tertiary,
+                            icon = Icons.Default.PlayCircleFilled,
+                            artwork = BrandArtwork.Skydown,
+                            onClick = onOpenVideography,
+                            modifier = Modifier.weight(1f),
+                            pathTier = LaunchLandingPathTier.Secondary,
+                        )
+                        LaunchLandingChoiceCard(
+                            eyebrow = "Store",
+                            title = "Merch",
+                            subtitle = "Drops und Checkout.",
+                            detail = "Direkt zu Fits, neuen Pieces und sauber im Checkout bleiben.",
+                            chips = listOf("Drops", "Fits", "Checkout"),
+                            accentColor = MaterialTheme.colorScheme.secondary,
+                            icon = Icons.Default.ShoppingBag,
+                            artwork = BrandArtwork.Combined,
+                            onClick = onOpenShop,
+                            modifier = Modifier.weight(1f),
+                            pathTier = LaunchLandingPathTier.Secondary,
+                        )
+                    }
+                } else {
+                    LaunchLandingChoiceCard(
+                        eyebrow = "Music",
+                        title = "Music",
+                        subtitle = "Songs, Artists und Beats.",
+                        detail = "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
+                        chips = listOf("Catalog", "Beats", "Studio"),
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        icon = Icons.Default.GraphicEq,
+                        artwork = BrandArtwork.Zweizwei,
+                        onClick = onOpenMusic,
+                        modifier = Modifier.offset(y = (-2).dp),
+                        emphasized = true,
+                        pathTier = LaunchLandingPathTier.Primary,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        LaunchLandingChoiceCard(
+                            eyebrow = "Video",
+                            title = "Videos",
+                            subtitle = "Reels, Clips und Collabs.",
+                            detail = "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
+                            chips = listOf("Playback", "Reels", "Collabs"),
+                            accentColor = MaterialTheme.colorScheme.tertiary,
+                            icon = Icons.Default.PlayCircleFilled,
+                            artwork = BrandArtwork.Skydown,
+                            onClick = onOpenVideography,
+                            modifier = Modifier.weight(1f),
+                            pathTier = LaunchLandingPathTier.Secondary,
+                        )
+                        LaunchLandingChoiceCard(
+                            eyebrow = "Store",
+                            title = "Merch",
+                            subtitle = "Drops und Checkout.",
+                            detail = "Direkt zu Fits, neuen Pieces und sauber im Checkout bleiben.",
+                            chips = listOf("Drops", "Fits", "Checkout"),
+                            accentColor = MaterialTheme.colorScheme.secondary,
+                            icon = Icons.Default.ShoppingBag,
+                            artwork = BrandArtwork.Combined,
+                            onClick = onOpenShop,
+                            modifier = Modifier.weight(1f),
+                            pathTier = LaunchLandingPathTier.Secondary,
+                        )
                     }
                 }
             }
@@ -1368,6 +1466,8 @@ private fun LaunchLandingChoiceCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     compactVisualDensity: Boolean = true,
+    emphasized: Boolean = false,
+    pathTier: LaunchLandingPathTier = LaunchLandingPathTier.Primary,
 ) {
     HubEntryCard(
         eyebrow = eyebrow,
@@ -1380,6 +1480,8 @@ private fun LaunchLandingChoiceCard(
         artwork = artwork,
         onClick = onClick,
         compactVisualDensity = compactVisualDensity,
+        emphasized = emphasized && pathTier == LaunchLandingPathTier.Primary,
+        pathTier = pathTier,
         modifier = modifier,
     )
 }
@@ -1398,6 +1500,7 @@ private fun ZweizweiMusicLaneScreen(
     onOpenCart: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onGuestSignIn: (() -> Unit)? = null,
     onBackToLanding: (() -> Unit)? = null,
 ) {
     val compactLayout = rememberIsCompactAppLayout()
@@ -1449,6 +1552,7 @@ private fun ZweizweiMusicLaneScreen(
                             onOpenCart = onOpenCart,
                             onOpenProfile = onOpenProfile,
                             onOpenSettings = onOpenSettings,
+                            onGuestSignIn = onGuestSignIn,
                             dense = useCompactHubVisuals,
                         )
                     },
@@ -1702,6 +1806,7 @@ private fun ZweizweiMusicLaneScreen(
             onOpenCart = onOpenCart,
             onOpenProfile = onOpenProfile,
             onOpenSettings = onOpenSettings,
+            onGuestSignIn = onGuestSignIn,
             onOpenArtistPage = { artistName ->
                 selectedArtistPage = artistName
                 artistPageReturnDestination = ZweizweiMusicDestination.Catalog
@@ -1764,27 +1869,76 @@ private fun HubEntryCard(
     chips: List<String> = emptyList(),
     eyebrow: String? = null,
     artwork: BrandArtwork? = null,
+    emphasized: Boolean = false,
+    pathTier: LaunchLandingPathTier = LaunchLandingPathTier.Primary,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val colorScheme = MaterialTheme.colorScheme
     val isDarkPalette = colorScheme.skydownIsDarkPalette()
-    val cardShape = RoundedCornerShape(if (compactVisualDensity) 26.dp else 28.dp)
-    val iconTileShape = RoundedCornerShape(18.dp)
-    val iconTileSize = if (compactVisualDensity) 56.dp else 60.dp
-    val primaryContentColor = if (isDarkPalette) {
-        Color.White.copy(alpha = 0.94f)
+    val isSecondary = pathTier == LaunchLandingPathTier.Secondary
+    val cardShape = RoundedCornerShape(
+        if (isSecondary) {
+            if (compactVisualDensity) 20.dp else 22.dp
+        } else if (compactVisualDensity) {
+            26.dp
+        } else {
+            28.dp
+        },
+    )
+    val panelShadowRadius = if (isSecondary) {
+        4.dp
     } else {
-        colorScheme.skydownText().copy(alpha = 0.94f)
+        when {
+            emphasized && compactVisualDensity -> 16.dp
+            emphasized -> 19.dp
+            compactVisualDensity -> 13.dp
+            else -> 16.dp
+        }
+    }
+    val panelShadowYOffset = if (isSecondary) {
+        2.dp
+    } else {
+        when {
+            emphasized && compactVisualDensity -> 9.dp
+            emphasized -> 11.dp
+            compactVisualDensity -> 7.dp
+            else -> 9.dp
+        }
+    }
+    val iconTileSize = when {
+        isSecondary -> if (compactVisualDensity) 48.dp else 52.dp
+        emphasized && compactVisualDensity -> 60.dp
+        emphasized -> 62.dp
+        compactVisualDensity -> 56.dp
+        else -> 60.dp
+    }
+    val minCardHeight = when {
+        isSecondary -> if (compactVisualDensity) 142.dp else 154.dp
+        emphasized && compactVisualDensity -> 210.dp
+        emphasized -> 222.dp
+        compactVisualDensity -> 194.dp
+        else -> 204.dp
+    }
+    val titleTextStyle = if (isSecondary) {
+        MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+    } else {
+        SkydownCardTitleTextStyle
+    }
+    val chipsToShow = if (isSecondary) chips.take(2) else chips.take(3)
+    val primaryContentColor = if (isDarkPalette) {
+        Color.White.copy(alpha = if (isSecondary) 0.82f else 0.94f)
+    } else {
+        colorScheme.skydownText().copy(alpha = if (isSecondary) 0.82f else 0.94f)
     }
     val secondaryContentColor = if (isDarkPalette) {
-        Color.White.copy(alpha = 0.78f)
+        Color.White.copy(alpha = if (isSecondary) 0.62f else 0.78f)
     } else {
-        colorScheme.skydownSecondaryText().copy(alpha = 0.92f)
+        colorScheme.skydownSecondaryText().copy(alpha = if (isSecondary) 0.78f else 0.92f)
     }
     val subtleContentColor = if (isDarkPalette) {
-        Color.White.copy(alpha = 0.68f)
+        Color.White.copy(alpha = if (isSecondary) 0.55f else 0.68f)
     } else {
-        colorScheme.skydownSecondaryText().copy(alpha = 0.82f)
+        colorScheme.skydownSecondaryText().copy(alpha = if (isSecondary) 0.70f else 0.82f)
     }
 
     Surface(
@@ -1799,48 +1953,69 @@ private fun HubEntryCard(
             .skydownPressable(interactionSource)
             .skydownPanelSurface(
                 accent = accentColor,
-                cornerRadius = if (compactVisualDensity) 26.dp else 28.dp,
-                shadowRadius = if (compactVisualDensity) 13.dp else 16.dp,
-                shadowYOffset = if (compactVisualDensity) 7.dp else 9.dp,
+                cornerRadius = if (isSecondary) {
+                    if (compactVisualDensity) 20.dp else 22.dp
+                } else if (compactVisualDensity) {
+                    26.dp
+                } else {
+                    28.dp
+                },
+                shadowRadius = panelShadowRadius,
+                shadowYOffset = panelShadowYOffset,
             ),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = if (compactVisualDensity) 194.dp else 204.dp)
+                .heightIn(min = minCardHeight)
                 .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.055f else 0.16f),
-                            accentColor.copy(alpha = if (isDarkPalette) 0.074f else 0.052f),
-                            colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.13f else 0.28f),
-                            colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.18f else 0.026f),
-                        ),
-                        start = Offset.Zero,
-                        end = Offset.Infinite,
-                    ),
+                    if (isSecondary) {
+                        Brush.linearGradient(
+                            colors = listOf(
+                                colorScheme.surface.copy(alpha = if (isDarkPalette) 0.10f else 0.18f),
+                                colorScheme.surfaceVariant.copy(alpha = if (isDarkPalette) 0.14f else 0.22f),
+                                accentColor.copy(alpha = if (isDarkPalette) 0.05f else 0.04f),
+                                colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.10f else 0.05f),
+                            ),
+                            start = Offset.Zero,
+                            end = Offset.Infinite,
+                        )
+                    } else {
+                        Brush.linearGradient(
+                            colors = listOf(
+                                colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.055f else 0.16f),
+                                accentColor.copy(alpha = if (isDarkPalette) 0.074f else 0.052f),
+                                colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.13f else 0.28f),
+                                colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.18f else 0.026f),
+                            ),
+                            start = Offset.Zero,
+                            end = Offset.Infinite,
+                        )
+                    },
                 ),
         ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(if (compactVisualDensity) 116.dp else 132.dp)
-                    .offset(x = 24.dp, y = (-24).dp)
-                    .background(accentColor.copy(alpha = if (isDarkPalette) 0.16f else 0.10f), RoundedCornerShape(999.dp))
-                    .blur(34.dp),
-            )
+            if (!isSecondary) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(if (compactVisualDensity) 116.dp else 132.dp)
+                        .offset(x = 24.dp, y = (-24).dp)
+                        .background(accentColor.copy(alpha = if (isDarkPalette) 0.16f else 0.10f), RoundedCornerShape(999.dp))
+                        .blur(34.dp),
+                )
+            }
 
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(start = 22.dp, top = 20.dp)
-                    .width(74.dp)
-                    .height(3.dp)
+                    .padding(start = if (isSecondary) 16.dp else 22.dp, top = if (isSecondary) 14.dp else 20.dp)
+                    .width(if (isSecondary) 40.dp else 74.dp)
+                    .height(if (isSecondary) 2.dp else 3.dp)
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(
                                 colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.26f else 0.34f),
-                                accentColor.copy(alpha = 0.70f),
+                                accentColor.copy(alpha = if (isSecondary) 0.42f else 0.70f),
                                 accentColor.copy(alpha = 0.06f),
                             ),
                         ),
@@ -1852,10 +2027,28 @@ private fun HubEntryCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
-                        horizontal = if (compactVisualDensity) 18.dp else 22.dp,
-                        vertical = if (compactVisualDensity) 19.dp else 22.dp,
+                        horizontal = if (isSecondary) {
+                            if (compactVisualDensity) 14.dp else 16.dp
+                        } else if (compactVisualDensity) {
+                            18.dp
+                        } else {
+                            22.dp
+                        },
+                        vertical = if (isSecondary) {
+                            if (compactVisualDensity) 14.dp else 16.dp
+                        } else if (compactVisualDensity) {
+                            19.dp
+                        } else {
+                            22.dp
+                        },
                     ),
-                verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 14.dp else 16.dp),
+                verticalArrangement = Arrangement.spacedBy(
+                    when {
+                        isSecondary -> if (compactVisualDensity) 10.dp else 12.dp
+                        compactVisualDensity -> 14.dp
+                        else -> 16.dp
+                    },
+                ),
             ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(13.dp),
@@ -1864,11 +2057,24 @@ private fun HubEntryCard(
                     Box(
                         modifier = Modifier
                             .size(iconTileSize)
-                            .skydownPanelSurface(
-                                accent = accentColor,
-                                cornerRadius = 18.dp,
-                                shadowRadius = 7.dp,
-                                shadowYOffset = 3.dp,
+                            .then(
+                                if (isSecondary) {
+                                    Modifier
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(colorScheme.surface.copy(alpha = if (isDarkPalette) 0.14f else 0.20f))
+                                        .border(
+                                            width = 0.5.dp,
+                                            color = accentColor.copy(alpha = 0.12f),
+                                            shape = RoundedCornerShape(14.dp),
+                                        )
+                                } else {
+                                    Modifier.skydownPanelSurface(
+                                        accent = accentColor,
+                                        cornerRadius = 18.dp,
+                                        shadowRadius = 7.dp,
+                                        shadowYOffset = 3.dp,
+                                    )
+                                },
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -1878,15 +2084,15 @@ private fun HubEntryCard(
                                 contentDescription = null,
                                 modifier = Modifier
                                     .size(iconTileSize)
-                                    .padding(9.dp),
+                                    .padding(if (isSecondary) 7.dp else 9.dp),
                                 contentScale = ContentScale.Fit,
                             )
                         } else {
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = accentColor,
-                                modifier = Modifier.size(26.dp),
+                                tint = accentColor.copy(alpha = if (isSecondary) 0.55f else 1f),
+                                modifier = Modifier.size(if (isSecondary) 22.dp else 26.dp),
                             )
                         }
                     }
@@ -1896,17 +2102,28 @@ private fun HubEntryCard(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         if (!eyebrow.isNullOrBlank()) {
-                            Text(
-                                text = eyebrow.uppercase(),
-                                style = SkydownHeroEyebrowTextStyle,
-                                color = accentColor.copy(alpha = 0.92f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                            if (isSecondary) {
+                                Text(
+                                    text = eyebrow,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = accentColor.copy(alpha = 0.58f),
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            } else {
+                                Text(
+                                    text = eyebrow.uppercase(),
+                                    style = SkydownHeroEyebrowTextStyle,
+                                    color = accentColor.copy(alpha = 0.92f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
                         Text(
                             text = title,
-                            style = SkydownCardTitleTextStyle,
+                            style = titleTextStyle,
                             color = primaryContentColor,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -1915,25 +2132,36 @@ private fun HubEntryCard(
                             text = subtitle,
                             style = SkydownEditorialCaptionTextStyle,
                             color = secondaryContentColor,
-                            maxLines = 2,
+                            maxLines = if (isSecondary) 1 else 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .size(if (compactVisualDensity) 38.dp else 40.dp)
-                            .skydownCapsuleSurface(accent = accentColor),
-                        contentAlignment = Alignment.Center,
-                    ) {
+                    if (isSecondary) {
                         Icon(
                             imageVector = Icons.Default.ArrowOutward,
                             contentDescription = null,
-                            tint = primaryContentColor.copy(alpha = 0.84f),
+                            tint = primaryContentColor.copy(alpha = 0.38f),
                             modifier = Modifier
-                                .alpha(0.92f)
-                                .size(if (compactVisualDensity) 17.dp else 18.dp),
+                                .padding(top = 2.dp)
+                                .size(16.dp),
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(if (compactVisualDensity) 38.dp else 40.dp)
+                                .skydownCapsuleSurface(accent = accentColor),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowOutward,
+                                contentDescription = null,
+                                tint = primaryContentColor.copy(alpha = 0.84f),
+                                modifier = Modifier
+                                    .alpha(0.92f)
+                                    .size(if (compactVisualDensity) 17.dp else 18.dp),
+                            )
+                        }
                     }
                 }
 
@@ -1941,36 +2169,57 @@ private fun HubEntryCard(
                     Text(
                         text = detail,
                         style = SkydownEditorialCaptionTextStyle,
-                        color = subtleContentColor,
+                        color = subtleContentColor.copy(alpha = if (isSecondary) 0.92f else 1f),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
 
-                if (chips.isNotEmpty()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        chips.take(3).forEach { chip ->
-                            LaunchLandingBadge(text = chip, accent = accentColor)
+                if (chipsToShow.isNotEmpty()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        chipsToShow.forEach { chip ->
+                            if (isSecondary) {
+                                Text(
+                                    text = chip,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = accentColor.copy(alpha = 0.42f),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(999.dp))
+                                        .background(colorScheme.onSurface.copy(alpha = 0.06f))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                )
+                            } else {
+                                LaunchLandingBadge(text = chip, accent = accentColor)
+                            }
                         }
                     }
                 }
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+                if (isSecondary) {
                     Text(
-                        text = "Direkt in $title",
-                        style = SkydownBodyCaptionTextStyle,
-                        color = primaryContentColor,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f),
+                        text = "Oeffnen",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = primaryContentColor.copy(alpha = 0.42f),
+                        fontWeight = FontWeight.Medium,
                     )
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Direkt in $title",
+                            style = SkydownBodyCaptionTextStyle,
+                            color = primaryContentColor,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f),
+                        )
 
-                    LaunchLandingActionPill(
-                        text = "Open",
-                        accent = accentColor,
-                    )
+                        LaunchLandingActionPill(
+                            text = "Open",
+                            accent = accentColor,
+                        )
+                    }
                 }
             }
         }

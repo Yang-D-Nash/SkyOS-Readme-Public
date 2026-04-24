@@ -7,11 +7,21 @@
 
 import SwiftUI
 
+enum TrackListPresentation {
+    /// Erster Titel – volle Hierarchie.
+    case featured
+    /// Zweiter Titel – noch im Set, aber leichter.
+    case secondary
+    /// Katalog-Rest.
+    case catalog
+}
+
 struct TrackView: View {
     let track: Track
     @ObservedObject var audioManager: AudioPlayerManager
     let isSelected: Bool
     let onSelect: () -> Void
+    var presentation: TrackListPresentation = .featured
     @State private var showSpotifyPlayer = false
     @Environment(\.openURL) private var openURL
     @Environment(\.colorScheme) private var colorScheme
@@ -32,31 +42,67 @@ struct TrackView: View {
         resolvedTrackSpotifyArtistID(track) != nil && !hasDirectSpotifyTrack
     }
 
+    private var catalog: Bool { presentation == .catalog }
+    private var isSecondary: Bool { presentation == .secondary }
+    private var artSize: CGFloat {
+        switch presentation {
+        case .catalog: 52
+        case .secondary: 58
+        case .featured: 64
+        }
+    }
+    private var artCorner: CGFloat {
+        switch presentation {
+        case .catalog: 13
+        case .secondary: 15
+        case .featured: 16
+        }
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: catalog ? 9 : 12) {
+            HStack(alignment: .top, spacing: catalog ? 10 : 12) {
                 AsyncImage(url: URL(string: track.artworkUrl100 ?? "")) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 64, height: 64)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .frame(width: artSize, height: artSize)
+                        .clipShape(RoundedRectangle(cornerRadius: artCorner, style: .continuous))
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: artCorner, style: .continuous)
                         .fill(Color.gray.opacity(0.2))
-                        .frame(width: 64, height: 64)
+                        .frame(width: artSize, height: artSize)
                 }
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: artCorner, style: .continuous)
+                        .stroke(
+                            AppColors.accent(for: colorScheme).opacity(catalog ? 0.08 : (isSecondary ? 0.12 : 0.16)),
+                            lineWidth: catalog ? 0.5 : (isSecondary ? 0.75 : 1)
+                        )
                 )
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: catalog ? 3 : (isSecondary ? 5 : 8)) {
+                    if catalog {
+                        HStack(alignment: .center, spacing: 6) {
+                            if let artist = track.artistName, !artist.isEmpty {
+                                Text(artist.uppercased())
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundColor(AppColors.accent(for: colorScheme).opacity(0.9))
+                                    .lineLimit(1)
+                            }
+                            Spacer(minLength: 0)
+                            if isPlaying {
+                                TrackTag(text: "Laeuft", isAccent: true)
+                            } else if isSelected {
+                                TrackTag(text: "Im Set", isAccent: false)
+                            }
+                        }
+                    } else {
                     HStack(alignment: .center, spacing: 8) {
                         if let artist = track.artistName, !artist.isEmpty {
                             Text(artist.uppercased())
-                                .font(AppTypography.listMeta)
-                                .foregroundColor(AppColors.accent(for: colorScheme))
+                                .font(isSecondary ? .caption2.weight(.semibold) : AppTypography.listMeta)
+                                .foregroundColor(AppColors.accent(for: colorScheme).opacity(isSecondary ? 0.9 : 1.0))
                                 .lineLimit(1)
                         }
 
@@ -65,31 +111,37 @@ struct TrackView: View {
                         if isPlaying {
                             TrackTag(text: "Laeuft", isAccent: true)
                         } else if isSelected {
-                            TrackTag(text: "Im Player", isAccent: false)
+                            TrackTag(text: isSecondary ? "Im Set" : "Im Player", isAccent: false)
                         } else if track.previewUrl != nil {
                             TrackTag(text: "Preview", isAccent: false)
                         }
                     }
+                    }
 
                     Text(track.trackName)
-                        .font(AppTypography.listTitle)
-                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .font(
+                            catalog
+                            ? .subheadline.weight(.semibold)
+                            : (isSecondary ? .headline.weight(.semibold) : AppTypography.listTitle)
+                        )
+                        .foregroundColor(catalog ? AppColors.text(for: colorScheme).opacity(0.9) : AppColors.text(for: colorScheme))
                         .lineLimit(2)
 
-                    if let artist = track.artistName, !artist.isEmpty {
+                    if !catalog, !isSecondary, let artist = track.artistName, !artist.isEmpty {
                         Text("Von \(artist)")
                             .font(AppTypography.bodyCaption)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             .lineLimit(1)
                     }
 
-                    if let album = track.collectionName, !album.isEmpty {
+                    if !catalog, !isSecondary, let album = track.collectionName, !album.isEmpty {
                         Text(album)
                             .font(AppTypography.bodyCaption)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             .lineLimit(1)
                     }
 
+                    if !catalog {
                     HStack(spacing: 8) {
                         if track.previewUrl != nil {
                             TrackTag(text: "In-App Preview", isAccent: false)
@@ -101,6 +153,7 @@ struct TrackView: View {
                         } else if hasSpotifySearch {
                             TrackTag(text: "Spotify Suche", isAccent: false, tint: AppColors.spotify(for: colorScheme))
                         }
+                    }
                     }
                 }
             }
@@ -168,14 +221,18 @@ struct TrackView: View {
                 }
             }
         }
-        .padding(13)
+        .padding(
+            presentation == .catalog
+            ? 9
+            : (presentation == .secondary ? 11 : 13)
+        )
         .frame(maxWidth: .infinity, alignment: .leading)
         .skydownPanelSurface(
             colorScheme: colorScheme,
             accent: isSelected ? AppColors.accent(for: colorScheme) : AppColors.accentMystic(for: colorScheme),
-            cornerRadius: 22,
-            shadowRadius: 9,
-            shadowYOffset: 5
+            cornerRadius: catalog ? 17 : (isSecondary ? 20 : 22),
+            shadowRadius: catalog ? 3 : (isSecondary ? 5 : 9),
+            shadowYOffset: catalog ? 1 : (isSecondary ? 3 : 5)
         )
         .onTapGesture(perform: onSelect)
         .animation(.easeInOut(duration: 0.20), value: isPlaying)

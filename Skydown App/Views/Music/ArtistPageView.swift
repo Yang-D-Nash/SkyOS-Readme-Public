@@ -558,7 +558,7 @@ struct ArtistPageView: View {
                     )
                 }
             }
-            .padding(18)
+            .padding(SkydownLayout.panelPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.cardBackground(for: colorScheme))
             .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
@@ -655,7 +655,7 @@ struct ArtistPageView: View {
                     .shadow(color: .black.opacity(0.20), radius: 10, y: 4)
                 }
             }
-            .padding(18)
+            .padding(SkydownLayout.panelPadding)
         }
         .frame(height: 210)
         .frame(maxWidth: .infinity)

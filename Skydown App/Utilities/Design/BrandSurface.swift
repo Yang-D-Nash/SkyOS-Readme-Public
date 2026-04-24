@@ -1,5 +1,36 @@
 import SwiftUI
 
+/// Type-erased `Shape` for home hero (round vs. top-only roundrect).
+private struct AnyShape: Shape, @unchecked Sendable {
+    private let build: (CGRect) -> Path
+    init<S: Shape>(_ shape: S) {
+        build = { shape.path(in: $0) }
+    }
+    func path(in rect: CGRect) -> Path { build(rect) }
+}
+
+@inline(__always)
+private func skydownHomeHeroContainerShape(immersive: Bool) -> AnyShape {
+    if #available(iOS 16, *), immersive {
+        return AnyShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: SkydownLayout.heroCornerRadius,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: SkydownLayout.heroCornerRadius,
+                style: .continuous
+            )
+        )
+    } else {
+        return AnyShape(
+            RoundedRectangle(
+                cornerRadius: SkydownLayout.heroCornerRadius,
+                style: .continuous
+            )
+        )
+    }
+}
+
 enum BrandMark: String, Identifiable {
     case sky22
     case skydown
@@ -10,12 +41,14 @@ enum BrandMark: String, Identifiable {
 
     var imageName: String {
         switch self {
-        case .sky22, .zweizwei:
+        case .sky22:
             return "Sky22BrandLogo"
+        case .zweizwei:
+            return "ZweiZweiBrandLogo"
         case .skydown:
             return "SkydownBrandLogo"
         case .skydownX22:
-            return "SkydownX22BrandLogo"
+            return "SkyOSBrandMark"
         }
     }
 
@@ -26,7 +59,7 @@ enum BrandMark: String, Identifiable {
         case .skydown:
             return "Skydown"
         case .zweizwei:
-            return "22"
+            return "ZweiZwei"
         case .skydownX22:
             return "SkyOS"
         }
@@ -43,6 +76,8 @@ struct BrandHeroSurface<Footer: View>: View {
     let accent: Color
     let secondaryAccent: Color
     let marks: [BrandMark]
+    /// Flache Unterkante, leichter Schatten — Home-Intro als Atmosphäre statt Karte.
+    var immersive: Bool
     let footer: Footer
 
     init(
@@ -55,6 +90,7 @@ struct BrandHeroSurface<Footer: View>: View {
         accent: Color,
         secondaryAccent: Color,
         marks: [BrandMark] = [],
+        immersive: Bool = false,
         @ViewBuilder footer: () -> Footer
     ) {
         self.colorScheme = colorScheme
@@ -66,10 +102,12 @@ struct BrandHeroSurface<Footer: View>: View {
         self.accent = accent
         self.secondaryAccent = secondaryAccent
         self.marks = marks
+        self.immersive = immersive
         self.footer = footer()
     }
 
     var body: some View {
+        let capShape = skydownHomeHeroContainerShape(immersive: immersive)
         let hasBackgroundImage = !(backgroundImageURL?.isEmpty ?? true)
         let titleColor = hasBackgroundImage ? Color.white : AppColors.text(for: colorScheme)
         let subtitleColor = hasBackgroundImage ? Color.white.opacity(0.84) : AppColors.secondaryText(for: colorScheme).opacity(0.96)
@@ -136,7 +174,7 @@ struct BrandHeroSurface<Footer: View>: View {
                             )
                         }
                     }
-                    .frame(width: marks.count == 1 ? 118 : 96)
+                    .frame(width: marks.count == 1 ? 96 : 88)
                 }
             }
 
@@ -147,13 +185,8 @@ struct BrandHeroSurface<Footer: View>: View {
         .padding(.vertical, SkydownLayout.heroPadding + 1)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            let heroShape = RoundedRectangle(
-                cornerRadius: SkydownLayout.heroCornerRadius,
-                style: .continuous
-            )
-
             ZStack {
-                heroShape
+                capShape
                     .fill(
                         LinearGradient(
                             colors: [
@@ -169,7 +202,7 @@ struct BrandHeroSurface<Footer: View>: View {
                         )
                     )
 
-                heroShape
+                capShape
                     .fill(
                         RadialGradient(
                             colors: [
@@ -183,7 +216,7 @@ struct BrandHeroSurface<Footer: View>: View {
                         )
                     )
 
-                heroShape
+                capShape
                     .fill(
                         RadialGradient(
                             colors: [
@@ -209,9 +242,9 @@ struct BrandHeroSurface<Footer: View>: View {
                             Color.clear
                         }
                     }
-                    .clipShape(heroShape)
+                    .clipShape(capShape)
 
-                    heroShape
+                    capShape
                         .fill(
                             LinearGradient(
                                 colors: [
@@ -225,10 +258,10 @@ struct BrandHeroSurface<Footer: View>: View {
                             )
                         )
 
-                    heroShape
+                    capShape
                         .fill(Color.black.opacity(colorScheme == .dark ? 0.10 : 0.08))
 
-                    heroShape
+                    capShape
                         .fill(
                             RadialGradient(
                                 colors: [
@@ -260,69 +293,71 @@ struct BrandHeroSurface<Footer: View>: View {
             colorScheme: colorScheme,
             accent: accent,
             cornerRadius: SkydownLayout.heroCornerRadius,
-            shadowRadius: 12,
-            shadowYOffset: 5
+            shadowRadius: immersive ? 0 : 12,
+            shadowYOffset: immersive ? 0 : 5
         )
         .overlay {
-            GeometryReader { proxy in
-                let shape = RoundedRectangle(
-                    cornerRadius: SkydownLayout.heroCornerRadius,
-                    style: .continuous
-                )
-                let width = proxy.size.width
-                let height = proxy.size.height
+            if !immersive {
+                GeometryReader { proxy in
+                    let width = proxy.size.width
+                    let height = proxy.size.height
 
-                LinearGradient(
+                    LinearGradient(
                         colors: [
                             Color.white.opacity(0),
                             Color.white.opacity(colorScheme == .dark ? 0.10 : 0.14),
                             accent.opacity(colorScheme == .dark ? 0.08 : 0.09),
                             Color.white.opacity(0)
                         ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .frame(width: max(width * 0.34, 120), height: height * 1.7)
-                .rotationEffect(.degrees(16))
-                .offset(x: width * 0.34, y: -height * 0.16)
-                .blur(radius: 7)
-                .blendMode(.screen)
-                .mask(shape)
-            }
-            .allowsHitTesting(false)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.24),
-                            accent.opacity(0.12),
-                            secondaryAccent.opacity(0.08)
-                        ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
+                    )
+                    .frame(width: max(width * 0.34, 120), height: height * 1.7)
+                    .rotationEffect(.degrees(16))
+                    .offset(x: width * 0.34, y: -height * 0.16)
+                    .blur(radius: 7)
+                    .blendMode(.screen)
+                    .mask(capShape)
+                }
+                .allowsHitTesting(false)
+            }
+        }
+        .overlay {
+            if !immersive {
+                RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.24),
+                                accent.opacity(0.12),
+                                secondaryAccent.opacity(0.08)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
         }
         .overlay(alignment: .topLeading) {
-            Capsule(style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(colorScheme == .dark ? 0.28 : 0.78),
-                            accent.opacity(0.72),
-                            secondaryAccent.opacity(0.36)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
+            if !immersive {
+                Capsule(style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.28 : 0.78),
+                                accent.opacity(0.72),
+                                secondaryAccent.opacity(0.36)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     )
-                )
-                .frame(width: 132, height: 3)
-                .padding(.top, 14)
-                .padding(.leading, 18)
-                .opacity(0.58)
+                    .frame(width: 132, height: 3)
+                    .padding(.top, 14)
+                    .padding(.leading, 18)
+                    .opacity(0.58)
+            }
         }
     }
 }
@@ -404,30 +439,31 @@ private struct BrandMarkTile: View {
     let isFeatured: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Image(mark.imageName)
                 .resizable()
+                .renderingMode(.original)
                 .scaledToFit()
                 .frame(maxWidth: .infinity)
-                .frame(height: isFeatured ? 76 : 52)
+                .frame(height: isFeatured ? 58 : 42)
+                .opacity(0.5)
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous))
 
             Text(mark.label)
-                .font(isFeatured ? AppTypography.editorialCaption : AppTypography.editorialFootnote)
-                .tracking(0.5)
-                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.88))
+                .font(isFeatured ? AppTypography.editorialFootnote : AppTypography.editorialFootnote)
+                .tracking(0.35)
+                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.58))
                 .lineLimit(1)
         }
-        .padding(isFeatured ? 11 : 10)
+        .padding(isFeatured ? 9 : 8)
         .background(
             RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(colorScheme == .dark ? 0.08 : 0.40),
-                            accent.opacity(colorScheme == .dark ? 0.20 : 0.10),
-                            AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.86 : 0.98),
-                            Color.black.opacity(colorScheme == .dark ? 0.24 : 0.04)
+                            Color.white.opacity(colorScheme == .dark ? 0.04 : 0.18),
+                            accent.opacity(colorScheme == .dark ? 0.10 : 0.05),
+                            AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.45 : 0.72)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -439,19 +475,19 @@ private struct BrandMarkTile: View {
                 .stroke(
                     LinearGradient(
                         colors: [
-                            accent.opacity(0.26),
-                            Color.white.opacity(colorScheme == .dark ? 0.10 : 0.24)
+                            accent.opacity(0.12),
+                            Color.white.opacity(colorScheme == .dark ? 0.06 : 0.12)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 1
+                    lineWidth: 0.5
                 )
         )
         .shadow(
-            color: accent.opacity(colorScheme == .dark ? 0.09 : 0.06),
-            radius: 8,
-            y: 3
+            color: accent.opacity(colorScheme == .dark ? 0.04 : 0.03),
+            radius: 4,
+            y: 2
         )
     }
 }

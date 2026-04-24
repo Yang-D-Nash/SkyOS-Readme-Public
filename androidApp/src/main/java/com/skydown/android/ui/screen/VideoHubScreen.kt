@@ -6,7 +6,10 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import com.skydown.android.ui.component.SkydownMotionTokens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +27,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -90,6 +94,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skydown.android.data.AppContainer
+import com.skydown.android.data.resolveYouTubeThumbnailUrl
 import com.skydown.android.data.ExternalMediaProvider
 import com.skydown.android.data.mediaAttributionContext
 import androidx.media3.common.MediaItem
@@ -109,6 +114,7 @@ import com.skydown.android.ui.component.ExternalVideoWebPlayer
 import com.skydown.android.ui.component.OriginalVideoViewerDialog
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.SkydownTopBarTitle
+import com.skydown.android.ui.component.SkydownUiTokens
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
 import com.skydown.android.ui.component.dismissKeyboardOnTap
@@ -151,6 +157,7 @@ fun VideoHubScreen(
     onOpenCart: (() -> Unit)? = null,
     onOpenProfile: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
+    onGuestSignIn: (() -> Unit)? = null,
     viewModel: VideoHubViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -294,7 +301,6 @@ fun VideoHubScreen(
     val colorScheme = MaterialTheme.colorScheme
     val videoAccent = colorScheme.skydownAccent()
     val videoMysticAccent = colorScheme.skydownAccentMystic()
-    val videoYoutubeAccent = colorScheme.skydownYoutube()
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
 
     Scaffold(
@@ -332,6 +338,7 @@ fun VideoHubScreen(
                             onOpenCart = onOpenCart,
                             onOpenProfile = onOpenProfile,
                             onOpenSettings = onOpenSettings,
+                            onGuestSignIn = onGuestSignIn,
                             dense = compactVisualDensity,
                         )
                     }
@@ -382,7 +389,9 @@ fun VideoHubScreen(
                 .background(
                     skydownScreenBrush(
                         primaryColor = videoAccent,
-                        secondaryColor = videoYoutubeAccent,
+                        secondaryColor = videoMysticAccent,
+                        primaryAlpha = 0.022f,
+                        secondaryAlpha = 0.016f,
                     ),
                 ),
         ) {
@@ -697,12 +706,14 @@ private fun VideoHubHeroCard(
     BrandHeroCard(
         eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "SKY OS" },
         title = screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
-        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { "Visuals, Collabs und direkter Cinematic Flow." },
+        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank {
+            "Einstieg – der eigentliche Blick fokussiert sich auf den Player und deine Clips unten."
+        },
         detail = screenHeaderSettings.videoHubDetail.ifBlank {
             if (isAdmin) {
-                "$videoCount Clips und $collabCount Collabs im Live-Hub."
+                "$videoCount Clips, $collabCount Collabs – alles, was im Hub live ist, landet geordnet in der Library."
             } else {
-                "$videoCount Clips und $collabCount Collabs im Visual Hub."
+                "$videoCount Clips, $collabCount Collabs – waehlen, schauen, in Ruhe vertiefen."
             }
         },
         backgroundImageUrl = screenHeaderSettings.videoHubImageUrl.ifBlank { null },
@@ -731,8 +742,8 @@ private fun VideoHubHeroCard(
             )
         }
         Row(
-            modifier = Modifier.padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             VideoHubHeroStatCard(
                 label = "Reels",
@@ -1953,7 +1964,7 @@ private fun VideoPlayerCard(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(18.dp),
+                        .padding(SkydownUiTokens.panelPadding),
                     verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
                     Text(
@@ -2021,6 +2032,72 @@ private fun VideoPlayerCard(
     }
 }
 
+private enum class VideoLibraryRowPresentation {
+    Featured,
+    Secondary,
+    Catalog,
+}
+
+private fun videoHubPreviewImageUrl(video: VideoHubItem): String? {
+    val youTubeRef = when {
+        video.embedUrl.isNotBlank() -> video.embedUrl
+        video.externalUrl.isNotBlank() -> video.externalUrl
+        else -> ""
+    }
+    if (youTubeRef.isNotBlank()) {
+        val thumb = resolveYouTubeThumbnailUrl(youTubeRef)
+        if (thumb != null) return thumb
+    }
+    if (video.isPlayable && video.nativePlaybackUrl.isNotBlank()) {
+        return video.nativePlaybackUrl
+    }
+    return null
+}
+
+private fun videoHubLibraryMetaLine(
+    video: VideoHubItem,
+    isAdmin: Boolean,
+    presentation: VideoLibraryRowPresentation,
+): String {
+    val date = formatVideoDate(video.createdAtMillis)
+    return when (presentation) {
+        VideoLibraryRowPresentation.Catalog -> {
+            "${video.projectName} · $date"
+        }
+        VideoLibraryRowPresentation.Featured -> {
+            // Immersion: Bühne trägt den Titel; Meta bleibt eine dezente Zeile ohne Provider-Noise.
+            buildString {
+                append(video.projectName)
+                append(" · ")
+                append(date)
+                if (isAdmin) {
+                    append(" · ")
+                    append(if (video.isPublic) "Public" else "Private")
+                    if (video.isHomeFeatured) {
+                        append(" · Home")
+                    }
+                }
+            }
+        }
+        else -> {
+            buildString {
+                append(video.projectName)
+                append(" · ")
+                append(date)
+                append(" · ")
+                append(video.providerBadge)
+                if (isAdmin) {
+                    append(" · ")
+                    append(if (video.isPublic) "Public" else "Private")
+                    if (video.isHomeFeatured) {
+                        append(" · Home")
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun VideoLibraryCard(
     uiState: com.skydown.android.ui.model.VideoHubUiState,
@@ -2031,25 +2108,26 @@ private fun VideoLibraryCard(
     onToggleHomeFeatured: (VideoHubItem) -> Unit,
     onDeleteVideo: (VideoHubItem) -> Unit,
 ) {
-    val libraryAccent = MaterialTheme.colorScheme.skydownAccent()
+    val colorScheme = MaterialTheme.colorScheme
     SkydownCard {
-        VideoHubSectionBanner(
-            title = "Video Library",
-            subtitle = "Alle Clips im Hub, klar getrennt nach Fokus und Status.",
-            icon = Icons.Default.Movie,
-            accent = libraryAccent,
-            tag = "LIBRARY",
-        )
-        Text(
-            text = if (uiState.isAdmin) {
-                "${uiState.videos.size} Videos im Hub."
-            } else {
-                "${uiState.videos.size} Videos verfuegbar."
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-            modifier = Modifier.padding(top = 8.dp),
-        )
+        Column(Modifier.testTag("video.hub.library.header")) {
+            Text(
+                text = "Aus deinen Clips",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = colorScheme.onSurface,
+            )
+            Text(
+                text = if (uiState.isAdmin) {
+                    "${uiState.videos.size} Titel im Hub"
+                } else {
+                    "${uiState.videos.size} zum Schauen bereit"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = colorScheme.onSurface.copy(alpha = 0.64f),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
 
         when {
             uiState.isLoadingVideos -> {
@@ -2077,19 +2155,39 @@ private fun VideoLibraryCard(
 
             else -> {
                 Column(
-                    modifier = Modifier.padding(top = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(top = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    uiState.videos.forEach { video ->
+                    uiState.videos.forEachIndexed { index, video ->
+                        val presentation = when {
+                            index == 0 -> VideoLibraryRowPresentation.Featured
+                            index == 1 && uiState.videos.size > 1 -> VideoLibraryRowPresentation.Secondary
+                            else -> VideoLibraryRowPresentation.Catalog
+                        }
+                        val topPad = when {
+                            index == 0 && uiState.videos.size > 1 -> 2.dp
+                            index == 2 && uiState.videos.size > 2 -> 10.dp
+                            else -> 0.dp
+                        }
+                        val bottomAfterFeatured = if (index == 0 && uiState.videos.size > 1) {
+                            6.dp
+                        } else {
+                            0.dp
+                        }
                         VideoLibraryRow(
                             video = video,
                             isSelected = video.id == selectedVideoId,
                             isAdmin = uiState.isAdmin,
+                            rowIndex = index,
+                            presentation = presentation,
                             onSelect = { onSelectVideo(video) },
                             onOpenReel = { onOpenReel(video) },
                             onOpenOriginal = { onOpenOriginal(video) },
                             onToggleHomeFeatured = { onToggleHomeFeatured(video) },
                             onDelete = { onDeleteVideo(video) },
+                            modifier = Modifier
+                                .padding(top = topPad)
+                                .padding(bottom = bottomAfterFeatured),
                         )
                     }
                 }
@@ -2103,6 +2201,9 @@ private fun VideoLibraryRow(
     video: VideoHubItem,
     isSelected: Boolean,
     isAdmin: Boolean,
+    rowIndex: Int,
+    presentation: VideoLibraryRowPresentation,
+    modifier: Modifier = Modifier,
     onSelect: () -> Unit,
     onOpenReel: () -> Unit,
     onOpenOriginal: () -> Unit,
@@ -2111,194 +2212,352 @@ private fun VideoLibraryRow(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val providerAccent = videoHubProviderAccent(video)
+    val catalog = presentation == VideoLibraryRowPresentation.Catalog
+    val isFeatured = presentation == VideoLibraryRowPresentation.Featured
+    val isSecondary = presentation == VideoLibraryRowPresentation.Secondary
+    val catalogStripe = catalog && rowIndex % 2 == 1
+    val thumbWidth = when (presentation) {
+        VideoLibraryRowPresentation.Featured -> 0.dp
+        VideoLibraryRowPresentation.Secondary -> 96.dp
+        VideoLibraryRowPresentation.Catalog -> 70.dp
+    }
+    val thumbHeight = when (presentation) {
+        VideoLibraryRowPresentation.Featured -> 0.dp
+        VideoLibraryRowPresentation.Secondary -> 54.dp
+        VideoLibraryRowPresentation.Catalog -> 40.dp
+    }
+    val cardShape = when (presentation) {
+        VideoLibraryRowPresentation.Featured -> RoundedCornerShape(26.dp)
+        VideoLibraryRowPresentation.Secondary -> RoundedCornerShape(20.dp)
+        VideoLibraryRowPresentation.Catalog -> RoundedCornerShape(17.dp)
+    }
+    val innerH = when (presentation) {
+        VideoLibraryRowPresentation.Featured -> 18.dp
+        VideoLibraryRowPresentation.Secondary -> 15.dp
+        VideoLibraryRowPresentation.Catalog -> 12.dp
+    }
+    val innerV = when (presentation) {
+        VideoLibraryRowPresentation.Featured -> 0.dp
+        VideoLibraryRowPresentation.Secondary -> 12.dp
+        VideoLibraryRowPresentation.Catalog -> 9.dp
+    }
+    val previewModel = remember(video) { videoHubPreviewImageUrl(video) }
+    val unselectedBaseAlpha = if (catalog) {
+        if (catalogStripe) 0.86f else 0.9f
+    } else {
+        0.96f
+    }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(cardShape)
             .background(
                 Brush.linearGradient(
                     colors = if (isSelected) {
                         listOf(
-                            colorScheme.skydownAccent().copy(alpha = 0.18f),
-                            colorScheme.skydownAccentHighlight().copy(alpha = 0.12f),
-                            colorScheme.skydownCardBackground().copy(alpha = 0.96f),
+                            colorScheme.skydownAccent().copy(alpha = if (isFeatured) 0.2f else 0.15f),
+                            colorScheme.skydownAccentHighlight().copy(alpha = if (isFeatured) 0.12f else 0.1f),
+                            colorScheme.skydownCardBackground().copy(alpha = 0.97f),
                         )
                     } else {
                         listOf(
-                            colorScheme.skydownCardBackground().copy(alpha = 0.96f),
-                            colorScheme.skydownSecondaryBackground().copy(alpha = 0.56f),
+                            colorScheme.skydownCardBackground().copy(alpha = unselectedBaseAlpha),
+                            colorScheme.skydownSecondaryBackground().copy(
+                                alpha = if (catalog) {
+                                    if (catalogStripe) 0.42f else 0.5f
+                                } else {
+                                    0.55f
+                                },
+                            ),
                         )
                     },
                 ),
             )
             .border(
-                width = 1.dp,
-                color = if (isSelected) colorScheme.skydownAccentHighlight().copy(alpha = 0.28f) else colorScheme.outline.copy(alpha = 0.10f),
-                shape = RoundedCornerShape(20.dp),
-            )
-            .padding(horizontal = 14.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+                width = when {
+                    isFeatured && isSelected -> 1.25.dp
+                    isFeatured -> 1.1.dp
+                    isSecondary && isSelected -> 0.9.dp
+                    isSecondary -> 0.8.dp
+                    isSelected && catalog -> 0.85.dp
+                    else -> 0.7.dp
+                },
+                color = if (isSelected) {
+                    colorScheme.skydownAccentHighlight().copy(
+                        alpha = if (isFeatured) 0.35f else if (isSecondary) 0.28f else 0.22f,
+                    )
+                } else {
+                    colorScheme.outline.copy(
+                        alpha = when {
+                            isFeatured -> 0.12f
+                            isSecondary -> 0.1f
+                            catalogStripe -> 0.11f
+                            else -> 0.08f
+                        },
+                    )
+                },
+                shape = cardShape,
+            ),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            BrandPreviewFrame(
-                accent = providerAccent,
+        if (isFeatured) {
+            Box(
                 modifier = Modifier
-                    .size(64.dp),
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f),
             ) {
+                if (previewModel != null) {
+                    AsyncImage(
+                        model = previewModel,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(
+                                RoundedCornerShape(
+                                    topStart = 26.dp,
+                                    topEnd = 26.dp,
+                                    bottomStart = 0.dp,
+                                    bottomEnd = 0.dp,
+                                ),
+                            ),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(
+                                        providerAccent.copy(alpha = 0.9f),
+                                        colorScheme.skydownCinematicShadow().copy(alpha = 0.8f),
+                                    ),
+                                ),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = if (isSelected) Icons.Default.PlayArrow else Icons.Default.Movie,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(44.dp),
+                        )
+                    }
+                }
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(104.dp)
                         .background(
-                            Brush.linearGradient(
+                            Brush.verticalGradient(
                                 colors = listOf(
-                                    providerAccent.copy(alpha = 0.88f),
-                                    colorScheme.skydownCinematicShadow().copy(alpha = 0.76f),
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.7f),
                                 ),
                             ),
                         ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = if (isSelected) Icons.Default.PlayArrow else Icons.Default.Movie,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
+                )
                 Text(
                     text = video.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(horizontal = 16.dp, vertical = 16.dp)
+                        .fillMaxWidth(0.92f),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = buildString {
-                        append(video.projectName)
-                        append(" · ")
-                        append(video.providerBadge)
-                        append(" · ")
-                        append(formatVideoDate(video.createdAtMillis))
-                        if (isAdmin) {
-                            append(" · ")
-                            append(if (video.isPublic) "Public" else "Private")
-                            if (video.isHomeFeatured) {
-                                append(" · Home")
+                Icon(
+                    imageVector = if (isSelected) Icons.Default.PlayArrow else Icons.Default.Movie,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(12.dp)
+                        .size(22.dp),
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier.padding(
+                horizontal = innerH,
+                vertical = if (isFeatured) 14.dp else innerV,
+            ),
+            verticalArrangement = Arrangement.spacedBy(if (isFeatured) 10.dp else if (catalog) 6.dp else 8.dp),
+        ) {
+            if (!isFeatured) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(if (catalog) 7.dp else 12.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    BrandPreviewFrame(
+                        accent = providerAccent,
+                        modifier = Modifier
+                            .size(thumbWidth, thumbHeight),
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            if (previewModel != null) {
+                                AsyncImage(
+                                    model = previewModel,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(14.dp)),
+                                    contentScale = ContentScale.Crop,
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            Brush.linearGradient(
+                                                colors = listOf(
+                                                    providerAccent.copy(alpha = 0.88f),
+                                                    colorScheme.skydownCinematicShadow().copy(alpha = 0.76f),
+                                                ),
+                                            ),
+                                        ),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = if (isSelected) Icons.Default.PlayArrow else Icons.Default.Movie,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(
+                                            if (isSecondary) 24.dp else 22.dp,
+                                        ),
+                                    )
+                                }
                             }
                         }
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = video.title,
+                            style = if (isSecondary) {
+                                MaterialTheme.typography.titleSmall
+                            } else {
+                                MaterialTheme.typography.titleSmall
+                            },
+                            fontWeight = if (isSecondary) FontWeight.SemiBold else FontWeight.SemiBold,
+                            color = if (catalog) {
+                                colorScheme.onSurface.copy(alpha = 0.88f)
+                            } else {
+                                colorScheme.onSurface
+                            },
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = videoHubLibraryMetaLine(
+                                video = video,
+                                isAdmin = isAdmin,
+                                presentation = presentation,
+                            ),
+                            style = if (isSecondary) {
+                                MaterialTheme.typography.labelSmall
+                            } else {
+                                MaterialTheme.typography.labelMedium
+                            },
+                            color = MaterialTheme.colorScheme.onSurface.copy(
+                                alpha = if (isSecondary) 0.6f else 0.55f,
+                            ),
+                            maxLines = if (catalog) 1 else 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        if (isAdmin && video.fileName.isNotBlank() && isSecondary) {
+                            Text(
+                                text = video.fileName,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f),
+                                maxLines = 1,
+                            )
+                        }
+                        if (video.notes.isNotBlank() && isSecondary) {
+                            Text(
+                                text = video.notes,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            } else {
+                Text(
+                    text = videoHubLibraryMetaLine(
+                        video = video,
+                        isAdmin = isAdmin,
+                        presentation = presentation,
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colorScheme.onSurface.copy(
+                        alpha = if (isAdmin) 0.6f else 0.55f,
+                    ),
+                    maxLines = 1,
                 )
                 if (isAdmin && video.fileName.isNotBlank()) {
                     Text(
                         text = video.fileName,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f),
                         maxLines = 1,
                     )
                 }
-                if (video.notes.isNotBlank()) {
+                if (isAdmin && video.notes.isNotBlank()) {
                     Text(
                         text = video.notes,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colorScheme.onSurface.copy(alpha = 0.5f),
+                        maxLines = 1,
                     )
                 }
             }
-        }
 
-        Text(
-            text = videoLibraryInteractionHint(
-                video = video,
-                isAdmin = isAdmin,
-                isSelected = isSelected,
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = videoHubProviderAccent(video).copy(alpha = 0.92f),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-
-        if (isAdmin) {
-            if (video.supportsInlinePlayback) {
-                Button(
-                    onClick = onSelect,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                ) {
-                    Text(
-                        when {
-                            isSelected && video.usesEmbeddedPreview -> "Aktiv in Preview"
-                            isSelected -> "Aktiv im Player"
-                            video.usesEmbeddedPreview -> "In Preview laden"
-                            else -> "Im Player laden"
-                        },
+            if (!catalog && !isFeatured) {
+                val hintText = when {
+                    isSecondary && isAdmin -> "Auswahl sitzt sofort im Player."
+                    isSecondary -> "Tippen, um den Fokus zu waehlen – der Player oben folgt."
+                    else -> videoLibraryInteractionHint(
+                        video = video,
+                        isAdmin = isAdmin,
+                        isSelected = isSelected,
                     )
                 }
-            } else if (video.openUrl.isNotBlank()) {
-                OutlinedButton(
-                    onClick = onOpenOriginal,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                ) {
-                    Text(video.originalActionLabel)
-                }
+                Text(
+                    text = hintText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = videoHubProviderAccent(video).copy(alpha = if (isSecondary) 0.72f else 0.78f),
+                    maxLines = if (isSecondary) 1 else 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(
-                    onClick = onToggleHomeFeatured,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(18.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Home,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = if (video.isHomeFeatured) "Home aktiv" else "Im Home zeigen",
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = onDelete,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(18.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = "Loeschen",
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
-            }
-        } else {
-            if (video.opensOriginalInApp) {
+            if (isAdmin) {
                 if (video.supportsInlinePlayback) {
                     Button(
-                        onClick = onOpenOriginal,
+                        onClick = onSelect,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp),
                     ) {
-                        Text(videoHubDirectCompactActionLabel(video))
+                        Text(
+                            when {
+                                isSelected && video.usesEmbeddedPreview -> "Aktiv in Preview"
+                                isSelected -> "Aktiv im Player"
+                                video.usesEmbeddedPreview -> "In Preview laden"
+                                else -> "Im Player laden"
+                            },
+                        )
                     }
-                } else {
+                } else if (video.openUrl.isNotBlank()) {
                     OutlinedButton(
                         onClick = onOpenOriginal,
                         modifier = Modifier.fillMaxWidth(),
@@ -2307,13 +2566,65 @@ private fun VideoLibraryRow(
                         Text(video.originalActionLabel)
                     }
                 }
-            } else if (video.supportsInlinePlayback) {
-                Button(
-                    onClick = onOpenReel,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                ) {
-                    Text(videoHubInlineCompactActionLabel(video))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = onToggleHomeFeatured,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Home,
+                            contentDescription = null,
+                        )
+                        Text(
+                            text = if (video.isHomeFeatured) "Home aktiv" else "Im Home zeigen",
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = onDelete,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                        )
+                        Text(
+                            text = "Loeschen",
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+            } else {
+                if (video.opensOriginalInApp) {
+                    if (video.supportsInlinePlayback) {
+                        Button(
+                            onClick = onOpenOriginal,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                        ) {
+                            Text(videoHubDirectCompactActionLabel(video))
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = onOpenOriginal,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                        ) {
+                            Text(video.originalActionLabel)
+                        }
+                    }
+                } else if (video.supportsInlinePlayback) {
+                    Button(
+                        onClick = onOpenReel,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Text(videoHubInlineCompactActionLabel(video))
+                    }
                 }
             }
         }
@@ -2612,7 +2923,12 @@ private fun VideoReelViewerDialog(
             AnimatedVisibility(
                 visible = isTransitioning,
                 modifier = Modifier.align(Alignment.Center),
-                enter = fadeIn(),
+                enter = fadeIn(
+                    animationSpec = tween(
+                        durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                        easing = FastOutSlowInEasing,
+                    ),
+                ),
             ) {
                 Row(
                     modifier = Modifier

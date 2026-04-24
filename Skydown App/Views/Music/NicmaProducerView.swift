@@ -162,7 +162,7 @@ struct NicmaProducerView: View {
                 )
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 24)
@@ -204,7 +204,7 @@ struct NicmaProducerView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 18))
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 24)

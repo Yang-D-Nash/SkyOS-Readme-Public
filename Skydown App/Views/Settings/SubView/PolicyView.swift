@@ -11,20 +11,93 @@ struct PolicyView: View {
     @Environment(\.colorScheme) private var colorScheme
     let title: String
     let text: String
+    /// Optional line shown under the title, e.g. "Stand: …"
+    var lastUpdated: String? = nil
+    /// Shown in the footer; optional.
+    var supportEmail: String? = nil
+    /// Short operational disclaimer — not the legal text itself. Keep distinct styling.
+    var showTransparencyNote: Bool = true
+
+    private var parsedParagraphs: [String] {
+        text
+            .components(separatedBy: "\n\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 18) {
                     Text(title)
                         .font(.title2.bold())
+                        .foregroundStyle(AppColors.text(for: colorScheme))
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Text(text)
-                        .font(.body)
-                        .foregroundStyle(.secondary)
+                    if let lastUpdated, !lastUpdated.isEmpty {
+                        Text(
+                            String(
+                                format: AppLocalized.text("legal.ui.last_updated_format", fallback: "Last updated: %@"),
+                                lastUpdated
+                            )
+                        )
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppColors.secondaryText(for: colorScheme))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
+                    }
+
+                    if showTransparencyNote {
+                        Text(
+                            AppLocalized.text(
+                                "legal.ui.transparency_note",
+                                fallback: "This screen shows operational information. It is not a substitute for independent legal review. (TODO: Legal sign-off for production use.)"
+                            )
+                        )
+                        .font(.caption)
+                        .foregroundStyle(AppColors.secondaryText(for: colorScheme))
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.65))
+                        )
+                        .accessibilityLabel(
+                            AppLocalized.text("legal.ui.transparency_a11y", fallback: "Transparency notice before policy text")
+                        )
+                    }
+
+                    if parsedParagraphs.count > 1 {
+                        VStack(alignment: .leading, spacing: 14) {
+                            ForEach(Array(parsedParagraphs.enumerated()), id: \.offset) { _, paragraph in
+                                Text(paragraph)
+                                    .font(.body)
+                                    .foregroundStyle(AppColors.text(for: colorScheme))
+                                    .lineSpacing(3)
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                    } else {
+                        Text(text)
+                            .font(.body)
+                            .foregroundStyle(AppColors.text(for: colorScheme))
+                            .lineSpacing(3)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    if let supportEmail, !supportEmail.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(AppLocalized.text("legal.ui.contact_header", fallback: "Contact"))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppColors.text(for: colorScheme))
+                            Text(supportEmail)
+                                .font(.subheadline)
+                                .textSelection(.enabled)
+                                .foregroundStyle(AppColors.accent(for: colorScheme))
+                        }
+                        .padding(.top, 4)
+                    }
                 }
                 .padding(20)
             }

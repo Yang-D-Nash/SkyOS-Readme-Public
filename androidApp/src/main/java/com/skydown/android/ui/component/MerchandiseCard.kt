@@ -2,6 +2,7 @@ package com.skydown.android.ui.component
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -47,6 +49,10 @@ fun MerchandiseCard(
     item: MerchandiseItem,
     onTap: (MerchandiseItem) -> Unit,
     modifier: Modifier = Modifier,
+    /** First rows in the shelf read slightly larger for scan rhythm (not a separate flow). */
+    shelfHighlight: Boolean = false,
+    /** Denser, calmer treatment for later rows (curated rhythm, not a new flow). */
+    shelfSettled: Boolean = false,
 ) {
     // SkyOS retail accents only — never third-party brand colors for catalog source.
     val accentColor = if (item.featured) {
@@ -66,23 +72,55 @@ fun MerchandiseCard(
     }
     val safeImageUrls = displayImageUrls.ifEmpty { listOf("") }
     val pagerState = rememberPagerState(pageCount = { safeImageUrls.size })
+    val (imageW, imageH, padH) = when {
+        shelfHighlight -> Triple(132.dp, 168.dp, 16.dp)
+        shelfSettled -> Triple(108.dp, 128.dp, 8.dp)
+        else -> Triple(116.dp, 136.dp, 12.dp)
+    }
+    val imageCorner = when {
+        shelfHighlight -> 22.dp
+        shelfSettled -> 16.dp
+        else -> 18.dp
+    }
 
     SkydownCard(
-        modifier = modifier.testTag("shop.merch.row"),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
+        modifier = modifier
+            .testTag("shop.merch.row")
+            .then(
+                if (shelfHighlight) {
+                    Modifier.border(
+                        width = 1.5.dp,
+                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.32f),
+                        shape = RoundedCornerShape(26.dp),
+                    )
+                } else {
+                    Modifier
+                },
+            )
+            .then(
+                if (shelfSettled) {
+                    Modifier.alpha(0.95f)
+                } else {
+                    Modifier
+                },
+            ),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            horizontal = padH,
+            vertical = padH,
+        ),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onTap(item) },
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (shelfSettled) 8.dp else 12.dp),
             verticalAlignment = Alignment.Top,
         ) {
             Box(
                 modifier = Modifier
-                    .width(116.dp)
-                    .height(136.dp)
-                    .clip(RoundedCornerShape(18.dp)),
+                    .width(imageW)
+                    .height(imageH)
+                    .clip(RoundedCornerShape(imageCorner)),
             ) {
                 HorizontalPager(
                     state = pagerState,
@@ -183,7 +221,7 @@ fun MerchandiseCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "EUR ${String.format(Locale.US, "%.2f", item.price)}",
+                    text = "${item.currency} ${String.format(Locale.US, "%.2f", item.price)}",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,

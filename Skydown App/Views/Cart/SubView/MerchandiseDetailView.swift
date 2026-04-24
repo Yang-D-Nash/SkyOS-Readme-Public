@@ -924,7 +924,7 @@ private struct MerchFinalConfirmSheet: View {
             confirmState = .committing
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            withAnimation(SkydownMotion.screenTransition) {
                 confirmState = .success
             }
             SkydownHaptics.notification(.success)

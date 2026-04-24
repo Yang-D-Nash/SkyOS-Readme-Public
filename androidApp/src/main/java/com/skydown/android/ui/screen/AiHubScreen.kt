@@ -42,9 +42,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.skydown.android.R
 import com.skydown.android.data.AiAccessMode
 import com.skydown.android.data.AppFeatureFlagsStore
 import com.skydown.android.ui.component.AppTopBarSessionActions
@@ -59,6 +61,7 @@ import com.skydown.android.ui.component.skydownContentPadding
 import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.theme.SkydownPanelTitleTextStyle
+import com.skydown.android.ui.theme.skydownAccentMystic
 
 private enum class AiHubMode {
     Bot,
@@ -74,6 +77,7 @@ fun AiHubScreen(
     onHideWorkflow: () -> Unit,
     onExitImmersive: (() -> Unit)? = null,
     onOpenLogin: () -> Unit = {},
+    onGuestSignIn: (() -> Unit)? = null,
     onOpenCart: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
     onOpenSettings: () -> Unit,
@@ -119,6 +123,7 @@ fun AiHubScreen(
                         onOpenCart = onOpenCart,
                         onOpenProfile = onOpenProfile,
                         onOpenSettings = onOpenSettings,
+                        onGuestSignIn = onGuestSignIn,
                         dense = compactVisualDensity,
                     )
                 },
@@ -131,9 +136,9 @@ fun AiHubScreen(
                 .fillMaxSize()
                 .background(
                     skydownScreenBrush(
-                        secondaryColor = MaterialTheme.colorScheme.tertiary,
-                        primaryAlpha = 0.060f,
-                        secondaryAlpha = 0.038f,
+                        secondaryColor = MaterialTheme.colorScheme.skydownAccentMystic(),
+                        primaryAlpha = 0.028f,
+                        secondaryAlpha = 0.018f,
                     ),
                 ),
         ) {
@@ -146,16 +151,23 @@ fun AiHubScreen(
                 verticalArrangement = Arrangement.spacedBy(sectionSpacing),
             ) {
                 if (currentUser == null) {
-                    AiHubLoginCard(
-                        title = if (aiAccessMode == AiAccessMode.AdminOnly) {
-                            "AI freigeschaltet"
-                        } else {
-                            "Mit Konto starten"
-                        },
-                        message = AppFeatureFlagsStore.accessDeniedMessage(
+                    val aiLoginTitle = if (aiAccessMode == AiAccessMode.AdminOnly) {
+                        stringResource(R.string.auth_ai_login_title_staff)
+                    } else {
+                        stringResource(R.string.auth_ai_login_title)
+                    }
+                    val aiLoginMessage = if (aiAccessMode == AiAccessMode.SignedIn) {
+                        stringResource(R.string.auth_ai_login_hint_signed_in)
+                    } else {
+                        AppFeatureFlagsStore.accessDeniedMessage(
                             user = currentUser,
                             accessMode = aiAccessMode,
-                        ),
+                        )
+                    }
+                    AiHubLoginCard(
+                        title = aiLoginTitle,
+                        message = aiLoginMessage,
+                        ctaLabel = stringResource(R.string.auth_continue_with_account),
                         onOpenLogin = onOpenLogin,
                         modifier = Modifier
                             .widthIn(max = workspaceMaxWidth)
@@ -184,7 +196,19 @@ fun AiHubScreen(
                         compactVisualDensity = compactVisualDensity,
                         modifier = Modifier
                             .widthIn(max = workspaceMaxWidth)
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                    )
+
+                    Text(
+                        text = stringResource(R.string.ai_legal_disclosure_short),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                        modifier = Modifier
+                            .widthIn(max = workspaceMaxWidth)
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
                     )
 
                     Box(
@@ -229,6 +253,7 @@ fun AiHubScreen(
 private fun AiHubLoginCard(
     title: String,
     message: String,
+    ctaLabel: String,
     onOpenLogin: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -247,7 +272,7 @@ private fun AiHubLoginCard(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
         BrandActionButton(
-            text = "Anmelden",
+            text = ctaLabel,
             onClick = onOpenLogin,
             accent = accent,
             modifier = Modifier

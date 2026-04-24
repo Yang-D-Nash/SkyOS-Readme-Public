@@ -4064,7 +4064,7 @@ fun SettingsScreen(
                             }
                         } else {
                             Text(
-                                text = "Melde dich an oder registriere dich, um Bestellungen und persoenliche Bereiche freizuschalten.",
+                                text = stringResource(R.string.auth_settings_guest_hint),
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -4079,7 +4079,7 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(18.dp),
                                 ) {
-                                    Text("Anmelden")
+                                    Text(stringResource(R.string.auth_sign_in))
                                 }
                                 OutlinedButton(
                                     onClick = onOpenRegistration,
@@ -4379,14 +4379,14 @@ fun SettingsScreen(
 
                 item {
                     SkydownCard {
-                        SectionHeader("Privacy / Legal / Help")
+                        SectionHeader(stringResource(R.string.settings_legal_section_title))
                         Text(
-                            text = "Recht, Hilfe und Vertrauen in einer klaren Reihe.",
+                            text = stringResource(R.string.settings_legal_section_subtitle),
                             modifier = Modifier.padding(top = 8.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
                         Text(
-                            text = "Version ${uiState.appVersion}",
+                            text = stringResource(R.string.settings_legal_version_label, uiState.appVersion),
                             modifier = Modifier.padding(top = 10.dp),
                         )
                         OutlinedButton(
@@ -4398,7 +4398,7 @@ fun SettingsScreen(
                                 .padding(top = 12.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
-                            Text("FAQ / Guide")
+                            Text(stringResource(R.string.settings_legal_faq_guide))
                         }
                         OutlinedButton(
                             onClick = {
@@ -4409,7 +4409,7 @@ fun SettingsScreen(
                                 .padding(top = 10.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
-                            Text("AGB")
+                            Text(stringResource(R.string.settings_legal_terms_agb))
                         }
                         OutlinedButton(
                             onClick = {
@@ -4420,7 +4420,7 @@ fun SettingsScreen(
                                 .padding(top = 10.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
-                            Text("Datenschutz")
+                            Text(stringResource(R.string.settings_legal_privacy))
                         }
                         OutlinedButton(
                             onClick = {
@@ -4431,7 +4431,7 @@ fun SettingsScreen(
                                 .padding(top = 10.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
-                            Text("Terms")
+                            Text(stringResource(R.string.settings_legal_terms_of_use))
                         }
                         OutlinedButton(
                             onClick = {
@@ -4442,7 +4442,7 @@ fun SettingsScreen(
                                 .padding(top = 10.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
-                            Text("Subscription Terms")
+                            Text(stringResource(R.string.settings_legal_subscription))
                         }
                         OutlinedButton(
                             onClick = {
@@ -4453,7 +4453,7 @@ fun SettingsScreen(
                                 .padding(top = 10.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
-                            Text("AI Usage Notice")
+                            Text(stringResource(R.string.settings_legal_ai_usage))
                         }
                         OutlinedButton(
                             onClick = {
@@ -4464,7 +4464,7 @@ fun SettingsScreen(
                                 .padding(top = 10.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
-                            Text("Impressum / Company Info")
+                            Text(stringResource(R.string.settings_legal_imprint))
                         }
                         Text(
                             text = uiState.legalContentSettings.resolvedSupportEmail,
@@ -4485,10 +4485,10 @@ fun SettingsScreen(
                                 .padding(top = 12.dp),
                             shape = RoundedCornerShape(18.dp),
                         ) {
-                            Text("Support-Anfrage senden")
+                            Text(stringResource(R.string.settings_legal_support_cta))
                         }
                         Text(
-                            text = "Alle Hilfe- und Rechtstexte sind direkt verfuegbar.",
+                            text = stringResource(R.string.settings_legal_availability_note),
                             modifier = Modifier.padding(top = 10.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
@@ -4547,7 +4547,7 @@ fun SettingsScreen(
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
                                 label = { Text("Support E-Mail") },
-                                placeholder = { Text("support@example.com") },
+                                placeholder = { Text(stringResource(R.string.settings_legal_support_email_placeholder)) },
                                 singleLine = true,
                             )
 
@@ -5457,6 +5457,14 @@ private fun SettingsLegalDocumentSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item {
+                Text(
+                    text = stringResource(R.string.legal_ui_transparency_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+            }
+            item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = document.title,
@@ -5464,7 +5472,7 @@ private fun SettingsLegalDocumentSheet(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Zuletzt aktualisiert: ${document.updatedAt}",
+                        text = stringResource(R.string.legal_ui_last_updated, document.updatedAt),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                     )
@@ -5495,7 +5503,7 @@ private fun SettingsLegalDocumentSheet(
             item {
                 SkydownCard {
                     Text(
-                        text = "Kontakt",
+                        text = stringResource(R.string.legal_ui_contact),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )

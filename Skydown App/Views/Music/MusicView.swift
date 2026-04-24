@@ -122,6 +122,7 @@ struct MusicView: View {
     let onOpenCart: (() -> Void)?
     let onOpenProfile: (() -> Void)?
     let onOpenSettings: (() -> Void)?
+    let onGuestSignIn: (() -> Void)?
     private let initialArtist: String?
     private let initialTrackID: Int?
     private let autoplaySelectedTrackPreview: Bool
@@ -138,7 +139,8 @@ struct MusicView: View {
         onBack: (() -> Void)? = nil,
         onOpenCart: (() -> Void)? = nil,
         onOpenProfile: (() -> Void)? = nil,
-        onOpenSettings: (() -> Void)? = nil
+        onOpenSettings: (() -> Void)? = nil,
+        onGuestSignIn: (() -> Void)? = nil
     ) {
         self.brand = brand
         self.onBack = onBack
@@ -150,6 +152,7 @@ struct MusicView: View {
         self.onOpenCart = onOpenCart
         self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
+        self.onGuestSignIn = onGuestSignIn
         let resolvedInitialArtist = initialArtist.flatMap { requestedArtist in
             brand.artists.contains(requestedArtist) ? requestedArtist : nil
         } ?? brand.artists.first ?? "Yang D. Nash"
@@ -214,28 +217,32 @@ struct MusicView: View {
                         VStack(alignment: .leading, spacing: layout.sectionSpacing) {
                             heroCard(
                                 onOpenArtistHub: {
-                                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                    withAnimation(SkydownMotion.smoothScroll) {
                                         scrollProxy.scrollTo(MusicSectionAnchor.artists.rawValue, anchor: .top)
                                     }
                                 },
                                 onOpenSpotlight: {
-                                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                    withAnimation(SkydownMotion.smoothScroll) {
                                         scrollProxy.scrollTo(MusicSectionAnchor.spotlight.rawValue, anchor: .top)
                                     }
                                 },
                                 onOpenTracks: {
-                                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                    withAnimation(SkydownMotion.smoothScroll) {
                                         scrollProxy.scrollTo(MusicSectionAnchor.tracks.rawValue, anchor: .top)
                                     }
                                 },
                                 onOpenSpotifyStatus: {
-                                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                    withAnimation(SkydownMotion.smoothScroll) {
                                         scrollProxy.scrollTo(MusicSectionAnchor.spotify.rawValue, anchor: .top)
                                     }
                                 }
                             )
-                            spotlightCard
-                                .id(MusicSectionAnchor.spotlight.rawValue)
+                            VStack(spacing: 0) {
+                                Color.clear.frame(height: 10)
+                                spotlightCard
+                                Color.clear.frame(height: 12)
+                            }
+                            .id(MusicSectionAnchor.spotlight.rawValue)
 
                             if layout.prefersTwoColumn {
                                 HStack(alignment: .top, spacing: layout.sectionSpacing) {
@@ -312,7 +319,8 @@ struct MusicView: View {
                             AppSessionToolbarActions(
                                 onOpenCart: onOpenCart,
                                 onOpenProfile: onOpenProfile,
-                                onOpenSettings: onOpenSettings
+                                onOpenSettings: onOpenSettings,
+                                onGuestSignIn: onGuestSignIn
                             )
                         }
                     } else if viewModel.isSpotifyConnected {
@@ -398,7 +406,7 @@ struct MusicView: View {
 
             RadialGradient(
                 colors: [
-                    AppColors.spotify(for: colorScheme).opacity(colorScheme == .dark ? 0.09 : 0.08),
+                    AppColors.spotify(for: colorScheme).opacity(colorScheme == .dark ? 0.07 : 0.06),
                     Color.clear
                 ],
                 center: .topTrailing,
@@ -408,7 +416,7 @@ struct MusicView: View {
 
             RadialGradient(
                 colors: [
-                    AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.07 : 0.06),
+                    AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.05 : 0.04),
                     Color.clear
                 ],
                 center: .bottomLeading,
@@ -497,8 +505,8 @@ struct MusicView: View {
             colorScheme: colorScheme,
             eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
             title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? brand.heroTitle,
-            subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Atmosphaere, Artist-Fokus und Premium Listening in einem ruhigen Flow.",
-            detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "\(selectedArtist) im Fokus · Featured Drop · direkte Wiedergabe",
+            subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Einstieg – der Hoerpunkt sitzt im naechsten Block.",
+            detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "\(selectedArtist) – Kontext oben, Erlebnis im Fokus unten.",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
             accent: AppColors.spotify(for: colorScheme),
             secondaryAccent: AppColors.accent(for: colorScheme),
@@ -522,44 +530,15 @@ struct MusicView: View {
                         )
                     }
                 }
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        musicListeningModeChip(title: "Focus", accent: AppColors.spotify(for: colorScheme), onTap: onOpenSpotlight)
-                        musicListeningModeChip(title: "Discovery", accent: AppColors.accent(for: colorScheme), onTap: onOpenTracks)
-                        musicListeningModeChip(title: "Artist Hub", accent: AppColors.accentHighlight(for: colorScheme), onTap: onOpenArtistHub)
-                        musicListeningModeChip(title: "Live Link", accent: AppColors.accentMystic(for: colorScheme), onTap: onOpenSpotifyStatus)
-                    }
-                }
             }
         }
-    }
-
-    private func musicListeningModeChip(title: String, accent: Color, onTap: @escaping () -> Void) -> some View {
-        Button(action: onTap) {
-            Text(title)
-                .font(.caption.weight(.bold))
-                .foregroundColor(accent)
-                .padding(.horizontal, 11)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(accent.opacity(colorScheme == .dark ? 0.20 : 0.12))
-                )
-                .overlay(
-                    Capsule(style: .continuous)
-                        .stroke(accent.opacity(colorScheme == .dark ? 0.36 : 0.24), lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-        .skydownTactileAction()
     }
 
     @ViewBuilder
     private var spotlightCard: some View {
         if let selectedTrack {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 18) {
                     AsyncImage(url: URL(string: selectedTrack.artworkUrl100 ?? "")) { image in
                         image
                             .resizable()
@@ -568,16 +547,16 @@ struct MusicView: View {
                         RoundedRectangle(cornerRadius: 24)
                             .fill(AppColors.secondaryBackground(for: colorScheme))
                     }
-                    .frame(width: 108, height: 108)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .frame(width: 144, height: 144)
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
                             .stroke(AppColors.spotify(for: colorScheme).opacity(0.22), lineWidth: 1)
                     )
 
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .center, spacing: 8) {
-                            Text("ARTIST DECK")
+                            Text("Im Fokus")
                                 .font(.caption.weight(.bold))
                                 .foregroundColor(AppColors.spotify(for: colorScheme))
 
@@ -608,38 +587,18 @@ struct MusicView: View {
                             ?? "Der aktuelle Fokus verbindet Artist-Page, Preview und Spotify direkt in einem Hub."
                         )
                         .font(.footnote)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .lineLimit(4)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+                        .lineLimit(3)
                     }
-                }
-
-                HStack(spacing: 10) {
-                    spotlightMetricCard(
-                        title: "Track",
-                        value: tracksStatusText,
-                        accent: AppColors.spotify(for: colorScheme)
-                    )
-
-                    spotlightMetricCard(
-                        title: "Artist",
-                        value: selectedArtist,
-                        accent: AppColors.accent(for: colorScheme)
-                    )
-
-                    spotlightMetricCard(
-                        title: "Status",
-                        value: viewModel.isSpotifyConnected ? "Spotify live" : "Preview ready",
-                        accent: AppColors.accentMystic(for: colorScheme)
-                    )
                 }
 
                 Text(
                     selectedTrack.collectionName?.isEmpty == false
-                    ? "Aktuell aus \(selectedTrack.collectionName ?? ""). Preview, Spotify und Artist-Page bleiben direkt in Reichweite."
-                    : "Preview, Spotify und Artist-Page bleiben direkt in Reichweite, ohne aus dem Music-Flow zu springen."
+                    ? "Aus \(selectedTrack.collectionName ?? "") – hoeren, dann in einem Tap bei Spotify weitermachen."
+                    : "Einen Moment fokussieren, dann oeffnet sich der Rest in Ruhe."
                 )
                 .font(.footnote.weight(.medium))
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.88))
 
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 10) {
@@ -653,7 +612,8 @@ struct MusicView: View {
 
                 spotlightSpotifyAction(for: selectedTrack)
             }
-            .padding(SkydownLayout.cardPadding)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 18)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 musicCardBackground(
@@ -669,9 +629,9 @@ struct MusicView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
             .shadow(
-                color: .black.opacity(colorScheme == .dark ? 0.14 : 0.07),
-                radius: 14,
-                y: 8
+                color: .black.opacity(colorScheme == .dark ? 0.16 : 0.09),
+                radius: 16,
+                y: 9
             )
         }
     }
@@ -809,36 +769,6 @@ struct MusicView: View {
                 y: 7
             )
         }
-    }
-
-    private func spotlightMetricCard(title: String, value: String, accent: Color) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title.uppercased())
-                .font(.caption.weight(.bold))
-                .foregroundColor(accent)
-
-            Text(value)
-                .font(.footnote.weight(.semibold))
-                .foregroundColor(AppColors.text(for: colorScheme))
-                .lineLimit(2)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 11)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            musicCardBackground(
-                accent: accent,
-                secondaryAccent: AppColors.spotify(for: colorScheme),
-                cornerRadius: 18
-            )
-        )
-        .overlay(
-            musicCardStroke(
-                accent: accent,
-                secondaryAccent: AppColors.spotify(for: colorScheme),
-                cornerRadius: 18
-            )
-        )
     }
 
     @ViewBuilder
@@ -1418,7 +1348,7 @@ struct MusicView: View {
                 .accessibilityIdentifier("music.artist.open_page.\(artist)")
             }
         }
-        .padding(18)
+        .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(
             musicCardBackground(
@@ -1501,12 +1431,14 @@ struct MusicView: View {
 
     private var tracksCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Tracks")
-                .font(.headline)
-
-            Text(queueStatusText)
-                .font(.caption.weight(.semibold))
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Aus dem Set")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Text(queueStatusText)
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
 
             tracksContent
         }
@@ -1668,22 +1600,30 @@ struct MusicView: View {
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         } else {
-            Text(tracksStatusText)
-                .font(.subheadline)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            LazyVStack(spacing: 12) {
-                ForEach(viewModel.tracks) { track in
+            LazyVStack(spacing: 10) {
+                ForEach(Array(viewModel.tracks.enumerated()), id: \.element.trackId) { index, track in
                     TrackView(
                         track: track,
                         audioManager: audioManager,
-                        isSelected: selectedTrackID == track.trackId
-                    ) {
-                        selectedTrackID = track.trackId
-                    }
+                        isSelected: selectedTrackID == track.trackId,
+                        onSelect: {
+                            selectedTrackID = track.trackId
+                        },
+                        presentation: trackListPresentation(index: index, total: viewModel.tracks.count)
+                    )
+                    .padding(
+                        .top,
+                        (index == 2 && viewModel.tracks.count > 2) ? 6 : 0
+                    )
                 }
             }
         }
+    }
+
+    private func trackListPresentation(index: Int, total: Int) -> TrackListPresentation {
+        if index == 0 { return .featured }
+        if index == 1, total > 1 { return .secondary }
+        return .catalog
     }
 
     private func connectSpotifyAndLoadTracks() async {

@@ -451,7 +451,7 @@ struct ProfileView: View {
                     .disabled(isUploadingImageFlow)
                         .accessibilityIdentifier("profile.gallery.upload")
                 }
-                .padding(18)
+                .padding(SkydownLayout.panelPadding)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))

@@ -3,8 +3,9 @@ package com.skydown.android.ui.screen
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -55,8 +56,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -73,6 +74,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -146,6 +148,7 @@ fun HomeScreen(
     onOpenCart: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onGuestSignIn: (() -> Unit)? = null,
     onOpenWorkflow: (() -> Unit)? = null,
     viewModel: HomeViewModel = viewModel(),
 ) {
@@ -269,7 +272,12 @@ fun HomeScreen(
             "beat" -> homeMysticAccent
             else -> homeHighlightAccent
         }
-        if (heroPriorityTarget == target) base else base.copy(alpha = 0.66f)
+        if (heroPriorityTarget == target) base else base.copy(alpha = 0.33f)
+    }
+    val heroPillOrder: List<String> = when (heroPriorityTarget) {
+        "track" -> listOf("track", "beat", "video")
+        "beat" -> listOf("beat", "track", "video")
+        else -> listOf("video", "track", "beat")
     }
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
 
@@ -288,6 +296,7 @@ fun HomeScreen(
                         onOpenCart = onOpenCart,
                         onOpenProfile = onOpenProfile,
                         onOpenSettings = onOpenSettings,
+                        onGuestSignIn = onGuestSignIn,
                     ) {
                         val interactionSource = remember { MutableInteractionSource() }
                         Surface(
@@ -328,6 +337,8 @@ fun HomeScreen(
                     skydownScreenBrush(
                         primaryColor = homeAccent,
                         secondaryColor = homeSpotifyAccent,
+                        primaryAlpha = 0.016f,
+                        secondaryAlpha = 0.012f,
                     ),
                 ),
         ) {
@@ -355,105 +366,157 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                 ) {
                 item {
-                    HomeAnimatedItem(order = 0) {
-                        BrandHeroCard(
-                            eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "SKY OS" },
-                            title = screenHeaderSettings.homeTitle.ifBlank { homeGreetingTitle },
-                            subtitle = screenHeaderSettings.homeSubtitle.ifBlank { homeGreetingSubtitle },
-                            detail = screenHeaderSettings.homeDetail.ifBlank { homeGreetingDetail },
-                            backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
-                            accent = homeAccent,
-                            secondaryAccent = homeMysticAccent,
-                            marks = listOf(BrandArtwork.Combined),
-                        ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                BrandPill(
-                                    text = if (heroPriorityTarget == "track") {
-                                        if (uiState.featuredTrack == null) "Next: Musik laden" else "Next: Musik"
-                                    } else {
-                                        if (uiState.featuredTrack == null) "Musik laedt" else "Musik live"
-                                    },
-                                    tint = heroPillTint("track"),
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            listState.animateScrollToItem(homeMediaClusterSectionIndex)
-                                        }
-                                    },
+                    val homeAtmosphereBg = colorScheme.background
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .drawBehind {
+                                val h = size.height
+                                if (h <= 0f) return@drawBehind
+                                val wash = Brush.verticalGradient(
+                                    colorStops = arrayOf(
+                                        0f to homeAccent.copy(alpha = 0.024f),
+                                        0.45f to homeMysticAccent.copy(alpha = 0.014f),
+                                        0.8f to homeSpotifyAccent.copy(alpha = 0.010f),
+                                        1f to homeAtmosphereBg,
+                                    ),
+                                    startY = 0f,
+                                    endY = h,
                                 )
-                                BrandPill(
-                                    text = if (heroPriorityTarget == "beat") {
-                                        if (uiState.featuredBeat == null) "Next: Beats laden" else "Next: Beats"
-                                    } else {
-                                        if (uiState.featuredBeat == null) "Beats laden" else "Beats live"
-                                    },
-                                    tint = heroPillTint("beat"),
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            listState.animateScrollToItem(homeMediaClusterSectionIndex)
+                                drawRect(wash)
+                            },
+                    ) {
+                        Spacer(Modifier.height(6.dp))
+                        HomeAnimatedItem(order = 0) {
+                            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                BrandHeroCard(
+                                    eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "SKY OS" },
+                                    title = screenHeaderSettings.homeTitle.ifBlank { homeGreetingTitle },
+                                    subtitle = screenHeaderSettings.homeSubtitle.ifBlank { homeGreetingSubtitle },
+                                    detail = screenHeaderSettings.homeDetail.ifBlank { homeGreetingDetail },
+                                    backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
+                                    accent = homeAccent,
+                                    secondaryAccent = homeMysticAccent,
+                                    marks = listOf(BrandArtwork.Combined),
+                                    immersive = true,
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        heroPillOrder.forEachIndexed { index, slot ->
+                                            val weight = if (index == 0) 1.3f else 1f
+                                            when (slot) {
+                                                "track" -> Box(
+                                                    modifier = Modifier
+                                                        .weight(weight)
+                                                        .then(
+                                                            if (index == 0) Modifier.padding(end = 3.dp) else Modifier,
+                                                        ),
+                                                ) {
+                                                    BrandPill(
+                                                        text = if (heroPriorityTarget == "track") {
+                                                            if (uiState.featuredTrack == null) "Next: Musik laden" else "Next: Musik"
+                                                        } else {
+                                                            if (uiState.featuredTrack == null) "Musik laedt" else "Musik live"
+                                                        },
+                                                        tint = heroPillTint("track"),
+                                                        onClick = {
+                                                            coroutineScope.launch {
+                                                                listState.animateScrollToItem(homeMediaClusterSectionIndex)
+                                                            }
+                                                        },
+                                                    )
+                                                }
+                                                "beat" -> Box(
+                                                    modifier = Modifier
+                                                        .weight(weight)
+                                                        .then(
+                                                            if (index == 0) Modifier.padding(end = 3.dp) else Modifier,
+                                                        ),
+                                                ) {
+                                                    BrandPill(
+                                                        text = if (heroPriorityTarget == "beat") {
+                                                            if (uiState.featuredBeat == null) "Next: Beats laden" else "Next: Beats"
+                                                        } else {
+                                                            if (uiState.featuredBeat == null) "Beats laden" else "Beats live"
+                                                        },
+                                                        tint = heroPillTint("beat"),
+                                                        onClick = {
+                                                            coroutineScope.launch {
+                                                                listState.animateScrollToItem(homeMediaClusterSectionIndex)
+                                                            }
+                                                        },
+                                                    )
+                                                }
+                                                else -> Box(
+                                                    modifier = Modifier
+                                                        .weight(weight)
+                                                        .then(
+                                                            if (index == 0) Modifier.padding(end = 3.dp) else Modifier,
+                                                        ),
+                                                ) {
+                                                    BrandPill(
+                                                        text = if (heroPriorityTarget == "video") {
+                                                            if (uiState.featuredVideo == null) "Next: Visual laden" else "Next: Visual"
+                                                        } else {
+                                                            if (uiState.featuredVideo == null) "Video laedt" else "Video live"
+                                                        },
+                                                        tint = heroPillTint("video"),
+                                                        onClick = {
+                                                            coroutineScope.launch {
+                                                                listState.animateScrollToItem(homeMediaClusterSectionIndex)
+                                                            }
+                                                        },
+                                                    )
+                                                }
+                                            }
                                         }
-                                    },
-                                )
-                                BrandPill(
-                                    text = if (heroPriorityTarget == "video") {
-                                        if (uiState.featuredVideo == null) "Next: Visual laden" else "Next: Visual"
-                                    } else {
-                                        if (uiState.featuredVideo == null) "Video laedt" else "Video live"
-                                    },
-                                    tint = heroPillTint("video"),
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            listState.animateScrollToItem(homeMediaClusterSectionIndex)
-                                        }
-                                    },
-                                )
+                                    }
+                                }
                             }
                         }
-                    }
-                }
-
-                item {
-                    HomeAnimatedItem(order = 1) {
-                        HomeDailyOpsStrip(
-                            activeSignalCount = activeSignalCount,
-                            totalSignalCount = homeSignalTotal,
-                            hasTrackSignal = uiState.featuredTrack != null,
-                            hasBeatSignal = uiState.featuredBeat != null,
-                            hasVideoSignal = uiState.featuredVideo != null,
-                            onRefresh = viewModel::refresh,
-                            onOpenRelease = {
-                                coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
-                            },
-                            onOpenBeat = {
-                                coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
-                            },
-                            onOpenVideo = {
-                                coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
-                            },
-                        )
-                    }
-                }
-
-                item {
-                    HomeAnimatedItem(order = 2) {
-                        HomeCommandDockStrip(
-                            priorityTarget = heroPriorityTarget,
-                            onOpenWorkflow = onOpenWorkflow,
-                            onOpenCart = onOpenCart,
-                            onOpenSettings = onOpenSettings,
-                        )
-                    }
-                }
-
-                item {
-                    HomeAnimatedItem(order = 3) {
-                        HomeUtilityRow(
-                            onOpenAi = { onOpenWorkflow?.invoke() ?: onOpenSettings() },
-                            onOpenMusic = { coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) } },
-                            onOpenCreate = { activeDestination = homeDestinationNicmaProducer },
-                            onOpenOrders = onOpenCart,
-                            onOpenSearch = { coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) } },
-                            onOpenSettings = onOpenSettings,
-                        )
+                        HomeAnimatedItem(order = 1) {
+                            HomeDailyOpsStrip(
+                                modifier = Modifier,
+                                activeSignalCount = activeSignalCount,
+                                totalSignalCount = homeSignalTotal,
+                                hasTrackSignal = uiState.featuredTrack != null,
+                                hasBeatSignal = uiState.featuredBeat != null,
+                                hasVideoSignal = uiState.featuredVideo != null,
+                                onRefresh = viewModel::refresh,
+                                onOpenRelease = {
+                                    coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
+                                },
+                                onOpenBeat = {
+                                    coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
+                                },
+                                onOpenVideo = {
+                                    coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
+                                },
+                            )
+                        }
+                        HomeAnimatedItem(order = 2) {
+                            HomeCommandDockStrip(
+                                priorityTarget = heroPriorityTarget,
+                                onOpenWorkflow = onOpenWorkflow,
+                                onOpenCart = onOpenCart,
+                                onOpenSettings = onOpenSettings,
+                            )
+                        }
+                        HomeAnimatedItem(order = 3) {
+                            HomeUtilityRow(
+                                onOpenAi = { onOpenWorkflow?.invoke() ?: onOpenSettings() },
+                                onOpenMusic = { coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) } },
+                                onOpenCreate = { activeDestination = homeDestinationNicmaProducer },
+                                onOpenOrders = onOpenCart,
+                                onOpenSearch = { coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) } },
+                                onOpenSettings = onOpenSettings,
+                            )
+                        }
+                        Spacer(Modifier.height(10.dp))
                     }
                 }
 
@@ -632,33 +695,57 @@ private fun HomeUtilityRow(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(colorScheme.surface.copy(alpha = 0.32f))
-            .border(1.dp, colorScheme.primary.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
-            .padding(horizontal = 8.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(top = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         items(items) { item ->
-            OutlinedButton(
-                onClick = {
-                    view.performSkydownHaptic(SkydownHapticKind.Selection)
-                    item.action()
-                },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = colorScheme.surface.copy(alpha = 0.22f),
-                ),
-            ) {
-                if (item.iconOnly) {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.label,
-                        modifier = Modifier.size(18.dp),
-                    )
-                } else {
+            val isPrimary = item.label == "AI"
+            if (isPrimary) {
+                Button(
+                    onClick = {
+                        view.performSkydownHaptic(SkydownHapticKind.Selection)
+                        item.action()
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorScheme.tertiary.copy(alpha = 0.52f),
+                        contentColor = colorScheme.onTertiary.copy(alpha = 0.96f),
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 0.dp,
+                        pressedElevation = 0.dp,
+                        focusedElevation = 0.dp,
+                        hoveredElevation = 0.dp,
+                    ),
+                ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = item.icon, contentDescription = null, modifier = Modifier.size(16.dp))
                         Text(item.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            } else {
+                TextButton(
+                    onClick = {
+                        view.performSkydownHaptic(SkydownHapticKind.Selection)
+                        item.action()
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = colorScheme.onSurface.copy(alpha = 0.48f),
+                    ),
+                ) {
+                    if (item.iconOnly) {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = item.label,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = item.icon, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Text(item.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
                     }
                 }
             }
@@ -715,28 +802,25 @@ private fun HomeLiveSignalSurface(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(colorScheme.surfaceVariant.copy(alpha = 0.30f))
-            .border(1.dp, colorScheme.primary.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 2.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = "Live Signals",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = colorScheme.onSurface.copy(alpha = 0.84f),
+            text = "Status / Signale",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = colorScheme.onSurface.copy(alpha = 0.50f),
         )
-        Text(nowText, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurface.copy(alpha = 0.78f))
-        Text(nextText, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurface.copy(alpha = 0.74f))
+        Text(nowText, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurface.copy(alpha = 0.66f))
+        Text(nextText, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurface.copy(alpha = 0.58f))
         riskText?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurface.copy(alpha = 0.70f))
+            Text(it, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurface.copy(alpha = 0.55f))
         }
         federatedSignals.takeIf { it.isNotEmpty() }?.forEach { signal ->
             Text(
                 text = signal,
                 style = MaterialTheme.typography.bodySmall,
-                color = colorScheme.onSurface.copy(alpha = 0.68f),
+                color = colorScheme.onSurface.copy(alpha = 0.52f),
             )
         }
     }
@@ -783,6 +867,7 @@ private fun HomeMediaCluster(
 
 @Composable
 private fun HomeDailyOpsStrip(
+    modifier: Modifier = Modifier,
     activeSignalCount: Int,
     totalSignalCount: Int,
     hasTrackSignal: Boolean,
@@ -821,46 +906,52 @@ private fun HomeDailyOpsStrip(
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(colorScheme.skydownSecondaryBackground().copy(alpha = 0.72f))
-            .border(
-                width = 1.dp,
-                color = priorityAccent.copy(alpha = 0.18f),
-                shape = RoundedCornerShape(16.dp),
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = Icons.Default.Info,
                 contentDescription = null,
-                tint = priorityAccent,
-                modifier = Modifier.size(14.dp),
+                tint = priorityAccent.copy(alpha = 0.45f),
+                modifier = Modifier.size(12.dp),
             )
             Text(
-                text = "Priority Layer",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
+                text = "Aktueller Fokus",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Normal,
+                color = colorScheme.onSurface.copy(alpha = 0.58f),
             )
             Spacer(modifier = Modifier.weight(1f))
+            IconButton(
+                onClick = {
+                    view.performSkydownHaptic(SkydownHapticKind.Success)
+                    onRefresh()
+                },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Aktualisieren",
+                    tint = priorityAccent.copy(alpha = 0.5f),
+                )
+            }
             Text(
                 text = "$activeSignalCount/$totalSignalCount live",
                 style = MaterialTheme.typography.labelSmall,
-                color = priorityAccent,
-                fontWeight = FontWeight.SemiBold,
+                color = priorityAccent.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Medium,
             )
         }
 
         Text(
-            text = "Ein Fokus. Ein klarer naechster Schritt.",
+            text = "Hier: ein Schritt, der zu deinen Kernsignalen passt.",
             style = MaterialTheme.typography.bodySmall,
-            color = colorScheme.onSurface.copy(alpha = 0.74f),
+            color = colorScheme.onSurface.copy(alpha = 0.55f),
         )
 
         BrandActionButton(
@@ -883,76 +974,8 @@ private fun HomeDailyOpsStrip(
         Text(
             text = priorityHint,
             style = MaterialTheme.typography.bodySmall,
-            color = colorScheme.onSurface.copy(alpha = 0.70f),
+            color = colorScheme.onSurface.copy(alpha = 0.52f),
         )
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            BrandStatusChip(
-                text = if (hasTrackSignal) "Music live" else "Music missing",
-                accent = colorScheme.skydownSpotify(),
-                isActive = hasTrackSignal,
-            )
-            BrandStatusChip(
-                text = if (hasBeatSignal) "Beats live" else "Beats missing",
-                accent = colorScheme.secondary,
-                isActive = hasBeatSignal,
-            )
-            BrandStatusChip(
-                text = if (hasVideoSignal) "Visuals live" else "Visuals missing",
-                accent = colorScheme.skydownAccentHighlight(),
-                isActive = hasVideoSignal,
-            )
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            BrandActionButton(
-                text = "Musik",
-                onClick = {
-                    view.performSkydownHaptic(SkydownHapticKind.Selection)
-                    onOpenRelease()
-                },
-                accent = colorScheme.skydownSpotify(),
-                compact = true,
-                filled = false,
-            )
-            BrandActionButton(
-                text = "Beats",
-                onClick = {
-                    view.performSkydownHaptic(SkydownHapticKind.Selection)
-                    onOpenBeat()
-                },
-                accent = colorScheme.secondary,
-                compact = true,
-                filled = false,
-            )
-            BrandActionButton(
-                text = "Visuals",
-                onClick = {
-                    view.performSkydownHaptic(SkydownHapticKind.Selection)
-                    onOpenVideo()
-                },
-                accent = colorScheme.skydownAccentHighlight(),
-                compact = true,
-                filled = false,
-            )
-            BrandActionButton(
-                text = "Refresh",
-                onClick = {
-                    view.performSkydownHaptic(SkydownHapticKind.Success)
-                    onRefresh()
-                },
-                accent = priorityAccent,
-                icon = Icons.Default.Refresh,
-                compact = true,
-                filled = false,
-            )
-        }
     }
 }
 
@@ -976,42 +999,35 @@ private fun HomeCommandDockStrip(
             "beat" -> colorScheme.skydownAccentMystic()
             else -> colorScheme.skydownAccentHighlight()
         }
-        if (target == priorityTarget) base else base.copy(alpha = 0.66f)
+        if (target == priorityTarget) base else base.copy(alpha = 0.56f)
     }
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(colorScheme.surface.copy(alpha = 0.34f))
-            .border(
-                width = 1.dp,
-                color = priorityAccent.copy(alpha = 0.12f),
-                shape = RoundedCornerShape(14.dp),
-            )
-            .padding(horizontal = 10.dp, vertical = 9.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = Icons.Default.AutoAwesome,
                 contentDescription = null,
-                tint = priorityAccent,
-                modifier = Modifier.size(14.dp),
+                tint = priorityAccent.copy(alpha = 0.5f),
+                modifier = Modifier.size(11.dp),
             )
             Text(
-                text = "Action Layer",
+                text = "Kurzaktionen",
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Medium,
+                color = colorScheme.onSurface.copy(alpha = 0.6f),
             )
             Spacer(modifier = Modifier.weight(1f))
         }
         Text(
-            text = "Schnelle Systemaktionen ohne Kontextwechsel.",
+            text = "Agent, Warenkorb, Einstellungen — ohne die Seite zu wechseln.",
             style = MaterialTheme.typography.bodySmall,
-            color = colorScheme.onSurface.copy(alpha = 0.74f),
+            color = colorScheme.onSurface.copy(alpha = 0.52f),
         )
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1025,7 +1041,7 @@ private fun HomeCommandDockStrip(
                 },
                 accent = actionAccent("beat"),
                 compact = true,
-                filled = false,
+                filled = onOpenWorkflow != null,
                 enabled = onOpenWorkflow != null,
             )
             BrandActionButton(
@@ -1064,9 +1080,13 @@ private fun HomeAnimatedItem(
         visible = true
     }
 
+    val fadeSpec = tween<Float>(
+        durationMillis = SkydownMotionTokens.contentRevealEnterMillis,
+        easing = FastOutSlowInEasing,
+    )
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 12 }),
+        enter = fadeIn(animationSpec = fadeSpec),
     ) {
         content()
     }
@@ -1085,7 +1105,7 @@ private fun HomeMapBackdrop(
                 .offset(x = 168.dp, y = (-138).dp),
             haloSize = 280.dp,
             tint = colorScheme.skydownSpotify(),
-            opacity = if (isDarkPalette) 0.09f else 0.07f,
+            opacity = if (isDarkPalette) 0.055f else 0.045f,
         )
         HomeBackdropHalo(
             modifier = Modifier
@@ -1093,7 +1113,7 @@ private fun HomeMapBackdrop(
                 .offset(x = (-172).dp, y = 210.dp),
             haloSize = 240.dp,
             tint = colorScheme.skydownAccentMystic(),
-            opacity = if (isDarkPalette) 0.10f else 0.08f,
+            opacity = if (isDarkPalette) 0.06f else 0.05f,
         )
         HomeBackdropHalo(
             modifier = Modifier
@@ -1101,7 +1121,7 @@ private fun HomeMapBackdrop(
                 .offset(x = 154.dp, y = 498.dp),
             haloSize = 320.dp,
             tint = colorScheme.skydownAccentHighlight(),
-            opacity = if (isDarkPalette) 0.08f else 0.06f,
+            opacity = if (isDarkPalette) 0.05f else 0.04f,
         )
     }
 }
@@ -2029,5 +2049,6 @@ private val homeZweizweiSocialLinks = listOf(
 private const val homeDestinationBeatHub = "home_beat_hub"
 private const val homeDestinationNicmaProducer = "home_nicma_producer"
 private const val homeDestinationVideoHub = "home_video_hub"
-private const val homeMediaClusterSectionIndex = 5
+/** LazyColumn index of [HomeMediaCluster] (0-based: hero, daily ops, command, utility, story, live signals, media, footer). */
+private const val homeMediaClusterSectionIndex = 3
 private const val homeSignalTotal = 3

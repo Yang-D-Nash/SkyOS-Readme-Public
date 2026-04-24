@@ -8,6 +8,8 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,6 +43,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +63,17 @@ import com.skydown.android.ui.screen.openExternalLink
 import com.skydown.shared.model.Track
 import com.skydown.android.ui.theme.SpotifyGreen
 
+/**
+ * [Featured] = erster Titel, volle Hierarchie.
+ * [Secondary] = zweiter Titel, leicht abgestuft, noch „Set“-Charakter.
+ * [Catalog] = ruhiger Katalog-Rest.
+ */
+enum class TrackRowPresentation {
+    Featured,
+    Secondary,
+    Catalog,
+}
+
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun TrackRow(
@@ -68,6 +82,8 @@ fun TrackRow(
     isSelected: Boolean,
     onSelectTrack: () -> Unit,
     onPlayToggle: () -> Unit,
+    presentation: TrackRowPresentation = TrackRowPresentation.Featured,
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val haptics = LocalHapticFeedback.current
@@ -77,14 +93,43 @@ fun TrackRow(
     val hasDirectSpotifyTrack = resolvedSpotifyTrackId(track.spotifyTrackId, track.externalUrl) != null
     val hasSpotifyArtistLink = resolvedSpotifyArtistId(track.spotifyArtistId, track.externalUrl) != null && !hasDirectSpotifyTrack
     val hasSpotifySearch = hasExternalLink && !hasDirectSpotifyTrack && !hasSpotifyArtistLink
+    val isFeatured = presentation == TrackRowPresentation.Featured
+    val isSecondary = presentation == TrackRowPresentation.Secondary
+    val isCatalog = presentation == TrackRowPresentation.Catalog
+    val artSize = when (presentation) {
+        TrackRowPresentation.Catalog -> 52.dp
+        TrackRowPresentation.Secondary -> 58.dp
+        TrackRowPresentation.Featured -> 64.dp
+    }
+    val artCorner = when (presentation) {
+        TrackRowPresentation.Catalog -> 13.dp
+        TrackRowPresentation.Secondary -> 15.dp
+        TrackRowPresentation.Featured -> 16.dp
+    }
+    val selectionTween = remember {
+        tween<Color>(durationMillis = SkydownMotionTokens.selectionCrossFadeMillis, easing = FastOutSlowInEasing)
+    }
     val containerColor by animateColorAsState(
         targetValue = if (isPlaying) {
             MaterialTheme.colorScheme.primaryContainer
         } else if (isSelected) {
-            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.62f)
+            MaterialTheme.colorScheme.secondaryContainer.copy(
+                alpha = when (presentation) {
+                    TrackRowPresentation.Catalog -> 0.40f
+                    TrackRowPresentation.Secondary -> 0.52f
+                    TrackRowPresentation.Featured -> 0.62f
+                },
+            )
         } else {
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+            MaterialTheme.colorScheme.surface.copy(
+                alpha = when (presentation) {
+                    TrackRowPresentation.Catalog -> 0.84f
+                    TrackRowPresentation.Secondary -> 0.90f
+                    TrackRowPresentation.Featured -> 0.96f
+                },
+            )
         },
+        animationSpec = selectionTween,
         label = "track_container",
     )
     val contentColor = if (isPlaying) {
@@ -96,48 +141,104 @@ fun TrackRow(
         targetValue = if (isPlaying) {
             MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
         } else if (isSelected) {
-            MaterialTheme.colorScheme.secondary.copy(alpha = 0.28f)
+            MaterialTheme.colorScheme.secondary.copy(
+                alpha = when (presentation) {
+                    TrackRowPresentation.Catalog -> 0.14f
+                    TrackRowPresentation.Secondary -> 0.20f
+                    TrackRowPresentation.Featured -> 0.28f
+                },
+            )
         } else {
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)
+            MaterialTheme.colorScheme.outline.copy(
+                alpha = when (presentation) {
+                    TrackRowPresentation.Catalog -> 0.07f
+                    TrackRowPresentation.Secondary -> 0.10f
+                    TrackRowPresentation.Featured -> 0.14f
+                },
+            )
         },
+        animationSpec = selectionTween,
         label = "track_border",
     )
+    val cardShape = when (presentation) {
+        TrackRowPresentation.Catalog -> RoundedCornerShape(17.dp)
+        TrackRowPresentation.Secondary -> RoundedCornerShape(20.dp)
+        TrackRowPresentation.Featured -> RoundedCornerShape(22.dp)
+    }
+    val innerPad = when (presentation) {
+        TrackRowPresentation.Catalog -> 9.dp
+        TrackRowPresentation.Secondary -> 11.dp
+        TrackRowPresentation.Featured -> 13.dp
+    }
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .animateContentSize()
             .testTag("music.track.row")
             .clickable(onClick = onSelectTrack),
-        shape = RoundedCornerShape(22.dp),
+        shape = cardShape,
         color = containerColor,
         contentColor = contentColor,
-        tonalElevation = if (isPlaying) 2.dp else 0.dp,
-        shadowElevation = if (isPlaying) 3.dp else 0.dp,
-        border = BorderStroke(1.dp, borderColor),
+        tonalElevation = if (isPlaying) {
+            when (presentation) {
+                TrackRowPresentation.Catalog -> 0.dp
+                TrackRowPresentation.Secondary -> 1.dp
+                TrackRowPresentation.Featured -> 2.dp
+            }
+        } else {
+            0.dp
+        },
+        shadowElevation = if (isPlaying) {
+            when (presentation) {
+                TrackRowPresentation.Catalog -> 0.dp
+                TrackRowPresentation.Secondary -> 2.dp
+                TrackRowPresentation.Featured -> 3.dp
+            }
+        } else {
+            0.dp
+        },
+        border = BorderStroke(
+            width = if (isCatalog) 0.5.dp else if (isSecondary) 0.75.dp else 1.dp,
+            color = borderColor,
+        ),
     ) {
-        Column(modifier = Modifier.padding(13.dp)) {
+        Column(modifier = Modifier.padding(innerPad)) {
             Row(
                 verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(
+                    if (isCatalog) 9.dp else 11.dp,
+                ),
             ) {
                 AsyncImage(
                     model = track.artworkUrl100,
                     contentDescription = track.trackName,
                     modifier = Modifier
-                        .size(64.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .size(artSize)
+                        .clip(RoundedCornerShape(artCorner))
                         .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
                     contentScale = ContentScale.Crop,
                 )
 
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(
+                        when (presentation) {
+                            TrackRowPresentation.Catalog -> 3.dp
+                            TrackRowPresentation.Secondary -> 5.dp
+                            TrackRowPresentation.Featured -> 6.dp
+                        },
+                    ),
                 ) {
                     track.artistName?.takeIf { it.isNotBlank() }?.let {
                         Text(
                             text = it.uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
+                            style = if (isCatalog) {
+                                MaterialTheme.typography.labelSmall
+                            } else if (isSecondary) {
+                                MaterialTheme.typography.labelSmall
+                            } else {
+                                MaterialTheme.typography.labelMedium
+                            },
                             color = if (isPlaying) {
                                 MaterialTheme.colorScheme.onPrimaryContainer
                             } else {
@@ -149,37 +250,51 @@ fun TrackRow(
                     }
                     Text(
                         text = track.trackName,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = if (isCatalog) {
+                            MaterialTheme.typography.titleSmall
+                        } else {
+                            MaterialTheme.typography.titleMedium
+                        },
+                        color = if (isCatalog) {
+                            contentColor.copy(alpha = 0.88f)
+                        } else {
+                            contentColor
+                        },
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(
-                        text = when {
-                            hasPreview && hasDirectSpotifyTrack -> "Preview ruhig hier oder direkt weiter in Spotify."
-                            hasPreview && hasSpotifyArtistLink -> "Preview hier oder direkt zum Artist auf Spotify."
-                            hasPreview && hasSpotifySearch -> "Preview hier oder den Track in Spotify suchen."
-                            hasPreview -> "Preview direkt in der App."
-                            hasDirectSpotifyTrack -> "Spotify Player direkt in der App."
-                            hasSpotifyArtistLink -> "Direkt zum Artist auf Spotify."
-                            hasSpotifySearch -> "Track in Spotify suchen."
-                            else -> "Gerade kein externer Link verfuegbar."
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = contentColor.copy(alpha = 0.72f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    track.collectionName?.let {
+                    if (isFeatured) {
                         Text(
-                            text = it,
+                            text = when {
+                                hasPreview && hasDirectSpotifyTrack -> "Preview ruhig hier oder direkt weiter in Spotify."
+                                hasPreview && hasSpotifyArtistLink -> "Preview hier oder direkt zum Artist auf Spotify."
+                                hasPreview && hasSpotifySearch -> "Preview hier oder den Track in Spotify suchen."
+                                hasPreview -> "Preview direkt in der App."
+                                hasDirectSpotifyTrack -> "Spotify Player direkt in der App."
+                                hasSpotifyArtistLink -> "Direkt zum Artist auf Spotify."
+                                hasSpotifySearch -> "Track in Spotify suchen."
+                                else -> "Gerade kein externer Link verfuegbar."
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = contentColor.copy(alpha = 0.72f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                    if (isFeatured) {
+                        track.collectionName?.let {
+                            Text(
+                                text = it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = contentColor.copy(alpha = 0.72f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
 
+                    if (!isCatalog) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -214,6 +329,24 @@ fun TrackRow(
                                 isHighlighted = false,
                                 accentColor = SpotifyGreen,
                             )
+                        }
+                    }
+                    } else {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (isPlaying) {
+                                TrackPill(
+                                    text = "Laeuft",
+                                    isHighlighted = true,
+                                )
+                            } else if (isSelected) {
+                                TrackPill(
+                                    text = "Im Set",
+                                    isHighlighted = false,
+                                )
+                            }
                         }
                     }
 

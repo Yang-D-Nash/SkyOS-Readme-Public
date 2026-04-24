@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -30,16 +32,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.skydown.android.R
 
 @Composable
 fun RowScope.AppTopBarSessionActions(
     onOpenCart: (() -> Unit)? = null,
     onOpenProfile: (() -> Unit)? = null,
     onOpenSettings: () -> Unit,
+    onGuestSignIn: (() -> Unit)? = null,
     dense: Boolean = false,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
@@ -161,6 +166,24 @@ fun RowScope.AppTopBarSessionActions(
                 modifier = Modifier.size(16.dp),
             )
         }
+    }
+
+    if (currentUser == null && onGuestSignIn != null) {
+        Spacer(modifier = Modifier.width(4.dp))
+        val guestInteractionSource = remember { MutableInteractionSource() }
+        Text(
+            text = stringResource(R.string.auth_session_sign_in),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.52f),
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(
+                    interactionSource = guestInteractionSource,
+                    indication = null,
+                    onClick = onGuestSignIn,
+                )
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+        )
     }
 
     trailingContent()

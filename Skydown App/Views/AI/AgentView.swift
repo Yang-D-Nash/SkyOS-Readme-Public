@@ -86,6 +86,17 @@ struct AgentView: View {
         ].joined(separator: "|")
     }
 
+    /// Single line for provider / routing (matches Android agent status line).
+    private var agentProviderStatusLine: String {
+        let trimmed = viewModel.lastProviderNotice.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        return "Agent · \(viewModel.lastAgentProvider.displayTitle)"
+    }
+
+    private var agentWorkspaceHeroBadges: [String] {
+        [agentProviderStatusLine, "Modus: \(viewModel.selectedMode.title)"]
+    }
+
     private var content: some View {
         VStack(spacing: 0) {
             if featureFlags.isAIEnabled {
@@ -93,6 +104,7 @@ struct AgentView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         Spacer(minLength: showsNavigation ? 8 : 4)
 
+                        AgentHeroCard(colorScheme: colorScheme, badges: agentWorkspaceHeroBadges)
                         AgentEmptyStateHeader(colorScheme: colorScheme)
                         if let usage = viewModel.revenueUsage {
                             AgentRevenueUsageCard(usage: usage, colorScheme: colorScheme)
@@ -164,12 +176,38 @@ struct AgentView: View {
                                 }
                                 serviceStatusCard
 
-                                ForEach(viewModel.messages) { message in
-                                    AgentMessageBubble(
-                                        message: message,
-                                        colorScheme: colorScheme
+                                VStack(alignment: .leading, spacing: 0) {
+                                    AgentWorkspaceContextCard(
+                                        colorScheme: colorScheme,
+                                        selectedMode: viewModel.selectedMode,
+                                        messageCount: viewModel.messages.count,
+                                        phase: viewModel.phase,
+                                        providerLine: agentProviderStatusLine
                                     )
-                                    .id(message.id)
+
+                                    WorkspaceSectionHeader(colorScheme: colorScheme)
+
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        ForEach(viewModel.messages) { message in
+                                            AgentMessageBubble(
+                                                message: message,
+                                                colorScheme: colorScheme
+                                            )
+                                            .id(message.id)
+                                        }
+                                    }
+                                    .padding(.top, 4)
+                                    .padding(.horizontal, 4)
+                                    .padding(.bottom, 5)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .fill(AppColors.primaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.38 : 0.5))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.08), lineWidth: 1)
+                                    )
                                 }
 
                                 Color.clear
@@ -230,7 +268,7 @@ struct AgentView: View {
     private var backgroundGradient: LinearGradient {
         AppColors.screenGradient(
             for: colorScheme,
-            secondaryAccent: AppColors.accentHighlight(for: colorScheme)
+            secondaryAccent: AppColors.accentMystic(for: colorScheme)
         )
     }
 
@@ -498,13 +536,22 @@ private struct AgentServiceStatusCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
+            Text(AppLocalized.text("agent.service.eyebrow", fallback: "Runtime & handoffs"))
+                .font(.caption2.weight(.black))
+                .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.85))
+
             HStack(spacing: 8) {
-                Image(systemName: "bolt.horizontal.circle")
+                Image(systemName: "point.3.connected.trianglepath.dotted")
                     .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                Text("Agent-Verbindung")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundColor(AppColors.text(for: colorScheme))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(AppLocalized.text("agent.service.rail.title", fallback: "Where the work is wired in"))
+                        .font(.subheadline.weight(.bold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    Text(AppLocalized.text("agent.service.rail.sub", fallback: "Provider, automations, and your tools in one line — not a settings page."))
+                        .font(.caption2.weight(.medium))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+                }
                 Spacer(minLength: 0)
                 AgentServicePill(
                     title: isOnline ? "Online" : "Offline",
@@ -542,22 +589,23 @@ private struct AgentServiceStatusCard: View {
             }
 
             if !lastAgentRunId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Letzter Lauf")
-                        .font(.caption.weight(.semibold))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(AppLocalized.text("agent.service.run.caption", fallback: "Run reference (support)"))
+                        .font(.caption2.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     Text(lastAgentRunId)
-                        .font(.caption)
+                        .font(.caption2)
                         .monospaced()
-                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .foregroundColor(AppColors.text(for: colorScheme).opacity(0.92))
                         .textSelection(.enabled)
                         .accessibilityIdentifier("agent.lastRun.id")
                 }
                 .padding(.horizontal, 9)
                 .padding(.vertical, 7)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.72))
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(AppColors.accentMystic(for: colorScheme).opacity(0.05))
                 )
             }
 
@@ -772,7 +820,164 @@ private struct AgentEmptyStateHeader: View {
             Text("Auch der Agent fuehrt den Verlauf pro Konto weiter, damit Briefings und To-dos anschlussfaehig bleiben.")
                 .font(.footnote.weight(.semibold))
                 .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.9))
+
+            Text(AppLocalized.text("agent.empty.first_step", fallback: "Type below or pick a quick prompt. The agent keeps the run structured."))
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.accentMystic(for: colorScheme))
         }
+    }
+}
+
+private struct AgentWorkspaceContextCard: View {
+    let colorScheme: ColorScheme
+    let selectedMode: AgentExecutionMode
+    let messageCount: Int
+    let phase: AgentInteractionPhase
+    let providerLine: String
+
+    private var phasePillText: String {
+        phase.composerStatusLabel
+            ?? AppLocalized.text("agent.workspace.status.ready", fallback: "Ready")
+    }
+
+    private var modeChipText: String {
+        String(
+            format: AppLocalized.text("agent.workspace.mode.format", fallback: "Mode · %@"),
+            selectedMode.title
+        )
+    }
+
+    private var sessionChipText: String {
+        String(
+            format: AppLocalized.text("agent.workspace.session.format", fallback: "%d messages in this session"),
+            messageCount
+        )
+    }
+
+    private var phasePillTone: AgentServicePill.Tone {
+        if phase.shouldBlockComposerChrome { return .ready }
+        switch phase {
+        case .failed, .externalFailed, .blocked:
+            return .blocked
+        case .partial, .retryable, .cancelled:
+            return .warning
+        case .idle:
+            return .neutral
+        default:
+            return .ready
+        }
+    }
+
+    private var isSettledSuccess: Bool {
+        switch phase {
+        case .completed, .externalCompleted: return true
+        default: return false
+        }
+    }
+
+    private var isError: Bool {
+        switch phase {
+        case .failed, .externalFailed, .blocked: return true
+        default: return false
+        }
+    }
+
+    private var borderColor: Color {
+        if isError { return Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255).opacity(0.55) }
+        if phase.shouldBlockComposerChrome { return AppColors.accentMystic(for: colorScheme).opacity(0.52) }
+        if isSettledSuccess { return AppColors.accentMystic(for: colorScheme).opacity(0.32) }
+        return AppColors.accentMystic(for: colorScheme).opacity(0.12)
+    }
+
+    private var borderWidth: CGFloat {
+        (isError || phase.shouldBlockComposerChrome) ? 1.5 : 1.0
+    }
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: statusBarColors,
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 3)
+                .frame(maxHeight: .infinity, alignment: .top)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppLocalized.text("agent.workspace.context.title", fallback: "Workspace").uppercased())
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                Text(providerLine)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.92))
+                HStack(alignment: .top, spacing: 8) {
+                    AgentServicePill(title: modeChipText, tone: .ready, colorScheme: colorScheme)
+                    AgentServicePill(title: sessionChipText, tone: .ready, colorScheme: colorScheme)
+                }
+                AgentServicePill(title: phasePillText, tone: phasePillTone, colorScheme: colorScheme)
+            }
+            .padding(.vertical, 12)
+            .padding(.leading, 13)
+            .padding(.trailing, 12)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(borderColor, lineWidth: borderWidth)
+        )
+    }
+
+    private var statusBarColors: [Color] {
+        if isError {
+            return [Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255), Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255).opacity(0.25)]
+        }
+        if phase.shouldBlockComposerChrome {
+            return [AppColors.accentMystic(for: colorScheme), AppColors.accentMystic(for: colorScheme).opacity(0.35)]
+        }
+        if isSettledSuccess {
+            return [AppColors.accentMystic(for: colorScheme).opacity(0.85), AppColors.accentMystic(for: colorScheme).opacity(0.2)]
+        }
+        if phase == .partial {
+            return [AppColors.accentMystic(for: colorScheme).opacity(0.6), AppColors.accentMystic(for: colorScheme).opacity(0.15)]
+        }
+        return [AppColors.accentMystic(for: colorScheme).opacity(0.3), AppColors.accentMystic(for: colorScheme).opacity(0.1)]
+    }
+}
+
+private struct WorkspaceSectionHeader: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            RoundedRectangle(cornerRadius: 1, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            .clear,
+                            AppColors.accentMystic(for: colorScheme).opacity(0.2),
+                            .clear
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: 1)
+
+            Text(AppLocalized.text("agent.section.conversation", fallback: "This thread").uppercased())
+                .font(.caption2.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+            Text(AppLocalized.text("agent.section.conversation.sub", fallback: "The agent refines this turn with you — same workspace, not a side chat."))
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.88))
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 2)
     }
 }
 
@@ -794,8 +999,22 @@ private struct AgentHeroCard: View {
 
             ZStack {
                 Circle()
-                    .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                AppColors.accentMystic(for: colorScheme).opacity(0.5),
+                                AppColors.accentMystic(for: colorScheme).opacity(0.14)
+                            ],
+                            center: .center,
+                            startRadius: 2,
+                            endRadius: 32
+                        )
+                    )
                     .frame(width: 54, height: 54)
+                    .overlay(
+                        Circle()
+                            .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.12), lineWidth: 1)
+                    )
 
                 Image(systemName: "bolt.fill")
                     .font(.title3.weight(.bold))
@@ -1212,7 +1431,7 @@ private struct AgentComposerBar: View {
                         }
                         .buttonStyle(.plain)
                         .skydownTactileAction()
-                        .transition(.scale.combined(with: .opacity))
+                        .transition(.offset(y: 6).combined(with: .opacity))
                     }
 
                     Button(action: onReset) {
@@ -1256,7 +1475,7 @@ private struct AgentComposerBar: View {
                     .disabled(trimmedDraft.isEmpty || interactionPhase.shouldBlockSend)
                     .opacity(trimmedDraft.isEmpty || interactionPhase.shouldBlockSend ? 0.6 : 1)
                 }
-                .animation(.easeOut(duration: 0.16), value: isFocused.wrappedValue)
+                .animation(SkydownMotion.pressInteraction, value: isFocused.wrappedValue)
             }
             .padding(.horizontal, 16)
             .padding(.top, canTriggerAutomation || !AgentExecutionMode.allCases.isEmpty ? 8 : 10)

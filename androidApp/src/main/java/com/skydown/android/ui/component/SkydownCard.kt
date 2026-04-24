@@ -1,7 +1,8 @@
 package com.skydown.android.ui.component
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -204,33 +205,28 @@ fun Modifier.skydownCapsuleSurface(
 @Stable
 fun Modifier.skydownPressable(
     interactionSource: MutableInteractionSource,
-    pressedScale: Float = 0.99f,
+    pressedScale: Float = 0.98f,
 ): Modifier = composed {
     val isPressed by interactionSource.collectIsPressedAsState()
     val view = LocalView.current
     var emittedPressHaptic by remember(interactionSource) { mutableStateOf(false) }
+    val pressSpec = tween<Float>(
+        durationMillis = SkydownMotionTokens.pressDurationMillis,
+        easing = FastOutSlowInEasing,
+    )
     val animatedScale by animateFloatAsState(
         targetValue = if (isPressed) pressedScale else 1f,
-        animationSpec = spring(
-            dampingRatio = SkydownMotionTokens.premiumPressDampingRatio,
-            stiffness = SkydownMotionTokens.premiumPressStiffness,
-        ),
+        animationSpec = pressSpec,
         label = "skydownPressScale",
     )
     val animatedAlpha by animateFloatAsState(
-        targetValue = if (isPressed) 0.975f else 1f,
-        animationSpec = spring(
-            dampingRatio = SkydownMotionTokens.premiumPressAlphaDampingRatio,
-            stiffness = SkydownMotionTokens.premiumPressAlphaStiffness,
-        ),
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = pressSpec,
         label = "skydownPressAlpha",
     )
     val animatedTranslationY by animateFloatAsState(
-        targetValue = if (isPressed) 0.7f else 0f,
-        animationSpec = spring(
-            dampingRatio = SkydownMotionTokens.premiumPressLiftDampingRatio,
-            stiffness = SkydownMotionTokens.premiumPressLiftStiffness,
-        ),
+        targetValue = if (isPressed) 0.5f else 0f,
+        animationSpec = pressSpec,
         label = "skydownPressTranslationY",
     )
 

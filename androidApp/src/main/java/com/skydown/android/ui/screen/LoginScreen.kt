@@ -42,14 +42,26 @@ import com.skydown.android.ui.component.GoogleAuthButton
 import com.skydown.android.ui.component.SkydownCard
 import com.skydown.android.ui.component.ToastHost
 import com.skydown.android.ui.component.ToastType
+import com.skydown.android.ui.auth.AuthEntryContext
 import com.skydown.android.ui.viewmodel.LoginViewModel
 import com.google.android.gms.common.api.ApiException
+
+@Composable
+private fun authEntrySubtitleRes(context: AuthEntryContext): Int = when (context) {
+    AuthEntryContext.DEFAULT -> R.string.auth_login_subtitle
+    AuthEntryContext.AI -> R.string.auth_entry_subtitle_ai
+    AuthEntryContext.MERCH_SHOP -> R.string.auth_entry_subtitle_merch
+    AuthEntryContext.CART -> R.string.auth_entry_subtitle_cart
+    AuthEntryContext.SETTINGS -> R.string.auth_entry_subtitle_settings
+    AuthEntryContext.MUSIC -> R.string.auth_entry_subtitle_music
+}
 
 @Composable
 fun LoginScreen(
     onClose: () -> Unit,
     onOpenRegistration: () -> Unit,
     onBusyStateChanged: (Boolean) -> Unit = {},
+    entryContext: AuthEntryContext = AuthEntryContext.DEFAULT,
     viewModel: LoginViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -146,7 +158,7 @@ fun LoginScreen(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = stringResource(R.string.auth_login_subtitle),
+                    text = stringResource(authEntrySubtitleRes(entryContext)),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     modifier = Modifier.padding(top = 8.dp),
                 )

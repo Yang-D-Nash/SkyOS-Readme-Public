@@ -246,8 +246,8 @@ fun AiScreen(
                     skydownScreenBrush(
                         primaryColor = MaterialTheme.colorScheme.primary,
                         secondaryColor = MaterialTheme.colorScheme.tertiary,
-                        primaryAlpha = 0.058f,
-                        secondaryAlpha = 0.038f,
+                        primaryAlpha = 0.048f,
+                        secondaryAlpha = 0.035f,
                     ),
                 )
         ) {

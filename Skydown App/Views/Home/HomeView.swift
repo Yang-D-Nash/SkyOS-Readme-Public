@@ -5,17 +5,20 @@ struct HomeView: View {
     let onOpenCart: () -> Void
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
+    let onGuestSignIn: (() -> Void)?
     let onOpenWorkflow: (() -> Void)?
 
     init(
         onOpenCart: @escaping () -> Void = {},
         onOpenProfile: @escaping () -> Void = {},
         onOpenSettings: @escaping () -> Void = {},
+        onGuestSignIn: (() -> Void)? = nil,
         onOpenWorkflow: (() -> Void)? = nil
     ) {
         self.onOpenCart = onOpenCart
         self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
+        self.onGuestSignIn = onGuestSignIn
         self.onOpenWorkflow = onOpenWorkflow
     }
 
@@ -24,6 +27,7 @@ struct HomeView: View {
             onOpenCart: onOpenCart,
             onOpenProfile: onOpenProfile,
             onOpenSettings: onOpenSettings,
+            onGuestSignIn: onGuestSignIn,
             onOpenWorkflow: onOpenWorkflow
         )
     }
@@ -48,17 +52,20 @@ struct HomeViewContent: View {
     let onOpenCart: () -> Void
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
+    let onGuestSignIn: (() -> Void)?
     let onOpenWorkflow: (() -> Void)?
 
     init(
         onOpenCart: @escaping () -> Void = {},
         onOpenProfile: @escaping () -> Void = {},
         onOpenSettings: @escaping () -> Void = {},
+        onGuestSignIn: (() -> Void)? = nil,
         onOpenWorkflow: (() -> Void)? = nil
     ) {
         self.onOpenCart = onOpenCart
         self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
+        self.onGuestSignIn = onGuestSignIn
         self.onOpenWorkflow = onOpenWorkflow
     }
 
@@ -74,7 +81,7 @@ struct HomeViewContent: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                            let scrollAnimation = Animation.spring(response: 0.36, dampingFraction: 0.86)
+                            let scrollAnimation = SkydownMotion.smoothScroll
                             let openReleaseSection = {
                                 withAnimation(scrollAnimation) {
                                     proxy.scrollTo(HomeSectionAnchor.release.rawValue, anchor: .top)
@@ -97,57 +104,74 @@ struct HomeViewContent: View {
                             let hasBeatSignal = featuredBeat != nil
                             let hasVideoSignal = featuredVideo != nil
 
-                            HomeHeroIntroCard(
-                                viewModel: viewModel,
-                                colorScheme: colorScheme,
-                                onOpenTrack: openReleaseSection,
-                                onOpenBeat: openBeatSection,
-                                onOpenVideo: openVideoSection
-                            )
-                            .homeReveal(0)
-
-                            MusicInstagramHubCard(
-                                selectedArtist: "Community",
-                                destinations: homeSocialDestinations,
-                                colorScheme: colorScheme
-                            )
-                            .homeReveal(1)
-
-                            HomeDailyOpsStrip(
-                                colorScheme: colorScheme,
-                                activeSignalCount: homeTrackedSignalCount(viewModel),
-                                totalSignalCount: 3,
-                                hasTrackSignal: hasTrackSignal,
-                                hasBeatSignal: hasBeatSignal,
-                                hasVideoSignal: hasVideoSignal,
-                                onRefresh: { viewModel.refresh() },
-                                onOpenRelease: openReleaseSection,
-                                onOpenBeat: openBeatSection,
-                                onOpenVideo: openVideoSection
-                            )
-                            .homeReveal(2)
-
                             let commandPriorityTarget = homeCommandPriorityTarget(viewModel)
 
-                            HomeCommandDockStrip(
-                                colorScheme: colorScheme,
-                                priorityTarget: commandPriorityTarget,
-                                onOpenWorkflow: onOpenWorkflow,
-                                onOpenCart: onOpenCart,
-                                onOpenSettings: onOpenSettings
-                            )
-                            .homeReveal(3)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Spacer()
+                                    .frame(height: 4)
+                                HomeHeroIntroCard(
+                                    viewModel: viewModel,
+                                    colorScheme: colorScheme,
+                                    onOpenTrack: openReleaseSection,
+                                    onOpenBeat: openBeatSection,
+                                    onOpenVideo: openVideoSection
+                                )
+                                .padding(.vertical, 4)
+                                .homeReveal(0)
 
-                            HomeUtilityRow(
-                                colorScheme: colorScheme,
-                                onOpenAI: { (onOpenWorkflow ?? onOpenSettings)() },
-                                onOpenMusic: openReleaseSection,
-                                onOpenCreate: { presentSheet(.nicmaProducer) },
-                                onOpenOrders: onOpenCart,
-                                onOpenSearch: openReleaseSection,
-                                onOpenSettings: onOpenSettings
-                            )
-                            .homeReveal(4)
+                                MusicInstagramHubCard(
+                                    selectedArtist: "Community",
+                                    destinations: homeSocialDestinations,
+                                    colorScheme: colorScheme
+                                )
+                                .homeReveal(1)
+
+                                HomeDailyOpsStrip(
+                                    colorScheme: colorScheme,
+                                    activeSignalCount: homeTrackedSignalCount(viewModel),
+                                    totalSignalCount: 3,
+                                    hasTrackSignal: hasTrackSignal,
+                                    hasBeatSignal: hasBeatSignal,
+                                    hasVideoSignal: hasVideoSignal,
+                                    onRefresh: { viewModel.refresh() },
+                                    onOpenRelease: openReleaseSection,
+                                    onOpenBeat: openBeatSection,
+                                    onOpenVideo: openVideoSection
+                                )
+                                .homeReveal(2)
+
+                                HomeCommandDockStrip(
+                                    colorScheme: colorScheme,
+                                    priorityTarget: commandPriorityTarget,
+                                    onOpenWorkflow: onOpenWorkflow,
+                                    onOpenCart: onOpenCart,
+                                    onOpenSettings: onOpenSettings
+                                )
+                                .homeReveal(3)
+
+                                HomeUtilityRow(
+                                    colorScheme: colorScheme,
+                                    onOpenAI: { (onOpenWorkflow ?? onOpenSettings)() },
+                                    onOpenMusic: openReleaseSection,
+                                    onOpenCreate: { presentSheet(.nicmaProducer) },
+                                    onOpenOrders: onOpenCart,
+                                    onOpenSearch: openReleaseSection,
+                                    onOpenSettings: onOpenSettings
+                                )
+                                .homeReveal(4)
+                            }
+                            .background {
+                                LinearGradient(
+                                    colors: [
+                                        AppColors.accent(for: colorScheme).opacity(0.026),
+                                        AppColors.accentMystic(for: colorScheme).opacity(0.016),
+                                        AppColors.accentHighlight(for: colorScheme).opacity(0.012),
+                                        AppColors.primaryBackground(for: colorScheme)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            }
 
                             HomeLiveSignalSection(
                                 colorScheme: colorScheme,
@@ -196,6 +220,7 @@ struct HomeViewContent: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .refreshable {
                 viewModel.refresh()
                 SkydownHaptics.notification(.success)
@@ -228,7 +253,8 @@ struct HomeViewContent: View {
                     AppSessionToolbarActions(
                         onOpenCart: onOpenCart,
                         onOpenProfile: onOpenProfile,
-                        onOpenSettings: onOpenSettings
+                        onOpenSettings: onOpenSettings,
+                        onGuestSignIn: onGuestSignIn
                     )
                 }
             }

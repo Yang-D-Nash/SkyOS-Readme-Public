@@ -151,9 +151,19 @@ struct RegistrationSheet: View {
         .sheet(item: $activeLegalDocument) { document in
             switch document {
             case .terms:
-                PolicyView(title: "AGB", text: legalContentStore.settings.termsAndConditionsText)
+                PolicyView(
+                    title: AppLocalized.text("policy.title.agb", fallback: "Terms & Conditions (AGB)"),
+                    text: legalContentStore.settings.termsAndConditionsText,
+                    lastUpdated: legalContentStore.settings.resolvedLastUpdatedLabel,
+                    supportEmail: legalContentStore.settings.resolvedSupportEmail
+                )
             case .privacy:
-                PolicyView(title: "Datenschutzbestimmungen", text: legalContentStore.settings.privacyPolicyText)
+                PolicyView(
+                    title: AppLocalized.text("policy.title.privacy", fallback: "Privacy policy"),
+                    text: legalContentStore.settings.privacyPolicyText,
+                    lastUpdated: legalContentStore.settings.resolvedLastUpdatedLabel,
+                    supportEmail: legalContentStore.settings.resolvedSupportEmail
+                )
             }
         }
         .fancyToast(isPresented: $viewModel.showToast,

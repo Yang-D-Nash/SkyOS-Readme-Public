@@ -14,18 +14,29 @@ enum SkydownLayout {
     static let screenHorizontalPadding: CGFloat = 16
     static let screenTopPadding: CGFloat = 12
     static let screenBottomPadding: CGFloat = 16
-    static let sectionSpacing: CGFloat = 12
+    /// Abstand zwischen vertikalen Sektionen (Feed-/Screen-Rhythmus), aligned mit Android `screenSectionSpacing`.
+    static let sectionSpacing: CGFloat = 14
     static let cardPadding: CGFloat = 12
+    /// Innenabstand für größere Karten/Module (Home, Music, Video, Merch) — einheitlich statt Magic `18`.
+    static let panelPadding: CGFloat = 18
     static let heroPadding: CGFloat = 17
     static let cardCornerRadius: CGFloat = 20
     static let heroCornerRadius: CGFloat = 30
     static let buttonCornerRadius: CGFloat = 16
 }
 
+/// Calm, single motion language: ease-out, ~150–250ms — no bouncy springs for UI chrome.
 enum SkydownMotion {
-    static let screenTransition = Animation.spring(response: 0.58, dampingFraction: 0.90, blendDuration: 0.18)
-    static let emphasizedTransition = Animation.spring(response: 0.46, dampingFraction: 0.84, blendDuration: 0.14)
-    static let statusTransition = Animation.spring(response: 0.44, dampingFraction: 0.84, blendDuration: 0.12)
+    static let screenTransition = Animation.easeOut(duration: 0.22)
+    static let emphasizedTransition = Animation.easeOut(duration: 0.2)
+    static let statusTransition = Animation.easeOut(duration: 0.2)
+    /// Tab bar + surrounding chrome when selection changes.
+    static let tabContextTransition = Animation.easeOut(duration: 0.2)
+    static let contentReveal = Animation.easeOut(duration: 0.24)
+    static let listStaggerDelay: Double = 0.035
+    static let smoothScroll = Animation.easeOut(duration: 0.3)
+    static let pressInteraction = Animation.easeOut(duration: 0.18)
+    static let sheetPresentation = Animation.easeOut(duration: 0.25)
     static let ambientLoopDuration: Double = 6.2
 }
 
@@ -184,16 +195,17 @@ private struct SkydownTactileButtonBody: View {
 
     var body: some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.972 : 1)
-            .saturation(configuration.isPressed ? 1.05 : 1)
-            .brightness(configuration.isPressed ? -0.018 : 0)
-            .offset(y: configuration.isPressed ? 1.8 : 0)
+            .scaleEffect(configuration.isPressed ? 0.978 : 1)
+            .opacity(configuration.isPressed ? 0.97 : 1)
+            .saturation(configuration.isPressed ? 1.02 : 1)
+            .brightness(configuration.isPressed ? -0.014 : 0)
+            .offset(y: configuration.isPressed ? 1.2 : 0)
             .shadow(
-                color: Color.black.opacity(configuration.isPressed ? 0.12 : 0.06),
-                radius: configuration.isPressed ? 5 : 10,
+                color: Color.black.opacity(configuration.isPressed ? 0.1 : 0.06),
+                radius: configuration.isPressed ? 4 : 10,
                 y: configuration.isPressed ? 2 : 6
             )
-            .animation(.spring(response: 0.24, dampingFraction: 0.72), value: configuration.isPressed)
+            .animation(SkydownMotion.pressInteraction, value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, isPressed in
                 if isPressed && !emittedPressHaptic {
                     emittedPressHaptic = true
@@ -216,15 +228,16 @@ private struct SkydownPressFeedbackModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .scaleEffect(isPressed ? pressedScale : 1)
-            .saturation(isPressed ? 1.04 : 1)
-            .brightness(isPressed ? -0.014 : 0)
+            .opacity(isPressed ? 0.97 : 1)
+            .saturation(isPressed ? 1.02 : 1)
+            .brightness(isPressed ? -0.012 : 0)
             .offset(y: isPressed ? pressedOffsetY : 0)
             .shadow(
-                color: Color.black.opacity(isPressed ? 0.14 : 0.06),
-                radius: isPressed ? 5 : 10,
+                color: Color.black.opacity(isPressed ? 0.1 : 0.06),
+                radius: isPressed ? 4 : 10,
                 y: isPressed ? 2 : 6
             )
-            .animation(.spring(response: 0.22, dampingFraction: 0.74), value: isPressed)
+            .animation(SkydownMotion.pressInteraction, value: isPressed)
             .onLongPressGesture(
                 minimumDuration: 0,
                 maximumDistance: 56,
@@ -267,8 +280,8 @@ private struct SkydownSceneMotionModifier<Trigger: Equatable>: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .opacity(0.76 + (0.24 * motionProgress))
-            .scaleEffect(0.986 + (0.014 * motionProgress))
+            .opacity(0.82 + (0.18 * motionProgress))
+            .scaleEffect(0.989 + (0.011 * motionProgress))
             .offset(
                 x: axis == .horizontal ? (1 - motionProgress) * travel : 0,
                 y: axis == .vertical ? (1 - motionProgress) * travel : 0
@@ -311,8 +324,8 @@ private struct SkydownSceneActivationModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .opacity(0.78 + (0.22 * motionProgress))
-            .scaleEffect(0.988 + (0.012 * motionProgress))
+            .opacity(0.84 + (0.16 * motionProgress))
+            .scaleEffect(0.991 + (0.009 * motionProgress))
             .offset(
                 x: axis == .horizontal ? (1 - motionProgress) * travel : 0,
                 y: axis == .vertical ? (1 - motionProgress) * travel : 0
@@ -613,16 +626,16 @@ private struct SkydownPanelSurfaceModifier: ViewModifier {
             }
             .overlay {
                 shape
-                    .stroke(strokeGradient, lineWidth: 0.9)
+                    .stroke(strokeGradient, lineWidth: 0.75)
             }
             .clipShape(shape)
             .shadow(
-                color: resolvedAccent.opacity(colorScheme == .dark ? 0.016 : 0.020),
+                color: resolvedAccent.opacity(colorScheme == .dark ? 0.014 : 0.018),
                 radius: max(shadowRadius - 8, 4),
                 y: max(shadowYOffset - 6, 2)
             )
             .shadow(
-                color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.10 : 0.09),
+                color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.075),
                 radius: max(shadowRadius - 6, 5),
                 y: max(shadowYOffset - 3, 2)
             )
@@ -726,8 +739,8 @@ extension View {
         colorScheme: ColorScheme,
         accent: Color? = nil,
         cornerRadius: CGFloat = SkydownLayout.cardCornerRadius,
-        shadowRadius: CGFloat = 10,
-        shadowYOffset: CGFloat = 5
+        shadowRadius: CGFloat = 9,
+        shadowYOffset: CGFloat = 4
     ) -> some View {
         modifier(
             SkydownPanelSurfaceModifier(
@@ -797,8 +810,8 @@ extension View {
     func skydownSceneMotion<Trigger: Equatable>(
         trigger: Trigger,
         axis: SkydownMotionAxis = .horizontal,
-        travel: CGFloat = 24,
-        blurRadius: CGFloat = 8
+        travel: CGFloat = 20,
+        blurRadius: CGFloat = 4
     ) -> some View {
         modifier(
             SkydownSceneMotionModifier(
@@ -813,8 +826,8 @@ extension View {
     func skydownSceneActivation(
         isActive: Bool,
         axis: SkydownMotionAxis = .horizontal,
-        travel: CGFloat = 24,
-        blurRadius: CGFloat = 7
+        travel: CGFloat = 20,
+        blurRadius: CGFloat = 3.5
     ) -> some View {
         modifier(
             SkydownSceneActivationModifier(

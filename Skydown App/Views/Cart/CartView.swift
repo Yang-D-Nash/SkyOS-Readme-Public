@@ -23,13 +23,16 @@ struct CartView: View {
     @AppStorage("orders.postCheckoutHighlight") private var postCheckoutHighlight = ""
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
+    let onGuestSignIn: (() -> Void)?
 
     init(
         onOpenProfile: @escaping () -> Void = {},
-        onOpenSettings: @escaping () -> Void = {}
+        onOpenSettings: @escaping () -> Void = {},
+        onGuestSignIn: (() -> Void)? = nil
     ) {
         self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
+        self.onGuestSignIn = onGuestSignIn
     }
 
     @State private var name = ""
@@ -135,7 +138,9 @@ struct CartView: View {
 
     private var checkoutReadinessTitle: String {
         if canSubmitOrder { return "Alles bereit" }
-        if authManager.userSession == nil { return "Anmeldung fehlt" }
+        if authManager.userSession == nil {
+            return AppLocalized.text("auth.cart.readiness.missing_account", fallback: "Account needed")
+        }
         if !isCheckoutAvailable { return "Kurz pausiert" }
         if !isFormValid { return "Angaben offen" }
         if !availableCheckoutMethods.isEmpty && selectedPaymentMethod.isEmpty { return "Zahlart offen" }
@@ -144,7 +149,9 @@ struct CartView: View {
 
     private var checkoutReadinessDetail: String {
         if canSubmitOrder { return "Du kannst jetzt sicher fortfahren." }
-        if authManager.userSession == nil { return "Bitte zuerst anmelden." }
+        if authManager.userSession == nil {
+            return AppLocalized.text("auth.cart.readiness.detail_unsigned", fallback: "Sign in to align checkout and order updates with your profile.")
+        }
         if !isCheckoutAvailable { return "Der Checkout startet wieder nach der Oeffnung." }
         if !isFormValid { return "Bitte fehlende Pflichtfelder ergaenzen." }
         if !availableCheckoutMethods.isEmpty && selectedPaymentMethod.isEmpty { return "Bitte eine Zahlart waehlen." }
@@ -173,17 +180,25 @@ struct CartView: View {
 
                     if authManager.userSession == nil {
                         CartSectionCard(
-                            title: "Konto erforderlich",
+                            title: AppLocalized.text("auth.cart.login.title", fallback: "Ready to check out"),
                             colorScheme: colorScheme
                         ) {
-                            Text("Bitte anmelden, damit wir deine Bestellung sicher zuordnen koennen.")
+                            Text(
+                                AppLocalized.text(
+                                    "auth.cart.login.subtitle",
+                                    fallback: "Sign in to secure this cart and complete your order when it feels right."
+                                )
+                            )
                                 .font(.body)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                             Button {
-                                presentSheet(.login)
+                                presentSheet(.login(.cart))
                             } label: {
-                                Label("Anmelden", systemImage: "person.crop.circle.fill.badge.plus")
+                                Label(
+                                    AppLocalized.text("auth.cart.login.cta", fallback: "Continue with account"),
+                                    systemImage: "person.crop.circle.fill.badge.plus"
+                                )
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
                             }
@@ -442,7 +457,8 @@ struct CartView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     AppSessionToolbarActions(
                         onOpenProfile: onOpenProfile,
-                        onOpenSettings: onOpenSettings
+                        onOpenSettings: onOpenSettings,
+                        onGuestSignIn: onGuestSignIn
                     )
                 }
             }
@@ -505,8 +521,8 @@ struct CartView: View {
         .animation(.easeInOut(duration: 0.22), value: cartVM.handoverContext)
         .sheet(item: activePresentedSheetBinding) { sheet in
             switch sheet {
-            case .login:
-                LoginView()
+            case .login(let context):
+                LoginView(entryContext: context)
             case .mail(let draft):
                 MailView(
                     subject: draft.subject,
@@ -1049,13 +1065,13 @@ private struct OrderMailDraft: Identifiable, Equatable {
 }
 
 private enum CartPresentedSheet: Identifiable, Equatable {
-    case login
+    case login(AuthEntryContext)
     case mail(OrderMailDraft)
 
     var id: String {
         switch self {
-        case .login:
-            return "login"
+        case .login(let context):
+            return "login-\(context.rawValue)"
         case .mail(let draft):
             return "mail-\(draft.id.uuidString)"
         }
@@ -1498,6 +1514,13 @@ private struct CartCheckoutSafetyZone: View {
         VStack(alignment: .leading, spacing: 9) {
             safetyLine("lock.shield.fill", "Sichere Zahlwege und klare Weiterleitung im naechsten Schritt.")
             safetyLine("doc.text.magnifyingglass", "Daten und Gesamtpreis pruefen wir vor dem Senden noch einmal.")
+            safetyLine(
+                "book.pages",
+                AppLocalized.text(
+                    "cart.legal.checkout_references",
+                    fallback: "Binding terms, cancellation and returns follow the information shown in checkout and the legal documents in Settings."
+                )
+            )
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "message.badge.fill")
                     .font(.caption2.weight(.bold))
