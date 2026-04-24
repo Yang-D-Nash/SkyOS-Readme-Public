@@ -80,7 +80,32 @@ The Android app includes:
 - Firestore offline caching configuration
 - hosted checkout handling and store subscription sync paths
 
-## 7. Instrumentation Expectations
+## 7. Firebase App Check on Debug Devices
+
+- Debug builds install the Firebase App Check debug provider.
+- Release builds stay protected through Play Integrity.
+- The Android Firebase package in this repo is `com.skydown.android`.
+
+If owner-only Shopify calls such as `syncShopifyMerch` or `listShopifyCollections` fail with app verification errors on a test device:
+
+1. Start the app once on the device.
+2. Read logcat and copy the debug secret printed by `DebugAppCheckProvider`.
+3. Register that secret in Firebase Console under App Check for the Android app `com.skydown.android`.
+4. Retry the Shopify sync or collection load after the token is allow-listed.
+
+Helpful commands:
+
+```bash
+ADB=~/Library/Android/sdk/platform-tools/adb
+$ADB logcat -d | rg "DebugAppCheckProvider|App Check|App attestation failed|placeholder token"
+./gradlew -q :androidApp:signingReport
+```
+
+If a debug build does not print a debug secret, verify the debug App Check dependency and the
+active `google-services.json`. If a release build fails App Check, verify the release signing
+SHA-1 and SHA-256 in Firebase before changing any server-side enforcement.
+
+## 8. Instrumentation Expectations
 
 Before release, validate on a real Android device:
 
@@ -96,7 +121,7 @@ Before release, validate on a real Android device:
 The repo already contains Android instrumentation coverage for AI, merch, music, and video flows.
 Treat failures in these flows as release-significant.
 
-## 8. Release Standard
+## 9. Release Standard
 
 Android is only public-launch ready when:
 

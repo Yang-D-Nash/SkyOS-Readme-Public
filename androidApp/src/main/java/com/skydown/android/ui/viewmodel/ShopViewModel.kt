@@ -6,6 +6,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppCartStore
 import com.skydown.android.data.MerchStoreStatusRepository
+import com.skydown.android.data.toAppCheckVerificationMessage
 import com.skydown.android.ui.model.ShopUiState
 import com.skydown.shared.model.MerchandiseItem
 import com.skydown.shared.model.isPlatformOwner
@@ -119,7 +120,9 @@ class ShopViewModel : ViewModel() {
                 it.copy(
                     isSyncingCatalog = false,
                     toastMessage = result.getOrElse { error ->
-                        error.message ?: "Shopify-Sync fehlgeschlagen."
+                        error.toAppCheckVerificationMessage("den Shopify-Sync erneut starten")
+                            ?: error.message
+                            ?: "Shopify-Sync fehlgeschlagen."
                     },
                     isErrorToast = result.isFailure,
                 )
@@ -343,7 +346,10 @@ class ShopViewModel : ViewModel() {
                     toastMessage = if (fallbackItems.isNotEmpty()) {
                         "Shopify-Katalog direkt aus dem Store geladen."
                     } else {
-                        syncResult.exceptionOrNull()?.message ?: "Shopify-Sync fehlgeschlagen."
+                        syncResult.exceptionOrNull()
+                            ?.toAppCheckVerificationMessage("den Shopify-Sync erneut starten")
+                            ?: syncResult.exceptionOrNull()?.message
+                            ?: "Shopify-Sync fehlgeschlagen."
                     },
                     isErrorToast = fallbackItems.isEmpty(),
                 )

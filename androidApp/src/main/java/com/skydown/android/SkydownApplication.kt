@@ -55,7 +55,12 @@ class SkydownApplication : Application() {
             val factoryClass = Class.forName("com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory")
             val getInstance = factoryClass.getMethod("getInstance")
             getInstance.invoke(null) as AppCheckProviderFactory
-        }.getOrElse {
+        }.getOrElse { error ->
+            Log.w(
+                "SkydownApplication",
+                "Firebase App Check Debug-Provider fehlt; Debug-Build faellt auf Play Integrity zurueck.",
+                error,
+            )
             PlayIntegrityAppCheckProviderFactory.getInstance()
         }
     }

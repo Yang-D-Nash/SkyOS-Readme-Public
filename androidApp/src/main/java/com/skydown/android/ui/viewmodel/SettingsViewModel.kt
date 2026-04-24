@@ -15,6 +15,7 @@ import com.skydown.android.data.PaymentMethodsSettings
 import com.skydown.android.data.ShopifyAdminSettings
 import com.skydown.android.data.WorkflowAutomationPreferences
 import com.skydown.android.data.callWithAppCheckRetry
+import com.skydown.android.data.toAppCheckVerificationMessage
 import com.skydown.shared.model.User
 import com.skydown.shared.model.ProfileUpdateInput
 import com.google.firebase.firestore.ListenerRegistration
@@ -666,7 +667,9 @@ class SettingsViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         isLoadingShopifyCollections = false,
-                        shopifyCollectionsErrorMessage = error.message ?: "Shopify-Collections konnten nicht geladen werden.",
+                        shopifyCollectionsErrorMessage = error.toAppCheckVerificationMessage(
+                            "die Shopify-Collections erneut laden",
+                        ) ?: error.message ?: "Shopify-Collections konnten nicht geladen werden.",
                     )
                 }
             }
