@@ -1,15 +1,10 @@
 <p align="center">
-  <img src="Skydown%20App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png" alt="Skydown Logo" width="132" />
-  &nbsp;&nbsp;&nbsp;
-  <img src="docs/assets/skyos-logo.png" alt="SkyOS Logo" width="156" />
-  &nbsp;&nbsp;&nbsp;
-  <img src="Skydown%20App/Assets.xcassets/ZweiZweiBrandLogo.imageset/zweizwei-logo.png" alt="ZweiZwei Logo" width="132" />
+  <img src="docs/assets/skyos-logo.png" alt="SkyOS Logo" width="300" />
 </p>
 
 <p align="center">
-  <img src="Skydown%20App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png" alt="22 Mark" width="88" />
-  &nbsp;&nbsp;
-  <img src="docs/assets/skyos-app-icon.png" alt="SkyOS App Icon" width="76" />
+  <strong>Skydown</strong><br>
+  AI &middot; Music &middot; Video &middot; Commerce
 </p>
 
 # Skydown
@@ -30,6 +25,7 @@ Produkt, waehrend ZweiZwei / 22 innerhalb der App ausschliesslich die Music-Iden
 ## Inhaltsverzeichnis
 
 - [Ueberblick](#ueberblick)
+- [Markenrollen](#markenrollen)
 - [Produktuebersicht](#produktuebersicht)
 - [Produktbereiche](#produktbereiche)
 - [Landing / Home](#landing--home)
@@ -69,6 +65,12 @@ Die Leitidee ist Klarheit statt Modulchaos: Home erklaert den Einstieg, AI und A
 Handlungsfaehigkeit, Media verankert die Marke, Music traegt mit ZweiZwei / 22 eine eigene
 kuratierte Identitaet, Commerce macht den Produktfluss wirtschaftlich relevant, und Legal / Settings
 halten Vertrauen, Support und Governance sichtbar.
+
+## Markenrollen
+
+- `SkyOS` steht fuer System, Design-Sprache und App-Icon-Identitaet.
+- `Skydown` ist die Produkt- und App-Marke.
+- `ZweiZwei / 22` ist ausschliesslich die Music-Marke innerhalb von Skydown.
 
 ## Produktuebersicht
 
@@ -242,21 +244,13 @@ angenehm zu halten.
 
 Die Release-Dokumentation trennt bewusst zwischen Produktmarke, Systemsprache und Music-Marke.
 
-### Markenrollen
-
-| Name | Rolle | Typischer Einsatz |
-| --- | --- | --- |
-| `Skydown` | Produkt und App | README, App-Kontext, Release-Dokumentation, Product-Narrative |
-| `SkyOS` | System- und Design-Sprache | Motion, Surface-System, Design-Dokumentation, Brand-System, App-Icon-Identitaet |
-| `ZweiZwei` / `22` | Music-Marke innerhalb der App | Music Experience, Releases, Music-Identitaet, visuelle Musik-Layer |
-
 Verwendete Logo-Assets in dieser README:
 
 | Marke | Pfad |
 | --- | --- |
-| Skydown Logo | [`Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png`](<Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png>) |
 | SkyOS Logo | [`docs/assets/skyos-logo.png`](docs/assets/skyos-logo.png) |
 | SkyOS App Icon Master | [`docs/assets/skyos-app-icon.png`](docs/assets/skyos-app-icon.png) |
+| Skydown Logo | [`Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png`](<Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png>) |
 | ZweiZwei Logo | [`Skydown App/Assets.xcassets/ZweiZweiBrandLogo.imageset/zweizwei-logo.png`](<Skydown App/Assets.xcassets/ZweiZweiBrandLogo.imageset/zweizwei-logo.png>) |
 | 22 Mark | [`Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png`](<Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png>) |
 
