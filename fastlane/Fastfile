@@ -1,0 +1,48 @@
+opt_out_usage
+
+default_platform(:android)
+
+AAB_PATH = "androidApp/build/outputs/bundle/release/androidApp-release.aab"
+ANDROID_PACKAGE = "com.skydown.android"
+PLAY_TRACK = "internal"
+RELEASE_STATUS = "draft"
+
+platform :android do
+  desc "Validate SkyOS Android AAB upload for Google Play internal testing"
+  lane :validate_android_internal do
+    ensure_env_vars(env_vars: ["SUPPLY_JSON_KEY"])
+    UI.user_error!("AAB not found at #{AAB_PATH}") unless File.exist?(AAB_PATH)
+
+    supply(
+      package_name: ANDROID_PACKAGE,
+      json_key: ENV["SUPPLY_JSON_KEY"],
+      aab: AAB_PATH,
+      track: PLAY_TRACK,
+      release_status: RELEASE_STATUS,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: true,
+      validate_only: true
+    )
+  end
+
+  desc "Upload SkyOS Android AAB to Google Play internal testing"
+  lane :upload_android_internal do
+    ensure_env_vars(env_vars: ["SUPPLY_JSON_KEY"])
+    UI.user_error!("AAB not found at #{AAB_PATH}") unless File.exist?(AAB_PATH)
+
+    supply(
+      package_name: ANDROID_PACKAGE,
+      json_key: ENV["SUPPLY_JSON_KEY"],
+      aab: AAB_PATH,
+      track: PLAY_TRACK,
+      release_status: RELEASE_STATUS,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: true,
+      validate_only: false
+    )
+  end
+end
