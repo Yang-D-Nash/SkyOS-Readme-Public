@@ -190,7 +190,7 @@
     <string name="ai_membership_tiers">Free, Pro, Creator</string>
     <string name="ai_membership_title_short">KI Membership</string>
     <string name="agent_membership_title_short">Agent Membership</string>
-    <string name="ai_membership_caption">SkyOS verkauft Faehigkeiten statt Tokens. Upgrade schaltet mehr Reichweite frei.</string>
+    <string name="ai_membership_caption">SkyOS haelt AI faehigkeitsbasiert. Upgrade schaltet mehr Reichweite frei.</string>
     <string name="agent_membership_caption">Creator bringt mehr Reichweite und priorisierte Agent-Ausfuehrung.</string>
     <string name="ai_available">verfuegbar</string>
     <string name="ai_open">offen</string>
@@ -202,7 +202,7 @@
     <string name="ai_next_step">Naechster Schritt</string>
     <string name="ai_upgrade_hint">Upgrade-Tipp</string>
     <string name="ai_membership_sheet_title">SkyOS KI Membership</string>
-    <string name="ai_membership_sheet_subtitle">Free / Pro / Creator · Capability-first statt Tokens.</string>
+    <string name="ai_membership_sheet_subtitle">Free / Pro / Creator · faehigkeitsbasierter AI-Zugang.</string>
     <string name="ai_membership_free_detail">Free: Bot Basis, wenig Images, leichter Agent</string>
     <string name="ai_membership_pro_detail">Pro: mehr Reichweite, staerkere Ausfuehrung</string>
     <string name="ai_membership_creator_detail">Creator: mehr Reichweite, Premium Outputs, Prioritaet</string>
@@ -221,6 +221,8 @@
     <string name="agent_workspace_mode_format">Modus · %1$s</string>
     <string name="agent_workspace_session_format">%1$d Nachrichten in dieser Sitzung</string>
     <string name="agent_workspace_status_ready">Bereit</string>
+    <string name="agent_workspace_status_line_ready">Agent · Workspace</string>
+    <string name="agent_workspace_status_line_adjusted">Agent · Workspace angepasst</string>
     <string name="agent_section_conversation">Dieser Faden</string>
     <string name="agent_section_conversation_sub">Hier verfeinert der Agent den Durchlauf mit dir — derselbe Arbeitsbereich, kein getrennter Chat.</string>
     <string name="agent_empty_first_step">Tippe unten ein oder waehle eine Schnellaufforderung. Der Agent haelt den Ablauf strukturiert.</string>
@@ -288,4 +290,9 @@
     <string name="settings_admin_headers_video_detail_placeholder">Einordnung fuer Clips, Visuals und aktuelle Kollaborationen.</string>
     <string name="settings_admin_headers_empty_gradient">Leere Felder stellen den nativen System-Gradient wieder her.</string>
     <string name="settings_admin_headers_owner_only">Nur der Owner darf Header-Bilder verwalten.</string>
+    <string name="ai_level_standard_subtitle">Für den Alltag</string>
+    <string name="ai_level_advanced_subtitle">Für komplexere Aufgaben</string>
+    <string name="ai_level_pro_subtitle">Für tiefere Analysen</string>
+    <string name="ai_level_limit_reached">Dein heutiges AI-Limit ist erreicht. Morgen kannst du weiterarbeiten oder einen höheren Modus nutzen, sobald er freigeschaltet ist.</string>
+    <string name="ai_level_unavailable">Dieser Modus ist für deinen aktuellen Zugang noch nicht verfügbar.</string>
 </resources>

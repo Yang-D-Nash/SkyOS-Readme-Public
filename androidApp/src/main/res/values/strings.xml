@@ -197,7 +197,7 @@
     <string name="ai_membership_tiers">Free, Pro, Creator</string>
     <string name="ai_membership_title_short">AI Membership</string>
     <string name="agent_membership_title_short">Agent Membership</string>
-    <string name="ai_membership_caption">SkyOS sells capabilities, not tokens. Upgrades unlock more reach.</string>
+    <string name="ai_membership_caption">SkyOS keeps AI capability-based. Upgrades unlock more reach.</string>
     <string name="agent_membership_caption">Creator unlocks more reach and prioritized agent execution.</string>
     <string name="ai_available">available</string>
     <string name="ai_open">open</string>
@@ -209,7 +209,7 @@
     <string name="ai_next_step">Next step</string>
     <string name="ai_upgrade_hint">Upgrade hint</string>
     <string name="ai_membership_sheet_title">SkyOS AI Membership</string>
-    <string name="ai_membership_sheet_subtitle">Free / Pro / Creator · capability-first instead of tokens.</string>
+    <string name="ai_membership_sheet_subtitle">Free / Pro / Creator · capability-first AI access.</string>
     <string name="ai_membership_free_detail">Free: core bot, fewer images, light agent</string>
     <string name="ai_membership_pro_detail">Pro: more reach, stronger execution</string>
     <string name="ai_membership_creator_detail">Creator: more reach, premium outputs, priority</string>
@@ -228,6 +228,8 @@
     <string name="agent_workspace_mode_format">Mode · %1$s</string>
     <string name="agent_workspace_session_format">%1$d messages in this session</string>
     <string name="agent_workspace_status_ready">Ready</string>
+    <string name="agent_workspace_status_line_ready">Agent · Workspace</string>
+    <string name="agent_workspace_status_line_adjusted">Agent · Workspace adjusted</string>
     <string name="agent_section_conversation">This thread</string>
     <string name="agent_section_conversation_sub">Where the agent refines the turn with you — same workspace, not a side chat.</string>
     <string name="agent_empty_first_step">Type below or pick a quick prompt. The agent keeps the run structured.</string>
@@ -295,4 +297,9 @@
     <string name="settings_admin_headers_video_detail_placeholder">Context for clips, visuals, and current collaborations.</string>
     <string name="settings_admin_headers_empty_gradient">Empty fields restore the native system gradient for that screen.</string>
     <string name="settings_admin_headers_owner_only">Only the owner can manage header images.</string>
+    <string name="ai_level_standard_subtitle">For everyday work</string>
+    <string name="ai_level_advanced_subtitle">For more complex tasks</string>
+    <string name="ai_level_pro_subtitle">For deeper analysis</string>
+    <string name="ai_level_limit_reached">You’ve reached today’s AI limit. You can continue tomorrow or use a higher mode once available.</string>
+    <string name="ai_level_unavailable">This mode is not available for your current access yet.</string>
 </resources>

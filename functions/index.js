@@ -187,6 +187,12 @@ const EU_COUNTRY_CODES = new Set([
   "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE",
 ]);
 
+const AI_EXPERIENCE_LEVELS = {
+  standard: "standard",
+  advanced: "advanced",
+  pro: "pro",
+};
+
 const agentTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),
   text: z.string().trim().min(1).max(4000),
@@ -196,6 +202,7 @@ const agentRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(4000),
   history: z.array(agentTurnSchema).max(24).default([]),
   mode: z.enum(["release", "briefing", "content", "merch", "automation"]).default("release"),
+  aiLevel: z.enum(["standard", "advanced", "pro"]).default("standard"),
   executeAutomation: z.boolean().default(false),
   confirmedByUser: z.boolean().default(false),
   manusApiKeyOverride: z.string().trim().min(16).max(1024).optional(),
@@ -211,10 +218,12 @@ const agentFlowRequestSchema = agentRequestSchema.omit({
 const aiTextRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(12000),
   mode: z.enum(["general", "faq", "caption", "release_plan", "briefing", "merch_copy", "video_concept"]).default("general"),
+  aiLevel: z.enum(["standard", "advanced", "pro"]).default("standard"),
 });
 
 const aiVisualRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(12000),
+  aiLevel: z.enum(["standard", "advanced", "pro"]).default("standard"),
 });
 
 const DEFAULT_AI_TEXT_INSTRUCTION = `
@@ -3039,6 +3048,111 @@ function aiUsageCounterField(kind) {
   }
 }
 
+function normalizeAiExperienceLevel(value) {
+  const normalized = nonEmptyString(value)?.toLowerCase();
+  return normalized && Object.values(AI_EXPERIENCE_LEVELS).includes(normalized) ?
+    normalized :
+    AI_EXPERIENCE_LEVELS.standard;
+}
+
+function aiLevelCounterField(kind, level) {
+  return `level_${aiMetricKey(normalizeAiExperienceLevel(level))}_${aiUsageCounterField(kind)}`;
+}
+
+function aiLevelRequestWeightMultiplier(level) {
+  switch (normalizeAiExperienceLevel(level)) {
+    case AI_EXPERIENCE_LEVELS.pro:
+      return 4;
+    case AI_EXPERIENCE_LEVELS.advanced:
+      return 2;
+    case AI_EXPERIENCE_LEVELS.standard:
+    default:
+      return 1;
+  }
+}
+
+function aiLevelOutputTokenMultiplier(level) {
+  switch (normalizeAiExperienceLevel(level)) {
+    case AI_EXPERIENCE_LEVELS.pro:
+      return 1.2;
+    case AI_EXPERIENCE_LEVELS.advanced:
+      return 1;
+    case AI_EXPERIENCE_LEVELS.standard:
+    default:
+      return 0.72;
+  }
+}
+
+function aiLevelLimitForPlan({level, kind, baseLimit, hardCap, plan}) {
+  const normalizedLevel = normalizeAiExperienceLevel(level);
+  const safeBaseLimit = Number.isFinite(Number(baseLimit)) ? Math.max(0, Math.floor(Number(baseLimit))) : 0;
+  const safeHardCap = Number.isFinite(Number(hardCap)) ? Math.max(0, Math.floor(Number(hardCap))) : safeBaseLimit;
+  const effectiveBaseLimit = safeHardCap > 0 ? Math.min(safeBaseLimit, safeHardCap) : safeBaseLimit;
+  const normalizedPlan = nonEmptyString(plan)?.toLowerCase() || USER_QUOTA_PLANS.free;
+
+  if (normalizedLevel === AI_EXPERIENCE_LEVELS.standard) {
+    return Math.max(1, effectiveBaseLimit);
+  }
+
+  const isStaffPlan = [
+    USER_QUOTA_PLANS.internalTeam,
+    USER_QUOTA_PLANS.ownerUnlimited,
+    USER_QUOTA_PLANS.studio,
+  ].includes(normalizedPlan);
+  const isCreatorPlan = normalizedPlan === USER_QUOTA_PLANS.creator;
+
+  if (normalizedLevel === AI_EXPERIENCE_LEVELS.advanced) {
+    const planCap = isStaffPlan ? 24 : isCreatorPlan ? 12 : 3;
+    const ratio = isStaffPlan ? 0.45 : isCreatorPlan ? 0.35 : 0.12;
+    const floor = isStaffPlan ? 4 : isCreatorPlan ? 2 : 1;
+    return Math.max(floor, Math.min(planCap, Math.floor(effectiveBaseLimit * ratio) || floor));
+  }
+
+  if (!isStaffPlan && !isCreatorPlan) {
+    return 0;
+  }
+
+  const proCap = isStaffPlan ? 10 : 4;
+  const proRatio = isStaffPlan ? 0.18 : 0.12;
+  const proFloor = isStaffPlan ? 2 : 1;
+  const baseProLimit = Math.floor(effectiveBaseLimit * proRatio) || proFloor;
+  return Math.max(proFloor, Math.min(proCap, baseProLimit));
+}
+
+function resolveAiTextModelForLevel(level, runtimeSettings) {
+  const modelPolicy = runtimeSettings.bot.modelPolicy;
+  switch (normalizeAiExperienceLevel(level)) {
+    case AI_EXPERIENCE_LEVELS.standard:
+      return nonEmptyString(modelPolicy.textFallbackModel) ||
+        nonEmptyString(modelPolicy.textPrimaryModel) ||
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.modelPolicy.textPrimaryModel;
+    case AI_EXPERIENCE_LEVELS.advanced:
+    case AI_EXPERIENCE_LEVELS.pro:
+    default:
+      return nonEmptyString(modelPolicy.textPrimaryModel) ||
+        DEFAULT_AI_RUNTIME_SETTINGS.bot.modelPolicy.textPrimaryModel;
+  }
+}
+
+function resolveAiVisualModelForLevel(level, runtimeSettings) {
+  const modelPolicy = runtimeSettings.bot.modelPolicy;
+  return nonEmptyString(modelPolicy.visualPrimaryModel) ||
+    nonEmptyString(modelPolicy.visualFallbackModel) ||
+    DEFAULT_AI_RUNTIME_SETTINGS.bot.modelPolicy.visualPrimaryModel;
+}
+
+function resolveAiAgentModelForProvider(provider, runtimeSettings) {
+  switch (provider) {
+    case AI_AGENT_PROVIDERS.grok:
+      return GROK_AGENT_MODEL;
+    case AI_AGENT_PROVIDERS.manus:
+      return "manus";
+    case AI_AGENT_PROVIDERS.gemini:
+    default:
+      return resolveAiTextModelForLevel(AI_EXPERIENCE_LEVELS.standard, runtimeSettings);
+  }
+}
+
 function aiUsageLimitForKind(kind, limits) {
   switch (kind) {
     case AI_USAGE_KINDS.visual:
@@ -3161,8 +3275,12 @@ function buildGuardrailHints({
     userFacingReason = "SkyOS reduziert gerade Lastspitzen, um Stabilitaet und Fairness zu sichern.";
   } else if (denyReason === "suspicious_spike") {
     userFacingReason = "Wir sehen gerade ungewoehnlich viele Requests in kurzer Zeit.";
+  } else if (denyReason === "ai_level_unavailable") {
+    userFacingReason = "Dieser Modus ist fuer deinen aktuellen Zugang noch nicht verfuegbar.";
+  } else if (denyReason === "ai_level_limit_reached") {
+    userFacingReason = "Dein heutiges AI-Limit ist erreicht. Morgen kannst du weiterarbeiten oder einen hoeheren Modus nutzen, sobald er freigeschaltet ist.";
   } else if (denyReason === "hard_limit_reached") {
-    userFacingReason = "Dein Tageslimit fuer diese Funktion ist erreicht.";
+    userFacingReason = "Dein heutiges AI-Limit ist erreicht. Morgen kannst du weiterarbeiten oder einen hoeheren Modus nutzen, sobald er freigeschaltet ist.";
   } else {
     userFacingReason = "Diese Anfrage kann gerade nicht freigegeben werden.";
   }
@@ -3225,6 +3343,7 @@ function buildUsageEventV2(payload = {}) {
     featureClass: resolveFeatureClass(payload.kind, payload.featureClass),
     provider: nonEmptyString(payload.provider) || "unknown",
     model: nonEmptyString(payload.model) || "",
+    aiLevel: normalizeAiExperienceLevel(payload.aiLevel),
     requestWeight: Number.isFinite(Number(payload.requestWeight)) ?
       Math.max(1, Math.floor(Number(payload.requestWeight))) :
       1,
@@ -4417,6 +4536,7 @@ async function authorizeAiUsage({
   eventType = "",
   featureClass = "",
   requestWeight = 1,
+  aiLevel = AI_EXPERIENCE_LEVELS.standard,
   sourceRoute = "ai",
   functionName = "authorizeAiUsage",
   requestId = "",
@@ -4436,6 +4556,8 @@ async function authorizeAiUsage({
   const normalizedRequestId = nonEmptyString(requestId) || `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   const normalizedWeight = Number.isFinite(Number(requestWeight)) ? Math.max(1, Math.floor(Number(requestWeight))) : 1;
   const plan = effectiveEntitlement.plan || USER_QUOTA_PLANS.free;
+  const quotaPlan = profile.aiLimits?.quotaPlan || plan;
+  const normalizedAiLevel = normalizeAiExperienceLevel(aiLevel);
   const routingPolicy = resolvePlanRoutingPolicy(runtimeSettings, plan);
   const normalizedEstimatedCostMicros = resolveEstimatedCostMicros({
     runtimeSettings,
@@ -4463,6 +4585,7 @@ async function authorizeAiUsage({
       model: normalizedModel,
       requestWeight: normalizedWeight,
       estimatedCostMicros: normalizedEstimatedCostMicros,
+      aiLevel: normalizedAiLevel,
       success: false,
       denyReason,
       sourceRoute,
@@ -4530,10 +4653,31 @@ async function authorizeAiUsage({
     const limit = runtimeSettings.costGuardEnabled ?
       Math.max(1, Math.min(baseLimit, hardCap)) :
       baseLimit;
+    const levelCounterField = aiLevelCounterField(kind, normalizedAiLevel);
+    const currentLevelCount = Number(currentData[levelCounterField]) || 0;
+    const levelLimit = runtimeSettings.costGuardEnabled ?
+      aiLevelLimitForPlan({
+        level: normalizedAiLevel,
+        kind,
+        baseLimit,
+        hardCap,
+        plan: quotaPlan,
+      }) :
+      limit;
 
     if (currentCount >= limit) {
       denyReasonInTransaction = "hard_limit_reached";
       throw new HttpsError("resource-exhausted", aiLimitReachedMessage(kind, limit));
+    }
+
+    if (levelLimit <= 0) {
+      denyReasonInTransaction = "ai_level_unavailable";
+      throw new HttpsError("permission-denied", "Dieser Modus ist fuer deinen aktuellen Zugang noch nicht verfuegbar.");
+    }
+
+    if (currentLevelCount >= levelLimit) {
+      denyReasonInTransaction = "ai_level_limit_reached";
+      throw new HttpsError("resource-exhausted", "Dein heutiges AI-Limit ist erreicht. Morgen kannst du weiterarbeiten oder einen hoeheren Modus nutzen, sobald er freigeschaltet ist.");
     }
 
     const currentGlobalCount = Number(currentGlobalData[counterField]) || 0;
@@ -4568,6 +4712,7 @@ async function authorizeAiUsage({
     }
 
     const nextCount = currentCount + 1;
+    const nextLevelCount = currentLevelCount + 1;
     const nextTotal = currentTotal + 1;
     const nextGlobalCount = currentGlobalCount + 1;
     const nextGlobalTotal = currentGlobalTotal + 1;
@@ -4595,6 +4740,9 @@ async function authorizeAiUsage({
     byPlan[planKey] = (Number(byPlan[planKey]) || 0) + normalizedWeight;
     const byModel = {...(currentMonthlyData.byModel || {})};
     byModel[modelKey] = (Number(byModel[modelKey]) || 0) + normalizedWeight;
+    const levelKey = aiMetricKey(normalizedAiLevel);
+    const byLevel = {...(currentMonthlyData.byLevel || {})};
+    byLevel[levelKey] = (Number(byLevel[levelKey]) || 0) + normalizedWeight;
     const byPlanCostMicros = {...(currentMonthlyData.byPlanCostMicros || {})};
     byPlanCostMicros[planKey] = (Number(byPlanCostMicros[planKey]) || 0) +
       (normalizedEstimatedCostMicros * normalizedWeight);
@@ -4616,10 +4764,12 @@ async function authorizeAiUsage({
       agentRequests: nextAgentCount,
       totalRequests: nextTotal,
       totalEstimatedCostMicros: nextCostMicros,
+      [levelCounterField]: nextLevelCount,
       recentBurstCount: nextBurstCount,
       lastEventType: normalizedEventType,
       lastProvider: normalizedProvider,
       lastModel: normalizedModel || admin.firestore.FieldValue.delete(),
+      lastAiLevel: normalizedAiLevel,
       lastEstimatedCostMicros: normalizedEstimatedCostMicros,
       lastRequestId: normalizedRequestId,
       lastConsumedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -4648,6 +4798,7 @@ async function authorizeAiUsage({
       byProvider,
       byPlan,
       byModel,
+      byLevel,
       byPlanCostMicros,
       byFeatureClassCostMicros,
       byProviderCostMicros,
@@ -4678,8 +4829,11 @@ async function authorizeAiUsage({
       featureClass: normalizedFeatureClass,
       requestId: normalizedRequestId,
       requestWeight: normalizedWeight,
+      aiLevel: normalizedAiLevel,
       remainingForKind: Math.max(limit - nextCount, 0),
       limitForKind: limit,
+      remainingForLevel: Math.max(levelLimit - nextLevelCount, 0),
+      limitForLevel: levelLimit,
       textRemaining: Math.max(
           (runtimeSettings.costGuardEnabled ?
             Math.min(profile.aiLimits.text, runtimeSettings.hardDailyCaps.text) :
@@ -4711,6 +4865,7 @@ async function authorizeAiUsage({
       },
       provider: normalizedProvider,
       model: normalizedModel || null,
+      aiLevel: normalizedAiLevel,
       estimatedCostMicros: normalizedEstimatedCostMicros,
       eventType: normalizedEventType,
       sourceRoute,
@@ -4749,6 +4904,7 @@ async function authorizeAiUsage({
       model: normalizedModel,
       requestWeight: normalizedWeight,
       estimatedCostMicros: normalizedEstimatedCostMicros,
+      aiLevel: normalizedAiLevel,
       success: false,
       denyReason,
       sourceRoute,
@@ -4778,6 +4934,7 @@ async function authorizeAiUsage({
     model: normalizedModel,
     requestWeight: normalizedWeight,
     estimatedCostMicros: normalizedEstimatedCostMicros,
+    aiLevel: normalizedAiLevel,
     success: true,
     denyReason: "",
     sourceRoute,
@@ -4795,6 +4952,7 @@ async function authorizeAiUsage({
     globalRemainingForKind: usageSummary.globalRemainingForKind,
     dateKey,
     requestId: usageSummary.requestId,
+    aiLevel: usageSummary.aiLevel,
     warningLevel: usageSummary.warningLevel,
   });
 
@@ -5023,7 +5181,7 @@ function shouldExposeVerboseBotDiagnostics(botRuntime, role) {
   return botRuntime.diagnosticsMode === "owner_only" && role === USER_ROLES.owner;
 }
 
-function resolveTextGenerationConfig({botRuntime, isFaq, warningLevel}) {
+function resolveTextGenerationConfig({botRuntime, isFaq, warningLevel, aiLevel = AI_EXPERIENCE_LEVELS.standard}) {
   const qualityMode = botRuntime.qualityMode;
   const answerLength = botRuntime.answerLength;
   const shortMax = botRuntime.costGuard.shortAnswerMaxOutputTokens;
@@ -5053,6 +5211,11 @@ function resolveTextGenerationConfig({botRuntime, isFaq, warningLevel}) {
   if (isFaq) {
     temperature = qualityMode === "high" ? 0.18 : 0.24;
   }
+
+  maxOutputTokens = Math.max(
+      120,
+      Math.min(1400, Math.floor(maxOutputTokens * aiLevelOutputTokenMultiplier(aiLevel))),
+  );
 
   return {
     temperature,
@@ -5318,6 +5481,8 @@ async function generateTextWithModel({
 async function generateAiTextReply({
   prompt,
   mode,
+  aiLevel = AI_EXPERIENCE_LEVELS.standard,
+  selectedModel = "",
   runtimeSettings,
   usage,
   auth,
@@ -5334,6 +5499,7 @@ async function generateAiTextReply({
     botRuntime,
     isFaq: faqRoute.useFaq,
     warningLevel: usage.warningLevel || "ok",
+    aiLevel,
   });
   const faqLiveFacts = faqRoute.useFaq ?
     await loadFaqLiveFacts({auth, runtimeSettings}) :
@@ -5370,10 +5536,10 @@ async function generateAiTextReply({
     }
   }
 
-  const primaryModel = botRuntime.modelPolicy.textPrimaryModel;
+  const primaryModel = nonEmptyString(selectedModel) || botRuntime.modelPolicy.textPrimaryModel;
   const fallbackModel = botRuntime.modelPolicy.textFallbackModel;
   let reply = "";
-  let selectedModel = primaryModel;
+  let resolvedSelectedModel = primaryModel;
   let fallbackActivated = false;
   let fallbackReason = "";
 
@@ -5394,7 +5560,7 @@ async function generateAiTextReply({
       temperature: textConfig.temperature,
       maxOutputTokens: textConfig.maxOutputTokens,
     });
-    selectedModel = fallbackModel;
+    resolvedSelectedModel = fallbackModel;
     fallbackActivated = true;
     fallbackReason = "Primermodell war nicht stabil erreichbar. Text-Fallback wurde genutzt.";
   }
@@ -5418,7 +5584,7 @@ async function generateAiTextReply({
         "Standard-Assistant-Antwort genutzt.",
       topic: faqRoute.topic?.key || "",
       runtimeSettings,
-      model: selectedModel,
+      model: resolvedSelectedModel,
       provider: "google_vertex",
       fallbackActivated,
       fallbackReason: botRuntime.fallbackPolicy.exposeFallbackReason ? fallbackReason : "",
@@ -5435,11 +5601,11 @@ async function generateAiTextReply({
   };
 }
 
-async function generateAiVisualResult(prompt, runtimeSettings, usage) {
+async function generateAiVisualResult(prompt, runtimeSettings, usage, selectedModel = "") {
   const promptSettings = await loadAiPromptSettings();
   const botRuntime = runtimeSettings.bot;
   const assetContext = composeAssetLibraryPromptContext(promptSettings);
-  const primaryModel = botRuntime.modelPolicy.visualPrimaryModel;
+  const primaryModel = nonEmptyString(selectedModel) || botRuntime.modelPolicy.visualPrimaryModel;
   const fallbackModel = botRuntime.modelPolicy.visualFallbackModel;
   const primaryResult = await generateAiVisualWithRetries({
     modelName: primaryModel,
@@ -11263,23 +11429,28 @@ exports.generateAiText = onCall({
       request.data,
       "Die KI-Anfrage konnte so nicht gestartet werden.",
   );
+  const aiLevel = normalizeAiExperienceLevel(input.aiLevel);
+  const selectedModel = resolveAiTextModelForLevel(aiLevel, runtimeSettings);
   const usage = await authorizeAiUsage({
     auth: request.auth,
     kind: AI_USAGE_KINDS.text,
     provider: "google_vertex",
-    model: "gemini-2.5-flash-lite",
+    model: selectedModel,
     eventType: "bot_text_generation",
     sourceRoute: "callable.generateAiText",
     functionName: "generateAiText",
     featureClass: AI_FEATURE_CLASSES.text,
     resultType: "text",
-    requestWeight: 1,
+    requestWeight: aiLevelRequestWeightMultiplier(aiLevel),
+    aiLevel,
     estimatedCostMicros: 12_000,
     requestId: nonEmptyString(request.data?.requestId) || "",
   });
   const textResult = await generateAiTextReply({
     prompt: input.prompt,
     mode: input.mode,
+    aiLevel,
+    selectedModel,
     runtimeSettings,
     usage,
     auth: request.auth,
@@ -11295,6 +11466,9 @@ exports.generateAiText = onCall({
       featureClass: usage.featureClass,
       remainingForKind: usage.remainingForKind,
       limitForKind: usage.limitForKind,
+      remainingForLevel: usage.remainingForLevel,
+      limitForLevel: usage.limitForLevel,
+      aiLevel: usage.aiLevel,
       warningLevel: usage.warningLevel || "ok",
       guardrailHints: usage.guardrailHints || {},
       effectiveEntitlement: usage.effectiveEntitlement || null,
@@ -11320,21 +11494,25 @@ exports.generateAiVisual = onCall({
       request.data,
       "Die Visual-Anfrage konnte so nicht gestartet werden.",
   );
+  const aiLevel = normalizeAiExperienceLevel(input.aiLevel);
+  const selectedModel = resolveAiVisualModelForLevel(aiLevel, runtimeSettings);
   try {
     const usage = await authorizeAiUsage({
       auth: request.auth,
       kind: AI_USAGE_KINDS.visual,
       provider: "google_vertex",
+      model: selectedModel,
       eventType: "bot_visual_generation",
       sourceRoute: "callable.generateAiVisual",
       functionName: "generateAiVisual",
       featureClass: AI_FEATURE_CLASSES.image,
       resultType: "image",
-      requestWeight: 2,
+      requestWeight: 2 * aiLevelRequestWeightMultiplier(aiLevel),
+      aiLevel,
       estimatedCostMicros: 95_000,
       requestId: nonEmptyString(request.data?.requestId) || "",
     });
-    const visual = await generateAiVisualResult(input.prompt, runtimeSettings, usage);
+    const visual = await generateAiVisualResult(input.prompt, runtimeSettings, usage, selectedModel);
 
     return {
       ...visual,
@@ -11345,6 +11523,9 @@ exports.generateAiVisual = onCall({
         featureClass: usage.featureClass,
         remainingForKind: usage.remainingForKind,
         limitForKind: usage.limitForKind,
+        remainingForLevel: usage.remainingForLevel,
+        limitForLevel: usage.limitForLevel,
+        aiLevel: usage.aiLevel,
         warningLevel: usage.warningLevel || "ok",
         guardrailHints: usage.guardrailHints || {},
         effectiveEntitlement: usage.effectiveEntitlement || null,
@@ -12090,16 +12271,22 @@ exports.skydownAgent = onCall({
       request.data,
       "Die Agent-Anfrage konnte so nicht verarbeitet werden.",
   );
+  const runtimeSettings = await loadAiRuntimeSettings();
+  const aiLevel = normalizeAiExperienceLevel(input.aiLevel);
+  const authorizationProvider = runtimeSettings.agentProvider;
+  const authorizationModel = resolveAiAgentModelForProvider(authorizationProvider, runtimeSettings);
   const usage = await authorizeAiUsage({
     auth: request.auth,
     kind: AI_USAGE_KINDS.agent,
-    provider: AI_AGENT_PROVIDERS.grok,
+    provider: authorizationProvider,
+    model: authorizationModel,
     eventType: "agent_generation",
     sourceRoute: "callable.skydownAgent",
     functionName: "skydownAgent",
     featureClass: input.executeAutomation ? AI_FEATURE_CLASSES.workflow : AI_FEATURE_CLASSES.agent,
     resultType: input.executeAutomation ? "workflow" : "text",
-    requestWeight: input.executeAutomation ? 3 : 2,
+    requestWeight: (input.executeAutomation ? 3 : 2) * aiLevelRequestWeightMultiplier(aiLevel),
+    aiLevel,
     estimatedCostMicros: input.executeAutomation ? 260_000 : 110_000,
     requestId: nonEmptyString(request.data?.requestId) || "",
   });
@@ -12113,7 +12300,6 @@ exports.skydownAgent = onCall({
     ...promptSettings,
     agentSystemInstruction: effectiveAgentSystemInstruction,
   };
-  const runtimeSettings = await loadAiRuntimeSettings();
   const agentCore = runtimeSettings.bot.agentCore || resolveAiBotAgentCore({});
   const requestedTask = input.mode === "automation" || input.mode === "merch" ?
     "commerce_order" :

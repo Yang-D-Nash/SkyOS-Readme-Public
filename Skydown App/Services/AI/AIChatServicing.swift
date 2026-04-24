@@ -56,8 +56,8 @@ struct AIBotDecision: Equatable {
 }
 
 protocol AIChatServicing {
-    func generateText(prompt: String, mode: String) async throws -> AITextResponse
-    func generateVisual(prompt: String) async throws -> AIGeneratedVisual
+    func generateText(prompt: String, mode: String, aiLevel: String) async throws -> AITextResponse
+    func generateVisual(prompt: String, aiLevel: String) async throws -> AIGeneratedVisual
 }
 
 enum AIChatServiceError: LocalizedError {
@@ -81,11 +81,12 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
         self.functions = functions
     }
 
-    func generateText(prompt: String, mode: String) async throws -> AITextResponse {
+    func generateText(prompt: String, mode: String, aiLevel: String) async throws -> AITextResponse {
         try await ensureConnectivity()
         let result = try await functions.invokeCallable("generateAiText", payload: [
                 "prompt": prompt,
-                "mode": mode
+                "mode": mode,
+                "aiLevel": aiLevel
             ])
 
         guard
@@ -104,11 +105,11 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
         )
     }
 
-    func generateVisual(prompt: String) async throws -> AIGeneratedVisual {
+    func generateVisual(prompt: String, aiLevel: String) async throws -> AIGeneratedVisual {
         var lastError: Error?
         for attempt in 1...2 {
             do {
-                return try await generateVisualOnce(prompt: prompt)
+                return try await generateVisualOnce(prompt: prompt, aiLevel: aiLevel)
             } catch {
                 lastError = error
                 guard attempt < 2, shouldRetryVisualGeneration(after: error) else {
@@ -133,9 +134,12 @@ struct FirebaseFunctionsAIChatService: AIChatServicing {
         }
     }
 
-    private func generateVisualOnce(prompt: String) async throws -> AIGeneratedVisual {
+    private func generateVisualOnce(prompt: String, aiLevel: String) async throws -> AIGeneratedVisual {
         try await ensureConnectivity()
-        let result = try await functions.invokeCallable("generateAiVisual", payload: ["prompt": prompt])
+        let result = try await functions.invokeCallable("generateAiVisual", payload: [
+            "prompt": prompt,
+            "aiLevel": aiLevel
+        ])
 
         guard let payload = result.data as? [String: Any] else {
             throw AIChatServiceError.invalidResponse

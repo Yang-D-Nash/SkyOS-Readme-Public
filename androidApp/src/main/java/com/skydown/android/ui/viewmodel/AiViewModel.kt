@@ -2,17 +2,20 @@ package com.skydown.android.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.skydown.android.R
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.skydown.android.data.AiConversationHistorySource
 import com.skydown.android.data.AiConversationHistoryStore
 import com.skydown.android.data.AppContainer
 import com.skydown.android.data.AppFeatureFlagsStore
+import com.skydown.android.data.AppTextResolver
 import com.skydown.android.data.AiVisualReferenceLibraryPreferences
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
 import com.skydown.android.ui.model.BotInteractionPhase
 import com.skydown.android.ui.model.AiComposerMode
+import com.skydown.android.ui.model.AiExperienceLevel
 import com.skydown.android.ui.model.AiMessage
 import com.skydown.android.ui.model.AiMessageRole
 import com.skydown.android.ui.model.AiTextMode
@@ -26,6 +29,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import com.skydown.shared.model.UserQuotaPlan
+import com.skydown.shared.model.resolvedQuotaPlan
 
 class AiViewModel : ViewModel() {
     private val aiChatClient = AppContainer.aiChatClient
@@ -33,6 +38,7 @@ class AiViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(AiUiState())
     val uiState: StateFlow<AiUiState> = _uiState.asStateFlow()
     private var currentUserKey: String? = null
+    private var currentQuotaPlan: UserQuotaPlan = UserQuotaPlan.Free
     private var conversationRevision = 0
     private var activeRequestJob: Job? = null
     private var activeRequestContext: InFlightRequestContext? = null
@@ -41,6 +47,7 @@ class AiViewModel : ViewModel() {
         val requestId: String,
         val conversationRevision: Int,
         val userKeyAtSend: String?,
+        val aiLevelAtSend: AiExperienceLevel,
     )
 
     init {
@@ -56,12 +63,25 @@ class AiViewModel : ViewModel() {
                     user?.resolvedAiHistoryRetentionDays ?: UserRole.User.defaultAiHistoryRetentionDays,
                 )
                 val userKey = normalizeUserKey(user)
-                val planLabel = when (user?.quotaPlan?.lowercase()) {
-                    "studio" -> "Creator"
-                    "creator" -> "Pro"
-                    else -> "Free"
+                val quotaPlan = user?.resolvedQuotaPlan ?: UserQuotaPlan.Free
+                currentQuotaPlan = quotaPlan
+                val planLabel = when (quotaPlan) {
+                    UserQuotaPlan.Studio -> "Creator"
+                    UserQuotaPlan.Creator -> "Pro"
+                    UserQuotaPlan.InternalTeam -> "Team"
+                    UserQuotaPlan.OwnerUnlimited -> "Owner"
+                    UserQuotaPlan.Free -> "Free"
                 }
-                _uiState.update { it.copy(planLabel = planLabel) }
+                _uiState.update {
+                    it.copy(
+                        planLabel = planLabel,
+                        selectedLevel = if (it.selectedLevel.isAvailableFor(quotaPlan)) {
+                            it.selectedLevel
+                        } else {
+                            AiExperienceLevel.Standard
+                        },
+                    )
+                }
                 if (userKey != currentUserKey) {
                     invalidateConversation(cancelActiveRequest = true)
                     currentUserKey = userKey
@@ -98,6 +118,16 @@ class AiViewModel : ViewModel() {
         }
     }
 
+    fun updateLevel(level: AiExperienceLevel) {
+        _uiState.update { state ->
+            if (state.botPhase.isBusy || !level.isAvailableFor(currentQuotaPlan)) {
+                state
+            } else {
+                state.copy(selectedLevel = level)
+            }
+        }
+    }
+
     fun sendDraft() {
         when (_uiState.value.composerMode) {
             AiComposerMode.Text -> sendPrompt(_uiState.value.draft)
@@ -122,6 +152,11 @@ class AiViewModel : ViewModel() {
             return
         }
         if (trimmedPrompt.isBlank() || _uiState.value.botPhase.isBusy) return
+        val levelAtSend = _uiState.value.selectedLevel
+        if (!levelAtSend.isAvailableFor(currentQuotaPlan)) {
+            _uiState.update { it.copy(errorMessage = AppTextResolver.string(R.string.ai_level_unavailable)) }
+            return
+        }
         _uiState.update {
             it.copy(
                 botPhase = BotInteractionPhase.Sending,
@@ -141,7 +176,7 @@ class AiViewModel : ViewModel() {
         )
         val assistantMessageId = assistantMessage.id
         val history = buildHistoryContext()
-        val requestContext = makeRequestContext()
+        val requestContext = makeRequestContext(levelAtSend)
 
         _uiState.update {
             it.copy(
@@ -162,6 +197,7 @@ class AiViewModel : ViewModel() {
                         history = history,
                     ),
                     mode = _uiState.value.textMode.rawValue,
+                    aiLevel = levelAtSend.rawValue,
                 )
                 if (!isRequestContextActive(requestContext)) return@launch
 
@@ -234,6 +270,11 @@ class AiViewModel : ViewModel() {
             return
         }
         if (trimmedPrompt.isBlank() || _uiState.value.botPhase.isBusy) return
+        val levelAtSend = _uiState.value.selectedLevel
+        if (!levelAtSend.isAvailableFor(currentQuotaPlan)) {
+            _uiState.update { it.copy(errorMessage = AppTextResolver.string(R.string.ai_level_unavailable)) }
+            return
+        }
         _uiState.update {
             it.copy(
                 botPhase = BotInteractionPhase.Sending,
@@ -252,7 +293,7 @@ class AiViewModel : ViewModel() {
             isStreaming = true,
         )
         val assistantMessageId = assistantMessage.id
-        val requestContext = makeRequestContext()
+        val requestContext = makeRequestContext(levelAtSend)
 
         _uiState.update {
             it.copy(
@@ -267,7 +308,10 @@ class AiViewModel : ViewModel() {
         activeRequestJob?.cancel()
         activeRequestJob = viewModelScope.launch {
             try {
-                val result = aiImageClient.generateVisual(buildVisualPrompt(trimmedPrompt))
+                val result = aiImageClient.generateVisual(
+                    prompt = buildVisualPrompt(trimmedPrompt),
+                    aiLevel = levelAtSend.rawValue,
+                )
                 if (!isRequestContextActive(requestContext)) return@launch
 
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
@@ -336,7 +380,9 @@ class AiViewModel : ViewModel() {
                 isAiEnabled = currentState.isAiEnabled,
                 composerMode = currentState.composerMode,
                 textMode = currentState.textMode,
+                selectedLevel = currentState.selectedLevel,
                 quickPrompts = currentState.quickPrompts,
+                planLabel = currentState.planLabel,
                 lastDecision = null,
             )
         }
@@ -352,17 +398,19 @@ class AiViewModel : ViewModel() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    private fun makeRequestContext(): InFlightRequestContext =
+    private fun makeRequestContext(levelAtSend: AiExperienceLevel): InFlightRequestContext =
         InFlightRequestContext(
             requestId = java.util.UUID.randomUUID().toString(),
             conversationRevision = conversationRevision,
             userKeyAtSend = currentUserKey,
+            aiLevelAtSend = levelAtSend,
         )
 
     private fun isRequestContextActive(context: InFlightRequestContext): Boolean =
         activeRequestContext == context &&
             context.conversationRevision == conversationRevision &&
-            context.userKeyAtSend == currentUserKey
+            context.userKeyAtSend == currentUserKey &&
+            context.aiLevelAtSend == _uiState.value.selectedLevel
 
     private fun clearActiveRequestIfNeeded(context: InFlightRequestContext) {
         if (activeRequestContext == context) {
@@ -477,9 +525,9 @@ class AiViewModel : ViewModel() {
             FirebaseFunctionsException.Code.DEADLINE_EXCEEDED ->
                 "Die Antwort dauert gerade laenger als gewohnt."
             FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
-                error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Dein heutiges KI-Limit ist erreicht."
+                AppTextResolver.string(R.string.ai_level_limit_reached)
             FirebaseFunctionsException.Code.PERMISSION_DENIED ->
-                error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Die KI ist fuer dein Konto gerade nicht freigeschaltet."
+                AppTextResolver.string(R.string.ai_level_unavailable)
             FirebaseFunctionsException.Code.UNAUTHENTICATED ->
                 "Bitte melde dich erneut an und versuch es noch einmal."
             FirebaseFunctionsException.Code.FAILED_PRECONDITION ->
@@ -560,5 +608,12 @@ class AiViewModel : ViewModel() {
             retryReason = if (isRetryable) description else "",
             trace = listOf(description),
         )
+    }
+
+    private fun AiExperienceLevel.isAvailableFor(plan: UserQuotaPlan): Boolean = when (this) {
+        AiExperienceLevel.Standard,
+        AiExperienceLevel.Advanced,
+        -> true
+        AiExperienceLevel.Pro -> plan != UserQuotaPlan.Free
     }
 }

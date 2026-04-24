@@ -141,7 +141,7 @@
 "ai.membership.plans.title" = "SkyOS KI Plaene";
 "ai.membership.plans.title_short" = "KI Membership";
 "ai.membership.plans.tiers" = "Free, Pro, Creator";
-"ai.membership.plans.caption" = "Keine Tokens. Schalte mehr Reichweite und Prioritaet frei.";
+"ai.membership.plans.caption" = "Schalte mehr Reichweite und Prioritaet frei, wenn du sie brauchst.";
 "ai.membership.current_plan" = "Plan";
 "ai.membership.available" = "verfuegbar";
 "ai.membership.open" = "offen";
@@ -329,3 +329,12 @@
 "shop.admin.syncing" = "Laedt…";
 "shop.admin.sync" = "Sync";
 "shop.admin.sync.hint" = "Katalog syncen.";
+"ai.level.picker.title" = "AI Level";
+"ai.level.standard.subtitle" = "Für den Alltag";
+"ai.level.advanced.subtitle" = "Für komplexere Aufgaben";
+"ai.level.pro.subtitle" = "Für tiefere Analysen";
+"ai.level.limit_reached" = "Dein heutiges AI-Limit ist erreicht. Morgen kannst du weiterarbeiten oder einen höheren Modus nutzen, sobald er freigeschaltet ist.";
+"ai.level.unavailable" = "Dieser Modus ist für deinen aktuellen Zugang noch nicht verfügbar.";
+"agent.workspace.status.line.ready" = "Agent · Workspace";
+"agent.workspace.status.line.adjusted" = "Agent · Workspace angepasst";
+"agent.service.status.adjusted" = "Der Agent hat den Workspace-Pfad für diese Anfrage angepasst.";

@@ -18,6 +18,7 @@ data class AgentUiState(
     val isAgentEnabled: Boolean = true,
     val errorMessage: String? = null,
     val selectedMode: AgentExecutionMode = AgentExecutionMode.Release,
+    val selectedLevel: AiExperienceLevel = AiExperienceLevel.Standard,
     val canTriggerAutomation: Boolean = false,
     val shouldTriggerAutomation: Boolean = false,
     val quickPrompts: List<String> = agentQuickPromptsFor(AgentExecutionMode.Release),

@@ -11,6 +11,8 @@ struct AgentView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var isComposerFocused: Bool
+    @StateObject private var keyboardObserver = SkydownKeyboardObserver()
+    @State private var composerBarHeight: CGFloat = 0
     private let showsNavigation: Bool
     @State private var autoPresentedUpgradeHint = false
 
@@ -86,11 +88,13 @@ struct AgentView: View {
         ].joined(separator: "|")
     }
 
-    /// Single line for provider / routing (matches Android agent status line).
+    /// Single line for the workspace status without exposing backend routing.
     private var agentProviderStatusLine: String {
-        let trimmed = viewModel.lastProviderNotice.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty { return trimmed }
-        return "Agent · \(viewModel.lastAgentProvider.displayTitle)"
+        let hasRoutingNotice = !viewModel.lastProviderNotice.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return AppLocalized.text(
+            hasRoutingNotice ? "agent.workspace.status.line.adjusted" : "agent.workspace.status.line.ready",
+            fallback: hasRoutingNotice ? "Agent · Workspace adjusted" : "Agent · Workspace"
+        )
     }
 
     private var agentWorkspaceHeroBadges: [String] {
@@ -101,80 +105,39 @@ struct AgentView: View {
         !showsNavigation
     }
 
+    private var composerKeyboardOffset: CGFloat {
+        isComposerFocused ? keyboardObserver.bottomInset : 0
+    }
+
+    private var composerReservedBottomSpace: CGFloat {
+        featureFlags.isAIEnabled ? composerBarHeight + composerKeyboardOffset : 0
+    }
+
     private var content: some View {
-        VStack(spacing: 0) {
-            if featureFlags.isAIEnabled {
-                if viewModel.messages.isEmpty {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: usesCompactImmersiveLayout ? 12 : 14) {
-                            if !usesCompactImmersiveLayout {
-                                AgentHeroCard(colorScheme: colorScheme, badges: agentWorkspaceHeroBadges)
-                            }
-
-                            AgentEmptyStateHeader(
-                                colorScheme: colorScheme,
-                                isCompact: usesCompactImmersiveLayout
-                            )
-
-                            AgentQuickPromptCard(
-                                colorScheme: colorScheme,
-                                prompts: viewModel.quickPrompts,
-                                onPromptSelected: { prompt in
-                                    isComposerFocused = false
-                                    viewModel.sendPrompt(prompt)
-                                }
-                            )
-
-                            if let usage = viewModel.revenueUsage {
-                                AgentRevenueUsageCard(usage: usage, colorScheme: colorScheme)
-                                    .onTapGesture {
-                                        if !usage.userFacingReason.isEmpty {
-                                            MembershipAnalyticsTracker().track(
-                                                "upgrade_after_deny",
-                                                reason: membershipCoordinator.lastOpenReason.rawValue,
-                                                surface: "agent_empty",
-                                                currentPlan: membershipCoordinator.currentPlanCache.rawValue
-                                            )
-                                        }
-                                        membershipCoordinator.openMembership(reason: .manual, surface: "agent_empty")
-                                    }
-                            } else {
-                                AgentPlanPreviewCard(colorScheme: colorScheme)
-                                    .onTapGesture { membershipCoordinator.openMembership(reason: .manual, surface: "agent_empty") }
-                            }
-
-                            if !usesCompactImmersiveLayout {
-                                serviceStatusCard
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                        .padding(.top, showsNavigation ? 8 : 6)
-                        .padding(.bottom, usesCompactImmersiveLayout ? 16 : 12)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .scrollIndicators(.hidden)
-                } else {
-                    ScrollViewReader { proxy in
-                        let scrollToken = viewModel.messages.last.map { message in
-                            let workflowToken = message.workflowSummary.map {
-                                [
-                                    $0.workflowName,
-                                    $0.statusText,
-                                    $0.runID ?? "no-run-id"
-                                ].joined(separator: "|")
-                            } ?? "no-workflow"
-                            return [
-                                message.id.uuidString,
-                                message.isStreaming.description,
-                                message.resultType.rawValue,
-                                message.text,
-                                workflowToken
-                            ].joined(separator: "|")
-                        } ?? "agent-chat-empty"
-
+        ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
+                if featureFlags.isAIEnabled {
+                    if viewModel.messages.isEmpty {
                         ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 10) {
+                            VStack(alignment: .leading, spacing: usesCompactImmersiveLayout ? 12 : 14) {
+                                if !usesCompactImmersiveLayout {
+                                    AgentHeroCard(colorScheme: colorScheme, badges: agentWorkspaceHeroBadges)
+                                }
+
+                                AgentEmptyStateHeader(
+                                    colorScheme: colorScheme,
+                                    isCompact: usesCompactImmersiveLayout
+                                )
+
+                                AgentQuickPromptCard(
+                                    colorScheme: colorScheme,
+                                    prompts: viewModel.quickPrompts,
+                                    onPromptSelected: { prompt in
+                                        isComposerFocused = false
+                                        viewModel.sendPrompt(prompt)
+                                    }
+                                )
+
                                 if let usage = viewModel.revenueUsage {
                                     AgentRevenueUsageCard(usage: usage, colorScheme: colorScheme)
                                         .onTapGesture {
@@ -182,92 +145,148 @@ struct AgentView: View {
                                                 MembershipAnalyticsTracker().track(
                                                     "upgrade_after_deny",
                                                     reason: membershipCoordinator.lastOpenReason.rawValue,
-                                                    surface: "agent_chat",
+                                                    surface: "agent_empty",
                                                     currentPlan: membershipCoordinator.currentPlanCache.rawValue
                                                 )
                                             }
-                                            membershipCoordinator.openMembership(reason: .manual, surface: "agent_chat")
+                                            membershipCoordinator.openMembership(reason: .manual, surface: "agent_empty")
                                         }
-                                }
-                                serviceStatusCard
-
-                                VStack(alignment: .leading, spacing: 0) {
-                                    AgentWorkspaceContextCard(
-                                        colorScheme: colorScheme,
-                                        selectedMode: viewModel.selectedMode,
-                                        messageCount: viewModel.messages.count,
-                                        phase: viewModel.phase,
-                                        providerLine: agentProviderStatusLine
-                                    )
-
-                                    WorkspaceSectionHeader(colorScheme: colorScheme)
-
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        ForEach(viewModel.messages) { message in
-                                            AgentMessageBubble(
-                                                message: message,
-                                                colorScheme: colorScheme
-                                            )
-                                            .id(message.id)
-                                        }
-                                    }
-                                    .padding(.top, 4)
-                                    .padding(.horizontal, 4)
-                                    .padding(.bottom, 5)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .fill(AppColors.primaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.38 : 0.5))
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.08), lineWidth: 1)
-                                    )
+                                } else {
+                                    AgentPlanPreviewCard(colorScheme: colorScheme)
+                                        .onTapGesture { membershipCoordinator.openMembership(reason: .manual, surface: "agent_empty") }
                                 }
 
-                                Color.clear
-                                    .frame(height: 4)
-                                    .id("agent-chat-end")
+                                if !usesCompactImmersiveLayout {
+                                    serviceStatusCard
+                                }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                            .padding(.top, showsNavigation ? 6 : 2)
-                            .padding(.bottom, 6)
+                            .padding(.top, showsNavigation ? 8 : 6)
+                            .padding(.bottom, usesCompactImmersiveLayout ? 16 : 12)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                         .scrollIndicators(.hidden)
-                        .scrollDismissesKeyboard(.interactively)
-                        .simultaneousGesture(
-                            TapGesture().onEnded {
-                                isComposerFocused = false
+                    } else {
+                        ScrollViewReader { proxy in
+                            let scrollToken = viewModel.messages.last.map { message in
+                                let workflowToken = message.workflowSummary.map {
+                                    [
+                                        $0.workflowName,
+                                        $0.statusText,
+                                        $0.runID ?? "no-run-id"
+                                    ].joined(separator: "|")
+                                } ?? "no-workflow"
+                                return [
+                                    message.id.uuidString,
+                                    message.isStreaming.description,
+                                    message.resultType.rawValue,
+                                    message.text,
+                                    workflowToken
+                                ].joined(separator: "|")
+                            } ?? "agent-chat-empty"
+
+                            ScrollView {
+                                LazyVStack(alignment: .leading, spacing: 10) {
+                                    if let usage = viewModel.revenueUsage {
+                                        AgentRevenueUsageCard(usage: usage, colorScheme: colorScheme)
+                                            .onTapGesture {
+                                                if !usage.userFacingReason.isEmpty {
+                                                    MembershipAnalyticsTracker().track(
+                                                        "upgrade_after_deny",
+                                                        reason: membershipCoordinator.lastOpenReason.rawValue,
+                                                        surface: "agent_chat",
+                                                        currentPlan: membershipCoordinator.currentPlanCache.rawValue
+                                                    )
+                                                }
+                                                membershipCoordinator.openMembership(reason: .manual, surface: "agent_chat")
+                                            }
+                                    }
+                                    serviceStatusCard
+
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        AgentWorkspaceContextCard(
+                                            colorScheme: colorScheme,
+                                            selectedMode: viewModel.selectedMode,
+                                            messageCount: viewModel.messages.count,
+                                            phase: viewModel.phase,
+                                            providerLine: agentProviderStatusLine
+                                        )
+
+                                        WorkspaceSectionHeader(colorScheme: colorScheme)
+
+                                        VStack(alignment: .leading, spacing: 10) {
+                                            ForEach(viewModel.messages) { message in
+                                                AgentMessageBubble(
+                                                    message: message,
+                                                    colorScheme: colorScheme
+                                                )
+                                                .id(message.id)
+                                            }
+                                        }
+                                        .padding(.top, 4)
+                                        .padding(.horizontal, 4)
+                                        .padding(.bottom, 5)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                .fill(AppColors.primaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.38 : 0.5))
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.08), lineWidth: 1)
+                                        )
+                                    }
+
+                                    Color.clear
+                                        .frame(height: 4)
+                                        .id("agent-chat-end")
+                                }
+                                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                                .padding(.top, showsNavigation ? 6 : 2)
+                                .padding(.bottom, 6)
                             }
-                        )
-                        .onAppear {
-                            DispatchQueue.main.async {
-                                proxy.scrollTo("agent-chat-end", anchor: .bottom)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .scrollIndicators(.hidden)
+                            .scrollDismissesKeyboard(.interactively)
+                            .simultaneousGesture(
+                                TapGesture().onEnded {
+                                    isComposerFocused = false
+                                }
+                            )
+                            .onAppear {
+                                DispatchQueue.main.async {
+                                    proxy.scrollTo("agent-chat-end", anchor: .bottom)
+                                }
                             }
-                        }
-                        .onChange(of: scrollToken) { _, _ in
-                            withAnimation(.easeOut(duration: 0.25)) {
-                                proxy.scrollTo("agent-chat-end", anchor: .bottom)
+                            .onChange(of: scrollToken) { _, _ in
+                                withAnimation(.easeOut(duration: 0.25)) {
+                                    proxy.scrollTo("agent-chat-end", anchor: .bottom)
+                                }
                             }
                         }
                     }
-                }
-            } else {
-                VStack {
-                    Spacer(minLength: 24)
-                    AgentDisabledCard(colorScheme: colorScheme)
-                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    Spacer()
+                } else {
+                    VStack {
+                        Spacer(minLength: 24)
+                        AgentDisabledCard(colorScheme: colorScheme)
+                            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        Spacer()
+                    }
                 }
             }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear
+                    .frame(height: composerReservedBottomSpace)
+                    .allowsHitTesting(false)
+            }
+
             if featureFlags.isAIEnabled {
                 AgentComposerBar(
                     colorScheme: colorScheme,
                     draft: $viewModel.draft,
                     selectedMode: $viewModel.selectedMode,
+                    selectedLevel: $viewModel.selectedLevel,
                     shouldTriggerAutomation: $viewModel.shouldTriggerAutomation,
                     canTriggerAutomation: viewModel.canTriggerAutomation,
                     isFocused: $isComposerFocused,
@@ -275,8 +294,24 @@ struct AgentView: View {
                     onReset: viewModel.resetConversation,
                     onSend: viewModel.sendDraft
                 )
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: AgentComposerBarHeightPreferenceKey.self,
+                            value: proxy.size.height
+                        )
+                    }
+                )
+                .padding(.bottom, composerKeyboardOffset)
+                .animation(.easeOut(duration: 0.22), value: composerKeyboardOffset)
+                .zIndex(1)
             }
         }
+        .onPreferenceChange(AgentComposerBarHeightPreferenceKey.self) { height in
+            guard abs(composerBarHeight - height) > 0.5 else { return }
+            composerBarHeight = height
+        }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .background(backgroundGradient.ignoresSafeArea())
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
@@ -564,7 +599,7 @@ private struct AgentServiceStatusCard: View {
                     Text(AppLocalized.text("agent.service.rail.title", fallback: "Where the work is wired in"))
                         .font(.subheadline.weight(.bold))
                         .foregroundColor(AppColors.text(for: colorScheme))
-                    Text(AppLocalized.text("agent.service.rail.sub", fallback: "Provider, automations, and your tools in one line — not a settings page."))
+                    Text(AppLocalized.text("agent.service.rail.sub", fallback: "Workspace, automations, and your tools in one line — not a settings page."))
                         .font(.caption2.weight(.medium))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
                 }
@@ -578,7 +613,7 @@ private struct AgentServiceStatusCard: View {
 
             HStack(spacing: 8) {
                 AgentServicePill(
-                    title: "Provider: \(providerLabel)",
+                    title: "Workspace: \(providerLabel)",
                     tone: providerTone,
                     colorScheme: colorScheme
                 )
@@ -654,9 +689,9 @@ private struct AgentServiceStatusCard: View {
 
         let runtimeProvider = runtimeSettings.agentProvider
         if runtimeProvider != lastAgentProvider && !providerNotice.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "\(runtimeProvider.displayTitle) (Fallback \(lastAgentProvider.displayTitle))"
+            return "Fallback aktiv"
         }
-        return runtimeProvider.displayTitle
+        return "Aktiv"
     }
 
     private var providerTone: AgentServicePill.Tone {
@@ -668,18 +703,18 @@ private struct AgentServiceStatusCard: View {
 
     private var manusLabel: String {
         if runtimeSettings.agentProvider != .manus {
-            return "Manus: aus (\(runtimeSettings.agentProvider.displayTitle) aktiv)"
+            return "Externe Skills: aus"
         }
         if !runtimeSettings.manus.isEnabled {
-            return "Manus: runtime aus"
+            return "Externe Skills: aus"
         }
         if manusSettings.isEnabled && manusSettings.hasAPIKey {
-            return "Manus: BYOS aktiv"
+            return "Eigener Zugang: aktiv"
         }
         if manusSettings.hasAPIKey && !manusSettings.isEnabled {
-            return "Manus: Key da, BYOS aus"
+            return "Eigener Zugang: pausiert"
         }
-        return "Manus: Backend/BYOS"
+        return "Externe Skills: vorbereitet"
     }
 
     private var manusTone: AgentServicePill.Tone {
@@ -701,19 +736,19 @@ private struct AgentServiceStatusCard: View {
 
     private var n8nLabel: String {
         if !canTriggerAutomation {
-            return "n8n: Login fehlt"
+            return "Agent-Aktionen: Login fehlt"
         }
         if let workflowErrorMessage,
            !workflowErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "n8n: Status unklar"
+            return "Agent-Aktionen: Status unklar"
         }
         if workflowSettings.isPrepared {
-            return "n8n: bereit"
+            return "Agent-Aktionen: bereit"
         }
         if workflowSettings.isEnabled {
-            return "n8n: unvollstaendig"
+            return "Agent-Aktionen: unvollstaendig"
         }
-        return "n8n: aus"
+        return "Agent-Aktionen: aus"
     }
 
     private var n8nTone: AgentServicePill.Tone {
@@ -740,15 +775,18 @@ private struct AgentServiceStatusCard: View {
 
         let trimmedNotice = providerNotice.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedNotice.isEmpty {
-            return trimmedNotice
+            return AppLocalized.text(
+                "agent.service.status.adjusted",
+                fallback: "The agent adjusted the workspace path for this request."
+            )
         }
 
         if runtimeSettings.agentProvider == .manus && !runtimeSettings.manus.isEnabled {
-            return "Owner-Setup fehlt: In der Runtime muss Manus aktiviert werden."
+            return "Owner-Setup fehlt: Externe Agent-Laeufe muessen aktiviert werden."
         }
 
         if shouldTriggerAutomation && !n8nReady {
-            return "Agent-Aktion aktiv, aber n8n ist fuer dieses Konto noch nicht vollstaendig eingerichtet."
+            return "Agent-Aktion aktiv, aber die Automationsverbindung ist fuer dieses Konto noch nicht vollstaendig eingerichtet."
         }
 
         if !isOnline {
@@ -1321,20 +1359,16 @@ private struct AgentComposerBar: View {
     let colorScheme: ColorScheme
     @Binding var draft: String
     @Binding var selectedMode: AgentExecutionMode
+    @Binding var selectedLevel: AIExperienceLevel
     @Binding var shouldTriggerAutomation: Bool
     let canTriggerAutomation: Bool
     let isFocused: FocusState<Bool>.Binding
     let interactionPhase: AgentInteractionPhase
     let onReset: () -> Void
     let onSend: () -> Void
-    @StateObject private var keyboardObserver = SkydownKeyboardObserver()
 
     private var trimmedDraft: String {
         draft.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var activeKeyboardInset: CGFloat {
-        isFocused.wrappedValue ? keyboardObserver.bottomInset : 0
     }
 
     private var restingBottomSafeAreaInset: CGFloat {
@@ -1395,6 +1429,24 @@ private struct AgentComposerBar: View {
                     .padding(.top, 10)
                 }
             }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Picker(AppLocalized.text("ai.level.picker.title", fallback: "AI Level"), selection: $selectedLevel) {
+                    ForEach(AIExperienceLevel.allCases) { level in
+                        Text(level.title).tag(level)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .disabled(interactionPhase.shouldBlockComposerChrome)
+                .skydownSelectionFeedback(trigger: selectedLevel)
+
+                Text(selectedLevel.subtitle)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
 
             if canTriggerAutomation {
                 HStack {
@@ -1519,13 +1571,20 @@ private struct AgentComposerBar: View {
             .background(
                 Rectangle()
                     .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))
-                    .ignoresSafeArea()
+                    .ignoresSafeArea(.container, edges: .bottom)
             )
             .overlay(alignment: .top) {
                 Divider().opacity(0.25)
             }
         }
-        .padding(.bottom, activeKeyboardInset)
+    }
+}
+
+private struct AgentComposerBarHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 

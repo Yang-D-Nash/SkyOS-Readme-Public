@@ -7,7 +7,7 @@ import com.skydown.android.data.AiImageClient
 import java.io.ByteArrayOutputStream
 
 class UiTestAiImageClient : AiImageClient() {
-    override suspend fun generateVisual(prompt: String): AiGeneratedVisualResult {
+    override suspend fun generateVisual(prompt: String, aiLevel: String): AiGeneratedVisualResult {
         val bitmap = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888).apply {
             eraseColor(Color.parseColor("#1F6FEB"))
         }

@@ -120,7 +120,7 @@
 "ai.membership.plans.title" = "Plans AI SkyOS";
 "ai.membership.plans.title_short" = "AI Membership";
 "ai.membership.plans.tiers" = "Free, Pro, Creator";
-"ai.membership.plans.caption" = "Sans tokens. Debloquez des workflows creator.";
+"ai.membership.plans.caption" = "Debloquez plus de portee et de priorite si necessaire.";
 "ai.membership.current_plan" = "Plan";
 "ai.membership.available" = "disponible";
 "ai.membership.open" = "ouvert";

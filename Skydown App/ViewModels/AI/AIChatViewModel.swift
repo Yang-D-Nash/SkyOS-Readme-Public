@@ -126,6 +126,64 @@ enum AITextMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum AIExperienceLevel: String, CaseIterable, Identifiable {
+    case standard = "standard"
+    case advanced = "advanced"
+    case pro = "pro"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .standard:
+            return "Standard"
+        case .advanced:
+            return "Advanced"
+        case .pro:
+            return "Pro"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .standard:
+            return AppLocalized.text("ai.level.standard.subtitle", fallback: "Für den Alltag")
+        case .advanced:
+            return AppLocalized.text("ai.level.advanced.subtitle", fallback: "Für komplexere Aufgaben")
+        case .pro:
+            return AppLocalized.text("ai.level.pro.subtitle", fallback: "Für tiefere Analysen")
+        }
+    }
+
+    static var limitReachedMessage: String {
+        AppLocalized.text(
+            "ai.level.limit_reached",
+            fallback: "Dein heutiges AI-Limit ist erreicht. Morgen kannst du weiterarbeiten oder einen höheren Modus nutzen, sobald er freigeschaltet ist."
+        )
+    }
+
+    static var unavailableMessage: String {
+        AppLocalized.text(
+            "ai.level.unavailable",
+            fallback: "Dieser Modus ist für deinen aktuellen Zugang noch nicht verfügbar."
+        )
+    }
+
+    func isAvailable(for quotaPlan: UserQuotaPlan) -> Bool {
+        switch self {
+        case .standard, .advanced:
+            return true
+        case .pro:
+            switch quotaPlan {
+            case .creator, .studio, .internalTeam, .ownerUnlimited:
+                return true
+            case .free:
+                return false
+            }
+        }
+    }
+}
+
 struct AIVisualPrompt: Identifiable, Equatable {
     let id = UUID()
     let label: String
@@ -184,6 +242,7 @@ final class AIChatViewModel: ObservableObject {
     }
     @Published var composerMode: AIComposerMode = .text
     @Published var textMode: AITextMode = .general
+    @Published var selectedLevel: AIExperienceLevel = .standard
     /// Bot-only lifecycle (text vs visual). Use `phase.isBusy` instead of a shared `isSending` flag.
     @Published private(set) var phase: BotInteractionPhase = .idle
     @Published var showToast = false
@@ -222,11 +281,13 @@ final class AIChatViewModel: ObservableObject {
     private var conversationRevision = 0
     private var activeRequestTask: Task<Void, Never>?
     private var activeRequestContext: InFlightRequestContext?
+    private var currentQuotaPlan: UserQuotaPlan = .free
 
     private struct InFlightRequestContext: Equatable {
         let requestID: UUID
         let conversationRevision: Int
         let userKeyAtSend: String?
+        let aiLevelAtSend: AIExperienceLevel
     }
 
     init(
@@ -243,13 +304,20 @@ final class AIChatViewModel: ObservableObject {
     func configureUser(user: User?) {
         let normalizedUserKey = normalizedUserKey(for: user?.id ?? user?.email)
         if let user {
+            currentQuotaPlan = user.resolvedQuotaPlan
             switch user.resolvedQuotaPlan {
             case .studio: currentPlanTitle = "Creator"
             case .creator: currentPlanTitle = "Pro"
+            case .internalTeam: currentPlanTitle = "Team"
+            case .ownerUnlimited: currentPlanTitle = "Owner"
             default: currentPlanTitle = "Free"
             }
         } else {
+            currentQuotaPlan = .free
             currentPlanTitle = "Free"
+        }
+        if !selectedLevel.isAvailable(for: currentQuotaPlan) {
+            selectedLevel = .standard
         }
         historyStore.updateRetentionDays(user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays)
         guard normalizedUserKey != currentUserKey else { return }
@@ -273,11 +341,16 @@ final class AIChatViewModel: ObservableObject {
     func sendPrompt(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty, !phase.isBusy else { return }
+        guard selectedLevel.isAvailable(for: currentQuotaPlan) else {
+            showUserToast(AIExperienceLevel.unavailableMessage, style: .info)
+            return
+        }
         phase = .sending
         lastDecision = nil
 
         let assistantID = UUID()
         let history = buildHistoryContext()
+        let levelAtSend = selectedLevel
         let requestContext = makeRequestContext()
         messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
         messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
@@ -291,7 +364,8 @@ final class AIChatViewModel: ObservableObject {
             do {
                 let result = try await service.generateText(
                     prompt: buildPrompt(for: trimmedPrompt, history: history),
-                    mode: textMode.rawValue
+                    mode: textMode.rawValue,
+                    aiLevel: levelAtSend.rawValue
                 )
                 guard isRequestContextValid(requestContext) else { return }
                 historyStore.updateRetentionDays(result.historyRetentionDays)
@@ -336,10 +410,15 @@ final class AIChatViewModel: ObservableObject {
     func generateVisual(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty, !phase.isBusy else { return }
+        guard selectedLevel.isAvailable(for: currentQuotaPlan) else {
+            showUserToast(AIExperienceLevel.unavailableMessage, style: .info)
+            return
+        }
         phase = .sending
         lastDecision = nil
 
         let assistantID = UUID()
+        let levelAtSend = selectedLevel
         let requestContext = makeRequestContext()
         messages.append(AIChatMessage(role: .user, text: trimmedPrompt))
         messages.append(AIChatMessage(id: assistantID, role: .assistant, text: "", isStreaming: true))
@@ -351,7 +430,10 @@ final class AIChatViewModel: ObservableObject {
         activeRequestTask = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                let result = try await service.generateVisual(prompt: buildVisualPrompt(for: trimmedPrompt))
+                let result = try await service.generateVisual(
+                    prompt: buildVisualPrompt(for: trimmedPrompt),
+                    aiLevel: levelAtSend.rawValue
+                )
                 guard isRequestContextValid(requestContext) else { return }
                 historyStore.updateRetentionDays(result.historyRetentionDays)
                 applyUsage(result.usage)
@@ -412,14 +494,16 @@ final class AIChatViewModel: ObservableObject {
         InFlightRequestContext(
             requestID: UUID(),
             conversationRevision: conversationRevision,
-            userKeyAtSend: currentUserKey
+            userKeyAtSend: currentUserKey,
+            aiLevelAtSend: selectedLevel
         )
     }
 
     private func isRequestContextValid(_ context: InFlightRequestContext) -> Bool {
         activeRequestContext == context &&
         context.conversationRevision == conversationRevision &&
-        context.userKeyAtSend == currentUserKey
+        context.userKeyAtSend == currentUserKey &&
+        context.aiLevelAtSend == selectedLevel
     }
 
     private func clearActiveRequestIfNeeded(_ context: InFlightRequestContext) {
@@ -645,14 +729,14 @@ final class AIChatViewModel: ObservableObject {
             case .deadlineExceeded:
                 return "Die Antwort dauert gerade laenger als gewohnt."
             case .resourceExhausted:
-                return "Dein heutiges KI-Limit ist erreicht. Bitte spaeter erneut versuchen."
+                return AIExperienceLevel.limitReachedMessage
             case .failedPrecondition:
                 if nsError.localizedDescription.localizedCaseInsensitiveContains("App Check") {
                     return "Der Sicherheitscheck laeuft noch. Bitte kurz erneut versuchen."
                 }
                 return "Die KI ist gerade noch nicht voll bereit. Bitte in einem Moment erneut versuchen."
             case .permissionDenied:
-                return "Die KI ist fuer dein Konto gerade nicht freigeschaltet."
+                return AIExperienceLevel.unavailableMessage
             case .unauthenticated:
                 return "Bitte melde dich erneut an und versuch es noch einmal."
             case .invalidArgument:

@@ -102,6 +102,7 @@ import com.skydown.android.ui.component.skydownScreenBrush
 import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.model.BotInteractionPhase
 import com.skydown.android.ui.model.AiComposerMode
+import com.skydown.android.ui.model.AiExperienceLevel
 import com.skydown.android.ui.model.AiMessage
 import com.skydown.android.ui.model.AiMessageRole
 import com.skydown.android.ui.model.AiTextMode
@@ -216,6 +217,7 @@ fun AiScreen(
                     draft = uiState.draft,
                     composerMode = uiState.composerMode,
                     textMode = uiState.textMode,
+                    selectedLevel = uiState.selectedLevel,
                     botPhase = uiState.botPhase,
                     compactLayout = compactLayout,
                     contentMaxWidth = contentMaxWidth,
@@ -225,6 +227,7 @@ fun AiScreen(
                     onDraftChanged = viewModel::updateDraft,
                     onComposerModeChange = viewModel::updateComposerMode,
                     onTextModeChange = viewModel::updateTextMode,
+                    onLevelChange = viewModel::updateLevel,
                     onSend = {
                         viewModel.sendDraft()
                         dismissKeyboard()
@@ -425,6 +428,12 @@ fun AiScreen(
     }
 }
 
+private fun aiLevelSubtitleResId(level: AiExperienceLevel): Int = when (level) {
+    AiExperienceLevel.Standard -> R.string.ai_level_standard_subtitle
+    AiExperienceLevel.Advanced -> R.string.ai_level_advanced_subtitle
+    AiExperienceLevel.Pro -> R.string.ai_level_pro_subtitle
+}
+
 @Composable
 private fun AiRevenueUsageCard(
     usage: com.skydown.android.data.AiUsageSnapshot?,
@@ -566,14 +575,6 @@ private fun AiDecisionCard(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(top = 8.dp),
         )
-        if (decision.selectedModel.isNotBlank()) {
-            Text(
-                text = "Modell: ${decision.selectedModel}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
         if (decision.topic.isNotBlank()) {
             Text(
                 text = "Thema: ${decision.topic}",
@@ -1344,6 +1345,7 @@ private fun AiComposerBar(
     draft: String,
     composerMode: AiComposerMode,
     textMode: AiTextMode,
+    selectedLevel: AiExperienceLevel,
     botPhase: BotInteractionPhase,
     compactLayout: Boolean,
     contentMaxWidth: Dp,
@@ -1353,6 +1355,7 @@ private fun AiComposerBar(
     onDraftChanged: (String) -> Unit,
     onComposerModeChange: (AiComposerMode) -> Unit,
     onTextModeChange: (AiTextMode) -> Unit,
+    onLevelChange: (AiExperienceLevel) -> Unit,
     onSend: () -> Unit,
     onReset: () -> Unit,
     onDismissKeyboard: () -> Unit,
@@ -1484,6 +1487,38 @@ private fun AiComposerBar(
                         }
                     }
                 }
+
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = sectionSpacing),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(end = 4.dp),
+                ) {
+                    items(AiExperienceLevel.entries, key = { it.rawValue }) { level ->
+                        val isSelected = level == selectedLevel
+                        BrandStatusChip(
+                            text = level.title,
+                            accent = if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+                            },
+                            isActive = isSelected,
+                            onClick = if (botPhase.isBusy) null else ({ onLevelChange(level) }),
+                        )
+                    }
+                }
+
+                Text(
+                    text = stringResource(aiLevelSubtitleResId(selectedLevel)),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
 
                 OutlinedTextField(
                     value = draft,

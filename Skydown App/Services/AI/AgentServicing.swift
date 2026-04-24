@@ -62,6 +62,7 @@ protocol AgentChatServicing {
         prompt: String,
         history: [AgentHistoryTurn],
         mode: String,
+        aiLevel: String,
         executeAutomation: Bool,
         manusApiKeyOverride: String?
     ) async throws -> AgentChatResponse
@@ -89,6 +90,7 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
         prompt: String,
         history: [AgentHistoryTurn],
         mode: String,
+        aiLevel: String,
         executeAutomation: Bool,
         manusApiKeyOverride: String?
     ) async throws -> AgentChatResponse {
@@ -102,6 +104,7 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
                 ]
             },
             "mode": mode,
+            "aiLevel": aiLevel,
             "executeAutomation": executeAutomation
         ]
         if let manusApiKeyOverride,

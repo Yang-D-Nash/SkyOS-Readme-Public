@@ -17,11 +17,11 @@ data class AiGeneratedVisualResult(
 open class AiImageClient(
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance("us-central1"),
 ) {
-    open suspend fun generateVisual(prompt: String): AiGeneratedVisualResult {
+    open suspend fun generateVisual(prompt: String, aiLevel: String): AiGeneratedVisualResult {
         var lastError: Throwable? = null
         repeat(2) { attempt ->
             try {
-                return generateVisualOnce(prompt)
+                return generateVisualOnce(prompt, aiLevel)
             } catch (error: Throwable) {
                 lastError = error
                 if (attempt == 0 && error.shouldRetryVisualGeneration()) {
@@ -35,7 +35,7 @@ open class AiImageClient(
         throw lastError ?: error("Der Visual-Server konnte das Bild gerade nicht erzeugen.")
     }
 
-    private suspend fun generateVisualOnce(prompt: String): AiGeneratedVisualResult {
+    private suspend fun generateVisualOnce(prompt: String, aiLevel: String): AiGeneratedVisualResult {
         if (!AppNetworkMonitor.isOnline.value) {
             error("Du bist offline. Visuals lassen sich wieder erzeugen, sobald Internet da ist.")
         }
@@ -43,7 +43,10 @@ open class AiImageClient(
         val result = functions
             .callWithAppCheckRetry(
                 functionName = "generateAiVisual",
-                payload = mapOf("prompt" to prompt),
+                payload = mapOf(
+                    "prompt" to prompt,
+                    "aiLevel" to aiLevel,
+                ),
             )
 
         val data = result.data as? Map<*, *> ?: error("Die Visual-Antwort konnte nicht gelesen werden.")

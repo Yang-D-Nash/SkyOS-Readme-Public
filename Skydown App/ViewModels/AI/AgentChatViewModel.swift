@@ -142,6 +142,7 @@ final class AgentChatViewModel: ObservableObject {
     @Published var messages: [AgentChatMessage] = []
     @Published var draft = ""
     @Published var selectedMode: AgentExecutionMode = .release
+    @Published var selectedLevel: AIExperienceLevel = .standard
     @Published var shouldTriggerAutomation = false
     @Published private(set) var canTriggerAutomation = false
     /// Agent-only lifecycle (distinct from `BotInteractionPhase`).
@@ -171,11 +172,13 @@ final class AgentChatViewModel: ObservableObject {
     private var activeRequestTask: Task<Void, Never>?
     private var pendingRetryTask: Task<Void, Never>?
     private var activeRequestContext: InFlightRequestContext?
+    private var currentQuotaPlan: UserQuotaPlan = .free
 
     private struct PendingAgentRequest {
         let prompt: String
         let history: [AgentHistoryTurn]
         let mode: String
+        let aiLevel: String
         let executeAutomation: Bool
         let assistantMessageID: UUID
         let createdAt: Date
@@ -185,6 +188,8 @@ final class AgentChatViewModel: ObservableObject {
         let requestID: UUID
         let conversationRevision: Int
         let userKeyAtSend: String?
+        let aiLevelAtSend: AIExperienceLevel
+        let requiresLevelMatch: Bool
     }
 
     init(
@@ -211,13 +216,20 @@ final class AgentChatViewModel: ObservableObject {
     func configureUser(user: User?) {
         let normalizedUserKey = normalizedUserKey(for: user?.id ?? user?.email)
         if let user {
+            currentQuotaPlan = user.resolvedQuotaPlan
             switch user.resolvedQuotaPlan {
             case .studio: currentPlanTitle = "Creator"
             case .creator: currentPlanTitle = "Pro"
+            case .internalTeam: currentPlanTitle = "Team"
+            case .ownerUnlimited: currentPlanTitle = "Owner"
             default: currentPlanTitle = "Free"
             }
         } else {
+            currentQuotaPlan = .free
             currentPlanTitle = "Free"
+        }
+        if !selectedLevel.isAvailable(for: currentQuotaPlan) {
+            selectedLevel = .standard
         }
         historyStore.updateRetentionDays(user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays)
         canTriggerAutomation = user != nil
@@ -241,6 +253,10 @@ final class AgentChatViewModel: ObservableObject {
     func sendPrompt(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty, !phase.shouldBlockSend else { return }
+        guard selectedLevel.isAvailable(for: currentQuotaPlan) else {
+            showUserToast(AIExperienceLevel.unavailableMessage, style: .info)
+            return
+        }
         guard NetworkStatusMonitor.shared.isOnline else {
             queuePromptForRetry(trimmedPrompt)
             return
@@ -249,11 +265,12 @@ final class AgentChatViewModel: ObservableObject {
         phase = .planning
 
         let modeAtSend = selectedMode.rawValue
+        let levelAtSend = selectedLevel
         let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
         let assistantID = UUID()
         let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
         let historyAtSend = buildHistory(from: messages + [userMessage])
-        let requestContext = makeRequestContext()
+        let requestContext = makeRequestContext(aiLevelAtSend: levelAtSend)
 
         messages.append(userMessage)
         messages.append(
@@ -276,6 +293,7 @@ final class AgentChatViewModel: ObservableObject {
                     prompt: trimmedPrompt,
                     history: historyAtSend,
                     mode: modeAtSend,
+                    aiLevel: levelAtSend.rawValue,
                     executeAutomation: executeAutomationAtSend,
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
                 )
@@ -325,6 +343,7 @@ final class AgentChatViewModel: ObservableObject {
                             prompt: trimmedPrompt,
                             history: historyAtSend,
                             mode: modeAtSend,
+                            aiLevel: levelAtSend.rawValue,
                             executeAutomation: executeAutomationAtSend,
                             assistantMessageID: assistantID,
                             createdAt: .now
@@ -414,6 +433,7 @@ final class AgentChatViewModel: ObservableObject {
                     AgentHistoryTurn(role: turn.role, text: turn.text)
                 },
                 mode: entry.mode,
+                aiLevel: entry.aiLevel,
                 executeAutomation: entry.executeAutomation,
                 assistantMessageID: assistantID,
                 createdAt: entry.createdAt
@@ -461,19 +481,24 @@ final class AgentChatViewModel: ObservableObject {
 
     private func makeRequestContext(
         conversationRevision: Int? = nil,
-        userKeyAtSend: String? = nil
+        userKeyAtSend: String? = nil,
+        aiLevelAtSend: AIExperienceLevel? = nil,
+        requiresLevelMatch: Bool = true
     ) -> InFlightRequestContext {
         InFlightRequestContext(
             requestID: UUID(),
             conversationRevision: conversationRevision ?? self.conversationRevision,
-            userKeyAtSend: userKeyAtSend ?? currentUserKey
+            userKeyAtSend: userKeyAtSend ?? currentUserKey,
+            aiLevelAtSend: aiLevelAtSend ?? selectedLevel,
+            requiresLevelMatch: requiresLevelMatch
         )
     }
 
     private func isRequestContextValid(_ context: InFlightRequestContext) -> Bool {
         activeRequestContext == context &&
         context.conversationRevision == conversationRevision &&
-        context.userKeyAtSend == currentUserKey
+        context.userKeyAtSend == currentUserKey &&
+        (!context.requiresLevelMatch || context.aiLevelAtSend == selectedLevel)
     }
 
     private func isConversationSnapshotValid(conversationRevision: Int, userKeyAtSend: String?) -> Bool {
@@ -503,6 +528,7 @@ final class AgentChatViewModel: ObservableObject {
         let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
         let history = buildHistory(from: messages + [userMessage])
         let modeAtSend = selectedMode.rawValue
+        let levelAtSend = selectedLevel
         let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
 
         messages.append(userMessage)
@@ -525,6 +551,7 @@ final class AgentChatViewModel: ObservableObject {
                 prompt: trimmedPrompt,
                 history: history,
                 mode: modeAtSend,
+                aiLevel: levelAtSend.rawValue,
                 executeAutomation: executeAutomationAtSend,
                 assistantMessageID: assistantID,
                 createdAt: .now
@@ -588,7 +615,9 @@ final class AgentChatViewModel: ObservableObject {
             let request = pendingRequests.removeFirst()
             let requestContext = makeRequestContext(
                 conversationRevision: conversationRevision,
-                userKeyAtSend: userKeyAtSend
+                userKeyAtSend: userKeyAtSend,
+                aiLevelAtSend: AIExperienceLevel(rawValue: request.aiLevel) ?? .standard,
+                requiresLevelMatch: false
             )
             activeRequestContext = requestContext
 
@@ -597,6 +626,7 @@ final class AgentChatViewModel: ObservableObject {
                     prompt: request.prompt,
                     history: request.history,
                     mode: request.mode,
+                    aiLevel: request.aiLevel,
                     executeAutomation: request.executeAutomation,
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
                 )
@@ -712,6 +742,7 @@ final class AgentChatViewModel: ObservableObject {
                     AgentPendingQueueTurn(role: turn.role, text: turn.text)
                 },
                 mode: request.mode,
+                aiLevel: request.aiLevel,
                 executeAutomation: request.executeAutomation,
                 assistantMessageID: request.assistantMessageID.uuidString,
                 createdAt: request.createdAt
@@ -874,7 +905,7 @@ final class AgentChatViewModel: ObservableObject {
             case .deadlineExceeded:
                 return "Die Agent-Antwort dauert gerade laenger als gewohnt."
             case .resourceExhausted:
-                return "Dein heutiges Agent-Limit ist erreicht. Bitte spaeter erneut versuchen."
+                return AIExperienceLevel.limitReachedMessage
             case .invalidArgument:
                 return "Die Anfrage braucht noch etwas mehr Kontext."
             case .failedPrecondition:
@@ -883,7 +914,7 @@ final class AgentChatViewModel: ObservableObject {
                 }
                 return "Der Agent ist gerade noch nicht voll bereit. Bitte in einem Moment erneut versuchen."
             case .permissionDenied:
-                return "Der Agent ist fuer dein Konto gerade nicht freigeschaltet."
+                return AIExperienceLevel.unavailableMessage
             case .unauthenticated:
                 return "Bitte melde dich erneut an und versuch es noch einmal."
             default:

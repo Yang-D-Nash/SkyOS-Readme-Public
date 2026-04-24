@@ -18,6 +18,17 @@ enum class AiTextMode(val rawValue: String, val title: String, val placeholder: 
     VideoConcept("video_concept", "Video", "Zum Beispiel: Konzept fuer Reel oder Musikvideo."),
 }
 
+enum class AiExperienceLevel(val rawValue: String, val title: String) {
+    Standard("standard", "Standard"),
+    Advanced("advanced", "Advanced"),
+    Pro("pro", "Pro");
+
+    companion object {
+        fun resolve(rawValue: String?): AiExperienceLevel =
+            entries.firstOrNull { it.rawValue == rawValue?.trim()?.lowercase() } ?: Standard
+    }
+}
+
 data class AiVisualPrompt(
     val label: String,
     val prompt: String,
@@ -31,6 +42,7 @@ data class AiUiState(
     val errorMessage: String? = null,
     val composerMode: AiComposerMode = AiComposerMode.Text,
     val textMode: AiTextMode = AiTextMode.General,
+    val selectedLevel: AiExperienceLevel = AiExperienceLevel.Standard,
     val quickPrompts: List<String> = aiQuickPromptsFor(AiTextMode.General),
     val visualPrompts: List<AiVisualPrompt> = listOf(
         AiVisualPrompt(

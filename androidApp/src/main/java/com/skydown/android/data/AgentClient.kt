@@ -62,6 +62,7 @@ class AgentClient {
         prompt: String,
         history: List<AgentHistoryTurn>,
         mode: String,
+        aiLevel: String,
         executeAutomation: Boolean,
         manusApiKeyOverride: String? = null,
     ): AgentResponse {
@@ -78,6 +79,7 @@ class AgentClient {
                 )
             },
             "mode" to mode,
+            "aiLevel" to aiLevel,
             "executeAutomation" to executeAutomation,
         )
         manusApiKeyOverride

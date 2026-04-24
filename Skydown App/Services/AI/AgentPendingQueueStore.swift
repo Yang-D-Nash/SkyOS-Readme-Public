@@ -10,9 +10,42 @@ struct AgentPendingQueueEntry: Codable {
     let prompt: String
     let history: [AgentPendingQueueTurn]
     let mode: String
+    let aiLevel: String
     let executeAutomation: Bool
     let assistantMessageID: String
     let createdAt: Date
+
+    init(
+        userKey: String,
+        prompt: String,
+        history: [AgentPendingQueueTurn],
+        mode: String,
+        aiLevel: String,
+        executeAutomation: Bool,
+        assistantMessageID: String,
+        createdAt: Date
+    ) {
+        self.userKey = userKey
+        self.prompt = prompt
+        self.history = history
+        self.mode = mode
+        self.aiLevel = aiLevel
+        self.executeAutomation = executeAutomation
+        self.assistantMessageID = assistantMessageID
+        self.createdAt = createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        userKey = try container.decode(String.self, forKey: .userKey)
+        prompt = try container.decode(String.self, forKey: .prompt)
+        history = try container.decode([AgentPendingQueueTurn].self, forKey: .history)
+        mode = try container.decode(String.self, forKey: .mode)
+        aiLevel = try container.decodeIfPresent(String.self, forKey: .aiLevel) ?? AIExperienceLevel.standard.rawValue
+        executeAutomation = try container.decode(Bool.self, forKey: .executeAutomation)
+        assistantMessageID = try container.decode(String.self, forKey: .assistantMessageID)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+    }
 }
 
 @MainActor

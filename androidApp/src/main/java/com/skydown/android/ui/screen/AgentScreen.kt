@@ -101,6 +101,7 @@ import com.skydown.android.ui.component.skydownTopBarColors
 import com.skydown.android.ui.theme.skydownAccentMystic
 import com.skydown.android.ui.model.AgentInteractionPhase
 import com.skydown.android.ui.model.AgentExecutionMode
+import com.skydown.android.ui.model.AiExperienceLevel
 import com.skydown.android.ui.model.AgentMessage
 import com.skydown.android.ui.model.AgentMessageRole
 import com.skydown.android.ui.model.AgentResultType
@@ -213,6 +214,7 @@ fun AgentScreen(
                 AgentComposerBar(
                     draft = uiState.draft,
                     selectedMode = uiState.selectedMode,
+                    selectedLevel = uiState.selectedLevel,
                     canTriggerAutomation = uiState.canTriggerAutomation,
                     shouldTriggerAutomation = uiState.shouldTriggerAutomation,
                     agentPhase = uiState.agentPhase,
@@ -223,6 +225,7 @@ fun AgentScreen(
                     applyBottomSystemInset = showTopBar || immersiveInTools,
                     onDraftChanged = viewModel::updateDraft,
                     onModeChanged = viewModel::updateMode,
+                    onLevelChanged = viewModel::updateLevel,
                     onToggleAutomation = viewModel::toggleAutomation,
                     onSend = {
                         viewModel.sendDraft()
@@ -260,8 +263,13 @@ fun AgentScreen(
                 )
         ) {
             if (uiState.isAgentEnabled && uiState.messages.isEmpty()) {
-                val agentStatusLine = uiState.lastProviderNotice.trim().takeIf { it.isNotEmpty() }
-                    ?: "Agent · ${uiState.lastAgentProvider.displayTitle}"
+                val agentStatusLine = stringResource(
+                    if (uiState.lastProviderNotice.trim().isNotEmpty()) {
+                        R.string.agent_workspace_status_line_adjusted
+                    } else {
+                        R.string.agent_workspace_status_line_ready
+                    },
+                )
                 Column(
                     modifier = Modifier
                         .widthIn(max = contentMaxWidth)
@@ -321,8 +329,13 @@ fun AgentScreen(
                             )
                         }
                         item {
-                            val line = uiState.lastProviderNotice.trim().takeIf { it.isNotEmpty() }
-                                ?: "Agent · ${uiState.lastAgentProvider.displayTitle}"
+                            val line = stringResource(
+                                if (uiState.lastProviderNotice.trim().isNotEmpty()) {
+                                    R.string.agent_workspace_status_line_adjusted
+                                } else {
+                                    R.string.agent_workspace_status_line_ready
+                                },
+                            )
                             Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
                                 AgentWorkspaceContextCard(
                                     selectedMode = uiState.selectedMode,
@@ -394,6 +407,12 @@ fun AgentScreen(
             )
         }
     }
+}
+
+private fun agentAiLevelSubtitleResId(level: AiExperienceLevel): Int = when (level) {
+    AiExperienceLevel.Standard -> R.string.ai_level_standard_subtitle
+    AiExperienceLevel.Advanced -> R.string.ai_level_advanced_subtitle
+    AiExperienceLevel.Pro -> R.string.ai_level_pro_subtitle
 }
 
 @Composable
@@ -1131,6 +1150,7 @@ private fun AgentWorkflowResultCard(
 private fun AgentComposerBar(
     draft: String,
     selectedMode: AgentExecutionMode,
+    selectedLevel: AiExperienceLevel,
     canTriggerAutomation: Boolean,
     shouldTriggerAutomation: Boolean,
     agentPhase: AgentInteractionPhase,
@@ -1141,6 +1161,7 @@ private fun AgentComposerBar(
     applyBottomSystemInset: Boolean,
     onDraftChanged: (String) -> Unit,
     onModeChanged: (AgentExecutionMode) -> Unit,
+    onLevelChanged: (AiExperienceLevel) -> Unit,
     onToggleAutomation: () -> Unit,
     onSend: () -> Unit,
     onReset: () -> Unit,
@@ -1232,6 +1253,38 @@ private fun AgentComposerBar(
                     }
                 }
             }
+
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = sectionSpacing),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(end = 4.dp),
+            ) {
+                items(AiExperienceLevel.entries, key = { it.rawValue }) { level ->
+                    val isSelected = level == selectedLevel
+                    BrandStatusChip(
+                        text = level.title,
+                        accent = if (isSelected) {
+                            MaterialTheme.colorScheme.tertiary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+                        },
+                        isActive = isSelected,
+                        onClick = if (agentPhase.shouldBlockComposerChrome) null else ({ onLevelChanged(level) }),
+                    )
+                }
+            }
+
+            Text(
+                text = stringResource(agentAiLevelSubtitleResId(selectedLevel)),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 4.dp),
+            )
 
             if (canTriggerAutomation) {
                 if (shouldTriggerAutomation) {

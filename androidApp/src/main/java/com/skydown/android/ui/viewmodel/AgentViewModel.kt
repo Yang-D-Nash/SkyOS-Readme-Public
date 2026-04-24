@@ -20,6 +20,7 @@ import com.skydown.shared.model.UserRole
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
 import com.skydown.android.ui.model.AgentInteractionPhase
 import com.skydown.android.ui.model.AgentExecutionMode
+import com.skydown.android.ui.model.AiExperienceLevel
 import com.skydown.android.ui.model.AgentMessage
 import com.skydown.android.ui.model.AgentMessageRole
 import com.skydown.android.ui.model.AgentResultType
@@ -34,12 +35,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import com.skydown.shared.model.UserQuotaPlan
+import com.skydown.shared.model.resolvedQuotaPlan
 
 class AgentViewModel : ViewModel() {
     private data class PendingAgentRequest(
         val prompt: String,
         val history: List<AgentHistoryTurn>,
         val mode: String,
+        val aiLevel: String,
         val executeAutomation: Boolean,
         val assistantMessageId: String,
         val createdAtEpochMillis: Long,
@@ -49,6 +53,7 @@ class AgentViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(AgentUiState())
     val uiState: StateFlow<AgentUiState> = _uiState.asStateFlow()
     private var currentUserKey: String? = null
+    private var currentQuotaPlan: UserQuotaPlan = UserQuotaPlan.Free
     private val pendingRequests = ArrayDeque<PendingAgentRequest>()
     private var conversationRevision = 0
     private var activeRequestJob: Job? = null
@@ -59,6 +64,8 @@ class AgentViewModel : ViewModel() {
         val requestId: String,
         val conversationRevision: Int,
         val userKeyAtSend: String?,
+        val aiLevelAtSend: AiExperienceLevel,
+        val requiresLevelMatch: Boolean,
     )
 
     init {
@@ -93,12 +100,25 @@ class AgentViewModel : ViewModel() {
                     )
                 }
                 val userKey = normalizeUserKey(user)
-                val planLabel = when (user?.quotaPlan?.lowercase()) {
-                    "studio" -> "Creator"
-                    "creator" -> "Pro"
-                    else -> "Free"
+                val quotaPlan = user?.resolvedQuotaPlan ?: UserQuotaPlan.Free
+                currentQuotaPlan = quotaPlan
+                val planLabel = when (quotaPlan) {
+                    UserQuotaPlan.Studio -> "Creator"
+                    UserQuotaPlan.Creator -> "Pro"
+                    UserQuotaPlan.InternalTeam -> "Team"
+                    UserQuotaPlan.OwnerUnlimited -> "Owner"
+                    UserQuotaPlan.Free -> "Free"
                 }
-                _uiState.update { it.copy(planLabel = planLabel) }
+                _uiState.update {
+                    it.copy(
+                        planLabel = planLabel,
+                        selectedLevel = if (it.selectedLevel.isAvailableFor(quotaPlan)) {
+                            it.selectedLevel
+                        } else {
+                            AiExperienceLevel.Standard
+                        },
+                    )
+                }
                 ManusByosPreferences.setUserMode(user?.id)
                 if (userKey != currentUserKey) {
                     invalidateConversation(cancelActiveWork = true)
@@ -122,6 +142,16 @@ class AgentViewModel : ViewModel() {
                 selectedMode = mode,
                 quickPrompts = agentQuickPromptsFor(mode),
             )
+        }
+    }
+
+    fun updateLevel(level: AiExperienceLevel) {
+        _uiState.update { state ->
+            if (state.agentPhase.shouldBlockComposerChrome || !level.isAvailableFor(currentQuotaPlan)) {
+                state
+            } else {
+                state.copy(selectedLevel = level)
+            }
         }
     }
 
@@ -156,6 +186,11 @@ class AgentViewModel : ViewModel() {
             return
         }
         if (trimmedPrompt.isBlank() || _uiState.value.agentPhase.shouldBlockSend) return
+        val levelAtSend = _uiState.value.selectedLevel
+        if (!levelAtSend.isAvailableFor(currentQuotaPlan)) {
+            _uiState.update { it.copy(errorMessage = AppTextResolver.string(R.string.ai_level_unavailable)) }
+            return
+        }
         if (!AppNetworkMonitor.isOnline.value) {
             enqueuePromptForRetry(trimmedPrompt)
             return
@@ -163,6 +198,7 @@ class AgentViewModel : ViewModel() {
         _uiState.update { it.copy(agentPhase = AgentInteractionPhase.Planning, errorMessage = null) }
 
         val modeAtSend = _uiState.value.selectedMode.rawValue
+        val levelRawAtSend = levelAtSend.rawValue
         val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
         val userMessage = AgentMessage(
             role = AgentMessageRole.User,
@@ -176,7 +212,7 @@ class AgentViewModel : ViewModel() {
         )
         val assistantMessageId = assistantMessage.id
         val historyAtSend = buildHistory(_uiState.value.messages + userMessage)
-        val requestContext = makeRequestContext()
+        val requestContext = makeRequestContext(aiLevelAtSend = levelAtSend)
 
         _uiState.update {
             it.copy(
@@ -195,6 +231,7 @@ class AgentViewModel : ViewModel() {
                     prompt = trimmedPrompt,
                     history = historyAtSend,
                     mode = modeAtSend,
+                    aiLevel = levelRawAtSend,
                     executeAutomation = executeAutomationAtSend,
                     manusApiKeyOverride = ManusByosPreferences.currentManusApiKeyOrNull(),
                 )
@@ -251,6 +288,7 @@ class AgentViewModel : ViewModel() {
                             prompt = trimmedPrompt,
                             history = historyAtSend,
                             mode = modeAtSend,
+                            aiLevel = levelRawAtSend,
                             executeAutomation = executeAutomationAtSend,
                             assistantMessageId = assistantMessageId,
                             createdAtEpochMillis = System.currentTimeMillis(),
@@ -307,9 +345,11 @@ class AgentViewModel : ViewModel() {
                 draft = currentState.draft,
                 isAgentEnabled = currentState.isAgentEnabled,
                 selectedMode = currentState.selectedMode,
+                selectedLevel = currentState.selectedLevel,
                 canTriggerAutomation = currentState.canTriggerAutomation,
                 shouldTriggerAutomation = currentState.shouldTriggerAutomation,
                 quickPrompts = currentState.quickPrompts,
+                planLabel = currentState.planLabel,
             )
         }
     }
@@ -334,12 +374,14 @@ class AgentViewModel : ViewModel() {
             resultType = AgentResultType.Progress,
         )
         val history = buildHistory(_uiState.value.messages + userMessage)
+        val levelAtSend = _uiState.value.selectedLevel
 
         pendingRequests.addLast(
             PendingAgentRequest(
                 prompt = trimmedPrompt,
                 history = history,
                 mode = modeAtSend,
+                aiLevel = levelAtSend.rawValue,
                 executeAutomation = executeAutomationAtSend,
                 assistantMessageId = assistantMessage.id,
                 createdAtEpochMillis = System.currentTimeMillis(),
@@ -381,6 +423,8 @@ class AgentViewModel : ViewModel() {
                 val requestContext = makeRequestContext(
                     conversationRevision = retryConversationRevision,
                     userKeyAtSend = retryUserKey,
+                    aiLevelAtSend = AiExperienceLevel.resolve(request.aiLevel),
+                    requiresLevelMatch = false,
                 )
                 activeRequestContext = requestContext
 
@@ -389,6 +433,7 @@ class AgentViewModel : ViewModel() {
                         prompt = request.prompt,
                         history = request.history,
                         mode = request.mode,
+                        aiLevel = request.aiLevel,
                         executeAutomation = request.executeAutomation,
                         manusApiKeyOverride = ManusByosPreferences.currentManusApiKeyOrNull(),
                     )
@@ -514,17 +559,22 @@ class AgentViewModel : ViewModel() {
     private fun makeRequestContext(
         conversationRevision: Int = this.conversationRevision,
         userKeyAtSend: String? = currentUserKey,
+        aiLevelAtSend: AiExperienceLevel = _uiState.value.selectedLevel,
+        requiresLevelMatch: Boolean = true,
     ): InFlightRequestContext =
         InFlightRequestContext(
             requestId = java.util.UUID.randomUUID().toString(),
             conversationRevision = conversationRevision,
             userKeyAtSend = userKeyAtSend,
+            aiLevelAtSend = aiLevelAtSend,
+            requiresLevelMatch = requiresLevelMatch,
         )
 
     private fun isRequestContextActive(context: InFlightRequestContext): Boolean =
         activeRequestContext == context &&
             context.conversationRevision == conversationRevision &&
-            context.userKeyAtSend == currentUserKey
+            context.userKeyAtSend == currentUserKey &&
+            (!context.requiresLevelMatch || context.aiLevelAtSend == _uiState.value.selectedLevel)
 
     private fun isConversationSnapshotValid(
         conversationRevision: Int,
@@ -616,6 +666,7 @@ class AgentViewModel : ViewModel() {
                     prompt = entry.prompt,
                     history = entry.history,
                     mode = entry.mode,
+                    aiLevel = entry.aiLevel,
                     executeAutomation = entry.executeAutomation,
                     assistantMessageId = entry.assistantMessageId,
                     createdAtEpochMillis = entry.createdAtEpochMillis,
@@ -656,6 +707,7 @@ class AgentViewModel : ViewModel() {
                 prompt = request.prompt,
                 history = request.history,
                 mode = request.mode,
+                aiLevel = request.aiLevel,
                 executeAutomation = request.executeAutomation,
                 assistantMessageId = request.assistantMessageId,
                 createdAtEpochMillis = request.createdAtEpochMillis,
@@ -707,7 +759,7 @@ class AgentViewModel : ViewModel() {
             FirebaseFunctionsException.Code.UNAVAILABLE -> "Der SkyOS Agent ist gerade kurz nicht erreichbar."
             FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> "Die Agent-Antwort dauert gerade laenger als gewohnt."
             FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
-                error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Dein heutiges Agent-Limit ist erreicht."
+                AppTextResolver.string(R.string.ai_level_limit_reached)
             FirebaseFunctionsException.Code.INVALID_ARGUMENT -> "Die Anfrage konnte so nicht verarbeitet werden."
             FirebaseFunctionsException.Code.FAILED_PRECONDITION ->
                 if (error.localizedMessage?.contains("App Check", ignoreCase = true) == true) {
@@ -716,7 +768,7 @@ class AgentViewModel : ViewModel() {
                     error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Der Agent ist noch nicht voll bereit."
                 }
             FirebaseFunctionsException.Code.PERMISSION_DENIED ->
-                error.localizedMessage?.takeIf { it.isNotBlank() } ?: "Der Agent ist fuer dein Konto gerade nicht freigeschaltet."
+                AppTextResolver.string(R.string.ai_level_unavailable)
             FirebaseFunctionsException.Code.UNAUTHENTICATED -> "Bitte melde dich erneut an und versuch es noch einmal."
             else -> "Der SkyOS Agent ist gerade kurz pausiert."
         }
@@ -724,6 +776,13 @@ class AgentViewModel : ViewModel() {
         else -> error.message?.takeIf { it.isNotBlank() }
             ?: "Der SkyOS Agent ist gerade kurz pausiert."
     }
+}
+
+private fun AiExperienceLevel.isAvailableFor(plan: UserQuotaPlan): Boolean = when (this) {
+    AiExperienceLevel.Standard,
+    AiExperienceLevel.Advanced,
+    -> true
+    AiExperienceLevel.Pro -> plan != UserQuotaPlan.Free
 }
 
 private fun resolveTerminalPhase(

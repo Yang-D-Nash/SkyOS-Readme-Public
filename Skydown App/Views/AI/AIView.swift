@@ -238,6 +238,7 @@ struct AIView: View {
                     draft: $viewModel.draft,
                     composerMode: $viewModel.composerMode,
                     textMode: $viewModel.textMode,
+                    selectedLevel: $viewModel.selectedLevel,
                     isFocused: $isComposerFocused,
                     interactionPhase: viewModel.phase,
                     onReset: viewModel.resetConversation,
@@ -302,7 +303,7 @@ private struct AIPlanPreviewCard: View {
             Text(AppLocalized.text("ai.membership.plans.tiers", fallback: "Free, Pro, Creator"))
                 .font(.subheadline.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
-            Text(AppLocalized.text("ai.membership.plans.caption", fallback: "No tokens. Unlock capable creator workflows."))
+            Text(AppLocalized.text("ai.membership.plans.caption", fallback: "Unlock more reach and priority when you need it."))
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -424,12 +425,6 @@ private struct AIDecisionTransparencyCard: View {
                         Capsule(style: .continuous)
                             .fill(AppColors.accent(for: colorScheme).opacity(0.12))
                     )
-                if !decision.selectedModel.isEmpty {
-                    Text(decision.selectedModel)
-                        .font(.caption2.weight(.bold))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .lineLimit(1)
-                }
                 Spacer(minLength: 0)
             }
 
@@ -919,6 +914,7 @@ private struct AIComposerBar: View {
     @Binding var draft: String
     @Binding var composerMode: AIComposerMode
     @Binding var textMode: AITextMode
+    @Binding var selectedLevel: AIExperienceLevel
     let isFocused: FocusState<Bool>.Binding
     let interactionPhase: BotInteractionPhase
     let onReset: () -> Void
@@ -979,6 +975,22 @@ private struct AIComposerBar: View {
                     .buttonStyle(.plain)
                     .skydownTactileAction()
                     .disabled(interactionPhase.isBusy)
+                }
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Picker(AppLocalized.text("ai.level.picker.title", fallback: "AI Level"), selection: $selectedLevel) {
+                        ForEach(AIExperienceLevel.allCases) { level in
+                            Text(level.title).tag(level)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .disabled(interactionPhase.isBusy)
+                    .skydownSelectionFeedback(trigger: selectedLevel)
+
+                    Text(selectedLevel.subtitle)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineLimit(1)
                 }
 
                 if composerMode == .text {
