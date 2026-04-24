@@ -397,7 +397,7 @@ fun HomeScreen(
                                     backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
                                     accent = homeAccent,
                                     secondaryAccent = homeMysticAccent,
-                                    marks = listOf(BrandArtwork.Combined),
+                                    marks = listOf(BrandArtwork.SkyOS, BrandArtwork.Skydown),
                                     immersive = true,
                                 ) {
                                     Row(

@@ -1,19 +1,20 @@
-# SkyOS Branding
+# SkyOS Branding Standard
 
-SkyOS needs one product language across README, legal, support, investor-facing material, and the
-app itself. This document sets the naming and voice standard for that work.
+SkyOS is the primary system identity for this repository.  
+All public communication, visual language, and platform assets should reinforce one rule: **SkyOS is the foundation and operating core**.
 
-## 1. Brand Roles
+## 1) Brand hierarchy
 
-| Name | Role | Use it for |
+| Brand | Role | Scope |
 | --- | --- | --- |
-| `SkyOS` | product name | README, app, product docs, investor and partner language |
-| `Skydown` | operator and support identity | legal, support, owner context, operator references |
-| `22` / `Skydown x 22` | creative or brand-world mark | artwork, brand moments, creator identity, not default technical naming |
+| `SkyOS` | system, platform, visual operating language | primary naming in README, product communication, design narrative |
+| `Skydown` | app/operator identity inside SkyOS | product surfaces, support and operational context |
+| `ZweiZwei / 22` | music and creative sub-brand | only for music-specific moments |
+| `Skydown x 22` | merch and commerce mark | only for shop/merch communication |
 
-## 2. Public Naming Rules
+## 2) Naming rules (public copy)
 
-Use:
+Preferred labels:
 
 - `SkyOS`
 - `Home`
@@ -22,24 +23,22 @@ Use:
 - `Music`
 - `Video`
 - `Shop`
-- `Orders`
 - `Membership`
 - `Settings`
 - `Owner` / `Admin`
 
-Avoid in public-facing copy unless the context truly requires it:
+Avoid unless strictly necessary:
 
 - `22xSky`
 - `Skydown OS`
 - `Command Center`
 - `Revenue Ops`
-- `Runtime`
-- `Workflow` as a generic tab title
-- provider names such as Activepieces, `n8n`, Manus, or Stripe when the user only needs a simple product explanation
+- `Runtime` as a user-facing tab label
+- provider-first copy (`n8n`, Stripe, etc.) where user value can be explained without vendor names
 
-## 3. Voice Standard
+## 3) Voice and tone
 
-SkyOS should sound:
+SkyOS communication should be:
 
 - clear
 - premium
@@ -47,52 +46,67 @@ SkyOS should sound:
 - direct
 - trustworthy
 
-SkyOS should not sound:
+It should never sound:
 
 - overhyped
-- developer-internal
+- internal-only
 - vague
-- aggressively salesy
-- like an unfinished admin panel
+- aggressively sales-driven
+- unfinished
 
-## 4. Copy Rules
+## 4) Copy quality checklist
 
-- Name the task before the atmosphere.
-- Do not mix internal implementation names into primary user actions.
-- Use short explanatory subtitles rather than stacked jargon.
-- If a feature is role-restricted, say so clearly.
-- If a feature depends on a provider or plan, explain the condition plainly.
+- Lead with user value, not implementation detail.
+- Keep labels short and consistent across macOS, iOS, and Android.
+- Avoid mixing internal tooling names into user-visible actions.
+- Explicitly mark role-restricted features.
+- State legal or plan-based constraints in plain language.
 
-## 5. Asset Sources
+## 5) Official icon and asset sources
 
-Preferred documentation assets:
+Primary documentation assets:
 
 - `docs/assets/skyos-logo.png`
 - `docs/assets/skyos-app-icon.png`
 - `docs/assets/skyos-22-mark.png`
 
-Original source assets live in:
+Project icon assets (the three core logos):
 
-- `Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/`
-- `Skydown App/Assets.xcassets/AppIcon.appiconset/`
-- `Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/`
+- `Skydown App/Assets.xcassets/SkyOSBrandMark.imageset/skyos-mark.png`
+- `Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png`
+- `Skydown App/Assets.xcassets/ZweiZweiBrandLogo.imageset/zweizwei-logo.png`
 
-## 6. Current Cleanup Priorities
+Additional mark:
 
-Known naming areas that should continue to converge:
+- `Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png`
 
-- `Tools` versus `Atelier`
-- `Membership Command Center` versus simpler owner-facing naming
-- public-facing mention of infrastructure providers
-- historical `22xSky` references in older internal documents
+## 6) Trust rule
 
-## 7. Trust Rule
+In SkyOS, branding quality includes legal and operational quality:
 
-Branding is not ornament. In SkyOS, branding also means:
+- legal naming is consistent
+- support and ownership context is credible
+- copy reflects actual product behavior
+- visual polish is backed by technical reliability
 
-- the legal name is consistent
-- support contact is believable
-- copy matches real product behavior
-- premium visuals are backed by stable product structure
+If a phrase sounds impressive but reduces clarity, remove it.
 
-If a phrase sounds cool but makes the product less understandable, it does not belong in the default product voice.
+## 7) Product integration matrix
+
+Brand usage in product must stay scoped and consistent:
+
+| Surface | Primary mark | Secondary mark | Rule |
+| --- | --- | --- | --- |
+| Home / system entry | `SkyOS` | `Skydown` | Home communicates system + product entry, never music-first |
+| AI / Agent / Video | `Skydown` | `SkyOS` context only | Keep execution/product language, avoid music marks |
+| Music | `ZweiZwei / 22` | `Skydown` | Music keeps its own identity inside SkyOS |
+| Shop / Merch | `Skydown x 22` | `Skydown` | Commerce mark is scoped to merch only |
+| App icon / launcher | `SkyOS` | none | Launcher identity stays system-first |
+
+## 8) Source logos provided by brand
+
+The latest source files are stored for traceable reuse:
+
+- `docs/assets/skyos-logo-original.png`
+- `docs/assets/skydown-logo-original.png`
+- `docs/assets/zweizwei-logo-original.png`

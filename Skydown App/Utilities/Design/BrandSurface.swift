@@ -32,6 +32,7 @@ private func skydownHomeHeroContainerShape(immersive: Bool) -> AnyShape {
 }
 
 enum BrandMark: String, Identifiable {
+    case skyos
     case sky22
     case skydown
     case zweizwei
@@ -41,6 +42,8 @@ enum BrandMark: String, Identifiable {
 
     var imageName: String {
         switch self {
+        case .skyos:
+            return "SkyOSBrandMark"
         case .sky22:
             return "Sky22BrandLogo"
         case .zweizwei:
@@ -48,20 +51,22 @@ enum BrandMark: String, Identifiable {
         case .skydown:
             return "SkydownBrandLogo"
         case .skydownX22:
-            return "SkyOSBrandMark"
+            return "SkydownX22BrandLogo"
         }
     }
 
     var label: String {
         switch self {
+        case .skyos:
+            return NSLocalizedString("brand.system.name", comment: "Brand system name")
         case .sky22:
-            return "22"
+            return NSLocalizedString("brand.music.name", comment: "Brand music name")
         case .skydown:
-            return "Skydown"
+            return NSLocalizedString("brand.product.name", comment: "Brand product name")
         case .zweizwei:
-            return "ZweiZwei"
+            return NSLocalizedString("brand.music.name", comment: "Brand music name")
         case .skydownX22:
-            return "SkyOS"
+            return NSLocalizedString("brand.merch.name", comment: "Brand merch name")
         }
     }
 }

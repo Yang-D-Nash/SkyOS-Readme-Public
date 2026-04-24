@@ -90,7 +90,7 @@ struct HomeHeroIntroCard: View {
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
-            marks: [],
+            marks: [.skyos, .skydown],
             immersive: true
         ) {
             HStack(alignment: .top, spacing: 10) {

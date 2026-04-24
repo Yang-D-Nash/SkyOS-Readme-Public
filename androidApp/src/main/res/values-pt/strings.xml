@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="brand_system_name">SkyOS</string>
+    <string name="brand_product_name">Skydown</string>
+    <string name="brand_music_name">ZweiZwei / 22</string>
+    <string name="brand_merch_name">Skydown x 22</string>
     <string name="tabs_merch">Merch</string>
     <string name="tabs_music">M&#x00FA;sica</string>
     <string name="tabs_home">In&#x00ED;cio</string>

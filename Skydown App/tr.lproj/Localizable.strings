@@ -1,4 +1,8 @@
 "offline.banner.title" = "Cevrim disi";
+"brand.system.name" = "SkyOS";
+"brand.product.name" = "Skydown";
+"brand.music.name" = "ZweiZwei / 22";
+"brand.merch.name" = "Skydown x 22";
 "offline.banner.message" = "Baglanti yok. Onbellekteki icerigi goruyorsun ve devam edebilirsin.";
 "settings.system_language" = "Sistem dili";
 "settings.supported_languages_summary" = "10 dil: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA";

@@ -1,4 +1,8 @@
 "offline.banner.title" = "Offline";
+"brand.system.name" = "SkyOS";
+"brand.product.name" = "Skydown";
+"brand.music.name" = "ZweiZwei / 22";
+"brand.merch.name" = "Skydown x 22";
 "offline.banner.message" = "Keine Verbindung. Du siehst zwischengespeicherte Inhalte und kannst weiternavigieren.";
 "settings.system_language" = "Systemsprache";
 "settings.supported_languages_summary" = "10 Sprachen: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA";

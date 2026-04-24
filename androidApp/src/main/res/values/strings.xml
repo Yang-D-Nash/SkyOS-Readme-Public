@@ -6,6 +6,10 @@
     <string name="attribution_auth" translatable="false">Authentication and sign-in</string>
     <string name="attribution_commerce" translatable="false">Store and checkout</string>
     <string name="attribution_ai" translatable="false">AI and automation tools</string>
+    <string name="brand_system_name" translatable="false">SkyOS</string>
+    <string name="brand_product_name" translatable="false">Skydown</string>
+    <string name="brand_music_name" translatable="false">ZweiZwei / 22</string>
+    <string name="brand_merch_name" translatable="false">Skydown x 22</string>
 
     <string name="tabs_merch">Merch</string>
     <string name="tabs_music">Music</string>

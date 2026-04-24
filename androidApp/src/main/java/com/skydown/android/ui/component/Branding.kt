@@ -1,6 +1,7 @@
 package com.skydown.android.ui.component
 
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -45,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -71,23 +73,27 @@ import androidx.compose.ui.semantics.Role
 
 enum class BrandArtwork(
     @param:DrawableRes val drawableRes: Int,
-    val label: String,
+    @param:StringRes val labelRes: Int,
 ) {
+    SkyOS(
+        drawableRes = R.drawable.skyos_brand_logo,
+        labelRes = R.string.brand_system_name,
+    ),
     Sky22(
         drawableRes = R.drawable.sky22_brand_logo,
-        label = "22",
+        labelRes = R.string.brand_music_name,
     ),
     Skydown(
         drawableRes = R.drawable.skydown_brand_logo,
-        label = "Skydown",
+        labelRes = R.string.brand_product_name,
     ),
     Zweizwei(
-        drawableRes = R.drawable.sky22_brand_logo,
-        label = "22",
+        drawableRes = R.drawable.zweizwei_brand_logo,
+        labelRes = R.string.brand_music_name,
     ),
     Combined(
         drawableRes = R.drawable.skydown_x22_brand_logo,
-        label = "SkyOS",
+        labelRes = R.string.brand_merch_name,
     ),
 }
 
@@ -921,6 +927,7 @@ private fun BrandArtworkTile(
     accent: Color,
     isFeatured: Boolean,
 ) {
+    val label = stringResource(id = mark.labelRes)
     val colorScheme = MaterialTheme.colorScheme
     val isDarkPalette = colorScheme.skydownIsDarkPalette()
     Box(
@@ -966,7 +973,7 @@ private fun BrandArtworkTile(
         ) {
             Image(
                 painter = painterResource(id = mark.drawableRes),
-                contentDescription = mark.label,
+                contentDescription = label,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(if (isFeatured) 76.dp else 52.dp)
@@ -975,7 +982,7 @@ private fun BrandArtworkTile(
             )
 
             Text(
-                text = mark.label,
+                text = label,
                 style = if (isFeatured) SkydownEditorialCaptionTextStyle else MaterialTheme.typography.labelSmall,
                 color = colorScheme.skydownText().copy(alpha = 0.88f),
                 fontWeight = FontWeight.Medium,

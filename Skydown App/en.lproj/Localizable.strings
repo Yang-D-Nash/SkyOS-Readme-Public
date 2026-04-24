@@ -12,6 +12,10 @@
 "agent.queue.toast.queued" = "Saved offline. Sending automatically once you are online.";
 "agent.queue.toast.sent" = "Queued request sent successfully.";
 "agent.automation.triggered" = "n8n workflow started.";
+"brand.system.name" = "SkyOS";
+"brand.product.name" = "Skydown";
+"brand.music.name" = "ZweiZwei / 22";
+"brand.merch.name" = "Skydown x 22";
 "auth.login.welcome" = "Welcome to SkyOS";
 "auth.login.subtitle" = "Sign in to access your account and creator tools.";
 "auth.login.title" = "Sign in";
