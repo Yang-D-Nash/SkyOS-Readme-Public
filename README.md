@@ -7,17 +7,17 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/skyos-22-mark.png" alt="SkyOS Mark" width="76" />
+  <img src="Skydown%20App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png" alt="22 Mark" width="88" />
   &nbsp;&nbsp;
   <img src="docs/assets/skyos-app-icon.png" alt="SkyOS App Icon" width="76" />
 </p>
 
-# SkyOS
+# Skydown
 
-SkyOS ist ein natives Cross-Platform-Produkt fuer iOS und Android, das AI, Agent-Workflows, Music,
-Video, Merch, Auth, Legal-Flaechen und Runtime-Governance in einem ruhigen, zusammenhaengenden
-Produktfluss verbindet. Die App ist nicht als Sammlung lose verbundener Module gedacht, sondern als
-eine kontrollierte Produktoberflaeche fuer Creator-, Media- und Commerce-Nutzung.
+Skydown ist das native Cross-Platform-Produkt fuer iOS und Android. Die App verbindet AI,
+Agent-Workflows, Music, Video, Merch, Auth, Legal-Flaechen und Runtime-Governance in einem ruhigen,
+zusammenhaengenden Produktfluss. SkyOS beschreibt dabei die System- und Design-Sprache hinter dem
+Produkt, waehrend ZweiZwei / 22 innerhalb der App ausschliesslich die Music-Identitaet markiert.
 
 | Bereich | Stand |
 | --- | --- |
@@ -39,6 +39,7 @@ eine kontrollierte Produktoberflaeche fuer Creator-, Media- und Commerce-Nutzung
 - [Merch / Shop](#merch--shop)
 - [Auth](#auth)
 - [Legal / Policies](#legal--policies)
+- [ZweiZwei / 22](#zweizwei--22)
 - [Design-System / SkyOS](#design-system--skyos)
 - [Motion-System](#motion-system)
 - [Branding / Logos](#branding--logos)
@@ -56,7 +57,7 @@ eine kontrollierte Produktoberflaeche fuer Creator-, Media- und Commerce-Nutzung
 
 ## Ueberblick
 
-SkyOS bringt mehrere bisher oft getrennte Produktflaechen in eine einzige App:
+Skydown bringt mehrere bisher oft getrennte Produktflaechen in eine einzige App:
 
 - AI und Agent fuer Assistenz, Planung, Visuals und strukturierte Ausfuehrung
 - Music und Video fuer Artist-, Release- und Media-Praesenz
@@ -65,12 +66,13 @@ SkyOS bringt mehrere bisher oft getrennte Produktflaechen in eine einzige App:
 - Legal- und Policy-Flaechen direkt in der App statt nur ausserhalb des Produkts
 
 Die Leitidee ist Klarheit statt Modulchaos: Home erklaert den Einstieg, AI und Agent geben
-Handlungsfaehigkeit, Media verankert die Marke, Commerce macht den Produktfluss wirtschaftlich
-relevant, und Legal / Settings halten Vertrauen, Support und Governance sichtbar.
+Handlungsfaehigkeit, Media verankert die Marke, Music traegt mit ZweiZwei / 22 eine eigene
+kuratierte Identitaet, Commerce macht den Produktfluss wirtschaftlich relevant, und Legal / Settings
+halten Vertrauen, Support und Governance sichtbar.
 
 ## Produktuebersicht
 
-SkyOS ist als ruhiges natives Produkt gedacht. Die App priorisiert:
+Skydown ist als ruhiges natives Produkt gedacht. Die App priorisiert:
 
 - eine einheitliche Produktidentitaet statt funf unterschiedlich wirkender Sub-Apps
 - klare Entitlement-, Membership- und Rollenlogik
@@ -82,8 +84,8 @@ SkyOS ist als ruhiges natives Produkt gedacht. Die App priorisiert:
 flowchart LR
     landing["Landing"] --> home["Home"]
     home --> ai["AI / Agent"]
-    home --> music["Music"]
-    home --> video["Video"]
+    home --> music["Music (ZweiZwei)"]
+    home --> video["Video Experience"]
     home --> merch["Merch / Shop"]
 ```
 
@@ -93,9 +95,9 @@ flowchart LR
 
 ### Landing / Home
 
-- Zweck: Die Landing- und Home-Flaeche erklaert SkyOS als ein Produkt und gibt den Einstieg in AI, Media und Merch.
+- Zweck: Die Landing- und Home-Flaeche erklaert Skydown als Produkt und gibt den Einstieg in AI, Media und Merch.
 - UX-Prinzip: Orientierung vor Tiefe. Die Startflaeche soll ruhig, hierarchisch und sofort lesbar wirken.
-- Wichtige UI-/Produktentscheidungen: Hero-first Einstieg, starke Brand-Surface, klar getrennte Content-Cluster, kein zufaelliges Dashboard-Raster.
+- Wichtige UI-/Produktentscheidungen: Hero-first Einstieg, starke Brand-Surface, klar getrennte Content-Cluster, Music darf von hier aus klar in die ZweiZwei-/22-Welt fuehren, ohne dass Home selbst zur Music-Marke wird.
 - Bewusst nicht gemacht: kein lauter Admin-Startscreen, kein Feature-Teppich, keine zerstreute Promo-Logik ohne Kontext.
 
 <a id="ai--agent-workspace"></a>
@@ -117,15 +119,15 @@ flowchart LR
 ### Music
 
 - Zweck: Music bindet Releases, Tracks, Artist-Praesenz und Mediennaehe in den Hauptfluss der App ein.
-- UX-Prinzip: Artist-Fokus statt Streaming-Kopie. Music soll wie ein Teil von SkyOS wirken, nicht wie ein eingebetteter Fremddienst.
-- Wichtige UI-/Produktentscheidungen: klare Track-Auswahl, ruhige Listen- und Detailrhythmen, native Navigation, enge Verbindung zu Home und Brand Surface.
+- UX-Prinzip: Artist-Fokus statt Streaming-Kopie. Music soll wie ein Teil von Skydown wirken und zugleich klar als ZweiZwei-/22-Musikraum lesbar sein.
+- Wichtige UI-/Produktentscheidungen: klare Track-Auswahl, ruhige Listen- und Detailrhythmen, native Navigation, enge Verbindung zu Home, Brand Surface und einer explizit ueber ZweiZwei / 22 markierten Music Identity.
 - Bewusst nicht gemacht: kein generischer Streaming-Klon, keine visuelle Uebernahme durch Retail-/Plattformfarben, keine unendliche Informationsdichte ohne Priorisierung.
 
 ### Video
 
 - Zweck: Video zeigt Clips, Visuals und Motion-getragene Artist-Momente in einem eigenen Fokusraum.
 - UX-Prinzip: Ein aktiver Clip oder ein klarer visueller Einstieg soll sofort im Mittelpunkt stehen.
-- Wichtige UI-/Produktentscheidungen: vertikale bzw. grossflaechige Fokusfuehrung, ruhige Open-/Close-Uebergaenge, enge Verzahnung mit Music und Brand-Surfaces.
+- Wichtige UI-/Produktentscheidungen: vertikale bzw. grossflaechige Fokusfuehrung, ruhige Open-/Close-Uebergaenge und eine klare Einbindung in die Skydown-/SkyOS-Erfahrung statt in eine separate Music-Marke.
 - Bewusst nicht gemacht: kein hektischer Feed als Standard, keine harten Schnitte zwischen Kontexten, keine visuelle Uebersteuerung durch aggressive Motion.
 
 <a id="merch--shop"></a>
@@ -161,6 +163,26 @@ flowchart LR
 - UX-Prinzip: Transparenz statt Entwickler-Placeholder. Die Screens sollen ruhig, lesbar und ehrlich sein.
 - Wichtige UI-/Produktentscheidungen: AGB, Datenschutz, Nutzungsbedingungen, KI-Nutzung, Impressum und Supportpfade liegen gebuendelt in Settings; die sichtbaren Hinweise wurden auf neutrale Transparenzsprache vereinheitlicht.
 - Bewusst nicht gemacht: keine rohen TODOs, keine `Legal sign-off`-Texte im UI, keine Behauptung, dass die Rechtstexte bereits final freigegeben sind.
+
+<a id="zweizwei--22"></a>
+
+## ZweiZwei / 22
+
+ZweiZwei / 22 ist innerhalb von Skydown ausschliesslich die Music-Marke.
+
+- Skydown ist die App- und Produktoberflaeche.
+- SkyOS ist die zugrunde liegende System-, Motion- und Design-Sprache sowie die App-Icon-Identitaet.
+- ZweiZwei / 22 kuratiert und markiert die Music Experience innerhalb der App.
+
+Das ist in der Produktfuehrung wichtig, weil Music sichtbar eine eigene Identitaet tragen darf,
+waehrend Video, Merch, AI, Home und die App-Struktur insgesamt im Skydown-/SkyOS-Rahmen bleiben.
+
+Relevante Assets fuer diese Ebene:
+
+| Asset | Pfad |
+| --- | --- |
+| ZweiZwei Wordmark | [`Skydown App/Assets.xcassets/ZweiZweiBrandLogo.imageset/zweizwei-logo.png`](<Skydown App/Assets.xcassets/ZweiZweiBrandLogo.imageset/zweizwei-logo.png>) |
+| 22 Mark | [`Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png`](<Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png>) |
 
 <a id="design-system--skyos"></a>
 
@@ -218,31 +240,36 @@ angenehm zu halten.
 
 ## Branding / Logos
 
-SkyOS trennt bewusst zwischen Produktname, Betreiberidentitaet und Markenwelt.
+Die Release-Dokumentation trennt bewusst zwischen Produktmarke, Systemsprache und Music-Marke.
+
+### Markenrollen
 
 | Name | Rolle | Typischer Einsatz |
 | --- | --- | --- |
-| `SkyOS` | Produktname | App, README, Store-Auftritt, Architektur- und Release-Dokumentation |
-| `Skydown` | Betreiber- und Supportidentitaet | Legal, Support, operator-nahe Kontexte |
-| `ZweiZwei` / `22` | kreative Markenebene | visuelle Markenmomente, Artwork, Brand Layer |
+| `Skydown` | Produkt und App | README, App-Kontext, Release-Dokumentation, Product-Narrative |
+| `SkyOS` | System- und Design-Sprache | Motion, Surface-System, Design-Dokumentation, Brand-System, App-Icon-Identitaet |
+| `ZweiZwei` / `22` | Music-Marke innerhalb der App | Music Experience, Releases, Music-Identitaet, visuelle Musik-Layer |
 
 Verwendete Logo-Assets in dieser README:
 
 | Marke | Pfad |
 | --- | --- |
-| Skydown | [`Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png`](<Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png>) |
-| SkyOS | [`docs/assets/skyos-logo.png`](docs/assets/skyos-logo.png) |
-| ZweiZwei | [`Skydown App/Assets.xcassets/ZweiZweiBrandLogo.imageset/zweizwei-logo.png`](<Skydown App/Assets.xcassets/ZweiZweiBrandLogo.imageset/zweizwei-logo.png>) |
-| SkyOS Mark | [`docs/assets/skyos-22-mark.png`](docs/assets/skyos-22-mark.png) |
+| Skydown Logo | [`Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png`](<Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png>) |
+| SkyOS Logo | [`docs/assets/skyos-logo.png`](docs/assets/skyos-logo.png) |
+| SkyOS App Icon Master | [`docs/assets/skyos-app-icon.png`](docs/assets/skyos-app-icon.png) |
+| ZweiZwei Logo | [`Skydown App/Assets.xcassets/ZweiZweiBrandLogo.imageset/zweizwei-logo.png`](<Skydown App/Assets.xcassets/ZweiZweiBrandLogo.imageset/zweizwei-logo.png>) |
+| 22 Mark | [`Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png`](<Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png>) |
 
-Die Branding-Regel im Repo ist klar: Produktsprache soll ruhig, premium, direkt und vertrauenswuerdig
-bleiben. Interne Begriffe, Infrastruktur-Namen oder historische Mischmarken gehoeren nicht in die
-primaere Produktkommunikation, wenn sie dem Nutzer nicht helfen.
+Die Branding-Regel fuer diese README ist klar: Skydown benennt das Produkt, SkyOS beschreibt die
+Systemsprache, und ZweiZwei / 22 markiert ausschliesslich den Music-Bereich. Historische
+Mischformen oder zu breite 22-Zuschreibungen sollen nicht die primaere Produktkommunikation
+dominieren.
 
 ## App Icon Pipeline
 
-Die App-Icon-Pipeline wird im Repo ueber versionierte Quell- und Ziel-Assets nachvollziehbar gemacht.
-Ziel ist ein optisch ruhiges, sauber zentriertes App-Icon fuer beide Plattformen.
+Die App-Icon-Pipeline wird im Repo ueber versionierte Quell- und Ziel-Assets nachvollziehbar
+gemacht. Ziel ist, dass iOS und Android wie dasselbe finale SkyOS-App-Icon wirken und nicht wie
+eine kuenstlich verkleinerte Ableitung.
 
 ```mermaid
 flowchart LR
@@ -255,18 +282,19 @@ Relevante versionierte Asset-Stufen:
 
 | Stufe | Pfad |
 | --- | --- |
-| Master Icon | [`Skydown App/Assets.xcassets/AppIcon.appiconset/1024.png`](<Skydown App/Assets.xcassets/AppIcon.appiconset/1024.png>) |
-| Dokumentationsvorschau | [`docs/assets/skyos-app-icon.png`](docs/assets/skyos-app-icon.png) |
+| Master Icon | [`docs/assets/skyos-app-icon.png`](docs/assets/skyos-app-icon.png) |
+| iOS Marketing Icon | [`Skydown App/Assets.xcassets/AppIcon.appiconset/1024.png`](<Skydown App/Assets.xcassets/AppIcon.appiconset/1024.png>) |
 | Android Foreground Source | [`androidApp/src/main/res/drawable-nodpi/ic_launcher_foreground_src.png`](androidApp/src/main/res/drawable-nodpi/ic_launcher_foreground_src.png) |
 | Android Launcher Outputs | [`androidApp/src/main/res/mipmap-xxhdpi/ic_launcher.png`](androidApp/src/main/res/mipmap-xxhdpi/ic_launcher.png) |
 
-Hinweis: Die README beschreibt bewusst nur den nachvollziehbaren, versionierten Pipeline-Stand. Ein
-separater lokaler Safe-Zone-Helfer ist aktuell nicht Teil des gepushten `main`-Stands und wird
-daher hier nicht als verbindlicher Repo-Bestandteil vorausgesetzt.
+Der aktuelle Stand nutzt das bestehende Master-Asset direkt als Quelle fuer iOS und Android.
+Eine fruehere lokale Safe-Zone-Hilfe, die das Motiv zusaetzlich verkleinert hat, ist bewusst nicht
+Teil des verbindlichen Repo-Standes und wird fuer die Release-Baseline nicht vorausgesetzt.
+ZweiZwei / 22 hat in dieser Pipeline keine App-Icon-Rolle.
 
 ## Architekturuebersicht
 
-SkyOS ist als natives Mobile-Produkt mit Firebase als operativer Backbone aufgebaut.
+Skydown ist als natives Mobile-Produkt mit Firebase als operativer Backbone aufgebaut.
 
 ```mermaid
 flowchart TB
@@ -410,7 +438,7 @@ Der aktuelle Stand wirkt wie ein belastbarer Release Candidate:
 - AI, Media, Merch und Settings erscheinen als zusammenhaengendes Produkt statt als Modulstapel
 - der verbleibende Vorbehalt ist nicht primar technisch, sondern juristisch-prozessual
 
-Kurz gesagt: SkyOS ist fuer den dokumentierten technischen Release-Stand bereit, aber noch nicht
+Kurz gesagt: Skydown ist fuer den dokumentierten technischen Release-Stand bereit, aber noch nicht
 fuer eine oeffentliche Auslieferung ohne juristische Abschlussfreigabe.
 
 ## Naechste Schritte
