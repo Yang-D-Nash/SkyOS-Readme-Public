@@ -74,7 +74,11 @@ halten Vertrauen, Support und Governance sichtbar.
 
 ## Produktuebersicht
 
-Skydown ist als ruhiges natives Produkt gedacht. Die App priorisiert:
+Skydown ist als ruhiges natives Produkt gedacht. Die Struktur folgt dem finalen Brand-Modell:
+SkyOS bildet System und Welt. Skydown traegt App, AI, Video und Content. ZweiZwei / 22 traegt Music.
+Skydown × 22 markiert Merch.
+
+Die App priorisiert:
 
 - eine einheitliche Produktidentitaet statt funf unterschiedlich wirkender Sub-Apps
 - klare Entitlement-, Membership- und Rollenlogik
@@ -83,12 +87,15 @@ Skydown ist als ruhiges natives Produkt gedacht. Die App priorisiert:
 - transparente, aber noch nicht final juristisch freigegebene Legal-Flaechen
 
 ```mermaid
-flowchart LR
-    landing["Landing"] --> home["Home"]
-    home --> ai["AI / Agent"]
-    home --> music["Music (ZweiZwei)"]
-    home --> video["Video Experience"]
-    home --> merch["Merch / Shop"]
+flowchart TB
+    skyos["SkyOS / System + Welt"]
+    skyos --> skydown["Skydown / App + Content"]
+    skyos --> zweizwei["ZweiZwei / 22"]
+    skydown --> ai["AI"]
+    skydown --> video["Video"]
+    skydown --> commerce["Commerce"]
+    commerce --> merch["Skydown × 22 / Merch"]
+    zweizwei --> music["Music"]
 ```
 
 ## Produktbereiche
@@ -143,7 +150,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    merch["Merch"] --> featured["Featured"]
+    merch["Skydown × 22 / Merch"] --> featured["Featured"]
     featured --> browse["Browse"]
     browse --> product["Product"]
     product --> cart["Cart"]
