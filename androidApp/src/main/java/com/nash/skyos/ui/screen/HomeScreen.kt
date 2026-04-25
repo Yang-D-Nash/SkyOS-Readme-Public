@@ -37,7 +37,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Movie
@@ -121,9 +120,8 @@ import com.nash.skyos.ui.component.performSkydownHaptic
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.skydownPressable
 import com.nash.skyos.ui.component.skydownContentPadding
-import com.nash.skyos.ui.component.skydownScreenBrush
+import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownTopBarColors
-import com.nash.skyos.ui.model.FeaturedBeatHighlight
 import com.nash.skyos.ui.model.FeaturedVideoHighlight
 import com.nash.skyos.ui.model.HomeUiState
 import com.nash.skyos.ui.theme.InstagramOrange
@@ -159,13 +157,6 @@ fun HomeScreen(
 
     if (activeDestination == homeDestinationNicmaProducer) {
         NicmaProducerScreen(
-            onBack = { activeDestination = null },
-        )
-        return
-    }
-
-    if (activeDestination == homeDestinationBeatHub) {
-        BeatHubScreen(
             onBack = { activeDestination = null },
         )
         return
@@ -255,7 +246,6 @@ fun HomeScreen(
     val activeSignalCount = homeTrackedSignalCount(uiState)
     val heroPriorityTarget = homeHeroPriorityTarget(
         hasTrackSignal = uiState.featuredTrack != null,
-        hasBeatSignal = uiState.featuredBeat != null,
         hasVideoSignal = uiState.featuredVideo != null,
     )
     val homeGreetingTitle = homeGreetingTitle()
@@ -269,15 +259,13 @@ fun HomeScreen(
     val heroPillTint: (String) -> Color = { target ->
         val base = when (target) {
             "track" -> homeSpotifyAccent
-            "beat" -> homeMysticAccent
             else -> homeHighlightAccent
         }
         if (heroPriorityTarget == target) base else base.copy(alpha = 0.33f)
     }
     val heroPillOrder: List<String> = when (heroPriorityTarget) {
-        "track" -> listOf("track", "beat", "video")
-        "beat" -> listOf("beat", "track", "video")
-        else -> listOf("video", "track", "beat")
+        "track" -> listOf("track", "video")
+        else -> listOf("video", "track")
     }
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
 
@@ -333,13 +321,11 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    skydownScreenBrush(
-                        primaryColor = homeAccent,
-                        secondaryColor = homeSpotifyAccent,
-                        primaryAlpha = 0.016f,
-                        secondaryAlpha = 0.012f,
-                    ),
+                .skydownAtmosphereBackground(
+                    primaryColor = homeAccent,
+                    secondaryColor = homeSpotifyAccent,
+                    primaryAlpha = 0.016f,
+                    secondaryAlpha = 0.012f,
                 ),
         ) {
             HomeMapBackdrop(
@@ -431,27 +417,6 @@ fun HomeScreen(
                                                         },
                                                     )
                                                 }
-                                                "beat" -> Box(
-                                                    modifier = Modifier
-                                                        .weight(weight)
-                                                        .then(
-                                                            if (index == 0) Modifier.padding(end = 3.dp) else Modifier,
-                                                        ),
-                                                ) {
-                                                    BrandPill(
-                                                        text = if (heroPriorityTarget == "beat") {
-                                                            if (uiState.featuredBeat == null) "Next: Beats laden" else "Next: Beats"
-                                                        } else {
-                                                            if (uiState.featuredBeat == null) "Beats laden" else "Beats live"
-                                                        },
-                                                        tint = heroPillTint("beat"),
-                                                        onClick = {
-                                                            coroutineScope.launch {
-                                                                listState.animateScrollToItem(homeMediaClusterSectionIndex)
-                                                            }
-                                                        },
-                                                    )
-                                                }
                                                 else -> Box(
                                                     modifier = Modifier
                                                         .weight(weight)
@@ -485,13 +450,9 @@ fun HomeScreen(
                                 activeSignalCount = activeSignalCount,
                                 totalSignalCount = homeSignalTotal,
                                 hasTrackSignal = uiState.featuredTrack != null,
-                                hasBeatSignal = uiState.featuredBeat != null,
                                 hasVideoSignal = uiState.featuredVideo != null,
                                 onRefresh = viewModel::refresh,
                                 onOpenRelease = {
-                                    coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
-                                },
-                                onOpenBeat = {
                                     coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
                                 },
                                 onOpenVideo = {
@@ -524,7 +485,6 @@ fun HomeScreen(
                 item {
                     HomeAnimatedItem(order = 4) {
                         HomeStoryCard(
-                            onOpenBeatHub = { activeDestination = homeDestinationBeatHub },
                             onOpenNicma = { activeDestination = homeDestinationNicmaProducer },
                         )
                     }
@@ -534,12 +494,9 @@ fun HomeScreen(
                     HomeAnimatedItem(order = 5) {
                         HomeLiveSignalSurface(
                             hasTrackSignal = uiState.featuredTrack != null,
-                            hasBeatSignal = uiState.featuredBeat != null,
                             hasVideoSignal = uiState.featuredVideo != null,
                             trackName = uiState.featuredTrack?.trackName,
-                            beatName = uiState.featuredBeat?.title,
                             videoName = uiState.featuredVideo?.title,
-                            priorityTarget = heroPriorityTarget,
                             aiUsageWarning = uiState.aiUsageWarning,
                             creatorLimitZone = uiState.creatorLimitZone,
                             agentRunning = uiState.agentRunning,
@@ -557,7 +514,6 @@ fun HomeScreen(
                         HomeMediaCluster(
                             uiState = uiState,
                             isTrackPlaying = currentAudioKey == uiState.featuredTrack?.let(::homeTrackAudioKey),
-                            isBeatPlaying = currentAudioKey == uiState.featuredBeat?.let(::homeBeatAudioKey),
                             isVideoPlaying = currentVideoId == uiState.featuredVideo?.id,
                             player = videoPlayer,
                             onPlayTrackToggle = { track ->
@@ -573,23 +529,6 @@ fun HomeScreen(
                                     videoPlayer.seekTo(0)
                                     currentVideoId = null
                                     audioPlayer.setMediaItem(MediaItem.fromUri(previewUrl))
-                                    audioPlayer.prepare()
-                                    audioPlayer.play()
-                                    currentAudioKey = audioKey
-                                }
-                            },
-                            onPlayBeatToggle = { beat ->
-                                if (!beat.isPlayable || beat.downloadUrl.isBlank()) return@HomeMediaCluster
-                                val audioKey = homeBeatAudioKey(beat)
-                                if (currentAudioKey == audioKey) {
-                                    audioPlayer.stop()
-                                    audioPlayer.clearMediaItems()
-                                    currentAudioKey = null
-                                } else {
-                                    videoPlayer.pause()
-                                    videoPlayer.seekTo(0)
-                                    currentVideoId = null
-                                    audioPlayer.setMediaItem(MediaItem.fromUri(beat.downloadUrl))
                                     audioPlayer.prepare()
                                     audioPlayer.play()
                                     currentAudioKey = audioKey
@@ -757,12 +696,9 @@ private fun HomeUtilityRow(
 @Composable
 private fun HomeLiveSignalSurface(
     hasTrackSignal: Boolean,
-    hasBeatSignal: Boolean,
     hasVideoSignal: Boolean,
     trackName: String?,
-    beatName: String?,
     videoName: String?,
-    priorityTarget: String,
     aiUsageWarning: String? = null,
     creatorLimitZone: Boolean? = null,
     agentRunning: Boolean? = null,
@@ -772,17 +708,16 @@ private fun HomeLiveSignalSurface(
     recoverableError: String? = null,
     contentSignal: String? = null,
 ) {
-    val missingCount = listOf(hasTrackSignal, hasBeatSignal, hasVideoSignal).count { !it }
+    val missingCount = listOf(hasTrackSignal, hasVideoSignal).count { !it }
     val nowText = when {
         hasTrackSignal && !trackName.isNullOrBlank() -> "Now: Music live - $trackName"
-        hasBeatSignal && !beatName.isNullOrBlank() -> "Now: Beat live - $beatName"
         hasVideoSignal && !videoName.isNullOrBlank() -> "Now: Visual live - $videoName"
         else -> "Now: Noch kein Kernsignal live."
     }
-    val nextText = when (priorityTarget) {
-        "track" -> "Next: Musik-Status finalisieren."
-        "beat" -> "Next: Beat-Signal finalisieren."
-        else -> "Next: Visual-Signal finalisieren."
+    val nextText = when {
+        !hasTrackSignal -> "Next: Musik-Status finalisieren."
+        !hasVideoSignal -> "Next: Visual-Signal finalisieren."
+        else -> "Next: Fokus halten und direkt im Content arbeiten."
     }
     val riskText = if (missingCount > 0) {
         "Risk: $missingCount Kernsignal(e) fehlen aktuell."
@@ -831,11 +766,9 @@ private fun HomeLiveSignalSurface(
 private fun HomeMediaCluster(
     uiState: HomeUiState,
     isTrackPlaying: Boolean,
-    isBeatPlaying: Boolean,
     isVideoPlaying: Boolean,
     player: ExoPlayer,
     onPlayTrackToggle: (com.skydown.shared.model.Track) -> Unit,
-    onPlayBeatToggle: (FeaturedBeatHighlight) -> Unit,
     onPlayVideoToggle: (FeaturedVideoHighlight) -> Unit,
     onOpenSpotify: (com.skydown.shared.model.Track) -> Unit,
     onOpenVideoHub: (FeaturedVideoHighlight) -> Unit,
@@ -849,11 +782,6 @@ private fun HomeMediaCluster(
             isPlaying = isTrackPlaying,
             onPlayToggle = onPlayTrackToggle,
             onOpenSpotify = onOpenSpotify,
-        )
-        HomeLatestBeatCard(
-            uiState = uiState,
-            isPlaying = isBeatPlaying,
-            onPlayToggle = onPlayBeatToggle,
         )
         HomeLatestVideoCard(
             uiState = uiState,
@@ -872,11 +800,9 @@ private fun HomeDailyOpsStrip(
     activeSignalCount: Int,
     totalSignalCount: Int,
     hasTrackSignal: Boolean,
-    hasBeatSignal: Boolean,
     hasVideoSignal: Boolean,
     onRefresh: () -> Unit,
     onOpenRelease: () -> Unit,
-    onOpenBeat: () -> Unit,
     onOpenVideo: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -884,25 +810,20 @@ private fun HomeDailyOpsStrip(
     val currentHour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
     val priorityTarget = when {
         !hasTrackSignal -> "music"
-        !hasBeatSignal -> "beats"
         !hasVideoSignal -> "visuals"
         currentHour in 5..11 -> "music"
-        currentHour in 12..17 -> "beats"
         else -> "visuals"
     }
     val priorityAccent = when (priorityTarget) {
         "music" -> colorScheme.skydownSpotify()
-        "beats" -> colorScheme.secondary
         else -> colorScheme.skydownAccentHighlight()
     }
     val priorityTitle = when (priorityTarget) {
         "music" -> if (hasTrackSignal) "Jetzt wichtig: Musik" else "Jetzt wichtig: Musik herstellen"
-        "beats" -> if (hasBeatSignal) "Jetzt wichtig: Beats" else "Jetzt wichtig: Beats herstellen"
         else -> if (hasVideoSignal) "Jetzt wichtig: Visuals" else "Jetzt wichtig: Visuals herstellen"
     }
     val priorityHint = when (priorityTarget) {
         "music" -> if (hasTrackSignal) "Morgens zuerst Musik-Status checken." else "Musik ist noch nicht live."
-        "beats" -> if (hasBeatSignal) "Tagsueber zuerst Beats fokussieren." else "Beats-Signal fehlt noch."
         else -> if (hasVideoSignal) "Abends zuerst Visuals-Status pruefen." else "Visuals-Signal fehlt noch."
     }
 
@@ -961,7 +882,6 @@ private fun HomeDailyOpsStrip(
                 view.performSkydownHaptic(SkydownHapticKind.Selection)
                 when (priorityTarget) {
                     "music" -> onOpenRelease()
-                    "beats" -> onOpenBeat()
                     else -> onOpenVideo()
                 }
             },
@@ -991,16 +911,20 @@ private fun HomeCommandDockStrip(
     val view = LocalView.current
     val priorityAccent = when (priorityTarget) {
         "track" -> colorScheme.skydownSpotify()
-        "beat" -> colorScheme.skydownAccentMystic()
         else -> colorScheme.skydownAccentHighlight()
     }
     val actionAccent: (String) -> Color = { target ->
-        val base = when (target) {
-            "track" -> colorScheme.skydownSpotify()
-            "beat" -> colorScheme.skydownAccentMystic()
-            else -> colorScheme.skydownAccentHighlight()
+        when (target) {
+            "agent" -> colorScheme.skydownAccentMystic().copy(alpha = if (onOpenWorkflow != null) 1f else 0.4f)
+            "track" -> {
+                val base = colorScheme.skydownSpotify()
+                if (priorityTarget == "track") base else base.copy(alpha = 0.56f)
+            }
+            else -> {
+                val base = colorScheme.skydownAccentHighlight()
+                if (priorityTarget == "video") base else base.copy(alpha = 0.56f)
+            }
         }
-        if (target == priorityTarget) base else base.copy(alpha = 0.56f)
     }
     Column(
         modifier = Modifier
@@ -1040,7 +964,7 @@ private fun HomeCommandDockStrip(
                     view.performSkydownHaptic(SkydownHapticKind.Selection)
                     onOpenWorkflow?.invoke()
                 },
-                accent = actionAccent("beat"),
+                accent = actionAccent("agent"),
                 compact = true,
                 filled = onOpenWorkflow != null,
                 enabled = onOpenWorkflow != null,
@@ -1352,107 +1276,6 @@ private fun HomeLatestReleaseCard(
 }
 
 @Composable
-private fun HomeLatestBeatCard(
-    uiState: HomeUiState,
-    isPlaying: Boolean,
-    onPlayToggle: (FeaturedBeatHighlight) -> Unit,
-) {
-    val context = LocalContext.current
-    SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
-        HomeSectionBanner(
-            title = "Beats",
-            subtitle = "Neuester Beat aus dem Hub.",
-            icon = Icons.Default.GraphicEq,
-            accent = MaterialTheme.colorScheme.secondary,
-            tag = "BEAT 03",
-        )
-        val beat = uiState.featuredBeat
-
-        if (beat == null) {
-            Text(
-                text = uiState.homeBeatMessage ?: "Neuer Beat erscheint hier.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                modifier = Modifier.padding(top = 8.dp),
-            )
-            return@SkydownCard
-        }
-
-        Row(
-            modifier = Modifier.padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            BrandPreviewFrame(
-                accent = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier
-                    .size(86.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.GraphicEq,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(34.dp),
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = beat.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = beat.artistName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-                )
-                if (beat.notes.isNotBlank()) {
-                    Text(
-                        text = beat.notes,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
-                    )
-                }
-            }
-        }
-
-        if (beat.isPlayable && beat.downloadUrl.isNotBlank()) {
-            HomeMediaActionButton(
-                label = if (isPlaying) "Stoppen" else "Abspielen",
-                isActive = isPlaying,
-                accent = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 14.dp),
-                onClick = { onPlayToggle(beat) },
-            )
-        } else if (beat.openUrl.isNotBlank()) {
-            BrandActionButton(
-                text = beat.provider.originalVideoActionLabel,
-                onClick = { openExternalLink(context, beat.openUrl) },
-                accent = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                icon = Icons.Default.Language,
-                filled = false,
-            )
-        }
-    }
-}
-
-@Composable
 private fun HomeLatestVideoCard(
     uiState: HomeUiState,
     isPlaying: Boolean,
@@ -1635,7 +1458,6 @@ private fun HomeMediaActionButton(
 
 @Composable
 private fun HomeStoryCard(
-    onOpenBeatHub: () -> Unit,
     onOpenNicma: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -1643,14 +1465,14 @@ private fun HomeStoryCard(
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         HomeSectionBanner(
             title = "Community",
-            subtitle = "Brand- und Artist-Profile klar gebuendelt auf Home.",
+            subtitle = "Direkte Wege zu Studio und Support.",
             icon = Icons.Default.AutoAwesome,
             accent = colorScheme.skydownAccent(),
             tag = "LINKS",
         )
 
         Text(
-            text = "Social Reach first: direkte Wege zu Brand und Artists ohne Songs-Kontext.",
+            text = "Music-spezifische Artist-Links sind jetzt im Music Hub gebuendelt.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1660,35 +1482,11 @@ private fun HomeStoryCard(
             modifier = Modifier.padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            HomeStoryLinkButton(
-                title = "Yang D. Nash",
-                icon = Icons.Default.Person,
-                brand = HomeStoryBrand.Core,
-                subtitle = homePrimaryContactLink.subtitle,
-                onClick = { openExternalLink(context, homePrimaryContactLink.url) },
-            )
-
             HomeLaneSection(
-                title = "Social Profiles",
-                subtitle = "Brand und Artists.",
+                title = "Music Hub",
+                subtitle = "Studio und Artist-Links.",
                 accent = colorScheme.skydownSpotify(),
             ) {
-                homeZweizweiSocialLinks.forEach { link ->
-                    HomeStoryLinkButton(
-                        title = link.title,
-                        icon = Icons.Default.MusicNote,
-                        brand = HomeStoryBrand.Instagram,
-                        subtitle = link.subtitle,
-                        onClick = { openExternalLink(context, link.url) },
-                    )
-                }
-
-                HomeStoryLinkButton(
-                    title = "Beats",
-                    icon = Icons.Default.GraphicEq,
-                    onClick = onOpenBeatHub,
-                )
-
                 HomeStoryLinkButton(
                     title = "Studio",
                     icon = Icons.Default.AutoAwesome,
@@ -1931,11 +1729,8 @@ private fun homeVideoModeDescription(video: FeaturedVideoHighlight): String {
 
 private fun homeTrackAudioKey(track: com.skydown.shared.model.Track): String = "track:${track.trackId}"
 
-private fun homeBeatAudioKey(beat: FeaturedBeatHighlight): String = "beat:${beat.id}"
-
 private fun homeTrackedSignalCount(uiState: HomeUiState): Int = listOf(
     uiState.featuredTrack,
-    uiState.featuredBeat,
     uiState.featuredVideo,
 ).count { it != null }
 
@@ -1959,18 +1754,12 @@ private fun homeGreetingSubtitle(activeSignalCount: Int, totalSignalCount: Int):
 
 private fun homeHeroPriorityTarget(
     hasTrackSignal: Boolean,
-    hasBeatSignal: Boolean,
     hasVideoSignal: Boolean,
 ): String {
     if (!hasTrackSignal) return "track"
-    if (!hasBeatSignal) return "beat"
     if (!hasVideoSignal) return "video"
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-    return when (hour) {
-        in 5..11 -> "track"
-        in 12..17 -> "beat"
-        else -> "video"
-    }
+    return if (hour < 12) "track" else "video"
 }
 
 private fun homeHasSpotifyTarget(track: com.skydown.shared.model.Track): Boolean {
@@ -2007,49 +1796,8 @@ private fun homeResolvedSpotifyArtistId(track: com.skydown.shared.model.Track): 
     return pathSegments[artistIndex + 1]
 }
 
-private data class HomeSocialLink(
-    val title: String,
-    val subtitle: String,
-    val url: String,
-)
-
-private val homePrimaryContactLink = HomeSocialLink(
-    title = "Yang D. Nash • Ansprechpartner",
-    subtitle = "@y.d.nash",
-    url = "https://www.instagram.com/y.d.nash/",
-)
-
-private val homeZweizweiSocialLinks = listOf(
-    HomeSocialLink(
-        title = "22 Music",
-        subtitle = "@zweizwei_music",
-        url = "https://www.instagram.com/zweizwei_music/",
-    ),
-    HomeSocialLink(
-        title = "JANNO",
-        subtitle = "@janno_official_",
-        url = "https://www.instagram.com/janno_official_/",
-    ),
-    HomeSocialLink(
-        title = "ThaDude",
-        subtitle = "@thadude_offizielle",
-        url = "https://www.instagram.com/thadude_offizielle/",
-    ),
-    HomeSocialLink(
-        title = "MAVE",
-        subtitle = "@mave__official",
-        url = "https://www.instagram.com/mave__official/",
-    ),
-    HomeSocialLink(
-        title = "TANGAJOE007",
-        subtitle = "@tangajoe007",
-        url = "https://www.instagram.com/tangajoe007/",
-    ),
-)
-
-private const val homeDestinationBeatHub = "home_beat_hub"
 private const val homeDestinationNicmaProducer = "home_nicma_producer"
 private const val homeDestinationVideoHub = "home_video_hub"
 /** LazyColumn index of [HomeMediaCluster] (0-based: hero, daily ops, command, utility, story, live signals, media, footer). */
 private const val homeMediaClusterSectionIndex = 3
-private const val homeSignalTotal = 3
+private const val homeSignalTotal = 2

@@ -5,7 +5,6 @@ struct HomeMediaCluster: View {
     let colorScheme: ColorScheme
     @ObservedObject var viewModel: HomeViewModel
     @ObservedObject var playbackManager: AudioPlayerManager
-    @ObservedObject var beatPlaybackManager: BeatPlaybackManager
     @ObservedObject var videoPlaybackManager: HomeInlineVideoPlaybackManager
     let onOpenVideoHub: (FeaturedHomeVideo) -> Void
     let onOpenOriginal: (FeaturedHomeVideo) -> Void
@@ -13,30 +12,19 @@ struct HomeMediaCluster: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HomeLatestReleaseCard(viewModel: viewModel, playbackManager: playbackManager, colorScheme: colorScheme) { track in
-                beatPlaybackManager.stop()
                 videoPlaybackManager.stop()
                 playbackManager.playPreview(for: track)
             }
             .id("release")
 
-            HomeLatestBeatCard(viewModel: viewModel, playbackManager: beatPlaybackManager, colorScheme: colorScheme) { beat in
-                playbackManager.stop()
-                videoPlaybackManager.stop()
-                beatPlaybackManager.togglePlayback(for: beat.asBeatHubItem)
-            }
-            .id("beat")
-
             HomeLatestVideoCard(viewModel: viewModel, playbackManager: videoPlaybackManager, colorScheme: colorScheme) { video in
-                beatPlaybackManager.stop()
                 playbackManager.stop()
                 videoPlaybackManager.togglePlayback(for: video)
             } onOpenVideoHub: { video in
-                beatPlaybackManager.stop()
                 playbackManager.stop()
                 videoPlaybackManager.stop()
                 onOpenVideoHub(video)
             } onOpenOriginal: { video in
-                beatPlaybackManager.stop()
                 playbackManager.stop()
                 videoPlaybackManager.stop()
                 onOpenOriginal(video)
@@ -55,7 +43,7 @@ private struct HomeLatestReleaseCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HomeSectionBanner(title: "Music Update", subtitle: "Neuester Release direkt im Hub.", icon: "music.note", colorScheme: colorScheme, accent: AppColors.accent(for: colorScheme))
+            HomeSectionBanner(title: "Music Update", subtitle: "Neuester Release aus dem Katalog.", icon: "music.note", colorScheme: colorScheme, accent: AppColors.accent(for: colorScheme))
             if let track = viewModel.featuredTrack {
                 let hasPreview = !(track.previewUrl?.isEmpty ?? true)
                 let hasSpotifyTarget = homeSpotifyTargetURL(for: track) != nil
@@ -88,43 +76,6 @@ private struct HomeLatestReleaseCard: View {
                 }
             } else {
                 Text(viewModel.homeTrackMessage ?? "Neuer Song erscheint hier.").font(.body).foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
-        }
-        .padding(SkydownLayout.cardPadding)
-        .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.accent(for: colorScheme), cornerRadius: SkydownLayout.cardCornerRadius, shadowRadius: 9, shadowYOffset: 4)
-    }
-}
-
-private struct HomeLatestBeatCard: View {
-    @ObservedObject var viewModel: HomeViewModel
-    @ObservedObject var playbackManager: BeatPlaybackManager
-    let colorScheme: ColorScheme
-    let onPlayToggle: (FeaturedHomeBeat) -> Void
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HomeSectionBanner(title: "Beat Update", subtitle: "Studio-Update fuer den naechsten Drop.", icon: "waveform", colorScheme: colorScheme, accent: AppColors.accentMystic(for: colorScheme))
-            if let beat = viewModel.featuredBeat {
-                HStack(alignment: .top, spacing: 14) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 22).fill(AppColors.secondaryBackground(for: colorScheme)).frame(width: 82, height: 82)
-                        Image(systemName: "waveform.circle.fill").font(.title2).foregroundColor(AppColors.accent(for: colorScheme))
-                    }
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(beat.title).font(.headline).foregroundColor(AppColors.text(for: colorScheme))
-                        Text(beat.artistName).font(.subheadline).foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        if !beat.notes.isEmpty { Text(beat.notes).font(.caption).foregroundColor(AppColors.secondaryText(for: colorScheme)) }
-                    }
-                    Spacer()
-                }
-                if beat.isPlayable, !beat.downloadURL.isEmpty {
-                    HomeActionButton(title: playbackManager.currentBeatID == beat.id ? "Stoppen" : "Abspielen", icon: playbackManager.currentBeatID == beat.id ? "stop.fill" : "play.fill", colorScheme: colorScheme, isPrimary: playbackManager.currentBeatID == beat.id) { onPlayToggle(beat) }
-                } else if let beatURL = URL(string: beat.openURLString), !beat.openURLString.isEmpty {
-                    HomeActionButton(title: beat.provider.originalVideoActionTitle, icon: "arrow.up.forward.square", colorScheme: colorScheme, isPrimary: false) { openURL(beatURL) }
-                }
-            } else {
-                Text(viewModel.homeBeatMessage ?? "Neuer Beat erscheint hier.").font(.body).foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
         }
         .padding(SkydownLayout.cardPadding)
@@ -191,12 +142,6 @@ private func homeSpotifyActionTitle(for track: Track) -> String {
     if let spotifyArtistID = track.spotifyArtistID, !spotifyArtistID.isEmpty { return "Artist auf Spotify" }
     if let externalURL = track.externalURL, externalURL.contains("/artist/") { return "Artist auf Spotify" }
     return "Auf Spotify ansehen"
-}
-
-private extension FeaturedHomeBeat {
-    var asBeatHubItem: NicmaBeatHubItem {
-        NicmaBeatHubItem(id: id, title: title, artistName: artistName, fileName: title, downloadURL: downloadURL, externalURL: externalURL, notes: notes, uploaderName: artistName, uploaderEmail: "", uploaderID: "", mimeType: "audio/mpeg", storagePath: "", isPublic: true, sourceProvider: sourceProvider, sourceFileID: "", createdAt: .now)
-    }
 }
 
 enum HomeActionBrand { case neutral, spotify, instagram, youtube }

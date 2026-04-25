@@ -38,14 +38,13 @@ struct HomeHeroIntroCard: View {
     let colorScheme: ColorScheme
     let onOpenProfile: () -> Void
     let onOpenTrack: () -> Void
-    let onOpenBeat: () -> Void
     let onOpenVideo: () -> Void
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
 
-    private enum HeroPriorityTarget { case track, beat, video }
+    private enum HeroPriorityTarget { case track, video }
 
     private var activeSignalCount: Int {
-        [viewModel.featuredTrack != nil, viewModel.featuredBeat != nil, viewModel.featuredVideo != nil].filter { $0 }.count
+        [viewModel.featuredTrack != nil, viewModel.featuredVideo != nil].filter { $0 }.count
     }
     private var daypartGreeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -53,31 +52,28 @@ struct HomeHeroIntroCard: View {
     }
     private var dynamicTitle: String { "\(daypartGreeting), Creator." }
     private var dynamicSubtitle: String {
-        let signalLine = activeSignalCount == 3 ? "Alle Kernsignale sind live." : "Nicht alle Kernsignale sind live."
+        let signalLine = activeSignalCount == 2 ? "Alle Kernsignale sind live." : "Nicht alle Kernsignale sind live."
         return "Weitblick oben. Fokus unten. \(signalLine)"
     }
-    private var dynamicDetail: String { "\(activeSignalCount)/3 live · Daily Ops bereit" }
+    private var dynamicDetail: String { "\(activeSignalCount)/2 live · Daily Ops bereit" }
     private var heroPriorityTarget: HeroPriorityTarget {
         if viewModel.featuredTrack == nil { return .track }
-        if viewModel.featuredBeat == nil { return .beat }
         if viewModel.featuredVideo == nil { return .video }
         let hour = Calendar.current.component(.hour, from: Date())
-        switch hour { case 5..<12: return .track; case 12..<18: return .beat; default: return .video }
+        return hour < 12 ? .track : .video
     }
     private func heroPillTint(for target: HeroPriorityTarget) -> Color {
         let base: Color
         switch target {
         case .track: base = AppColors.accent(for: colorScheme)
-        case .beat: base = AppColors.accentMystic(for: colorScheme)
         case .video: base = AppColors.accentHighlight(for: colorScheme)
         }
         return heroPriorityTarget == target ? base : base.opacity(0.32)
     }
     private var heroPillOrder: [HeroPriorityTarget] {
         switch heroPriorityTarget {
-        case .track: return [.track, .beat, .video]
-        case .beat: return [.beat, .track, .video]
-        case .video: return [.video, .track, .beat]
+        case .track: return [.track, .video]
+        case .video: return [.video, .track]
         }
     }
 
@@ -108,15 +104,6 @@ struct HomeHeroIntroCard: View {
                                 colorScheme: colorScheme,
                                 tint: heroPillTint(for: .track),
                                 onTap: onOpenTrack
-                            )
-                        case .beat:
-                            BrandHeroPill(
-                                text: heroPriorityTarget == .beat
-                                    ? (viewModel.featuredBeat == nil ? "Next: Beats laden" : "Next: Beats")
-                                    : (viewModel.featuredBeat == nil ? "Beats laden" : "Beats live"),
-                                colorScheme: colorScheme,
-                                tint: heroPillTint(for: .beat),
-                                onTap: onOpenBeat
                             )
                         case .video:
                             BrandHeroPill(

@@ -7,7 +7,6 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.nash.skyos.data.ExternalMediaProvider
 import com.nash.skyos.data.AppContainer
-import com.nash.skyos.ui.model.FeaturedBeatHighlight
 import com.nash.skyos.ui.model.FeaturedVideoHighlight
 import com.nash.skyos.ui.model.HomeUiState
 import com.skydown.shared.model.Track
@@ -54,23 +53,6 @@ class HomeViewModel : ViewModel() {
                             featuredTrack = latestTrack,
                             homeTrackMessage = if (latestTrack == null) {
                                 "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
-                            } else {
-                                null
-                            },
-                        )
-                        updatedState.copy(contentSignal = buildContentSignal(updatedState))
-                    }
-                }
-
-                launch {
-                    val latestBeat = loadLatestBeat()
-                    if (!isCurrentRefresh(generation)) return@launch
-                    _uiState.update {
-                        if (!isCurrentRefresh(generation)) return@update it
-                        val updatedState = it.copy(
-                            featuredBeat = latestBeat,
-                            homeBeatMessage = if (latestBeat == null) {
-                                "Sobald ein freigegebener Beat live ist, taucht er hier direkt auf."
                             } else {
                                 null
                             },
@@ -219,7 +201,6 @@ class HomeViewModel : ViewModel() {
         return when {
             state.featuredTrack != null -> "New drop active: ${state.featuredTrack.trackName}"
             state.featuredVideo != null -> "Video activity: ${state.featuredVideo.title}"
-            state.featuredBeat != null -> "Music progress: ${state.featuredBeat.title}"
             else -> null
         }
     }
@@ -286,21 +267,6 @@ class HomeViewModel : ViewModel() {
             ?: runCatching { java.time.Year.parse(rawValue).atDay(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
     }
 
-    private suspend fun loadLatestBeat(): FeaturedBeatHighlight? {
-        val snapshot = firestore.collection("nicmaBeatHub")
-            .whereEqualTo("isPublic", true)
-            .get()
-            .await()
-
-        val featuredBeats = snapshot.documents
-            .sortedByDescending(::documentTimestamp)
-            .mapNotNull(::mapFeaturedBeat)
-
-        return featuredBeats.firstOrNull { it.supportsDirectPlayback }
-            ?: featuredBeats.firstOrNull { it.supportsExternalFallback }
-            ?: featuredBeats.firstOrNull()
-    }
-
     private suspend fun loadLatestVideo(): FeaturedVideoHighlight? {
         val featuredSnapshot = firestore.collection("videographyHub")
             .whereEqualTo("isPublic", true)
@@ -344,30 +310,6 @@ class HomeViewModel : ViewModel() {
         )
     }
 
-    private fun mapFeaturedBeat(document: com.google.firebase.firestore.DocumentSnapshot): FeaturedBeatHighlight? {
-        val title = document.getString("title").orEmpty()
-        val artistName = document.getString("artistName").orEmpty()
-        val downloadUrl = document.getString("downloadURL").orEmpty()
-        val fileName = document.getString("fileName").orEmpty()
-        val mimeType = document.getString("mimeType").orEmpty()
-        if (title.isBlank()) return null
-
-        return FeaturedBeatHighlight(
-            id = document.id,
-            title = title,
-            artistName = artistName.ifBlank { "Skydown Beat" },
-            notes = document.getString("notes").orEmpty(),
-            downloadUrl = downloadUrl,
-            externalUrl = document.getString("externalURL").orEmpty(),
-            sourceProvider = document.getString("sourceProvider")
-                ?: ExternalMediaProvider.FIREBASE_STORAGE.rawValue,
-            isPlayable = mimeType.startsWith("audio/") ||
-                fileName.endsWith(".mp3", ignoreCase = true) ||
-                fileName.endsWith(".wav", ignoreCase = true) ||
-                fileName.endsWith(".m4a", ignoreCase = true),
-        )
-    }
-
     private fun documentTimestamp(document: com.google.firebase.firestore.DocumentSnapshot): Long {
         return when (val createdAt = document.get("createdAt")) {
             is Timestamp -> createdAt.toDate().time
@@ -377,9 +319,3 @@ class HomeViewModel : ViewModel() {
         }
     }
 }
-
-private val FeaturedBeatHighlight.supportsDirectPlayback: Boolean
-    get() = isPlayable && downloadUrl.isNotBlank()
-
-private val FeaturedBeatHighlight.supportsExternalFallback: Boolean
-    get() = openUrl.isNotBlank()

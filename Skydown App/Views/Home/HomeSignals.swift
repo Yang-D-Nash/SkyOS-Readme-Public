@@ -50,42 +50,36 @@ struct HomeDailyOpsStrip: View {
     let activeSignalCount: Int
     let totalSignalCount: Int
     let hasTrackSignal: Bool
-    let hasBeatSignal: Bool
     let hasVideoSignal: Bool
     let onRefresh: () -> Void
     let onOpenRelease: () -> Void
-    let onOpenBeat: () -> Void
     let onOpenVideo: () -> Void
 
-    private enum HomePriorityTarget { case music, beats, visuals }
+    private enum HomePriorityTarget { case music, visuals }
     private var currentHour: Int { Calendar.current.component(.hour, from: Date()) }
     private var priorityTarget: HomePriorityTarget {
         if !hasTrackSignal { return .music }
-        if !hasBeatSignal { return .beats }
         if !hasVideoSignal { return .visuals }
-        switch currentHour { case 5..<12: return .music; case 12..<18: return .beats; default: return .visuals }
+        return currentHour < 12 ? .music : .visuals
     }
     private var priorityTitle: String {
         switch priorityTarget {
         case .music: return hasTrackSignal ? "Jetzt wichtig: Musik" : "Jetzt wichtig: Musik herstellen"
-        case .beats: return hasBeatSignal ? "Jetzt wichtig: Beats" : "Jetzt wichtig: Beats herstellen"
         case .visuals: return hasVideoSignal ? "Jetzt wichtig: Visuals" : "Jetzt wichtig: Visuals herstellen"
         }
     }
     private func triggerPriorityAction() {
-        switch priorityTarget { case .music: onOpenRelease(); case .beats: onOpenBeat(); case .visuals: onOpenVideo() }
+        switch priorityTarget { case .music: onOpenRelease(); case .visuals: onOpenVideo() }
     }
     private var priorityHint: String {
         switch priorityTarget {
         case .music: return hasTrackSignal ? "Morgens zuerst Musik-Status checken." : "Musik-Signal ist noch nicht live."
-        case .beats: return hasBeatSignal ? "Tagsueber zuerst Beats fokussieren." : "Beats-Signal fehlt noch."
         case .visuals: return hasVideoSignal ? "Abends zuerst Visuals-Status pruefen." : "Visuals-Signal fehlt noch."
         }
     }
     private var priorityAccent: Color {
         switch priorityTarget {
         case .music: return AppColors.accent(for: colorScheme)
-        case .beats: return AppColors.accentMystic(for: colorScheme)
         case .visuals: return AppColors.accentHighlight(for: colorScheme)
         }
     }
@@ -135,10 +129,20 @@ struct HomeCommandDockStrip: View {
     let onOpenWorkflow: (() -> Void)?
     let onOpenCart: () -> Void
     let onOpenSettings: () -> Void
-    private var priorityAccent: Color { priorityTarget == "music" ? AppColors.accent(for: colorScheme) : (priorityTarget == "beats" ? AppColors.accentMystic(for: colorScheme) : AppColors.accentHighlight(for: colorScheme)) }
+    private var priorityAccent: Color { priorityTarget == "music" ? AppColors.accent(for: colorScheme) : AppColors.accentHighlight(for: colorScheme) }
     private func actionTint(_ target: String) -> Color {
-        let base = target == "music" ? AppColors.accent(for: colorScheme) : (target == "beats" ? AppColors.accentMystic(for: colorScheme) : AppColors.accentHighlight(for: colorScheme))
-        return target == priorityTarget ? base : base.opacity(0.55)
+        switch target {
+        case "agent":
+            return AppColors.accentMystic(for: colorScheme).opacity((onOpenWorkflow != nil) ? 1.0 : 0.4)
+        case "music":
+            let base = AppColors.accent(for: colorScheme)
+            return priorityTarget == "music" ? base : base.opacity(0.55)
+        case "visuals":
+            let base = AppColors.accentHighlight(for: colorScheme)
+            return priorityTarget == "visuals" ? base : base.opacity(0.55)
+        default:
+            return AppColors.accent(for: colorScheme)
+        }
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -159,7 +163,7 @@ struct HomeCommandDockStrip: View {
                     Button("KI-Agent", action: onOpenWorkflow)
                         .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
                         .buttonStyle(.borderedProminent)
-                        .tint(actionTint("beats"))
+                        .tint(actionTint("agent"))
                 }
                 Button("Warenkorb", action: onOpenCart)
                     .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
@@ -180,10 +184,8 @@ struct HomeCommandDockStrip: View {
 struct HomeLiveSignalSurface: View {
     let colorScheme: ColorScheme
     let hasTrackSignal: Bool
-    let hasBeatSignal: Bool
     let hasVideoSignal: Bool
     let trackName: String?
-    let beatName: String?
     let videoName: String?
     let aiUsageWarning: String?
     let agentRunning: Bool?
@@ -194,16 +196,14 @@ struct HomeLiveSignalSurface: View {
     let recoverableError: String?
     let contentSignal: String?
 
-    private var missingCount: Int { [hasTrackSignal, hasBeatSignal, hasVideoSignal].filter { !$0 }.count }
+    private var missingCount: Int { [hasTrackSignal, hasVideoSignal].filter { !$0 }.count }
     private var nowText: String {
         if hasTrackSignal, let trackName, !trackName.isEmpty { return "Now: Music live - \(trackName)" }
-        if hasBeatSignal, let beatName, !beatName.isEmpty { return "Now: Beat live - \(beatName)" }
         if hasVideoSignal, let videoName, !videoName.isEmpty { return "Now: Visual live - \(videoName)" }
         return "Now: Noch kein Kernsignal live."
     }
     private var nextText: String {
         if !hasTrackSignal { return "Next: Musik-Signal finalisieren." }
-        if !hasBeatSignal { return "Next: Beat-Signal finalisieren." }
         if !hasVideoSignal { return "Next: Visual-Signal finalisieren." }
         return "Next: Fokus halten und direkt im Content arbeiten."
     }

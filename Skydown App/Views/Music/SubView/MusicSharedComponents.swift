@@ -304,8 +304,8 @@ let artistInstagramDestinations: [String: MusicInstagramDestination] = [
     "MAVE": MusicInstagramDestination(
         id: "artist_mave",
         title: "MAVE",
-        handle: "@mave__official",
-        urlString: "https://www.instagram.com/mave__official/",
+        handle: "@mave040_official",
+        urlString: "https://www.instagram.com/mave040_official/",
         helper: "Artist aktuell ausgewaehlt"
     ),
     "ThaDude": MusicInstagramDestination(

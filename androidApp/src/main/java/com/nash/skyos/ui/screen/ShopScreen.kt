@@ -24,12 +24,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -43,7 +49,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,6 +66,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -90,8 +99,8 @@ import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.skydownContentPadding
+import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownPressable
-import com.nash.skyos.ui.component.skydownScreenBrush
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.theme.skydownAccentMystic
 import com.nash.skyos.ui.model.ShopUiState
@@ -118,6 +127,7 @@ fun ShopScreen(
     val mainSectionSpacing = rememberSkydownScreenSectionSpacing() + 3.dp
     val collabLanes = remember(uiState.items) { buildShopCollabLanes(uiState.items) }
     var selectedCollabLaneId by rememberSaveable { mutableStateOf(ShopCollabLane.ALL_ID) }
+    var openedCollectionLaneId by rememberSaveable { mutableStateOf<String?>(null) }
     val filteredItems = remember(uiState.items, selectedCollabLaneId) {
         if (selectedCollabLaneId == ShopCollabLane.ALL_ID) {
             uiState.items
@@ -135,6 +145,19 @@ fun ShopScreen(
                 itemCount = uiState.items.size,
                 isCoreLane = false,
             )
+    }
+    val openedCollectionLane = remember(collabLanes, openedCollectionLaneId) {
+        openedCollectionLaneId?.let { laneId -> collabLanes.firstOrNull { it.id == laneId } }
+    }
+    val openedCollectionItems = remember(uiState.items, openedCollectionLaneId) {
+        val laneId = openedCollectionLaneId
+        if (laneId == null) {
+            emptyList()
+        } else if (laneId == ShopCollabLane.ALL_ID) {
+            uiState.items
+        } else {
+            uiState.items.filter { item -> item.belongsToLane(laneId) }
+        }
     }
     val laneCount = remember(collabLanes, uiState.items) {
         val resolvedCount = collabLanes.count { it.id != ShopCollabLane.ALL_ID }
@@ -208,13 +231,11 @@ fun ShopScreen(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    skydownScreenBrush(
-                        primaryColor = MaterialTheme.colorScheme.primary,
-                        secondaryColor = MaterialTheme.colorScheme.skydownAccentMystic(),
-                        primaryAlpha = 0.028f,
-                        secondaryAlpha = 0.018f,
-                    ),
+                .skydownAtmosphereBackground(
+                    primaryColor = MaterialTheme.colorScheme.primary,
+                    secondaryColor = MaterialTheme.colorScheme.skydownAccentMystic(),
+                    primaryAlpha = 0.028f,
+                    secondaryAlpha = 0.018f,
                 ),
         ) {
             val isWideLayout = maxWidth >= 920.dp
@@ -233,16 +254,16 @@ fun ShopScreen(
                     )
                 }
 
-                if (uiState.items.isNotEmpty()) {
-                    item {
-                        ShopMerchOpeningBlock(
-                            showFeatured = editorialPickItems.isNotEmpty(),
-                            featuredItem = featuredDropItem,
-                            editorialPicks = editorialPickItems,
-                            onOpenItem = viewModel::selectItem,
-                            showConnectorLineAboveBrowse = editorialPickItems.isNotEmpty(),
-                        )
-                    }
+                item {
+                    ShopWelcomeQuickEntryCard(
+                        lanes = collabLanes,
+                        selectedLaneId = selectedCollabLaneId,
+                        onSelect = { lane -> selectedCollabLaneId = lane.id },
+                        onOpenLane = { lane ->
+                            selectedCollabLaneId = lane.id
+                            openedCollectionLaneId = lane.id
+                        },
+                    )
                 }
 
                 if (uiState.isAdmin) {
@@ -252,6 +273,19 @@ fun ShopScreen(
                             onToggleStore = viewModel::toggleStoreOpen,
                             onSyncShopify = viewModel::syncShopifyCatalog,
                         )
+                    }
+                    item {
+                        SkydownCard(contentPadding = PaddingValues(14.dp)) {
+                            BrandActionButton(
+                                text = "Owner Settings oeffnen",
+                                onClick = onOpenSettings,
+                                accent = MaterialTheme.colorScheme.tertiary,
+                                icon = Icons.Default.Person,
+                                filled = false,
+                                compact = false,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                 }
 
@@ -310,115 +344,6 @@ fun ShopScreen(
                             },
                         )
                     }
-                } else {
-                    if (isWideLayout) {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalAlignment = Alignment.Top,
-                            ) {
-                                ShopCollabSidebar(
-                                    lanes = collabLanes,
-                                    selectedLaneId = selectedCollabLaneId,
-                                    onSelect = { lane -> selectedCollabLaneId = lane.id },
-                                    modifier = Modifier.width(248.dp),
-                                )
-
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(18.dp),
-                                ) {
-                                    ShopCollabSelectionCard(
-                                        lane = selectedCollabLane,
-                                        totalItemCount = uiState.items.size,
-                                    )
-
-                                    if (filteredItems.isEmpty()) {
-                                        ShopMessageCard(
-                                            title = stringResource(R.string.shop_filter_empty_title),
-                                            body = stringResource(
-                                                R.string.shop_filter_empty_body,
-                                                shopLaneTitle(selectedCollabLane),
-                                            ),
-                                            icon = Icons.Default.Person,
-                                            accent = MaterialTheme.colorScheme.primary,
-                                            tag = "FILTER",
-                                        )
-                                    } else {
-                                        Column(
-                                            verticalArrangement = Arrangement.spacedBy(9.dp),
-                                        ) {
-                                            filteredItems.forEachIndexed { index, item ->
-                                                MerchandiseCard(
-                                                    item = item,
-                                                    onTap = viewModel::selectItem,
-                                                    modifier = Modifier.padding(
-                                                        top = if (index == 2) 18.dp else 0.dp,
-                                                    ),
-                                                    shelfHighlight = index < 2,
-                                                    shelfSettled = index > 2,
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        item {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                            ) {
-                                ShopCollabCarousel(
-                                    lanes = collabLanes,
-                                    selectedLaneId = selectedCollabLaneId,
-                                    totalItemCount = uiState.items.size,
-                                    onSelect = { lane -> selectedCollabLaneId = lane.id },
-                                )
-
-                                if (collabLanes.size > 1) {
-                                    ShopCollabQuickGrid(
-                                        lanes = collabLanes,
-                                        selectedLaneId = selectedCollabLaneId,
-                                        onSelect = { lane -> selectedCollabLaneId = lane.id },
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    if (!isWideLayout) {
-                        if (filteredItems.isEmpty()) {
-                            item {
-                                ShopMessageCard(
-                                    title = stringResource(R.string.shop_filter_empty_title),
-                                    body = stringResource(
-                                        R.string.shop_filter_empty_body,
-                                        shopLaneTitle(selectedCollabLane),
-                                    ),
-                                    icon = Icons.Default.Person,
-                                    accent = MaterialTheme.colorScheme.primary,
-                                    tag = "FILTER",
-                                )
-                            }
-                        } else {
-                            itemsIndexed(
-                                filteredItems,
-                                key = { _, it -> it.id.orEmpty() },
-                            ) { index, item ->
-                                MerchandiseCard(
-                                    item = item,
-                                    onTap = viewModel::selectItem,
-                                    modifier = Modifier.padding(
-                                        top = if (index == 2) 18.dp else 0.dp,
-                                    ),
-                                    shelfHighlight = index < 2,
-                                    shelfSettled = index > 2,
-                                )
-                            }
-                        }
-                    }
                 }
             }
 
@@ -439,6 +364,15 @@ fun ShopScreen(
                             viewModel.dismissSelectedItem()
                         }
                     },
+                )
+            }
+
+            openedCollectionLane?.let { lane ->
+                ShopCollectionDialog(
+                    lane = lane,
+                    items = openedCollectionItems,
+                    onBack = { openedCollectionLaneId = null },
+                    onOpenItem = viewModel::selectItem,
                 )
             }
 
@@ -484,7 +418,13 @@ private fun ShopOverviewCard(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onSurfaceClick,
+                    ),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 BrandPill(text = pieceLabel, tint = MaterialTheme.colorScheme.primary)
@@ -520,42 +460,72 @@ private fun ShopOverviewCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                ShopHeroStatusCard(
-                    label = stringResource(R.string.shop_hero_metric_catalog),
-                    value = if (uiState.isCatalogLoading || uiState.isSyncingCatalog) {
-                        stringResource(R.string.shop_hero_metric_value_updating)
-                    } else {
-                        uiState.items.size.toString()
-                    },
-                    icon = Icons.Default.ShoppingBag,
-                    accent = MaterialTheme.colorScheme.primary,
-                    isActive = uiState.isCatalogLoading || uiState.isSyncingCatalog || uiState.items.isNotEmpty(),
-                    modifier = Modifier.weight(1f),
-                )
-                ShopHeroStatusCard(
-                    label = stringResource(R.string.shop_hero_metric_store),
-                    value = if (uiState.isStoreOpen) {
-                        stringResource(R.string.shop_hero_metric_value_open)
-                    } else {
-                        stringResource(R.string.shop_hero_metric_value_closed)
-                    },
-                    icon = Icons.Default.CheckCircle,
-                    accent = MaterialTheme.colorScheme.primary,
-                    isActive = uiState.isStoreOpen,
-                    modifier = Modifier.weight(1f),
-                )
-                ShopHeroStatusCard(
-                    label = stringResource(R.string.shop_hero_metric_account),
-                    value = if (uiState.isLoggedIn) {
-                        stringResource(R.string.shop_hero_metric_signed_in)
-                    } else {
-                        stringResource(R.string.shop_hero_metric_guest)
-                    },
-                    icon = Icons.Default.Person,
-                    accent = MaterialTheme.colorScheme.tertiary,
-                    isActive = uiState.isLoggedIn,
-                    modifier = Modifier.weight(1f),
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onSurfaceClick,
+                        ),
+                ) {
+                    ShopHeroStatusCard(
+                        label = stringResource(R.string.shop_hero_metric_catalog),
+                        value = if (uiState.isCatalogLoading || uiState.isSyncingCatalog) {
+                            stringResource(R.string.shop_hero_metric_value_updating)
+                        } else {
+                            uiState.items.size.toString()
+                        },
+                        icon = Icons.Default.ShoppingBag,
+                        accent = MaterialTheme.colorScheme.primary,
+                        isActive = uiState.isCatalogLoading || uiState.isSyncingCatalog || uiState.items.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onSurfaceClick,
+                        ),
+                ) {
+                    ShopHeroStatusCard(
+                        label = stringResource(R.string.shop_hero_metric_store),
+                        value = if (uiState.isStoreOpen) {
+                            stringResource(R.string.shop_hero_metric_value_open)
+                        } else {
+                            stringResource(R.string.shop_hero_metric_value_closed)
+                        },
+                        icon = Icons.Default.CheckCircle,
+                        accent = MaterialTheme.colorScheme.primary,
+                        isActive = uiState.isStoreOpen,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onSurfaceClick,
+                        ),
+                ) {
+                    ShopHeroStatusCard(
+                        label = stringResource(R.string.shop_hero_metric_account),
+                        value = if (uiState.isLoggedIn) {
+                            stringResource(R.string.shop_hero_metric_signed_in)
+                        } else {
+                            stringResource(R.string.shop_hero_metric_guest)
+                        },
+                        icon = Icons.Default.Person,
+                        accent = MaterialTheme.colorScheme.tertiary,
+                        isActive = uiState.isLoggedIn,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -849,6 +819,207 @@ private fun ShopAdminControlsCard(
 }
 
 @Composable
+private fun ShopWelcomeQuickEntryCard(
+    lanes: List<ShopCollabLane>,
+    selectedLaneId: String,
+    onSelect: (ShopCollabLane) -> Unit,
+    onOpenLane: (ShopCollabLane) -> Unit,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val headerInteraction = remember { MutableInteractionSource() }
+    val quickLanes = remember(lanes) {
+        val collections = lanes
+            .filter { it.id != ShopCollabLane.ALL_ID }
+            .sortedWith(
+                compareByDescending<ShopCollabLane> { it.itemCount }
+                    .thenBy { it.title.lowercase() },
+            )
+        collections
+    }
+    SkydownCard(contentPadding = PaddingValues(16.dp)) {
+        BrandActionButton(
+            text = "Willkommen im Store · Alle Drops",
+            onClick = {
+                lanes.firstOrNull { it.id == ShopCollabLane.ALL_ID }?.let(onOpenLane)
+            },
+            accent = colorScheme.primary,
+            icon = Icons.Default.ShoppingBag,
+            filled = true,
+            compact = false,
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    scaleX = 1.01f
+                    scaleY = 1.01f
+                }
+                .skydownPressable(headerInteraction, pressedScale = 0.988f),
+        )
+        Column(
+            modifier = Modifier.padding(top = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            quickLanes.forEach { lane ->
+                val laneInteraction = remember(lane.id) { MutableInteractionSource() }
+                val isActive = lane.id == selectedLaneId
+                val animatedScale by animateFloatAsState(
+                    targetValue = if (isActive) 1.0f else 0.985f,
+                    animationSpec = tween(durationMillis = 220),
+                    label = "shopLaneScale",
+                )
+                val animatedAlpha by animateFloatAsState(
+                    targetValue = if (isActive) 1.0f else 0.92f,
+                    animationSpec = tween(durationMillis = 220),
+                    label = "shopLaneAlpha",
+                )
+                BrandActionButton(
+                    text = if (isActive) "Aktiv · ${shopLaneTitle(lane)}" else shopLaneTitle(lane),
+                    onClick = { onOpenLane(lane) },
+                    accent = colorScheme.primary,
+                    icon = Icons.Default.ShoppingBag,
+                    filled = isActive,
+                    compact = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            scaleX = animatedScale
+                            scaleY = animatedScale
+                            alpha = animatedAlpha
+                        }
+                        .skydownPressable(laneInteraction, pressedScale = 0.982f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun ShopCollectionDialog(
+    lane: ShopCollabLane,
+    items: List<MerchandiseItem>,
+    onBack: () -> Unit,
+    onOpenItem: (MerchandiseItem) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val listState = rememberLazyListState()
+    val headerParallax by animateFloatAsState(
+        targetValue = -(listState.firstVisibleItemScrollOffset * 0.08f),
+        animationSpec = tween(durationMillis = 120),
+        label = "shopCollectionHeaderParallax",
+    )
+    ModalBottomSheet(
+        onDismissRequest = onBack,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.background,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .size(width = 44.dp, height = 5.dp)
+                    .clip(RoundedCornerShape(99.dp))
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f)),
+            )
+        },
+        modifier = Modifier.clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)),
+    ) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = shopLaneTitle(lane),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Zurueck",
+                            )
+                        }
+                    },
+                    colors = skydownTopBarColors(),
+                )
+            },
+        ) { innerPadding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .skydownAtmosphereBackground(
+                        primaryColor = MaterialTheme.colorScheme.primary,
+                        secondaryColor = MaterialTheme.colorScheme.skydownAccentMystic(),
+                        primaryAlpha = 0.03f,
+                        secondaryAlpha = 0.02f,
+                    ),
+                state = listState,
+                contentPadding = skydownContentPadding(innerPadding),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                item {
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn(animationSpec = tween(260)) + slideInVertically(
+                            initialOffsetY = { it / 7 },
+                            animationSpec = tween(260),
+                        ),
+                    ) {
+                        SkydownCard(
+                            contentPadding = PaddingValues(16.dp),
+                            modifier = Modifier.graphicsLayer { translationY = headerParallax },
+                        ) {
+                            BrandSectionBanner(
+                                title = shopLaneTitle(lane),
+                                subtitle = shopLaneBannerSubtitle(lane),
+                                accent = MaterialTheme.colorScheme.primary,
+                                icon = if (lane.id == ShopCollabLane.ALL_ID) Icons.Default.ShoppingBag else Icons.Default.Person,
+                                tag = shopPiecesLabel(lane.itemCount).uppercase(),
+                            )
+                        }
+                    }
+                }
+                if (items.isEmpty()) {
+                    item {
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn(animationSpec = tween(280)) + slideInVertically(
+                                initialOffsetY = { it / 8 },
+                                animationSpec = tween(280),
+                            ),
+                        ) {
+                            ShopMessageCard(
+                                title = stringResource(R.string.shop_filter_empty_title),
+                                body = stringResource(
+                                    R.string.shop_filter_empty_body,
+                                    shopLaneTitle(lane),
+                                ),
+                                icon = Icons.Default.Person,
+                                accent = MaterialTheme.colorScheme.primary,
+                                tag = "FILTER",
+                            )
+                        }
+                    }
+                } else {
+                    itemsIndexed(items, key = { _, it -> it.id.orEmpty() }) { index, item ->
+                        MerchandiseCard(
+                            item = item,
+                            onTap = onOpenItem,
+                            modifier = Modifier.padding(
+                                top = if (index == 2) 18.dp else 0.dp,
+                            ),
+                            shelfHighlight = index < 2,
+                            shelfSettled = index > 2,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun ShopMessageCard(
     title: String,
     body: String,
@@ -1037,7 +1208,7 @@ private fun MerchandiseItem.laneMemberships(): List<Pair<String, String>> {
             value.trim().lowercase().takeIf { it.isNotEmpty() }
         }
         .distinct()
-    if (!shopifyProductId.isNullOrBlank() && normalizedHandles.isNotEmpty()) {
+    if (normalizedHandles.isNotEmpty()) {
         return normalizedHandles.map { handle -> "collection:$handle" to "collection" }
     }
     return listOf(merchCategoryKey to "category")
@@ -2156,3 +2327,4 @@ private fun ShopBadge(
         isActive = isActive,
     )
 }
+

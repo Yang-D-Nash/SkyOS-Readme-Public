@@ -105,7 +105,21 @@ If a debug build does not print a debug secret, verify the debug App Check depen
 active `google-services.json`. If a release build fails App Check, verify the release signing
 SHA-1 and SHA-256 in Firebase before changing any server-side enforcement.
 
-## 8. Instrumentation Expectations
+## 8. Launcher icon (adaptive)
+
+Adaptive foreground lives in `drawable/ic_launcher_foreground.xml` (bitmap `ic_launcher_foreground_src`,
+`android:gravity="fill"` so the PNG scales into the layer instead of being center-clipped).
+
+Inset margin: `@dimen/ic_launcher_foreground_inset` in `values/dimens.xml`. Keep this **small**
+(a few dp): together with `fill`, a **large** inset shrinks the artwork and a round mark looks
+tiny on the home screen. Raise the inset only if OEM masks still clip edges.
+
+**Note:** The bitmap is usually a *padded* 1024×1024 (`scripts/pad_skyos_app_icon.py` on the
+iOS master) so the circular adaptive mask does not cut into the mark. The **iOS** `AppIcon`
+uses the unpadded 1024 master; see `docs/assets/skyos-app-icon-1024.png` vs
+`docs/assets/skyos-app-icon-1024-android-padded.png` in [branding.md](branding.md).
+
+## 9. Instrumentation Expectations
 
 Before release, validate on a real Android device:
 
@@ -121,7 +135,7 @@ Before release, validate on a real Android device:
 The repo already contains Android instrumentation coverage for AI, merch, music, and video flows.
 Treat failures in these flows as release-significant.
 
-## 9. Release Standard
+## 10. Release Standard
 
 Android is only public-launch ready when:
 

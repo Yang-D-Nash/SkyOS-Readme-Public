@@ -15,11 +15,15 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.nash.skyos.R
 import com.nash.skyos.ui.theme.SkydownBodyCaptionTextStyle
 import com.nash.skyos.ui.theme.SkydownHeroEyebrowTextStyle
 import com.nash.skyos.ui.theme.SkydownPanelTitleTextStyle
@@ -98,6 +102,36 @@ fun skydownScreenBrush(
             cinematicShadow.copy(alpha = if (isDarkPalette) 0.055f else 0.030f),
             background,
         ),
+    )
+}
+
+@Composable
+fun Modifier.skydownAtmosphereBackground(
+    primaryColor: Color = MaterialTheme.colorScheme.primary,
+    secondaryColor: Color = MaterialTheme.colorScheme.secondary,
+    primaryAlpha: Float = 0.032f,
+    secondaryAlpha: Float = 0.024f,
+    /** `false` = solid app background + skyline only (e.g. launch landing); avoids stacking [skydownScreenBrush] on top of the photo. */
+    includeScreenGradient: Boolean = true,
+): Modifier {
+    val isDarkPalette = MaterialTheme.colorScheme.skydownIsDarkPalette()
+    val colorScheme = MaterialTheme.colorScheme
+    val withBase = if (includeScreenGradient) {
+        this.background(
+            skydownScreenBrush(
+                primaryColor = primaryColor,
+                secondaryColor = secondaryColor,
+                primaryAlpha = primaryAlpha,
+                secondaryAlpha = secondaryAlpha,
+            ),
+        )
+    } else {
+        this.background(colorScheme.skydownPrimaryBackground())
+    }
+    return withBase.paint(
+        painter = painterResource(id = R.drawable.skyline_atmosphere_background),
+        contentScale = ContentScale.Crop,
+        alpha = if (isDarkPalette) 0.16f else 0.08f,
     )
 }
 

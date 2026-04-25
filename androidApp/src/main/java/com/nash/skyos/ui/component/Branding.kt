@@ -70,6 +70,7 @@ import com.nash.skyos.ui.theme.skydownSecondaryText
 import com.nash.skyos.ui.theme.skydownText
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.semantics.Role
+import java.util.Locale
 
 enum class BrandArtwork(
     @param:DrawableRes val drawableRes: Int,
@@ -142,6 +143,12 @@ fun BrandHeroCard(
     val subtitleStyle = SkydownHeroSubtitleTextStyle
     val detailStyle = SkydownEditorialCaptionTextStyle
     val isDarkPalette = colorScheme.skydownIsDarkPalette()
+    val shouldShowEyebrow = eyebrow.isNotBlank() && !title.startsWith(eyebrow, ignoreCase = true)
+    val normalizedSubtitle = subtitle.normalizedHeroComparisonText()
+    val normalizedDetail = detail?.normalizedHeroComparisonText().orEmpty()
+    val shouldShowDetail = !detail.isNullOrBlank() &&
+        normalizedDetail.isNotEmpty() &&
+        normalizedDetail != normalizedSubtitle
     val heroTextShadow = if (hasBackgroundImage) {
         androidx.compose.ui.graphics.Shadow(
             color = Color.Black.copy(alpha = if (isDarkPalette) 0.34f else 0.28f),
@@ -337,13 +344,15 @@ fun BrandHeroCard(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = eyebrow.uppercase(),
-                                style = if (heroTextShadow != null) eyebrowStyle.copy(shadow = heroTextShadow) else eyebrowStyle,
-                                color = accent,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                            if (shouldShowEyebrow) {
+                                Text(
+                                    text = eyebrow.uppercase(),
+                                    style = if (heroTextShadow != null) eyebrowStyle.copy(shadow = heroTextShadow) else eyebrowStyle,
+                                    color = accent,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                             Box(
                                 modifier = Modifier
                                     .width(if (autoCompactDensity) 34.dp else 46.dp)
@@ -378,7 +387,7 @@ fun BrandHeroCard(
                             maxLines = if (autoCompactDensity) 1 else 2,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        if (!detail.isNullOrBlank()) {
+                        if (shouldShowDetail) {
                             Text(
                                 text = detail,
                                 style = if (heroTextShadow != null) {
@@ -418,6 +427,12 @@ fun BrandHeroCard(
             }
         }
     }
+}
+
+private fun String.normalizedHeroComparisonText(): String {
+    return lowercase(Locale.ROOT)
+        .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
+        .trim()
 }
 
 @Composable

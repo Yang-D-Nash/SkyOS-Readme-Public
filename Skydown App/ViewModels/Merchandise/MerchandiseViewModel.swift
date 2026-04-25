@@ -326,32 +326,11 @@ struct FeaturedHomeVideo: Identifiable {
     }
 }
 
-struct FeaturedHomeBeat {
-    let id: String
-    let title: String
-    let artistName: String
-    let notes: String
-    let downloadURL: String
-    let externalURL: String
-    let sourceProvider: String
-    let isPlayable: Bool
-
-    var openURLString: String {
-        externalURL.isEmpty ? downloadURL : externalURL
-    }
-
-    var provider: ExternalMediaProvider {
-        ExternalMediaProvider(rawValueOrDefault: sourceProvider)
-    }
-}
-
 @MainActor
 final class HomeViewModel: ObservableObject {
     @Published var featuredTrack: Track?
-    @Published var featuredBeat: FeaturedHomeBeat?
     @Published var featuredVideo: FeaturedHomeVideo?
     @Published var homeTrackMessage: String?
-    @Published var homeBeatMessage: String?
     @Published var homeVideoMessage: String?
     @Published var aiUsageWarning: String?
     @Published var creatorLimitZone = false
@@ -378,7 +357,6 @@ final class HomeViewModel: ObservableObject {
         Task {
             await withTaskGroup(of: HomeRefreshResult.self) { group in
                 group.addTask { .track(await self.loadLatestTrack()) }
-                group.addTask { .beat(await self.loadLatestBeat()) }
                 group.addTask { .video(await self.loadLatestVideo()) }
                 group.addTask { .signals(await self.loadRuntimeSignals()) }
 
@@ -389,12 +367,6 @@ final class HomeViewModel: ObservableObject {
                         featuredTrack = track
                         homeTrackMessage = track == nil
                             ? "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
-                            : nil
-                        contentSignal = buildContentSignal()
-                    case .beat(let beat):
-                        featuredBeat = beat
-                        homeBeatMessage = beat == nil
-                            ? "Sobald ein freigegebener Beat live ist, taucht er hier direkt auf."
                             : nil
                         contentSignal = buildContentSignal()
                     case .video(let video):
@@ -503,9 +475,6 @@ final class HomeViewModel: ObservableObject {
         if let video = featuredVideo {
             return "Video activity: \(video.title)"
         }
-        if let beat = featuredBeat {
-            return "Music progress: \(beat.title)"
-        }
         return nil
     }
 
@@ -608,25 +577,6 @@ final class HomeViewModel: ObservableObject {
         return nil
     }
 
-    private func loadLatestBeat() async -> FeaturedHomeBeat? {
-        do {
-            let snapshot = try await firestore.collection("nicmaBeatHub")
-                .whereField("isPublic", isEqualTo: true)
-                .getDocuments()
-
-            let sortedDocuments = snapshot.documents.sorted { lhs, rhs in
-                documentDate(lhs) > documentDate(rhs)
-            }
-            let featuredBeats = sortedDocuments.compactMap(mapFeaturedBeat(from:))
-
-            return featuredBeats.first(where: \.supportsDirectPlayback)
-                ?? featuredBeats.first(where: \.supportsExternalFallback)
-                ?? featuredBeats.first
-        } catch {
-            return nil
-        }
-    }
-
     private func loadLatestVideo() async -> FeaturedHomeVideo? {
         do {
             let featuredSnapshot = try await firestore.collection("videographyHub")
@@ -674,31 +624,6 @@ final class HomeViewModel: ObservableObject {
         )
     }
 
-    private func mapFeaturedBeat(from document: QueryDocumentSnapshot) -> FeaturedHomeBeat? {
-        let data = document.data()
-        guard let title = data["title"] as? String,
-              !title.isEmpty else {
-            return nil
-        }
-
-        let fileName = data["fileName"] as? String ?? ""
-        let mimeType = data["mimeType"] as? String ?? ""
-
-        return FeaturedHomeBeat(
-            id: document.documentID,
-            title: title,
-            artistName: data["artistName"] as? String ?? "Skydown Beat",
-            notes: data["notes"] as? String ?? "",
-            downloadURL: data["downloadURL"] as? String ?? "",
-            externalURL: data["externalURL"] as? String ?? "",
-            sourceProvider: data["sourceProvider"] as? String ?? ExternalMediaProvider.firebaseStorage.rawValue,
-            isPlayable: mimeType.hasPrefix("audio/") ||
-                fileName.lowercased().hasSuffix(".mp3") ||
-                fileName.lowercased().hasSuffix(".wav") ||
-                fileName.lowercased().hasSuffix(".m4a")
-        )
-    }
-
     private func documentDate(_ document: QueryDocumentSnapshot) -> Date {
         let data = document.data()
         if let timestamp = data["createdAt"] as? Timestamp {
@@ -713,7 +638,6 @@ final class HomeViewModel: ObservableObject {
 
 private enum HomeRefreshResult {
     case track(Track?)
-    case beat(FeaturedHomeBeat?)
     case video(FeaturedHomeVideo?)
     case signals(HomeRuntimeSignals)
 }
@@ -728,14 +652,4 @@ private struct HomeRuntimeSignals {
     var recoverableError: String? = nil
     var newDataAvailable: Bool = false
     var contentSignal: String? = nil
-}
-
-private extension FeaturedHomeBeat {
-    var supportsDirectPlayback: Bool {
-        isPlayable && !downloadURL.isEmpty
-    }
-
-    var supportsExternalFallback: Bool {
-        !openURLString.isEmpty
-    }
 }

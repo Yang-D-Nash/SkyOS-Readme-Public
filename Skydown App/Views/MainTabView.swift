@@ -34,7 +34,6 @@ private enum AIHubMode: String, CaseIterable, Identifiable {
 private enum ZweizweiDestination: Equatable {
     case hub
     case catalog
-    case beatHub
     case nicma
 }
 
@@ -137,7 +136,13 @@ struct MainTabView: View {
             }
         }
         .accentColor(selectedTabAccent)
-        .background(AppColors.primaryBackground(for: currentScheme).edgesIgnoringSafeArea(.all))
+        .background {
+            AppColors.primaryBackground(for: currentScheme)
+                .edgesIgnoringSafeArea(.all)
+                .overlay {
+                    SkydownAtmosphereBackdrop(colorScheme: currentScheme)
+                }
+        }
         .preferredColorScheme(preferredScheme)
         .animation(SkydownMotion.tabContextTransition, value: selectedTab)
         .onChange(of: hasAIAccess) { _, allowed in
@@ -602,10 +607,12 @@ private struct SessionToolbarIconButton: View {
 
 private struct ZweizweiTabView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     @State private var destination: ZweizweiDestination = .hub
     @State private var catalogInitialArtist: String?
     @State private var catalogAutoPresentArtistPage = false
+    @State private var highlightedSocialArtist = "JANNO"
     let onOpenCart: () -> Void
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
@@ -624,27 +631,16 @@ private struct ZweizweiTabView: View {
                         )
                         let isShortHubHeight = !layout.prefersDesktopChrome && proxy.size.height < 760
                         let sectionSpacing = isShortHubHeight ? max(layout.sectionSpacing - 4, 8) : layout.sectionSpacing
-                        let cardSpacing = isShortHubHeight ? 9.0 : 12.0
                         let topPadding = isShortHubHeight ? 10.0 : SkydownLayout.screenTopPadding
                         let bottomPadding = isShortHubHeight ? 14.0 : SkydownLayout.screenBottomPadding
-                        let songDetail = isShortHubHeight
-                            ? "Previews, Spotify, Pages."
-                            : "Previews, Spotify, Pages."
-                        let beatDetail = isShortHubHeight
-                            ? "Vibe finden, ohne Umwege."
-                            : "Vibe finden, ohne Umwege."
-                        let studioDetail = isShortHubHeight
-                            ? "Gleicher Flow wie Music."
-                            : "Gleicher Flow wie Music."
 
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: sectionSpacing) {
+                        VStack(alignment: .leading, spacing: sectionSpacing) {
                             BrandHeroSurface(
                                 colorScheme: colorScheme,
-                                eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
+                                eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "SkyOS",
                                 title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? "Music",
                                 subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Ein Hub · drei Wege.",
-                                detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "Katalog, Beats, Studio.",
+                                detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "Katalog, Releases, Studio.",
                                 backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
                                 accent: AppColors.spotify(for: colorScheme),
                                 secondaryAccent: AppColors.accent(for: colorScheme),
@@ -671,16 +667,6 @@ private struct ZweizweiTabView: View {
                                         }
                                     )
                                     BrandHeroPill(
-                                        text: "Beats",
-                                        colorScheme: colorScheme,
-                                        tint: AppColors.accent(for: colorScheme),
-                                        onTap: {
-                                            withAnimation(SkydownMotion.screenTransition) {
-                                                destination = .beatHub
-                                            }
-                                        }
-                                    )
-                                    BrandHeroPill(
                                         text: "Studio",
                                         colorScheme: colorScheme,
                                         tint: AppColors.accentMystic(for: colorScheme),
@@ -701,11 +687,6 @@ private struct ZweizweiTabView: View {
                                         accent: AppColors.spotify(for: colorScheme)
                                     )
                                     MusicHubStatusCard(
-                                        title: "Beat Hub",
-                                        value: "Library · Vibe",
-                                        accent: AppColors.accent(for: colorScheme)
-                                    )
-                                    MusicHubStatusCard(
                                         title: "Studio",
                                         value: "Record · Mix · Master",
                                         accent: AppColors.accentMystic(for: colorScheme)
@@ -713,110 +694,47 @@ private struct ZweizweiTabView: View {
                                 }
                             }
 
-                            Group {
-                                if layout.prefersTwoColumn {
-                                    VStack(spacing: cardSpacing) {
-                                        ShellActionCard(
-                                            eyebrow: "Catalog",
-                                            title: "Songs & Artists",
-                                            subtitle: "JANNO · Katalog.",
-                                            detail: songDetail,
-                                            accent: AppColors.spotify(for: colorScheme),
-                                            systemImage: "waveform.circle.fill",
-                                            badges: ["Tracks", "Spotify", "Pages"],
-                                            accessibilityID: "music.hub.open_catalog"
-                                        ) {
-                                            catalogInitialArtist = "JANNO"
-                                            catalogAutoPresentArtistPage = false
-                                            withAnimation(SkydownMotion.screenTransition) {
-                                                destination = .catalog
-                                            }
-                                        }
-
-                                        HStack(alignment: .top, spacing: cardSpacing) {
-                                            ShellActionCard(
-                                                eyebrow: "Beat Hub",
-                                                title: "Beat Library",
-                                                subtitle: "Playback · Auswahl.",
-                                                detail: beatDetail,
-                                                accent: AppColors.accent(for: colorScheme),
-                                                systemImage: "speaker.wave.3.fill",
-                                                badges: ["Playback", "Selection", "Flow"]
-                                            ) {
-                                                withAnimation(SkydownMotion.screenTransition) {
-                                                    destination = .beatHub
-                                                }
-                                            }
-
-                                            ShellActionCard(
-                                                eyebrow: "Studio",
-                                                title: "Studio Services",
-                                                subtitle: "Anfragen · buchen.",
-                                                detail: studioDetail,
-                                                accent: AppColors.accentMystic(for: colorScheme),
-                                                systemImage: "sparkles",
-                                                badges: ["Record", "Mix", "Master"]
-                                            ) {
-                                                withAnimation(SkydownMotion.screenTransition) {
-                                                    destination = .nicma
-                                                }
-                                            }
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Direkter Einstieg")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                compactMusicHubAction(
+                                    title: "Catalog",
+                                    systemImage: "waveform.circle.fill",
+                                    accent: AppColors.spotify(for: colorScheme)
+                                ) {
+                                    catalogInitialArtist = "JANNO"
+                                    catalogAutoPresentArtistPage = false
+                                    withAnimation(SkydownMotion.screenTransition) {
+                                        destination = .catalog
+                                    }
+                                }
+                                HStack(spacing: 8) {
+                                    compactMusicHubAction(
+                                        title: "Studio",
+                                        systemImage: "sparkles",
+                                        accent: AppColors.accentMystic(for: colorScheme)
+                                    ) {
+                                        withAnimation(SkydownMotion.screenTransition) {
+                                            destination = .nicma
                                         }
                                     }
-                                } else {
-                                    VStack(spacing: cardSpacing) {
-                                        ShellActionCard(
-                                            eyebrow: "Catalog",
-                                            title: "Songs & Artists",
-                                            subtitle: "JANNO · Katalog.",
-                                            detail: songDetail,
-                                            accent: AppColors.spotify(for: colorScheme),
-                                            systemImage: "waveform.circle.fill",
-                                            badges: ["Tracks", "Spotify", "Pages"],
-                                            accessibilityID: "music.hub.open_catalog"
-                                        ) {
-                                            catalogInitialArtist = "JANNO"
-                                            catalogAutoPresentArtistPage = false
-                                            withAnimation(SkydownMotion.screenTransition) {
-                                                destination = .catalog
-                                            }
+                                }
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Artist Links")
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        ForEach(musicHubSocialDestinations, id: \.id) { destination in
+                                            compactMusicHubSocialLink(destination: destination)
                                         }
-
-                                        ShellActionCard(
-                                            eyebrow: "Beat Hub",
-                                            title: "Beat Library",
-                                            subtitle: "Playback · Auswahl.",
-                                            detail: beatDetail,
-                                            accent: AppColors.accent(for: colorScheme),
-                                            systemImage: "speaker.wave.3.fill",
-                                            badges: ["Playback", "Selection", "Flow"]
-                                        ) {
-                                            withAnimation(SkydownMotion.screenTransition) {
-                                                destination = .beatHub
-                                            }
-                                        }
-
-                                        ShellActionCard(
-                                            eyebrow: "Studio",
-                                            title: "Studio Services",
-                                            subtitle: "Anfragen · buchen.",
-                                            detail: studioDetail,
-                                            accent: AppColors.accentMystic(for: colorScheme),
-                                            systemImage: "sparkles",
-                                            badges: ["Record", "Mix", "Master"]
-                                        ) {
-                                            withAnimation(SkydownMotion.screenTransition) {
-                                                destination = .nicma
-                                            }
-                                        }
+                                    }
                                 }
                             }
-                            }
-                            .frame(maxWidth: contentWidth, alignment: .leading)
-                            .padding(.horizontal, layout.horizontalPadding)
-                            .padding(.top, topPadding)
-                            .padding(.bottom, bottomPadding)
-                        }
+                        .frame(maxWidth: contentWidth, alignment: .leading)
+                        .padding(.horizontal, layout.horizontalPadding)
+                        .padding(.top, topPadding)
+                        .padding(.bottom, bottomPadding)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     }
                     .accessibilityIdentifier("music.hub.root")
@@ -826,6 +744,9 @@ private struct ZweizweiTabView: View {
                         for: colorScheme,
                         secondaryAccent: AppColors.spotify(for: colorScheme)
                     )
+                    .overlay {
+                        SkydownAtmosphereBackdrop(colorScheme: colorScheme)
+                    }
                     .ignoresSafeArea()
                 )
                 .navigationTitle("Music")
@@ -854,19 +775,12 @@ private struct ZweizweiTabView: View {
                         destination = .hub
                     }
                 },
+                onArtistContextChange: { highlightedSocialArtist = $0 },
                 onOpenCart: onOpenCart,
                 onOpenProfile: onOpenProfile,
                 onOpenSettings: onOpenSettings,
                 onGuestSignIn: onGuestSignIn
             )
-        case .beatHub:
-            NavigationStack {
-                BeatHubView {
-                    withAnimation(SkydownMotion.screenTransition) {
-                        destination = .hub
-                    }
-                }
-            }
         case .nicma:
             NavigationStack {
                 NicmaProducerView {
@@ -879,6 +793,158 @@ private struct ZweizweiTabView: View {
         }
         .skydownSceneMotion(trigger: destination, axis: .horizontal, travel: 24)
         .skydownSelectionFeedback(trigger: destination)
+    }
+
+    private func compactMusicHubAction(
+        title: String,
+        systemImage: String,
+        accent: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.footnote.weight(.semibold))
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Spacer(minLength: 0)
+            }
+            .foregroundColor(AppColors.text(for: colorScheme))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 11)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(AppColors.secondaryBackground(for: colorScheme))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(accent.opacity(0.35), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
+    }
+
+    private var musicHubSocialDestinations: [MusicInstagramDestination] {
+        [
+            zweizweiInstagramDestination,
+            artistInstagramDestinations["JANNO"],
+            artistInstagramDestinations["Yang D. Nash"],
+            artistInstagramDestinations["MAVE"],
+            artistInstagramDestinations["ThaDude"],
+            artistInstagramDestinations["TANGAJOE007"]
+        ].compactMap { $0 }
+    }
+
+    private func musicHubSocialAccent(for destination: MusicInstagramDestination) -> Color {
+        switch destination.title {
+        case "22 Music":
+            return AppColors.spotify(for: colorScheme)
+        case "JANNO":
+            return AppColors.accent(for: colorScheme)
+        case "Yang D. Nash":
+            return AppColors.accentHighlight(for: colorScheme)
+        case "MAVE":
+            return AppColors.accentMystic(for: colorScheme)
+        case "ThaDude":
+            return AppColors.accent(for: colorScheme)
+        default:
+            return AppColors.spotify(for: colorScheme)
+        }
+    }
+
+    private var instagramGradientColors: [Color] {
+        [
+            Color(red: 0.99, green: 0.74, blue: 0.28),
+            Color(red: 0.98, green: 0.36, blue: 0.45),
+            Color(red: 0.74, green: 0.20, blue: 0.73),
+            Color(red: 0.32, green: 0.35, blue: 0.89)
+        ]
+    }
+
+    private func compactMusicHubSocialLink(destination: MusicInstagramDestination) -> some View {
+        let accent = musicHubSocialAccent(for: destination)
+        let isActive = destination.title == highlightedSocialArtist
+        return Button {
+            highlightedSocialArtist = destination.title
+            guard let url = destination.url else { return }
+            openURL(url)
+        } label: {
+            HStack(alignment: .center, spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(accent.opacity(isActive ? 0.34 : 0.20))
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(isActive ? .white : accent)
+                }
+                .frame(width: 24, height: 24)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(destination.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    Text(destination.handle)
+                        .font(.caption2.weight(.medium))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 6)
+
+                if isActive {
+                    Text("Aktiv")
+                        .font(.caption2.weight(.bold))
+                        .foregroundColor(accent.opacity(0.96))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(accent.opacity(0.16))
+                        )
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.72))
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                AppColors.secondaryBackground(for: colorScheme),
+                                accent.opacity(0.08),
+                                instagramGradientColors[1].opacity(isActive ? 0.18 : 0.10),
+                                instagramGradientColors[2].opacity(isActive ? 0.18 : 0.10)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(accent.opacity(isActive ? 0.58 : 0.32), lineWidth: isActive ? 1.4 : 1)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: instagramGradientColors.map { $0.opacity(isActive ? 0.55 : 0.28) },
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: isActive ? 1.6 : 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 

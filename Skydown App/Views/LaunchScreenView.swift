@@ -183,10 +183,18 @@ private struct LaunchLandingView: View {
                 max(proxy.size.width - (layout.horizontalPadding * 2), 0)
             )
             let isShortHeightLayout = !layout.prefersDesktopChrome && proxy.size.height < 760
+            /// Kompaktere Kacheln/Abstände, damit die Landing-Page auf kleinen iPhones ohne Scrollen passt.
+            let isTightPhoneHeight = !layout.prefersDesktopChrome && proxy.size.height < 780
             let sectionCadence = layout.prefersDesktopChrome
                 ? layout.sectionSpacing + 2
-                : (isShortHeightLayout ? 10 : max(layout.sectionSpacing - 2, 12))
+                : (isTightPhoneHeight
+                    ? 6
+                    : (isShortHeightLayout ? 10 : max(layout.sectionSpacing - 2, 12)))
             let compactVerticalPadding = layout.prefersDesktopChrome ? 34.0 : (isShortHeightLayout ? 14.0 : 22.0)
+            let verticalTopPad = isTightPhoneHeight ? 8.0 : compactVerticalPadding
+            let verticalBottomPad = (isTightPhoneHeight ? 8.0 : compactVerticalPadding) + proxy.safeAreaInsets.bottom
+            let heroBlockSpacing: CGFloat = isTightPhoneHeight ? 5 : 8
+            let quickActionStackSpacing: CGFloat = isTightPhoneHeight ? 6 : 10
             let compactCardSpacing = isShortHeightLayout ? 8.0 : 10.0
             let musicDetail = isShortHeightLayout
                 ? "Wenn du direkt in kreative Tiefe starten willst."
@@ -197,32 +205,15 @@ private struct LaunchLandingView: View {
             let merchDetail = isShortHeightLayout
                 ? "Wenn du direkt in Produkte, Fits und den klaren Kaufweg willst."
                 : "Wenn du direkt in Produkte, Fits und den klaren Kaufweg willst."
+            let musicBackgroundURL = screenHeaderSettingsStore.settings.resolvedMusicHubImageURL
+            let videoBackgroundURL = screenHeaderSettingsStore.settings.resolvedVideoHubImageURL
+            let merchBackgroundURL = screenHeaderSettingsStore.settings.resolvedShopImageURL
 
             ZStack {
-                LinearGradient(
-                    colors: [
-                        Color(red: 10/255, green: 14/255, blue: 20/255),
-                        Color(red: 16/255, green: 22/255, blue: 30/255),
-                        Color(red: 22/255, green: 30/255, blue: 42/255),
-                        Color(red: 32/255, green: 48/255, blue: 68/255).opacity(0.32),
-                        Color(red: 24/255, green: 32/255, blue: 44/255),
-                        Color(red: 14/255, green: 18/255, blue: 26/255)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                AppColors.primaryBackground(for: hubColorScheme)
+                    .ignoresSafeArea()
 
-                LinearGradient(
-                    colors: [
-                        Color.black.opacity(0.14),
-                        Color.black.opacity(0.04),
-                        Color.black.opacity(0.18)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                SkydownAtmosphereBackdrop(colorScheme: hubColorScheme, showsLuminanceScrim: false)
 
                 Circle()
                     .fill(Color(red: 91/255, green: 149/255, blue: 216/255).opacity(0.08))
@@ -274,7 +265,7 @@ private struct LaunchLandingView: View {
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: heroBlockSpacing) {
                         BrandHeroSurface(
                             colorScheme: hubColorScheme,
                             eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "Willkommen",
@@ -284,7 +275,7 @@ private struct LaunchLandingView: View {
                             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
                             accent: AppColors.accent(for: hubColorScheme),
                             secondaryAccent: AppColors.accentMystic(for: hubColorScheme),
-                            marks: [.skydown],
+                            marks: [],
                             onSurfaceTap: onOpenHome
                         ) {
                             VStack(alignment: .leading, spacing: 8) {
@@ -300,38 +291,38 @@ private struct LaunchLandingView: View {
                         .accessibilityLabel("Home hero öffnen")
                         .accessibilityHint("Öffnet den empfohlenen Einstieg Home")
 
-                        Button(action: onOpenMusic) {
-                            HStack(spacing: 10) {
-                                Image(systemName: "play.fill")
-                                    .font(.footnote.weight(.bold))
-                                Text("Jetzt mit Music starten")
-                                    .font(.subheadline.weight(.semibold))
-                                Spacer(minLength: 8)
-                                Image(systemName: "arrow.up.right")
-                                    .font(.footnote.weight(.bold))
+                        VStack(spacing: quickActionStackSpacing) {
+                            LaunchLandingActionButton(
+                                title: "Home öffnen",
+                                systemImage: "house.fill",
+                                style: .primary,
+                                action: onOpenHome
+                            )
+                            HStack(spacing: compactCardSpacing) {
+                                LaunchLandingActionButton(
+                                    title: "Music",
+                                    systemImage: "music.note",
+                                    style: .secondary,
+                                    action: onOpenMusic
+                                )
+                                LaunchLandingActionButton(
+                                    title: "Video",
+                                    systemImage: "play.rectangle.fill",
+                                    style: .secondary,
+                                    action: onOpenVideography
+                                )
+                                LaunchLandingActionButton(
+                                    title: "Merch",
+                                    systemImage: "bag.fill",
+                                    style: .secondary,
+                                    action: onOpenShop
+                                )
                             }
-                            .foregroundColor(.white.opacity(0.96))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                Capsule(style: .continuous)
-                                    .fill(AppColors.spotify(for: hubColorScheme).opacity(0.26))
-                            )
-                            .overlay(
-                                Capsule(style: .continuous)
-                                    .stroke(AppColors.spotify(for: hubColorScheme).opacity(0.44), lineWidth: 1)
-                            )
                         }
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
-                        .accessibilityIdentifier("launch.primary_cta.open_music")
-                        .accessibilityLabel("Jetzt mit Music starten")
-                        .accessibilityHint("Öffnet den Music Bereich direkt")
 
                         Group {
                             VStack(alignment: .leading, spacing: compactCardSpacing) {
-                                if !isShortHeightLayout {
+                                if !isShortHeightLayout && !isTightPhoneHeight {
                                     Text("Music ist der natuerliche Start; Video und Merch bleiben als ruhige Alternativen.")
                                         .font(.subheadline)
                                         .foregroundColor(.white.opacity(0.62))
@@ -347,12 +338,14 @@ private struct LaunchLandingView: View {
                                             subtitle: "Artists · Beats · Studio",
                                             detail: musicDetail,
                                             accent: AppColors.spotify(for: hubColorScheme),
-                                            brandMark: .zweizwei,
+                                            systemImage: "music.note",
                                             badges: ["Catalog", "Beats", "Studio"],
                                             emphasis: .primary,
                                             pathLabel: "Empfohlener Einstieg",
                                             ctaLabel: "In Music eintreten",
                                             accessibilityID: "launch.open_music",
+                                        backgroundImageURL: musicBackgroundURL,
+                                            useTightHeights: isTightPhoneHeight,
                                             action: onOpenMusic
                                         )
                                         .frame(maxWidth: .infinity)
@@ -365,12 +358,14 @@ private struct LaunchLandingView: View {
                                             subtitle: "Reels · Clips · YouTube",
                                             detail: videoDetail,
                                             accent: AppColors.accentMystic(for: hubColorScheme),
-                                            brandMark: .zweizwei,
+                                            systemImage: "play.rectangle.fill",
                                             badges: ["Playback", "Reels", "YouTube"],
                                             emphasis: .secondary,
                                             pathLabel: "",
                                             ctaLabel: "In Videos eintreten",
                                             accessibilityID: "launch.open_video",
+                                        backgroundImageURL: videoBackgroundURL,
+                                            useTightHeights: isTightPhoneHeight,
                                             action: onOpenVideography
                                         )
                                         .frame(maxWidth: .infinity)
@@ -382,12 +377,14 @@ private struct LaunchLandingView: View {
                                             subtitle: "Drops · Checkout",
                                             detail: merchDetail,
                                             accent: AppColors.accentHighlight(for: hubColorScheme),
-                                            brandMark: .skydownX22,
+                                            systemImage: "bag.fill",
                                             badges: ["Drops", "Fits", "Checkout"],
                                             emphasis: .secondary,
                                             pathLabel: "",
                                             ctaLabel: "In Merch eintreten",
                                             accessibilityID: "launch.open_shop",
+                                        backgroundImageURL: merchBackgroundURL,
+                                            useTightHeights: isTightPhoneHeight,
                                             action: onOpenShop
                                         )
                                         .frame(maxWidth: .infinity)
@@ -401,12 +398,14 @@ private struct LaunchLandingView: View {
                                             subtitle: "Artists · Beats · Studio",
                                             detail: musicDetail,
                                             accent: AppColors.spotify(for: hubColorScheme),
-                                            brandMark: .zweizwei,
+                                            systemImage: "music.note",
                                             badges: ["Catalog", "Beats", "Studio"],
                                             emphasis: .primary,
                                             pathLabel: "Empfohlener Einstieg",
                                             ctaLabel: "In Music eintreten",
                                             accessibilityID: "launch.open_music",
+                                        backgroundImageURL: musicBackgroundURL,
+                                            useTightHeights: isTightPhoneHeight,
                                             action: onOpenMusic
                                         )
                                         .offset(y: -2)
@@ -418,12 +417,14 @@ private struct LaunchLandingView: View {
                                                 subtitle: "Reels · Clips · YouTube",
                                                 detail: videoDetail,
                                                 accent: AppColors.accentMystic(for: hubColorScheme),
-                                                brandMark: .zweizwei,
+                                                systemImage: "play.rectangle.fill",
                                                 badges: ["Playback", "Reels", "YouTube"],
                                                 emphasis: .secondary,
                                                 pathLabel: "",
                                                 ctaLabel: "In Videos eintreten",
                                                 accessibilityID: "launch.open_video",
+                                                backgroundImageURL: videoBackgroundURL,
+                                                useTightHeights: isTightPhoneHeight,
                                                 action: onOpenVideography
                                             )
                                             LaunchLandingButton(
@@ -432,12 +433,14 @@ private struct LaunchLandingView: View {
                                                 subtitle: "Drops · Checkout",
                                                 detail: merchDetail,
                                                 accent: AppColors.accentHighlight(for: hubColorScheme),
-                                                brandMark: .skydownX22,
+                                                systemImage: "bag.fill",
                                                 badges: ["Drops", "Fits", "Checkout"],
                                                 emphasis: .secondary,
                                                 pathLabel: "",
                                                 ctaLabel: "In Merch eintreten",
                                                 accessibilityID: "launch.open_shop",
+                                                backgroundImageURL: merchBackgroundURL,
+                                                useTightHeights: isTightPhoneHeight,
                                                 action: onOpenShop
                                             )
                                         }
@@ -450,12 +453,14 @@ private struct LaunchLandingView: View {
                                             subtitle: "Artists · Beats · Studio",
                                             detail: musicDetail,
                                             accent: AppColors.spotify(for: hubColorScheme),
-                                            brandMark: .zweizwei,
+                                            systemImage: "music.note",
                                             badges: ["Catalog", "Beats", "Studio"],
                                             emphasis: .primary,
                                             pathLabel: "Empfohlener Einstieg",
                                             ctaLabel: "In Music eintreten",
                                             accessibilityID: "launch.open_music",
+                                            backgroundImageURL: musicBackgroundURL,
+                                            useTightHeights: isTightPhoneHeight,
                                             action: onOpenMusic
                                         )
                                         .offset(y: -2)
@@ -467,12 +472,14 @@ private struct LaunchLandingView: View {
                                                 subtitle: "Reels · Clips · YouTube",
                                                 detail: videoDetail,
                                                 accent: AppColors.accentMystic(for: hubColorScheme),
-                                                brandMark: .zweizwei,
+                                                systemImage: "play.rectangle.fill",
                                                 badges: ["Playback", "Reels", "YouTube"],
                                                 emphasis: .secondary,
                                                 pathLabel: "",
                                                 ctaLabel: "In Videos eintreten",
                                                 accessibilityID: "launch.open_video",
+                                                backgroundImageURL: videoBackgroundURL,
+                                                useTightHeights: isTightPhoneHeight,
                                                 action: onOpenVideography
                                             )
                                             LaunchLandingButton(
@@ -481,12 +488,14 @@ private struct LaunchLandingView: View {
                                                 subtitle: "Drops · Checkout",
                                                 detail: merchDetail,
                                                 accent: AppColors.accentHighlight(for: hubColorScheme),
-                                                brandMark: .skydownX22,
+                                                systemImage: "bag.fill",
                                                 badges: ["Drops", "Fits", "Checkout"],
                                                 emphasis: .secondary,
                                                 pathLabel: "",
                                                 ctaLabel: "In Merch eintreten",
                                                 accessibilityID: "launch.open_shop",
+                                                backgroundImageURL: merchBackgroundURL,
+                                                useTightHeights: isTightPhoneHeight,
                                                 action: onOpenShop
                                             )
                                         }
@@ -498,7 +507,9 @@ private struct LaunchLandingView: View {
                 }
                 .frame(maxWidth: contentWidth, alignment: .leading)
                 .padding(.horizontal, layout.horizontalPadding)
-                .padding(.vertical, compactVerticalPadding)
+                .padding(.top, verticalTopPad)
+                .padding(.bottom, verticalBottomPad)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
             }
@@ -518,13 +529,16 @@ private struct LaunchLandingButton: View {
     let subtitle: String
     let detail: String
     let accent: Color
-    let brandMark: BrandMark
+    let systemImage: String
     let badges: [String]
     let emphasis: Emphasis
     let pathLabel: String
     let ctaLabel: String
     let accessibilityID: String?
+    let backgroundImageURL: String?
+    let useTightHeights: Bool
     let action: () -> Void
+    @State private var backgroundLuminance: Double?
 
     private var hubColorScheme: ColorScheme { .dark }
 
@@ -534,12 +548,14 @@ private struct LaunchLandingButton: View {
         subtitle: String,
         detail: String,
         accent: Color,
-        brandMark: BrandMark,
+        systemImage: String,
         badges: [String],
         emphasis: Emphasis = .standard,
         pathLabel: String = "",
         ctaLabel: String = "Eintreten",
         accessibilityID: String? = nil,
+        backgroundImageURL: String? = nil,
+        useTightHeights: Bool = false,
         action: @escaping () -> Void
     ) {
         self.eyebrow = eyebrow
@@ -547,16 +563,25 @@ private struct LaunchLandingButton: View {
         self.subtitle = subtitle
         self.detail = detail
         self.accent = accent
-        self.brandMark = brandMark
+        self.systemImage = systemImage
         self.badges = badges
         self.emphasis = emphasis
         self.pathLabel = pathLabel
         self.ctaLabel = ctaLabel
         self.accessibilityID = accessibilityID
+        self.backgroundImageURL = backgroundImageURL
+        self.useTightHeights = useTightHeights
         self.action = action
     }
 
     private var tileSpacing: CGFloat {
+        if useTightHeights {
+            switch emphasis {
+            case .primary: return 12
+            case .standard: return 10
+            case .secondary: return 6
+            }
+        }
         switch emphasis {
         case .primary: return 16
         case .standard: return 13
@@ -565,6 +590,13 @@ private struct LaunchLandingButton: View {
     }
 
     private var tilePadding: CGFloat {
+        if useTightHeights {
+            switch emphasis {
+            case .primary: return 15
+            case .standard: return 14
+            case .secondary: return 8
+            }
+        }
         switch emphasis {
         case .primary: return 20
         case .standard: return 17
@@ -573,6 +605,13 @@ private struct LaunchLandingButton: View {
     }
 
     private var minTileHeight: CGFloat {
+        if useTightHeights {
+            switch emphasis {
+            case .primary: return 200
+            case .standard: return 168
+            case .secondary: return 108
+            }
+        }
         switch emphasis {
         case .primary: return 248
         case .standard: return 200
@@ -581,6 +620,12 @@ private struct LaunchLandingButton: View {
     }
 
     private var markSize: CGFloat {
+        if useTightHeights {
+            switch emphasis {
+            case .primary, .standard: return 54
+            case .secondary: return 40
+            }
+        }
         switch emphasis {
         case .primary, .standard: return 62
         case .secondary: return 46
@@ -597,24 +642,56 @@ private struct LaunchLandingButton: View {
 
     private var displayedBadges: [String] {
         switch emphasis {
-        case .secondary: return Array(badges.prefix(2))
+        case .secondary: return []
         default: return badges
         }
+    }
+
+    private var shouldShowEyebrow: Bool {
+        !eyebrow.isEmpty && !title.lowercased().hasPrefix(eyebrow.lowercased())
+    }
+
+    private var shouldShowDetail: Bool {
+        let normalizedDetail = detail.normalizedLandingComparisonText
+        guard !normalizedDetail.isEmpty else { return false }
+        return normalizedDetail != subtitle.normalizedLandingComparisonText
     }
 
     private var cornerRadius: CGFloat {
         emphasis == .secondary ? 18 : 24
     }
 
+    private var resolvedBackgroundURL: URL? {
+        guard let backgroundImageURL else { return nil }
+        let trimmed = backgroundImageURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if let direct = URL(string: trimmed), direct.scheme != nil {
+            return direct
+        }
+        let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed)
+        guard let encoded, let url = URL(string: encoded), url.scheme != nil else { return nil }
+        return url
+    }
+
+    private var hasBackgroundImage: Bool {
+        resolvedBackgroundURL != nil
+    }
+
+    /// Readability floor: brighter images receive a stronger dark scrim.
+    private var readabilityFloorOpacity: Double {
+        guard hasBackgroundImage else { return 0 }
+        let luminance = backgroundLuminance ?? 0.55
+        let normalized = min(max((luminance - 0.45) / 0.45, 0), 1)
+        return 0.14 + (normalized * 0.34)
+    }
+
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: tileSpacing) {
                 HStack(alignment: .top, spacing: emphasis == .secondary ? 11 : 14) {
-                    Image(brandMark.imageName)
-                        .resizable()
-                        .renderingMode(.original)
-                        .scaledToFit()
-                        .opacity(emphasis == .secondary ? 0.52 : 0.62)
+                    Image(systemName: systemImage)
+                        .font(.system(size: emphasis == .secondary ? 20 : 26, weight: .semibold))
+                        .foregroundStyle(accent.opacity(emphasis == .secondary ? 0.55 : 0.88))
                         .padding(emphasis == .secondary ? 7 : 9)
                         .frame(width: markSize, height: markSize)
                         .background(
@@ -634,10 +711,12 @@ private struct LaunchLandingButton: View {
                         .shadow(color: accent.opacity(emphasis == .secondary ? 0.04 : 0.18), radius: emphasis == .secondary ? 0 : 10, y: emphasis == .secondary ? 0 : 3)
 
                     VStack(alignment: .leading, spacing: emphasis == .secondary ? 4 : 6) {
-                        Text(emphasis == .secondary ? eyebrow : eyebrow.uppercased())
-                            .font(emphasis == .secondary ? .caption.weight(.medium) : AppTypography.heroEyebrow)
-                            .tracking(emphasis == .secondary ? 0.6 : 1.4)
-                            .foregroundColor(accent.opacity(emphasis == .secondary ? 0.52 : 0.92))
+                        if shouldShowEyebrow {
+                            Text(emphasis == .secondary ? eyebrow : eyebrow.uppercased())
+                                .font(emphasis == .secondary ? .caption.weight(.medium) : AppTypography.heroEyebrow)
+                                .tracking(emphasis == .secondary ? 0.6 : 1.4)
+                                .foregroundColor(accent.opacity(emphasis == .secondary ? 0.52 : 0.92))
+                        }
 
                         Text(title)
                             .font(titleFont)
@@ -648,9 +727,9 @@ private struct LaunchLandingButton: View {
 
                         Text(subtitle)
                             .font(emphasis == .secondary ? .caption.weight(.medium) : AppTypography.editorialCaption)
-                            .foregroundColor(.white.opacity(emphasis == .secondary ? 0.64 : 0.82))
+                            .foregroundColor(.white.opacity(emphasis == .secondary ? (hasBackgroundImage ? 0.78 : 0.64) : (hasBackgroundImage ? 0.88 : 0.82)))
                             .multilineTextAlignment(.leading)
-                            .lineLimit(emphasis == .secondary ? 1 : 2)
+                            .lineLimit(1)
                     }
 
                     Spacer(minLength: 6)
@@ -672,11 +751,13 @@ private struct LaunchLandingButton: View {
                     }
                 }
 
-                Text(detail)
-                    .font(AppTypography.editorialCaption)
-                    .foregroundColor(.white.opacity(emphasis == .secondary ? 0.56 : 0.72))
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(emphasis == .secondary ? 2 : 4)
+                if shouldShowDetail {
+                    Text(detail)
+                        .font(AppTypography.editorialCaption)
+                        .foregroundColor(.white.opacity(emphasis == .secondary ? (hasBackgroundImage ? 0.70 : 0.56) : (hasBackgroundImage ? 0.80 : 0.72)))
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(1)
+                }
 
                 if !pathLabel.isEmpty {
                     Text(pathLabel.uppercased())
@@ -694,7 +775,7 @@ private struct LaunchLandingButton: View {
                     ForEach(displayedBadges, id: \.self) { badge in
                         Text(badge)
                             .font(emphasis == .secondary ? .caption2.weight(.semibold) : .caption.weight(.semibold))
-                            .foregroundColor(accent.opacity(0.86))
+                            .foregroundColor(accent.opacity(hasBackgroundImage ? 0.94 : 0.86))
                             .padding(.horizontal, emphasis == .secondary ? 9 : 11)
                             .padding(.vertical, emphasis == .secondary ? 5 : 7)
                             .background(
@@ -725,19 +806,56 @@ private struct LaunchLandingButton: View {
             .padding(tilePadding)
             .frame(maxWidth: .infinity, minHeight: minTileHeight, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(
+                ZStack {
+                    if let url = resolvedBackgroundURL {
+                        GeometryReader { proxy in
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: proxy.size.width, height: proxy.size.height)
+                                default:
+                                    Color.clear
+                                        .frame(width: proxy.size.width, height: proxy.size.height)
+                                }
+                            }
+                            .clipped()
+                        }
+                    }
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(emphasis == .primary ? 0.07 : (emphasis == .secondary ? 0.015 : 0.05)),
+                            Color.black.opacity(
+                                emphasis == .secondary
+                                    ? (hasBackgroundImage ? 0.84 : 0.76)
+                                    : (hasBackgroundImage ? 0.88 : 0.80)
+                            ),
+                            Color(red: 8/255, green: 14/255, blue: 24/255).opacity(
+                                emphasis == .secondary
+                                    ? (hasBackgroundImage ? 0.92 : 0.86)
+                                    : (hasBackgroundImage ? 0.96 : 0.92)
+                            ),
+                            accent.opacity(emphasis == .primary ? 0.24 : (emphasis == .secondary ? 0.035 : 0.16))
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    if hasBackgroundImage {
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(emphasis == .primary ? 0.07 : (emphasis == .secondary ? 0.015 : 0.05)),
-                                Color.black.opacity(emphasis == .secondary ? 0.78 : 0.82),
-                                Color(red: 8/255, green: 14/255, blue: 24/255).opacity(emphasis == .secondary ? 0.88 : 0.94),
-                                accent.opacity(emphasis == .primary ? 0.24 : (emphasis == .secondary ? 0.035 : 0.16))
+                                Color.black.opacity(readabilityFloorOpacity * 0.55),
+                                Color.black.opacity(readabilityFloorOpacity * 0.85),
+                                Color.black.opacity(readabilityFloorOpacity)
                             ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                            startPoint: .top,
+                            endPoint: .bottom
                         )
-                    )
+                    }
+                }
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             )
             .overlay(alignment: .topTrailing) {
                 if emphasis != .secondary {
@@ -771,6 +889,127 @@ private struct LaunchLandingButton: View {
         .accessibilityHint("Öffnet den Bereich \(title)")
         .buttonStyle(.plain)
         .skydownTactileAction()
+        .task(id: resolvedBackgroundURL) {
+            guard let url = resolvedBackgroundURL else {
+                backgroundLuminance = nil
+                return
+            }
+            backgroundLuminance = await Self.fetchAverageLuminance(from: url)
+        }
+    }
+
+    private static func fetchAverageLuminance(from url: URL) async -> Double? {
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            return averageLuminance(from: data)
+        } catch {
+            return nil
+        }
+    }
+
+    private static func averageLuminance(from data: Data) -> Double? {
+        guard let image = UIImage(data: data),
+              let cgImage = image.cgImage else {
+            return nil
+        }
+
+        let context = CIContext(options: [.workingColorSpace: NSNull()])
+        let input = CIImage(cgImage: cgImage)
+        guard let filter = CIFilter(name: "CIAreaAverage") else { return nil }
+        filter.setValue(input, forKey: kCIInputImageKey)
+        filter.setValue(CIVector(cgRect: input.extent), forKey: kCIInputExtentKey)
+        guard let output = filter.outputImage else { return nil }
+
+        var bitmap = [UInt8](repeating: 0, count: 4)
+        context.render(
+            output,
+            toBitmap: &bitmap,
+            rowBytes: 4,
+            bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
+            format: .RGBA8,
+            colorSpace: nil
+        )
+
+        let r = Double(bitmap[0]) / 255.0
+        let g = Double(bitmap[1]) / 255.0
+        let b = Double(bitmap[2]) / 255.0
+        return (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+    }
+}
+
+private extension String {
+    var normalizedLandingComparisonText: String {
+        lowercased()
+            .replacingOccurrences(of: "[^\\p{L}\\p{N}]+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+private struct LaunchLandingActionButton: View {
+    enum ActionStyle {
+        case primary
+        case secondary
+    }
+
+    let title: String
+    let systemImage: String
+    let style: ActionStyle
+    let action: () -> Void
+
+    private var hubColorScheme: ColorScheme { .dark }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.footnote.weight(.bold))
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .foregroundColor(foregroundColor)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(backgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(borderColor, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
+    }
+
+    private var foregroundColor: Color {
+        switch style {
+        case .primary:
+            return .white.opacity(0.96)
+        case .secondary:
+            return .white.opacity(0.90)
+        }
+    }
+
+    private var backgroundColor: Color {
+        switch style {
+        case .primary:
+            return AppColors.accent(for: hubColorScheme).opacity(0.56)
+        case .secondary:
+            return Color.white.opacity(0.06)
+        }
+    }
+
+    private var borderColor: Color {
+        switch style {
+        case .primary:
+            return AppColors.accent(for: hubColorScheme).opacity(0.62)
+        case .secondary:
+            return Color.white.opacity(0.18)
+        }
     }
 }
 

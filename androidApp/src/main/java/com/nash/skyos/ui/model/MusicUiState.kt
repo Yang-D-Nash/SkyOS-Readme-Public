@@ -69,8 +69,8 @@ private val artistSocialProfiles = mapOf(
     ),
     "MAVE" to ArtistSocialProfile(
         artist = "MAVE",
-        handle = "@mave__official",
-        instagramUrl = "https://www.instagram.com/mave__official/",
+        handle = "@mave040_official",
+        instagramUrl = "https://www.instagram.com/mave040_official/",
     ),
     "JANNO" to ArtistSocialProfile(
         artist = "JANNO",

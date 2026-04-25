@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:antialias="true"
-    android:filter="true"
-    android:gravity="fill"
-    android:src="@drawable/ic_launcher_foreground_src"
-    android:tint="@android:color/white" />
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="@dimen/ic_launcher_foreground_inset"
+    android:insetTop="@dimen/ic_launcher_foreground_inset"
+    android:insetRight="@dimen/ic_launcher_foreground_inset"
+    android:insetBottom="@dimen/ic_launcher_foreground_inset">
+    <bitmap
+        android:antialias="true"
+        android:filter="true"
+        android:gravity="fill"
+        android:src="@drawable/ic_launcher_foreground_src"
+        android:tint="@android:color/white" />
+</inset>

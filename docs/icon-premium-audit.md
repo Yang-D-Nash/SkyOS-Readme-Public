@@ -67,13 +67,14 @@ Result:
 Paths:
 
 - `androidApp/src/main/res/mipmap-*`
-- `androidApp/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
-- `androidApp/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
+- `androidApp/src/main/res/mipmap-anydpi/ic_launcher.xml`
+- `androidApp/src/main/res/mipmap-anydpi/ic_launcher_round.xml`
 
 Result:
 
 - All density outputs are correctly sized (`mdpi` to `xxxhdpi`).
 - Adaptive icon foreground/background mapping is correct.
+- Foreground uses scaled bitmap (`gravity=fill`) with a **small** dp inset; overly large insets make a round mark look tiny in the launcher.
 - Visual brand continuity with Apple icon family is preserved.
 
 ## Premium Design Assessment

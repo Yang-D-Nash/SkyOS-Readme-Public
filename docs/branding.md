@@ -67,7 +67,9 @@ It should never sound:
 Primary documentation assets:
 
 - `docs/assets/skyos-logo.png`
-- `docs/assets/skyos-app-icon.png`
+- `docs/assets/skyos-app-icon.png` (Galerie-Vorschau, skaliert, entspricht iOS-Master)
+- `docs/assets/skyos-app-icon-1024.png` (1024×1024 **voll** — Quelle / Spiegel für **iOS** `AppIcon.appiconset`)
+- `docs/assets/skyos-app-icon-1024-android-padded.png` (1024×1024 mit Rand — Referenz **Android**-Foreground, aus 1024-voll per `scripts/pad_skyos_app_icon.py --scale 0.86` erzeugt; liegende Datei: `ic_launcher_foreground_src.png`)
 - `docs/assets/skyos-22-mark.png`
 
 Project icon assets (the three core logos):
@@ -79,6 +81,12 @@ Project icon assets (the three core logos):
 Additional mark:
 
 - `Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png`
+
+Freisteller (liegen in `docs/assets/`, als PNG normalisiert; für Schritt 2: iOS Image-Sets / Android / README):
+
+- `docs/assets/skydown-mark-freisteller.png`
+- `docs/assets/zweizwei-mark-freisteller.png`
+- `docs/assets/skydown-x-22-mark-freisteller.png`
 
 ## 6) Trust rule
 

@@ -4,23 +4,6 @@ import com.nash.skyos.data.ExternalMediaProvider
 import com.nash.skyos.data.resolveYouTubeVideoId
 import com.skydown.shared.model.Track
 
-data class FeaturedBeatHighlight(
-    val id: String,
-    val title: String,
-    val artistName: String,
-    val notes: String,
-    val downloadUrl: String,
-    val externalUrl: String,
-    val sourceProvider: String,
-    val isPlayable: Boolean,
-) {
-    val provider: ExternalMediaProvider
-        get() = ExternalMediaProvider.from(sourceProvider)
-
-    val openUrl: String
-        get() = externalUrl.ifBlank { downloadUrl }
-}
-
 data class FeaturedVideoHighlight(
     val id: String,
     val title: String,
@@ -71,10 +54,8 @@ data class FeaturedVideoHighlight(
 
 data class HomeUiState(
     val featuredTrack: Track? = null,
-    val featuredBeat: FeaturedBeatHighlight? = null,
     val featuredVideo: FeaturedVideoHighlight? = null,
     val homeTrackMessage: String? = null,
-    val homeBeatMessage: String? = null,
     val homeVideoMessage: String? = null,
     val aiUsageWarning: String? = null,
     val creatorLimitZone: Boolean = false,

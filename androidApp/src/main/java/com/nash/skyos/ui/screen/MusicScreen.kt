@@ -102,8 +102,8 @@ import com.nash.skyos.ui.component.TrackRow
 import com.nash.skyos.ui.component.TrackRowPresentation
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
+import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownContentPadding
-import com.nash.skyos.ui.component.skydownScreenBrush
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.component.openTrackInSpotify
 import com.nash.skyos.ui.model.MusicUiState
@@ -127,7 +127,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun MusicScreen(
     onBack: (() -> Unit)? = null,
-    onOpenBeatHub: (() -> Unit)? = null,
     onOpenStudio: (() -> Unit)? = null,
     initialArtist: String? = null,
     initialTrackId: Int? = null,
@@ -138,6 +137,7 @@ fun MusicScreen(
     onOpenSettings: (() -> Unit)? = null,
     onGuestSignIn: (() -> Unit)? = null,
     onOpenArtistPage: ((String) -> Unit)? = null,
+    onArtistContextChange: ((String) -> Unit)? = null,
     viewModel: MusicViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -157,6 +157,9 @@ fun MusicScreen(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val selectedTrack = uiState.tracks.firstOrNull { it.trackId == selectedTrackId } ?: uiState.tracks.firstOrNull()
+    LaunchedEffect(uiState.selectedArtist) {
+        onArtistContextChange?.invoke(uiState.selectedArtist)
+    }
     val selectedTrackQueuePosition = remember(uiState.tracks, selectedTrackId) {
         uiState.tracks.indexOfFirst { it.trackId == selectedTrackId }
             .takeIf { it >= 0 }
@@ -169,7 +172,7 @@ fun MusicScreen(
             else -> "Queue ${uiState.tracks.size} Tracks"
         }
     }
-    val hasShortcutHub = onOpenBeatHub != null || onOpenStudio != null
+    val hasShortcutHub = onOpenStudio != null
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
     val spotlightSectionIndex = 1
@@ -334,44 +337,20 @@ fun MusicScreen(
             )
         },
         floatingActionButton = {
-            if (onOpenBeatHub != null || onOpenStudio != null) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalAlignment = Alignment.End,
+            onOpenStudio?.let { openStudio ->
+                ExtendedFloatingActionButton(
+                    onClick = openStudio,
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                 ) {
-                    onOpenStudio?.let { openStudio ->
-                        ExtendedFloatingActionButton(
-                            onClick = openStudio,
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                            )
-                            Text(
-                                text = "Studio",
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
-                        }
-                    }
-
-                    onOpenBeatHub?.let { openBeatHub ->
-                        ExtendedFloatingActionButton(
-                            onClick = openBeatHub,
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.GraphicEq,
-                                contentDescription = null,
-                            )
-                            Text(
-                                text = "Beat Hub",
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
-                        }
-                    }
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = "Studio",
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
                 }
             }
         },
@@ -380,13 +359,11 @@ fun MusicScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    skydownScreenBrush(
-                        primaryColor = colorScheme.skydownAccent(),
-                        secondaryColor = colorScheme.skydownSpotify(),
-                        primaryAlpha = 0.022f,
-                        secondaryAlpha = 0.016f,
-                    ),
+                .skydownAtmosphereBackground(
+                    primaryColor = colorScheme.skydownAccent(),
+                    secondaryColor = colorScheme.skydownSpotify(),
+                    primaryAlpha = 0.022f,
+                    secondaryAlpha = 0.016f,
                 ),
         ) {
             MusicStageBackdrop(
@@ -562,11 +539,10 @@ fun MusicScreen(
                         }
                     }
 
-                    if (onOpenBeatHub != null || onOpenStudio != null) {
+                    onOpenStudio?.let { openStudio ->
                         item {
                             MusicShortcutHubCard(
-                                onOpenStudio = onOpenStudio,
-                                onOpenBeatHub = onOpenBeatHub,
+                                onOpenStudio = openStudio,
                             )
                         }
                     }
@@ -649,72 +625,29 @@ private fun MusicInstagramHubCard(
 
 @Composable
 private fun MusicShortcutHubCard(
-    onOpenStudio: (() -> Unit)?,
-    onOpenBeatHub: (() -> Unit)?,
+    onOpenStudio: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val beatAccent = colorScheme.skydownAccent()
     val studioAccent = colorScheme.skydownAccentMystic()
     SkydownCard {
         BrandSectionBanner(
             title = "Quick Access",
-            subtitle = "Optionaler Schnellzugriff fuer Studio und Beat Hub.",
-            accent = beatAccent,
+            subtitle = "Optionaler Schnellzugriff fuer Studio.",
+            accent = studioAccent,
             icon = Icons.Default.AutoAwesome,
             tag = "LINKS",
         )
 
-        BoxWithConstraints(
+        Box(
             modifier = Modifier.padding(top = 14.dp),
         ) {
-            val stackTiles = maxWidth < 420.dp || onOpenStudio == null || onOpenBeatHub == null
-
-            if (stackTiles) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    onOpenBeatHub?.let { openBeatHub ->
-                        MusicQuickAccessTile(
-                            title = "Beat Hub",
-                            subtitle = "Playback, Auswahl, Vibe",
-                            accent = beatAccent,
-                            icon = Icons.Default.GraphicEq,
-                            onClick = openBeatHub,
-                        )
-                    }
-
-                    onOpenStudio?.let { openStudio ->
-                        MusicQuickAccessTile(
-                            title = "Studio",
-                            subtitle = "Record, Mix, Master",
-                            accent = studioAccent,
-                            icon = Icons.Default.AutoAwesome,
-                            onClick = openStudio,
-                        )
-                    }
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    MusicQuickAccessTile(
-                        title = "Beat Hub",
-                        subtitle = "Playback, Auswahl, Vibe",
-                        accent = beatAccent,
-                        icon = Icons.Default.GraphicEq,
-                        onClick = onOpenBeatHub,
-                        modifier = Modifier.weight(1f),
-                    )
-
-                    MusicQuickAccessTile(
-                        title = "Studio",
-                        subtitle = "Record, Mix, Master",
-                        accent = studioAccent,
-                        icon = Icons.Default.AutoAwesome,
-                        onClick = onOpenStudio,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
+            MusicQuickAccessTile(
+                title = "Studio",
+                subtitle = "Record, Mix, Master",
+                accent = studioAccent,
+                icon = Icons.Default.AutoAwesome,
+                onClick = onOpenStudio,
+            )
         }
     }
 }
@@ -1036,7 +969,7 @@ private fun MusicOverviewCard(
     val beatAccent = colorScheme.skydownAccent()
     val statusAccent = colorScheme.skydownAccentMystic()
     BrandHeroCard(
-        eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
+        eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "SkyOS" },
         title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
         subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank {
             "Ueberblick vorweg – Artist, Drop und Track-Status im Griff."

@@ -122,8 +122,8 @@ import com.nash.skyos.ui.component.dismissKeyboardOnTap
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
 import com.nash.skyos.ui.component.skydownPressable
+import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownContentPadding
-import com.nash.skyos.ui.component.skydownScreenBrush
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.model.ProducedWithArtist
 import com.nash.skyos.ui.model.VideoEquipmentItem
@@ -387,13 +387,11 @@ fun VideoHubScreen(
                 .fillMaxSize()
                 .imePadding()
                 .dismissKeyboardOnTap(onDismissKeyboard = dismissKeyboard)
-                .background(
-                    skydownScreenBrush(
-                        primaryColor = videoAccent,
-                        secondaryColor = videoMysticAccent,
-                        primaryAlpha = 0.022f,
-                        secondaryAlpha = 0.016f,
-                    ),
+                .skydownAtmosphereBackground(
+                    primaryColor = videoAccent,
+                    secondaryColor = videoMysticAccent,
+                    primaryAlpha = 0.022f,
+                    secondaryAlpha = 0.016f,
                 ),
         ) {
             LazyColumn(

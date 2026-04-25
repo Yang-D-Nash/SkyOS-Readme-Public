@@ -35,13 +35,11 @@ struct HomeView: View {
 
 private enum HomeSectionAnchor: String {
     case release
-    case beat
     case video
 }
 
 struct HomeViewContent: View {
     @StateObject private var viewModel = HomeViewModel()
-    @StateObject private var beatPlaybackManager = BeatPlaybackManager()
     @StateObject private var audioPlayerManager = AudioPlayerManager()
     @StateObject private var videoPlaybackManager = HomeInlineVideoPlaybackManager()
     @State private var sheetPresentation = SkydownQueuedPresentation<HomePresentedSheet>()
@@ -87,21 +85,14 @@ struct HomeViewContent: View {
                                     proxy.scrollTo(HomeSectionAnchor.release.rawValue, anchor: .top)
                                 }
                             }
-                            let openBeatSection = {
-                                withAnimation(scrollAnimation) {
-                                    proxy.scrollTo(HomeSectionAnchor.beat.rawValue, anchor: .top)
-                                }
-                            }
                             let openVideoSection = {
                                 withAnimation(scrollAnimation) {
                                     proxy.scrollTo(HomeSectionAnchor.video.rawValue, anchor: .top)
                                 }
                             }
                             let featuredTrack = viewModel.featuredTrack
-                            let featuredBeat = viewModel.featuredBeat
                             let featuredVideo = viewModel.featuredVideo
                             let hasTrackSignal = featuredTrack != nil
-                            let hasBeatSignal = featuredBeat != nil
                             let hasVideoSignal = featuredVideo != nil
 
                             let commandPriorityTarget = homeCommandPriorityTarget(viewModel)
@@ -114,29 +105,19 @@ struct HomeViewContent: View {
                                     colorScheme: colorScheme,
                                     onOpenProfile: onOpenProfile,
                                     onOpenTrack: openReleaseSection,
-                                    onOpenBeat: openBeatSection,
                                     onOpenVideo: openVideoSection
                                 )
                                 .padding(.vertical, 4)
                                 .homeReveal(0)
 
-                                MusicInstagramHubCard(
-                                    selectedArtist: "Community",
-                                    destinations: homeSocialDestinations,
-                                    colorScheme: colorScheme
-                                )
-                                .homeReveal(1)
-
                                 HomeDailyOpsStrip(
                                     colorScheme: colorScheme,
                                     activeSignalCount: homeTrackedSignalCount(viewModel),
-                                    totalSignalCount: 3,
+                                    totalSignalCount: 2,
                                     hasTrackSignal: hasTrackSignal,
-                                    hasBeatSignal: hasBeatSignal,
                                     hasVideoSignal: hasVideoSignal,
                                     onRefresh: { viewModel.refresh() },
                                     onOpenRelease: openReleaseSection,
-                                    onOpenBeat: openBeatSection,
                                     onOpenVideo: openVideoSection
                                 )
                                 .homeReveal(2)
@@ -177,10 +158,8 @@ struct HomeViewContent: View {
                             HomeLiveSignalSection(
                                 colorScheme: colorScheme,
                                 hasTrackSignal: hasTrackSignal,
-                                hasBeatSignal: hasBeatSignal,
                                 hasVideoSignal: hasVideoSignal,
                                 trackName: featuredTrack?.trackName,
-                                beatName: featuredBeat?.title,
                                 videoName: featuredVideo?.title,
                                 aiUsageWarning: viewModel.aiUsageWarning,
                                 creatorLimitZone: viewModel.creatorLimitZone,
@@ -197,7 +176,6 @@ struct HomeViewContent: View {
                                 colorScheme: colorScheme,
                                 viewModel: viewModel,
                                 playbackManager: audioPlayerManager,
-                                beatPlaybackManager: beatPlaybackManager,
                                 videoPlaybackManager: videoPlaybackManager,
                                 onOpenVideoHub: openVideoHubFromMediaCluster(video:),
                                 onOpenOriginal: openOriginalFromMediaCluster(video:)
@@ -231,6 +209,9 @@ struct HomeViewContent: View {
                     for: colorScheme,
                     secondaryAccent: AppColors.accentMystic(for: colorScheme)
                 )
+                .overlay {
+                    SkydownAtmosphereBackdrop(colorScheme: colorScheme)
+                }
                 .overlay { HomeMapBackdrop(colorScheme: colorScheme) }
                 .ignoresSafeArea()
             }
@@ -265,7 +246,6 @@ struct HomeViewContent: View {
                 viewModel.refresh()
             }
             .onDisappear {
-                beatPlaybackManager.stop()
                 audioPlayerManager.stop()
                 videoPlaybackManager.stop()
             }
@@ -273,7 +253,6 @@ struct HomeViewContent: View {
         .sheet(item: activePresentedSheetBinding) { sheet in
             NavigationStack {
                 switch sheet {
-                case .beatHub: BeatHubView { activePresentedSheetBinding.wrappedValue = nil }
                 case .nicmaProducer: NicmaProducerView { activePresentedSheetBinding.wrappedValue = nil }
                 }
             }
@@ -310,7 +289,6 @@ struct HomeViewContent: View {
             return video.embedURL.trimmingCharacters(in: .whitespacesAndNewlines)
         }()
         guard !urlString.isEmpty, let url = URL(string: urlString) else { return }
-        beatPlaybackManager.stop()
         audioPlayerManager.stop()
         videoPlaybackManager.stop()
         activePresentedSheetBinding.wrappedValue = nil
@@ -321,7 +299,6 @@ struct HomeViewContent: View {
     }
 
     private func stopAllMediaPlayback() {
-        beatPlaybackManager.stop()
         audioPlayerManager.stop()
         videoPlaybackManager.stop()
     }
@@ -336,20 +313,9 @@ struct HomeViewContent: View {
     }
 }
 
-private let homeSocialDestinations: [MusicInstagramDestination] = [
-    skydownMusicInstagramDestination,
-    zweizweiInstagramDestination,
-    artistInstagramDestinations["Yang D. Nash"],
-    artistInstagramDestinations["JANNO"],
-    artistInstagramDestinations["ThaDude"],
-    artistInstagramDestinations["MAVE"],
-    artistInstagramDestinations["TANGAJOE007"]
-]
-    .compactMap { $0 }
-
 @MainActor
 private func homeTrackedSignalCount(_ viewModel: HomeViewModel) -> Int {
-    [viewModel.featuredTrack != nil, viewModel.featuredBeat != nil, viewModel.featuredVideo != nil]
+    [viewModel.featuredTrack != nil, viewModel.featuredVideo != nil]
         .filter { $0 }
         .count
 }
@@ -357,18 +323,12 @@ private func homeTrackedSignalCount(_ viewModel: HomeViewModel) -> Int {
 @MainActor
 private func homeCommandPriorityTarget(_ viewModel: HomeViewModel) -> String {
     if viewModel.featuredTrack == nil { return "music" }
-    if viewModel.featuredBeat == nil { return "beats" }
     if viewModel.featuredVideo == nil { return "visuals" }
     let hour = Calendar.current.component(.hour, from: Date())
-    switch hour {
-    case 5..<12: return "music"
-    case 12..<18: return "beats"
-    default: return "visuals"
-    }
+    return hour < 12 ? "music" : "visuals"
 }
 
 private enum HomePresentedSheet: String, Identifiable, Equatable {
-    case beatHub
     case nicmaProducer
     var id: String { rawValue }
 }
@@ -383,7 +343,6 @@ private struct HomeMediaClusterSection: View {
     let colorScheme: ColorScheme
     let viewModel: HomeViewModel
     let playbackManager: AudioPlayerManager
-    let beatPlaybackManager: BeatPlaybackManager
     let videoPlaybackManager: HomeInlineVideoPlaybackManager
     let onOpenVideoHub: (FeaturedHomeVideo) -> Void
     let onOpenOriginal: (FeaturedHomeVideo) -> Void
@@ -393,7 +352,6 @@ private struct HomeMediaClusterSection: View {
             colorScheme: colorScheme,
             viewModel: viewModel,
             playbackManager: playbackManager,
-            beatPlaybackManager: beatPlaybackManager,
             videoPlaybackManager: videoPlaybackManager,
             onOpenVideoHub: onOpenVideoHub,
             onOpenOriginal: onOpenOriginal
@@ -404,10 +362,8 @@ private struct HomeMediaClusterSection: View {
 private struct HomeLiveSignalSection: View {
     let colorScheme: ColorScheme
     let hasTrackSignal: Bool
-    let hasBeatSignal: Bool
     let hasVideoSignal: Bool
     let trackName: String?
-    let beatName: String?
     let videoName: String?
     let aiUsageWarning: String?
     let creatorLimitZone: Bool
@@ -422,10 +378,8 @@ private struct HomeLiveSignalSection: View {
         HomeLiveSignalSurface(
             colorScheme: colorScheme,
             hasTrackSignal: hasTrackSignal,
-            hasBeatSignal: hasBeatSignal,
             hasVideoSignal: hasVideoSignal,
             trackName: trackName,
-            beatName: beatName,
             videoName: videoName,
             aiUsageWarning: aiUsageWarning,
             agentRunning: agentRunning,

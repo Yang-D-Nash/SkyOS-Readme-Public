@@ -32,9 +32,10 @@ Paths:
 - `androidApp/src/main/res/mipmap-xhdpi/`
 - `androidApp/src/main/res/mipmap-xxhdpi/`
 - `androidApp/src/main/res/mipmap-xxxhdpi/`
-- `androidApp/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
-- `androidApp/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
+- `androidApp/src/main/res/mipmap-anydpi/ic_launcher.xml`
+- `androidApp/src/main/res/mipmap-anydpi/ic_launcher_round.xml`
 - `androidApp/src/main/res/drawable/ic_launcher_foreground.xml`
+- `androidApp/src/main/res/values/dimens.xml` (`ic_launcher_foreground_inset`)
 - `androidApp/src/main/res/drawable-nodpi/ic_launcher_foreground_src.png`
 
 Launcher size verification:
@@ -53,6 +54,7 @@ Adaptive icon verification:
   - background: `@color/ic_launcher_background`
   - foreground: `@drawable/ic_launcher_foreground`
 - `ic_launcher_background` exists in `androidApp/src/main/res/values/colors.xml`
+- Foreground `ic_launcher_foreground.xml` wraps the bitmap in an `inset` and uses `android:gravity="fill"` so the source scales into the layer (not `center`, which hard-clips). Inset is **small** (see `ic_launcher_foreground_inset`): large insets shrink a round mark in the launcher.
 
 ## Project icon usage (core set)
 

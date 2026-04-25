@@ -117,7 +117,7 @@ extension MerchandiseItem {
     var laneMemberships: [(id: String, type: String)] {
         let normalizedHandles = shopifyCollectionHandles
             .compactMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().nilIfEmpty }
-        if (shopifyProductId?.isEmpty == false), normalizedHandles.isEmpty == false {
+        if normalizedHandles.isEmpty == false {
             return normalizedHandles.map { ("collection:\($0)", "collection") }
         }
         return [(merchCategoryKey, "category")]

@@ -125,16 +125,23 @@ struct BrandHeroSurface<Footer: View>: View {
         let detailColor = hasBackgroundImage ? Color.white.opacity(0.86) : AppColors.text(for: colorScheme).opacity(0.86)
         let titleShadowColor = hasBackgroundImage ? Color.black.opacity(colorScheme == .dark ? 0.32 : 0.24) : .clear
         let subtitleShadowColor = hasBackgroundImage ? Color.black.opacity(colorScheme == .dark ? 0.28 : 0.18) : .clear
+        let shouldShowEyebrow = !eyebrow.isEmpty && !title.lowercased().hasPrefix(eyebrow.lowercased())
+        let shouldShowDetail = {
+            guard let detail, !detail.isEmpty else { return false }
+            return detail.normalizedHeroComparisonText != subtitle.normalizedHeroComparisonText
+        }()
 
         VStack(alignment: .leading, spacing: isCompactHero ? 11 : 14) {
             HStack(alignment: .top, spacing: isCompactHero ? 10 : 14) {
                 VStack(alignment: .leading, spacing: isCompactHero ? 6 : 8) {
                     HStack(alignment: .center, spacing: 8) {
-                        Text(eyebrow.uppercased())
-                            .font(AppTypography.heroEyebrow)
-                            .tracking(1.15)
-                            .foregroundColor(accent)
-                            .shadow(color: titleShadowColor.opacity(0.45), radius: 4, y: 2)
+                        if shouldShowEyebrow {
+                            Text(eyebrow.uppercased())
+                                .font(AppTypography.heroEyebrow)
+                                .tracking(1.15)
+                                .foregroundColor(accent)
+                                .shadow(color: titleShadowColor.opacity(0.45), radius: 4, y: 2)
+                        }
 
                         Capsule(style: .continuous)
                             .fill(
@@ -165,7 +172,7 @@ struct BrandHeroSurface<Footer: View>: View {
                         .shadow(color: subtitleShadowColor, radius: 5, y: 2)
                         .lineLimit(isCompactHero ? 1 : 2)
 
-                    if let detail, !detail.isEmpty {
+                    if let detail, shouldShowDetail {
                         Text(detail)
                             .font(AppTypography.editorialCaption)
                             .tracking(0.42)
@@ -374,6 +381,14 @@ struct BrandHeroSurface<Footer: View>: View {
                     .opacity(0.58)
             }
         }
+    }
+}
+
+private extension String {
+    var normalizedHeroComparisonText: String {
+        lowercased()
+            .replacingOccurrences(of: "[^\\p{L}\\p{N}]+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

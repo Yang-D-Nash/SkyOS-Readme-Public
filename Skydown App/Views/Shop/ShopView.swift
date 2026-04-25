@@ -21,6 +21,7 @@ struct ShopView: View {
     private let onGuestSignIn: (() -> Void)?
     @State private var selectedItem: MerchandiseItem?
     @State private var selectedCollabLaneID = MerchandiseCollabLane.allID
+    @State private var openedCollectionLane: MerchandiseCollabLane?
     @Environment(\.colorScheme) private var colorScheme
 
     init(
@@ -143,6 +144,17 @@ struct ShopView: View {
                                     isSyncingCatalog: viewModel.isSyncingCatalog,
                                     onSurfaceTap: onOpenCart
                                 )
+
+                                ShopWelcomeQuickEntryCard(
+                                    colorScheme: colorScheme,
+                                    lanes: merchCollabLanes,
+                                    selectedLaneID: selectedCollabLaneID
+                                ) { lane in
+                                    selectedCollabLaneID = lane.id
+                                } onOpenLane: { lane in
+                                    selectedCollabLaneID = lane.id
+                                    openedCollectionLane = lane
+                                }
 
                                 if !viewModel.merchandiseItems.isEmpty {
                                     ShopMerchOpeningBlock(
@@ -348,6 +360,9 @@ struct ShopView: View {
                         for: colorScheme,
                         secondaryAccent: AppColors.accentMystic(for: colorScheme)
                     )
+                    .overlay {
+                        SkydownAtmosphereBackdrop(colorScheme: colorScheme)
+                    }
                     .ignoresSafeArea()
                 )
                 .navigationBarTitleDisplayMode(.inline)
@@ -392,6 +407,19 @@ struct ShopView: View {
                         )
                             .background(AppColors.primaryBackground(for: colorScheme))
                     }
+                }
+                .sheet(item: $openedCollectionLane) { lane in
+                    ShopCollectionLanePage(
+                        lane: lane,
+                        allItems: viewModel.merchandiseItems,
+                        colorScheme: colorScheme,
+                        onOpenItem: { item in
+                            selectedItem = item
+                        },
+                        onDismiss: {
+                            openedCollectionLane = nil
+                        }
+                    )
                 }
             }
         }
@@ -511,6 +539,202 @@ private struct ShopHeroCard: View {
                     colorScheme: colorScheme,
                     isActive: isLoggedIn
                 )
+            }
+        }
+    }
+}
+
+private struct ShopWelcomeQuickEntryCard: View {
+    let colorScheme: ColorScheme
+    let lanes: [MerchandiseCollabLane]
+    let selectedLaneID: String
+    let onSelectLane: (MerchandiseCollabLane) -> Void
+    let onOpenLane: (MerchandiseCollabLane) -> Void
+
+    private var quickLanes: [MerchandiseCollabLane] {
+        lanes
+    }
+
+    private var entryLanes: [MerchandiseCollabLane] {
+        lanes.filter { $0.id != MerchandiseCollabLane.allID }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Willkommen im Store")
+                        .font(AppTypography.sectionHeadline)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    Text("Starte ueber den Katalog und waehle direkt deinen Bereich.")
+                        .font(AppTypography.bodyCaption)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+                Spacer(minLength: 0)
+                Text("Katalog")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(AppColors.accent(for: colorScheme))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(AppColors.accent(for: colorScheme).opacity(0.12))
+                    )
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Direkter Einstieg")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                HomeActionButton(
+                    title: "Alle Drops",
+                    subtitle: "Kompletter Katalog",
+                    icon: "bag.fill",
+                    colorScheme: colorScheme,
+                    brand: .neutral,
+                    isPrimary: true
+                ) {
+                    if let lane = lanes.first(where: { $0.id == MerchandiseCollabLane.allID }) {
+                        onOpenLane(lane)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    ForEach(Array(entryLanes.prefix(2)), id: \.id) { lane in
+                        HomeActionButton(
+                            title: lane.title,
+                            subtitle: lane.subtitle,
+                            icon: "square.grid.2x2.fill",
+                            colorScheme: colorScheme,
+                            brand: .neutral,
+                            isPrimary: false
+                        ) {
+                            onOpenLane(lane)
+                        }
+                    }
+                }
+            }
+
+            VStack(spacing: 8) {
+                ForEach(quickLanes, id: \.id) { lane in
+                    Button(action: { onOpenLane(lane) }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: lane.id == selectedLaneID ? "checkmark.circle.fill" : "circle")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(AppColors.accent(for: colorScheme).opacity(lane.id == selectedLaneID ? 0.9 : 0.45))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(lane.title)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(AppColors.text(for: colorScheme))
+                                    .lineLimit(1)
+                                Text(lane.subtitle)
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                    .lineLimit(1)
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .font(.caption2.weight(.bold))
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.68))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(
+                                    lane.id == selectedLaneID
+                                        ? AppColors.accent(for: colorScheme).opacity(0.12)
+                                        : AppColors.secondaryBackground(for: colorScheme)
+                                )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(AppColors.accent(for: colorScheme).opacity(lane.id == selectedLaneID ? 0.32 : 0.14), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .skydownTactileAction()
+                }
+            }
+        }
+        .padding(14)
+        .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.accent(for: colorScheme))
+    }
+}
+
+private struct ShopCollectionLanePage: View {
+    let lane: MerchandiseCollabLane
+    let allItems: [MerchandiseItem]
+    let colorScheme: ColorScheme
+    let onOpenItem: (MerchandiseItem) -> Void
+    let onDismiss: () -> Void
+
+    private var laneItems: [MerchandiseItem] {
+        if lane.id == MerchandiseCollabLane.allID {
+            return allItems
+        }
+        return allItems.filter { $0.belongsToLane(id: lane.id) }
+    }
+
+    private var laneTitle: String {
+        if lane.id == MerchandiseCollabLane.allID {
+            return AppLocalized.text("shop.lane.all_drops_title", fallback: "All pieces")
+        }
+        return lane.title
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ShopInfoCard(
+                        colorScheme: colorScheme,
+                        title: laneTitle,
+                        message: lane.subtitle
+                    )
+                    if laneItems.isEmpty {
+                        ShopInfoCard(
+                            colorScheme: colorScheme,
+                            title: AppLocalized.text("shop.filter.empty.title", fallback: "Nothing in this view"),
+                            message: AppLocalized.text("shop.filter.empty.body", fallback: "There is no visible product in this collection right now.")
+                        )
+                    } else {
+                        LazyVStack(alignment: .leading, spacing: 9) {
+                            ForEach(0..<laneItems.count, id: \.self) { index in
+                                let item = laneItems[index]
+                                MerchandiseRowView(
+                                    item: item,
+                                    environmentColorScheme: colorScheme,
+                                    shelfSpotlight: index < 2,
+                                    shelfSettled: index > 2
+                                ) {
+                                    onOpenItem($0)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 16)
+            }
+            .background(
+                AppColors.screenGradient(for: colorScheme, secondaryAccent: AppColors.accentMystic(for: colorScheme))
+                    .overlay {
+                        SkydownAtmosphereBackdrop(colorScheme: colorScheme)
+                    }
+                    .ignoresSafeArea()
+            )
+            .navigationTitle(laneTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Zurueck", action: onDismiss)
+                }
             }
         }
     }

@@ -29,7 +29,7 @@ enum MusicExperienceBrand {
         case .skydown:
             return "Katalog · Previews · Spotify"
         case .zweizwei:
-            return "Releases · Tracks · Beats"
+            return "Releases · Tracks · Studio"
         }
     }
 
@@ -66,15 +66,6 @@ enum MusicExperienceBrand {
             return nil
         case .zweizwei:
             return "Record · Mix · Master"
-        }
-    }
-
-    var showsBeatHubShortcut: Bool {
-        switch self {
-        case .skydown:
-            return false
-        case .zweizwei:
-            return true
         }
     }
 
@@ -123,6 +114,7 @@ struct MusicView: View {
     let onOpenProfile: (() -> Void)?
     let onOpenSettings: (() -> Void)?
     let onGuestSignIn: (() -> Void)?
+    let onArtistContextChange: ((String) -> Void)?
     private let initialArtist: String?
     private let initialTrackID: Int?
     private let autoplaySelectedTrackPreview: Bool
@@ -137,6 +129,7 @@ struct MusicView: View {
         autoPresentSelectedTrackSpotifyPlayer: Bool = false,
         autoPresentArtistPageOnAppear: Bool = false,
         onBack: (() -> Void)? = nil,
+        onArtistContextChange: ((String) -> Void)? = nil,
         onOpenCart: (() -> Void)? = nil,
         onOpenProfile: (() -> Void)? = nil,
         onOpenSettings: (() -> Void)? = nil,
@@ -149,6 +142,7 @@ struct MusicView: View {
         self.autoplaySelectedTrackPreview = autoplaySelectedTrackPreview
         self.autoPresentSelectedTrackSpotifyPlayer = autoPresentSelectedTrackSpotifyPlayer
         self.autoPresentArtistPageOnAppear = autoPresentArtistPageOnAppear
+        self.onArtistContextChange = onArtistContextChange
         self.onOpenCart = onOpenCart
         self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
@@ -276,7 +270,7 @@ struct MusicView: View {
                         .frame(maxWidth: contentWidth, alignment: .leading)
                         .padding(.horizontal, layout.horizontalPadding)
                         .padding(.top, SkydownLayout.screenTopPadding)
-                        .padding(.bottom, SkydownLayout.screenBottomPadding + (brand.showsBeatHubShortcut ? 52 : 0))
+                        .padding(.bottom, SkydownLayout.screenBottomPadding)
                         .frame(maxWidth: .infinity)
                     }
                     .accessibilityIdentifier("music.catalog.root")
@@ -285,24 +279,6 @@ struct MusicView: View {
                     .navigationTitle(brand.navigationTitle)
                     .navigationBarTitleDisplayMode(.inline)
                     .skydownNavigationChrome(colorScheme: colorScheme)
-                    .overlay(alignment: .bottomTrailing) {
-                        if brand.showsBeatHubShortcut {
-                            NavigationLink {
-                                BeatHubView()
-                            } label: {
-                                MusicShortcutFab(
-                                    title: "Beat Hub",
-                                    systemImage: "waveform.circle.fill",
-                                    tint: AppColors.accent(for: colorScheme),
-                                    textColor: .white
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .skydownTactileAction()
-                            .padding(.trailing, layout.horizontalPadding)
-                            .padding(.bottom, 20)
-                        }
-                    }
                 }
                 .toolbar {
                     if let onBack {
@@ -337,6 +313,9 @@ struct MusicView: View {
                 }
                 .task(id: selectedArtist) {
                     await reloadTracksIfNeeded()
+                }
+                .onChange(of: selectedArtist) {
+                    onArtistContextChange?(selectedArtist)
                 }
                 .onChange(of: trackIDs) {
                     guard !viewModel.tracks.isEmpty else {
@@ -503,7 +482,7 @@ struct MusicView: View {
     ) -> some View {
         BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
+            eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "SkyOS",
             title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? brand.heroTitle,
             subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Ueberblick vorweg – Artist, Drop und Track-Status im Griff.",
             detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "\(selectedArtist) – Die folgenden Bereiche fassen Spotlight, Katalog und Status zusammen.",
@@ -683,57 +662,16 @@ struct MusicView: View {
 
     @ViewBuilder
     private var shortcutHubCard: some View {
-        if brand.showsBeatHubShortcut || brand.workflowTitle != nil {
+        if brand.workflowTitle != nil {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Quick Access")
                     .font(.headline)
 
-                Text("Optionaler Schnellzugriff fuer Studio und Beat Hub.")
+                Text("Optionaler Schnellzugriff fuer Studio.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                if brand.showsBeatHubShortcut, brand.workflowTitle != nil {
-                    HStack(spacing: 12) {
-                        NavigationLink {
-                            BeatHubView()
-                        } label: {
-                            quickAccessTile(
-                                title: "Beat Hub",
-                                subtitle: "Playback, Auswahl, Vibe",
-                                accent: AppColors.accent(for: colorScheme),
-                                systemImage: "waveform.circle.fill"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
-
-                        NavigationLink {
-                            NicmaProducerView()
-                        } label: {
-                            quickAccessTile(
-                                title: "Studio",
-                                subtitle: "Record, Mix, Master",
-                                accent: AppColors.accentMystic(for: colorScheme),
-                                systemImage: "sparkles"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
-                    }
-                } else if brand.showsBeatHubShortcut {
-                    NavigationLink {
-                        BeatHubView()
-                    } label: {
-                        quickAccessTile(
-                            title: "Beat Hub",
-                            subtitle: "Playback, Auswahl, Vibe",
-                            accent: AppColors.accent(for: colorScheme),
-                            systemImage: "waveform.circle.fill"
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                } else if let workflowTitle = brand.workflowTitle,
+                if let workflowTitle = brand.workflowTitle,
                           let workflowSubtitle = brand.workflowSubtitle {
                     NavigationLink {
                         NicmaProducerView()
