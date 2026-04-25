@@ -13,20 +13,20 @@
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
     "test:rules": "./node_modules/.bin/firebase emulators:exec --project demo-skydown --only firestore,storage \"node --test tests/**/*.test.js\"",
-    "test:node": "node --test tests/roles.sync.test.js"
+    "test:node": "node --test tests/roles.sync.test.js tests/app-check.test.js tests/functions.security.test.js"
   },
   "dependencies": {
     "@apple/app-store-server-library": "^3.0.0",
-    "@genkit-ai/firebase": "^1.30.1",
-    "@genkit-ai/google-genai": "^1.30.1",
+    "@genkit-ai/firebase": "^1.33.0",
+    "@genkit-ai/google-genai": "^1.33.0",
     "firebase-admin": "^13.8.0",
     "firebase-functions": "^7.2.5",
-    "genkit": "^1.30.1",
-    "nodemailer": "^6.10.1"
+    "genkit": "^1.33.0",
+    "nodemailer": "^8.0.6"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
     "firebase": "^11.5.0",
-    "firebase-tools": "^15.12.0"
+    "firebase-tools": "^15.15.0"
   }
 }

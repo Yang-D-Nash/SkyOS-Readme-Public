@@ -232,6 +232,7 @@ test("owner email darf eigenes User-Dokument auch ohne owner claim fuer Profilbi
   });
   const ownerDb = testEnv.authenticatedContext("owneruid", {
     email: "nash.lioncorna@gmail.com",
+    email_verified: true,
     role: "user",
   }).firestore();
 
@@ -281,6 +282,7 @@ test("owner darf Staff-Rechte und Limits inklusive updatedAt auf User-Dokumenten
 
   const ownerDb = testEnv.authenticatedContext("owner", {
     email: "nash.lioncorna@gmail.com",
+    email_verified: true,
     role: "owner",
   }).firestore();
 
@@ -460,6 +462,7 @@ test("owner darf Orders global lesen und verwalten", async () => {
 
   const ownerDb = testEnv.authenticatedContext("owner", {
     email: "nash.lioncorna@gmail.com",
+    email_verified: true,
     role: "owner",
   }).firestore();
 
@@ -684,6 +687,7 @@ test("owner email darf eigene Asset-Bilder auch ohne owner claim hochladen", asy
   const storage = testEnv.authenticatedContext("nash-owner", {
     role: "user",
     email: "nash.lioncorna@gmail.com",
+    email_verified: true,
   }).storage();
   const fileRef = ref(storage, "users/nash-owner/assets/slot_asset_owner_email_001.jpg");
 
@@ -816,6 +820,7 @@ test("owner email darf screenHeaders auch ohne owner claim speichern", async () 
   const ownerEmailDb = testEnv.authenticatedContext("nash-owner", {
     role: "user",
     email: "nash.lioncorna@gmail.com",
+    email_verified: true,
   }).firestore();
 
   await assertSucceeds(setDoc(doc(ownerEmailDb, "appConfig", "screenHeaders"), {
@@ -1065,10 +1070,56 @@ test("Owner darf artistPages anlegen und Editoren setzen", async () => {
   }));
 });
 
+test("Owner darf artistPages mit validierter Studio-Preisliste anlegen", async () => {
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+  const createdAt = Timestamp.fromDate(new Date("2026-04-02T10:00:00.000Z"));
+  const validPriceList = Array.from({length: 12}, (_, index) => ({
+    title: `Paket ${index + 1}`,
+    detail: "Studio Session",
+    price: "99 EUR",
+  }));
+  const basePayload = {
+    brand: "zweizwei",
+    artistName: "Studio Artist",
+    tagline: "Studio",
+    bio: "Preisliste fuer Studio-Angebote.",
+    profileImageURL: "https://example.com/avatar.jpg",
+    heroImageURL: "https://example.com/hero.jpg",
+    instagramURL: "https://instagram.com/studio",
+    spotifyURL: "https://open.spotify.com/artist/example",
+    youtubeURL: "https://youtube.com/@studio",
+    editorUids: [],
+    createdAt,
+    updatedAt: createdAt,
+  };
+
+  await assertSucceeds(setDoc(doc(ownerDb, "artistPages", "zweizwei-studio-price-list"), {
+    ...basePayload,
+    slug: "studio-price-list",
+    studioPriceList: validPriceList,
+  }));
+
+  await assertFails(setDoc(doc(ownerDb, "artistPages", "zweizwei-invalid-price-list"), {
+    ...basePayload,
+    slug: "invalid-price-list",
+    studioPriceList: "Paket | Studio Session | 99 EUR",
+  }));
+
+  await assertFails(setDoc(doc(ownerDb, "artistPages", "zweizwei-long-price-list"), {
+    ...basePayload,
+    slug: "long-price-list",
+    studioPriceList: [
+      ...validPriceList,
+      {title: "Extra", detail: "Studio Session", price: "99 EUR"},
+    ],
+  }));
+});
+
 test("owner email darf artistPages auch ohne owner claim anlegen", async () => {
   const ownerEmailDb = testEnv.authenticatedContext("nash-owner", {
     role: "user",
     email: "nash.lioncorna@gmail.com",
+    email_verified: true,
   }).firestore();
 
   await assertSucceeds(setDoc(doc(ownerEmailDb, "artistPages", "zweizwei-owner-email-artist"), {

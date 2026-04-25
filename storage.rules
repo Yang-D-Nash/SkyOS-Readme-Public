@@ -40,8 +40,10 @@ service firebase.storage {
     function isOwnerEmail() {
       return signedIn()
         && request.auth.token.keys().hasAny(["email"])
+        && request.auth.token.keys().hasAny(["email_verified"])
         && request.auth.token.email is string
-        && request.auth.token.email.lower() == "nash.lioncorna@gmail.com";
+        && request.auth.token.email.lower() == "nash.lioncorna@gmail.com"
+        && request.auth.token.email_verified == true;
     }
 
     function isSelf(uid) {

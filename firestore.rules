@@ -40,8 +40,10 @@ service cloud.firestore {
     function isOwnerEmail() {
       return signedIn()
         && request.auth.token.keys().hasAny(["email"])
+        && request.auth.token.keys().hasAny(["email_verified"])
         && request.auth.token.email is string
-        && request.auth.token.email.lower() == "nash.lioncorna@gmail.com";
+        && request.auth.token.email.lower() == "nash.lioncorna@gmail.com"
+        && request.auth.token.email_verified == true;
     }
 
     function isAdmin() {
@@ -762,14 +764,7 @@ service cloud.firestore {
     function optionalStudioPriceList(data, key) {
       return !data.keys().hasAny([key]) || (
         data[key] is list
-        && data[key].size() <= 24
-        && data[key].all(item,
-          item is map
-          && item.keys().hasOnly(["title", "detail", "price"])
-          && requiredString(item.title, 1, 80)
-          && requiredString(item.detail, 1, 140)
-          && requiredString(item.price, 1, 60)
-        )
+        && data[key].size() <= 12
       );
     }
 

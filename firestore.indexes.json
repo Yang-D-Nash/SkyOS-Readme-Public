@@ -1,0 +1,47 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "aiFaqReviewChangeLog",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "reverted",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAtEpochMillis",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "aiUsageEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "denied",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAtEpochMillis",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "videographyHub",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isPublic",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isHomeFeatured",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

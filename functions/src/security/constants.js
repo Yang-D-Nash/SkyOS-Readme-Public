@@ -53,8 +53,8 @@ const DEFAULT_RUNTIME_CONFIG = Object.freeze({
   uploadsEnabled: true,
   registrationsEnabled: true,
   userWritesEnabled: true,
-  appCheckMode: APP_CHECK_MODES.monitor,
-  appCheckAiSoftFailEnabled: true,
+  appCheckMode: APP_CHECK_MODES.enforce,
+  appCheckAiSoftFailEnabled: false,
   budgetLockdownEnabled: false,
   lastLockdownReason: "",
 });

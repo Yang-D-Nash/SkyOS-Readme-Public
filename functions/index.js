@@ -2520,6 +2520,20 @@ async function deleteStoragePrefix(prefix) {
   return files.length;
 }
 
+async function deleteCollectionDocumentsByField(collectionName, fieldName, fieldValue) {
+  const normalizedValue = nonEmptyString(fieldValue);
+  if (!normalizedValue) {
+    return 0;
+  }
+
+  const snapshot = await admin.firestore()
+      .collection(collectionName)
+      .where(fieldName, "==", normalizedValue)
+      .get();
+
+  return deleteDocumentsFromSnapshot(snapshot);
+}
+
 async function deleteOrdersForAccount(uid, email = null) {
   const firestore = admin.firestore();
   const orderReferences = [];
@@ -2558,14 +2572,26 @@ async function purgeCurrentUserAccountData(uid, email = null) {
       .collection("uploadSlots")
       .where("ownerUid", "==", uid)
       .get();
-  const deletedOrders = await deleteOrdersForAccount(uid, email);
-  const deletedUploadSlots = await deleteDocumentsFromSnapshot(uploadSlotsSnapshot);
-  const deletedStorageObjects = await deleteStoragePrefix(`users/${uid}/`);
+  const [
+    deletedOrders,
+    deletedUploadSlots,
+    deletedStorageObjects,
+    deletedAiUsageEvents,
+    deletedAiMembershipEvents,
+  ] = await Promise.all([
+    deleteOrdersForAccount(uid, email),
+    deleteDocumentsFromSnapshot(uploadSlotsSnapshot),
+    deleteStoragePrefix(`users/${uid}/`),
+    deleteCollectionDocumentsByField(AI_USAGE_EVENTS_COLLECTION, "uid", uid),
+    deleteCollectionDocumentsByField(AI_MEMBERSHIP_EVENTS_COLLECTION, "uid", uid),
+  ]);
 
   return {
     deletedOrders,
     deletedStorageObjects,
     deletedUploadSlots,
+    deletedAiUsageEvents,
+    deletedAiMembershipEvents,
   };
 }
 
@@ -9176,7 +9202,6 @@ exports.submitMerchOrder = onCall({
 
   logger.info("Merch order created.", {
     orderId: orderRef.id,
-    userEmail: finalOrderData.userEmail,
     itemCount: finalOrderData.items.length,
     fulfillmentProvider: finalOrderData.fulfillmentProvider,
     shippingZone: finalOrderData.shippingZone,
@@ -9234,7 +9259,6 @@ exports.startMerchCheckout = onCall({
     logger.info("Zero-cost merch order confirmed without hosted payment.", {
       orderId: orderRef.id,
       platform,
-      userEmail: finalOrderData.userEmail,
       fulfillmentProvider: finalOrderData.fulfillmentProvider,
     });
 
@@ -9272,7 +9296,6 @@ exports.startMerchCheckout = onCall({
     orderId: orderRef.id,
     paymentMethod,
     platform,
-    userEmail: orderData.userEmail,
     sessionId: checkoutSession.sessionId,
   });
 
@@ -12239,6 +12262,10 @@ exports.validateManusApiKey = onCall({
   timeoutSeconds: 30,
 }, async (request) => {
   await assertCallableSecurity(request, "validateManusApiKey");
+  assertAuthenticatedUser(
+      request.auth,
+      "Bitte melde dich an, bevor du einen Manus API Key pruefst.",
+  );
   const rawKey = nonEmptyString(request.data?.apiKey) || "";
   if (!rawKey) {
     throw new HttpsError("invalid-argument", "Bitte gib einen Manus API Key an.");
@@ -12795,6 +12822,8 @@ exports.deleteCurrentUserAccount = onCall({
     deletedOrders: deletionSummary.deletedOrders,
     deletedStorageObjects: deletionSummary.deletedStorageObjects,
     deletedUploadSlots: deletionSummary.deletedUploadSlots,
+    deletedAiUsageEvents: deletionSummary.deletedAiUsageEvents,
+    deletedAiMembershipEvents: deletionSummary.deletedAiMembershipEvents,
   });
 
   return {
@@ -12890,7 +12919,6 @@ exports.enforceRegistrationLockdown = functionsV1
   if (email === OWNER_EMAIL) {
     logger.warn("Owner registration bypassed lockdown to keep recovery access.", {
       uid: user.uid,
-      email,
     });
     await ensureAuthUserBootstrapDocument(user, {forcedRole: USER_ROLES.owner});
     return;
@@ -12898,7 +12926,6 @@ exports.enforceRegistrationLockdown = functionsV1
 
   logger.error("Registration created during lockdown. User will be deleted.", {
     uid: user.uid,
-    email,
   });
   await admin.auth().deleteUser(user.uid);
 });
@@ -13055,6 +13082,5 @@ exports.notifyOrderCreated = onDocumentCreated({
   logger.info("Order notification sent.", {
     orderId: event.params.orderId,
     recipient,
-    customerEmail: data.customerEmail || data.userEmail || null,
   });
 });
