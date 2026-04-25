@@ -19,7 +19,7 @@ Important paths:
 
 - Xcode with current iOS SDK support
 - Apple signing setup for real-device work
-- `GoogleService-Info.plist` for the intended Firebase environment
+- `Skydown App/GoogleService-Info.plist` for the intended Firebase environment
 - access to the correct Apple team and provisioning setup for archive/signing work
 
 ## 3. Build From Command Line
@@ -39,7 +39,7 @@ Recommended workflow:
 
 1. Open `Skydown App.xcodeproj`.
 2. Confirm signing team and bundle identifier behavior.
-3. Confirm the correct Firebase plist is present for the environment.
+3. Confirm the correct Firebase plist is present at `Skydown App/GoogleService-Info.plist`.
 4. Choose simulator or physical device.
 5. Run the app and validate the targeted flow.
 

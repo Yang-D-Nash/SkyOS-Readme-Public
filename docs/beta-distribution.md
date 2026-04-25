@@ -4,12 +4,9 @@ Dieses Dokument beschreibt den minimalen Beta-Zugangspfad fuer externe Tester.
 
 ## 1) Beta Setup
 
-- iOS TestFlight Link eintragen:
-  - `IOS_TESTFLIGHT_LINK_PLACEHOLDER`
-- Android Internal Testing Link eintragen:
-  - `ANDROID_TESTING_LINK_PLACEHOLDER`
-- Dieselben Links auf der Website (`site/index.html`) unter "Beta testen" aktuell halten.
-- Wichtig: Platzhalter immer vor Versand an Tester ersetzen.
+- iOS Tester in App Store Connect/TestFlight einladen oder den aktuellen TestFlight-Link aus App Store Connect verwenden.
+- Android Tester in der internen oder geschlossenen Google-Play-Testspur einladen oder den aktuellen Opt-in-Link aus Play Console verwenden.
+- Oeffentliche Website (`site/index.html`) nicht mit temporaren Testlinks oder Platzhaltern befuellen.
 - Keine Fake- oder Demo-Links in oeffentlichen Kanaelen posten.
 
 ## 2) Tester Nachricht (Copy/Paste)
@@ -19,8 +16,8 @@ Hey, teste bitte Skydown 5 Minuten.
 
 Starte ohne Vorwissen und versuche in den ersten 5 Minuten einen ersten sichtbaren Nutzen zu erreichen.
 
-iOS: IOS_TESTFLIGHT_LINK_PLACEHOLDER
-Android: ANDROID_TESTING_LINK_PLACEHOLDER
+iOS: TestFlight-Einladung aus App Store Connect
+Android: Google-Play-Testeinladung aus Play Console
 
 Sag mir danach bitte nur:
 1) Wo du haengen bleibst
@@ -28,8 +25,6 @@ Sag mir danach bitte nur:
 3) Ob du sie nochmal oeffnen wuerdest
 4) Ob du dafuer zahlen wuerdest und wofuer
 ```
-
-Hinweis vor Versand: `IOS_TESTFLIGHT_LINK_PLACEHOLDER` und `ANDROID_TESTING_LINK_PLACEHOLDER` durch echte Testlinks ersetzen.
 
 ## 3) Testablauf (5 Minuten)
 
