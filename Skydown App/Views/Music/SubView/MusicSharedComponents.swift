@@ -12,7 +12,7 @@ struct MusicBadge: View {
     let text: String
     let isAccent: Bool
     var accentOverride: Color? = nil
-    var onTap: (() -> Void)? = nil
+    var onTap: () -> Void = {}
     @Environment(\.colorScheme) private var colorScheme
 
     private var resolvedAccent: Color {
@@ -20,34 +20,21 @@ struct MusicBadge: View {
     }
 
     var body: some View {
-        Group {
-            if let onTap {
-                Button(action: onTap) {
-                    badgeContent
-                }
-                .buttonStyle(.plain)
-                .skydownTactileAction()
-            } else {
-                SkydownMetaLabel(
-                    text: text,
-                    tint: isAccent
-                    ? resolvedAccent
-                    : AppColors.secondaryText(for: colorScheme)
-                )
-            }
+        Button(action: onTap) {
+            badgeContent
         }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 
     private var badgeContent: some View {
         HStack(spacing: 5) {
             Text(text)
                 .font(.caption.weight(.semibold))
-            if onTap != nil {
-                Image(systemName: "arrow.right")
-                    .font(.caption2.weight(.bold))
-            }
+            Image(systemName: "arrow.right")
+                .font(.caption2.weight(.bold))
         }
-        .padding(.horizontal, onTap == nil ? 10 : 12)
+        .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(
             isAccent

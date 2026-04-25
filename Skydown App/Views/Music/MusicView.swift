@@ -505,12 +505,13 @@ struct MusicView: View {
             colorScheme: colorScheme,
             eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "Music",
             title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? brand.heroTitle,
-            subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Einstieg – der Hoerpunkt sitzt im naechsten Block.",
-            detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "\(selectedArtist) – Kontext oben, Erlebnis im Fokus unten.",
+            subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Ueberblick vorweg – Artist, Drop und Track-Status im Griff.",
+            detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "\(selectedArtist) – Die folgenden Bereiche fassen Spotlight, Katalog und Status zusammen.",
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
             accent: AppColors.spotify(for: colorScheme),
             secondaryAccent: AppColors.accent(for: colorScheme),
-            marks: brand == .zweizwei ? [.zweizwei] : [.skydown]
+            marks: brand == .zweizwei ? [.zweizwei] : [.skydown],
+            onSurfaceTap: onOpenTracks
         ) {
             VStack(alignment: .leading, spacing: 10) {
                 ScrollView(.horizontal, showsIndicators: false) {

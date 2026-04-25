@@ -1,13 +1,11 @@
 package com.nash.skyos.ui.component
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -19,14 +17,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,17 +43,62 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.nash.skyos.R
 
+private object TopBarPreset {
+    fun useDense(compactLayout: Boolean, dense: Boolean): Boolean = dense && compactLayout
+    fun useMiniMode(compactLayout: Boolean, miniModeOnCompact: Boolean): Boolean = miniModeOnCompact && compactLayout
+    fun sessionHorizontalPadding(compactLayout: Boolean, dense: Boolean) = when {
+        dense && compactLayout -> 6.dp
+        dense -> 7.dp
+        compactLayout -> 9.dp
+        else -> 10.dp
+    }
+    fun sessionVerticalPadding(compactLayout: Boolean, dense: Boolean) = when {
+        dense && compactLayout -> 2.dp
+        dense -> 4.dp
+        compactLayout -> 5.dp
+        else -> 6.dp
+    }
+    fun sessionSpacing(compactLayout: Boolean, dense: Boolean) = when {
+        dense && compactLayout -> 4.dp
+        compactLayout -> 6.dp
+        dense -> 5.dp
+        else -> 8.dp
+    }
+    fun avatarSize(compactLayout: Boolean, dense: Boolean) = when {
+        dense && compactLayout -> 18.dp
+        dense -> 20.dp
+        compactLayout -> 26.dp
+        else -> 28.dp
+    }
+    fun actionIconInset(compactLayout: Boolean, dense: Boolean) = when {
+        dense && compactLayout -> 5.dp
+        dense -> 4.dp
+        compactLayout -> 3.dp
+        else -> 2.dp
+    }
+}
+
 @Composable
 fun RowScope.AppTopBarSessionActions(
     onOpenCart: (() -> Unit)? = null,
     onOpenProfile: (() -> Unit)? = null,
     onOpenSettings: () -> Unit,
     onGuestSignIn: (() -> Unit)? = null,
-    dense: Boolean = false,
+    dense: Boolean = true,
+    collapseIdentityOnCompact: Boolean = true,
+    miniModeOnCompact: Boolean = true,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
+    // Balanced preset:
+    // - compact (phone): dense controls + mini menu
+    // - regular (tablet/desktop): readable identity + direct action buttons
     val currentUser = LocalSessionUser.current
     val compactLayout = rememberIsCompactAppLayout()
+    val balancedDense = TopBarPreset.useDense(compactLayout = compactLayout, dense = dense)
+    val balancedMiniMode = TopBarPreset.useMiniMode(
+        compactLayout = compactLayout,
+        miniModeOnCompact = miniModeOnCompact,
+    )
     val displayName = currentUser?.username?.trim().takeUnless { it.isNullOrBlank() } ?: "Gast"
     val initials = displayName.firstOrNull()?.uppercase() ?: "G"
     val sessionAccent = if (currentUser == null) {
@@ -58,6 +107,10 @@ fun RowScope.AppTopBarSessionActions(
         MaterialTheme.colorScheme.primary
     }
     val sessionInteractionSource = remember { MutableInteractionSource() }
+    val showIdentityLabel = !balancedDense && !(collapseIdentityOnCompact && compactLayout)
+    val useMiniMode = balancedMiniMode
+    val showGuestSignIn = currentUser == null && onGuestSignIn != null && showIdentityLabel
+    var menuExpanded by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -73,40 +126,23 @@ fun RowScope.AppTopBarSessionActions(
                     onOpenSettings()
                 }
             }
+            .testTag("app.topbar.session")
             .padding(
-                horizontal = when {
-                    dense && compactLayout -> 7.dp
-                    dense -> 8.dp
-                    compactLayout -> 9.dp
-                    else -> 10.dp
-                },
-                vertical = when {
-                    dense && compactLayout -> 3.dp
-                    dense -> 4.dp
-                    compactLayout -> 5.dp
-                    else -> 6.dp
-                },
+                horizontal = TopBarPreset.sessionHorizontalPadding(
+                    compactLayout = compactLayout,
+                    dense = balancedDense,
+                ),
+                vertical = TopBarPreset.sessionVerticalPadding(
+                    compactLayout = compactLayout,
+                    dense = balancedDense,
+                ),
             ),
-        horizontalArrangement = Arrangement.spacedBy(
-            when {
-                dense && compactLayout -> 4.dp
-                compactLayout -> 6.dp
-                dense -> 5.dp
-                else -> 8.dp
-            },
-        ),
+        horizontalArrangement = Arrangement.spacedBy(TopBarPreset.sessionSpacing(compactLayout = compactLayout, dense = balancedDense)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(
-                    when {
-                        dense && compactLayout -> 20.dp
-                        dense -> 22.dp
-                        compactLayout -> 26.dp
-                        else -> 28.dp
-                    },
-                )
+                .size(TopBarPreset.avatarSize(compactLayout = compactLayout, dense = balancedDense))
                 .clip(CircleShape)
                 .background(sessionAccent.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center,
@@ -146,29 +182,31 @@ fun RowScope.AppTopBarSessionActions(
             }
         }
 
-        Row(
-            modifier = Modifier.weight(1f, fill = false),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = displayName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.90f),
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
-                modifier = Modifier.size(16.dp),
-            )
+        if (showIdentityLabel) {
+            Row(
+                modifier = Modifier.weight(1f, fill = false),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = displayName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.90f),
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 
-    if (currentUser == null && onGuestSignIn != null) {
+    if (showGuestSignIn && !useMiniMode) {
         Spacer(modifier = Modifier.width(4.dp))
         val guestInteractionSource = remember { MutableInteractionSource() }
         Text(
@@ -188,6 +226,58 @@ fun RowScope.AppTopBarSessionActions(
 
     trailingContent()
 
+    if (useMiniMode) {
+        SessionIconAction(
+            onClick = { menuExpanded = true },
+            imageVector = Icons.Default.MoreHoriz,
+            contentDescription = "Mehr",
+            testTag = "app.topbar.more",
+            compactLayout = compactLayout,
+            dense = balancedDense,
+            accentColor = MaterialTheme.colorScheme.tertiary,
+        )
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false },
+        ) {
+            if (onOpenCart != null) {
+                DropdownMenuItem(
+                    text = { Text("Warenkorb") },
+                    onClick = {
+                        menuExpanded = false
+                        onOpenCart()
+                    },
+                )
+            }
+            if (currentUser != null) {
+                DropdownMenuItem(
+                    text = { Text("Profil") },
+                    onClick = {
+                        menuExpanded = false
+                        (onOpenProfile ?: onOpenSettings).invoke()
+                    },
+                )
+            }
+            if (currentUser == null && onGuestSignIn != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.auth_session_sign_in)) },
+                    onClick = {
+                        menuExpanded = false
+                        onGuestSignIn()
+                    },
+                )
+            }
+            DropdownMenuItem(
+                text = { Text("Einstellungen") },
+                onClick = {
+                    menuExpanded = false
+                    onOpenSettings()
+                },
+            )
+        }
+        return
+    }
+
     if (onOpenCart != null) {
         SessionIconAction(
             onClick = onOpenCart,
@@ -195,7 +285,7 @@ fun RowScope.AppTopBarSessionActions(
             contentDescription = "Warenkorb",
             testTag = "app.topbar.cart",
             compactLayout = compactLayout,
-            dense = dense,
+            dense = balancedDense,
             accentColor = MaterialTheme.colorScheme.secondary,
         )
     }
@@ -206,7 +296,7 @@ fun RowScope.AppTopBarSessionActions(
         contentDescription = "Einstellungen",
         testTag = "app.topbar.settings",
         compactLayout = compactLayout,
-        dense = dense,
+        dense = balancedDense,
         accentColor = MaterialTheme.colorScheme.tertiary,
     )
 }
@@ -231,14 +321,8 @@ private fun SessionIconAction(
         IconButton(
             onClick = onClick,
             modifier = Modifier
-                .size(
-                    when {
-                        dense && compactLayout -> 30.dp
-                        dense -> 32.dp
-                        compactLayout -> 34.dp
-                        else -> 36.dp
-                    },
-                )
+                .size(40.dp)
+                .padding(TopBarPreset.actionIconInset(compactLayout = compactLayout, dense = dense))
                 .testTag(testTag),
             interactionSource = interactionSource,
         ) {

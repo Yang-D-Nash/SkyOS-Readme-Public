@@ -920,19 +920,23 @@ private fun MusicPlayerCard(
                 text = if (hasPreview) "Preview" else "Warten auf Preview",
                 imageVector = if (hasPreview) Icons.Default.PlayArrow else Icons.Default.Refresh,
                 isActive = hasPreview,
-                onClick = if (hasPreview) onPlayToggle else null,
+                onClick = { if (hasPreview) onPlayToggle() },
             )
             MusicBadge(
                 text = if (hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch) "Spotify" else "Nur App",
                 imageVector = Icons.Default.MusicNote,
                 isActive = hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch,
-                onClick = if (hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch) onOpenSpotify else null,
+                onClick = {
+                    if (hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch) {
+                        onOpenSpotify()
+                    }
+                },
             )
             MusicBadge(
                 text = if (isPlaying) "Live" else "Ready",
                 imageVector = if (isPlaying) Icons.Default.GraphicEq else Icons.Default.Sync,
                 isActive = isPlaying,
-                onClick = if (hasPreview) onPlayToggle else null,
+                onClick = { if (hasPreview) onPlayToggle() },
             )
         }
 
@@ -1035,16 +1039,17 @@ private fun MusicOverviewCard(
         eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
         title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
         subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank {
-            "Einstieg – der Hoerpunkt sitzt im naechsten Block."
+            "Ueberblick vorweg – Artist, Drop und Track-Status im Griff."
         },
         detail = screenHeaderSettings.musicHubDetail.ifBlank {
-            "${uiState.selectedArtist} · Kontext oben, Erlebnis im Fokus unten."
+            "${uiState.selectedArtist} · Die folgenden Bereiche fassen Spotlight, Katalog und Status zusammen."
         },
         backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
         accent = SpotifyGreen,
         secondaryAccent = beatAccent,
         marks = listOf(BrandArtwork.Zweizwei),
         compactVisualDensity = compactVisualDensity,
+        onSurfaceClick = onOpenTracks,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
@@ -1867,27 +1872,27 @@ private fun ArtistPagerCard(
                         SmallMusicBadge(
                             text = "Spotify",
                             isAccent = true,
-                            onClick = onOpenArtistPage?.let { { it(artist) } },
+                            onClick = { onOpenArtistPage?.invoke(artist) },
                         )
                     } else {
                         SmallMusicBadge(
                             text = "Page",
                             isAccent = true,
-                            onClick = onOpenArtistPage?.let { { it(artist) } },
+                            onClick = { onOpenArtistPage?.invoke(artist) },
                         )
                     }
                     if (!page.instagramURL.isNullOrBlank()) {
                         SmallMusicBadge(
                             text = "Instagram",
                             isAccent = false,
-                            onClick = onOpenArtistPage?.let { { it(artist) } },
+                            onClick = { onOpenArtistPage?.invoke(artist) },
                         )
                     }
                     if (!page.youtubeURL.isNullOrBlank()) {
                         SmallMusicBadge(
                             text = "YouTube",
                             isAccent = false,
-                            onClick = onOpenArtistPage?.let { { it(artist) } },
+                            onClick = { onOpenArtistPage?.invoke(artist) },
                         )
                     }
                 }
@@ -2248,7 +2253,7 @@ private fun ArtistOverviewRow(
 private fun SmallMusicBadge(
     text: String,
     isAccent: Boolean,
-    onClick: (() -> Unit)? = null,
+    onClick: () -> Unit = {},
 ) {
     BrandStatusChip(
         text = text,
@@ -2387,7 +2392,7 @@ private fun MusicBadge(
     text: String,
     imageVector: ImageVector,
     isActive: Boolean,
-    onClick: (() -> Unit)? = null,
+    onClick: () -> Unit = {},
 ) {
     BrandStatusChip(
         text = text,

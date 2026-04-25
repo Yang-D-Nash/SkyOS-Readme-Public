@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -50,6 +51,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -86,6 +88,7 @@ import com.nash.skyos.ui.model.NicmaProducerUiState
 import com.nash.skyos.ui.model.NicmaSelectedBeatFile
 import com.nash.skyos.ui.viewmodel.NicmaProducerViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,6 +120,8 @@ fun BeatHubScreen(
         },
     )
     var showUploadSheet by rememberSaveable { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     BackHandler(onBack = onBack)
 
@@ -205,6 +210,7 @@ fun BeatHubScreen(
                 ),
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = skydownContentPadding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -213,6 +219,11 @@ fun BeatHubScreen(
                     BeatHubHeroCard(
                         isAdmin = uiState.isAdmin,
                         heroImageUrl = nicmaPage.heroImageURL,
+                        onSurfaceClick = {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(1)
+                            }
+                        },
                     )
                 }
 
@@ -302,6 +313,7 @@ fun BeatHubScreen(
 private fun BeatHubHeroCard(
     isAdmin: Boolean,
     heroImageUrl: String?,
+    onSurfaceClick: (() -> Unit)? = null,
 ) {
     BrandHeroCard(
         eyebrow = "NICMA",
@@ -319,6 +331,7 @@ private fun BeatHubHeroCard(
         backgroundImageUrl = heroImageUrl?.takeIf { it.isNotBlank() },
         accent = MaterialTheme.colorScheme.primary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,
+        onSurfaceClick = onSurfaceClick,
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             BrandPill(text = if (isAdmin) "Upload" else "Curated", tint = MaterialTheme.colorScheme.primary)

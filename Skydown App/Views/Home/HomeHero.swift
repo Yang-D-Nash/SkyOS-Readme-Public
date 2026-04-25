@@ -36,6 +36,7 @@ private struct HomeBackdropHalo: View {
 struct HomeHeroIntroCard: View {
     @ObservedObject var viewModel: HomeViewModel
     let colorScheme: ColorScheme
+    let onOpenProfile: () -> Void
     let onOpenTrack: () -> Void
     let onOpenBeat: () -> Void
     let onOpenVideo: () -> Void
@@ -91,7 +92,8 @@ struct HomeHeroIntroCard: View {
             accent: AppColors.accent(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skyos, .skydown],
-            immersive: true
+            immersive: true,
+            onSurfaceTap: onOpenProfile
         ) {
             HStack(alignment: .top, spacing: 10) {
                 ForEach(Array(heroPillOrder.enumerated()), id: \.offset) { index, target in

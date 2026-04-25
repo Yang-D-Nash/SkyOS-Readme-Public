@@ -112,6 +112,7 @@ struct HomeViewContent: View {
                                 HomeHeroIntroCard(
                                     viewModel: viewModel,
                                     colorScheme: colorScheme,
+                                    onOpenProfile: onOpenProfile,
                                     onOpenTrack: openReleaseSection,
                                     onOpenBeat: openBeatSection,
                                     onOpenVideo: openVideoSection

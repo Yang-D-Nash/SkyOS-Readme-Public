@@ -265,7 +265,8 @@ fun OriginalVideoViewerDialog(
     }
 }
 
-private fun isLikelyDirectVideoUrl(rawValue: String): Boolean {
+/** Shared with screens that need the same heuristics as the in-app original player (e.g. Video hub hero). */
+internal fun isLikelyDirectVideoUrl(rawValue: String): Boolean {
     val normalized = rawValue
         .substringBefore('?')
         .substringBefore('#')

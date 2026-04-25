@@ -83,7 +83,10 @@ struct BrandHeroSurface<Footer: View>: View {
     let marks: [BrandMark]
     /// Flache Unterkante, leichter Schatten — Home-Intro als Atmosphäre statt Karte.
     var immersive: Bool
+    /// Tap auf Titel- und Textbereich (nicht den Footer) — vermeidet verschachtelte Buttons in den Pills.
+    var onSurfaceTap: (() -> Void)?
     let footer: Footer
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     init(
         colorScheme: ColorScheme,
@@ -96,6 +99,7 @@ struct BrandHeroSurface<Footer: View>: View {
         secondaryAccent: Color,
         marks: [BrandMark] = [],
         immersive: Bool = false,
+        onSurfaceTap: (() -> Void)? = nil,
         @ViewBuilder footer: () -> Footer
     ) {
         self.colorScheme = colorScheme
@@ -108,10 +112,12 @@ struct BrandHeroSurface<Footer: View>: View {
         self.secondaryAccent = secondaryAccent
         self.marks = marks
         self.immersive = immersive
+        self.onSurfaceTap = onSurfaceTap
         self.footer = footer()
     }
 
     var body: some View {
+        let isCompactHero = horizontalSizeClass == .compact
         let capShape = skydownHomeHeroContainerShape(immersive: immersive)
         let hasBackgroundImage = !(backgroundImageURL?.isEmpty ?? true)
         let titleColor = hasBackgroundImage ? Color.white : AppColors.text(for: colorScheme)
@@ -120,9 +126,9 @@ struct BrandHeroSurface<Footer: View>: View {
         let titleShadowColor = hasBackgroundImage ? Color.black.opacity(colorScheme == .dark ? 0.32 : 0.24) : .clear
         let subtitleShadowColor = hasBackgroundImage ? Color.black.opacity(colorScheme == .dark ? 0.28 : 0.18) : .clear
 
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
-                VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: isCompactHero ? 11 : 14) {
+            HStack(alignment: .top, spacing: isCompactHero ? 10 : 14) {
+                VStack(alignment: .leading, spacing: isCompactHero ? 6 : 8) {
                     HStack(alignment: .center, spacing: 8) {
                         Text(eyebrow.uppercased())
                             .font(AppTypography.heroEyebrow)
@@ -142,7 +148,7 @@ struct BrandHeroSurface<Footer: View>: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: 46, height: 3)
+                            .frame(width: isCompactHero ? 36 : 46, height: 3)
                     }
 
                     Text(title)
@@ -157,6 +163,7 @@ struct BrandHeroSurface<Footer: View>: View {
                         .lineSpacing(3)
                         .foregroundColor(subtitleColor)
                         .shadow(color: subtitleShadowColor, radius: 5, y: 2)
+                        .lineLimit(isCompactHero ? 1 : 2)
 
                     if let detail, !detail.isEmpty {
                         Text(detail)
@@ -165,10 +172,11 @@ struct BrandHeroSurface<Footer: View>: View {
                             .foregroundColor(detailColor)
                             .padding(.top, 1)
                             .shadow(color: subtitleShadowColor.opacity(0.45), radius: 4, y: 2)
+                            .lineLimit(isCompactHero ? 1 : 2)
                     }
                 }
 
-                if !marks.isEmpty {
+                if !marks.isEmpty && !isCompactHero {
                     VStack(spacing: 8) {
                         ForEach(marks.prefix(2)) { mark in
                             BrandMarkTile(
@@ -182,12 +190,14 @@ struct BrandHeroSurface<Footer: View>: View {
                     .frame(width: marks.count == 1 ? 96 : 88)
                 }
             }
+            .contentShape(Rectangle())
+            .modifier(SkydownOptionalHeroHeaderTapModifier(onSurfaceTap: onSurfaceTap))
 
             footer
-                .padding(.top, 4)
+                .padding(.top, isCompactHero ? 2 : 4)
         }
-        .padding(.horizontal, SkydownLayout.heroPadding)
-        .padding(.vertical, SkydownLayout.heroPadding + 1)
+        .padding(.horizontal, isCompactHero ? 16 : SkydownLayout.heroPadding)
+        .padding(.vertical, isCompactHero ? 15 : (SkydownLayout.heroPadding + 1))
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             ZStack {
@@ -367,24 +377,33 @@ struct BrandHeroSurface<Footer: View>: View {
     }
 }
 
+/// Optionaler Tap auf den Hero-Textblock; Footer bleibt separat (Pills/Badges).
+private struct SkydownOptionalHeroHeaderTapModifier: ViewModifier {
+    let onSurfaceTap: (() -> Void)?
+
+    func body(content: Content) -> some View {
+        if let onSurfaceTap {
+            content
+                .onTapGesture(perform: onSurfaceTap)
+                .accessibilityAddTraits(.isButton)
+        } else {
+            content
+        }
+    }
+}
+
 struct BrandHeroPill: View {
     let text: String
     let colorScheme: ColorScheme
     let tint: Color
-    var onTap: (() -> Void)? = nil
+    var onTap: () -> Void = {}
 
     var body: some View {
-        Group {
-            if let onTap {
-                Button(action: onTap) {
-                    pillContent
-                }
-                .buttonStyle(.plain)
-                .skydownTactileAction()
-            } else {
-                SkydownMetaLabel(text: text, tint: tint)
-            }
+        Button(action: onTap) {
+            pillContent
         }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 
     private var pillContent: some View {
@@ -392,19 +411,17 @@ struct BrandHeroPill: View {
             Text(text)
                 .font(AppTypography.editorialCaption)
                 .tracking(0.35)
-            if onTap != nil {
-                Image(systemName: "arrow.up.right")
-                    .font(.caption2.weight(.heavy))
-                    .padding(5)
-                    .background(
-                        Circle()
-                            .fill(tint.opacity(colorScheme == .dark ? 0.18 : 0.14))
-                    )
-            }
+            Image(systemName: "arrow.up.right")
+                .font(.caption2.weight(.heavy))
+                .padding(5)
+                .background(
+                    Circle()
+                        .fill(tint.opacity(colorScheme == .dark ? 0.18 : 0.14))
+                )
         }
         .foregroundColor(tint)
-        .padding(.horizontal, onTap == nil ? 11 : 14)
-        .padding(.vertical, onTap == nil ? 7 : 9)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
         .skydownCapsuleSurface(colorScheme: colorScheme, accent: tint)
     }
 }
@@ -412,28 +429,33 @@ struct BrandHeroPill: View {
 struct SkydownMetaLabel: View {
     let text: String
     let tint: Color
+    var onTap: () -> Void = {}
 
     var body: some View {
-        HStack(spacing: 6) {
-            Capsule(style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            tint.opacity(0.92),
-                            tint.opacity(0.52)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
+        Button(action: onTap) {
+            HStack(spacing: 6) {
+                Capsule(style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                tint.opacity(0.92),
+                                tint.opacity(0.52)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     )
-                )
-                .frame(width: 12, height: 4)
+                    .frame(width: 12, height: 4)
 
-            Text(text)
-                .font(AppTypography.editorialFootnote)
-                .tracking(0.25)
-                .foregroundColor(tint.opacity(0.92))
+                Text(text)
+                    .font(AppTypography.editorialFootnote)
+                    .tracking(0.25)
+                    .foregroundColor(tint.opacity(0.92))
+            }
+            .padding(.vertical, 2)
         }
-        .padding(.vertical, 2)
+        .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 

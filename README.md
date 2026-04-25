@@ -168,27 +168,22 @@ Builds benoetigen `keystore.properties` oder `SKYOS_UPLOAD_*` Secrets.
 
 ## App-Icons und Branding
 
-SkyOS ist die dominante Icon- und Systemidentitaet fuer alle Plattformen.
+Diese vier Dateien sind die **Single Source of Truth** fuer die Markenlogos:
 
-| Asset | Zweck | Pfad |
+| SoT Logo | Zweck | Pfad |
 | --- | --- | --- |
-| SkyOS Logo (Original) | README / Dokumentation | `docs/assets/skyos-logo-original.png` |
-| Skydown Logo (Original) | Produktmarke | `docs/assets/skydown-logo-original.png` |
-| ZweiZwei Logo (Original) | Music-Marke | `docs/assets/zweizwei-logo-original.png` |
-| SkyOS App Icon Master | Masterquelle fuer Launcher-Assets | `docs/assets/skyos-app-icon.png` |
-| SkyOS Brand Mark | In-App Markierung | `Skydown App/Assets.xcassets/SkyOSBrandMark.imageset/skyos-mark.png` |
-| Skydown Wordmark | Produkt-/Operator-Kontext | `Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png` |
-| ZweiZwei Wordmark | Music-Kontext | `Skydown App/Assets.xcassets/ZweiZweiBrandLogo.imageset/zweizwei-logo.png` |
-| 22 Mark | Music-/Creative-Markierung | `Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png` |
+| SkyOS | System-/Launcher-Identitaet | `docs/assets/skyos-logo-original.png` |
+| Skydown | Produkt-/Operator-Identitaet | `docs/assets/skydown-logo-original.png` |
+| ZweiZwei | Music-Identitaet | `docs/assets/zweizwei-logo-original.png` |
+| Skydown x 22 | Merch-Kollaborations-Identitaet | `docs/assets/skyos-22-mark.png` |
 
-Technischer Audit-Status:
+Ableitung im Projekt (aus den SoT-Logos):
 
-- Apple `AppIcon.appiconset` ist vollstaendig (inkl. `ios-marketing` 1024x1024)
-- Apple `AppIcon.appiconset` enthaelt auch `mac`-Slots fuer Dock/Finder-Qualitaet
-- iPhone- und iPad-Icongroessen entsprechen den erwarteten Pixelmassen
-- Android `mipmap-mdpi` bis `mipmap-xxxhdpi` sind korrekt skaliert
-- Adaptive Icons (`ic_launcher.xml`, `ic_launcher_round.xml`) sind korrekt verdrahtet
-- Foreground-Source fuer Android ist versioniert (`drawable-nodpi/ic_launcher_foreground_src.png`)
+- iOS In-App-Branding: `Skydown App/Assets.xcassets/*Brand*.imageset`
+- iOS/macOS App-Icon-Slots: `Skydown App/Assets.xcassets/AppIcon.appiconset/*`
+- Android In-App-Branding: `androidApp/src/main/res/drawable-nodpi/*_brand_logo.png`
+- Android Launcher-Icons: `androidApp/src/main/res/mipmap-*/ic_launcher.png`
+- Android Adaptive Foreground: `androidApp/src/main/res/drawable-nodpi/ic_launcher_foreground_src.png`
 
 ## README Navigation
 

@@ -229,6 +229,7 @@ fun ShopScreen(
                     ShopOverviewCard(
                         uiState = uiState,
                         laneCount = laneCount,
+                        onSurfaceClick = onOpenCart,
                     )
                 }
 
@@ -454,6 +455,7 @@ fun ShopScreen(
 private fun ShopOverviewCard(
     uiState: ShopUiState,
     laneCount: Int,
+    onSurfaceClick: () -> Unit,
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     val pieceLabel = when {
@@ -478,6 +480,7 @@ private fun ShopOverviewCard(
         accent = MaterialTheme.colorScheme.primary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,
         marks = listOf(BrandArtwork.Combined),
+        onSurfaceClick = onSurfaceClick,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(

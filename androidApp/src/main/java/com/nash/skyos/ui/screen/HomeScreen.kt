@@ -399,6 +399,7 @@ fun HomeScreen(
                                     secondaryAccent = homeMysticAccent,
                                     marks = listOf(BrandArtwork.SkyOS, BrandArtwork.Skydown),
                                     immersive = true,
+                                    onSurfaceClick = onOpenProfile,
                                 ) {
                                     Row(
                                         modifier = Modifier

@@ -140,7 +140,8 @@ struct ShopView: View {
                                     isStoreOpen: viewModel.isStoreOpen,
                                     isLoggedIn: authManager.userSession != nil,
                                     isUpdatingStoreState: viewModel.isUpdatingStoreState,
-                                    isSyncingCatalog: viewModel.isSyncingCatalog
+                                    isSyncingCatalog: viewModel.isSyncingCatalog,
+                                    onSurfaceTap: onOpenCart
                                 )
 
                                 if !viewModel.merchandiseItems.isEmpty {
@@ -415,6 +416,7 @@ private struct ShopHeroCard: View {
     let isLoggedIn: Bool
     let isUpdatingStoreState: Bool
     let isSyncingCatalog: Bool
+    let onSurfaceTap: () -> Void
 
     private var computedDetail: String {
         if isSyncingCatalog {
@@ -442,7 +444,8 @@ private struct ShopHeroCard: View {
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedShopImageURL,
             accent: AppColors.accentHighlight(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
-            marks: []
+            marks: [],
+            onSurfaceTap: onSurfaceTap
         ) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {

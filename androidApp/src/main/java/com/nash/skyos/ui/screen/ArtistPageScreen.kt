@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -133,6 +134,7 @@ fun ArtistPageScreen(
     val canEdit = ArtistPagesStore.canEdit(page, currentUser)
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
+    val listState = rememberLazyListState()
     val visualStyle = artistPageVisualStyle(brand)
 
     var isEditing by rememberSaveable(page.slug) { mutableStateOf(false) }
@@ -536,6 +538,7 @@ fun ArtistPageScreen(
                 )
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 0.dp),
@@ -552,6 +555,11 @@ fun ArtistPageScreen(
                         visualStyle = visualStyle,
                         compactVisualDensity = compactVisualDensity,
                         heroVideoPlayer = heroVideoPlayer,
+                        onSurfaceClick = {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(1)
+                            }
+                        },
                     )
                 }
                 item {
@@ -731,6 +739,7 @@ private fun ArtistPageHeroCard(
     visualStyle: ArtistPageVisualStyle,
     compactVisualDensity: Boolean,
     heroVideoPlayer: ExoPlayer,
+    onSurfaceClick: (() -> Unit)? = null,
 ) {
     val linkCount = listOf(page.instagramURL, page.spotifyURL, page.youtubeURL).count { !it.isNullOrBlank() }
     BrandHeroCard(
@@ -743,6 +752,7 @@ private fun ArtistPageHeroCard(
         secondaryAccent = visualStyle.secondaryAccent,
         marks = visualStyle.marks,
         compactVisualDensity = compactVisualDensity,
+        onSurfaceClick = onSurfaceClick,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(

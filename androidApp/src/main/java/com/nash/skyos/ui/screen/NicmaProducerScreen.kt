@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,6 +31,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -50,6 +52,7 @@ import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.skydownContentPadding
 import com.nash.skyos.ui.component.skydownScreenBrush
 import com.nash.skyos.ui.component.skydownTopBarColors
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +75,8 @@ fun NicmaProducerScreen(
 
     BackHandler(onBack = onBack)
     val context = LocalContext.current
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -116,6 +121,7 @@ fun NicmaProducerScreen(
                 ),
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = skydownContentPadding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -126,6 +132,11 @@ fun NicmaProducerScreen(
                         body = page.bio ?: "Mixing, Mastering und Recording sind hier als klare Producer-Seite gebuendelt, mit direktem Kontakt und transparenter Preisliste.",
                         tagline = page.tagline ?: "Studio, Production und Sound-Handwerk.",
                         heroImageUrl = page.heroImageURL,
+                        onSurfaceClick = {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(1)
+                            }
+                        },
                     )
                 }
 
@@ -152,6 +163,7 @@ private fun NicmaHeroCard(
     body: String,
     tagline: String,
     heroImageUrl: String?,
+    onSurfaceClick: (() -> Unit)? = null,
 ) {
     BrandHeroCard(
         eyebrow = "NICMA",
@@ -161,6 +173,7 @@ private fun NicmaHeroCard(
         backgroundImageUrl = heroImageUrl?.takeIf { it.isNotBlank() },
         accent = MaterialTheme.colorScheme.tertiary,
         secondaryAccent = MaterialTheme.colorScheme.primary,
+        onSurfaceClick = onSurfaceClick,
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             BrandPill(text = "Mixing", tint = MaterialTheme.colorScheme.tertiary)

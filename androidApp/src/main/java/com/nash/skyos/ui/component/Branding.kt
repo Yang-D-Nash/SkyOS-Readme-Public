@@ -110,8 +110,11 @@ fun BrandHeroCard(
     compactVisualDensity: Boolean = false,
     /** Flache Unterkante, kein Karten-Schatten — für Home-Gesamtraum. */
     immersive: Boolean = false,
+    /** Tap auf Titelzeile (ohne Footer mit Pills) — gleiche Fläche wie iOS `onSurfaceTap`. */
+    onSurfaceClick: (() -> Unit)? = null,
     footer: @Composable ColumnScope.() -> Unit = {},
 ) {
+    val autoCompactDensity = compactVisualDensity || rememberUsesCompactVisualDensity()
     val colorScheme = MaterialTheme.colorScheme
     val r = SkydownUiTokens.heroCornerRadius
     val shape = if (immersive) {
@@ -131,11 +134,11 @@ fun BrandHeroCard(
     } else {
         colorScheme.skydownText().copy(alpha = 0.86f)
     }
-    val contentHorizontalPadding = if (compactVisualDensity) 16.dp else SkydownUiTokens.heroPadding
-    val contentVerticalPadding = if (compactVisualDensity) 16.dp else SkydownUiTokens.heroPadding + 1.dp
-    val contentSpacing = 14.dp
+    val contentHorizontalPadding = if (autoCompactDensity) 16.dp else SkydownUiTokens.heroPadding
+    val contentVerticalPadding = if (autoCompactDensity) 15.dp else SkydownUiTokens.heroPadding + 1.dp
+    val contentSpacing = if (autoCompactDensity) 11.dp else 14.dp
     val eyebrowStyle = SkydownHeroEyebrowTextStyle
-    val titleStyle = if (compactVisualDensity) SkydownCompactHeroTitleTextStyle else SkydownHeroTitleTextStyle
+    val titleStyle = if (autoCompactDensity) SkydownCompactHeroTitleTextStyle else SkydownHeroTitleTextStyle
     val subtitleStyle = SkydownHeroSubtitleTextStyle
     val detailStyle = SkydownEditorialCaptionTextStyle
     val isDarkPalette = colorScheme.skydownIsDarkPalette()
@@ -148,6 +151,7 @@ fun BrandHeroCard(
     } else {
         null
     }
+    val surfaceHeaderInteraction = remember { MutableInteractionSource() }
 
     Box(
         modifier = Modifier
@@ -157,7 +161,7 @@ fun BrandHeroCard(
                     Modifier
                 } else {
                     Modifier.shadow(
-                        elevation = if (compactVisualDensity) 15.dp else 18.dp,
+                        elevation = if (autoCompactDensity) 13.dp else 18.dp,
                         shape = shape,
                         ambientColor = secondaryAccent.copy(alpha = if (isDarkPalette) 0.04f else 0.07f),
                         spotColor = Color.Black.copy(alpha = if (isDarkPalette) 0.12f else 0.14f),
@@ -293,26 +297,41 @@ fun BrandHeroCard(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(if (compactVisualDensity) 68.dp else 84.dp)
+                        .size(if (autoCompactDensity) 58.dp else 84.dp)
                         .background(accent.copy(alpha = if (isDarkPalette) 0.03f else 0.05f), CircleShape)
-                        .blur(if (compactVisualDensity) 16.dp else 20.dp),
+                        .blur(if (autoCompactDensity) 12.dp else 20.dp),
                 )
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .size(if (compactVisualDensity) 50.dp else 58.dp)
+                        .size(if (autoCompactDensity) 42.dp else 58.dp)
                         .background(secondaryAccent.copy(alpha = if (isDarkPalette) 0.03f else 0.05f), CircleShape)
-                        .blur(if (compactVisualDensity) 12.dp else 16.dp),
+                        .blur(if (autoCompactDensity) 10.dp else 16.dp),
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 12.dp else 14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (onSurfaceClick != null) {
+                                Modifier
+                                    .skydownPressable(surfaceHeaderInteraction)
+                                    .clickable(
+                                        interactionSource = surfaceHeaderInteraction,
+                                        indication = null,
+                                        role = Role.Button,
+                                        onClick = onSurfaceClick,
+                                    )
+                            } else {
+                                Modifier
+                            },
+                        ),
+                    horizontalArrangement = Arrangement.spacedBy(if (autoCompactDensity) 10.dp else 14.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 7.dp else 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (autoCompactDensity) 6.dp else 8.dp),
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -327,7 +346,7 @@ fun BrandHeroCard(
                             )
                             Box(
                                 modifier = Modifier
-                                    .width(if (compactVisualDensity) 40.dp else 46.dp)
+                                    .width(if (autoCompactDensity) 34.dp else 46.dp)
                                     .height(3.dp)
                                     .background(
                                         Brush.horizontalGradient(
@@ -356,7 +375,7 @@ fun BrandHeroCard(
                                 subtitleStyle
                             },
                             color = subtitleColor,
-                            maxLines = 2,
+                            maxLines = if (autoCompactDensity) 1 else 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                         if (!detail.isNullOrBlank()) {
@@ -368,23 +387,19 @@ fun BrandHeroCard(
                                     detailStyle
                                 },
                                 color = detailColor,
-                                maxLines = 2,
+                                maxLines = if (autoCompactDensity) 1 else 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
 
-                    if (marks.isNotEmpty()) {
+                    if (marks.isNotEmpty() && !autoCompactDensity) {
                         Column(
                             modifier = Modifier
                                 .width(
-                                    if (compactVisualDensity) {
-                                        if (marks.size == 1) 104.dp else 88.dp
-                                    } else {
-                                        if (marks.size == 1) 118.dp else 96.dp
-                                    },
+                                    if (marks.size == 1) 118.dp else 96.dp,
                                 ),
-                            verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 6.dp else 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             marks.take(2).forEach { mark ->
                                 BrandArtworkTile(
@@ -558,99 +573,57 @@ fun BrandStatusChip(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     isActive: Boolean = true,
-    onClick: (() -> Unit)? = null,
+    onClick: () -> Unit = {},
 ) {
     val contentColor = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
-    val interactionSource = remember(onClick) { MutableInteractionSource() }
-    val chipModifier = if (onClick != null) {
-        modifier
-            .skydownPressable(
-                interactionSource = interactionSource,
-                pressedScale = 0.992f,
-            )
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                role = Role.Button,
-                onClick = onClick,
-            )
-    } else {
-        modifier
-    }
+    val interactionSource = remember { MutableInteractionSource() }
+    val chipModifier = modifier
+        .skydownPressable(
+            interactionSource = interactionSource,
+            pressedScale = 0.992f,
+        )
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            role = Role.Button,
+            onClick = onClick,
+        )
 
-    if (onClick != null) {
-        Row(
-            modifier = chipModifier
-                .skydownCapsuleSurface(
-                    accent = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
-                )
-                .padding(horizontal = 13.dp, vertical = 9.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = contentColor,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-            Text(
-                text = text,
-                color = contentColor,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
+    Row(
+        modifier = chipModifier
+            .skydownCapsuleSurface(
+                accent = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
             )
-            Box(
-                modifier = Modifier
-                    .size(18.dp)
-                    .clip(CircleShape)
-                    .background(contentColor.copy(alpha = 0.10f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = contentColor.copy(alpha = 0.82f),
-                    modifier = Modifier.size(11.dp),
-                )
-            }
+            .padding(horizontal = 13.dp, vertical = 9.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(16.dp),
+            )
         }
-    } else {
-        Row(
-            modifier = chipModifier.padding(vertical = 3.dp),
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Text(
+            text = text,
+            color = contentColor,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Box(
+            modifier = Modifier
+                .size(18.dp)
+                .clip(CircleShape)
+                .background(contentColor.copy(alpha = 0.10f)),
+            contentAlignment = Alignment.Center,
         ) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = contentColor.copy(alpha = 0.82f),
-                    modifier = Modifier.size(14.dp),
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .width(14.dp)
-                        .height(2.5.dp)
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    contentColor.copy(alpha = if (isActive) 0.84f else 0.46f),
-                                    contentColor.copy(alpha = 0.08f),
-                                ),
-                            ),
-                            shape = RoundedCornerShape(999.dp),
-                        ),
-                )
-            }
-            Text(
-                text = text,
-                color = contentColor.copy(alpha = if (isActive) 0.88f else 0.68f),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = contentColor.copy(alpha = 0.82f),
+                modifier = Modifier.size(11.dp),
             )
         }
     }
@@ -817,103 +790,68 @@ private fun Color.perceivedBrightness(): Float = (red * 0.299f) + (green * 0.587
 fun BrandPill(
     text: String,
     tint: Color,
-    onClick: (() -> Unit)? = null,
+    onClick: () -> Unit = {},
 ) {
-    val interactionSource = remember(onClick) { MutableInteractionSource() }
-    val pillModifier = if (onClick != null) {
-        Modifier
-            .skydownPressable(
-                interactionSource = interactionSource,
-                pressedScale = 0.993f,
-            )
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                role = Role.Button,
-                onClick = onClick,
-            )
-    } else {
-        Modifier
-    }
+    val interactionSource = remember { MutableInteractionSource() }
+    val pillModifier = Modifier
+        .skydownPressable(
+            interactionSource = interactionSource,
+            pressedScale = 0.993f,
+        )
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            role = Role.Button,
+            onClick = onClick,
+        )
 
-    if (onClick != null) {
-        Box(
-            modifier = pillModifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.18f),
-                            tint.copy(alpha = 0.16f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                        ),
+    Box(
+        modifier = pillModifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.18f),
+                        tint.copy(alpha = 0.16f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
                     ),
-                )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.20f),
-                            tint.copy(alpha = 0.28f),
-                        ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.20f),
+                        tint.copy(alpha = 0.28f),
                     ),
-                    shape = RoundedCornerShape(999.dp),
-                )
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tint,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Box(
-                    modifier = Modifier
-                        .size(18.dp)
-                        .clip(CircleShape)
-                        .background(tint.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = tint.copy(alpha = 0.82f),
-                        modifier = Modifier.size(11.dp),
-                    )
-                }
-            }
-        }
-    } else {
+                ),
+                shape = RoundedCornerShape(999.dp),
+            )
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+    ) {
         Row(
-            modifier = Modifier.padding(vertical = 1.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .width(14.dp)
-                    .height(2.5.dp)
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                tint.copy(alpha = 0.82f),
-                                tint.copy(alpha = 0.08f),
-                            ),
-                        ),
-                        shape = RoundedCornerShape(999.dp),
-                    ),
-            )
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(tint.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = tint.copy(alpha = 0.82f),
+                    modifier = Modifier.size(11.dp),
+                )
+            }
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
-                color = tint.copy(alpha = 0.90f),
-                fontWeight = FontWeight.SemiBold,
+                color = tint,
+                fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

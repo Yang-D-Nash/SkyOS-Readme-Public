@@ -1271,7 +1271,11 @@ private fun AgentComposerBar(
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
                         },
                         isActive = isSelected,
-                        onClick = if (agentPhase.shouldBlockComposerChrome) null else ({ onLevelChanged(level) }),
+                        onClick = {
+                            if (!agentPhase.shouldBlockComposerChrome) {
+                                onLevelChanged(level)
+                            }
+                        },
                     )
                 }
             }

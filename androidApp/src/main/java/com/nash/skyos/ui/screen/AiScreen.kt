@@ -92,7 +92,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nash.skyos.ui.component.BrandArtwork
 import com.nash.skyos.ui.component.BrandActionButton
-import com.nash.skyos.ui.component.BrandHeroCard
 import com.nash.skyos.ui.component.BrandHeroMetricCard
 import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.BrandSectionBanner
@@ -1546,7 +1545,11 @@ private fun AiComposerBar(
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
                             },
                             isActive = isSelected,
-                            onClick = if (botPhase.isBusy) null else ({ onLevelChange(level) }),
+                            onClick = {
+                                if (!botPhase.isBusy) {
+                                    onLevelChange(level)
+                                }
+                            },
                         )
                     }
                 }
