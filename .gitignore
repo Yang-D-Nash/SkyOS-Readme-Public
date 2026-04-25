@@ -15,6 +15,7 @@ node_modules/
 local.properties
 keystore.properties
 *.jks
+*.jks.bak
 *.keystore
 firebase-debug.log
 firebase-debug.*.log

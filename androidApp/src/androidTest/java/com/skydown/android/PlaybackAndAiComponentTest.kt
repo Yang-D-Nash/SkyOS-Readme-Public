@@ -1,4 +1,4 @@
-package com.skydown.android
+package com.nash.skyos
 
 import android.graphics.Bitmap
 import java.io.ByteArrayOutputStream
@@ -17,12 +17,12 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import com.skydown.android.ui.component.OriginalVideoViewerDialog
-import com.skydown.android.ui.component.TrackRow
-import com.skydown.android.ui.model.AiMessage
-import com.skydown.android.ui.model.AiMessageRole
-import com.skydown.android.ui.screen.AiMessageBubble
-import com.skydown.android.ui.theme.SkydownTheme
+import com.nash.skyos.ui.component.OriginalVideoViewerDialog
+import com.nash.skyos.ui.component.TrackRow
+import com.nash.skyos.ui.model.AiMessage
+import com.nash.skyos.ui.model.AiMessageRole
+import com.nash.skyos.ui.screen.AiMessageBubble
+import com.nash.skyos.ui.theme.SkydownTheme
 import com.skydown.shared.model.Track
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

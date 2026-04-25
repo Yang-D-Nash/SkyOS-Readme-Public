@@ -25,6 +25,9 @@ val releaseStoreFilePath = releaseSigningValue("SKYOS_UPLOAD_STORE_FILE", "SKYDO
 val releaseStorePassword = releaseSigningValue("SKYOS_UPLOAD_STORE_PASSWORD", "SKYDOWN_UPLOAD_STORE_PASSWORD")
 val releaseKeyAlias = releaseSigningValue("SKYOS_UPLOAD_KEY_ALIAS", "SKYDOWN_UPLOAD_KEY_ALIAS")
 val releaseKeyPassword = releaseSigningValue("SKYOS_UPLOAD_KEY_PASSWORD", "SKYDOWN_UPLOAD_KEY_PASSWORD")
+
+val releaseStoreFile = releaseStoreFilePath?.let { rootProject.file(it) }
+
 val allowDebugReleaseSigning =
     providers.gradleProperty("allowDebugReleaseSigning")
         .map { value -> value.equals("true", ignoreCase = true) }
@@ -36,17 +39,17 @@ val hasReleaseSigning =
         releaseStorePassword,
         releaseKeyAlias,
         releaseKeyPassword,
-    ).all { !it.isNullOrBlank() }
+    ).all { !it.isNullOrBlank() } && (releaseStoreFile?.exists() ?: false)
 
 android {
-    namespace = "com.skydown.android"
+    namespace = "com.nash.skyos"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.skydown.android"
+        applicationId = "com.nash.skyos"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10000
+        versionCode = 10005
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -58,7 +61,7 @@ android {
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
-                storeFile = rootProject.file(releaseStoreFilePath!!)
+                storeFile = releaseStoreFile
                 storePassword = releaseStorePassword
                 keyAlias = releaseKeyAlias
                 keyPassword = releaseKeyPassword
@@ -102,12 +105,20 @@ android {
 }
 
 val releaseSigningErrorMessage =
-    """
-    Android release signing is not configured.
-    Copy keystore.properties.example to keystore.properties or set SKYOS_UPLOAD_* env vars.
-    Legacy SKYDOWN_UPLOAD_* values are still accepted for existing local setups.
-    For local non-store smoke tests only, you can pass -PallowDebugReleaseSigning=true.
-    """.trimIndent()
+    if (listOf(releaseStoreFilePath, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).any { it.isNullOrBlank() }) {
+        """
+        Android release signing is not configured.
+        Copy keystore.properties.example to keystore.properties or set SKYOS_UPLOAD_* env vars.
+        Legacy SKYDOWN_UPLOAD_* values are still accepted for existing local setups.
+        For local non-store smoke tests only, you can pass -PallowDebugReleaseSigning=true.
+        """.trimIndent()
+    } else {
+        """
+        Android release signing file not found at: ${releaseStoreFile?.absolutePath}
+        Please ensure the keystore file exists at the path specified in keystore.properties.
+        For local non-store smoke tests only, you can pass -PallowDebugReleaseSigning=true.
+        """.trimIndent()
+    }
 
 tasks.configureEach {
     if (name in setOf("preReleaseBuild", "assembleRelease", "bundleRelease", "packageRelease", "validateSigningRelease")) {

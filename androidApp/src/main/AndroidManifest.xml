@@ -57,7 +57,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="com.skydown.android" />
+                <data android:scheme="com.nash.skyos" />
                 <data android:host="spotify-auth" />
                 <data android:host="checkout-success" />
                 <data android:host="checkout-cancel" />

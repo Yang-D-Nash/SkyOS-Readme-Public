@@ -111,7 +111,7 @@ function buildReturnPageUrl({projectId, platform, status, orderId}) {
 }
 
 function buildDeepLink({platform, status, orderId, sessionId}) {
-  const scheme = normalizeCheckoutPlatform(platform) === "android" ? "com.skydown.android" : "skydown";
+  const scheme = normalizeCheckoutPlatform(platform) === "android" ? "com.nash.skyos" : "skydown";
   const host = status === "cancel" ? "checkout-cancel" : "checkout-success";
   const url = new URL(`${scheme}://${host}`);
   if (orderId) {

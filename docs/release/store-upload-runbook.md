@@ -13,7 +13,7 @@ Owner: Release Engineering
 - Team ID: `F3BNLG6L7P`
 
 ### Android
-- Application ID: `com.skydown.android`
+- Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1`
 - versionCode: `35`
@@ -123,7 +123,7 @@ Suggested review note text:
 ## Exact Next Clicks: Google Play Console
 
 1. Open [Google Play Console](https://play.google.com/console/).
-2. Select app with package `com.skydown.android` (or create it if missing).
+2. Select app with package `com.nash.skyos` (or create it if missing).
 3. Go to **Testing** -> **Internal testing** (or **Closed testing**).
 4. Create/Edit release and upload `androidApp/build/outputs/bundle/release/androidApp-release.aab`.
 5. Add release notes and save.

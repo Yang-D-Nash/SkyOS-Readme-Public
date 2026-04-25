@@ -3,7 +3,7 @@ opt_out_usage
 default_platform(:android)
 
 AAB_PATH = "androidApp/build/outputs/bundle/release/androidApp-release.aab"
-ANDROID_PACKAGE = "com.skydown.android"
+ANDROID_PACKAGE = "com.nash.skyos"
 PLAY_TRACK = "internal"
 RELEASE_STATUS = "draft"
 

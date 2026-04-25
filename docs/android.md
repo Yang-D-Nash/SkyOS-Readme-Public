@@ -7,9 +7,9 @@ membership logic, owner/admin controls, and adaptive layout work for phones and 
 
 Important paths:
 
-- `androidApp/src/main/java/com/skydown/android/ui/screen/` - Compose feature screens
-- `androidApp/src/main/java/com/skydown/android/ui/viewmodel/` - screen state logic
-- `androidApp/src/main/java/com/skydown/android/data/` - repositories, billing, legal, commerce, AI
+- `androidApp/src/main/java/com.nash.skyos/ui/screen/` - Compose feature screens
+- `androidApp/src/main/java/com.nash.skyos/ui/viewmodel/` - screen state logic
+- `androidApp/src/main/java/com.nash.skyos/data/` - repositories, billing, legal, commerce, AI
 - `androidApp/src/main/res/` - resources, strings, app assets
 - `androidApp/src/androidTest/` - instrumentation tests
 - `androidApp/build.gradle.kts` - Android app build and signing config
@@ -84,13 +84,13 @@ The Android app includes:
 
 - Debug builds install the Firebase App Check debug provider.
 - Release builds stay protected through Play Integrity.
-- The Android Firebase package in this repo is `com.skydown.android`.
+- The Android Firebase package in this repo is `com.nash.skyos`.
 
 If owner-only Shopify calls such as `syncShopifyMerch` or `listShopifyCollections` fail with app verification errors on a test device:
 
 1. Start the app once on the device.
 2. Read logcat and copy the debug secret printed by `DebugAppCheckProvider`.
-3. Register that secret in Firebase Console under App Check for the Android app `com.skydown.android`.
+3. Register that secret in Firebase Console under App Check for the Android app `com.nash.skyos`.
 4. Retry the Shopify sync or collection load after the token is allow-listed.
 
 Helpful commands:

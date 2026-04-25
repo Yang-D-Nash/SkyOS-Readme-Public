@@ -64,26 +64,26 @@ Hardcoded UI literal matches in Kotlin UI files: **566**
 Top Kotlin files by hardcoded-literal matches:
 
 ```text
- 244 androidApp/src/main/java/com/skydown/android/ui/screen/SettingsScreen.kt
-  62 androidApp/src/main/java/com/skydown/android/ui/screen/VideoHubScreen.kt
-  40 androidApp/src/main/java/com/skydown/android/ui/screen/CartScreen.kt
-  31 androidApp/src/main/java/com/skydown/android/ui/screen/MusicScreen.kt
-  27 androidApp/src/main/java/com/skydown/android/ui/screen/AiScreen.kt
-  22 androidApp/src/main/java/com/skydown/android/ui/screen/OrderScreen.kt
-  21 androidApp/src/main/java/com/skydown/android/ui/screen/ShopScreen.kt
-  16 androidApp/src/main/java/com/skydown/android/ui/screen/HomeScreen.kt
-  16 androidApp/src/main/java/com/skydown/android/ui/SkydownApp.kt
-  15 androidApp/src/main/java/com/skydown/android/ui/screen/BeatHubScreen.kt
-  14 androidApp/src/main/java/com/skydown/android/ui/screen/AgentScreen.kt
-  10 androidApp/src/main/java/com/skydown/android/ui/screen/ProfileScreen.kt
-  10 androidApp/src/main/java/com/skydown/android/ui/screen/AiHubScreen.kt
-   9 androidApp/src/main/java/com/skydown/android/ui/component/TrackRow.kt
-   8 androidApp/src/main/java/com/skydown/android/ui/screen/NicmaProducerScreen.kt
-   6 androidApp/src/main/java/com/skydown/android/ui/screen/ArtistPageScreen.kt
-   4 androidApp/src/main/java/com/skydown/android/ui/component/OriginalVideoViewerDialog.kt
-   3 androidApp/src/main/java/com/skydown/android/ui/component/YouTubePlayerDialog.kt
-   2 androidApp/src/main/java/com/skydown/android/ui/component/MerchandiseCard.kt
-   2 androidApp/src/main/java/com/skydown/android/ui/component/EditableImageFieldCard.kt
+ 244 androidApp/src/main/java/com.nash.skyos/ui/screen/SettingsScreen.kt
+  62 androidApp/src/main/java/com.nash.skyos/ui/screen/VideoHubScreen.kt
+  40 androidApp/src/main/java/com.nash.skyos/ui/screen/CartScreen.kt
+  31 androidApp/src/main/java/com.nash.skyos/ui/screen/MusicScreen.kt
+  27 androidApp/src/main/java/com.nash.skyos/ui/screen/AiScreen.kt
+  22 androidApp/src/main/java/com.nash.skyos/ui/screen/OrderScreen.kt
+  21 androidApp/src/main/java/com.nash.skyos/ui/screen/ShopScreen.kt
+  16 androidApp/src/main/java/com.nash.skyos/ui/screen/HomeScreen.kt
+  16 androidApp/src/main/java/com.nash.skyos/ui/SkydownApp.kt
+  15 androidApp/src/main/java/com.nash.skyos/ui/screen/BeatHubScreen.kt
+  14 androidApp/src/main/java/com.nash.skyos/ui/screen/AgentScreen.kt
+  10 androidApp/src/main/java/com.nash.skyos/ui/screen/ProfileScreen.kt
+  10 androidApp/src/main/java/com.nash.skyos/ui/screen/AiHubScreen.kt
+   9 androidApp/src/main/java/com.nash.skyos/ui/component/TrackRow.kt
+   8 androidApp/src/main/java/com.nash.skyos/ui/screen/NicmaProducerScreen.kt
+   6 androidApp/src/main/java/com.nash.skyos/ui/screen/ArtistPageScreen.kt
+   4 androidApp/src/main/java/com.nash.skyos/ui/component/OriginalVideoViewerDialog.kt
+   3 androidApp/src/main/java/com.nash.skyos/ui/component/YouTubePlayerDialog.kt
+   2 androidApp/src/main/java/com.nash.skyos/ui/component/MerchandiseCard.kt
+   2 androidApp/src/main/java/com.nash.skyos/ui/component/EditableImageFieldCard.kt
 ```
 
 ## Summary

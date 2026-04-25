@@ -1,4 +1,4 @@
-package com.skydown.android
+package com.nash.skyos
 
 import android.content.Intent
 import androidx.compose.ui.test.ExperimentalTestApi

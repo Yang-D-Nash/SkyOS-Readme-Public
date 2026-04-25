@@ -17,7 +17,7 @@ Der Rollout ist bewusst zweistufig:
 
 ### Android
 
-- Datei: [`androidApp/src/main/java/com/skydown/android/SkydownApplication.kt`](androidApp/src/main/java/com/skydown/android/SkydownApplication.kt)
+- Datei: [`androidApp/src/main/java/com.nash.skyos/SkydownApplication.kt`](androidApp/src/main/java/com.nash.skyos/SkydownApplication.kt)
 - `Debug`: `DebugAppCheckProviderFactory`
 - `Release`: `PlayIntegrityAppCheckProviderFactory`
 

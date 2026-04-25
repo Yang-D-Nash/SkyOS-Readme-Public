@@ -1,4 +1,4 @@
-package com.skydown.android
+package com.nash.skyos
 
 import android.content.Intent
 import android.os.SystemClock
