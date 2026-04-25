@@ -6,7 +6,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 
-private const val defaultInvoiceCompanyName = "Skydown OS"
+private const val defaultInvoiceCompanyName = "Ngoc Anh Nguyen (Yang D. Nash - Skydown)"
 private const val legacyInvoiceCompanyName = "Skydown"
 
 data class CommerceShippingSettings(

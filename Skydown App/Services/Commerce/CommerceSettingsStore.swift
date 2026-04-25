@@ -1,7 +1,7 @@
 import Foundation
 import FirebaseFirestore
 
-private let defaultInvoiceCompanyName = "Skydown OS"
+private let defaultInvoiceCompanyName = "Ngoc Anh Nguyen (Yang D. Nash - Skydown)"
 private let legacyInvoiceCompanyName = "Skydown"
 
 struct CommerceShippingSettings: Equatable {

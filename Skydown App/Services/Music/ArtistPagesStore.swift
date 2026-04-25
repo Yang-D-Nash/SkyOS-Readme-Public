@@ -56,9 +56,9 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
                     ]
                 }
                 .filter { entry in
-                    ((entry["title"] as? String)?.isEmpty == false)
-                    && ((entry["detail"] as? String)?.isEmpty == false)
-                    && ((entry["price"] as? String)?.isEmpty == false)
+                    (entry["title"]?.isEmpty == false)
+                    && (entry["detail"]?.isEmpty == false)
+                    && (entry["price"]?.isEmpty == false)
                 },
             "editorUids": Array(Set(page.editorUids.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })).sorted(),
             "createdAt": Timestamp(date: page.createdAt),

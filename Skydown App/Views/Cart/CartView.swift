@@ -806,7 +806,7 @@ private struct PricingSummaryCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
-            Text("Rechnung über \(companyName.takeIfNotBlank() ?? "Skydown OS").")
+            Text("Rechnung über \(companyName.takeIfNotBlank() ?? "Ngoc Anh Nguyen (Yang D. Nash - Skydown)").")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }

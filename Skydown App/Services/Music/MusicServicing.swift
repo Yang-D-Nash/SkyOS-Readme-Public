@@ -58,6 +58,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
         account: "oauth-token"
     )
     private let anchorProvider = PresentationAnchorProvider()
+    private var authenticationSession: ASWebAuthenticationSession?
     private var authorizationURLString: String?
 
     var isConnected: Bool {
@@ -577,6 +578,7 @@ final class SpotifyMusicService: NSObject, MusicServicing {
                 url: url,
                 callbackURLScheme: SpotifyMusicConstants.callbackScheme
             ) { callbackURL, error in
+                self.authenticationSession = nil
                 if let error {
                     continuation.resume(throwing: error)
                     return
@@ -591,7 +593,11 @@ final class SpotifyMusicService: NSObject, MusicServicing {
             }
             session.presentationContextProvider = anchorProvider
             session.prefersEphemeralWebBrowserSession = false
-            session.start()
+            authenticationSession = session
+            if !session.start() {
+                authenticationSession = nil
+                continuation.resume(throwing: SpotifyAuthError.invalidCallback)
+            }
         }
     }
 

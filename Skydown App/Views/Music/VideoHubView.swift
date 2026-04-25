@@ -2937,6 +2937,10 @@ private final class SkydownManagedBrowserState: NSObject, ObservableObject {
 
     func attach(_ webView: WKWebView, initialURL: URL) {
         self.webView = webView
+        guard skydownAllowsEmbeddedWebNavigation(initialURL) else {
+            refresh(from: webView)
+            return
+        }
         if loadedInitialURL != initialURL {
             loadedInitialURL = initialURL
             webView.load(URLRequest(url: initialURL))
@@ -2978,6 +2982,7 @@ private struct SkydownManagedBrowserWebView: UIViewRepresentable {
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
@@ -2999,6 +3004,14 @@ private struct SkydownManagedBrowserWebView: UIViewRepresentable {
 
         init(browserState: SkydownManagedBrowserState) {
             self.browserState = browserState
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            decisionHandler(skydownAllowsEmbeddedWebNavigation(navigationAction.request.url) ? .allow : .cancel)
         }
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
@@ -3042,16 +3055,27 @@ private func skydownIsLikelyDirectVideoURL(_ rawValue: String) -> Bool {
         || normalized.hasSuffix(".m3u8")
 }
 
+private func skydownAllowsEmbeddedWebNavigation(_ url: URL?) -> Bool {
+    guard let scheme = url?.scheme?.lowercased() else { return false }
+    return scheme == "https" || scheme == "http" || scheme == "about"
+}
+
 struct ExternalVideoEmbedSurface: UIViewRepresentable {
     let urlString: String
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
         webView.isOpaque = false
         webView.backgroundColor = .black
         webView.scrollView.backgroundColor = .black
@@ -3062,8 +3086,19 @@ struct ExternalVideoEmbedSurface: UIViewRepresentable {
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         guard let url = URL(string: urlString) else { return }
+        guard skydownAllowsEmbeddedWebNavigation(url) else { return }
         if webView.url?.absoluteString != url.absoluteString {
             webView.load(URLRequest(url: url))
+        }
+    }
+
+    final class Coordinator: NSObject, WKNavigationDelegate {
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            decisionHandler(skydownAllowsEmbeddedWebNavigation(navigationAction.request.url) ? .allow : .cancel)
         }
     }
 }

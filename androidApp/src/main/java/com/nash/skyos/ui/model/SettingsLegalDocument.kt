@@ -92,7 +92,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "2. Welche Daten verarbeitet werden",
-                    body = "Je nach Nutzung werden insbesondere Kontodaten, Rollen und Kontingente, freiwillige Profilangaben, Galerie- und Upload-Inhalte, technische Geraete-, Crash- und Fehlerdaten, Nutzungsdaten zu Musik-, Video-, Shop-, KI-, Workflow- und Einstellungsbereichen sowie Bestell-, Versand-, Fulfillment- und Supportdaten verarbeitet.",
+                    body = "Je nach Nutzung werden insbesondere Kontodaten, Rollen und Kontingente, freiwillige Profilangaben, Galerie- und Upload-Inhalte, technische Geraete-, Crash- und Fehlerdaten, Nutzungsdaten zu Musik-, Video-, Shop-, KI-, Workflow- und Einstellungsbereichen, Produktinteraktions- und Abo-Funnel-Ereignisse sowie Bestell-, Versand-, Fulfillment- und Supportdaten verarbeitet.",
                 ),
                 SettingsLegalSection(
                     title = "3. Zwecke und Rechtsgrundlagen",
@@ -100,7 +100,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "4. Konten, Sicherheit und Firebase",
-                    body = "Fuer Authentifizierung, Datenbank, Storage, serverseitige Logik und Security-Schutz koennen Dienste von Firebase und Google Cloud eingesetzt werden, etwa Firebase Auth, Cloud Firestore, Cloud Storage, Cloud Functions, App Check, Logging und Kostenkontrolle.",
+                    body = "Fuer Authentifizierung, Datenbank, Storage, serverseitige Logik, Produktmetriken und Security-Schutz koennen Dienste von Firebase und Google Cloud eingesetzt werden, etwa Firebase Auth, Cloud Firestore, Cloud Storage, Cloud Functions, App Check, Remote Config, Analytics, Logging und Kostenkontrolle.",
                 ),
                 SettingsLegalSection(
                     title = "5. KI, Workflow und Drittanbieter",
@@ -248,7 +248,7 @@ fun SettingsLegalDocumentType.resolve(
                 ),
                 SettingsLegalSection(
                     title = "4. Hinweis",
-                    body = "Diese Informationen dienen der Transparenz und ersetzen keine individuelle rechtliche Pruefung. Die verbindliche Fassung wird vor Veroeffentlichung final geprueft.",
+                    body = "Diese Informationen dienen der Transparenz und werden laufend aktualisiert.",
                 ),
             ),
             contactEmail = supportEmail,

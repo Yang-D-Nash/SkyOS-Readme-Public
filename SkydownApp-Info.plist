@@ -46,7 +46,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>SkyOS benoetigt Zugriff auf deine Fotomediathek, damit Admins Merch-Bilder auswaehlen und hochladen koennen.</string>
+	<string>SkyOS benötigt Zugriff auf deine Fotomediathek, damit du Bilder und Videos auswählen und hochladen kannst.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Syne-Regular.ttf</string>

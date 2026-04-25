@@ -6,12 +6,15 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesResponseListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -25,9 +28,17 @@ class AiNativeBillingManager(
     context: Context,
 ) {
     val packageName: String = context.packageName
+    private var pendingPurchaseContinuation: CancellableContinuation<NativeSubscriptionPurchase?>? = null
+    private var pendingPurchaseProductId: String? = null
     private val billingClient: BillingClient = BillingClient.newBuilder(context)
-        .enablePendingPurchases()
-        .setListener { _, _ -> }
+        .enablePendingPurchases(
+            PendingPurchasesParams.newBuilder()
+                .enableOneTimeProducts()
+                .build(),
+        )
+        .setListener { result, purchases ->
+            handlePurchaseUpdate(result, purchases.orEmpty())
+        }
         .build()
 
     suspend fun queryMembershipProducts(config: AiMembershipRuntimeConfig): List<MembershipProduct> {
@@ -65,13 +76,35 @@ class AiNativeBillingManager(
                 ),
             )
             .build()
-        val result = billingClient.launchBillingFlow(activity, billingParams)
-        if (result.responseCode != BillingClient.BillingResponseCode.OK) {
-            throw IllegalStateException(result.debugMessage.ifBlank { "Billing Flow konnte nicht gestartet werden." })
+        return withTimeout(120_000L) {
+            suspendCancellableCoroutine { continuation ->
+                if (pendingPurchaseContinuation != null) {
+                    continuation.resumeWithException(IllegalStateException("Ein Billing Flow laeuft bereits."))
+                    return@suspendCancellableCoroutine
+                }
+
+                pendingPurchaseContinuation = continuation
+                pendingPurchaseProductId = product.productId
+                continuation.invokeOnCancellation {
+                    if (pendingPurchaseContinuation === continuation) {
+                        pendingPurchaseContinuation = null
+                        pendingPurchaseProductId = null
+                    }
+                }
+
+                val result = billingClient.launchBillingFlow(activity, billingParams)
+                if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+                    pendingPurchaseContinuation = null
+                    pendingPurchaseProductId = null
+                    when (result.responseCode) {
+                        BillingClient.BillingResponseCode.USER_CANCELED -> continuation.resume(null)
+                        else -> continuation.resumeWithException(
+                            IllegalStateException(result.debugMessage.ifBlank { "Billing Flow konnte nicht gestartet werden." }),
+                        )
+                    }
+                }
+            }
         }
-        val purchases = queryOwnedSubscriptions()
-        val newest = purchases.firstOrNull { it.productId == product.productId } ?: purchases.firstOrNull()
-        return newest
     }
 
     suspend fun queryOwnedSubscriptions(): List<NativeSubscriptionPurchase> {
@@ -123,7 +156,7 @@ class AiNativeBillingManager(
                     )
                     return@queryProductDetailsAsync
                 }
-                continuation.resume(details)
+                continuation.resume(details.productDetailsList)
             }
         }
     }
@@ -149,5 +182,39 @@ class AiNativeBillingManager(
                 }
             })
         }
+    }
+
+    private fun handlePurchaseUpdate(result: BillingResult, purchases: List<Purchase>) {
+        val continuation = pendingPurchaseContinuation ?: return
+        val productId = pendingPurchaseProductId
+        pendingPurchaseContinuation = null
+        pendingPurchaseProductId = null
+
+        when (result.responseCode) {
+            BillingClient.BillingResponseCode.OK -> {
+                continuation.resume(purchases.toNativeSubscriptionPurchase(productId))
+            }
+            BillingClient.BillingResponseCode.USER_CANCELED -> {
+                continuation.resume(null)
+            }
+            else -> {
+                continuation.resumeWithException(
+                    IllegalStateException(result.debugMessage.ifBlank { "Kauf konnte nicht abgeschlossen werden." }),
+                )
+            }
+        }
+    }
+
+    private fun List<Purchase>.toNativeSubscriptionPurchase(preferredProductId: String?): NativeSubscriptionPurchase? {
+        val matches = flatMap { purchase ->
+            purchase.products.map { productId ->
+                NativeSubscriptionPurchase(
+                    productId = productId,
+                    purchaseToken = purchase.purchaseToken,
+                    orderId = purchase.orderId,
+                )
+            }
+        }
+        return matches.firstOrNull { it.productId == preferredProductId } ?: matches.firstOrNull()
     }
 }

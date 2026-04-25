@@ -58,12 +58,18 @@ struct SpotifyEmbedPlayerView: View {
 private struct SpotifyEmbedWebView: UIViewRepresentable {
     let url: URL
 
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
+        configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.isOpaque = false
         webView.backgroundColor = .black
@@ -72,10 +78,26 @@ private struct SpotifyEmbedWebView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
+        guard spotifyAllowsEmbeddedWebNavigation(url) else { return }
         if webView.url != url {
             webView.load(URLRequest(url: url))
         }
     }
+
+    final class Coordinator: NSObject, WKNavigationDelegate {
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            decisionHandler(spotifyAllowsEmbeddedWebNavigation(navigationAction.request.url) ? .allow : .cancel)
+        }
+    }
+}
+
+private func spotifyAllowsEmbeddedWebNavigation(_ url: URL?) -> Bool {
+    guard let scheme = url?.scheme?.lowercased() else { return false }
+    return scheme == "https" || scheme == "about"
 }
 
 private func spotifyWebURL(track: Track) -> URL? {

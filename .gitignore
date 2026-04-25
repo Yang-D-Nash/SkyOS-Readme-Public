@@ -25,6 +25,7 @@ functions/firestore-debug.log
 .env
 .env.*
 !.env.example
+/GoogleService-Info.plist
 
 .idea/
 

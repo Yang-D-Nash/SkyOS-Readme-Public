@@ -1029,7 +1029,7 @@ Schnellfakten:
 - Membership ist faehigkeitsbasiert und kein Token-Shop.
 - Kaeufe und Restore koennen kurze Synchronisierungszeit brauchen.
 - Support: skydownent@gmail.com
-- Betreiberhinweis: Skydown OS, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland.
+- Betreiberhinweis: Ngoc Anh Nguyen (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland.
 
 Kernfragen mit Zielantworten:
 

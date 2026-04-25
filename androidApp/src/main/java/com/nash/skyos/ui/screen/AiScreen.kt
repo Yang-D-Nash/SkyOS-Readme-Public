@@ -1,6 +1,11 @@
 package com.nash.skyos.ui.screen
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -82,6 +87,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nash.skyos.ui.component.BrandArtwork
@@ -146,6 +152,46 @@ fun AiScreen(
     val membershipState by membershipCoordinator.uiState.collectAsStateWithLifecycle()
     var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
     var localFeedbackType by remember { mutableStateOf(ToastType.Info) }
+    var pendingImageSave by remember { mutableStateOf<Pair<ByteArray, String?>?>(null) }
+
+    val showLocalFeedback: (String, ToastType) -> Unit = { message, type ->
+        localFeedbackMessage = message
+        localFeedbackType = type
+    }
+    val saveGeneratedImage: (ByteArray, String?) -> Unit = { imageBytes, mimeType ->
+        saveAiImage(context, imageBytes, mimeType)
+            .onSuccess {
+                showLocalFeedback("Bild gespeichert.", ToastType.Success)
+            }
+            .onFailure {
+                showLocalFeedback("Bild konnte nicht gespeichert werden.", ToastType.Error)
+            }
+    }
+    val legacyImageWritePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { isGranted ->
+        val pending = pendingImageSave
+        pendingImageSave = null
+        if (isGranted && pending != null) {
+            saveGeneratedImage(pending.first, pending.second)
+        } else {
+            showLocalFeedback("Speicherzugriff wurde nicht freigegeben.", ToastType.Error)
+        }
+    }
+    val requestGeneratedImageSave: (ByteArray, String?) -> Unit = { imageBytes, mimeType ->
+        val needsLegacyWritePermission = Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            ) != PackageManager.PERMISSION_GRANTED
+
+        if (needsLegacyWritePermission) {
+            pendingImageSave = imageBytes to mimeType
+            legacyImageWritePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        } else {
+            saveGeneratedImage(imageBytes, mimeType)
+        }
+    }
 
     val dismissKeyboard: () -> Unit = {
         focusManager.clearFocus(force = true)
@@ -375,9 +421,9 @@ fun AiScreen(
                                 AiMessageBubble(
                                     message = message,
                                     compactLayout = compactLayout,
+                                    onSaveImage = requestGeneratedImageSave,
                                     onFeedback = { messageText, type ->
-                                        localFeedbackMessage = messageText
-                                        localFeedbackType = type
+                                        showLocalFeedback(messageText, type)
                                     },
                                 )
                             }
@@ -1157,6 +1203,7 @@ private fun AiPromptActionCard(
 fun AiMessageBubble(
     message: AiMessage,
     compactLayout: Boolean,
+    onSaveImage: (ByteArray, String?) -> Unit,
     onFeedback: (String, ToastType) -> Unit,
 ) {
     val context = LocalContext.current
@@ -1322,13 +1369,7 @@ fun AiMessageBubble(
                                 accent = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.testTag("ai.message.save"),
                                 onClick = {
-                                    saveAiImage(context, message.imageBytes, message.imageMimeType)
-                                        .onSuccess {
-                                            onFeedback("Bild gespeichert.", ToastType.Success)
-                                        }
-                                        .onFailure {
-                                            onFeedback("Bild konnte nicht gespeichert werden.", ToastType.Error)
-                                        }
+                                    onSaveImage(message.imageBytes, message.imageMimeType)
                                 },
                             )
                         }

@@ -98,7 +98,7 @@ enum LegalTextTemplateFactory {
         \(imprintReference)
 
         Hinweis:
-        Diese Informationen dienen der Transparenz und ersetzen keine individuelle rechtliche Pruefung. Die verbindliche Fassung wird vor Veroeffentlichung final geprueft.
+        Diese Informationen dienen der Transparenz und werden laufend aktualisiert.
         """
     }
 
@@ -122,13 +122,13 @@ enum LegalTextTemplateFactory {
         \(imprintReference)
 
         2. Datenarten
-        u.a. Kontodaten (E-Mail, Nutzername, Rolle, Kontingent, Login/Sitzung); freiwillige Profildaten inkl. oeffentlicher Creator-/Artist-Angaben; technische Daten (App-Version, OS, Geraet, Crashes, Security-/Abuse-Logs); Nutzung (Musik, Video, Shop, Bestellungen, KI, Zahlarten, Einstellungen); Bestell-/Versand-/Fulfillmentdaten; von Ihnen aktive Uploads, Veroeffentlichungen, Prompts und Support-/Workflow-Anfragen.
+        u.a. Kontodaten (E-Mail, Nutzername, Rolle, Kontingent, Login/Sitzung); freiwillige Profildaten inkl. oeffentlicher Creator-/Artist-Angaben; technische Daten (App-Version, OS, Geraet, Crashes, Security-/Abuse-Logs); Nutzung (Musik, Video, Shop, Bestellungen, KI, Zahlarten, Einstellungen); Produktinteraktions- und Abo-Funnel-Ereignisse (z. B. App-Start, Onboarding, Membership-Oeffnung, Kauf-/Restore-Status); Bestell-/Versand-/Fulfillmentdaten; von Ihnen aktive Uploads, Veroeffentlichungen, Prompts und Support-/Workflow-Anfragen.
 
         3. Zwecke und Rechtsgrundlagen
         App und Konto: Art. 6 Abs. 1 lit. b DSGVO. Bestellungen, Versand, Support: lit. b. Rechtspflichten: lit. c. Sicherheit, Missbrauchsabwehr, App Check, Rollen, Weiterentwicklung: lit. f. Optionale Zustimmungen/Freigaben: lit. a. Besondere Datenkategorien: moeglichst nicht; freiwillige Eingaben nur mit tragfaehiger Grundlage.
 
         4. Firebase / Google Cloud
-        Auth, Firestore, Storage, Functions, App Check, Logging, Kostenkontrolle koennen fuer sichere Bereitstellung, Rechtepruefung, Upload-Freigaben und Abuse-Schutz genutzt werden.
+        Auth, Firestore, Storage, Functions, App Check, Remote Config, Produktmetriken, Analytics, Logging und Kostenkontrolle koennen fuer sichere Bereitstellung, Rechtepruefung, Upload-Freigaben, Abuse-Schutz, interne Metriken und Release-Qualitaet genutzt werden.
 
         5. Oeffentliche Inhalte
         Freigegebene Profile, Galerien und Artist-Seiten koennen fuer andere oder oeffentlich sichtbar sein — nur Inhalte mit eigener Berechtigung.

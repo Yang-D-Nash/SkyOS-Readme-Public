@@ -5,7 +5,6 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -82,8 +81,8 @@ fun TrackRow(
     isSelected: Boolean,
     onSelectTrack: () -> Unit,
     onPlayToggle: () -> Unit,
-    presentation: TrackRowPresentation = TrackRowPresentation.Featured,
     modifier: Modifier = Modifier,
+    presentation: TrackRowPresentation = TrackRowPresentation.Featured,
 ) {
     val context = LocalContext.current
     val haptics = LocalHapticFeedback.current
@@ -597,16 +596,14 @@ private fun SpotifyEmbedDialog(
                             .clip(RoundedCornerShape(22.dp)),
                         factory = { playerContext ->
                             WebView(playerContext).apply {
-                                webViewClient = WebViewClient()
-                                settings.javaScriptEnabled = true
-                                settings.domStorageEnabled = true
-                                settings.mediaPlaybackRequiresUserGesture = false
-                                loadUrl(embedUrl.toString())
+                                webViewClient = SkydownMediaWebViewClient()
+                                applySkydownMediaWebViewDefaults()
+                                loadSkydownWebUrl(embedUrl.toString())
                             }
                         },
                         update = { webView ->
                             if (webView.url != embedUrl.toString()) {
-                                webView.loadUrl(embedUrl.toString())
+                                webView.loadSkydownWebUrl(embedUrl.toString())
                             }
                         },
                     )

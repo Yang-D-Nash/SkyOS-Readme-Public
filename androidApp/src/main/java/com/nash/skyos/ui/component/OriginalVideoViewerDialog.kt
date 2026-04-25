@@ -2,10 +2,8 @@ package com.nash.skyos.ui.component
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
-import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -131,7 +129,7 @@ fun OriginalVideoViewerDialog(
                         factory = { webContext ->
                             WebView(webContext).apply {
                                 browserView = this
-                                webViewClient = object : WebViewClient() {
+                                webViewClient = object : SkydownMediaWebViewClient() {
                                     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                                         syncBrowserActions(view)
                                     }
@@ -149,18 +147,9 @@ fun OriginalVideoViewerDialog(
                                     }
                                 }
                                 webChromeClient = WebChromeClient()
-                                CookieManager.getInstance().setAcceptCookie(true)
-                                CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                                // Drive/MEGA provider pages require JavaScript to render sign-in and playback flows.
-                                settings.javaScriptEnabled = true
-                                settings.mediaPlaybackRequiresUserGesture = false
-                                settings.domStorageEnabled = true
-                                settings.javaScriptCanOpenWindowsAutomatically = true
-                                settings.loadsImagesAutomatically = true
-                                settings.useWideViewPort = true
-                                settings.loadWithOverviewMode = true
+                                applySkydownMediaWebViewDefaults()
                                 setBackgroundColor(android.graphics.Color.BLACK)
-                                loadUrl(url)
+                                loadSkydownWebUrl(url)
                             }
                         },
                         update = { view ->

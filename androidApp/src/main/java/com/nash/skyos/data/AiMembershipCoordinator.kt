@@ -2,6 +2,7 @@ package com.nash.skyos.data
 
 import android.app.Activity
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import com.android.billingclient.api.ProductDetails
 import com.skydown.shared.model.User
 import android.util.Log
@@ -50,6 +51,7 @@ class AiMembershipCoordinator(
     private val runtimeConfigRepository: AiMembershipRuntimeConfigRepository = AiMembershipRuntimeConfigRepository(),
 ) {
     private val logTag = "AiMembershipCoordinator"
+    private val isDebuggable = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
     private val scope = CoroutineScope(Dispatchers.Main.immediate)
     private val billing = AiNativeBillingManager(context)
     private val analytics = MembershipAnalyticsTracker(context)
@@ -306,6 +308,8 @@ class AiMembershipCoordinator(
     }
 
     private fun track(name: String, payload: Map<String, String> = emptyMap()) {
-        Log.i(logTag, "event=$name payload=$payload")
+        if (isDebuggable) {
+            Log.d(logTag, "event=$name payload=$payload")
+        }
     }
 }

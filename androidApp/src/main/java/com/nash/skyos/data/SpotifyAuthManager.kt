@@ -1,7 +1,10 @@
 package com.nash.skyos.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.net.Uri
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,9 +15,15 @@ import java.io.BufferedReader
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import java.nio.charset.StandardCharsets
+import java.security.KeyStore
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 
 object SpotifyAuthManager {
     private const val clientId = "e22e102e5cd847bb8f59a140fda76bcc"
@@ -28,6 +37,12 @@ object SpotifyAuthManager {
     private const val keyExpiry = "expiry_epoch_millis"
     private const val keyState = "pkce_state"
     private const val keyVerifier = "pkce_verifier"
+    private const val encryptedValuePrefix = "enc:v1:"
+    private const val encryptedValueSeparator = ":"
+    private const val keyAlias = "com.skydown.spotify.oauth"
+    private const val keyStoreProvider = "AndroidKeyStore"
+    private const val cipherTransformation = "AES/GCM/NoPadding"
+    private const val gcmTagLengthBits = 128
 
     private lateinit var appContext: Context
     private val _isConnected = MutableStateFlow(false)
@@ -47,7 +62,7 @@ object SpotifyAuthManager {
         preferences()
             .edit()
             .putString(keyState, state)
-            .putString(keyVerifier, verifier)
+            .putProtectedString(keyVerifier, verifier)
             .apply()
         _lastErrorMessage.value = null
 
@@ -70,7 +85,7 @@ object SpotifyAuthManager {
         val code = uri.getQueryParameter("code")
             ?: error("Spotify hat keinen Code geliefert.")
 
-        val verifier = preferences().getString(keyVerifier, null)
+        val verifier = protectedStringOrNull(keyVerifier)
             ?: error("Spotify-PKCE-Verifier fehlt.")
 
         val tokenResponse = exchangeCodeForToken(code, verifier)
@@ -82,10 +97,10 @@ object SpotifyAuthManager {
 
     suspend fun validAccessToken(): String? {
         if (hasValidAccessToken()) {
-            return preferences().getString(keyAccessToken, null)
+            return protectedStringOrNull(keyAccessToken)
         }
 
-        val refreshToken = preferences().getString(keyRefreshToken, null) ?: return null
+        val refreshToken = protectedStringOrNull(keyRefreshToken) ?: return null
         return runCatching {
             val tokenResponse = refreshAccessToken(refreshToken)
             saveTokenResponse(tokenResponse)
@@ -170,15 +185,15 @@ object SpotifyAuthManager {
     private fun saveTokenResponse(tokenResponse: TokenResponse) {
         preferences()
             .edit()
-            .putString(keyAccessToken, tokenResponse.accessToken)
-            .putString(keyRefreshToken, tokenResponse.refreshToken ?: preferences().getString(keyRefreshToken, null))
+            .putProtectedString(keyAccessToken, tokenResponse.accessToken)
+            .putProtectedString(keyRefreshToken, tokenResponse.refreshToken ?: protectedStringOrNull(keyRefreshToken))
             .putLong(keyExpiry, System.currentTimeMillis() + (tokenResponse.expiresIn * 1000L))
             .apply()
         _isConnected.value = true
     }
 
     private fun hasValidAccessToken(): Boolean {
-        return preferences().getString(keyAccessToken, null) != null &&
+        return protectedStringOrNull(keyAccessToken) != null &&
             preferences().getLong(keyExpiry, 0L) > System.currentTimeMillis() + 60_000L
     }
 
@@ -194,6 +209,74 @@ object SpotifyAuthManager {
     }
 
     private fun preferences() = appContext.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+
+    private fun SharedPreferences.Editor.putProtectedString(key: String, value: String?): SharedPreferences.Editor {
+        return if (value.isNullOrBlank()) {
+            remove(key)
+        } else {
+            putString(key, encryptProtectedString(value))
+        }
+    }
+
+    private fun protectedStringOrNull(key: String): String? {
+        return runCatching {
+            val storedValue = preferences().getString(key, null) ?: return null
+            if (storedValue.startsWith(encryptedValuePrefix)) {
+                return decryptProtectedString(storedValue)
+            }
+
+            preferences()
+                .edit()
+                .putProtectedString(key, storedValue)
+                .apply()
+            storedValue
+        }.getOrNull()
+    }
+
+    private fun encryptProtectedString(value: String): String {
+        val cipher = Cipher.getInstance(cipherTransformation)
+        cipher.init(Cipher.ENCRYPT_MODE, resolveSecretKey())
+        val encryptedBytes = cipher.doFinal(value.toByteArray(StandardCharsets.UTF_8))
+        val ivBase64 = Base64.getEncoder().encodeToString(cipher.iv)
+        val cipherTextBase64 = Base64.getEncoder().encodeToString(encryptedBytes)
+        return encryptedValuePrefix + ivBase64 + encryptedValueSeparator + cipherTextBase64
+    }
+
+    private fun decryptProtectedString(value: String): String? {
+        val encryptedPayload = value.removePrefix(encryptedValuePrefix)
+        val separatorIndex = encryptedPayload.indexOf(encryptedValueSeparator)
+        if (separatorIndex <= 0 || separatorIndex >= encryptedPayload.lastIndex) {
+            return null
+        }
+
+        val ivBytes = Base64.getDecoder().decode(encryptedPayload.substring(0, separatorIndex))
+        val cipherTextBytes = Base64.getDecoder().decode(encryptedPayload.substring(separatorIndex + 1))
+        val cipher = Cipher.getInstance(cipherTransformation)
+        val parameterSpec = GCMParameterSpec(gcmTagLengthBits, ivBytes)
+        cipher.init(Cipher.DECRYPT_MODE, resolveSecretKey(), parameterSpec)
+        val decoded = cipher.doFinal(cipherTextBytes)
+        return String(decoded, StandardCharsets.UTF_8)
+    }
+
+    private fun resolveSecretKey(): SecretKey {
+        val keyStore = KeyStore.getInstance(keyStoreProvider).apply { load(null) }
+        val existing = keyStore.getKey(keyAlias, null) as? SecretKey
+        if (existing != null) {
+            return existing
+        }
+
+        val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, keyStoreProvider)
+        val spec = KeyGenParameterSpec.Builder(
+            keyAlias,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
+        )
+            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+            .setUserAuthenticationRequired(false)
+            .build()
+        keyGenerator.init(spec)
+        return keyGenerator.generateKey()
+    }
 
     private data class TokenResponse(
         val accessToken: String,

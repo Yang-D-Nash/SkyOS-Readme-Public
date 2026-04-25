@@ -1,10 +1,8 @@
 package com.nash.skyos.ui.component
 
 import android.annotation.SuppressLint
-import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -22,23 +20,11 @@ fun ExternalVideoWebPlayer(
         modifier = modifier,
         factory = { playerContext ->
             WebView(playerContext).apply {
-                webViewClient = WebViewClient()
+                webViewClient = SkydownMediaWebViewClient()
                 webChromeClient = WebChromeClient()
-                CookieManager.getInstance().setAcceptCookie(true)
-                CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                settings.javaScriptEnabled = true
-                settings.mediaPlaybackRequiresUserGesture = false
-                settings.domStorageEnabled = true
-                settings.javaScriptCanOpenWindowsAutomatically = true
-                settings.loadsImagesAutomatically = true
-                settings.useWideViewPort = true
-                settings.loadWithOverviewMode = true
+                applySkydownMediaWebViewDefaults()
                 setBackgroundColor(android.graphics.Color.BLACK)
-                if (playerSource.headers.isEmpty()) {
-                    loadUrl(playerSource.url)
-                } else {
-                    loadUrl(playerSource.url, playerSource.headers)
-                }
+                loadSkydownWebUrl(playerSource.url, playerSource.headers)
                 tag = playerSource.renderKey
             }
         },
@@ -46,11 +32,7 @@ fun ExternalVideoWebPlayer(
             if (webView.tag != playerSource.renderKey) {
                 webView.tag = playerSource.renderKey
                 if (webView.url != playerSource.url) {
-                    if (playerSource.headers.isEmpty()) {
-                        webView.loadUrl(playerSource.url)
-                    } else {
-                        webView.loadUrl(playerSource.url, playerSource.headers)
-                    }
+                    webView.loadSkydownWebUrl(playerSource.url, playerSource.headers)
                 }
             }
         },

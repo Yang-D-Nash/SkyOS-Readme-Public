@@ -6,10 +6,10 @@
     <string name="attribution_auth" translatable="false">Authentication and sign-in</string>
     <string name="attribution_commerce" translatable="false">Store and checkout</string>
     <string name="attribution_ai" translatable="false">AI and automation tools</string>
-    <string name="brand_system_name" translatable="false">SkyOS</string>
-    <string name="brand_product_name" translatable="false">Skydown</string>
-    <string name="brand_music_name" translatable="false">ZweiZwei / 22</string>
-    <string name="brand_merch_name" translatable="false">Skydown x 22</string>
+    <string name="brand_system_name">SkyOS</string>
+    <string name="brand_product_name">Skydown</string>
+    <string name="brand_music_name">ZweiZwei / 22</string>
+    <string name="brand_merch_name">Skydown x 22</string>
 
     <string name="tabs_merch">Merch</string>
     <string name="tabs_music">Music</string>
@@ -104,7 +104,7 @@
     <string name="settings_legal_support_cta">Send support request</string>
     <string name="settings_legal_availability_note">All help and legal documents are available here in the app.</string>
     <string name="settings_legal_support_email_placeholder">Use your organization\'s real public support address (not a sample domain).</string>
-    <string name="legal_ui_transparency_note">This information is provided for transparency and does not replace legal review. The binding version will be finalized before public release.</string>
+    <string name="legal_ui_transparency_note">This information is provided for transparency and is updated on an ongoing basis.</string>
     <string name="legal_ui_last_updated">Last updated: %1$s</string>
     <string name="legal_ui_contact">Contact</string>
     <string name="ai_legal_disclosure_short">AI can be wrong. Full policy: Settings → Privacy / Legal / Help → AI usage notice.</string>
@@ -243,7 +243,7 @@
     <string name="common_save">Save</string>
     <string name="settings_ai_runtime_save">Save AI runtime</string>
     <string name="settings_membership_ops_subtitle">Membership control for owner/admin. KPIs, experiments, and learnings in one place.</string>
-    <string name="settings_membership_ops_loading">Loading membership control...</string>
+    <string name="settings_membership_ops_loading">Loading membership control…</string>
     <string name="settings_membership_ops_empty_recommendations">No open recommendations.</string>
     <string name="settings_membership_ops_start_experiment">Start experiment</string>
     <string name="settings_membership_ops_reject">Reject</string>

@@ -675,7 +675,7 @@ private fun PricingSummaryCard(
             )
         }
         Text(
-            text = "Rechnung und Rueckmeldung laufen ueber ${companyName.ifBlank { "Skydown OS" }}.",
+            text = "Rechnung und Rueckmeldung laufen ueber ${companyName.ifBlank { "Ngoc Anh Nguyen (Yang D. Nash - Skydown)" }}.",
             modifier = Modifier.padding(top = 10.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
