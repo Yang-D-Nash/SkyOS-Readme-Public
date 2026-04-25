@@ -327,6 +327,7 @@ fun SettingsScreen(
     var shopHeaderSubtitleDraft by rememberSaveable { mutableStateOf("") }
     var shopHeaderDetailDraft by rememberSaveable { mutableStateOf("") }
     var videoHeaderImageUrlDraft by rememberSaveable { mutableStateOf("") }
+    var videoHeaderHeroVideoUrlDraft by rememberSaveable { mutableStateOf("") }
     var videoHeaderEyebrowDraft by rememberSaveable { mutableStateOf("") }
     var videoHeaderTitleDraft by rememberSaveable { mutableStateOf("") }
     var videoHeaderSubtitleDraft by rememberSaveable { mutableStateOf("") }
@@ -555,6 +556,7 @@ fun SettingsScreen(
         shopHeaderSubtitleDraft = screenHeaderSettings.shopSubtitle
         shopHeaderDetailDraft = screenHeaderSettings.shopDetail
         videoHeaderImageUrlDraft = screenHeaderSettings.videoHubImageUrl
+        videoHeaderHeroVideoUrlDraft = screenHeaderSettings.videoHubHeroVideoUrl
         videoHeaderEyebrowDraft = screenHeaderSettings.videoHubEyebrow
         videoHeaderTitleDraft = screenHeaderSettings.videoHubTitle
         videoHeaderSubtitleDraft = screenHeaderSettings.videoHubSubtitle
@@ -1233,6 +1235,16 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 10.dp),
                 )
                 OutlinedTextField(
+                    value = videoHeaderHeroVideoUrlDraft,
+                    onValueChange = { videoHeaderHeroVideoUrlDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text(stringResource(R.string.settings_admin_headers_video_hero_video_url)) },
+                    placeholder = { Text(stringResource(R.string.settings_admin_headers_video_hero_video_url_placeholder)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
                     value = videoHeaderEyebrowDraft,
                     onValueChange = { videoHeaderEyebrowDraft = it },
                     modifier = Modifier
@@ -1305,6 +1317,7 @@ fun SettingsScreen(
                                         shopSubtitle = shopHeaderSubtitleDraft.trim(),
                                         shopDetail = shopHeaderDetailDraft.trim(),
                                         videoHubImageUrl = videoHeaderImageUrlDraft.trim(),
+                                        videoHubHeroVideoUrl = videoHeaderHeroVideoUrlDraft.trim(),
                                         videoHubEyebrow = videoHeaderEyebrowDraft.trim(),
                                         videoHubTitle = videoHeaderTitleDraft.trim(),
                                         videoHubSubtitle = videoHeaderSubtitleDraft.trim(),
@@ -5615,7 +5628,7 @@ private fun SettingsBadge(
     icon: ImageVector,
     isActive: Boolean,
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
+    onClick: () -> Unit = {},
 ) {
     val backgroundColor = if (isActive) {
         MaterialTheme.colorScheme.primaryContainer
@@ -5627,69 +5640,44 @@ private fun SettingsBadge(
     } else {
         MaterialTheme.colorScheme.onSecondaryContainer
     }
-    val interactionSource = remember(onClick) { MutableInteractionSource() }
-    val badgeModifier = if (onClick != null) {
-        modifier
-            .skydownPressable(
-                interactionSource = interactionSource,
-                pressedScale = 0.992f,
-            )
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                role = Role.Button,
-                onClick = onClick,
-            )
-    } else {
-        modifier
-    }
+    val interactionSource = remember { MutableInteractionSource() }
+    val badgeModifier = modifier
+        .skydownPressable(
+            interactionSource = interactionSource,
+            pressedScale = 0.992f,
+        )
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            role = Role.Button,
+            onClick = onClick,
+        )
 
-    if (onClick != null) {
-        Row(
-            modifier = badgeModifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(backgroundColor)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = text,
-                color = contentColor,
-                style = MaterialTheme.typography.labelLarge,
-            )
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = contentColor.copy(alpha = 0.82f),
-                modifier = Modifier.size(14.dp),
-            )
-        }
-    } else {
-        Row(
-            modifier = modifier.padding(vertical = 3.dp),
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = contentColor.copy(alpha = if (isActive) 0.82f else 0.64f),
-                modifier = Modifier.size(14.dp),
-            )
-            Text(
-                text = text,
-                color = contentColor.copy(alpha = if (isActive) 0.88f else 0.68f),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
+    Row(
+        modifier = badgeModifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(backgroundColor)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = text,
+            color = contentColor,
+            style = MaterialTheme.typography.labelLarge,
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = null,
+            tint = contentColor.copy(alpha = 0.82f),
+            modifier = Modifier.size(14.dp),
+        )
     }
 }
 

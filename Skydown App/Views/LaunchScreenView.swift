@@ -25,6 +25,7 @@ struct LaunchScreenView: View {
                 introContent
             case .landing:
                 LaunchLandingView(
+                    onOpenHome: { openShell(tab: .hub) },
                     onOpenMusic: { openShell(tab: .zweizwei) },
                     onOpenVideography: { openShell(tab: .skydown) },
                     onOpenShop: { openShell(tab: .merch) }
@@ -166,6 +167,7 @@ private enum LaunchPhase {
 }
 
 private struct LaunchLandingView: View {
+    let onOpenHome: () -> Void
     let onOpenMusic: () -> Void
     let onOpenVideography: () -> Void
     let onOpenShop: () -> Void
@@ -180,8 +182,21 @@ private struct LaunchLandingView: View {
                 layout.contentMaxWidth,
                 max(proxy.size.width - (layout.horizontalPadding * 2), 0)
             )
-            let sectionCadence = layout.prefersDesktopChrome ? layout.sectionSpacing + 2 : max(layout.sectionSpacing - 2, 12)
-            let compactVerticalPadding = layout.prefersDesktopChrome ? 34.0 : 22.0
+            let isShortHeightLayout = !layout.prefersDesktopChrome && proxy.size.height < 760
+            let sectionCadence = layout.prefersDesktopChrome
+                ? layout.sectionSpacing + 2
+                : (isShortHeightLayout ? 10 : max(layout.sectionSpacing - 2, 12))
+            let compactVerticalPadding = layout.prefersDesktopChrome ? 34.0 : (isShortHeightLayout ? 14.0 : 22.0)
+            let compactCardSpacing = isShortHeightLayout ? 8.0 : 10.0
+            let musicDetail = isShortHeightLayout
+                ? "Wenn du direkt in kreative Tiefe starten willst."
+                : "Wenn du direkt in kreative Tiefe starten willst."
+            let videoDetail = isShortHeightLayout
+                ? "Wenn du Story, Bewegung und Playback zuerst erleben willst."
+                : "Wenn du Story, Bewegung und Playback zuerst erleben willst."
+            let merchDetail = isShortHeightLayout
+                ? "Wenn du direkt in Produkte, Fits und den klaren Kaufweg willst."
+                : "Wenn du direkt in Produkte, Fits und den klaren Kaufweg willst."
 
             ZStack {
                 LinearGradient(
@@ -243,268 +258,253 @@ private struct LaunchLandingView: View {
                     .rotationEffect(.degrees(18))
                     .offset(x: -proxy.size.width * 0.24, y: -160)
 
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: sectionCadence) {
-                        HStack(spacing: 8) {
-                            LaunchLandingMetaPill(text: "SkyOS", accent: AppColors.accent(for: hubColorScheme))
-                            if layout.prefersTwoColumn || layout.prefersThreeColumn {
-                                LaunchLandingMetaPill(text: "Living System", accent: AppColors.accentMystic(for: hubColorScheme))
-                            }
+                VStack(alignment: .leading, spacing: sectionCadence) {
+                    HStack(spacing: 8) {
+                        LaunchLandingMetaPill(
+                            text: "SkyOS",
+                            accent: AppColors.accent(for: hubColorScheme),
+                            onTap: onOpenHome
+                        )
+                        if layout.prefersTwoColumn || layout.prefersThreeColumn {
+                            LaunchLandingMetaPill(
+                                text: "Living System",
+                                accent: AppColors.accentMystic(for: hubColorScheme),
+                                onTap: onOpenVideography
+                            )
                         }
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            BrandHeroSurface(
-                                colorScheme: hubColorScheme,
-                                eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "Willkommen",
-                                title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOS",
-                                subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Ein ruhiger Einstieg in Music, Video und Merch.",
-                                detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Alles greift ineinander — dein naechster Move folgt direkt hier, Music ist der empfohlene Einstieg.",
-                                backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
-                                accent: AppColors.accent(for: hubColorScheme),
-                                secondaryAccent: AppColors.accentMystic(for: hubColorScheme),
-                                marks: [.skydown]
-                            ) {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    HStack(spacing: 10) {
-                                        BrandHeroPill(
-                                            text: "Music",
-                                            colorScheme: hubColorScheme,
-                                            tint: AppColors.spotify(for: hubColorScheme)
-                                        )
-                                        BrandHeroPill(
-                                            text: "Video",
-                                            colorScheme: hubColorScheme,
-                                            tint: AppColors.accentMystic(for: hubColorScheme)
-                                        )
-                                        BrandHeroPill(
-                                            text: "Merch",
-                                            colorScheme: hubColorScheme,
-                                            tint: AppColors.accentHighlight(for: hubColorScheme)
-                                        )
-                                    }
-
-                                    Text("Drei Einstiege, eine Oberflaeche — ohne Dashboard-Gefuehl.")
-                                        .font(AppTypography.editorialCaption)
-                                        .foregroundColor(.white.opacity(0.82))
-                                }
-                            }
-
-                            Group {
-                                VStack(alignment: .leading, spacing: 10) {
-                                Text("Music ist der natuerliche Start; Video und Merch bleiben als ruhige Alternativen.")
-                                    .font(.subheadline)
-                                    .foregroundColor(.white.opacity(0.62))
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .padding(.top, 2)
-
-                            if layout.prefersThreeColumn {
-                                HStack(alignment: .top, spacing: layout.sectionSpacing) {
-                                    LaunchLandingButton(
-                                        eyebrow: "Music",
-                                        title: "Music",
-                                        subtitle: "Artists · Beats · Studio",
-                                        detail: "Wenn du direkt in kreative Tiefe starten willst.",
-                                        accent: AppColors.spotify(for: hubColorScheme),
-                                        brandMark: .zweizwei,
-                                        badges: ["Catalog", "Beats", "Studio"],
-                                        emphasis: .primary,
-                                        pathLabel: "Empfohlener Einstieg",
-                                        ctaLabel: "In Music eintreten",
-                                        accessibilityID: "launch.open_music",
-                                        action: onOpenMusic
-                                    )
-                                    .frame(maxWidth: .infinity)
-                                    .layoutPriority(2)
-                                    .offset(y: -2)
-                                    LaunchLandingButton(
-                                        eyebrow: "Video",
-                                        title: "Videos",
-                                        subtitle: "Reels · Clips · YouTube",
-                                        detail: "Wenn du Story, Bewegung und Playback zuerst erleben willst.",
-                                        accent: AppColors.accentMystic(for: hubColorScheme),
-                                        brandMark: .zweizwei,
-                                        badges: ["Playback", "Reels", "YouTube"],
-                                        emphasis: .secondary,
-                                        pathLabel: "",
-                                        ctaLabel: "In Videos eintreten",
-                                        accessibilityID: "launch.open_video",
-                                        action: onOpenVideography
-                                    )
-                                    .frame(maxWidth: .infinity)
-                                    .layoutPriority(1)
-                                    LaunchLandingButton(
-                                        eyebrow: "Store",
-                                        title: "Merch",
-                                        subtitle: "Drops · Checkout",
-                                        detail: "Wenn du direkt in Produkte, Fits und den klaren Kaufweg willst.",
-                                        accent: AppColors.accentHighlight(for: hubColorScheme),
-                                        brandMark: .skydownX22,
-                                        badges: ["Drops", "Fits", "Checkout"],
-                                        emphasis: .secondary,
-                                        pathLabel: "",
-                                        ctaLabel: "In Merch eintreten",
-                                        accessibilityID: "launch.open_shop",
-                                        action: onOpenShop
-                                    )
-                                    .frame(maxWidth: .infinity)
-                                    .layoutPriority(1)
-                                }
-                            } else if layout.prefersTwoColumn {
-                                VStack(spacing: 10) {
-                                    LaunchLandingButton(
-                                        eyebrow: "Music",
-                                        title: "Music",
-                                        subtitle: "Artists · Beats · Studio",
-                                        detail: "Wenn du direkt in kreative Tiefe starten willst.",
-                                        accent: AppColors.spotify(for: hubColorScheme),
-                                        brandMark: .zweizwei,
-                                        badges: ["Catalog", "Beats", "Studio"],
-                                        emphasis: .primary,
-                                        pathLabel: "Empfohlener Einstieg",
-                                        ctaLabel: "In Music eintreten",
-                                        accessibilityID: "launch.open_music",
-                                        action: onOpenMusic
-                                    )
-                                    .offset(y: -2)
-
-                                    HStack(alignment: .top, spacing: 10) {
-                                        LaunchLandingButton(
-                                            eyebrow: "Video",
-                                            title: "Videos",
-                                            subtitle: "Reels · Clips · YouTube",
-                                            detail: "Wenn du Story, Bewegung und Playback zuerst erleben willst.",
-                                            accent: AppColors.accentMystic(for: hubColorScheme),
-                                            brandMark: .zweizwei,
-                                            badges: ["Playback", "Reels", "YouTube"],
-                                            emphasis: .secondary,
-                                            pathLabel: "",
-                                            ctaLabel: "In Videos eintreten",
-                                            accessibilityID: "launch.open_video",
-                                            action: onOpenVideography
-                                        )
-                                        LaunchLandingButton(
-                                            eyebrow: "Store",
-                                            title: "Merch",
-                                            subtitle: "Drops · Checkout",
-                                            detail: "Wenn du direkt in Produkte, Fits und den klaren Kaufweg willst.",
-                                            accent: AppColors.accentHighlight(for: hubColorScheme),
-                                            brandMark: .skydownX22,
-                                            badges: ["Drops", "Fits", "Checkout"],
-                                            emphasis: .secondary,
-                                            pathLabel: "",
-                                            ctaLabel: "In Merch eintreten",
-                                            accessibilityID: "launch.open_shop",
-                                            action: onOpenShop
-                                        )
-                                    }
-                                }
-                            } else {
-                                VStack(spacing: 10) {
-                                    LaunchLandingButton(
-                                        eyebrow: "Music",
-                                        title: "Music",
-                                        subtitle: "Artists · Beats · Studio",
-                                        detail: "Wenn du direkt in kreative Tiefe starten willst.",
-                                        accent: AppColors.spotify(for: hubColorScheme),
-                                        brandMark: .zweizwei,
-                                        badges: ["Catalog", "Beats", "Studio"],
-                                        emphasis: .primary,
-                                        pathLabel: "Empfohlener Einstieg",
-                                        ctaLabel: "In Music eintreten",
-                                        accessibilityID: "launch.open_music",
-                                        action: onOpenMusic
-                                    )
-                                    .offset(y: -2)
-
-                                    HStack(alignment: .top, spacing: 10) {
-                                        LaunchLandingButton(
-                                            eyebrow: "Video",
-                                            title: "Videos",
-                                            subtitle: "Reels · Clips · YouTube",
-                                            detail: "Wenn du Story, Bewegung und Playback zuerst erleben willst.",
-                                            accent: AppColors.accentMystic(for: hubColorScheme),
-                                            brandMark: .zweizwei,
-                                            badges: ["Playback", "Reels", "YouTube"],
-                                            emphasis: .secondary,
-                                            pathLabel: "",
-                                            ctaLabel: "In Videos eintreten",
-                                            accessibilityID: "launch.open_video",
-                                            action: onOpenVideography
-                                        )
-                                        LaunchLandingButton(
-                                            eyebrow: "Store",
-                                            title: "Merch",
-                                            subtitle: "Drops · Checkout",
-                                            detail: "Wenn du direkt in Produkte, Fits und den klaren Kaufweg willst.",
-                                            accent: AppColors.accentHighlight(for: hubColorScheme),
-                                            brandMark: .skydownX22,
-                                            badges: ["Drops", "Fits", "Checkout"],
-                                            emphasis: .secondary,
-                                            pathLabel: "",
-                                            ctaLabel: "In Merch eintreten",
-                                            accessibilityID: "launch.open_shop",
-                                            action: onOpenShop
-                                        )
-                                    }
-                                }
-                            }
-                                }
-                            }
-                        }
-
-                        LaunchLandingVisionBand(colorScheme: hubColorScheme)
-                            .padding(.top, 6)
-
-                        if layout.prefersThreeColumn {
-                            HStack(spacing: 12) {
-                                LaunchLandingNarrativeStep(
-                                    title: "01",
-                                    statement: "SkyOS startet weit und ruhig statt laut und technisch.",
-                                    accent: AppColors.accent(for: hubColorScheme)
-                                )
-                                LaunchLandingNarrativeStep(
-                                    title: "02",
-                                    statement: "Jeder Bereich bleibt verbunden, damit Orientierung nie bricht.",
-                                    accent: AppColors.accentMystic(for: hubColorScheme)
-                                )
-                                LaunchLandingNarrativeStep(
-                                    title: "03",
-                                    statement: "Kontrolle fuehlt sich persoenlich an, nicht wie ein Dashboard.",
-                                    accent: AppColors.accentHighlight(for: hubColorScheme)
-                                )
-                            }
-                            .padding(.top, 8)
-                        } else {
-                            VStack(spacing: 10) {
-                                LaunchLandingNarrativeStep(
-                                    title: "01",
-                                    statement: "SkyOS startet weit und ruhig statt laut und technisch.",
-                                    accent: AppColors.accent(for: hubColorScheme)
-                                )
-                                LaunchLandingNarrativeStep(
-                                    title: "02",
-                                    statement: "Bereiche bleiben verbunden, damit Orientierung nie bricht.",
-                                    accent: AppColors.accentMystic(for: hubColorScheme)
-                                )
-                            }
-                            .padding(.top, 8)
-                        }
-
-                        Text("Der Flow bleibt zusammen.")
-                            .font(AppTypography.editorialFootnote)
-                            .foregroundColor(.white.opacity(0.74))
-                            .padding(.top, 2)
                     }
-                    .frame(maxWidth: contentWidth, alignment: .leading)
-                    .padding(.horizontal, layout.horizontalPadding)
-                    .padding(.vertical, compactVerticalPadding)
-                    .frame(maxWidth: .infinity)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        BrandHeroSurface(
+                            colorScheme: hubColorScheme,
+                            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "Willkommen",
+                            title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOS",
+                            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Ein ruhiger Einstieg in Music, Video und Merch.",
+                            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Alles greift ineinander — dein naechster Move folgt direkt hier, Home bündelt den Ueberblick.",
+                            backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
+                            accent: AppColors.accent(for: hubColorScheme),
+                            secondaryAccent: AppColors.accentMystic(for: hubColorScheme),
+                            marks: [.skydown],
+                            onSurfaceTap: onOpenHome
+                        ) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Empfohlener Einstieg: Home")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundColor(AppColors.spotify(for: hubColorScheme).opacity(0.96))
+                                Text("Tippen zum Starten")
+                                    .font(.caption.weight(.medium))
+                                    .foregroundColor(.white.opacity(0.78))
+                            }
+                        }
+                        .accessibilityIdentifier("launch.hero.open_home")
+                        .accessibilityLabel("Home hero öffnen")
+                        .accessibilityHint("Öffnet den empfohlenen Einstieg Home")
+
+                        Button(action: onOpenMusic) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "play.fill")
+                                    .font(.footnote.weight(.bold))
+                                Text("Jetzt mit Music starten")
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer(minLength: 8)
+                                Image(systemName: "arrow.up.right")
+                                    .font(.footnote.weight(.bold))
+                            }
+                            .foregroundColor(.white.opacity(0.96))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(AppColors.spotify(for: hubColorScheme).opacity(0.26))
+                            )
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(AppColors.spotify(for: hubColorScheme).opacity(0.44), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .skydownTactileAction()
+                        .accessibilityIdentifier("launch.primary_cta.open_music")
+                        .accessibilityLabel("Jetzt mit Music starten")
+                        .accessibilityHint("Öffnet den Music Bereich direkt")
+
+                        Group {
+                            VStack(alignment: .leading, spacing: compactCardSpacing) {
+                                if !isShortHeightLayout {
+                                    Text("Music ist der natuerliche Start; Video und Merch bleiben als ruhige Alternativen.")
+                                        .font(.subheadline)
+                                        .foregroundColor(.white.opacity(0.62))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .padding(.top, 2)
+                                }
+
+                                if layout.prefersThreeColumn {
+                                    HStack(alignment: .top, spacing: layout.sectionSpacing) {
+                                        LaunchLandingButton(
+                                            eyebrow: "Music",
+                                            title: "Music",
+                                            subtitle: "Artists · Beats · Studio",
+                                            detail: musicDetail,
+                                            accent: AppColors.spotify(for: hubColorScheme),
+                                            brandMark: .zweizwei,
+                                            badges: ["Catalog", "Beats", "Studio"],
+                                            emphasis: .primary,
+                                            pathLabel: "Empfohlener Einstieg",
+                                            ctaLabel: "In Music eintreten",
+                                            accessibilityID: "launch.open_music",
+                                            action: onOpenMusic
+                                        )
+                                        .frame(maxWidth: .infinity)
+                                        .layoutPriority(2)
+                                        .offset(y: -2)
+
+                                        LaunchLandingButton(
+                                            eyebrow: "Video",
+                                            title: "Videos",
+                                            subtitle: "Reels · Clips · YouTube",
+                                            detail: videoDetail,
+                                            accent: AppColors.accentMystic(for: hubColorScheme),
+                                            brandMark: .zweizwei,
+                                            badges: ["Playback", "Reels", "YouTube"],
+                                            emphasis: .secondary,
+                                            pathLabel: "",
+                                            ctaLabel: "In Videos eintreten",
+                                            accessibilityID: "launch.open_video",
+                                            action: onOpenVideography
+                                        )
+                                        .frame(maxWidth: .infinity)
+                                        .layoutPriority(1)
+
+                                        LaunchLandingButton(
+                                            eyebrow: "Store",
+                                            title: "Merch",
+                                            subtitle: "Drops · Checkout",
+                                            detail: merchDetail,
+                                            accent: AppColors.accentHighlight(for: hubColorScheme),
+                                            brandMark: .skydownX22,
+                                            badges: ["Drops", "Fits", "Checkout"],
+                                            emphasis: .secondary,
+                                            pathLabel: "",
+                                            ctaLabel: "In Merch eintreten",
+                                            accessibilityID: "launch.open_shop",
+                                            action: onOpenShop
+                                        )
+                                        .frame(maxWidth: .infinity)
+                                        .layoutPriority(1)
+                                    }
+                                } else if layout.prefersTwoColumn {
+                                    VStack(spacing: compactCardSpacing) {
+                                        LaunchLandingButton(
+                                            eyebrow: "Music",
+                                            title: "Music",
+                                            subtitle: "Artists · Beats · Studio",
+                                            detail: musicDetail,
+                                            accent: AppColors.spotify(for: hubColorScheme),
+                                            brandMark: .zweizwei,
+                                            badges: ["Catalog", "Beats", "Studio"],
+                                            emphasis: .primary,
+                                            pathLabel: "Empfohlener Einstieg",
+                                            ctaLabel: "In Music eintreten",
+                                            accessibilityID: "launch.open_music",
+                                            action: onOpenMusic
+                                        )
+                                        .offset(y: -2)
+
+                                        HStack(alignment: .top, spacing: compactCardSpacing) {
+                                            LaunchLandingButton(
+                                                eyebrow: "Video",
+                                                title: "Videos",
+                                                subtitle: "Reels · Clips · YouTube",
+                                                detail: videoDetail,
+                                                accent: AppColors.accentMystic(for: hubColorScheme),
+                                                brandMark: .zweizwei,
+                                                badges: ["Playback", "Reels", "YouTube"],
+                                                emphasis: .secondary,
+                                                pathLabel: "",
+                                                ctaLabel: "In Videos eintreten",
+                                                accessibilityID: "launch.open_video",
+                                                action: onOpenVideography
+                                            )
+                                            LaunchLandingButton(
+                                                eyebrow: "Store",
+                                                title: "Merch",
+                                                subtitle: "Drops · Checkout",
+                                                detail: merchDetail,
+                                                accent: AppColors.accentHighlight(for: hubColorScheme),
+                                                brandMark: .skydownX22,
+                                                badges: ["Drops", "Fits", "Checkout"],
+                                                emphasis: .secondary,
+                                                pathLabel: "",
+                                                ctaLabel: "In Merch eintreten",
+                                                accessibilityID: "launch.open_shop",
+                                                action: onOpenShop
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    VStack(spacing: compactCardSpacing) {
+                                        LaunchLandingButton(
+                                            eyebrow: "Music",
+                                            title: "Music",
+                                            subtitle: "Artists · Beats · Studio",
+                                            detail: musicDetail,
+                                            accent: AppColors.spotify(for: hubColorScheme),
+                                            brandMark: .zweizwei,
+                                            badges: ["Catalog", "Beats", "Studio"],
+                                            emphasis: .primary,
+                                            pathLabel: "Empfohlener Einstieg",
+                                            ctaLabel: "In Music eintreten",
+                                            accessibilityID: "launch.open_music",
+                                            action: onOpenMusic
+                                        )
+                                        .offset(y: -2)
+
+                                        HStack(alignment: .top, spacing: compactCardSpacing) {
+                                            LaunchLandingButton(
+                                                eyebrow: "Video",
+                                                title: "Videos",
+                                                subtitle: "Reels · Clips · YouTube",
+                                                detail: videoDetail,
+                                                accent: AppColors.accentMystic(for: hubColorScheme),
+                                                brandMark: .zweizwei,
+                                                badges: ["Playback", "Reels", "YouTube"],
+                                                emphasis: .secondary,
+                                                pathLabel: "",
+                                                ctaLabel: "In Videos eintreten",
+                                                accessibilityID: "launch.open_video",
+                                                action: onOpenVideography
+                                            )
+                                            LaunchLandingButton(
+                                                eyebrow: "Store",
+                                                title: "Merch",
+                                                subtitle: "Drops · Checkout",
+                                                detail: merchDetail,
+                                                accent: AppColors.accentHighlight(for: hubColorScheme),
+                                                brandMark: .skydownX22,
+                                                badges: ["Drops", "Fits", "Checkout"],
+                                                emphasis: .secondary,
+                                                pathLabel: "",
+                                                ctaLabel: "In Merch eintreten",
+                                                accessibilityID: "launch.open_shop",
+                                                action: onOpenShop
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-                .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+                .frame(maxWidth: contentWidth, alignment: .leading)
+                .padding(.horizontal, layout.horizontalPadding)
+                .padding(.vertical, compactVerticalPadding)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                }
             }
         }
     }
-}
+
 
 private struct LaunchLandingButton: View {
     enum Emphasis {
@@ -560,7 +560,7 @@ private struct LaunchLandingButton: View {
         switch emphasis {
         case .primary: return 16
         case .standard: return 13
-        case .secondary: return 10
+        case .secondary: return 8
         }
     }
 
@@ -568,7 +568,7 @@ private struct LaunchLandingButton: View {
         switch emphasis {
         case .primary: return 20
         case .standard: return 17
-        case .secondary: return 12
+        case .secondary: return 10
         }
     }
 
@@ -576,7 +576,7 @@ private struct LaunchLandingButton: View {
         switch emphasis {
         case .primary: return 248
         case .standard: return 200
-        case .secondary: return 150
+        case .secondary: return 132
         }
     }
 
@@ -694,25 +694,17 @@ private struct LaunchLandingButton: View {
                     ForEach(displayedBadges, id: \.self) { badge in
                         Text(badge)
                             .font(emphasis == .secondary ? .caption2.weight(.semibold) : .caption.weight(.semibold))
-                            .foregroundColor(accent)
+                            .foregroundColor(accent.opacity(0.86))
                             .padding(.horizontal, emphasis == .secondary ? 9 : 11)
                             .padding(.vertical, emphasis == .secondary ? 5 : 7)
                             .background(
                                 Capsule(style: .continuous)
-                                    .fill(Color.white.opacity(0.05))
-                            )
-                            .overlay(
-                                Capsule(style: .continuous)
-                                    .stroke(accent.opacity(emphasis == .secondary ? 0.09 : 0.24), lineWidth: 1)
+                                    .fill(Color.white.opacity(emphasis == .secondary ? 0.03 : 0.035))
                             )
                     }
                 }
 
-                if emphasis == .secondary {
-                    Text("Oeffnen")
-                        .font(.caption.weight(.medium))
-                        .foregroundColor(.white.opacity(0.42))
-                } else {
+                if emphasis != .secondary {
                     HStack(spacing: 10) {
                         Text(ctaLabel)
                             .font(.footnote.weight(.semibold))
@@ -720,10 +712,13 @@ private struct LaunchLandingButton: View {
 
                         Spacer(minLength: 10)
 
-                        LaunchLandingActionPill(
-                            text: "Start",
-                            accent: accent
-                        )
+                        HStack(spacing: 6) {
+                            Text("Start")
+                                .font(.caption.weight(.semibold))
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundColor(.white.opacity(0.76))
                     }
                 }
             }
@@ -734,10 +729,10 @@ private struct LaunchLandingButton: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(emphasis == .primary ? 0.07 : (emphasis == .secondary ? 0.02 : 0.05)),
-                                Color.black.opacity(emphasis == .secondary ? 0.72 : 0.82),
+                                Color.white.opacity(emphasis == .primary ? 0.07 : (emphasis == .secondary ? 0.015 : 0.05)),
+                                Color.black.opacity(emphasis == .secondary ? 0.78 : 0.82),
                                 Color(red: 8/255, green: 14/255, blue: 24/255).opacity(emphasis == .secondary ? 0.88 : 0.94),
-                                accent.opacity(emphasis == .primary ? 0.24 : (emphasis == .secondary ? 0.06 : 0.16))
+                                accent.opacity(emphasis == .primary ? 0.24 : (emphasis == .secondary ? 0.035 : 0.16))
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -765,13 +760,15 @@ private struct LaunchLandingButton: View {
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(
-                        Color.white.opacity(emphasis == .primary ? 0.16 : (emphasis == .secondary ? 0.045 : 0.10)),
+                        Color.white.opacity(emphasis == .primary ? 0.16 : (emphasis == .secondary ? 0.03 : 0.10)),
                         lineWidth: emphasis == .primary ? 1.2 : 1
                     )
             }
-            .shadow(color: .black.opacity(emphasis == .primary ? 0.28 : (emphasis == .secondary ? 0.10 : 0.22)), radius: emphasis == .primary ? 16 : (emphasis == .secondary ? 6 : 14), y: emphasis == .secondary ? 3 : 8)
+            .shadow(color: .black.opacity(emphasis == .primary ? 0.28 : (emphasis == .secondary ? 0.06 : 0.22)), radius: emphasis == .primary ? 16 : (emphasis == .secondary ? 4 : 14), y: emphasis == .secondary ? 2 : 8)
         }
         .accessibilityIdentifier(accessibilityID ?? "")
+        .accessibilityLabel("\(title) öffnen")
+        .accessibilityHint("Öffnet den Bereich \(title)")
         .buttonStyle(.plain)
         .skydownTactileAction()
     }
@@ -780,51 +777,35 @@ private struct LaunchLandingButton: View {
 private struct LaunchLandingMetaPill: View {
     let text: String
     let accent: Color
+    var onTap: () -> Void = {}
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.bold))
-            .foregroundColor(.white.opacity(0.90))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(Color.white.opacity(0.05))
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(accent.opacity(0.28), lineWidth: 1)
-            )
-    }
-}
-
-private struct LaunchLandingActionPill: View {
-    let text: String
-    let accent: Color
-
-    var body: some View {
-        HStack(spacing: 6) {
+        Button(action: onTap) {
             Text(text)
                 .font(.caption.weight(.bold))
-            Image(systemName: "arrow.up.right")
-                .font(.caption.weight(.bold))
+                .foregroundColor(.white.opacity(0.90))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(minHeight: 44)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.white.opacity(0.05))
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(accent.opacity(0.28), lineWidth: 1)
+                )
         }
-        .foregroundColor(.white.opacity(0.94))
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            Capsule(style: .continuous)
-                .fill(accent.opacity(0.20))
-        )
-        .overlay(
-            Capsule(style: .continuous)
-                .stroke(accent.opacity(0.30), lineWidth: 1)
-        )
+        .buttonStyle(.plain)
+        .skydownTactileAction()
+        .accessibilityLabel("\(text) öffnen")
     }
 }
 
 private struct LaunchLandingVisionBand: View {
     let colorScheme: ColorScheme
+    let onOpenMusic: () -> Void
+    let onOpenVideography: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -840,8 +821,16 @@ private struct LaunchLandingVisionBand: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    LaunchLandingInlineTag(text: "Premium Technologie", accent: AppColors.accent(for: colorScheme))
-                    LaunchLandingInlineTag(text: "Persoenliche Kontrolle", accent: AppColors.accentMystic(for: colorScheme))
+                    LaunchLandingInlineTag(
+                        text: "Premium Technologie",
+                        accent: AppColors.accent(for: colorScheme),
+                        onTap: onOpenMusic
+                    )
+                    LaunchLandingInlineTag(
+                        text: "Persoenliche Kontrolle",
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        onTap: onOpenVideography
+                    )
                 }
             }
         }
@@ -871,21 +860,26 @@ private struct LaunchLandingVisionBand: View {
 private struct LaunchLandingInlineTag: View {
     let text: String
     let accent: Color
+    var onTap: () -> Void = {}
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .foregroundColor(.white.opacity(0.90))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(accent.opacity(0.18))
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(accent.opacity(0.30), lineWidth: 1)
-            )
+        Button(action: onTap) {
+            Text(text)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.white.opacity(0.90))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(accent.opacity(0.18))
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(accent.opacity(0.30), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 
@@ -893,44 +887,49 @@ private struct LaunchLandingNarrativeStep: View {
     let title: String
     let statement: String
     let accent: Color
+    var onTap: () -> Void = {}
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text(title)
-                .font(.caption.weight(.bold))
-                .foregroundColor(accent.opacity(0.95))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-        .background(
-                    Capsule(style: .continuous)
-                        .fill(accent.opacity(0.16))
-                )
-
-            Text(statement)
-                .font(AppTypography.editorialCaption)
-                .foregroundColor(.white.opacity(0.86))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.04),
-                            Color.black.opacity(0.20)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+        Button(action: onTap) {
+            HStack(alignment: .top, spacing: 12) {
+                Text(title)
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(accent.opacity(0.95))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(accent.opacity(0.16))
                     )
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
+
+                Text(statement)
+                    .font(AppTypography.editorialCaption)
+                    .foregroundColor(.white.opacity(0.86))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.04),
+                                Color.black.opacity(0.20)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 }
 

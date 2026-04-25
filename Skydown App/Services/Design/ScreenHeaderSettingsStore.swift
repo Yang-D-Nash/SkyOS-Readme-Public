@@ -18,6 +18,8 @@ struct ScreenHeaderSettings: Codable, Equatable {
     var shopSubtitle: String = ""
     var shopDetail: String = ""
     var videoHubImageURL: String = ""
+    /// Direct video URL for Video hub hero top-card tap (in-app original viewer).
+    var videoHubHeroVideoURL: String = ""
     var videoHubEyebrow: String = ""
     var videoHubTitle: String = ""
     var videoHubSubtitle: String = ""
@@ -30,7 +32,7 @@ struct ScreenHeaderSettings: Codable, Equatable {
             [homeImageURL, homeEyebrow, homeTitle, homeSubtitle, homeDetail],
             [musicHubImageURL, musicHubEyebrow, musicHubTitle, musicHubSubtitle, musicHubDetail],
             [shopImageURL, shopEyebrow, shopTitle, shopSubtitle, shopDetail],
-            [videoHubImageURL, videoHubEyebrow, videoHubTitle, videoHubSubtitle, videoHubDetail]
+            [videoHubImageURL, videoHubHeroVideoURL, videoHubEyebrow, videoHubTitle, videoHubSubtitle, videoHubDetail]
         ]
             .filter { fields in
                 fields.contains { !$0.trimmed.isEmpty }
@@ -54,6 +56,7 @@ struct ScreenHeaderSettings: Codable, Equatable {
     var resolvedShopSubtitle: String? { shopSubtitle.trimmed.nilIfEmpty }
     var resolvedShopDetail: String? { shopDetail.trimmed.nilIfEmpty }
     var resolvedVideoHubImageURL: String? { videoHubImageURL.trimmed.nilIfEmpty }
+    var resolvedVideoHubHeroVideoURL: String? { videoHubHeroVideoURL.trimmed.nilIfEmpty }
     var resolvedVideoHubEyebrow: String? { videoHubEyebrow.trimmed.nilIfEmpty }
     var resolvedVideoHubTitle: String? { videoHubTitle.trimmed.nilIfEmpty }
     var resolvedVideoHubSubtitle: String? { videoHubSubtitle.trimmed.nilIfEmpty }
@@ -113,6 +116,7 @@ final class FirestoreScreenHeaderSettingsService: ScreenHeaderSettingsServicing 
             shopSubtitle: data["shopSubtitle"] as? String ?? "",
             shopDetail: data["shopDetail"] as? String ?? "",
             videoHubImageURL: data["videoHubImageURL"] as? String ?? "",
+            videoHubHeroVideoURL: data["videoHubHeroVideoURL"] as? String ?? "",
             videoHubEyebrow: data["videoHubEyebrow"] as? String ?? "",
             videoHubTitle: data["videoHubTitle"] as? String ?? "",
             videoHubSubtitle: data["videoHubSubtitle"] as? String ?? "",
@@ -138,6 +142,7 @@ final class FirestoreScreenHeaderSettingsService: ScreenHeaderSettingsServicing 
             "shopSubtitle": settings.shopSubtitle.trimmed,
             "shopDetail": settings.shopDetail.trimmed,
             "videoHubImageURL": settings.videoHubImageURL.trimmed,
+            "videoHubHeroVideoURL": settings.videoHubHeroVideoURL.trimmed,
             "videoHubEyebrow": settings.videoHubEyebrow.trimmed,
             "videoHubTitle": settings.videoHubTitle.trimmed,
             "videoHubSubtitle": settings.videoHubSubtitle.trimmed,

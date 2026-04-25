@@ -26,6 +26,8 @@ data class ScreenHeaderSettings(
     val shopSubtitle: String = "",
     val shopDetail: String = "",
     val videoHubImageUrl: String = "",
+    /** Direkt-Video-URL (z. B. MP4) fuer Tap auf die Video-Hub-Top-Card. */
+    val videoHubHeroVideoUrl: String = "",
     val videoHubEyebrow: String = "",
     val videoHubTitle: String = "",
     val videoHubSubtitle: String = "",
@@ -36,7 +38,7 @@ data class ScreenHeaderSettings(
             listOf(homeImageUrl, homeEyebrow, homeTitle, homeSubtitle, homeDetail),
             listOf(musicHubImageUrl, musicHubEyebrow, musicHubTitle, musicHubSubtitle, musicHubDetail),
             listOf(shopImageUrl, shopEyebrow, shopTitle, shopSubtitle, shopDetail),
-            listOf(videoHubImageUrl, videoHubEyebrow, videoHubTitle, videoHubSubtitle, videoHubDetail),
+            listOf(videoHubImageUrl, videoHubHeroVideoUrl, videoHubEyebrow, videoHubTitle, videoHubSubtitle, videoHubDetail),
         ).count { fields ->
             fields.any { it.isNotBlank() }
         }
@@ -94,6 +96,7 @@ private fun Map<String, Any>.toScreenHeaderSettings(): ScreenHeaderSettings {
         shopSubtitle = this["shopSubtitle"] as? String ?: "",
         shopDetail = this["shopDetail"] as? String ?: "",
         videoHubImageUrl = this["videoHubImageURL"] as? String ?: "",
+        videoHubHeroVideoUrl = this["videoHubHeroVideoURL"] as? String ?: "",
         videoHubEyebrow = this["videoHubEyebrow"] as? String ?: "",
         videoHubTitle = this["videoHubTitle"] as? String ?: "",
         videoHubSubtitle = this["videoHubSubtitle"] as? String ?: "",
@@ -119,6 +122,7 @@ private fun ScreenHeaderSettings.toMap(): Map<String, Any> {
         "shopSubtitle" to shopSubtitle.trim(),
         "shopDetail" to shopDetail.trim(),
         "videoHubImageURL" to videoHubImageUrl.trim(),
+        "videoHubHeroVideoURL" to videoHubHeroVideoUrl.trim(),
         "videoHubEyebrow" to videoHubEyebrow.trim(),
         "videoHubTitle" to videoHubTitle.trim(),
         "videoHubSubtitle" to videoHubSubtitle.trim(),

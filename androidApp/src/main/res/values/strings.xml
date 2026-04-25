@@ -291,6 +291,8 @@
     <string name="settings_admin_headers_shop_detail">Shop detail</string>
     <string name="settings_admin_headers_shop_detail_placeholder">Briefly explain what users find in the shop and why it matters.</string>
     <string name="settings_admin_headers_video_header_uploading">Video header is being applied.</string>
+    <string name="settings_admin_headers_video_hero_video_url">Video hub hero video URL</string>
+    <string name="settings_admin_headers_video_hero_video_url_placeholder">Direct video URL (e.g. MP4) — opens when tapping the Video hub top card</string>
     <string name="settings_admin_headers_video_eyebrow">Video eyebrow</string>
     <string name="settings_admin_headers_video_eyebrow_placeholder">e.g. Video</string>
     <string name="settings_admin_headers_video_title">Video title</string>

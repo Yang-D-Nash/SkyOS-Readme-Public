@@ -334,16 +334,39 @@ struct VideoHubView: View {
         onOpenEquipment: @escaping () -> Void,
         onOpenCollaborations: @escaping () -> Void
     ) -> some View {
-        BrandHeroSurface(
+        let settings = screenHeaderSettingsStore.settings
+        let heroVideoURL = settings.resolvedVideoHubHeroVideoURL?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let heroMediaURL = settings.resolvedVideoHubImageURL?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let heroTitle = settings.resolvedVideoHubTitle ?? "Video"
+        return BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: screenHeaderSettingsStore.settings.resolvedVideoHubEyebrow ?? "Video",
-            title: screenHeaderSettingsStore.settings.resolvedVideoHubTitle ?? "Video",
-            subtitle: screenHeaderSettingsStore.settings.resolvedVideoHubSubtitle ?? "Einstieg – der eigentliche Blick sitzt im Player und in der Clips-Liste unten.",
-            detail: screenHeaderSettingsStore.settings.resolvedVideoHubDetail ?? "Hier Ueberblick waehlen, unten fokussiert schauen – ohne Feed-Gewusel.",
-            backgroundImageURL: screenHeaderSettingsStore.settings.resolvedVideoHubImageURL,
+            eyebrow: settings.resolvedVideoHubEyebrow ?? "Video",
+            title: settings.resolvedVideoHubTitle ?? "Video",
+            subtitle: settings.resolvedVideoHubSubtitle ?? "Einstieg – der eigentliche Blick sitzt im Player und in der Clips-Liste unten.",
+            detail: settings.resolvedVideoHubDetail ?? "Hier Ueberblick waehlen, unten fokussiert schauen – ohne Feed-Gewusel.",
+            backgroundImageURL: settings.resolvedVideoHubImageURL,
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
-            marks: [.zweizwei]
+            marks: [.zweizwei],
+            onSurfaceTap: {
+                if let heroVideoURL, !heroVideoURL.isEmpty {
+                    playbackManager.player.pause()
+                    originalViewerTarget = VideoOriginalViewerTarget(
+                        urlString: heroVideoURL,
+                        title: heroTitle
+                    )
+                } else if let heroMediaURL, !heroMediaURL.isEmpty, skydownIsLikelyDirectVideoURL(heroMediaURL) {
+                    playbackManager.player.pause()
+                    originalViewerTarget = VideoOriginalViewerTarget(
+                        urlString: heroMediaURL,
+                        title: heroTitle
+                    )
+                } else {
+                    onOpenVideos()
+                }
+            }
         ) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -1649,7 +1672,7 @@ private struct VideoHubQuickActionButton: View {
 struct VideoEquipmentRow: View {
     let item: SkydownVideoEquipmentItem
     let colorScheme: ColorScheme
-    let onTap: (() -> Void)?
+    var onTap: () -> Void = {}
 
     private var imageURL: URL? {
         guard let value = item.imageURLString, !value.isEmpty else { return nil }
@@ -1657,17 +1680,11 @@ struct VideoEquipmentRow: View {
     }
 
     var body: some View {
-        Group {
-            if let onTap {
-                Button(action: onTap) {
-                    rowContent
-                }
-                .buttonStyle(.plain)
-                .skydownTactileAction()
-            } else {
-                rowContent
-            }
+        Button(action: onTap) {
+            rowContent
         }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 
     private var rowContent: some View {

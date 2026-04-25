@@ -107,6 +107,7 @@ struct SettingsView: View {
     @State private var shopHeaderSubtitleDraft = ""
     @State private var shopHeaderDetailDraft = ""
     @State private var videoHeaderImageURLDraft = ""
+    @State private var videoHeaderHeroVideoURLDraft = ""
     @State private var videoHeaderEyebrowDraft = ""
     @State private var videoHeaderTitleDraft = ""
     @State private var videoHeaderSubtitleDraft = ""
@@ -1687,6 +1688,14 @@ struct SettingsView: View {
                     )
 
                     SettingsInputField(
+                        title: AppLocalized.text("settings.admin.headers.video_hero_video_url", fallback: "Video hub hero video URL"),
+                        text: $videoHeaderHeroVideoURLDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: AppLocalized.text("settings.admin.headers.video_hero_video_url.placeholder", fallback: "Direct video URL (e.g. MP4) — opens when tapping the Video hub top card"),
+                        keyboardType: .URL
+                    )
+
+                    SettingsInputField(
                         title: AppLocalized.text("settings.admin.headers.video_eyebrow", fallback: "Video eyebrow"),
                         text: $videoHeaderEyebrowDraft,
                         colorScheme: effectiveColorScheme,
@@ -3210,6 +3219,7 @@ struct SettingsView: View {
         shopHeaderSubtitleDraft = settings.shopSubtitle
         shopHeaderDetailDraft = settings.shopDetail
         videoHeaderImageURLDraft = settings.videoHubImageURL
+        videoHeaderHeroVideoURLDraft = settings.videoHubHeroVideoURL
         videoHeaderEyebrowDraft = settings.videoHubEyebrow
         videoHeaderTitleDraft = settings.videoHubTitle
         videoHeaderSubtitleDraft = settings.videoHubSubtitle
@@ -3629,6 +3639,7 @@ struct SettingsView: View {
                 shopSubtitle: shopHeaderSubtitleDraft.trimmingCharacters(in: .whitespacesAndNewlines),
                 shopDetail: shopHeaderDetailDraft.trimmingCharacters(in: .whitespacesAndNewlines),
                 videoHubImageURL: videoHeaderImageURLDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                videoHubHeroVideoURL: videoHeaderHeroVideoURLDraft.trimmingCharacters(in: .whitespacesAndNewlines),
                 videoHubEyebrow: videoHeaderEyebrowDraft.trimmingCharacters(in: .whitespacesAndNewlines),
                 videoHubTitle: videoHeaderTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines),
                 videoHubSubtitle: videoHeaderSubtitleDraft.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -5404,35 +5415,24 @@ private struct AppearanceChoiceCard: View {
 private struct SettingsBadge: View {
     let text: String
     let colorScheme: ColorScheme
-    var onTap: (() -> Void)? = nil
+    var onTap: () -> Void = {}
 
     var body: some View {
-        Group {
-            if let onTap {
-                Button(action: onTap) {
-                    badgeContent
-                }
-                .buttonStyle(.plain)
-                .skydownTactileAction()
-            } else {
-                SkydownMetaLabel(
-                    text: text,
-                    tint: AppColors.accentMystic(for: colorScheme)
-                )
-            }
+        Button(action: onTap) {
+            badgeContent
         }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
     }
 
     private var badgeContent: some View {
         HStack(spacing: 5) {
             Text(text)
                 .font(.caption.weight(.semibold))
-            if onTap != nil {
-                Image(systemName: "arrow.right")
-                    .font(.caption2.weight(.bold))
-            }
+            Image(systemName: "arrow.right")
+                .font(.caption2.weight(.bold))
         }
-        .padding(.horizontal, onTap == nil ? 10 : 12)
+        .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
         .foregroundColor(AppColors.accentMystic(for: colorScheme))

@@ -112,6 +112,7 @@ import com.nash.skyos.ui.component.BrandStatusChip
 import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.ExternalVideoWebPlayer
 import com.nash.skyos.ui.component.OriginalVideoViewerDialog
+import com.nash.skyos.ui.component.isLikelyDirectVideoUrl
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -408,6 +409,10 @@ fun VideoHubScreen(
                         isAdmin = uiState.isAdmin,
                         videoCount = uiState.videos.size,
                         collabCount = uiState.publicConfig.collaborationItems.size,
+                        onOpenInAppOriginal = { url, title ->
+                            inAppOriginalTitle = title
+                            inAppOriginalUrl = url
+                        },
                         onOpenVideos = {
                             coroutineScope.launch {
                                 listState.animateScrollToItem(3)
@@ -694,6 +699,7 @@ private fun VideoHubHeroCard(
     isAdmin: Boolean,
     videoCount: Int,
     collabCount: Int,
+    onOpenInAppOriginal: (String, String) -> Unit,
     onOpenVideos: () -> Unit,
     onOpenEquipment: () -> Unit,
     onOpenCollaborations: () -> Unit,
@@ -703,6 +709,21 @@ private fun VideoHubHeroCard(
     val coreAccent = colorScheme.skydownAccent()
     val mysticAccent = colorScheme.skydownAccentMystic()
     val highlightAccent = colorScheme.skydownAccentHighlight()
+    val onHeroHeaderClick: () -> Unit = {
+        val heroVideoUrl = screenHeaderSettings.videoHubHeroVideoUrl.trim()
+        val headerImageUrl = screenHeaderSettings.videoHubImageUrl.trim()
+        when {
+            heroVideoUrl.isNotEmpty() -> onOpenInAppOriginal(
+                heroVideoUrl,
+                screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
+            )
+            headerImageUrl.isNotEmpty() && isLikelyDirectVideoUrl(headerImageUrl) -> onOpenInAppOriginal(
+                headerImageUrl,
+                screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
+            )
+            else -> onOpenVideos()
+        }
+    }
     BrandHeroCard(
         eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "SKY OS" },
         title = screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
@@ -720,6 +741,7 @@ private fun VideoHubHeroCard(
         accent = mysticAccent,
         secondaryAccent = highlightAccent,
         marks = listOf(BrandArtwork.Skydown),
+        onSurfaceClick = onHeroHeaderClick,
     ) {
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -1004,7 +1026,7 @@ private fun VideoEquipmentCard(
 @Composable
 private fun VideoEquipmentRow(
     item: VideoEquipmentItem,
-    onClick: (() -> Unit)? = null,
+    onClick: () -> Unit = {},
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val colorScheme = MaterialTheme.colorScheme
@@ -1027,22 +1049,15 @@ private fun VideoEquipmentRow(
                 color = accent.copy(alpha = 0.18f),
                 shape = RoundedCornerShape(18.dp),
             )
-            .let { baseModifier ->
-                if (onClick != null) {
-                    baseModifier
-                        .skydownPressable(
-                            interactionSource = interactionSource,
-                            pressedScale = 0.988f,
-                        )
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = null,
-                            onClick = onClick,
-                        )
-                } else {
-                    baseModifier
-                }
-            }
+            .skydownPressable(
+                interactionSource = interactionSource,
+                pressedScale = 0.988f,
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
             .padding(horizontal = 14.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
@@ -3045,7 +3060,7 @@ private fun VideoHubImageViewerDialog(
 private fun VideoPill(
     text: String,
     isActive: Boolean,
-    onClick: (() -> Unit)? = null,
+    onClick: () -> Unit = {},
 ) {
     BrandStatusChip(
         text = text,

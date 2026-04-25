@@ -78,6 +78,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -92,6 +93,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -345,6 +348,11 @@ fun SkydownApp(
             )
         } else if (selectedEntryRoute == null) {
             LaunchLandingScreen(
+                onOpenHome = {
+                    trackFirstValueMoment("launch_entry_home")
+                    selectedEntryRoute = "home"
+                },
+                onOpenLogin = { openAuthLogin(AuthEntryContext.DEFAULT) },
                 onOpenMusic = {
                     trackFirstValueMoment("launch_entry_music")
                     selectedEntryRoute = "music"
@@ -1128,77 +1136,14 @@ private enum class LaunchLandingPathTier {
 }
 
 @Composable
-private fun LaunchLandingCompactSignalStrip() {
-    val colorScheme = MaterialTheme.colorScheme
-    val isDarkPalette = colorScheme.skydownIsDarkPalette()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.06f else 0.14f),
-                        SpotifyGreen.copy(alpha = if (isDarkPalette) 0.07f else 0.05f),
-                        colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.10f else 0.03f),
-                    ),
-                ),
-            )
-            .border(0.5.dp, colorScheme.primary.copy(alpha = 0.045f), RoundedCornerShape(18.dp))
-            .padding(horizontal = 14.dp, vertical = 9.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            Text(
-                text = "Ein Tap",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
-                color = SpotifyGreen.copy(alpha = 0.78f),
-                maxLines = 1,
-            )
-            Text(
-                text = "Du startest direkt in Music, Video oder Merch.",
-                style = SkydownBodyCaptionTextStyle,
-                color = colorScheme.onSurface.copy(alpha = if (isDarkPalette) 0.70f else 0.76f),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Spacer(modifier = Modifier.width(10.dp))
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            Text(
-                text = "Orientierung",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
-                color = colorScheme.tertiary.copy(alpha = 0.72f),
-                maxLines = 1,
-            )
-            Text(
-                text = "Navigation bleibt klar; Tools erreichst du in der App-Leiste.",
-                style = SkydownBodyCaptionTextStyle,
-                color = colorScheme.onSurface.copy(alpha = if (isDarkPalette) 0.66f else 0.72f),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
 private fun LaunchLandingScreen(
+    onOpenHome: () -> Unit,
+    onOpenLogin: () -> Unit,
     onOpenMusic: () -> Unit,
     onOpenVideography: () -> Unit,
     onOpenShop: () -> Unit,
 ) {
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
-    val landingScroll = rememberScrollState()
 
     BoxWithConstraints(
         modifier = Modifier
@@ -1212,10 +1157,30 @@ private fun LaunchLandingScreen(
     ) {
         val isWideLayout = maxWidth >= 900.dp
         val isThreeColumnLayout = maxWidth >= 1180.dp
+        val isShortHeightLayout = !isWideLayout && maxHeight < 760.dp
         val contentMaxWidth = when {
             isThreeColumnLayout -> 1120.dp
             isWideLayout -> 920.dp
             else -> maxWidth
+        }
+        val verticalScreenPadding = if (isShortHeightLayout) 8.dp else 12.dp
+        val heroSpacer = if (isShortHeightLayout) 8.dp else 12.dp
+        val signalSpacer = if (isShortHeightLayout) 2.dp else 4.dp
+        val cardsTopSpacer = if (isShortHeightLayout) 3.dp else 6.dp
+        val musicDetailText = if (isShortHeightLayout) {
+            "Catalog, Beat Hub und Studio in einer direkten Lane."
+        } else {
+            "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege."
+        }
+        val videoDetailText = if (isShortHeightLayout) {
+            "Playback und Creator-Flows greifen wie ein Produkt zusammen."
+        } else {
+            "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen."
+        }
+        val merchDetailText = if (isShortHeightLayout) {
+            "Direkt zu Fits, neuen Pieces und sauber im Checkout."
+        } else {
+            "Direkt zu Fits, neuen Pieces und sauber im Checkout bleiben."
         }
 
         Box(
@@ -1264,8 +1229,7 @@ private fun LaunchLandingScreen(
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .verticalScroll(landingScroll)
-                .padding(horizontal = SkydownUiTokens.screenHorizontalPadding, vertical = 12.dp),
+                .padding(horizontal = SkydownUiTokens.screenHorizontalPadding, vertical = verticalScreenPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Column(
@@ -1274,80 +1238,46 @@ private fun LaunchLandingScreen(
                     .fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LaunchLandingMetaPill(text = "Sky OS", accent = MaterialTheme.colorScheme.primary)
-                    LaunchLandingMetaPill(text = "One Flow", accent = MaterialTheme.colorScheme.tertiary)
-                    LaunchLandingMetaPill(text = "Direct", accent = SpotifyGreen)
-                }
+                LaunchLandingMetaPill(
+                    text = "SkyOS",
+                    accent = MaterialTheme.colorScheme.primary,
+                    onClick = onOpenLogin,
+                )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(heroSpacer))
 
                 BrandHeroCard(
                     eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Willkommen" },
                     title = screenHeaderSettings.homeTitle.ifBlank { "SkyOS" },
                     subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Ein ruhiger Einstieg in Music, Video und Merch." },
                     detail = screenHeaderSettings.homeDetail.ifBlank {
-                        "Alles greift ineinander — dein naechster Move folgt direkt hier, Music ist der empfohlene Einstieg."
+                        "Alles greift ineinander — dein naechster Move folgt direkt hier, Home bündelt den Ueberblick."
                     },
                     backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
                     accent = MaterialTheme.colorScheme.primary,
                     secondaryAccent = MaterialTheme.colorScheme.secondary,
                     marks = listOf(BrandArtwork.Combined),
                     compactVisualDensity = !isWideLayout,
+                    onSurfaceClick = onOpenHome,
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            BrandPill(text = "Music", tint = MaterialTheme.colorScheme.primary)
-                            BrandPill(text = "Video", tint = MaterialTheme.colorScheme.tertiary)
-                            BrandPill(text = "Merch", tint = MaterialTheme.colorScheme.secondary)
-                        }
                         Text(
-                            text = "Drei Einstiege, eine Oberfläche — ohne Dashboard-Gefühl.",
+                            text = "Empfohlener Einstieg: Home",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = SpotifyGreen,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = "Tippen zum Starten",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(signalSpacer))
 
-                if (isThreeColumnLayout) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        HubSignalCard(
-                            title = "1 Tap Start",
-                            value = "Direkt in Music, Video oder Shop.",
-                            accentColor = SpotifyGreen,
-                            modifier = Modifier.weight(1f),
-                        )
-                        HubSignalCard(
-                            title = "Immer Zurück",
-                            value = "Navigation bleibt klar und frei.",
-                            accentColor = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.weight(1f),
-                        )
-                        HubSignalCard(
-                            title = "Ein System",
-                            value = "Discovery, Playback und Checkout greifen zusammen.",
-                            accentColor = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                } else {
-                    LaunchLandingCompactSignalStrip()
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Music ist der natuerliche Start; Video und Merch bleiben als ruhige Alternativen.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 2.dp, bottom = 2.dp),
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(cardsTopSpacer))
 
                 if (isThreeColumnLayout) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1355,7 +1285,7 @@ private fun LaunchLandingScreen(
                             eyebrow = "Music",
                             title = "Music",
                             subtitle = "Songs, Artists und Beats.",
-                            detail = "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
+                            detail = musicDetailText,
                             chips = listOf("Catalog", "Beats", "Studio"),
                             accentColor = MaterialTheme.colorScheme.primary,
                             icon = Icons.Default.GraphicEq,
@@ -1371,7 +1301,7 @@ private fun LaunchLandingScreen(
                             eyebrow = "Video",
                             title = "Videos",
                             subtitle = "Reels, Clips und Collabs.",
-                            detail = "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
+                            detail = videoDetailText,
                             chips = listOf("Playback", "Reels", "Collabs"),
                             accentColor = MaterialTheme.colorScheme.tertiary,
                             icon = Icons.Default.PlayCircleFilled,
@@ -1384,7 +1314,7 @@ private fun LaunchLandingScreen(
                             eyebrow = "Store",
                             title = "Merch",
                             subtitle = "Drops und Checkout.",
-                            detail = "Direkt zu Fits, neuen Pieces und sauber im Checkout bleiben.",
+                            detail = merchDetailText,
                             chips = listOf("Drops", "Fits", "Checkout"),
                             accentColor = MaterialTheme.colorScheme.secondary,
                             icon = Icons.Default.ShoppingBag,
@@ -1399,7 +1329,7 @@ private fun LaunchLandingScreen(
                         eyebrow = "Music",
                         title = "Music",
                         subtitle = "Songs, Artists und Beats.",
-                        detail = "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
+                        detail = musicDetailText,
                         chips = listOf("Catalog", "Beats", "Studio"),
                         accentColor = MaterialTheme.colorScheme.primary,
                         icon = Icons.Default.GraphicEq,
@@ -1414,7 +1344,7 @@ private fun LaunchLandingScreen(
                             eyebrow = "Video",
                             title = "Videos",
                             subtitle = "Reels, Clips und Collabs.",
-                            detail = "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
+                            detail = videoDetailText,
                             chips = listOf("Playback", "Reels", "Collabs"),
                             accentColor = MaterialTheme.colorScheme.tertiary,
                             icon = Icons.Default.PlayCircleFilled,
@@ -1427,7 +1357,7 @@ private fun LaunchLandingScreen(
                             eyebrow = "Store",
                             title = "Merch",
                             subtitle = "Drops und Checkout.",
-                            detail = "Direkt zu Fits, neuen Pieces und sauber im Checkout bleiben.",
+                            detail = merchDetailText,
                             chips = listOf("Drops", "Fits", "Checkout"),
                             accentColor = MaterialTheme.colorScheme.secondary,
                             icon = Icons.Default.ShoppingBag,
@@ -1442,7 +1372,7 @@ private fun LaunchLandingScreen(
                         eyebrow = "Music",
                         title = "Music",
                         subtitle = "Songs, Artists und Beats.",
-                        detail = "Catalog, Beat Hub und Studio in einer direkten Lane ohne Umwege.",
+                        detail = musicDetailText,
                         chips = listOf("Catalog", "Beats", "Studio"),
                         accentColor = MaterialTheme.colorScheme.primary,
                         icon = Icons.Default.GraphicEq,
@@ -1457,7 +1387,7 @@ private fun LaunchLandingScreen(
                             eyebrow = "Video",
                             title = "Videos",
                             subtitle = "Reels, Clips und Collabs.",
-                            detail = "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen.",
+                            detail = videoDetailText,
                             chips = listOf("Playback", "Reels", "Collabs"),
                             accentColor = MaterialTheme.colorScheme.tertiary,
                             icon = Icons.Default.PlayCircleFilled,
@@ -1470,7 +1400,7 @@ private fun LaunchLandingScreen(
                             eyebrow = "Store",
                             title = "Merch",
                             subtitle = "Drops und Checkout.",
-                            detail = "Direkt zu Fits, neuen Pieces und sauber im Checkout bleiben.",
+                            detail = merchDetailText,
                             chips = listOf("Drops", "Fits", "Checkout"),
                             accentColor = MaterialTheme.colorScheme.secondary,
                             icon = Icons.Default.ShoppingBag,
@@ -1613,8 +1543,29 @@ private fun ZweizweiMusicLaneScreen(
                     maxWidth >= 640.dp -> 620.dp
                     else -> maxWidth
                 }
+                val isShortHubHeight = !isWideLayout && maxHeight < 760.dp
+                val resolvedHubHorizontalPadding = if (isShortHubHeight) 12.dp else hubHorizontalPadding
+                val resolvedHubTopPadding = if (isShortHubHeight) 8.dp else hubTopPadding
+                val resolvedHubBottomPadding = if (isShortHubHeight) 14.dp else hubBottomPadding
+                val resolvedHubSectionSpacing = if (isShortHubHeight) 7.dp else hubSectionSpacing
+                val songDetailText = if (isShortHubHeight) {
+                    "Preview, Spotify und Artist-Pages bleiben direkt auf derselben Stage."
+                } else {
+                    "Preview, Spotify und Artist-Pages liegen direkt auf derselben Stage."
+                }
+                val beatDetailText = if (isShortHubHeight) {
+                    "Schnell neue Sounds greifen und im Vibe bleiben."
+                } else {
+                    "Schnell in neue Sounds springen und den richtigen Vibe greifen."
+                }
+                val studioDetailText = if (isShortHubHeight) {
+                    "Services bleiben direkt aus dem Music-Hub erreichbar."
+                } else {
+                    "Die Services bleiben ohne Umweg direkt aus dem Music-Hub erreichbar."
+                }
                 val useAnchoredHubLayout = !isWideLayout && maxHeight >= 900.dp && maxWidth < 560.dp
                 val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
+                val hubScrollState = rememberScrollState()
 
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -1625,14 +1576,15 @@ private fun ZweizweiMusicLaneScreen(
                             modifier = Modifier
                                 .widthIn(max = contentMaxWidth)
                                 .fillMaxWidth()
-                                .fillMaxHeight()
+                                .verticalScroll(hubScrollState)
+                                .nestedScroll(scrollBehavior.nestedScrollConnection)
                                 .padding(
-                                    start = hubHorizontalPadding,
-                                    top = hubTopPadding,
-                                    end = hubHorizontalPadding,
-                                    bottom = hubBottomPadding,
+                                    start = resolvedHubHorizontalPadding,
+                                    top = resolvedHubTopPadding,
+                                    end = resolvedHubHorizontalPadding,
+                                    bottom = resolvedHubBottomPadding,
                                 ),
-                            verticalArrangement = Arrangement.spacedBy(hubSectionSpacing),
+                            verticalArrangement = Arrangement.spacedBy(resolvedHubSectionSpacing),
                         ) {
                             BrandHeroCard(
                                 eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
@@ -1644,11 +1596,30 @@ private fun ZweizweiMusicLaneScreen(
                                 secondaryAccent = MaterialTheme.colorScheme.secondary,
                                 marks = listOf(BrandArtwork.Zweizwei),
                                 compactVisualDensity = useCompactHubHero,
+                                onSurfaceClick = {
+                                    catalogInitialArtist = "JANNO"
+                                    destination = ZweizweiMusicDestination.Catalog
+                                },
                             ) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    BrandPill(text = "Catalog", tint = MaterialTheme.colorScheme.primary)
-                                    BrandPill(text = "Beats", tint = MaterialTheme.colorScheme.secondary)
-                                    BrandPill(text = "Studio", tint = MaterialTheme.colorScheme.tertiary)
+                                    BrandPill(
+                                        text = "Catalog",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        onClick = {
+                                            catalogInitialArtist = "JANNO"
+                                            destination = ZweizweiMusicDestination.Catalog
+                                        },
+                                    )
+                                    BrandPill(
+                                        text = "Beats",
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        onClick = { destination = ZweizweiMusicDestination.BeatHub },
+                                    )
+                                    BrandPill(
+                                        text = "Studio",
+                                        tint = MaterialTheme.colorScheme.tertiary,
+                                        onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
+                                    )
                                 }
                             }
 
@@ -1658,12 +1629,10 @@ private fun ZweizweiMusicLaneScreen(
                                 accentColor = SpotifyGreen,
                             )
 
-                            Spacer(modifier = Modifier.weight(1f))
-
                             LaunchLandingButton(
                                 title = "Songs",
                                 subtitle = "Mit JANNO starten und im Katalog direkt alle Artists finden.",
-                                detail = "Preview, Spotify und Artist-Pages liegen direkt auf derselben Stage.",
+                                detail = songDetailText,
                                 chips = listOf("Tracks", "Spotify", "Pages"),
                                 accentColor = SpotifyGreen,
                                 icon = Icons.Default.GraphicEq,
@@ -1696,14 +1665,15 @@ private fun ZweizweiMusicLaneScreen(
                             modifier = Modifier
                                 .widthIn(max = contentMaxWidth)
                                 .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
+                                .verticalScroll(hubScrollState)
+                                .nestedScroll(scrollBehavior.nestedScrollConnection)
                                 .padding(
-                                    start = hubHorizontalPadding,
-                                    top = hubTopPadding,
-                                    end = hubHorizontalPadding,
-                                    bottom = if (compactLayout) 24.dp else 30.dp,
+                                    start = resolvedHubHorizontalPadding,
+                                    top = resolvedHubTopPadding,
+                                    end = resolvedHubHorizontalPadding,
+                                    bottom = if (compactLayout) resolvedHubBottomPadding else (resolvedHubBottomPadding + 6.dp),
                                 ),
-                            verticalArrangement = Arrangement.spacedBy(hubSectionSpacing),
+                            verticalArrangement = Arrangement.spacedBy(resolvedHubSectionSpacing),
                         ) {
                             BrandHeroCard(
                                 eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "Music" },
@@ -1715,11 +1685,30 @@ private fun ZweizweiMusicLaneScreen(
                                 secondaryAccent = MaterialTheme.colorScheme.secondary,
                                 marks = listOf(BrandArtwork.Zweizwei),
                                 compactVisualDensity = useCompactHubHero,
+                                onSurfaceClick = {
+                                    catalogInitialArtist = "JANNO"
+                                    destination = ZweizweiMusicDestination.Catalog
+                                },
                             ) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    BrandPill(text = "Catalog", tint = MaterialTheme.colorScheme.primary)
-                                    BrandPill(text = "Beats", tint = MaterialTheme.colorScheme.secondary)
-                                    BrandPill(text = "Studio", tint = MaterialTheme.colorScheme.tertiary)
+                                    BrandPill(
+                                        text = "Catalog",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        onClick = {
+                                            catalogInitialArtist = "JANNO"
+                                            destination = ZweizweiMusicDestination.Catalog
+                                        },
+                                    )
+                                    BrandPill(
+                                        text = "Beats",
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        onClick = { destination = ZweizweiMusicDestination.BeatHub },
+                                    )
+                                    BrandPill(
+                                        text = "Studio",
+                                        tint = MaterialTheme.colorScheme.tertiary,
+                                        onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
+                                    )
                                 }
                             }
 
@@ -1730,18 +1719,24 @@ private fun ZweizweiMusicLaneScreen(
                                         value = "Artists, Tracks, Pages",
                                         accentColor = SpotifyGreen,
                                         modifier = Modifier.weight(1f),
+                                        onClick = {
+                                            catalogInitialArtist = "JANNO"
+                                            destination = ZweizweiMusicDestination.Catalog
+                                        },
                                     )
                                     HubSignalCard(
                                         title = "Beat Hub",
                                         value = "Direkt in den Vibe",
                                         accentColor = MaterialTheme.colorScheme.secondary,
                                         modifier = Modifier.weight(1f),
+                                        onClick = { destination = ZweizweiMusicDestination.BeatHub },
                                     )
                                     HubSignalCard(
                                         title = "Studio",
                                         value = "Record, Mix, Master",
                                         accentColor = MaterialTheme.colorScheme.tertiary,
                                         modifier = Modifier.weight(1f),
+                                        onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
                                     )
                                 }
                             }
@@ -1750,7 +1745,7 @@ private fun ZweizweiMusicLaneScreen(
                                 LaunchLandingButton(
                                     title = "Songs",
                                     subtitle = "Mit JANNO starten und im Katalog direkt alle Artists finden.",
-                                    detail = "Preview, Spotify und Artist-Pages liegen direkt auf derselben Stage.",
+                                    detail = songDetailText,
                                     chips = listOf("Tracks", "Spotify", "Pages"),
                                     accentColor = MaterialTheme.colorScheme.primary,
                                     icon = Icons.Default.GraphicEq,
@@ -1765,7 +1760,7 @@ private fun ZweizweiMusicLaneScreen(
                                     LaunchLandingButton(
                                         title = "Beat Hub",
                                         subtitle = "Beats direkt.",
-                                        detail = "Schnell in neue Sounds springen und den richtigen Vibe greifen.",
+                                        detail = beatDetailText,
                                         chips = listOf("Playback", "Selection", "Flow"),
                                         accentColor = MaterialTheme.colorScheme.secondary,
                                         icon = Icons.Default.GraphicEq,
@@ -1776,7 +1771,7 @@ private fun ZweizweiMusicLaneScreen(
                                     LaunchLandingButton(
                                         title = "Studio",
                                         subtitle = "Recording, Mix, Master.",
-                                        detail = "Die Services bleiben ohne Umweg direkt aus dem Music-Hub erreichbar.",
+                                        detail = studioDetailText,
                                         chips = listOf("Record", "Mix", "Master"),
                                         accentColor = MaterialTheme.colorScheme.tertiary,
                                         icon = Icons.Default.AutoAwesome,
@@ -1789,7 +1784,7 @@ private fun ZweizweiMusicLaneScreen(
                                 LaunchLandingButton(
                                     title = "Songs",
                                     subtitle = "Mit JANNO starten und im Katalog direkt alle Artists finden.",
-                                    detail = "Preview, Spotify und Artist-Pages liegen direkt auf derselben Stage.",
+                                    detail = songDetailText,
                                     chips = listOf("Tracks", "Spotify", "Pages"),
                                     accentColor = SpotifyGreen,
                                     icon = Icons.Default.GraphicEq,
@@ -1803,7 +1798,7 @@ private fun ZweizweiMusicLaneScreen(
                                 LaunchLandingButton(
                                     title = "Beat Hub",
                                     subtitle = "Beats direkt.",
-                                    detail = "Schnell in neue Sounds springen und den richtigen Vibe greifen.",
+                                    detail = beatDetailText,
                                     chips = listOf("Playback", "Selection", "Flow"),
                                     accentColor = MaterialTheme.colorScheme.secondary,
                                     icon = Icons.Default.PlayCircleFilled,
@@ -1813,7 +1808,7 @@ private fun ZweizweiMusicLaneScreen(
                                 LaunchLandingButton(
                                     title = "Studio",
                                     subtitle = "Recording, Mix, Master.",
-                                    detail = "Die Services bleiben ohne Umweg direkt aus dem Music-Hub erreichbar.",
+                                    detail = studioDetailText,
                                     chips = listOf("Record", "Mix", "Master"),
                                     accentColor = MaterialTheme.colorScheme.tertiary,
                                     icon = Icons.Default.AutoAwesome,
@@ -1821,7 +1816,7 @@ private fun ZweizweiMusicLaneScreen(
                                     onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
                                 )
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(if (isShortHubHeight) 2.dp else 6.dp))
                         }
                     }
                 }
@@ -1919,7 +1914,7 @@ private fun HubEntryCard(
         },
     )
     val panelShadowRadius = if (isSecondary) {
-        4.dp
+        2.dp
     } else {
         when {
             emphasized && compactVisualDensity -> 16.dp
@@ -1929,7 +1924,7 @@ private fun HubEntryCard(
         }
     }
     val panelShadowYOffset = if (isSecondary) {
-        2.dp
+        1.dp
     } else {
         when {
             emphasized && compactVisualDensity -> 9.dp
@@ -1946,7 +1941,7 @@ private fun HubEntryCard(
         else -> 60.dp
     }
     val minCardHeight = when {
-        isSecondary -> if (compactVisualDensity) 142.dp else 154.dp
+        isSecondary -> if (compactVisualDensity) 128.dp else 138.dp
         emphasized && compactVisualDensity -> 210.dp
         emphasized -> 222.dp
         compactVisualDensity -> 194.dp
@@ -1964,12 +1959,12 @@ private fun HubEntryCard(
         colorScheme.skydownText().copy(alpha = if (isSecondary) 0.82f else 0.94f)
     }
     val secondaryContentColor = if (isDarkPalette) {
-        Color.White.copy(alpha = if (isSecondary) 0.62f else 0.78f)
+        Color.White.copy(alpha = if (isSecondary) 0.56f else 0.78f)
     } else {
         colorScheme.skydownSecondaryText().copy(alpha = if (isSecondary) 0.78f else 0.92f)
     }
     val subtleContentColor = if (isDarkPalette) {
-        Color.White.copy(alpha = if (isSecondary) 0.55f else 0.68f)
+        Color.White.copy(alpha = if (isSecondary) 0.48f else 0.68f)
     } else {
         colorScheme.skydownSecondaryText().copy(alpha = if (isSecondary) 0.70f else 0.82f)
     }
@@ -2005,9 +2000,9 @@ private fun HubEntryCard(
                     if (isSecondary) {
                         Brush.linearGradient(
                             colors = listOf(
-                                colorScheme.surface.copy(alpha = if (isDarkPalette) 0.10f else 0.18f),
-                                colorScheme.surfaceVariant.copy(alpha = if (isDarkPalette) 0.14f else 0.22f),
-                                accentColor.copy(alpha = if (isDarkPalette) 0.05f else 0.04f),
+                                colorScheme.surface.copy(alpha = if (isDarkPalette) 0.08f else 0.16f),
+                                colorScheme.surfaceVariant.copy(alpha = if (isDarkPalette) 0.12f else 0.20f),
+                                accentColor.copy(alpha = if (isDarkPalette) 0.035f else 0.03f),
                                 colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.10f else 0.05f),
                             ),
                             start = Offset.Zero,
@@ -2048,7 +2043,7 @@ private fun HubEntryCard(
                         Brush.horizontalGradient(
                             colors = listOf(
                                 colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.26f else 0.34f),
-                                accentColor.copy(alpha = if (isSecondary) 0.42f else 0.70f),
+                                accentColor.copy(alpha = if (isSecondary) 0.28f else 0.70f),
                                 accentColor.copy(alpha = 0.06f),
                             ),
                         ),
@@ -2211,31 +2206,21 @@ private fun HubEntryCard(
                 if (chipsToShow.isNotEmpty()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         chipsToShow.forEach { chip ->
-                            if (isSecondary) {
-                                Text(
-                                    text = chip,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = accentColor.copy(alpha = 0.42f),
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(999.dp))
-                                        .background(colorScheme.onSurface.copy(alpha = 0.06f))
-                                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                                )
-                            } else {
-                                LaunchLandingBadge(text = chip, accent = accentColor)
-                            }
+                            Text(
+                                text = chip,
+                                style = if (isSecondary) MaterialTheme.typography.labelSmall else SkydownBodyCaptionTextStyle,
+                                color = accentColor.copy(alpha = if (isSecondary) 0.42f else 0.78f),
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(colorScheme.onSurface.copy(alpha = if (isSecondary) 0.06f else 0.04f))
+                                    .padding(horizontal = if (isSecondary) 8.dp else 10.dp, vertical = if (isSecondary) 4.dp else 6.dp),
+                            )
                         }
                     }
                 }
 
-                if (isSecondary) {
-                    Text(
-                        text = "Oeffnen",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = primaryContentColor.copy(alpha = 0.42f),
-                        fontWeight = FontWeight.Medium,
-                    )
-                } else {
+                if (!isSecondary) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -2247,11 +2232,24 @@ private fun HubEntryCard(
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f),
                         )
-
-                        LaunchLandingActionPill(
-                            text = "Open",
-                            accent = accentColor,
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         )
+                        {
+                            Text(
+                                text = "Start",
+                                style = SkydownBodyCaptionTextStyle,
+                                color = primaryContentColor.copy(alpha = 0.78f),
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ArrowOutward,
+                                contentDescription = null,
+                                tint = primaryContentColor.copy(alpha = 0.72f),
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -2265,11 +2263,11 @@ private fun HubSignalCard(
     value: String,
     accentColor: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
+    onClick: () -> Unit = {},
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val isDarkPalette = colorScheme.skydownIsDarkPalette()
-    val interactionSource = remember(onClick) { MutableInteractionSource() }
+    val interactionSource = remember { MutableInteractionSource() }
     val signalModifier = modifier
         .skydownPanelSurface(
             accent = accentColor,
@@ -2278,17 +2276,13 @@ private fun HubSignalCard(
             shadowYOffset = 5.dp,
         )
         .then(
-            if (onClick != null) {
-                Modifier
-                    .skydownPressable(interactionSource)
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = null,
-                        onClick = onClick,
-                    )
-            } else {
-                Modifier
-            },
+            Modifier
+                .skydownPressable(interactionSource)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                ),
         )
 
     Box(
@@ -2343,6 +2337,7 @@ private fun HubSignalCard(
 private fun LaunchLandingMetaPill(
     text: String,
     accent: Color,
+    onClick: () -> Unit = {},
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val isDarkPalette = colorScheme.skydownIsDarkPalette()
@@ -2352,6 +2347,7 @@ private fun LaunchLandingMetaPill(
         colorScheme.skydownText().copy(alpha = 0.88f)
     }
 
+    val interactionSource = remember { MutableInteractionSource() }
     Text(
         text = text,
         style = SkydownEditorialCaptionTextStyle,
@@ -2359,57 +2355,13 @@ private fun LaunchLandingMetaPill(
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier
             .skydownCapsuleSurface(accent = accent)
-            .padding(horizontal = 13.dp, vertical = 8.dp),
+            .skydownPressable(interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
+            .heightIn(min = 44.dp)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
     )
-}
-
-@Composable
-private fun LaunchLandingBadge(
-    text: String,
-    accent: Color,
-) {
-    Text(
-        text = text,
-        style = SkydownBodyCaptionTextStyle,
-        color = accent,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier
-            .skydownCapsuleSurface(accent = accent)
-            .padding(horizontal = 11.dp, vertical = 7.dp),
-    )
-}
-
-@Composable
-private fun LaunchLandingActionPill(
-    text: String,
-    accent: Color,
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    val isDarkPalette = colorScheme.skydownIsDarkPalette()
-    val contentColor = if (isDarkPalette) {
-        Color.White.copy(alpha = 0.94f)
-    } else {
-        colorScheme.skydownText().copy(alpha = 0.88f)
-    }
-
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .skydownCapsuleSurface(accent = accent)
-            .padding(horizontal = 13.dp, vertical = 8.dp),
-    ) {
-        Text(
-            text = text,
-            style = SkydownBodyCaptionTextStyle,
-            color = contentColor,
-            fontWeight = FontWeight.Bold,
-        )
-        Icon(
-            imageVector = Icons.Default.ArrowOutward,
-            contentDescription = null,
-            tint = contentColor,
-            modifier = Modifier.size(14.dp),
-        )
-    }
 }
