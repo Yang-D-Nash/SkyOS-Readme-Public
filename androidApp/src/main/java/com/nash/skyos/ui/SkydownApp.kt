@@ -98,6 +98,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import coil3.compose.AsyncImage
@@ -357,7 +358,6 @@ fun SkydownApp(
                     trackFirstValueMoment("launch_entry_home")
                     selectedEntryRoute = "home"
                 },
-                onOpenLogin = { openAuthLogin(AuthEntryContext.DEFAULT) },
                 onOpenMusic = {
                     trackFirstValueMoment("launch_entry_music")
                     selectedEntryRoute = "music"
@@ -1143,7 +1143,6 @@ private enum class LaunchLandingPathTier {
 @Composable
 private fun LaunchLandingScreen(
     onOpenHome: () -> Unit,
-    onOpenLogin: () -> Unit,
     onOpenMusic: () -> Unit,
     onOpenVideography: () -> Unit,
     onOpenShop: () -> Unit,
@@ -1161,31 +1160,33 @@ private fun LaunchLandingScreen(
     ) {
         val isWideLayout = maxWidth >= 900.dp
         val isThreeColumnLayout = maxWidth >= 1180.dp
-        val isShortHeightLayout = !isWideLayout && maxHeight < 760.dp
+        // Landing: alles sichtbar ohne Scroll — auf Phones aggressivere Abstaende/Insets.
+        val isPhonePortrait = !isWideLayout
+        val isShortHeightLayout = isPhonePortrait && maxHeight < 800.dp
+        val isTightPhoneLanding = isPhonePortrait && maxHeight < 880.dp
         val contentMaxWidth = when {
             isThreeColumnLayout -> 1120.dp
             isWideLayout -> 920.dp
             else -> maxWidth
         }
-        val verticalScreenPadding = if (isShortHeightLayout) 8.dp else 12.dp
-        val heroSpacer = if (isShortHeightLayout) 8.dp else 12.dp
-        val signalSpacer = if (isShortHeightLayout) 2.dp else 4.dp
-        val cardsTopSpacer = if (isShortHeightLayout) 3.dp else 6.dp
-        val musicDetailText = if (isShortHeightLayout) {
-            stringResource(R.string.landing_music_detail)
-        } else {
-            stringResource(R.string.landing_music_detail)
+        val verticalScreenPadding = when {
+            isPhonePortrait && maxHeight < 700.dp -> 4.dp
+            isTightPhoneLanding || isShortHeightLayout -> 6.dp
+            !isWideLayout -> 8.dp
+            else -> 12.dp
         }
-        val videoDetailText = if (isShortHeightLayout) {
-            stringResource(R.string.landing_video_detail)
-        } else {
-            stringResource(R.string.landing_video_detail)
+        val heroSpacer = when {
+            isPhonePortrait && maxHeight < 700.dp -> 4.dp
+            isTightPhoneLanding -> 5.dp
+            isShortHeightLayout -> 6.dp
+            !isWideLayout -> 8.dp
+            else -> 12.dp
         }
-        val merchDetailText = if (isShortHeightLayout) {
-            stringResource(R.string.landing_merch_detail)
-        } else {
-            stringResource(R.string.landing_merch_detail)
-        }
+        val signalSpacer = if (isTightPhoneLanding || isShortHeightLayout) 0.dp else 2.dp
+        val cardsTopSpacer = if (isTightPhoneLanding || isShortHeightLayout) 2.dp else if (isPhonePortrait) 4.dp else 6.dp
+        val musicDetailText = stringResource(R.string.landing_music_detail)
+        val videoDetailText = stringResource(R.string.landing_video_detail)
+        val merchDetailText = stringResource(R.string.landing_merch_detail)
         val musicCardBackgroundUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null }
         val videoCardBackgroundUrl = screenHeaderSettings.videoHubImageUrl.ifBlank { null }
         val merchCardBackgroundUrl = screenHeaderSettings.shopImageUrl.ifBlank { null }
@@ -1233,7 +1234,6 @@ private fun LaunchLandingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .fillMaxWidth()
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .padding(horizontal = SkydownUiTokens.screenHorizontalPadding, vertical = verticalScreenPadding),
@@ -1245,11 +1245,23 @@ private fun LaunchLandingScreen(
                     .fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                LaunchLandingMetaPill(
-                    text = "SkyOS",
-                    accent = MaterialTheme.colorScheme.primary,
-                    onClick = onOpenLogin,
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    LaunchLandingMetaPill(
+                        text = stringResource(R.string.brand_system_name),
+                        accent = MaterialTheme.colorScheme.primary,
+                        onClick = onOpenHome,
+                    )
+                    if (isWideLayout) {
+                        LaunchLandingMetaPill(
+                            text = stringResource(R.string.landing_living_system),
+                            accent = MaterialTheme.colorScheme.secondary,
+                            onClick = onOpenVideography,
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(heroSpacer))
 
@@ -1264,11 +1276,11 @@ private fun LaunchLandingScreen(
                     accent = MaterialTheme.colorScheme.primary,
                     secondaryAccent = MaterialTheme.colorScheme.secondary,
                     marks = emptyList(),
-                    compactVisualDensity = !isWideLayout,
+                    compactVisualDensity = !isWideLayout || isTightPhoneLanding,
                     edgeToEdge = true,
                     onSurfaceClick = onOpenHome,
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(if (isTightPhoneLanding) 4.dp else 8.dp)) {
                         Text(
                             text = stringResource(R.string.landing_home_recommended),
                             style = MaterialTheme.typography.labelLarge,
@@ -1283,29 +1295,41 @@ private fun LaunchLandingScreen(
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(if (isTightPhoneLanding) 6.dp else 10.dp)) {
                     LaunchLandingActionButton(
                         title = stringResource(R.string.landing_home_open),
                         icon = Icons.Default.Home,
                         primary = true,
+                        minHeight = if (isTightPhoneLanding) 44.dp else 50.dp,
                         onClick = onOpenHome,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(if (isTightPhoneLanding) 8.dp else 10.dp)) {
                         LaunchLandingActionButton(
-                            title = "Music",
+                            title = stringResource(R.string.tabs_music),
                             icon = Icons.Default.GraphicEq,
                             primary = false,
+                            minHeight = if (isTightPhoneLanding) 44.dp else 50.dp,
                             modifier = Modifier.weight(1f),
                             onClick = onOpenMusic,
                         )
                         LaunchLandingActionButton(
-                            title = "Merch",
+                            title = stringResource(R.string.tabs_merch),
                             icon = Icons.Default.ShoppingBag,
                             primary = false,
+                            minHeight = if (isTightPhoneLanding) 44.dp else 50.dp,
                             modifier = Modifier.weight(1f),
                             onClick = onOpenShop,
                         )
                     }
+                }
+
+                if (!isTightPhoneLanding) {
+                    Text(
+                        text = stringResource(R.string.landing_home_note),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(signalSpacer))
@@ -1315,8 +1339,8 @@ private fun LaunchLandingScreen(
                 if (isThreeColumnLayout) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         LaunchLandingChoiceCard(
-                            eyebrow = "Music",
-                            title = "Music",
+                            eyebrow = stringResource(R.string.landing_eyebrow_music),
+                            title = stringResource(R.string.tabs_music),
                             subtitle = stringResource(R.string.landing_music_subtitle),
                             detail = musicDetailText,
                             chips = emptyList(),
@@ -1331,8 +1355,8 @@ private fun LaunchLandingScreen(
                             pathTier = LaunchLandingPathTier.Primary,
                         )
                         LaunchLandingChoiceCard(
-                            eyebrow = "Video",
-                            title = "Videos",
+                            eyebrow = stringResource(R.string.landing_eyebrow_video),
+                            title = stringResource(R.string.tabs_videos),
                             subtitle = stringResource(R.string.landing_video_subtitle),
                             detail = videoDetailText,
                             chips = emptyList(),
@@ -1344,8 +1368,8 @@ private fun LaunchLandingScreen(
                             pathTier = LaunchLandingPathTier.Secondary,
                         )
                         LaunchLandingChoiceCard(
-                            eyebrow = "Store",
-                            title = "Merch",
+                            eyebrow = stringResource(R.string.landing_eyebrow_store),
+                            title = stringResource(R.string.tabs_merch),
                             subtitle = stringResource(R.string.landing_merch_subtitle),
                             detail = merchDetailText,
                             chips = emptyList(),
@@ -1359,8 +1383,8 @@ private fun LaunchLandingScreen(
                     }
                 } else if (isWideLayout) {
                     LaunchLandingChoiceCard(
-                        eyebrow = "Music",
-                        title = "Music",
+                        eyebrow = stringResource(R.string.landing_eyebrow_music),
+                        title = stringResource(R.string.tabs_music),
                         subtitle = stringResource(R.string.landing_music_subtitle),
                         detail = musicDetailText,
                         chips = emptyList(),
@@ -1374,8 +1398,8 @@ private fun LaunchLandingScreen(
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         LaunchLandingChoiceCard(
-                            eyebrow = "Video",
-                            title = "Videos",
+                            eyebrow = stringResource(R.string.landing_eyebrow_video),
+                            title = stringResource(R.string.tabs_videos),
                             subtitle = stringResource(R.string.landing_video_subtitle),
                             detail = videoDetailText,
                             chips = emptyList(),
@@ -1387,8 +1411,8 @@ private fun LaunchLandingScreen(
                             pathTier = LaunchLandingPathTier.Secondary,
                         )
                         LaunchLandingChoiceCard(
-                            eyebrow = "Store",
-                            title = "Merch",
+                            eyebrow = stringResource(R.string.landing_eyebrow_store),
+                            title = stringResource(R.string.tabs_merch),
                             subtitle = stringResource(R.string.landing_merch_subtitle),
                             detail = merchDetailText,
                             chips = emptyList(),
@@ -1402,8 +1426,8 @@ private fun LaunchLandingScreen(
                     }
                 } else {
                     LaunchLandingChoiceCard(
-                        eyebrow = "Music",
-                        title = "Music",
+                        eyebrow = stringResource(R.string.landing_eyebrow_music),
+                        title = stringResource(R.string.tabs_music),
                         subtitle = stringResource(R.string.landing_music_subtitle),
                         detail = musicDetailText,
                         chips = emptyList(),
@@ -1417,8 +1441,8 @@ private fun LaunchLandingScreen(
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         LaunchLandingChoiceCard(
-                            eyebrow = "Video",
-                            title = "Videos",
+                            eyebrow = stringResource(R.string.landing_eyebrow_video),
+                            title = stringResource(R.string.tabs_videos),
                             subtitle = stringResource(R.string.landing_video_subtitle),
                             detail = videoDetailText,
                             chips = emptyList(),
@@ -1430,8 +1454,8 @@ private fun LaunchLandingScreen(
                             pathTier = LaunchLandingPathTier.Secondary,
                         )
                         LaunchLandingChoiceCard(
-                            eyebrow = "Store",
-                            title = "Merch",
+                            eyebrow = stringResource(R.string.landing_eyebrow_store),
+                            title = stringResource(R.string.tabs_merch),
                             subtitle = stringResource(R.string.landing_merch_subtitle),
                             detail = merchDetailText,
                             chips = emptyList(),
@@ -1489,6 +1513,7 @@ private fun LaunchLandingActionButton(
     icon: ImageVector,
     primary: Boolean,
     modifier: Modifier = Modifier,
+    minHeight: Dp = 52.dp,
     onClick: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -1508,7 +1533,7 @@ private fun LaunchLandingActionButton(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 52.dp)
+            .heightIn(min = minHeight)
             .clip(RoundedCornerShape(14.dp))
             .skydownPressable(interaction)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
@@ -1553,7 +1578,7 @@ private fun MusicHubQuickActions(
             fontWeight = FontWeight.SemiBold,
         )
         LaunchLandingActionButton(
-            title = "Catalog",
+            title = "Katalog",
             icon = Icons.Default.GraphicEq,
             primary = true,
             modifier = Modifier.testTag("music.hub.songs.open"),
@@ -1822,9 +1847,9 @@ private fun ZweizweiMusicLaneScreen(
                 val resolvedHubBottomPadding = if (isShortHubHeight) 14.dp else hubBottomPadding
                 val resolvedHubSectionSpacing = if (isShortHubHeight) 7.dp else hubSectionSpacing
                 val songDetailText = if (isShortHubHeight) {
-                    "Preview, Spotify und Artist-Pages bleiben direkt auf derselben Stage."
+                    "Katalog, Spotify und Artist-Pages bleiben direkt auf derselben Stage."
                 } else {
-                    "Preview, Spotify und Artist-Pages liegen direkt auf derselben Stage."
+                    "Katalog, Spotify und Artist-Pages liegen direkt auf derselben Stage."
                 }
                 val beatDetailText = if (isShortHubHeight) {
                     "Schnell neue Sounds greifen und im Vibe bleiben."
@@ -1883,7 +1908,7 @@ private fun ZweizweiMusicLaneScreen(
                             ) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     BrandPill(
-                                        text = "Catalog",
+                                        text = "Katalog",
                                         tint = MaterialTheme.colorScheme.primary,
                                         onClick = {
                                             catalogInitialArtist = "JANNO"

@@ -35,8 +35,8 @@ struct NicmaProducerView: View {
     
     private var profileFallbackBio: String {
         isStudioProfile
-            ? "Studio Page: Preise, Production und Recording."
-            : "Artist Page: NICMA MUSIC, Links und Profil."
+            ? "Preise, Production, Recording."
+            : "Katalog, Links, Profil."
     }
 
     private var nicmaInstagramURL: URL? {
@@ -102,7 +102,6 @@ struct NicmaProducerView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 heroCard
-                seiteInfoCard
                 pricingCard
                 contactCard
             }
@@ -161,11 +160,11 @@ struct NicmaProducerView: View {
 
             HStack(spacing: 8) {
                 if isStudioProfile {
-                    MusicBadge(text: "Studio Services", isAccent: true)
-                    MusicBadge(text: "Mix & Master", isAccent: false)
-                    MusicBadge(text: "Recording", isAccent: false)
+                    MusicBadge(text: "Mix", isAccent: true)
+                    MusicBadge(text: "Master", isAccent: false)
+                    MusicBadge(text: "Rec", isAccent: false)
                 } else {
-                    MusicBadge(text: "Artist Page", isAccent: true)
+                    MusicBadge(text: "Artist", isAccent: true)
                     MusicBadge(text: "Katalog", isAccent: false)
                     MusicBadge(text: "Links", isAccent: false)
                 }
@@ -185,32 +184,6 @@ struct NicmaProducerView: View {
         .onTapGesture {
             openNicmaPage = selectedProfile
         }
-    }
-
-    private var seiteInfoCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(isStudioProfile ? "NICMA STUDIO Seite" : "NICMA MUSIC Seite")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
-            Text(
-                page.tagline
-                    ?? (isStudioProfile
-                        ? "Studio-Profil, Preisliste, Production und Links."
-                        : "Artist Profil und Links.")
-            )
-            .font(.subheadline)
-            .foregroundColor(AppColors.secondaryText(for: colorScheme))
-        }
-        .padding(SkydownLayout.panelPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(AppColors.cardBackground(for: colorScheme))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
-        )
     }
 
     private var pricingCard: some View {
@@ -244,7 +217,7 @@ struct NicmaProducerView: View {
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text(page.tagline ?? "Kontakt & Plattformen.")
+            Text(page.tagline ?? "Kontakt & Plattformen")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

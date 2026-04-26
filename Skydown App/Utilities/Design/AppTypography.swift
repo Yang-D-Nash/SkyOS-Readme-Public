@@ -155,6 +155,11 @@ enum AppTypography {
         displayFont(size: 20, relativeTo: .title3, weight: .semibold)
     }
 
+    /// Kompaktes Awergy-Brush-Label (Music-Katalog: Künstlernamen-Buttons).
+    static var musicArtistName: Font {
+        brushFont(size: 17.5, relativeTo: .headline)
+    }
+
     static var body: Font {
         interfaceFont(size: 16.0, relativeTo: .body, weight: .regular)
     }

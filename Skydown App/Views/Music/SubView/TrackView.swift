@@ -19,6 +19,8 @@ enum TrackListPresentation {
 struct TrackView: View {
     let track: Track
     @ObservedObject var audioManager: AudioPlayerManager
+    /// Music-Katalog: `false` — In-App-Previews laufen auf der Artist Page.
+    var allowsInAppPreview: Bool = true
     let isSelected: Bool
     let onSelect: () -> Void
     var presentation: TrackListPresentation = .featured
@@ -27,7 +29,7 @@ struct TrackView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private var isPlaying: Bool {
-        audioManager.currentlyPlayingId == track.trackId
+        allowsInAppPreview && (audioManager.currentlyPlayingId == track.trackId)
     }
 
     private var hasDirectSpotifyTrack: Bool {
@@ -112,7 +114,7 @@ struct TrackView: View {
                             TrackTag(text: "Laeuft", isAccent: true)
                         } else if isSelected {
                             TrackTag(text: isSecondary ? "Im Set" : "Im Player", isAccent: false)
-                        } else if track.previewUrl != nil {
+                        } else if allowsInAppPreview, track.previewUrl != nil, presentation == .secondary {
                             TrackTag(text: "Preview", isAccent: false)
                         }
                     }
@@ -141,9 +143,9 @@ struct TrackView: View {
                             .lineLimit(1)
                     }
 
-                    if !catalog {
+                    if isSecondary {
                     HStack(spacing: 8) {
-                        if track.previewUrl != nil {
+                        if allowsInAppPreview, track.previewUrl != nil {
                             TrackTag(text: "In-App Preview", isAccent: false)
                         }
                         if hasDirectSpotifyTrack {
@@ -159,7 +161,7 @@ struct TrackView: View {
             }
 
             HStack(spacing: 10) {
-                if track.previewUrl != nil {
+                if allowsInAppPreview, track.previewUrl != nil {
                     Button {
                         onSelect()
                         withAnimation(.easeInOut(duration: 0.20)) {

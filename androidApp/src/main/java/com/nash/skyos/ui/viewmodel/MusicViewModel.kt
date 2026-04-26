@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.SpotifyAuthManager
 import com.nash.skyos.ui.model.MusicUiState
-import com.skydown.shared.model.Track
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,8 +30,6 @@ class MusicViewModel : ViewModel() {
                         it.copy(
                             isSpotifyConnected = false,
                             errorMessage = null,
-                            currentlyPlayingId = null,
-                            currentPreviewUrl = null,
                         )
                     }
                 }
@@ -54,8 +51,6 @@ class MusicViewModel : ViewModel() {
                     selectedArtist = artist,
                     isLoading = true,
                     tracks = emptyList(),
-                    currentlyPlayingId = null,
-                    currentPreviewUrl = null,
                     errorMessage = null,
                 )
             }
@@ -67,8 +62,6 @@ class MusicViewModel : ViewModel() {
                             selectedArtist = artist,
                             isLoading = false,
                             tracks = tracks,
-                            currentlyPlayingId = null,
-                            currentPreviewUrl = null,
                             errorMessage = null,
                         )
                     }
@@ -79,8 +72,6 @@ class MusicViewModel : ViewModel() {
                             selectedArtist = artist,
                             isLoading = false,
                             tracks = emptyList(),
-                            currentlyPlayingId = null,
-                            currentPreviewUrl = null,
                             errorMessage = error.message ?: "Tracks konnten gerade nicht geladen werden.",
                         )
                     }
@@ -88,39 +79,8 @@ class MusicViewModel : ViewModel() {
         }
     }
 
-    fun togglePreview(track: Track) {
-        _uiState.update {
-            if (it.currentlyPlayingId == track.trackId) {
-                it.copy(
-                    currentlyPlayingId = null,
-                    currentPreviewUrl = null,
-                )
-            } else {
-                it.copy(
-                    currentlyPlayingId = track.trackId,
-                    currentPreviewUrl = track.previewUrl,
-                )
-            }
-        }
-    }
-
-    fun stopPreview() {
-        _uiState.update {
-            it.copy(
-                currentlyPlayingId = null,
-                currentPreviewUrl = null,
-            )
-        }
-    }
-
     fun disconnectSpotify() {
         SpotifyAuthManager.disconnect()
-        _uiState.update {
-            it.copy(
-                currentlyPlayingId = null,
-                currentPreviewUrl = null,
-            )
-        }
     }
 
     fun clearSpotifyError() {

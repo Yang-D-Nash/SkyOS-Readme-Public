@@ -24,8 +24,6 @@ data class MusicUiState(
         "TANGAJOE007",
     ),
     val tracks: List<Track> = emptyList(),
-    val currentlyPlayingId: Int? = null,
-    val currentPreviewUrl: String? = null,
     val isSpotifyConnected: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,

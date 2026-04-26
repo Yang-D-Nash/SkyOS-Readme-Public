@@ -105,6 +105,18 @@ val SkydownPanelTitleTextStyle = TextStyle(
     platformStyle = TightPlatformStyle,
 )
 
+/** Kompaktes Awergy-Label: Music-Katalog Künstlernamen-Buttons. */
+val SkydownMusicArtistNameTextStyle = TextStyle(
+    fontFamily = FontFamily(
+        Font(R.font.awergy_regular, FontWeight.Normal),
+    ),
+    fontWeight = FontWeight.Normal,
+    fontSize = 17.5.sp,
+    lineHeight = 21.sp,
+    letterSpacing = 0.2.sp,
+    platformStyle = TightPlatformStyle,
+)
+
 val Typography = Typography(
     headlineLarge = TextStyle(
         fontFamily = AwergyDisplayFontFamily,

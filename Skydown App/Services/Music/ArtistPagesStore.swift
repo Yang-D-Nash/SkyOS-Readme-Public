@@ -69,11 +69,39 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
         try await firestore.collection(collectionName).document(documentID).setData(payload, merge: true)
     }
 
+    private static func firstURLString(_ data: [String: Any], _ keys: String...) -> String? {
+        for key in keys {
+            if let s = (data[key] as? String)?.trimmedNilIfEmpty {
+                return s
+            }
+        }
+        return nil
+    }
+
+    private static func firstURLStringInNestedMaps(
+        _ data: [String: Any],
+        mapNames: [String],
+        keys: [String]
+    ) -> String? {
+        for mapName in mapNames {
+            guard let m = data[mapName] as? [String: Any] else { continue }
+            for k in keys {
+                if let s = (m[k] as? String)?.trimmedNilIfEmpty {
+                    return s
+                }
+            }
+        }
+        return nil
+    }
+
     private static func mapPage(document: QueryDocumentSnapshot) -> ArtistPage? {
         let data = document.data()
+        let brandKey = (data["brand"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
         guard
-            let brandRaw = data["brand"] as? String,
-            let brand = ArtistPageBrand(rawValue: brandRaw),
+            !brandKey.isEmpty,
+            let brand = ArtistPageBrand(rawValue: brandKey),
             let fieldArtistName = data["artistName"] as? String
         else {
             return nil
@@ -119,9 +147,28 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
             profileImageURL: (data["profileImageURL"] as? String)?.trimmedNilIfEmpty,
             heroImageURL: (data["heroImageURL"] as? String)?.trimmedNilIfEmpty,
             heroVideoURL: (data["heroVideoURL"] as? String)?.trimmedNilIfEmpty,
-            instagramURL: (data["instagramURL"] as? String)?.trimmedNilIfEmpty,
-            spotifyURL: (data["spotifyURL"] as? String)?.trimmedNilIfEmpty,
-            youtubeURL: (data["youtubeURL"] as? String)?.trimmedNilIfEmpty,
+            instagramURL: firstURLString(
+                data,
+                "instagramURL", "instagramUrl", "instagram", "instagramURLString"
+            ) ?? firstURLStringInNestedMaps(
+                data,
+                mapNames: ["social", "links", "link", "instagram"],
+                keys: ["instagram", "instagramURL", "instagramUrl", "url", "link", "href", "u"]
+            ),
+            spotifyURL: firstURLString(data, "spotifyURL", "spotifyUrl", "spotify", "spotifyUrlString")
+                ?? firstURLStringInNestedMaps(
+                    data,
+                    mapNames: ["social", "links", "link", "spotify"],
+                    keys: ["spotify", "spotifyURL", "spotifyUrl", "url", "link", "href", "u"]
+                ),
+            youtubeURL: firstURLString(
+                data,
+                "youtubeURL", "youtubeUrl", "youtube", "youtubeURLString", "youTubeURL", "youTube"
+            ) ?? firstURLStringInNestedMaps(
+                data,
+                mapNames: ["social", "links", "link", "youtube"],
+                keys: ["youtube", "youtubeURL", "youtubeUrl", "yt", "youTube", "url", "link", "href", "u"]
+            ),
             studioPriceList: studioPriceList,
             editorUids: editorUids,
             createdAt: createdAt,

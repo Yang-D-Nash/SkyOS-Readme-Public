@@ -392,6 +392,11 @@
     <string name="landing_music_detail">Open music.</string>
     <string name="landing_video_detail">Open videos.</string>
     <string name="landing_merch_detail">Open merch.</string>
+    <string name="landing_home_note">Choose any section to start.</string>
+    <string name="landing_living_system">Living System</string>
+    <string name="landing_eyebrow_music">Music</string>
+    <string name="landing_eyebrow_video">Video</string>
+    <string name="landing_eyebrow_store">Store</string>
     <string name="home_hero_title">SkyOS</string>
     <string name="home_hero_live_count">%1$d/%2$d live</string>
     <string name="home_hero_detail">Open music, videos or merch.</string>

@@ -182,29 +182,23 @@ private struct LaunchLandingView: View {
                 layout.contentMaxWidth,
                 max(proxy.size.width - (layout.horizontalPadding * 2), 0)
             )
-            let isShortHeightLayout = !layout.prefersDesktopChrome && proxy.size.height < 760
-            /// Kompaktere Kacheln/Abstände, damit die Landing-Page auf kleinen iPhones ohne Scrollen passt.
-            let isTightPhoneHeight = !layout.prefersDesktopChrome && proxy.size.height < 780
+            let isShortHeightLayout = !layout.prefersDesktopChrome && proxy.size.height < 800
+            /// Kompaktere Kacheln/Abstände — Landing bleibt komplett sichtbar ohne Scroll.
+            let isTightPhoneHeight = !layout.prefersDesktopChrome && proxy.size.height < 880
             let sectionCadence = layout.prefersDesktopChrome
                 ? layout.sectionSpacing + 2
                 : (isTightPhoneHeight
-                    ? 6
-                    : (isShortHeightLayout ? 10 : max(layout.sectionSpacing - 2, 12)))
-            let compactVerticalPadding = layout.prefersDesktopChrome ? 34.0 : (isShortHeightLayout ? 14.0 : 22.0)
-            let verticalTopPad = isTightPhoneHeight ? 8.0 : compactVerticalPadding
-            let verticalBottomPad = (isTightPhoneHeight ? 8.0 : compactVerticalPadding) + proxy.safeAreaInsets.bottom
-            let heroBlockSpacing: CGFloat = isTightPhoneHeight ? 5 : 8
-            let quickActionStackSpacing: CGFloat = isTightPhoneHeight ? 6 : 10
-            let compactCardSpacing = isShortHeightLayout ? 8.0 : 10.0
-            let musicDetail = isShortHeightLayout
-                ? AppLocalized.text("landing.music.detail", fallback: "Open music.")
-                : AppLocalized.text("landing.music.detail", fallback: "Open music.")
-            let videoDetail = isShortHeightLayout
-                ? AppLocalized.text("landing.video.detail", fallback: "Open videos.")
-                : AppLocalized.text("landing.video.detail", fallback: "Open videos.")
-            let merchDetail = isShortHeightLayout
-                ? AppLocalized.text("landing.merch.detail", fallback: "Open merch.")
-                : AppLocalized.text("landing.merch.detail", fallback: "Open merch.")
+                    ? 5
+                    : (isShortHeightLayout ? 8 : max(layout.sectionSpacing - 2, 12)))
+            let compactVerticalPadding = layout.prefersDesktopChrome ? 34.0 : (isTightPhoneHeight ? 10.0 : (isShortHeightLayout ? 14.0 : 22.0))
+            let verticalTopPad = isTightPhoneHeight ? 6.0 : compactVerticalPadding
+            let verticalBottomPad = (isTightPhoneHeight ? 6.0 : compactVerticalPadding) + proxy.safeAreaInsets.bottom
+            let heroBlockSpacing: CGFloat = isTightPhoneHeight ? 4 : 8
+            let quickActionStackSpacing: CGFloat = isTightPhoneHeight ? 5 : 10
+            let compactCardSpacing: CGFloat = isTightPhoneHeight ? 6.0 : (isShortHeightLayout ? 8.0 : 10.0)
+            let musicDetail = AppLocalized.text("landing.music.detail", fallback: "Open music.")
+            let videoDetail = AppLocalized.text("landing.video.detail", fallback: "Open videos.")
+            let merchDetail = AppLocalized.text("landing.merch.detail", fallback: "Open merch.")
             let musicBackgroundURL = screenHeaderSettingsStore.settings.resolvedMusicHubImageURL
             let videoBackgroundURL = screenHeaderSettingsStore.settings.resolvedVideoHubImageURL
             let merchBackgroundURL = screenHeaderSettingsStore.settings.resolvedShopImageURL
@@ -317,7 +311,7 @@ private struct LaunchLandingView: View {
 
                         Group {
                             VStack(alignment: .leading, spacing: compactCardSpacing) {
-                                if !isShortHeightLayout && !isTightPhoneHeight {
+                                if !isTightPhoneHeight {
                                     Text(AppLocalized.text("landing.home.note", fallback: "Choose any section to start."))
                                         .font(.subheadline)
                                         .foregroundColor(.white.opacity(0.62))

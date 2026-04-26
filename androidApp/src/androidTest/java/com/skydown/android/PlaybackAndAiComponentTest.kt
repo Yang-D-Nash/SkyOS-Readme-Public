@@ -88,7 +88,6 @@ class PlaybackAndAiComponentTest {
                         isPlaying = false,
                         isSelected = false,
                         onSelectTrack = {},
-                        onPlayToggle = {},
                     )
                 }
             }

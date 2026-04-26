@@ -70,6 +70,38 @@ func artistPageDocumentID(brand: ArtistPageBrand, artistName: String) -> String 
     "\(brand.rawValue)-\(artistPageSlug(from: artistName))"
 }
 
+private let nicmaPublicDefaultInstagramURL = "https://www.instagram.com/nicma.music/"
+private let nicmaPublicDefaultSpotifyArtistURL = "https://open.spotify.com/artist/0OoRIo7pJjtLgg3qyf1oDS"
+
+extension ArtistPage {
+    /// Wenn Firestore leer: oeffentliche Kanaele (wie Android / Spaotify-Mapping), damit Connect nicht leer bleibt.
+    func withNicmaMusicPublicLinkDefaults() -> ArtistPage {
+        var m = self
+        if (m.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty {
+            m.instagramURL = nicmaPublicDefaultInstagramURL
+        }
+        if (m.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty {
+            m.spotifyURL = nicmaPublicDefaultSpotifyArtistURL
+        }
+        return m
+    }
+
+    /// Wenn im Music-Doc keine Kanaele stehen, z. B. STUDIO-Doc als Fallback (ein Admin-Set, zwei Tabs).
+    func mergedNicmaConnectFromStudio(_ studio: ArtistPage) -> ArtistPage {
+        var m = self
+        if (m.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty {
+            m.instagramURL = studio.instagramURL
+        }
+        if (m.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty {
+            m.spotifyURL = studio.spotifyURL
+        }
+        if (m.youtubeURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty {
+            m.youtubeURL = studio.youtubeURL
+        }
+        return m
+    }
+}
+
 extension ArtistPage {
     static func draft(
         brand: ArtistPageBrand,

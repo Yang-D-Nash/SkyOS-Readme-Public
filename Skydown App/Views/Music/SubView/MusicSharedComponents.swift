@@ -12,6 +12,7 @@ struct MusicBadge: View {
     let text: String
     let isAccent: Bool
     var accentOverride: Color? = nil
+    var accessibilityIdentifier: String? = nil
     var onTap: () -> Void = {}
     @Environment(\.colorScheme) private var colorScheme
 
@@ -20,6 +21,17 @@ struct MusicBadge: View {
     }
 
     var body: some View {
+        Group {
+            if let id = accessibilityIdentifier {
+                baseButton
+                    .accessibilityIdentifier(id)
+            } else {
+                baseButton
+            }
+        }
+    }
+
+    private var baseButton: some View {
         Button(action: onTap) {
             badgeContent
         }

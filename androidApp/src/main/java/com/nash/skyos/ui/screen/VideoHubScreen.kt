@@ -3254,7 +3254,7 @@ private fun VideoHubImageViewerDialog(
 private fun VideoPill(
     text: String,
     isActive: Boolean,
-    onClick: () -> Unit = {},
+    onClick: (() -> Unit)? = null,
 ) {
     BrandStatusChip(
         text = text,

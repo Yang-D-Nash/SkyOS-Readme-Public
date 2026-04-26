@@ -489,50 +489,25 @@ final class Skydown_AppUITests: XCTestCase {
             "Music catalog should load after opening from hub."
         )
 
-        // Page CTAs live in the artist rail (often below the fold); scroll until a Page button exists.
-        let anyArtistPageButton = app.buttons.matching(
-            NSPredicate(format: "identifier BEGINSWITH %@", "music.artist.open_page.")
-        )
-        var openArtistPage = app.buttons["music.artist.open_page.JANNO"].firstMatch
+        // Open artist page from «Direkter Einstieg»; scroll the catalog as needed.
+        let openArtistPage = app.buttons["music.artist.open_page.JANNO"].firstMatch
         var foundPageCTA = false
-        for _ in 0..<18 {
+        for _ in 0..<20 {
             if openArtistPage.waitForExistence(timeout: 1), openArtistPage.isHittable {
-                foundPageCTA = true
-                break
-            }
-            let fallback = anyArtistPageButton.firstMatch
-            if fallback.waitForExistence(timeout: 1), fallback.isHittable {
-                openArtistPage = fallback
                 foundPageCTA = true
                 break
             }
             catalogRoot.swipeUp()
         }
-        if !foundPageCTA, app.scrollViews["music.artists.rail"].firstMatch.exists {
-            let rail = app.scrollViews["music.artists.rail"].firstMatch
-            for _ in 0..<6 {
-                if openArtistPage.waitForExistence(timeout: 1), openArtistPage.isHittable {
-                    foundPageCTA = true
-                    break
-                }
-                let fallback = anyArtistPageButton.firstMatch
-                if fallback.waitForExistence(timeout: 1), fallback.isHittable {
-                    openArtistPage = fallback
-                    foundPageCTA = true
-                    break
-                }
-                rail.swipeLeft()
-            }
-        }
         XCTAssertTrue(
             foundPageCTA,
-            "Artist Page CTA should appear in the catalog (scroll to artist rail if needed)."
+            "Direkter Einstieg JANNO button should open the artist page."
         )
         tapElementReliably(
             openArtistPage,
             in: app,
             timeout: 10,
-            failureMessage: "Artist page button should be tappable."
+            failureMessage: "Artist page entry should be tappable (Direkter Einstieg)."
         )
 
         let editOpen = app.buttons["artist.page.edit.open"].firstMatch

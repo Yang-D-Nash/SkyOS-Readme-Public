@@ -1,6 +1,7 @@
 package com.nash.skyos.data
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
@@ -219,9 +220,18 @@ object ArtistPagesStore {
                         profileImageURL = document.getString("profileImageURL")?.trimmedOrNull(),
                         heroImageURL = document.getString("heroImageURL")?.trimmedOrNull(),
                         heroVideoURL = document.getString("heroVideoURL")?.trimmedOrNull(),
-                        instagramURL = document.getString("instagramURL")?.trimmedOrNull(),
-                        spotifyURL = document.getString("spotifyURL")?.trimmedOrNull(),
-                        youtubeURL = document.getString("youtubeURL")?.trimmedOrNull(),
+                        instagramURL = document.readArtistSocialUrl(
+                            "instagram",
+                            "instagramURL", "instagramUrl", "instagram", "instagramURLString",
+                        ),
+                        spotifyURL = document.readArtistSocialUrl(
+                            "spotify",
+                            "spotifyURL", "spotifyUrl", "spotify", "spotifyUrlString",
+                        ),
+                        youtubeURL = document.readArtistSocialUrl(
+                            "youtube",
+                            "youtubeURL", "youtubeUrl", "youtube", "youtubeURLString", "youTubeURL", "youTube",
+                        ),
                         studioPriceList = ((document.get("studioPriceList") as? List<*>) ?: emptyList<Any>())
                             .mapNotNull { entry ->
                                 val map = entry as? Map<*, *> ?: return@mapNotNull null
@@ -261,6 +271,49 @@ object ArtistPagesStore {
             compareBy<ArtistPageUi>({ it.brand.rawValue }, { it.artistName.lowercase() }),
         )
     }
+}
+
+/**
+ * Manche aeltere oder manuell gepflegte Docs nutzen leicht abweichende Schluessel – gleich zu iOS-Video-Hub-Maps.
+ */
+private fun DocumentSnapshot.readFirstNonBlankString(vararg fieldNames: String): String? {
+    for (name in fieldNames) {
+        getString(name)?.trimmedOrNull()?.let { return it }
+    }
+    return null
+}
+
+/**
+ * Wie [readFirstNonBlankString], zusaetzlich in `social` / `links` / `link` Maps
+ * (typisch bei per Konsole gepflegten oder aelteren Shapes).
+ */
+private fun DocumentSnapshot.readArtistSocialUrl(
+    groupKey: String,
+    vararg topLevelNames: String,
+): String? {
+    readFirstNonBlankString(*topLevelNames)?.let { return it }
+    when (val raw = get(groupKey)) {
+        is String -> raw.trimmedOrNull()?.let { return it }
+        is Map<*, *> -> {
+            for (k in listOf("url", "link", "href", "u")) {
+                (raw[k] as? String)?.trimmedOrNull()?.let { return it }
+            }
+        }
+    }
+    val nested = listOf("social", "links", "link", "${groupKey}URL")
+    val nestedKeyCandidates = when (groupKey) {
+        "instagram" -> listOf("instagram", "instagramURL", "instagramUrl", "ig")
+        "spotify" -> listOf("spotify", "spotifyURL", "spotifyUrl", "s")
+        "youtube" -> listOf("youtube", "youtubeURL", "youtubeUrl", "yt", "youTube", "youTubeURL")
+        else -> emptyList()
+    }
+    for (mapName in nested) {
+        val m = get(mapName) as? Map<*, *> ?: continue
+        for (k in nestedKeyCandidates + "url" + "link" + "href") {
+            (m[k] as? String)?.trimmedOrNull()?.let { return it }
+        }
+    }
+    return null
 }
 
 private fun String?.trimmedOrNull(): String? {

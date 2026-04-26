@@ -657,7 +657,7 @@ private struct ZweizweiTabView: View {
                                 ) {
                                     HStack(spacing: 10) {
                                         BrandHeroPill(
-                                            text: "Catalog",
+                                            text: "Katalog",
                                             colorScheme: colorScheme,
                                             tint: AppColors.spotify(for: colorScheme),
                                             onTap: {
@@ -684,7 +684,7 @@ private struct ZweizweiTabView: View {
                                 if layout.prefersThreeColumn && !isShortHubHeight {
                                     HStack(spacing: 12) {
                                         MusicHubStatusCard(
-                                            title: "Catalog",
+                                            title: "Katalog",
                                             value: "Artists · Tracks · Pages",
                                             accent: AppColors.spotify(for: colorScheme)
                                         )
@@ -701,7 +701,7 @@ private struct ZweizweiTabView: View {
                                         .font(.caption.weight(.semibold))
                                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                                     compactMusicHubAction(
-                                        title: "Catalog",
+                                        title: "Katalog",
                                         systemImage: "waveform.circle.fill",
                                         accent: AppColors.spotify(for: colorScheme)
                                     ) {

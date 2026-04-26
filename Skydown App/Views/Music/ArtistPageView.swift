@@ -74,6 +74,14 @@ struct ArtistPageView: View {
         return brand.displayTitle
     }
 
+    /// Plain copy line — no capsule „chips“ that read as tappable highlights.
+    private var heroMetaLine: String {
+        var parts: [String] = [nicmaHeroEyebrow]
+        if displayPage.hasCustomPresentation { parts.append("Live") }
+        if !tracksViewModel.tracks.isEmpty { parts.append("\(tracksViewModel.tracks.count) Songs") }
+        return parts.joined(separator: " · ")
+    }
+
     private var displayPage: ArtistPage {
         guard isEditing else { return page }
         let stableId = artistPageDocumentID(brand: page.brand, artistName: routeArtistName)
@@ -97,12 +105,33 @@ struct ArtistPageView: View {
         )
     }
 
+    /// Lese: Music+STUDIO merge, oeffentliche Default-URLs wenn Firestore leer; beim Bearbeiten unveraendert.
+    private var pageForConnect: ArtistPage {
+        if isEditing { return displayPage }
+        if brand == .nicma, routeArtistName.caseInsensitiveCompare("NICMA MUSIC") == .orderedSame {
+            return displayPage
+                .mergedNicmaConnectFromStudio(
+                    store.page(for: .nicma, artistName: "NICMA STUDIO")
+                )
+                .withNicmaMusicPublicLinkDefaults()
+        }
+        return displayPage
+    }
+
     private var canEdit: Bool {
         store.canEdit(page, user: authManager.userSession)
     }
 
     private var topTracks: [Track] {
         Array(tracksViewModel.tracks.prefix(5))
+    }
+
+    /// Leer, wenn der Banner allein reicht (Tag zeigt N LIVE).
+    private var topSongsBannerSubtitle: String? {
+        if tracksViewModel.isLoading { return "Lade …" }
+        if !topTracks.isEmpty { return nil }
+        if tracksViewModel.errorMessage != nil { return "Kurz warten, dann erneut" }
+        return "Folgt dem Feed"
     }
 
     private var latestReleaseText: String? {
@@ -203,9 +232,12 @@ struct ArtistPageView: View {
                                 .accessibilityIdentifier("artist.page.edit.save")
                             }
                         } else {
-                            Button("Bearbeiten") {
+                            Button {
                                 beginEditing()
+                            } label: {
+                                Image(systemName: "pencil")
                             }
+                            .accessibilityLabel("Bearbeiten")
                             .accessibilityIdentifier("artist.page.edit.open")
                         }
                     }
@@ -495,28 +527,10 @@ struct ArtistPageView: View {
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 16) {
-                    HStack(spacing: 8) {
-                        ArtistHeroTag(
-                            text: nicmaHeroEyebrow,
-                            background: .white.opacity(0.14)
-                        )
-
-                        if displayPage.hasCustomPresentation {
-                            ArtistHeroTag(
-                                text: "Live",
-                                background: AppColors.spotify(for: colorScheme).opacity(0.84)
-                            )
-                        }
-
-                        Spacer(minLength: 0)
-
-                        if !tracksViewModel.tracks.isEmpty {
-                            ArtistHeroTag(
-                                text: "\(tracksViewModel.tracks.count) Songs",
-                                background: .black.opacity(0.32)
-                            )
-                        }
-                    }
+                    Text(heroMetaLine)
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.white.opacity(0.88))
+                        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
 
                     Spacer(minLength: 0)
 
@@ -542,7 +556,7 @@ struct ArtistPageView: View {
                                 .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
 
                             if let latestReleaseText {
-                                Text("Neuester Release: \(latestReleaseText)")
+                                Text("Release: \(latestReleaseText)")
                                     .font(.caption.weight(.bold))
                                     .foregroundColor(.white.opacity(0.76))
                                     .shadow(color: .black.opacity(0.16), radius: 6, y: 2)
@@ -555,7 +569,7 @@ struct ArtistPageView: View {
             }
 
             VStack(alignment: .leading, spacing: 14) {
-                Text(displayPage.bio ?? "Noch keine Artist-Seite hinterlegt. Owner oder zugewiesene Editoren koennen hier eine repraesentative Kurzbeschreibung anlegen.")
+                Text(displayPage.bio ?? "Noch keine Beschreibung.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -563,17 +577,12 @@ struct ArtistPageView: View {
 
                 artistSessionDeck
 
-                artistHighlightsRow
-
-                if !socialLinks.isEmpty {
-                    artistCTAButtons
-                }
-
                 if !displayPage.editorUids.isEmpty {
-                    ArtistPageBadge(
-                        text: "\(displayPage.editorUids.count) Editor\(displayPage.editorUids.count == 1 ? "" : "en")",
-                        colorScheme: colorScheme
+                    Text(
+                        "\(displayPage.editorUids.count) Editor\(displayPage.editorUids.count == 1 ? "" : "en")"
                     )
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
                 }
             }
             .padding(SkydownLayout.panelPadding)
@@ -636,63 +645,10 @@ struct ArtistPageView: View {
                 )
             )
 
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 8) {
-                    ArtistHeroTag(
-                        text: hasHeroVideo ? "Motion Stage" : hasHeroImage ? "Hero Frame" : "Motion Ready",
-                        background: .white.opacity(0.16)
-                    )
-
-                    ArtistHeroTag(
-                        text: hasHeroVideo ? "Muted Loop" : "Upload Ready",
-                        background: (hasHeroVideo ? artistSecondaryAccent : artistAccent).opacity(0.88)
-                    )
-                }
-
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(
-                        hasHeroVideo
-                            ? "\(displayPage.artistName) bleibt sofort in Bewegung."
-                            : hasHeroImage
-                                ? "Mit Video wird diese Stage noch cineastischer."
-                                : "Ein kurzes Hero-Video gibt der Seite sofort mehr Buehnenwirkung."
-                    )
-                    .font(.system(size: 22, weight: .black, design: .rounded))
-                    .lineSpacing(2)
-                    .foregroundColor(.white)
-                    .shadow(color: .black.opacity(0.32), radius: 16, y: 7)
-
-                    Text(
-                        hasHeroVideo
-                            ? "Muted Loop. Sofort lebendiger."
-                            : "Video macht den Einstieg markanter."
-                    )
-                    .font(.footnote.weight(.semibold))
-                    .foregroundColor(.white.opacity(0.84))
-                    .lineSpacing(2)
-                    .shadow(color: .black.opacity(0.20), radius: 10, y: 4)
-                }
-            }
-            .padding(SkydownLayout.panelPadding)
         }
-        .frame(height: 210)
+        .frame(height: 200)
         .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.18),
-                            (hasHeroVideo ? artistSecondaryAccent : artistAccent).opacity(0.26)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        )
-        .shadow(color: .black.opacity(0.10), radius: 24, y: 14)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var fallbackHero: some View {
@@ -708,106 +664,18 @@ struct ArtistPageView: View {
     }
 
     private var artistSessionDeck: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                ArtistSessionSignalCard(
-                    title: "Status",
-                    value: artistStateLabel,
-                    detail: displayPage.hasCustomPresentation ? "Profil live" : "Noch nicht live",
-                    accent: AppColors.accentHighlight(for: colorScheme),
-                    colorScheme: colorScheme
-                )
-
-                ArtistSessionSignalCard(
-                    title: "Listen",
-                    value: artistSoundLabel,
-                    detail: tracksViewModel.isLoading ? "Tracks werden geladen" : "Direkt im Sound drin",
-                    accent: AppColors.spotify(for: colorScheme),
-                    colorScheme: colorScheme
-                )
-
-                ArtistSessionSignalCard(
-                    title: "Reach",
-                    value: artistReachLabel,
-                    detail: linkCount == 0 ? "Noch keine Weiterleitung" : "Instagram, Spotify, YouTube",
-                    accent: AppColors.accent(for: colorScheme),
-                    colorScheme: colorScheme
-                )
-            }
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(artistStateLabel)
+            Text("·")
+            Text(artistSoundLabel)
+            Text("·")
+            Text(artistReachLabel)
         }
-    }
-
-    private var artistCTAButtons: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-            ForEach(socialLinks.prefix(3)) { link in
-                Button {
-                    if link.kind == .youtube {
-                        presentSheet(.youTube(SkydownYouTubeVideoItem(
-                            id: "artist-\(displayPage.slug)-hero-youtube",
-                            title: displayPage.artistName,
-                            subtitle: "Videos & Releases",
-                            urlString: link.url
-                        )))
-                    } else if let url = URL(string: link.url) {
-                        openURL(url)
-                    }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: link.systemImage)
-                            .font(.subheadline.weight(.bold))
-
-                        Text(link.title)
-                            .font(.subheadline.weight(.semibold))
-                            .lineLimit(1)
-                    }
-                    .foregroundColor(link.foregroundColor)
-                    .frame(width: 160)
-                    .padding(.vertical, 12)
-                    .background(link.backgroundColor)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .skydownTactileAction()
-            }
-        }
-        }
-    }
-
-    private var artistHighlightsRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                ArtistInfoMetric(
-                    title: "Artist",
-                    value: brand.displayTitle,
-                    colorScheme: colorScheme
-                )
-
-                if !tracksViewModel.tracks.isEmpty {
-                    ArtistInfoMetric(
-                        title: "Songs",
-                        value: "\(tracksViewModel.tracks.count)",
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if let latestReleaseText {
-                    ArtistInfoMetric(
-                        title: "Neuester Release",
-                        value: latestReleaseText,
-                        colorScheme: colorScheme
-                    )
-                }
-
-                if linkCount > 0 {
-                    ArtistInfoMetric(
-                        title: "Links",
-                        value: "\(linkCount)",
-                        colorScheme: colorScheme
-                    )
-                }
-            }
-        }
+        .font(.caption.weight(.medium))
+        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Status \(artistStateLabel), Katalog \(artistSoundLabel), \(artistReachLabel)")
     }
 
     private var spotlightCard: some View {
@@ -815,8 +683,8 @@ struct ArtistPageView: View {
             ArtistSectionBanner(
                 title: "Spotlight",
                 subtitle: spotlightTrack == nil
-                    ? "Profil und Richtung stehen, der musikalische Fokus folgt."
-                    : "Der schnellste Einstieg in Sound, Haltung und aktuellen Vibe.",
+                    ? "Folgt dem Feed"
+                    : "Tippen startet die Preview",
                 icon: "sparkles",
                 colorScheme: colorScheme,
                 accent: artistAccent,
@@ -827,71 +695,43 @@ struct ArtistPageView: View {
                 .font(.title3.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            HStack(spacing: 8) {
-                ArtistPageBadge(
-                    text: "\(tracksViewModel.tracks.count) Song\(tracksViewModel.tracks.count == 1 ? "" : "s")",
-                    colorScheme: colorScheme
-                )
-                if let latestReleaseText {
-                    ArtistPageBadge(
-                        text: latestReleaseText,
-                        colorScheme: colorScheme
-                    )
-                }
-                if !socialLinks.isEmpty {
-                    ArtistPageBadge(
-                        text: "\(socialLinks.count) Links",
-                        colorScheme: colorScheme
-                    )
-                }
-            }
-
             if let spotlightTrack {
-                HStack(alignment: .top, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
                     AsyncImage(url: URL(string: spotlightTrack.artworkUrl100 ?? "")) { image in
                         image
                             .resizable()
                             .scaledToFill()
                     } placeholder: {
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .fill(AppColors.secondaryBackground(for: colorScheme))
                     }
-                    .frame(width: 82, height: 82)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .frame(width: 64, height: 64)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Jetzt entdecken")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(AppColors.spotify(for: colorScheme))
-
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(spotlightTrack.trackName)
-                            .font(.headline.weight(.bold))
+                            .font(.headline.weight(.semibold))
                             .foregroundColor(AppColors.text(for: colorScheme))
 
                         Text(spotlightTrack.collectionName ?? displayPage.artistName)
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        
-                        Text("Direkt unten mit Vorschau oder Spotify weiterhoeren.")
-                            .font(.footnote)
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
                 }
-                .padding(14)
-                .background(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(AppColors.secondaryBackground(for: colorScheme))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .stroke(artistAccent.opacity(0.14), lineWidth: 1)
-                )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    selectedTrackID = spotlightTrack.trackId
+                    withAnimation(.easeInOut(duration: 0.20)) {
+                        audioManager.playPreview(for: spotlightTrack)
+                    }
+                }
             } else {
-                ArtistSupportMessage(
-                    message: displayPage.bio ?? "Noch kein Fokus-Track hinterlegt. Sobald erste Songs oder Links live sind, bekommt dieser Artist hier seinen staerksten Einstiegspunkt.",
-                    colorScheme: colorScheme,
-                    accent: artistAccent
+                Text(
+                    displayPage.bio
+                        ?? "Kein Track im Feed."
                 )
+                .font(.body)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
         }
         .padding(SkydownLayout.cardPadding)
@@ -906,11 +746,7 @@ struct ArtistPageView: View {
         VStack(alignment: .leading, spacing: 14) {
             ArtistSectionBanner(
                 title: "Top Songs",
-                subtitle: tracksViewModel.isLoading
-                    ? "Die Song-Liste wird gerade aus dem Feed geladen."
-                    : topTracks.isEmpty
-                        ? "Sobald Songs im Feed sind, tauchen sie hier direkt auf."
-                        : "Preview, Auswahl und Spotify greifen direkt aus der Liste.",
+                subtitle: topSongsBannerSubtitle,
                 icon: "waveform",
                 colorScheme: colorScheme,
                 accent: AppColors.spotify(for: colorScheme),
@@ -919,7 +755,7 @@ struct ArtistPageView: View {
 
             if tracksViewModel.isLoading {
                 ArtistSupportMessage(
-                    message: "Songs werden geladen ...",
+                    message: "Lade …",
                     colorScheme: colorScheme,
                     accent: AppColors.spotify(for: colorScheme)
                 )
@@ -931,16 +767,17 @@ struct ArtistPageView: View {
                 )
             } else if topTracks.isEmpty {
                 ArtistSupportMessage(
-                    message: "Fuer \(displayPage.artistName) sind gerade noch keine Songs hinterlegt.",
+                    message: "Noch keine Songs.",
                     colorScheme: colorScheme,
                     accent: AppColors.accentMystic(for: colorScheme)
                 )
             } else {
-                ForEach(topTracks) { track in
+                ForEach(Array(topTracks.enumerated()), id: \.1.trackId) { index, track in
                     TrackView(
                         track: track,
                         audioManager: audioManager,
-                        isSelected: selectedTrackID == track.trackId
+                        isSelected: selectedTrackID == track.trackId,
+                        presentation: index == 0 ? .featured : (index == 1 ? .secondary : .catalog)
                     ) {
                         selectedTrackID = track.trackId
                     }
@@ -959,7 +796,7 @@ struct ArtistPageView: View {
         VStack(alignment: .leading, spacing: 14) {
             ArtistSectionBanner(
                 title: "Connect",
-                subtitle: "Direkt raus aus der App auf die aktiven Plattformen des Artists.",
+                subtitle: "Instagram, Spotify, YouTube",
                 icon: "arrow.up.forward.square",
                 colorScheme: colorScheme,
                 accent: artistSecondaryAccent,
@@ -968,7 +805,7 @@ struct ArtistPageView: View {
 
             if socialLinks.isEmpty {
                 ArtistSupportMessage(
-                    message: "Noch keine Links hinterlegt. Sobald Instagram, Spotify oder YouTube gesetzt sind, entsteht hier die direkte Artist-Tuer nach draussen.",
+                    message: "Noch keine Links im Profil.",
                     colorScheme: colorScheme,
                     accent: artistSecondaryAccent
                 )
@@ -1033,7 +870,7 @@ struct ArtistPageView: View {
         VStack(alignment: .leading, spacing: 12) {
             ArtistSectionBanner(
                 title: "Artist Page bearbeiten",
-                subtitle: "Media, Copy und Links bleiben lokal in der Vorschau, bis du speicherst.",
+                subtitle: "Vorschau bis Speichern",
                 icon: "slider.horizontal.3",
                 colorScheme: colorScheme,
                 accent: artistSecondaryAccent,
@@ -1166,12 +1003,12 @@ struct ArtistPageView: View {
     private var socialLinks: [ArtistPageSocialLink] {
         var links: [ArtistPageSocialLink] = []
 
-        if let instagramURL = displayPage.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines), !instagramURL.isEmpty {
+        if let instagramURL = pageForConnect.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines), !instagramURL.isEmpty {
             links.append(
                 ArtistPageSocialLink(
                     kind: .instagram,
                     title: "Instagram",
-                    subtitle: displayPage.artistName,
+                    subtitle: pageForConnect.artistName,
                     url: instagramURL,
                     systemImage: "camera.fill",
                     tint: AppColors.instagramStart(for: colorScheme),
@@ -1181,7 +1018,7 @@ struct ArtistPageView: View {
             )
         }
 
-        if let spotifyURL = displayPage.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines), !spotifyURL.isEmpty {
+        if let spotifyURL = pageForConnect.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines), !spotifyURL.isEmpty {
             links.append(
                 ArtistPageSocialLink(
                     kind: .spotify,
@@ -1196,7 +1033,7 @@ struct ArtistPageView: View {
             )
         }
 
-        if let youtubeURL = displayPage.youtubeURL?.trimmingCharacters(in: .whitespacesAndNewlines), !youtubeURL.isEmpty {
+        if let youtubeURL = pageForConnect.youtubeURL?.trimmingCharacters(in: .whitespacesAndNewlines), !youtubeURL.isEmpty {
             links.append(
                 ArtistPageSocialLink(
                     kind: .youtube,
@@ -1312,43 +1149,6 @@ private func parseStudioPriceItems(from rawValue: String) -> [StudioPriceItem] {
         }
 }
 
-private struct ArtistSessionSignalCard: View {
-    let title: String
-    let value: String
-    let detail: String
-    let accent: Color
-    let colorScheme: ColorScheme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(title.uppercased())
-                .font(.caption2.weight(.bold))
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-            Text(value)
-                .font(.subheadline.weight(.bold))
-                .foregroundColor(AppColors.text(for: colorScheme))
-                .lineLimit(1)
-
-            Text(detail)
-                .font(.caption)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                .lineLimit(1)
-        }
-        .frame(width: 136, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 11)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AppColors.secondaryBackground(for: colorScheme))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(accent.opacity(0.16), lineWidth: 1)
-        )
-    }
-}
-
 private enum ArtistPageEditableImageTarget: String, Identifiable, Equatable {
     case profile
     case hero
@@ -1440,7 +1240,7 @@ private struct ArtistPageBadge: View {
 
 private struct ArtistSectionBanner: View {
     let title: String
-    let subtitle: String
+    var subtitle: String? = nil
     let icon: String
     let colorScheme: ColorScheme
     let accent: Color
@@ -1463,10 +1263,12 @@ private struct ArtistSectionBanner: View {
                     .font(.title3.weight(.black))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text(subtitle)
-                    .font(.footnote.weight(.medium))
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    .lineSpacing(2)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.footnote.weight(.medium))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineSpacing(2)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -1517,20 +1319,6 @@ private struct ArtistSupportMessage: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(accent.opacity(0.18), lineWidth: 1)
         )
-    }
-}
-
-private struct ArtistHeroTag: View {
-    let text: String
-    let background: Color
-
-    var body: some View {
-        Text(text)
-            .font(.caption.weight(.bold))
-            .foregroundColor(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(background, in: Capsule())
     }
 }
 

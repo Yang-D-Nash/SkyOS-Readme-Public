@@ -38,7 +38,7 @@ class MusicViewModel: ObservableObject {
             showUserToast("Spotify ist bereit. Du kannst nahtlos weiterhoeren.", style: .success)
         } catch {
             showUserToast(
-                "Spotify ist gerade nicht erreichbar. In-App-Previews bleiben aktiv, sobald verfuegbar.",
+                "Spotify ist gerade nicht erreichbar. Bitte etwas spaeter erneut versuchen.",
                 style: .info
             )
         }

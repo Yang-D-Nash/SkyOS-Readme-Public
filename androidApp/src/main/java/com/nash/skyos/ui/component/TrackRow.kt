@@ -80,7 +80,7 @@ fun TrackRow(
     isPlaying: Boolean,
     isSelected: Boolean,
     onSelectTrack: () -> Unit,
-    onPlayToggle: () -> Unit,
+    onPlayToggle: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     presentation: TrackRowPresentation = TrackRowPresentation.Featured,
 ) {
@@ -88,6 +88,8 @@ fun TrackRow(
     val haptics = LocalHapticFeedback.current
     var showSpotifyPlayer by rememberSaveable(track.trackId) { mutableStateOf(false) }
     val hasPreview = !track.previewUrl.isNullOrBlank()
+    val allowInAppPreview = onPlayToggle != null
+    val hasPreviewCta = hasPreview && allowInAppPreview
     val hasExternalLink = !track.externalUrl.isNullOrBlank()
     val hasDirectSpotifyTrack = resolvedSpotifyTrackId(track.spotifyTrackId, track.externalUrl) != null
     val hasSpotifyArtistLink = resolvedSpotifyArtistId(track.spotifyArtistId, track.externalUrl) != null && !hasDirectSpotifyTrack
@@ -95,6 +97,9 @@ fun TrackRow(
     val isFeatured = presentation == TrackRowPresentation.Featured
     val isSecondary = presentation == TrackRowPresentation.Secondary
     val isCatalog = presentation == TrackRowPresentation.Catalog
+    val hasCtaOrExternalOptions =
+        hasPreviewCta || hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch
+    val hideStatusPillDuplicates = isFeatured && hasCtaOrExternalOptions
     val artSize = when (presentation) {
         TrackRowPresentation.Catalog -> 52.dp
         TrackRowPresentation.Secondary -> 58.dp
@@ -108,8 +113,9 @@ fun TrackRow(
     val selectionTween = remember {
         tween<Color>(durationMillis = SkydownMotionTokens.selectionCrossFadeMillis, easing = FastOutSlowInEasing)
     }
+    val playingSurface = isPlaying && allowInAppPreview
     val containerColor by animateColorAsState(
-        targetValue = if (isPlaying) {
+        targetValue = if (playingSurface) {
             MaterialTheme.colorScheme.primaryContainer
         } else if (isSelected) {
             MaterialTheme.colorScheme.secondaryContainer.copy(
@@ -131,13 +137,13 @@ fun TrackRow(
         animationSpec = selectionTween,
         label = "track_container",
     )
-    val contentColor = if (isPlaying) {
+    val contentColor = if (playingSurface) {
         MaterialTheme.colorScheme.onPrimaryContainer
     } else {
         MaterialTheme.colorScheme.onSurface
     }
     val borderColor by animateColorAsState(
-        targetValue = if (isPlaying) {
+        targetValue = if (playingSurface) {
             MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
         } else if (isSelected) {
             MaterialTheme.colorScheme.secondary.copy(
@@ -178,7 +184,7 @@ fun TrackRow(
         shape = cardShape,
         color = containerColor,
         contentColor = contentColor,
-        tonalElevation = if (isPlaying) {
+        tonalElevation = if (playingSurface) {
             when (presentation) {
                 TrackRowPresentation.Catalog -> 0.dp
                 TrackRowPresentation.Secondary -> 1.dp
@@ -187,7 +193,7 @@ fun TrackRow(
         } else {
             0.dp
         },
-        shadowElevation = if (isPlaying) {
+        shadowElevation = if (playingSurface) {
             when (presentation) {
                 TrackRowPresentation.Catalog -> 0.dp
                 TrackRowPresentation.Secondary -> 2.dp
@@ -238,7 +244,7 @@ fun TrackRow(
                             } else {
                                 MaterialTheme.typography.labelMedium
                             },
-                            color = if (isPlaying) {
+                            color = if (playingSurface) {
                                 MaterialTheme.colorScheme.onPrimaryContainer
                             } else {
                                 MaterialTheme.colorScheme.primary
@@ -266,18 +272,19 @@ fun TrackRow(
                     if (isFeatured) {
                         Text(
                             text = when {
-                                hasPreview && hasDirectSpotifyTrack -> "Preview ruhig hier oder direkt weiter in Spotify."
-                                hasPreview && hasSpotifyArtistLink -> "Preview hier oder direkt zum Artist auf Spotify."
-                                hasPreview && hasSpotifySearch -> "Preview hier oder den Track in Spotify suchen."
-                                hasPreview -> "Preview direkt in der App."
+                                hasPreviewCta && hasDirectSpotifyTrack -> "Preview ruhig hier oder direkt weiter in Spotify."
+                                hasPreviewCta && hasSpotifyArtistLink -> "Preview hier oder direkt zum Artist auf Spotify."
+                                hasPreviewCta && hasSpotifySearch -> "Preview hier oder den Track in Spotify suchen."
+                                hasPreviewCta -> "Preview direkt in der App."
                                 hasDirectSpotifyTrack -> "Spotify Player direkt in der App."
                                 hasSpotifyArtistLink -> "Direkt zum Artist auf Spotify."
                                 hasSpotifySearch -> "Track in Spotify suchen."
                                 else -> "Gerade kein externer Link verfuegbar."
                             },
+                            modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.bodySmall,
                             color = contentColor.copy(alpha = 0.72f),
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
@@ -294,48 +301,67 @@ fun TrackRow(
                     }
 
                     if (!isCatalog) {
+                    val showNonCatalogPillRow = (hasPreviewCta && (playingSurface || !hideStatusPillDuplicates)) ||
+                        (isSelected && !playingSurface) ||
+                        (!hideStatusPillDuplicates && (hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch))
+                    if (showNonCatalogPillRow) {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (hasPreview) {
-                            TrackPill(
-                                text = if (isPlaying) "Laeuft" else "Preview",
-                                isHighlighted = isPlaying,
-                            )
+                        if (hasPreviewCta) {
+                            if (playingSurface) {
+                                TrackPill(
+                                    text = "Laeuft",
+                                    isHighlighted = true,
+                                )
+                            } else if (!hideStatusPillDuplicates) {
+                                TrackPill(
+                                    text = "Preview",
+                                    isHighlighted = false,
+                                )
+                            }
                         }
-                        if (isSelected && !isPlaying) {
+                        if (isSelected && !playingSurface) {
                             TrackPill(
                                 text = "Im Player",
                                 isHighlighted = false,
                             )
                         }
                         if (hasDirectSpotifyTrack) {
-                            TrackPill(
-                                text = "Spotify Player",
-                                isHighlighted = false,
-                                accentColor = SpotifyGreen,
-                            )
+                            if (!hideStatusPillDuplicates) {
+                                TrackPill(
+                                    text = "Spotify Player",
+                                    isHighlighted = false,
+                                    accentColor = SpotifyGreen,
+                                )
+                            }
                         } else if (hasSpotifyArtistLink) {
-                            TrackPill(
-                                text = "Spotify Artist",
-                                isHighlighted = false,
-                                accentColor = SpotifyGreen,
-                            )
+                            if (!hideStatusPillDuplicates) {
+                                TrackPill(
+                                    text = "Spotify Artist",
+                                    isHighlighted = false,
+                                    accentColor = SpotifyGreen,
+                                )
+                            }
                         } else if (hasSpotifySearch) {
-                            TrackPill(
-                                text = "Spotify Suche",
-                                isHighlighted = false,
-                                accentColor = SpotifyGreen,
-                            )
+                            if (!hideStatusPillDuplicates) {
+                                TrackPill(
+                                    text = "Spotify Suche",
+                                    isHighlighted = false,
+                                    accentColor = SpotifyGreen,
+                                )
+                            }
                         }
+                    }
                     }
                     } else {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            if (isPlaying) {
+                            if (playingSurface) {
                                 TrackPill(
                                     text = "Laeuft",
                                     isHighlighted = true,
@@ -353,11 +379,12 @@ fun TrackRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        if (hasPreview) {
+                        if (hasPreviewCta) {
+                            val toggle = requireNotNull(onPlayToggle)
                             Button(
                                 onClick = {
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onPlayToggle()
+                                    toggle()
                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
@@ -366,11 +393,11 @@ fun TrackRow(
                                 ),
                             ) {
                                 Icon(
-                                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    imageVector = if (playingSurface) Icons.Default.Pause else Icons.Default.PlayArrow,
                                     contentDescription = null,
                                 )
                                 Text(
-                                    text = if (isPlaying) "Pause" else "Anhoeren",
+                                    text = if (playingSurface) "Pause" else "Anhoeren",
                                     modifier = Modifier.padding(start = 6.dp),
                                 )
                             }
@@ -382,7 +409,7 @@ fun TrackRow(
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     showSpotifyPlayer = true
                                 },
-                                modifier = if (hasPreview) {
+                                modifier = if (hasPreviewCta) {
                                     Modifier
                                         .weight(1f)
                                         .testTag("music.track.spotify.open")
@@ -414,7 +441,7 @@ fun TrackRow(
                                         externalUrl = track.externalUrl,
                                     )
                                 },
-                                modifier = if (hasPreview) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+                                modifier = if (hasPreviewCta) Modifier.weight(1f) else Modifier.fillMaxWidth(),
                                 border = BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.48f)),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = SpotifyGreen,
@@ -428,7 +455,7 @@ fun TrackRow(
                         }
                     }
 
-                    if (!hasPreview && !hasExternalLink) {
+                    if (!hasCtaOrExternalOptions) {
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(999.dp))
@@ -443,7 +470,7 @@ fun TrackRow(
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             )
                             Text(
-                                text = "Gerade keine Preview verfuegbar",
+                                text = "Gerade kein Spotify-Link verfuegbar",
                                 color = contentColor.copy(alpha = 0.75f),
                                 style = MaterialTheme.typography.labelLarge,
                             )

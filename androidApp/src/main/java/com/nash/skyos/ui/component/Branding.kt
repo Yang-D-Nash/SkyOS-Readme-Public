@@ -619,21 +619,27 @@ fun BrandStatusChip(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     isActive: Boolean = true,
-    onClick: () -> Unit = {},
+    onClick: (() -> Unit)? = null,
 ) {
     val contentColor = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+    val interactive = onClick != null
+    val clickHandler = onClick
     val interactionSource = remember { MutableInteractionSource() }
-    val chipModifier = modifier
-        .skydownPressable(
-            interactionSource = interactionSource,
-            pressedScale = 0.992f,
-        )
-        .clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            role = Role.Button,
-            onClick = onClick,
-        )
+    val chipModifier = if (interactive && clickHandler != null) {
+        modifier
+            .skydownPressable(
+                interactionSource = interactionSource,
+                pressedScale = 0.992f,
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Button,
+                onClick = clickHandler,
+            )
+    } else {
+        modifier
+    }
 
     Row(
         modifier = chipModifier
@@ -658,19 +664,21 @@ fun BrandStatusChip(
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
         )
-        Box(
-            modifier = Modifier
-                .size(18.dp)
-                .clip(CircleShape)
-                .background(contentColor.copy(alpha = 0.10f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = contentColor.copy(alpha = 0.82f),
-                modifier = Modifier.size(11.dp),
-            )
+        if (interactive) {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(contentColor.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = contentColor.copy(alpha = 0.82f),
+                    modifier = Modifier.size(11.dp),
+                )
+            }
         }
     }
 }
@@ -836,20 +844,26 @@ private fun Color.perceivedBrightness(): Float = (red * 0.299f) + (green * 0.587
 fun BrandPill(
     text: String,
     tint: Color,
-    onClick: () -> Unit = {},
+    onClick: (() -> Unit)? = null,
 ) {
+    val interactive = onClick != null
+    val clickHandler = onClick
     val interactionSource = remember { MutableInteractionSource() }
-    val pillModifier = Modifier
-        .skydownPressable(
-            interactionSource = interactionSource,
-            pressedScale = 0.993f,
-        )
-        .clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            role = Role.Button,
-            onClick = onClick,
-        )
+    val pillModifier = if (interactive && clickHandler != null) {
+        Modifier
+            .skydownPressable(
+                interactionSource = interactionSource,
+                pressedScale = 0.993f,
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Button,
+                onClick = clickHandler,
+            )
+    } else {
+        Modifier
+    }
 
     Box(
         modifier = pillModifier
@@ -873,25 +887,30 @@ fun BrandPill(
                 ),
                 shape = RoundedCornerShape(999.dp),
             )
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(
+                horizontal = if (interactive) 14.dp else 12.dp,
+                vertical = 8.dp,
+            ),
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(18.dp)
-                    .clip(CircleShape)
-                    .background(tint.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = tint.copy(alpha = 0.82f),
-                    modifier = Modifier.size(11.dp),
-                )
+            if (interactive) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(tint.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = tint.copy(alpha = 0.82f),
+                        modifier = Modifier.size(11.dp),
+                    )
+                }
             }
             Text(
                 text = text,
