@@ -341,12 +341,21 @@ private struct HomeFullscreenVideoViewer: View {
                     HStack {
                         Spacer()
 
-                        SkydownVideoFullscreenPlaybackButton(isPlaying: isPlaying) {
-                            togglePlayback()
-                        }
+                        SkydownVideoFullscreenControlBar(
+                            isPlaying: isPlaying,
+                            showsClipNavigation: false,
+                            canGoToPreviousClip: false,
+                            canGoToNextClip: false,
+                            onPreviousClip: {},
+                            onRewind: { seekCurrentVideo(by: -10) },
+                            onPlayPause: togglePlayback,
+                            onForward: { seekCurrentVideo(by: 10) },
+                            onNextClip: {},
+                            onClose: { dismiss() }
+                        )
                     }
                     .padding(.trailing, 18)
-                    .padding(.bottom, max(proxy.safeAreaInsets.bottom + 18, 30))
+                    .padding(.bottom, max(proxy.safeAreaInsets.bottom + 82, 94))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .zIndex(14)
                 }
@@ -389,6 +398,26 @@ private struct HomeFullscreenVideoViewer: View {
             player.play()
             isPlaying = true
         }
+    }
+
+    private func seekCurrentVideo(by seconds: Double) {
+        guard supportsAppPlaybackControls else { return }
+        let currentSeconds = player.currentTime().seconds
+        guard currentSeconds.isFinite else { return }
+
+        var targetSeconds = currentSeconds + seconds
+        if let durationSeconds = player.currentItem?.duration.seconds,
+           durationSeconds.isFinite,
+           durationSeconds > 0 {
+            targetSeconds = min(targetSeconds, durationSeconds)
+        }
+        targetSeconds = max(0, targetSeconds)
+
+        player.seek(
+            to: CMTime(seconds: targetSeconds, preferredTimescale: 600),
+            toleranceBefore: .zero,
+            toleranceAfter: .zero
+        )
     }
 }
 

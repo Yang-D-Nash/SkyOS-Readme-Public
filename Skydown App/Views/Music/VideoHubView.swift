@@ -1627,12 +1627,21 @@ private struct VideoReelViewer: View {
                                     HStack {
                                         Spacer()
 
-                                        SkydownVideoFullscreenPlaybackButton(isPlaying: isPlaying) {
-                                            togglePlayback()
-                                        }
+                                        SkydownVideoFullscreenControlBar(
+                                            isPlaying: isPlaying,
+                                            showsClipNavigation: videos.count > 1,
+                                            canGoToPreviousClip: currentIndex > 0,
+                                            canGoToNextClip: currentIndex < videos.count - 1,
+                                            onPreviousClip: goToPreviousVideo,
+                                            onRewind: { seekCurrentVideo(by: -10) },
+                                            onPlayPause: togglePlayback,
+                                            onForward: { seekCurrentVideo(by: 10) },
+                                            onNextClip: goToNextVideo,
+                                            onClose: { dismiss() }
+                                        )
                                     }
                                     .padding(.trailing, 20)
-                                    .padding(.bottom, 30)
+                                    .padding(.bottom, 82)
                                     .frame(maxWidth: .infinity)
                                 }
                                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
@@ -1679,17 +1688,21 @@ private struct VideoReelViewer: View {
                         }
                     }
 
-                        Spacer()
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, max(proxy.safeAreaInsets.top + 12, 22))
+                .frame(maxWidth: .infinity, alignment: .top)
+                .zIndex(1_100)
 
-                        SkydownVideoFullscreenCloseButton {
-                            dismiss()
-                        }
-                        .zIndex(1_100)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, max(proxy.safeAreaInsets.top + 12, 22))
-                    .frame(maxWidth: .infinity, alignment: .top)
-                    .zIndex(1_100)
+                SkydownVideoFullscreenCloseButton {
+                    dismiss()
+                }
+                .position(
+                    x: max(proxy.size.width - 46, 46),
+                    y: max(proxy.safeAreaInsets.top + 48, 56)
+                )
+                .zIndex(2_000)
 
                 if isTransitioning {
                     VStack(spacing: 10) {
@@ -1752,6 +1765,36 @@ private struct VideoReelViewer: View {
             player.play()
             isPlaying = true
         }
+    }
+
+    private func goToPreviousVideo() {
+        guard currentIndex > 0 else { return }
+        currentIndex -= 1
+    }
+
+    private func goToNextVideo() {
+        guard currentIndex < videos.count - 1 else { return }
+        currentIndex += 1
+    }
+
+    private func seekCurrentVideo(by seconds: Double) {
+        guard currentVideoSupportsAppControls else { return }
+        let currentSeconds = player.currentTime().seconds
+        guard currentSeconds.isFinite else { return }
+
+        var targetSeconds = currentSeconds + seconds
+        if let durationSeconds = player.currentItem?.duration.seconds,
+           durationSeconds.isFinite,
+           durationSeconds > 0 {
+            targetSeconds = min(targetSeconds, durationSeconds)
+        }
+        targetSeconds = max(0, targetSeconds)
+
+        player.seek(
+            to: CMTime(seconds: targetSeconds, preferredTimescale: 600),
+            toleranceBefore: .zero,
+            toleranceAfter: .zero
+        )
     }
 
     private func playCurrent() {
@@ -3014,36 +3057,109 @@ struct SkydownVideoFullscreenCloseButton: View {
     }
 }
 
-struct SkydownVideoFullscreenPlaybackButton: View {
+struct SkydownVideoFullscreenControlBar: View {
     let isPlaying: Bool
+    let showsClipNavigation: Bool
+    let canGoToPreviousClip: Bool
+    let canGoToNextClip: Bool
+    let onPreviousClip: () -> Void
+    let onRewind: () -> Void
+    let onPlayPause: () -> Void
+    let onForward: () -> Void
+    let onNextClip: () -> Void
+    let onClose: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if showsClipNavigation {
+                SkydownVideoFullscreenIconButton(
+                    systemImage: "backward.end.fill",
+                    accessibilityLabel: "Vorheriger Clip",
+                    isEnabled: canGoToPreviousClip,
+                    action: onPreviousClip
+                )
+            }
+
+            SkydownVideoFullscreenIconButton(
+                systemImage: "gobackward.10",
+                accessibilityLabel: "10 Sekunden zurueck",
+                action: onRewind
+            )
+
+            SkydownVideoFullscreenIconButton(
+                systemImage: isPlaying ? "pause.fill" : "play.fill",
+                accessibilityLabel: isPlaying ? "Video pausieren" : "Video abspielen",
+                isProminent: true,
+                action: onPlayPause
+            )
+
+            SkydownVideoFullscreenIconButton(
+                systemImage: "goforward.10",
+                accessibilityLabel: "10 Sekunden vor",
+                action: onForward
+            )
+
+            if showsClipNavigation {
+                SkydownVideoFullscreenIconButton(
+                    systemImage: "forward.end.fill",
+                    accessibilityLabel: "Naechster Clip",
+                    isEnabled: canGoToNextClip,
+                    action: onNextClip
+                )
+            }
+
+            Rectangle()
+                .fill(Color.white.opacity(0.18))
+                .frame(width: 1, height: 24)
+                .padding(.horizontal, 2)
+
+            SkydownVideoFullscreenIconButton(
+                systemImage: "xmark",
+                accessibilityLabel: "Video schliessen",
+                isProminent: true,
+                action: onClose
+            )
+        }
+        .padding(6)
+        .background(
+            Capsule()
+                .fill(Color.black.opacity(0.58))
+        )
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Color.white.opacity(0.22), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.36), radius: 16, x: 0, y: 7)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("video.fullscreen.controls")
+    }
+}
+
+private struct SkydownVideoFullscreenIconButton: View {
+    let systemImage: String
+    let accessibilityLabel: String
+    var isProminent = false
+    var isEnabled = true
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            ZStack {
-                Capsule()
-                    .fill(Color.black.opacity(0.54))
-                Capsule()
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.70)
-
-                Label(isPlaying ? "Pause" : "Play", systemImage: isPlaying ? "pause.fill" : "play.fill")
-                    .font(.footnote.weight(.bold))
-                    .foregroundColor(.white)
-                    .labelStyle(.iconOnly)
-            }
-            .frame(width: 54, height: 46)
-            .overlay(
-                Capsule()
-                    .stroke(Color.white.opacity(0.24), lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.34), radius: 14, x: 0, y: 6)
+            Image(systemName: systemImage)
+                .font(.system(size: isProminent ? 15 : 14, weight: .bold))
+                .foregroundColor(.white.opacity(isEnabled ? 0.96 : 0.38))
+                .frame(width: isProminent ? 40 : 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(isProminent ? Color.white.opacity(0.16) : Color.white.opacity(0.08))
+                )
         }
         .buttonStyle(.plain)
-        .contentShape(Capsule())
+        .contentShape(Circle())
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.48)
         .skydownTactileAction()
-        .accessibilityLabel(isPlaying ? "Video pausieren" : "Video abspielen")
-        .accessibilityIdentifier("video.fullscreen.playback")
+        .accessibilityLabel(accessibilityLabel)
     }
 }
 
