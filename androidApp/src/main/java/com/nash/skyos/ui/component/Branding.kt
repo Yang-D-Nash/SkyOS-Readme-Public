@@ -52,6 +52,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.nash.skyos.R
@@ -116,6 +117,8 @@ fun BrandHeroCard(
     immersive: Boolean = false,
     /** Volle Header-Buehne statt Card im gepolsterten Scroll-Stack. */
     edgeToEdge: Boolean = false,
+    /** Zusaetzlicher Abstand fuer Inhalte, wenn die Buehne hinter eine transparente Topbar laeuft. */
+    topContentPadding: Dp = 0.dp,
     /** Tap auf Titelzeile (ohne Footer mit Pills) — gleiche Fläche wie iOS `onSurfaceTap`. */
     onSurfaceClick: (() -> Unit)? = null,
     footer: @Composable ColumnScope.() -> Unit = {},
@@ -322,7 +325,9 @@ fun BrandHeroCard(
         }
 
         Column(
-            modifier = Modifier.padding(horizontal = contentHorizontalPadding, vertical = contentVerticalPadding),
+            modifier = Modifier
+                .padding(horizontal = contentHorizontalPadding)
+                .padding(top = contentVerticalPadding + topContentPadding, bottom = contentVerticalPadding),
             verticalArrangement = Arrangement.spacedBy(contentSpacing),
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {

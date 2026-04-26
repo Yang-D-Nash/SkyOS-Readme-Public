@@ -1803,7 +1803,6 @@ private fun ZweizweiMusicLaneScreen(
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
                     .skydownAtmosphereBackground(
                         primaryColor = SpotifyGreen,
                         secondaryColor = MaterialTheme.colorScheme.secondary,
@@ -1857,9 +1856,9 @@ private fun ZweizweiMusicLaneScreen(
                         state = hubListState,
                         contentPadding = PaddingValues(
                             start = resolvedHubHorizontalPadding,
-                            top = resolvedHubTopPadding,
+                            top = 0.dp,
                             end = resolvedHubHorizontalPadding,
-                            bottom = resolvedHubBottomPadding + hubBottomScrollReserve,
+                            bottom = innerPadding.calculateBottomPadding() + resolvedHubBottomPadding + hubBottomScrollReserve,
                         ),
                         verticalArrangement = Arrangement.spacedBy(resolvedHubSectionSpacing),
                         userScrollEnabled = true,
@@ -1876,6 +1875,7 @@ private fun ZweizweiMusicLaneScreen(
                                 marks = listOf(BrandArtwork.Zweizwei),
                                 compactVisualDensity = useCompactHubHero,
                                 edgeToEdge = true,
+                                topContentPadding = innerPadding.calculateTopPadding() + resolvedHubTopPadding,
                                 onSurfaceClick = {
                                     catalogInitialArtist = "JANNO"
                                     destination = ZweizweiMusicDestination.Catalog

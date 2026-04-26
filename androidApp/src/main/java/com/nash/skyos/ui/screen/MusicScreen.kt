@@ -76,6 +76,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -96,12 +97,12 @@ import com.nash.skyos.ui.component.BrandStatusChip
 import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownTopBarTitle
+import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.TrackRow
 import com.nash.skyos.ui.component.TrackRowPresentation
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
-import com.nash.skyos.ui.component.skydownContentPadding
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.component.openTrackInSpotify
 import com.nash.skyos.ui.model.MusicUiState
@@ -375,13 +376,19 @@ fun MusicScreen(
                         .widthIn(max = contentMaxWidth)
                         .testTag("music.screen.root"),
                     state = listState,
-                    contentPadding = skydownContentPadding(innerPadding),
+                    contentPadding = PaddingValues(
+                        start = SkydownUiTokens.screenHorizontalPadding,
+                        top = 0.dp,
+                        end = SkydownUiTokens.screenHorizontalPadding,
+                        bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding,
+                    ),
                     verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                 ) {
                     item {
                         MusicOverviewCard(
                             uiState = uiState,
                             compactVisualDensity = compactVisualDensity,
+                            topContentPadding = innerPadding.calculateTopPadding(),
                             onOpenArtistPage = onOpenArtistPage?.let { openArtistPage ->
                                 { openArtistPage(uiState.selectedArtist) }
                             },
@@ -951,6 +958,7 @@ private fun MusicPlayerCard(
 private fun MusicOverviewCard(
     uiState: MusicUiState,
     compactVisualDensity: Boolean,
+    topContentPadding: Dp = 0.dp,
     onOpenArtistPage: (() -> Unit)?,
     onOpenSpotlight: () -> Unit,
     onOpenArtistHub: () -> Unit,
@@ -978,6 +986,7 @@ private fun MusicOverviewCard(
         marks = listOf(BrandArtwork.Zweizwei),
         compactVisualDensity = compactVisualDensity,
         edgeToEdge = true,
+        topContentPadding = topContentPadding,
         onSurfaceClick = onOpenTracks,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
