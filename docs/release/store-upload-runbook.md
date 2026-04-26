@@ -9,22 +9,22 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10004`
+- Build: `10005`
 - Team ID: `F3BNLG6L7P`
 
 ### Android
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10009`
+- versionCode: `10011`
 - Play Billing Library: `8.3.0`
 
 ## Build Artifacts
 
-- iOS archive: `build/ios/SkyOS-1.0.0-10004-20260426.xcarchive` (rebuilt 2026-04-26 Europe/Berlin)
-- iOS upload export options used: `build/ios/ExportOptions-AppStore-Upload-10004.plist`
+- iOS archive: `build/ios/SkyOS-1.0.0-10005-20260426.xcarchive` (rebuilt 2026-04-26 Europe/Berlin)
+- iOS upload export options used: `build/ios/ExportOptions-AppStore-Upload-10005.plist`
 - iOS upload: direct App Store Connect upload from archive; uploaded package is processing.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-26 Europe/Berlin, versionCode `10009`)
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-26 Europe/Berlin, versionCode `10011`)
 - Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (`18997697` bytes, rebuilt 2026-04-25 13:12:14 Europe/Berlin)
 
 ## Upload Status
@@ -34,12 +34,13 @@ Owner: Release Engineering
 - App Store Connect archive export/upload: DONE
 - Processing status: uploaded package is processing in App Store Connect
 - Notes:
-  - Build `10004` uploaded successfully on 2026-04-26 via `xcodebuild -exportArchive` with `destination=upload`.
+  - Build `10005` uploaded successfully on 2026-04-26 via `xcodebuild -exportArchive` with `destination=upload`.
   - Xcode reported missing dSYMs for Firebase binary frameworks during symbol upload; app package upload still succeeded.
+  - Previous build `10004` was superseded by build `10005` for the public Video Hub player cleanup.
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: DONE for versionCode `10009`
+- Release AAB build: DONE for versionCode `10011`
 - Play upload automation: CONFIGURED via Fastlane `upload_android_internal`
 - CLI upload attempt: BLOCKED
 - Blocker details:
@@ -48,10 +49,10 @@ Owner: Release Engineering
 
 ## Execution Log (Direct Upload Run)
 
-1. Rebuilt Android release bundle (`./gradlew :androidApp:bundleRelease`) -> `BUILD SUCCESSFUL` for versionCode `10009`.
-2. Rebuilt iOS archive (`xcodebuild archive`) -> `ARCHIVE SUCCEEDED` for build `10004`.
-3. Uploaded iOS build `10004` to App Store Connect (`xcodebuild -exportArchive` with `destination=upload`) -> `EXPORT SUCCEEDED`; uploaded package is processing.
-4. Attempted Play upload via `fastlane android upload_android_internal`; stopped at missing `SUPPLY_JSON_KEY`.
+1. Rebuilt Android release bundle (`./gradlew :androidApp:bundleRelease`) -> `BUILD SUCCESSFUL` for versionCode `10011`.
+2. Rebuilt iOS archive (`xcodebuild archive`) -> `ARCHIVE SUCCEEDED` for build `10005`.
+3. Uploaded iOS build `10005` to App Store Connect (`xcodebuild -exportArchive` with `destination=upload`) -> `EXPORT SUCCEEDED`; uploaded package is processing.
+4. Play upload via CLI was not rerun because `SUPPLY_JSON_KEY` is still unset; upload the AAB manually or rerun Fastlane after exporting the service-account JSON path.
 
 ## Post-Upload Hardening Notes
 
@@ -64,6 +65,8 @@ Owner: Release Engineering
 - Public privacy/terms pages no longer expose beta placeholders or "not final before release" wording.
 - iOS and Android in-app legal defaults now use the same operator/contact baseline as the public legal pages.
 - App Check defaults are set to enforce in code; verify production runtime config does not override them back to monitor/soft-fail.
+- Public Video Hub now opens a focused player/reel instead of showing a scrollable public video list; owner-only video ordering, Home feature control, and deletion remain in the admin/premium control sheet.
+- Android Music Hub uses a real lazy scroll surface so new sections can grow without blocking the page.
 
 ## Backend Deployment Log
 
@@ -111,18 +114,20 @@ Suggested review note text:
 ### iOS "What to Test" / TestFlight notes
 - Unified first-session growth tracking events across startup, onboarding, signup, and first value.
 - Stability and trust cleanup across launch and public-facing support/legal surfaces.
+- Video Hub player flow replaces the public video list; owner controls stay admin-only.
 - General reliability and navigation polish.
 
 ### Google Play release notes
 - Unified first-session growth tracking events across startup, onboarding, signup, and first value.
 - Stability and trust cleanup across launch and public-facing support/legal surfaces.
+- Video Hub player flow replaces the public video list; owner controls stay admin-only.
 - General reliability and navigation polish.
 
 ## Manual Remaining Tasks
 
 1. Confirm final legal approval for public privacy/terms wording.
 2. Confirm final production domain and replace URL placeholders in App Store Connect and Play Console.
-3. Verify subscription product setup status for iOS build `10004` and Android versionCode `10009`.
+3. Verify subscription product setup status for iOS build `10005` and Android versionCode `10011`.
 4. Update production Firestore `appConfig/legalContent` and `appConfig/commerceSettings` if old remote operator/legal values still exist.
 5. Firestore/Storage rules were deployed on 2026-04-25; fixed owner Firebase Auth account was verified with `emailVerified=true`.
 6. Verify data safety/privacy forms reflect actual SDK usage:
@@ -134,7 +139,7 @@ Suggested review note text:
    - Not used by current binaries: precise/coarse location, camera capture, microphone, contacts, calendar. Photo/video selection uses system pickers; Android `WRITE_EXTERNAL_STORAGE` is capped to API 28 only for saving generated images.
 7. Upload and map final screenshot sets for iPhone and Android phone form factors.
 8. Set age rating/content rating questionnaires in both consoles.
-9. Build numbers are current for the 2026-04-26 upload set: iOS `10004`, Android `10009`.
+9. Build numbers are current for the 2026-04-26 upload set: iOS `10005`, Android `10011`.
 
 ## Go/No-Go Checklist
 
@@ -154,7 +159,7 @@ Suggested review note text:
 2. Go to **My Apps** -> select/create app for bundle `com.skydown.ios`.
 3. Open **TestFlight** tab.
 4. Under **Builds**, click **+** (or wait for uploaded build).
-5. Wait for uploaded build `10004` to finish processing, then attach it to Internal Testers.
+5. Wait for uploaded build `10005` to finish processing, then attach it to Internal Testers.
 6. When build appears, assign to Internal Testers first.
 7. Fill **App Information** and **App Privacy** sections.
 8. Fill **Pricing and Availability** (manual business decision required).
@@ -166,7 +171,7 @@ Suggested review note text:
 1. Open [Google Play Console](https://play.google.com/console/).
 2. Select app with package `com.nash.skyos` (or create it if missing).
 3. Go to **Testing** -> **Internal testing** (or **Closed testing**).
-4. Create/Edit release and upload `androidApp/build/outputs/bundle/release/androidApp-release.aab` (versionCode `10009`).
+4. Create/Edit release and upload `androidApp/build/outputs/bundle/release/androidApp-release.aab` (versionCode `10011`).
 5. Add release notes and save.
 6. Go to **Store presence** and complete store listing fields.
 7. Go to **App content** and complete:

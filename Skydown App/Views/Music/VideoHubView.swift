@@ -14,7 +14,6 @@ import UniformTypeIdentifiers
 import WebKit
 
 private enum VideoHubSectionAnchor: String {
-    case videos
     case equipment
     case collaborations
 }
@@ -62,9 +61,7 @@ struct VideoHubView: View {
                 VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     heroCard(
                         onOpenVideos: {
-                            withAnimation(SkydownMotion.smoothScroll) {
-                                scrollProxy.scrollTo(VideoHubSectionAnchor.videos.rawValue, anchor: .top)
-                            }
+                            openVideoPlayer()
                         },
                         onOpenEquipment: {
                             withAnimation(SkydownMotion.smoothScroll) {
@@ -81,6 +78,7 @@ struct VideoHubView: View {
                         uploadCard
                             .transition(.move(edge: .top).combined(with: .opacity))
                     }
+                    playerCard
                     VideoEquipmentCard(
                         colorScheme: colorScheme,
                         items: viewModel.publicConfig.equipmentItems,
@@ -89,9 +87,6 @@ struct VideoHubView: View {
                         }
                     )
                     .id(VideoHubSectionAnchor.equipment.rawValue)
-                    playerCard
-                    libraryCard
-                        .id(VideoHubSectionAnchor.videos.rawValue)
                     collaborationsCard
                         .id(VideoHubSectionAnchor.collaborations.rawValue)
 
@@ -199,6 +194,7 @@ struct VideoHubView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
                     formatCard
+                    libraryCard
                     VideoPublicConfigEditorCard(
                         colorScheme: colorScheme,
                         viewModel: viewModel
@@ -254,6 +250,13 @@ struct VideoHubView: View {
             urlString: url.absoluteString,
             title: video.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Original" : video.title
         )
+    }
+
+    private func openVideoPlayer() {
+        guard !viewModel.videos.isEmpty else { return }
+        playbackManager.player.pause()
+        activePresentedSheetBinding.wrappedValue = nil
+        showingReelViewer = true
     }
 
     private func videoHubRowPresentation(index: Int, total: Int) -> VideoHubLibraryRowPresentation {
@@ -670,7 +673,18 @@ struct VideoHubView: View {
                     .padding(16)
                 }
 
-                if let youTubeItem = selectedVideo.youTubeItem {
+                if selectedVideo.supportsInlinePlayback && selectedVideo.youTubeItem == nil {
+                    Button {
+                        openVideoPlayer()
+                    } label: {
+                        Label("Player oeffnen", systemImage: "rectangle.portrait.and.arrow.right")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accentMystic(for: colorScheme))
+                } else if let youTubeItem = selectedVideo.youTubeItem {
                     Button {
                         presentSheet(.youTube(youTubeItem))
                     } label: {
@@ -701,19 +715,6 @@ struct VideoHubView: View {
                             ? AppColors.accentMystic(for: colorScheme)
                             : AppColors.accent(for: colorScheme)
                     )
-                } else if selectedVideo.supportsInlinePlayback {
-                    Button {
-                        playbackManager.player.pause()
-                        activePresentedSheetBinding.wrappedValue = nil
-                        showingReelViewer = true
-                    } label: {
-                        Label("Im Video ansehen", systemImage: "rectangle.portrait.and.arrow.right")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppColors.accentMystic(for: colorScheme))
                 }
 
                 if !selectedVideo.notes.isEmpty {
@@ -722,7 +723,7 @@ struct VideoHubView: View {
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
             } else {
-                Text("Noch kein Fokus-Video aktiv. Waehle einen Clip aus der Library oder aktualisiere den Hub.")
+                Text("Noch kein Fokus-Video aktiv. Sobald ein Clip freigegeben ist, erscheint er hier.")
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -784,9 +785,11 @@ struct VideoHubView: View {
                             playbackManager.load(video: video)
                             playbackManager.player.pause()
                             activePresentedSheetBinding.wrappedValue = nil
+                            showingAdminEditor = false
                             showingReelViewer = true
                         },
                         onOpenOriginal: {
+                            showingAdminEditor = false
                             openOriginalVideo(video)
                         },
                         onToggleHomeFeatured: {

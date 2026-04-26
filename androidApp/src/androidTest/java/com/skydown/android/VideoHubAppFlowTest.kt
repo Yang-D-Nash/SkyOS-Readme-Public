@@ -11,7 +11,6 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -33,18 +32,16 @@ class VideoHubAppFlowTest {
     )
 
     @Test
-    fun videoHubOriginalViewerCanBeClosedFromAppFlow() {
+    fun videoHubPlayerCanBeOpenedFromAppFlow() {
         composeRule.waitUntilAtLeastOneExists(hasTestTag("video.hub.root"), timeoutMillis = 15_000)
-        composeRule.onNodeWithTag("video.hub.root").performScrollToNode(hasTestTag("video.hub.player.original.open"))
-        composeRule.waitUntilAtLeastOneExists(hasTestTag("video.hub.player.original.open"), timeoutMillis = 15_000)
+        composeRule.onNodeWithTag("video.hub.root").performScrollToNode(hasTestTag("video.hub.player.open"))
+        composeRule.waitUntilAtLeastOneExists(hasTestTag("video.hub.player.open"), timeoutMillis = 15_000)
 
-        composeRule.onNodeWithTag("video.hub.player.original.open").performClick()
+        composeRule.onNodeWithTag("video.hub.player.open").performClick()
 
-        composeRule.waitUntilAtLeastOneExists(hasTestTag("video.original.viewer.root"), timeoutMillis = 15_000)
-        composeRule.onNodeWithTag("video.original.viewer.close").performClick()
-        composeRule.waitUntilDoesNotExist(hasTestTag("video.original.viewer.root"), timeoutMillis = 10_000)
+        composeRule.waitUntilAtLeastOneExists(hasTestTag("video.reel.viewer.root"), timeoutMillis = 15_000)
 
-        assertEquals(0, semanticsCount("video.original.viewer.root"))
+        assertTrue(semanticsCount("video.reel.viewer.root") > 0)
         assertTrue(semanticsCount("video.hub.root") > 0)
     }
 

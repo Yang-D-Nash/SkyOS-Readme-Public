@@ -126,6 +126,7 @@ class PlaybackAndAiComponentTest {
                         message = message,
                         compactLayout = true,
                         onFeedback = { _, _ -> },
+                        onSaveImage = { _, _ -> },
                     )
                 }
             }

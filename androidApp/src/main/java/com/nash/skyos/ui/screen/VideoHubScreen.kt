@@ -198,6 +198,12 @@ fun VideoHubScreen(
     val listState = rememberLazyListState()
     val fallbackSelectedVideo = uiState.videos.firstOrNull { it.supportsInlinePlayback } ?: uiState.videos.firstOrNull()
     val selectedVideo = uiState.videos.firstOrNull { it.id == selectedVideoId } ?: fallbackSelectedVideo
+    val openVideoPlayer: () -> Unit = {
+        if (uiState.videos.isNotEmpty()) {
+            player.pause()
+            showReelViewer = true
+        }
+    }
     val videoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
     ) { uris ->
@@ -411,28 +417,17 @@ fun VideoHubScreen(
                             inAppOriginalTitle = title
                             inAppOriginalUrl = url
                         },
-                        onOpenVideos = {
-                            coroutineScope.launch {
-                                listState.animateScrollToItem(3)
-                            }
-                        },
+                        onOpenVideos = openVideoPlayer,
                         onOpenEquipment = {
                             coroutineScope.launch {
-                                listState.animateScrollToItem(1)
+                                listState.animateScrollToItem(2)
                             }
                         },
                         onOpenCollaborations = {
                             coroutineScope.launch {
-                                listState.animateScrollToItem(4)
+                                listState.animateScrollToItem(3)
                             }
                         },
-                    )
-                }
-
-                item {
-                    VideoEquipmentCard(
-                        items = uiState.publicConfig.equipmentItems,
-                        onSelectItem = { item -> selectedEquipmentItem = item },
                     )
                 }
 
@@ -447,10 +442,7 @@ fun VideoHubScreen(
                             inAppOriginalUrl = originalUrl
                         },
                         onOpenReel = if (selectedVideo != null) {
-                            {
-                                player.pause()
-                                showReelViewer = true
-                            }
+                            openVideoPlayer
                         } else {
                             null
                         },
@@ -458,23 +450,9 @@ fun VideoHubScreen(
                 }
 
                 item {
-                    VideoLibraryCard(
-                        uiState = uiState,
-                        selectedVideoId = selectedVideoId,
-                        onSelectVideo = { video -> selectedVideoId = video.id },
-                        onOpenReel = { video ->
-                            selectedVideoId = video.id
-                            player.pause()
-                            showReelViewer = true
-                        },
-                        onOpenOriginal = { url ->
-                            val originalUrl = url.inAppOriginalUrl.trim()
-                            if (originalUrl.isBlank()) return@VideoLibraryCard
-                            inAppOriginalTitle = url.title.ifBlank { "Original" }
-                            inAppOriginalUrl = originalUrl
-                        },
-                        onToggleHomeFeatured = viewModel::toggleHomeFeatured,
-                        onDeleteVideo = viewModel::deleteVideo,
+                    VideoEquipmentCard(
+                        items = uiState.publicConfig.equipmentItems,
+                        onSelectItem = { item -> selectedEquipmentItem = item },
                     )
                 }
 
@@ -603,6 +581,29 @@ fun VideoHubScreen(
                     ) {
                         item {
                             VideoFormatCard()
+                        }
+
+                        item {
+                            VideoLibraryCard(
+                                uiState = uiState,
+                                selectedVideoId = selectedVideoId,
+                                onSelectVideo = { video -> selectedVideoId = video.id },
+                                onOpenReel = { video ->
+                                    selectedVideoId = video.id
+                                    showAdminSheet = false
+                                    player.pause()
+                                    showReelViewer = true
+                                },
+                                onOpenOriginal = { video ->
+                                    val originalUrl = video.inAppOriginalUrl.trim()
+                                    if (originalUrl.isBlank()) return@VideoLibraryCard
+                                    showAdminSheet = false
+                                    inAppOriginalTitle = video.title.ifBlank { "Original" }
+                                    inAppOriginalUrl = originalUrl
+                                },
+                                onToggleHomeFeatured = viewModel::toggleHomeFeatured,
+                                onDeleteVideo = viewModel::deleteVideo,
+                            )
                         }
 
                         item {
@@ -1905,7 +1906,7 @@ private fun VideoPlayerCard(
 
         if (video == null) {
             Text(
-                text = "Noch kein Fokus-Video aktiv. Waehle einen Clip aus der Library oder aktualisiere den Hub.",
+                text = "Noch kein Fokus-Video aktiv. Sobald ein Clip freigegeben ist, erscheint er hier.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 modifier = Modifier.padding(top = 12.dp),
@@ -2017,30 +2018,32 @@ private fun VideoPlayerCard(
             }
         }
 
-        if (video.opensOriginalInApp) {
-            BrandActionButton(
-                text = video.directOpenActionLabel,
-                onClick = { onOpenOriginal(video) },
-                accent = if (video.supportsInlinePlayback) playerAccent else videoHubProviderAccent(video),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("video.hub.player.original.open")
-                    .padding(top = 14.dp),
-                icon = if (video.supportsInlinePlayback) Icons.Default.PlayArrow else Icons.Default.Language,
-                filled = true,
-            )
-        } else if (video.supportsInlinePlayback) {
+        if (video.supportsInlinePlayback) {
             onOpenReel?.let { openReel ->
                 BrandActionButton(
-                    text = videoHubInlineActionLabel(video),
+                    text = "Player oeffnen",
                     onClick = openReel,
                     accent = playerAccent,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .testTag("video.hub.player.open")
                         .padding(top = 14.dp),
                     icon = Icons.Default.PlayArrow,
+                    filled = true,
                 )
             }
+        } else if (video.opensOriginalInApp) {
+            BrandActionButton(
+                text = video.directOpenActionLabel,
+                onClick = { onOpenOriginal(video) },
+                accent = videoHubProviderAccent(video),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("video.hub.player.original.open")
+                    .padding(top = 14.dp),
+                icon = Icons.Default.Language,
+                filled = true,
+            )
         }
     }
 }
@@ -2727,6 +2730,7 @@ private fun VideoReelViewerDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .testTag("video.reel.viewer.root")
                 .background(androidx.compose.ui.graphics.Color.Black),
         ) {
             VerticalPager(
@@ -2967,14 +2971,6 @@ private fun videoHubProviderAccent(video: VideoHubItem): Color {
         video.providerBadge.equals("Drive", ignoreCase = true) -> MaterialTheme.colorScheme.skydownAccent()
         video.providerBadge.equals("MEGA", ignoreCase = true) -> MaterialTheme.colorScheme.skydownAccentHighlight()
         else -> MaterialTheme.colorScheme.skydownAccentMystic()
-    }
-}
-
-private fun videoHubInlineActionLabel(video: VideoHubItem): String {
-    return if (video.usesEmbeddedPreview) {
-        "In Preview ansehen"
-    } else {
-        "Im Video ansehen"
     }
 }
 
