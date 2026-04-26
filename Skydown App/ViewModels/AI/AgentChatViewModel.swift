@@ -27,6 +27,7 @@ struct AgentChatMessage: Identifiable, Equatable {
     var isStreaming: Bool
     var resultType: AgentResultType
     var workflowSummary: AgentWorkflowSummary?
+    var results: [AgentResultEntry]
 
     init(
         id: UUID = UUID(),
@@ -34,7 +35,8 @@ struct AgentChatMessage: Identifiable, Equatable {
         text: String,
         isStreaming: Bool = false,
         resultType: AgentResultType = .text,
-        workflowSummary: AgentWorkflowSummary? = nil
+        workflowSummary: AgentWorkflowSummary? = nil,
+        results: [AgentResultEntry] = []
     ) {
         self.id = id
         self.role = role
@@ -42,6 +44,7 @@ struct AgentChatMessage: Identifiable, Equatable {
         self.isStreaming = isStreaming
         self.resultType = resultType
         self.workflowSummary = workflowSummary
+        self.results = results
     }
 }
 
@@ -125,6 +128,20 @@ enum AgentExecutionMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum AgentAutomationScope: String, CaseIterable, Identifiable {
+    case owner = "owner"
+    case personal = "personal"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .owner: return "App-Flow"
+        case .personal: return "Eigener Flow"
+        }
+    }
+}
+
 @MainActor
 final class AgentChatViewModel: ObservableObject {
     struct RevenueUsageState {
@@ -143,6 +160,7 @@ final class AgentChatViewModel: ObservableObject {
     @Published var draft = ""
     @Published var selectedMode: AgentExecutionMode = .release
     @Published var selectedLevel: AIExperienceLevel = .standard
+    @Published var selectedAutomationScope: AgentAutomationScope = .owner
     @Published var shouldTriggerAutomation = false
     @Published private(set) var canTriggerAutomation = false
     /// Agent-only lifecycle (distinct from `BotInteractionPhase`).
@@ -189,6 +207,7 @@ final class AgentChatViewModel: ObservableObject {
         let mode: String
         let aiLevel: String
         let executeAutomation: Bool
+        let automationScope: String
         let assistantMessageID: UUID
         let createdAt: Date
     }
@@ -245,9 +264,7 @@ final class AgentChatViewModel: ObservableObject {
             currentPlanTitle = "Free"
         }
         currentHistoryRetentionDays = user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays
-        if !selectedLevel.isAvailable(for: currentQuotaPlan) {
-            selectedLevel = .standard
-        }
+        selectedLevel = resolvedAgentExperienceLevel(for: currentQuotaPlan)
         historyStore.updateRetentionDays(currentHistoryRetentionDays)
         canTriggerAutomation = user != nil
         ManusBYOSStore.shared.setUserMode(userID: user?.id)
@@ -300,6 +317,7 @@ final class AgentChatViewModel: ObservableObject {
         let modeAtSend = selectedMode.rawValue
         let levelAtSend = selectedLevel
         let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
+        let automationScopeAtSend = selectedAutomationScope.rawValue
         let assistantID = UUID()
         let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
         let historyAtSend = buildHistory(from: messages + [userMessage])
@@ -328,6 +346,7 @@ final class AgentChatViewModel: ObservableObject {
                     mode: modeAtSend,
                     aiLevel: levelAtSend.rawValue,
                     executeAutomation: executeAutomationAtSend,
+                    automationScope: automationScopeAtSend,
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
                 )
                 guard isRequestContextValid(requestContext) else { return }
@@ -340,7 +359,8 @@ final class AgentChatViewModel: ObservableObject {
                     text: replyText,
                     isStreaming: false,
                     resultType: (result.automationTriggered || result.automationAttempted) ? .workflow : .text,
-                    workflowSummary: buildWorkflowSummary(from: result)
+                    workflowSummary: buildWorkflowSummary(from: result),
+                    results: result.results
                 )
                 if let savedResult = historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
@@ -382,6 +402,7 @@ final class AgentChatViewModel: ObservableObject {
                             mode: modeAtSend,
                             aiLevel: levelAtSend.rawValue,
                             executeAutomation: executeAutomationAtSend,
+                            automationScope: automationScopeAtSend,
                             assistantMessageID: assistantID,
                             createdAt: .now
                         )
@@ -562,6 +583,7 @@ final class AgentChatViewModel: ObservableObject {
                 mode: entry.mode,
                 aiLevel: entry.aiLevel,
                 executeAutomation: entry.executeAutomation,
+                automationScope: entry.automationScope,
                 assistantMessageID: assistantID,
                 createdAt: entry.createdAt
             )
@@ -609,13 +631,15 @@ final class AgentChatViewModel: ObservableObject {
         text: String,
         isStreaming: Bool,
         resultType: AgentResultType = .text,
-        workflowSummary: AgentWorkflowSummary? = nil
+        workflowSummary: AgentWorkflowSummary? = nil,
+        results: [AgentResultEntry] = []
     ) {
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
         messages[index].text = text
         messages[index].isStreaming = isStreaming
         messages[index].resultType = resultType
         messages[index].workflowSummary = workflowSummary
+        messages[index].results = results
     }
 
     private func makeRequestContext(
@@ -686,6 +710,7 @@ final class AgentChatViewModel: ObservableObject {
         let modeAtSend = selectedMode.rawValue
         let levelAtSend = selectedLevel
         let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
+        let automationScopeAtSend = selectedAutomationScope.rawValue
 
         messages.append(userMessage)
         messages.append(
@@ -709,6 +734,7 @@ final class AgentChatViewModel: ObservableObject {
                 mode: modeAtSend,
                 aiLevel: levelAtSend.rawValue,
                 executeAutomation: executeAutomationAtSend,
+                automationScope: automationScopeAtSend,
                 assistantMessageID: assistantID,
                 createdAt: .now
             )
@@ -790,6 +816,7 @@ final class AgentChatViewModel: ObservableObject {
                     mode: request.mode,
                     aiLevel: request.aiLevel,
                     executeAutomation: request.executeAutomation,
+                    automationScope: request.automationScope,
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
                 )
                 guard isRequestContextValid(requestContext) else { return }
@@ -803,7 +830,8 @@ final class AgentChatViewModel: ObservableObject {
                     text: replyText,
                     isStreaming: false,
                     resultType: (result.automationTriggered || result.automationAttempted) ? .workflow : .text,
-                    workflowSummary: buildWorkflowSummary(from: result)
+                    workflowSummary: buildWorkflowSummary(from: result),
+                    results: result.results
                 )
                 if let savedResult = historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
@@ -917,6 +945,7 @@ final class AgentChatViewModel: ObservableObject {
                 mode: request.mode,
                 aiLevel: request.aiLevel,
                 executeAutomation: request.executeAutomation,
+                automationScope: request.automationScope,
                 assistantMessageID: request.assistantMessageID.uuidString,
                 createdAt: request.createdAt
             )
@@ -1236,5 +1265,14 @@ final class AgentChatViewModel: ObservableObject {
         }
 
         return "Der SkyOS Agent ist gerade kurz pausiert. Bitte in einem Moment erneut versuchen."
+    }
+}
+
+private func resolvedAgentExperienceLevel(for quotaPlan: UserQuotaPlan) -> AIExperienceLevel {
+    switch quotaPlan {
+    case .creator, .studio, .internalTeam, .ownerUnlimited:
+        return .pro
+    case .free:
+        return .standard
     }
 }

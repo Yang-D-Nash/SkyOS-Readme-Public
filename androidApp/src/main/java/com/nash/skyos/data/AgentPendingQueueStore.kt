@@ -14,6 +14,7 @@ data class AgentPendingQueueEntry(
     val mode: String,
     val aiLevel: String = "standard",
     val executeAutomation: Boolean,
+    val automationScope: String = "owner",
     val assistantMessageId: String,
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
 )
@@ -105,6 +106,7 @@ object AgentPendingQueueStore {
                             mode = item.optString("mode").trim().ifBlank { "release" },
                             aiLevel = item.optString("aiLevel").trim().ifBlank { "standard" },
                             executeAutomation = item.optBoolean("executeAutomation", false),
+                            automationScope = item.optString("automationScope").trim().ifBlank { "owner" },
                             assistantMessageId = assistantMessageId,
                             createdAtEpochMillis = item.optLong("createdAtEpochMillis", System.currentTimeMillis()),
                         ),
@@ -143,6 +145,7 @@ object AgentPendingQueueStore {
                     .put("mode", entry.mode)
                     .put("aiLevel", entry.aiLevel.ifBlank { "standard" })
                     .put("executeAutomation", entry.executeAutomation)
+                    .put("automationScope", entry.automationScope.ifBlank { "owner" })
                     .put("assistantMessageId", entry.assistantMessageId)
                     .put("createdAtEpochMillis", entry.createdAtEpochMillis)
                     .put(

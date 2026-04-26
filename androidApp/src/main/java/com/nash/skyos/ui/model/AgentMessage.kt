@@ -1,5 +1,6 @@
 package com.nash.skyos.ui.model
 
+import com.nash.skyos.data.AgentResultEntry
 import java.util.UUID
 
 enum class AgentMessageRole {
@@ -27,4 +28,5 @@ data class AgentMessage(
     val isStreaming: Boolean = false,
     val resultType: AgentResultType = AgentResultType.Text,
     val workflowSummary: AgentWorkflowSummary? = null,
+    val results: List<AgentResultEntry> = emptyList(),
 )

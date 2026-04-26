@@ -27,6 +27,13 @@ data class AgentResponse(
 data class AgentResultEntry(
     val type: String,
     val text: String = "",
+    val url: String = "",
+    val title: String = "",
+    val mimeType: String = "",
+    val fileName: String = "",
+    val html: String = "",
+    val columns: List<String> = emptyList(),
+    val rows: List<List<String>> = emptyList(),
     val workflowName: String = "",
     val status: String = "",
     val summary: String = "",
@@ -64,6 +71,7 @@ class AgentClient {
         mode: String,
         aiLevel: String,
         executeAutomation: Boolean,
+        automationScope: String,
         manusApiKeyOverride: String? = null,
     ): AgentResponse {
         if (!AppNetworkMonitor.isOnline.value) {
@@ -81,6 +89,7 @@ class AgentClient {
             "mode" to mode,
             "aiLevel" to aiLevel,
             "executeAutomation" to executeAutomation,
+            "automationScope" to automationScope,
         )
         manusApiKeyOverride
             ?.trim()
@@ -112,9 +121,14 @@ class AgentClient {
                 usage = null,
                 decision = null,
             )
-            is Map<*, *> -> AgentResponse(
-                reply = (data["reply"] as? String)?.takeIf { it.isNotBlank() }
-                    ?: error("Der SkyOS Agent hat keine Antwort geliefert."),
+            is Map<*, *> -> {
+                val parsedResults = parseAgentResults(data["results"])
+                val reply = ((data["reply"] as? String) ?: (data["message"] as? String)).orEmpty().trim()
+                val resolvedReply = reply.ifBlank {
+                    if (parsedResults.isNotEmpty()) "Dein Content ist fertig." else error("Der SkyOS Agent hat keine Antwort geliefert.")
+                }
+                AgentResponse(
+                reply = resolvedReply,
                 historyRetentionDays = (data["historyRetentionDays"] as? Number)?.toInt() ?: 3,
                 automationTriggered = data["automationTriggered"] as? Boolean ?: false,
                 automationAttempted = data["automationAttempted"] as? Boolean ?: false,
@@ -125,23 +139,79 @@ class AgentClient {
                 providerNotice = (data["providerNotice"] as? String).orEmpty(),
                 agentRunId = (data["agentRunId"] as? String).orEmpty(),
                 resultType = (data["resultType"] as? String).orEmpty().ifBlank { "text" },
-                results = (data["results"] as? List<*>)?.mapNotNull { raw ->
-                    val entry = raw as? Map<*, *> ?: return@mapNotNull null
-                    AgentResultEntry(
-                        type = (entry["type"] as? String).orEmpty().ifBlank { "text" },
-                        text = (entry["text"] as? String).orEmpty(),
-                        workflowName = (entry["workflowName"] as? String).orEmpty(),
-                        status = (entry["status"] as? String).orEmpty(),
-                        summary = (entry["summary"] as? String).orEmpty(),
-                        runId = (entry["runId"] as? String).orEmpty(),
-                    )
-                }.orEmpty(),
+                results = parsedResults.ifEmpty {
+                    listOf(AgentResultEntry(type = "text", text = resolvedReply))
+                },
                 usage = parseAiUsageSnapshot(data["usage"]),
                 decision = parseAgentDecision(data["agentDecision"]),
             )
+            }
             else -> error("Der SkyOS Agent hat keine Antwort geliefert.")
         }
     }
+}
+
+private fun parseAgentResults(payload: Any?): List<AgentResultEntry> {
+    val values = payload as? List<*> ?: return emptyList()
+    return values.mapIndexedNotNull { index, raw ->
+        when (raw) {
+            is String -> raw.trim().takeIf { it.isNotEmpty() }?.let {
+                AgentResultEntry(type = "text", text = it)
+            }
+            is Map<*, *> -> {
+                val columns = parseAgentStringList(raw["columns"])
+                AgentResultEntry(
+                    type = (raw["type"] as? String).orEmpty().trim().lowercase().ifBlank { "text" },
+                    text = (raw["text"] as? String).orEmpty(),
+                    url = (raw["url"] as? String).orEmpty(),
+                    title = (raw["title"] as? String).orEmpty(),
+                    mimeType = (raw["mimeType"] as? String).orEmpty(),
+                    fileName = ((raw["fileName"] as? String) ?: (raw["filename"] as? String)).orEmpty(),
+                    html = (raw["html"] as? String).orEmpty(),
+                    columns = columns,
+                    rows = parseAgentTableRows(raw["rows"], columns),
+                    workflowName = (raw["workflowName"] as? String).orEmpty(),
+                    status = (raw["status"] as? String).orEmpty(),
+                    summary = (raw["summary"] as? String).orEmpty(),
+                    runId = (raw["runId"] as? String).orEmpty(),
+                )
+            }
+            else -> null
+        }
+    }
+}
+
+private fun parseAgentStringList(value: Any?): List<String> {
+    return (value as? List<*>)?.mapNotNull { item ->
+        when (item) {
+            is String -> item.trim().takeIf { it.isNotEmpty() }
+            is Map<*, *> -> listOf("title", "label", "name", "key")
+                .firstNotNullOfOrNull { key -> (item[key] as? String)?.trim()?.takeIf { it.isNotEmpty() } }
+            else -> null
+        }
+    }.orEmpty()
+}
+
+private fun parseAgentTableRows(value: Any?, columns: List<String>): List<List<String>> {
+    return (value as? List<*>)?.mapNotNull { row ->
+        val cells = when (row) {
+            is List<*> -> row.map(::stringifyAgentResultValue)
+            is Map<*, *> -> {
+                val keys = columns.ifEmpty { row.keys.mapNotNull { it as? String }.take(8) }
+                keys.map { key -> stringifyAgentResultValue(row[key]) }
+            }
+            else -> listOf(stringifyAgentResultValue(row))
+        }
+        cells.takeIf { it.any(String::isNotBlank) }
+    }.orEmpty()
+}
+
+private fun stringifyAgentResultValue(value: Any?): String = when (value) {
+    null -> ""
+    is String -> value.trim()
+    is Number -> value.toString()
+    is Boolean -> value.toString()
+    else -> value.toString()
 }
 
 private fun parseAgentDecision(payload: Any?): AgentDecision? {

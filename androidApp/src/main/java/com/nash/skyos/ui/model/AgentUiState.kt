@@ -12,6 +12,11 @@ enum class AgentExecutionMode(val rawValue: String, val title: String, val place
     Automation("automation", "Automation", "Zum Beispiel: Uebergabe fuer einen Activepieces-Workflow."),
 }
 
+enum class AgentAutomationScope(val rawValue: String, val title: String) {
+    Owner("owner", "App-Flow"),
+    Personal("personal", "Eigener Flow"),
+}
+
 data class AgentUiState(
     val messages: List<AgentMessage> = emptyList(),
     val draft: String = "",
@@ -20,6 +25,7 @@ data class AgentUiState(
     val errorMessage: String? = null,
     val selectedMode: AgentExecutionMode = AgentExecutionMode.Release,
     val selectedLevel: AiExperienceLevel = AiExperienceLevel.Standard,
+    val selectedAutomationScope: AgentAutomationScope = AgentAutomationScope.Owner,
     val canTriggerAutomation: Boolean = false,
     val shouldTriggerAutomation: Boolean = false,
     val quickPrompts: List<String> = agentQuickPromptsFor(AgentExecutionMode.Release),

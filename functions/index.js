@@ -81,7 +81,8 @@ const SHOPIFY_CONFIG_DOCUMENT = "shopifyMerch";
 const SHOPIFY_PRIVATE_CONFIG_COLLECTION = "adminConfig";
 const SHOPIFY_PRIVATE_CONFIG_DOCUMENT = "shopifyMerchPrivate";
 const AUTOMATION_CONFIG_COLLECTION = "adminConfig";
-const AUTOMATION_CONFIG_DOCUMENT = "automationN8n";
+const OWNER_ACTIVEPIECES_CONFIG_DOCUMENT = "ownerActivepiecesFlow";
+const USER_AUTOMATION_CONFIG_DOCUMENT_PREFIX = "automationN8n_";
 const AGENT_EXTERNAL_AUDIT_COLLECTION = "agentExternalBridgeAudit";
 const PERSONAL_AGENT_PROFILE_DOCUMENT_PREFIX = "agentProfile_";
 const AI_PROMPT_SETTINGS_COLLECTION = "adminConfig";
@@ -204,6 +205,7 @@ const agentRequestSchema = z.object({
   mode: z.enum(["release", "briefing", "content", "merch", "automation"]).default("release"),
   aiLevel: z.enum(["standard", "advanced", "pro"]).default("standard"),
   executeAutomation: z.boolean().default(false),
+  automationScope: z.enum(["owner", "personal"]).default("owner"),
   confirmedByUser: z.boolean().default(false),
   manusApiKeyOverride: z.string().trim().min(16).max(1024).optional(),
 });
@@ -2713,48 +2715,55 @@ function buildAutomationWebhookUrl(baseURL, webhookPath) {
   return `${normalizedBaseURL}/${normalizedWebhookPath}`;
 }
 
-async function loadWorkflowAutomationSettings() {
+async function loadOwnerActivepiecesWorkflowSettings() {
   const snapshot = await admin.firestore()
       .collection(AUTOMATION_CONFIG_COLLECTION)
-      .doc(AUTOMATION_CONFIG_DOCUMENT)
+      .doc(OWNER_ACTIVEPIECES_CONFIG_DOCUMENT)
       .get();
-  return decodeWorkflowAutomationSettings(snapshot.data() || {});
+  return decodeWorkflowAutomationSettings(snapshot.data() || {}, {scope: "owner"});
 }
 
-function automationConfigDocumentIdFor(userId) {
-  return `automationN8n_${userId}`;
+function userAutomationConfigDocumentIdFor(userId) {
+  return `${USER_AUTOMATION_CONFIG_DOCUMENT_PREFIX}${userId}`;
 }
 
 function personalAgentProfileDocumentIdFor(userId) {
   return `${PERSONAL_AGENT_PROFILE_DOCUMENT_PREFIX}${userId}`;
 }
 
-async function loadWorkflowAutomationSettingsForUser(userId) {
-  if (nonEmptyString(userId)) {
-    const personalSnapshot = await admin.firestore()
-        .collection(AUTOMATION_CONFIG_COLLECTION)
-        .doc(automationConfigDocumentIdFor(userId))
-        .get();
-
-    if (personalSnapshot.exists) {
-      return decodeWorkflowAutomationSettings(personalSnapshot.data() || {});
-    }
-
-    // BYOS strict mode: each authenticated account uses only its own automation doc.
-    return decodeWorkflowAutomationSettings({});
+async function loadPersonalWorkflowAutomationSettings(userId) {
+  const uid = nonEmptyString(userId);
+  if (!uid) {
+    return decodeWorkflowAutomationSettings({}, {scope: "personal"});
   }
 
-  return loadWorkflowAutomationSettings();
+  const snapshot = await admin.firestore()
+      .collection(AUTOMATION_CONFIG_COLLECTION)
+      .doc(userAutomationConfigDocumentIdFor(uid))
+      .get();
+  return decodeWorkflowAutomationSettings(snapshot.data() || {}, {scope: "personal"});
 }
 
-function decodeWorkflowAutomationSettings(data = {}) {
+async function loadWorkflowAutomationSettingsForUser(userId, automationScope = "owner") {
+  return automationScope === "personal" ?
+    loadPersonalWorkflowAutomationSettings(userId) :
+    loadOwnerActivepiecesWorkflowSettings();
+}
+
+function decodeWorkflowAutomationSettings(data = {}, {scope = "owner"} = {}) {
+  const isPersonalScope = scope === "personal";
   const provider = nonEmptyString(data.provider) || "activepieces";
-  const normalizedProvider = ["activepieces", "n8n"].includes(provider) ? provider : "activepieces";
+  const normalizedProvider = isPersonalScope && ["activepieces", "n8n"].includes(provider) ?
+    provider :
+    "activepieces";
   return {
     provider: normalizedProvider,
+    scope: isPersonalScope ? "user_personal" : "owner_global",
     isEnabled: data.isEnabled === true,
     sendsUserContext: data.sendsUserContext !== false,
-    workflowName: nonEmptyString(data.workflowName) || "SkyOS Automation",
+    workflowName: nonEmptyString(data.workflowName) || (
+      isPersonalScope ? "Persoenlicher Workflow" : "SkyOS Owner Activepieces Flow"
+    ),
     baseURL: normalizeUrlString(data.baseURL) || "",
     webhookPath: normalizeAutomationWebhookPath(data.webhookPath) || "",
     authHeaderName: nonEmptyString(data.authHeaderName) || "",
@@ -2857,38 +2866,254 @@ async function loadAutomationCaller(auth) {
     email: nonEmptyString(auth.token?.email) || nonEmptyString(userData.email) || "",
     username: nonEmptyString(userData.username) || "",
     role: profile.role,
+    quotaPlan: profile.aiLimits?.quotaPlan || defaultQuotaPlanForRole(profile.role),
+    aiAccessEnabled: profile.aiAccessEnabled,
+    agentDailyLimit: profile.aiLimits?.agent || 0,
     isAdmin: profile.isAdmin,
     isOwner: profile.isOwner,
     isStaff: profile.isStaff,
   };
 }
 
-function extractAutomationResponseMessage(bodyText, workflowName) {
+const AGENT_STRUCTURED_RESULT_TYPES = new Set([
+  "text",
+  "workflow",
+  "image",
+  "video",
+  "audio",
+  "file",
+  "link",
+  "table",
+  "html",
+]);
+
+function normalizeAgentResultType(value) {
+  const normalized = nonEmptyString(value)?.toLowerCase() || "text";
+  switch (normalized) {
+    case "url":
+    case "button":
+      return "link";
+    case "pdf":
+    case "document":
+    case "download":
+      return "file";
+    case "markdown":
+      return "text";
+    default:
+      return AGENT_STRUCTURED_RESULT_TYPES.has(normalized) ? normalized : "text";
+  }
+}
+
+function stringifyAgentResultValue(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return `${value}`;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch (error) {
+    return "";
+  }
+}
+
+function normalizeAgentTableColumns(rawColumns, rows) {
+  if (Array.isArray(rawColumns)) {
+    return rawColumns
+        .map((column) => {
+          if (typeof column === "string") {
+            return column.trim();
+          }
+          return nonEmptyString(column?.title) ||
+            nonEmptyString(column?.label) ||
+            nonEmptyString(column?.name) ||
+            nonEmptyString(column?.key) ||
+            "";
+        })
+        .filter(Boolean)
+        .slice(0, 8);
+  }
+
+  const firstObjectRow = Array.isArray(rows) ?
+    rows.find((row) => row && typeof row === "object" && !Array.isArray(row)) :
+    null;
+  return firstObjectRow ? Object.keys(firstObjectRow).slice(0, 8) : [];
+}
+
+function normalizeAgentTableRows(rawRows, columns) {
+  if (!Array.isArray(rawRows)) {
+    return [];
+  }
+
+  return rawRows
+      .slice(0, 12)
+      .map((row) => {
+        if (Array.isArray(row)) {
+          return row.slice(0, 8).map(stringifyAgentResultValue);
+        }
+        if (row && typeof row === "object") {
+          const keys = columns.length ? columns : Object.keys(row).slice(0, 8);
+          return keys.map((key) => stringifyAgentResultValue(row[key]));
+        }
+        return [stringifyAgentResultValue(row)];
+      })
+      .filter((row) => row.some((cell) => cell.length > 0));
+}
+
+function normalizeAgentResultEntry(rawEntry, index = 0) {
+  if (typeof rawEntry === "string") {
+    const text = rawEntry.trim();
+    return text ? {type: "text", text: trimTextMax(text, 2000)} : null;
+  }
+
+  if (!rawEntry || typeof rawEntry !== "object" || Array.isArray(rawEntry)) {
+    return null;
+  }
+
+  const type = normalizeAgentResultType(rawEntry.type || rawEntry.kind || rawEntry.mediaType);
+  const url = nonEmptyString(rawEntry.url) ||
+    nonEmptyString(rawEntry.href) ||
+    nonEmptyString(rawEntry.downloadUrl) ||
+    nonEmptyString(rawEntry.downloadURL) ||
+    "";
+  const title = nonEmptyString(rawEntry.title) ||
+    nonEmptyString(rawEntry.name) ||
+    nonEmptyString(rawEntry.filename) ||
+    nonEmptyString(rawEntry.fileName) ||
+    "";
+  const text = nonEmptyString(rawEntry.text) ||
+    nonEmptyString(rawEntry.message) ||
+    nonEmptyString(rawEntry.summary) ||
+    nonEmptyString(rawEntry.description) ||
+    "";
+  const html = nonEmptyString(rawEntry.html) || "";
+  const rawRows = Array.isArray(rawEntry.rows) ? rawEntry.rows : [];
+  const columns = normalizeAgentTableColumns(rawEntry.columns, rawRows);
+  const rows = normalizeAgentTableRows(rawRows, columns);
+
+  const normalized = {
+    id: nonEmptyString(rawEntry.id) || `result_${index + 1}`,
+    type,
+  };
+
+  if (url) normalized.url = trimTextMax(url, 2000);
+  if (title) normalized.title = trimTextMax(title, 180);
+  if (text) normalized.text = trimTextMax(text, 4000);
+  if (html) normalized.html = trimTextMax(html, 8000);
+  if (nonEmptyString(rawEntry.mimeType) || nonEmptyString(rawEntry.mime) || nonEmptyString(rawEntry.contentType)) {
+    normalized.mimeType = nonEmptyString(rawEntry.mimeType) ||
+      nonEmptyString(rawEntry.mime) ||
+      nonEmptyString(rawEntry.contentType);
+  }
+  if (nonEmptyString(rawEntry.fileName) || nonEmptyString(rawEntry.filename)) {
+    normalized.fileName = nonEmptyString(rawEntry.fileName) || nonEmptyString(rawEntry.filename);
+  }
+  if (columns.length) normalized.columns = columns;
+  if (rows.length) normalized.rows = rows;
+
+  if (type === "table" && !rows.length && !text) {
+    return null;
+  }
+  if ((type === "image" || type === "video" || type === "audio" || type === "file" || type === "link") &&
+    !url && !text) {
+    return null;
+  }
+  if (type === "html" && !html && !text && !url) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function normalizeAgentResultEntries(rawResults) {
+  if (!Array.isArray(rawResults)) {
+    return [];
+  }
+
+  return rawResults
+      .slice(0, 12)
+      .map((entry, index) => normalizeAgentResultEntry(entry, index))
+      .filter(Boolean);
+}
+
+function parseAutomationResponseBody(bodyText) {
+  const trimmed = typeof bodyText === "string" ? bodyText.trim() : "";
+  if (!trimmed) {
+    return null;
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch (error) {
+    return null;
+  }
+}
+
+function extractAutomationResponseMessage(bodyText, workflowName, parsedBody = null) {
   const trimmed = typeof bodyText === "string" ? bodyText.trim() : "";
   if (!trimmed) {
     return `Test an ${workflowName} gesendet.`;
   }
 
-  try {
-    const parsed = JSON.parse(trimmed);
-    const message = nonEmptyString(parsed?.message)
-      || nonEmptyString(parsed?.status)
-      || nonEmptyString(parsed?.result);
+  if (parsedBody && typeof parsedBody === "object" && !Array.isArray(parsedBody)) {
+    const message = nonEmptyString(parsedBody?.reply)
+      || nonEmptyString(parsedBody?.message)
+      || nonEmptyString(parsedBody?.status)
+      || nonEmptyString(parsedBody?.result);
     if (message) {
       return message;
     }
-  } catch (error) {
-    // Response body can also be plain text.
   }
 
   return trimmed.length > 160 ? `Test an ${workflowName} gesendet.` : trimmed;
 }
 
-async function triggerWorkflowAutomationWebhook({trigger, source, auth, data = {}, runtimePolicy = {}}) {
-  const settings = await loadWorkflowAutomationSettingsForUser(auth?.uid);
+function extractAutomationResponseResults(parsedBody) {
+  if (Array.isArray(parsedBody)) {
+    return normalizeAgentResultEntries(parsedBody);
+  }
 
-  if (!["activepieces", "n8n"].includes(settings.provider)) {
-    throw new HttpsError("failed-precondition", "Automation-Provider ist ungueltig.");
+  if (!parsedBody || typeof parsedBody !== "object") {
+    return [];
+  }
+
+  return normalizeAgentResultEntries(
+      parsedBody.results ||
+      parsedBody.outputs ||
+      parsedBody.assets ||
+      parsedBody.files ||
+      [],
+  );
+}
+
+async function triggerWorkflowAutomationWebhook({
+  trigger,
+  source,
+  auth,
+  data = {},
+  runtimePolicy = {},
+  automationScope = "owner",
+}) {
+  const scope = automationScope === "personal" ? "personal" : "owner";
+  const settings = await loadWorkflowAutomationSettingsForUser(auth?.uid, scope);
+
+  if (scope === "owner" && settings.provider !== "activepieces") {
+    throw new HttpsError("failed-precondition", "Der globale Owner-Workflow nutzt Activepieces.");
+  }
+
+  if (scope === "personal" && !["activepieces", "n8n"].includes(settings.provider)) {
+    throw new HttpsError("failed-precondition", "Persoenlicher Workflow-Provider ist ungueltig.");
+  }
+
+  if (settings.provider === "activepieces" && runtimePolicy.activepiecesEnabled === false) {
+    throw new HttpsError("failed-precondition", "Activepieces ist fuer Agent-Workflows aktuell deaktiviert.");
+  }
+
+  if (settings.provider === "n8n" && runtimePolicy.n8nEnabled === false) {
+    throw new HttpsError("failed-precondition", "n8n ist fuer persoenliche Agent-Workflows aktuell deaktiviert.");
   }
 
   if (!settings.isEnabled) {
@@ -2905,6 +3130,7 @@ async function triggerWorkflowAutomationWebhook({trigger, source, auth, data = {
   const requestId = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   const payload = {
     provider: settings.provider,
+    scope: settings.scope || "owner_global",
     requestId,
     workflowName: settings.workflowName,
     trigger,
@@ -2913,6 +3139,7 @@ async function triggerWorkflowAutomationWebhook({trigger, source, auth, data = {
     data: {
       ...safeData,
       knowledgeContext,
+      sourceRole: "agent_gateway",
     },
     knowledgeContext,
   };
@@ -3054,12 +3281,14 @@ async function triggerWorkflowAutomationWebhook({trigger, source, auth, data = {
     durationMs,
   });
 
+  const parsedResponseBody = parseAutomationResponseBody(responseBody);
   return {
-    message: extractAutomationResponseMessage(responseBody, settings.workflowName),
+    message: extractAutomationResponseMessage(responseBody, settings.workflowName, parsedResponseBody),
     workflowName: settings.workflowName,
     status: response.status,
     provider: settings.provider,
     requestId,
+    results: extractAutomationResponseResults(parsedResponseBody),
   };
 }
 
@@ -9834,6 +10063,10 @@ exports.triggerWorkflowAutomation = onCall({
 
   const trigger = nonEmptyString(request.data?.trigger) || "admin_settings_test";
   const source = nonEmptyString(request.data?.source) || "settings";
+  const automationScope = nonEmptyString(request.data?.automationScope) === "personal" ? "personal" : "owner";
+  if (automationScope === "owner") {
+    await assertOwner(request.auth);
+  }
   const data = request.data?.data && typeof request.data.data === "object" && !Array.isArray(request.data.data)
     ? request.data.data
     : {};
@@ -9843,6 +10076,7 @@ exports.triggerWorkflowAutomation = onCall({
     source,
     auth: request.auth,
     data,
+    automationScope,
   });
 });
 
@@ -9856,10 +10090,9 @@ exports.debugTriggerWorkflowAutomation = onCall({
       "Bitte melde dich an, um den Workflow-Debug-Trigger zu starten.",
   );
 
-  const isOwner = await isOwnerAuth(request.auth);
-  const isAdmin = await isAdminAuth(request.auth);
-  if (!isOwner && !isAdmin) {
-    throw new HttpsError("permission-denied", "Nur Owner/Admin darf den Workflow-Debug-Trigger ausfuehren.");
+  const automationScope = nonEmptyString(request.data?.automationScope) === "personal" ? "personal" : "owner";
+  if (automationScope === "owner") {
+    await assertOwner(request.auth);
   }
 
   const trigger = nonEmptyString(request.data?.trigger) || "owner_debug_test";
@@ -9875,6 +10108,7 @@ exports.debugTriggerWorkflowAutomation = onCall({
       source,
       auth: request.auth,
       data,
+      automationScope,
     });
     return {
       success: true,
@@ -9885,6 +10119,7 @@ exports.debugTriggerWorkflowAutomation = onCall({
       workflowName: nonEmptyString(response?.workflowName) || "",
       status: Number(response?.status) || 0,
       message: nonEmptyString(response?.message) || "Debug trigger erfolgreich.",
+      results: Array.isArray(response?.results) ? response.results : [],
       auditExpected: true,
     };
   } catch (error) {
@@ -11620,7 +11855,7 @@ function responseFrameworkHint(mode, prompt) {
   }
 
   if (mode === AGENT_MODES.automation) {
-    return "Antwortformat: Workflow-Ziel, Trigger, benoetigte Inputs, erwartete Outputs, Fehlerfaelle, kurze Uebergabe an n8n, Naechste Schritte.";
+    return "Antwortformat: Workflow-Ziel, Trigger, benoetigte Inputs, erwartete Outputs, Fehlerfaelle, kurze Uebergabe an den globalen Activepieces Owner-Flow, Naechste Schritte.";
   }
 
   const lower = prompt.toLowerCase();
@@ -11815,15 +12050,27 @@ async function loadAgentWorkspaceContext(auth, promptSettings, personalAgentProf
       lines.push(`KI-Zugang aktiv: ${profile.aiAccessEnabled ? "ja" : "nein"}`);
     }
 
-    const workflowSettings = await loadWorkflowAutomationSettingsForUser(auth.uid).catch(() => null);
-    if (workflowSettings) {
-      const workflowStatus = workflowSettings.isEnabled && buildAutomationWebhookUrl(workflowSettings.baseURL, workflowSettings.webhookPath) ?
-        `bereit (${workflowSettings.workflowName})` :
+    const ownerWorkflowSettings = await loadWorkflowAutomationSettingsForUser(auth.uid, "owner").catch(() => null);
+    if (ownerWorkflowSettings) {
+      const workflowStatus = ownerWorkflowSettings.isEnabled && buildAutomationWebhookUrl(ownerWorkflowSettings.baseURL, ownerWorkflowSettings.webhookPath) ?
+        `bereit (${ownerWorkflowSettings.workflowName})` :
         "noch nicht bereit";
-      lines.push(`n8n-Status: ${workflowStatus}`);
-      const knowledgeContext = nonEmptyString(workflowSettings.knowledgeContext);
+      lines.push(`Globaler Activepieces Owner-Flow: ${workflowStatus}`);
+      const knowledgeContext = nonEmptyString(ownerWorkflowSettings.knowledgeContext);
       if (knowledgeContext) {
-        lines.push(`Persoenlicher Knowledge-Kontext: ${knowledgeContext}`);
+        lines.push(`Owner-Flow Knowledge-Kontext: ${knowledgeContext}`);
+      }
+    }
+
+    const personalWorkflowSettings = await loadWorkflowAutomationSettingsForUser(auth.uid, "personal").catch(() => null);
+    if (personalWorkflowSettings?.isEnabled) {
+      const personalWorkflowStatus = buildAutomationWebhookUrl(personalWorkflowSettings.baseURL, personalWorkflowSettings.webhookPath) ?
+        `bereit (${personalWorkflowSettings.workflowName}, ${personalWorkflowSettings.provider})` :
+        "noch nicht bereit";
+      lines.push(`Persoenlicher Workflow: ${personalWorkflowStatus}`);
+      const personalKnowledgeContext = nonEmptyString(personalWorkflowSettings.knowledgeContext);
+      if (personalKnowledgeContext) {
+        lines.push(`Persoenlicher Workflow-Kontext: ${personalKnowledgeContext}`);
       }
     }
 
@@ -11857,7 +12104,7 @@ async function loadAgentWorkspaceContext(auth, promptSettings, personalAgentProf
   return context.slice(0, 12000);
 }
 
-async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history, runtimeSettings}) {
+async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history, runtimeSettings, automationScope = "owner"}) {
   if (!auth?.uid) {
     return {attempted: false, triggered: false};
   }
@@ -11867,12 +12114,14 @@ async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history, 
       trigger: `agent_${mode}`,
       source: "agent",
       auth,
+      automationScope,
       runtimePolicy: runtimeSettings?.bot?.agentCore?.externalPolicy || {},
       data: {
         mode,
         prompt,
         reply,
         history: history.slice(-8),
+        automationScope,
       },
     });
 
@@ -11882,6 +12131,7 @@ async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history, 
       message: nonEmptyString(automationResult.message) || "An externen Workflow gesendet.",
       workflowName: nonEmptyString(automationResult.workflowName) || "",
       requestId: nonEmptyString(automationResult.requestId) || "",
+      results: Array.isArray(automationResult.results) ? automationResult.results : [],
       externalState: "external_completed",
       route: nonEmptyString(automationResult.provider) || "activepieces",
     };
@@ -12377,9 +12627,11 @@ exports.skydownAgent = onCall({
     (agentCore.diagnosticsMode === "owner_only" && resolveRoleFromAuthClaims(request.auth) === USER_ROLES.owner)
   );
   const allowedExternalTaskTypes = agentCore.externalPolicy?.allowedExternalTaskTypes || [];
+  const selectedAutomationScope = input.automationScope === "personal" ? "personal" : "owner";
   const canUseActivepieces = agentCore.externalPolicy?.activepiecesEnabled !== false &&
     allowedExternalTaskTypes.includes(requestedTask);
-  const canUseN8n = agentCore.externalPolicy?.n8nEnabled !== false &&
+  const canUseN8n = selectedAutomationScope === "personal" &&
+    agentCore.externalPolicy?.n8nEnabled !== false &&
     allowedExternalTaskTypes.includes(requestedTask);
   const canUseAnyExternalWorkflow = canUseActivepieces || canUseN8n;
   const canUseManus = agentCore.externalPolicy?.manusEnabled !== false &&
@@ -12726,6 +12978,7 @@ exports.skydownAgent = onCall({
       reply,
       history: input.history,
       runtimeSettings,
+      automationScope: selectedAutomationScope,
     }) :
     {attempted: false, triggered: false};
 
@@ -12766,6 +13019,11 @@ exports.skydownAgent = onCall({
         ),
         runId: agentRunId || "",
       }] : []),
+      ...(
+        automation.triggered === true && Array.isArray(automation.results) ?
+          automation.results :
+          []
+      ),
     ],
     usage: {
       kind: usage.kind,

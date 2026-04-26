@@ -11,9 +11,10 @@ import kotlinx.coroutines.tasks.await
 
 data class WorkflowAutomationSettings(
     val provider: String = "activepieces",
+    val scope: String = "owner_global",
     val isEnabled: Boolean = false,
     val sendsUserContext: Boolean = true,
-    val workflowName: String = "SkyOS Automation",
+    val workflowName: String = "SkyOS Owner Activepieces Flow",
     val baseUrl: String = "",
     val webhookPath: String = "",
     val authHeaderName: String = "X-SkyOS-Automation-Key",
@@ -33,6 +34,7 @@ data class WorkflowAutomationSettings(
 
 object WorkflowAutomationPreferences {
     private const val collectionName = "adminConfig"
+    private const val ownerDocumentName = "ownerActivepiecesFlow"
 
     private val firestore: FirebaseFirestore
         get() = FirebaseFirestore.getInstance()
@@ -42,13 +44,17 @@ object WorkflowAutomationPreferences {
 
     private var listenerRegistration: ListenerRegistration? = null
     private var currentUserId: String? = null
+    private var currentScope: String = "user_personal"
 
-    fun setUserMode(userId: String?) {
-        if (userId == currentUserId) {
+    fun setUserMode(userId: String?, isOwner: Boolean) {
+        val nextUserId = userId?.takeIf { it.isNotBlank() }
+        val nextScope = if (isOwner) "owner_global" else "user_personal"
+        if (nextUserId == currentUserId && nextScope == currentScope) {
             return
         }
 
-        currentUserId = userId?.takeIf { it.isNotBlank() }
+        currentUserId = nextUserId
+        currentScope = nextScope
         if (currentUserId != null) {
             startListening()
         } else {
@@ -59,8 +65,8 @@ object WorkflowAutomationPreferences {
 
     suspend fun saveSettings(settings: WorkflowAutomationSettings): Result<Unit> {
         return runCatching {
-            val userId = requireNotNull(currentUserId) { "Keine User-UID fuer Workflow-Konfiguration verfuegbar." }
-            firestore.collection(collectionName).document(documentName(userId)).set(
+            requireNotNull(currentUserId) { "Bitte melde dich an, um Workflow-Einstellungen zu speichern." }
+            firestore.collection(collectionName).document(documentName()).set(
                 settings.toMap(),
                 SetOptions.merge(),
             ).await()
@@ -70,7 +76,7 @@ object WorkflowAutomationPreferences {
 
     suspend fun triggerTest(): Result<String> {
         return runCatching {
-            val userId = requireNotNull(currentUserId) { "Keine User-UID fuer Workflow-Test verfuegbar." }
+            requireNotNull(currentUserId) { "Bitte melde dich an, um den Workflow zu testen." }
             require(AppNetworkMonitor.isOnline.value) {
                 "Du bist offline. Der Workflow-Test braucht eine aktive Internetverbindung."
             }
@@ -80,7 +86,7 @@ object WorkflowAutomationPreferences {
                     mapOf(
                         "trigger" to "admin_settings_test",
                         "source" to "android_settings",
-                        "userId" to userId,
+                        "automationScope" to if (currentScope == "user_personal") "personal" else "owner",
                     ),
                 )
                 .await()
@@ -95,17 +101,16 @@ object WorkflowAutomationPreferences {
 
     private fun startListening() {
         listenerRegistration?.remove()
-        val userId = currentUserId ?: return
-        listenerRegistration = firestore.collection(collectionName).document(documentName(userId))
+        listenerRegistration = firestore.collection(collectionName).document(documentName())
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     return@addSnapshotListener
                 }
 
                 if (snapshot != null && snapshot.exists()) {
-                    _settings.value = snapshot.data.orEmpty().toWorkflowAutomationSettings()
+                    _settings.value = snapshot.data.orEmpty().toWorkflowAutomationSettings(currentScope)
                 } else {
-                    _settings.value = WorkflowAutomationSettings()
+                    _settings.value = emptySettingsForCurrentScope()
                 }
             }
     }
@@ -114,16 +119,29 @@ object WorkflowAutomationPreferences {
         listenerRegistration?.remove()
         listenerRegistration = null
     }
+    private fun documentName(): String {
+        val userId = currentUserId.orEmpty()
+        return if (currentScope == "user_personal") "automationN8n_$userId" else ownerDocumentName
+    }
 
-    private fun documentName(userId: String): String = "automationN8n_$userId"
+    private fun emptySettingsForCurrentScope(): WorkflowAutomationSettings {
+        return WorkflowAutomationSettings(
+            provider = "activepieces",
+            scope = currentScope,
+            workflowName = if (currentScope == "user_personal") "Persoenlicher Workflow" else "SkyOS Owner Activepieces Flow",
+        )
+    }
 }
 
-private fun Map<String, Any>.toWorkflowAutomationSettings(): WorkflowAutomationSettings {
+private fun Map<String, Any>.toWorkflowAutomationSettings(fallbackScope: String = "user_personal"): WorkflowAutomationSettings {
+    val scope = (this["scope"] as? String).orEmpty().trim().ifBlank { fallbackScope }
+    val provider = (this["provider"] as? String).orEmpty().trim()
     return WorkflowAutomationSettings(
-        provider = (this["provider"] as? String).orEmpty().trim().ifBlank { "activepieces" },
+        provider = if (scope == "user_personal" && provider == "n8n") "n8n" else "activepieces",
+        scope = scope,
         isEnabled = this["isEnabled"] as? Boolean ?: false,
         sendsUserContext = this["sendsUserContext"] as? Boolean ?: true,
-        workflowName = (this["workflowName"] as? String).orEmpty().trim().ifBlank { "SkyOS Automation" },
+        workflowName = (this["workflowName"] as? String).orEmpty().trim().ifBlank { "SkyOS Owner Activepieces Flow" },
         baseUrl = normalizeAutomationBaseUrl(this["baseURL"] as? String).orEmpty(),
         webhookPath = normalizeAutomationWebhookPath(this["webhookPath"] as? String).orEmpty(),
         authHeaderName = (this["authHeaderName"] as? String).orEmpty().trim(),
@@ -133,11 +151,16 @@ private fun Map<String, Any>.toWorkflowAutomationSettings(): WorkflowAutomationS
 }
 
 private fun WorkflowAutomationSettings.toMap(): Map<String, Any> {
+    val normalizedScope = if (scope == "owner_global") "owner_global" else "user_personal"
+    val normalizedProvider = if (normalizedScope == "user_personal" && provider == "n8n") "n8n" else "activepieces"
     return mapOf(
-        "provider" to provider.trim().ifBlank { "activepieces" },
+        "provider" to normalizedProvider,
+        "scope" to normalizedScope,
         "isEnabled" to isEnabled,
         "sendsUserContext" to sendsUserContext,
-        "workflowName" to workflowName.trim().ifBlank { "SkyOS Automation" },
+        "workflowName" to workflowName.trim().ifBlank {
+            if (normalizedScope == "user_personal") "Persoenlicher Workflow" else "SkyOS Owner Activepieces Flow"
+        },
         "baseURL" to normalizeAutomationBaseUrl(baseUrl).orEmpty(),
         "webhookPath" to normalizeAutomationWebhookPath(webhookPath).orEmpty(),
         "authHeaderName" to authHeaderName.trim(),

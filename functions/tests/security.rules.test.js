@@ -351,16 +351,17 @@ test("subadmin bleibt ausserhalb von Owner- und Admin-Bereichen", async () => {
   }));
 });
 
-test("user darf eigenen Automation- und Agent-Config in adminConfig schreiben", async () => {
+test("user darf eigenen Workflow und Agent-Config in adminConfig schreiben", async () => {
   await seedUser("alice");
   const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
 
   await assertSucceeds(setDoc(doc(aliceDb, "adminConfig", "automationN8n_alice"), {
-    provider: "n8n",
+    provider: "activepieces",
+    scope: "user_personal",
     isEnabled: true,
     sendsUserContext: true,
     workflowName: "Alice Workflow",
-    baseURL: "https://n8n.example.com",
+    baseURL: "https://cloud.activepieces.com",
     webhookPath: "webhook/skydown",
     authHeaderName: "X-Workflow-Key",
     authHeaderValue: "secret-value",
@@ -385,7 +386,8 @@ test("user darf keine fremden personal adminConfig Dokus schreiben", async () =>
   const aliceDb = testEnv.authenticatedContext("alice", {role: "user"}).firestore();
 
   await assertFails(setDoc(doc(aliceDb, "adminConfig", "automationN8n_bob"), {
-    provider: "n8n",
+    provider: "activepieces",
+    scope: "user_personal",
     isEnabled: true,
     updatedAt: Timestamp.now(),
   }));
@@ -401,6 +403,12 @@ test("user darf keine globalen Owner-adminConfig Dokumente schreiben", async () 
 
   await assertFails(setDoc(doc(aliceDb, "adminConfig", "aiPromptSettings"), {
     textInstruction: "Nope",
+    updatedAt: Timestamp.now(),
+  }));
+  await assertFails(setDoc(doc(aliceDb, "adminConfig", "ownerActivepiecesFlow"), {
+    provider: "activepieces",
+    scope: "owner_global",
+    isEnabled: true,
     updatedAt: Timestamp.now(),
   }));
 });

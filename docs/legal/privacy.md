@@ -51,7 +51,7 @@ Depending on what is enabled, the repo currently integrates with or prepares for
 - Shopify for catalog and commerce operations
 - Stripe and Klarna for hosted payment flows where active
 - Genkit / Gemini-backed AI execution
-- optional external systems such as Activepieces, `n8n`, or Manus BYOS
+- owner-managed Activepieces workflow gateway, optional user-owned Activepieces/n8n workflows, and optional Manus BYOS
 
 Some of these providers may act as processors, and some may have their own independent platform role.
 See the compliance register in `docs/compliance/` for the current internal view.

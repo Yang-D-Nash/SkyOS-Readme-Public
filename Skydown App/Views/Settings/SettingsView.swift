@@ -112,6 +112,7 @@ struct SettingsView: View {
     @State private var videoHeaderTitleDraft = ""
     @State private var videoHeaderSubtitleDraft = ""
     @State private var videoHeaderDetailDraft = ""
+    @State private var automationProviderDraft = "activepieces"
     @State private var automationEnabledDraft = false
     @State private var automationSendsUserContextDraft = true
     @State private var automationWorkflowNameDraft = ""
@@ -290,8 +291,11 @@ struct SettingsView: View {
     }
 
     private var automationDraftNormalizedSettings: WorkflowAutomationSettings {
-        WorkflowAutomationSettings(
-            provider: workflowAutomationSettings.settings.provider,
+        let scope = isOwnerUser ? "owner_global" : "user_personal"
+        let provider = scope == "user_personal" && automationProviderDraft == "n8n" ? "n8n" : "activepieces"
+        return WorkflowAutomationSettings(
+            provider: provider,
+            scope: scope,
             isEnabled: automationEnabledDraft,
             sendsUserContext: automationSendsUserContextDraft,
             workflowName: automationWorkflowNameTrimmed.isEmpty ? WorkflowAutomationSettings.default.workflowName : automationWorkflowNameTrimmed,
@@ -401,7 +405,10 @@ struct SettingsView: View {
         if automationHasUnsavedChanges {
             return "Aenderungen noch nicht gespeichert"
         }
-        return automationEnabledDraft ? "External Workflow ist einsatzbereit" : "External Workflow ist deaktiviert"
+        if isOwnerUser {
+            return automationEnabledDraft ? "Owner-Flow ist einsatzbereit" : "Owner-Flow ist deaktiviert"
+        }
+        return automationEnabledDraft ? "Eigener Workflow ist einsatzbereit" : "Eigener Workflow ist deaktiviert"
     }
 
     private var automationStatusMessage: String {
@@ -409,11 +416,18 @@ struct SettingsView: View {
             return "Bitte korrigiere die Punkte unten, dann kann gespeichert und getestet werden."
         }
         if automationHasUnsavedChanges {
-            return "Die Eingaben sind erfasst. Speichere, damit sie fuer dein Konto aktiv werden."
+            return isOwnerUser
+                ? "Die Eingaben sind erfasst. Speichere, damit sie fuer den globalen Owner-Flow aktiv werden."
+                : "Die Eingaben sind erfasst. Speichere, damit dein eigener Workflow triggerbar wird."
+        }
+        if isOwnerUser {
+            return automationEnabledDraft
+                ? "Alle Rollen laufen ueber den globalen Owner-Flow. Das Backend prueft Rolle, Abo und Limits vor jedem Trigger."
+                : "Der globale Owner-Flow ist vorbereitet, aber fuer Agent-Aktionen noch pausiert."
         }
         return automationEnabledDraft
-            ? "Dieses Konto nutzt aktuell den hinterlegten Workflow fuer Agent-Aktionen."
-            : "Du kannst die Werte vorbereiten und spaeter aktivieren."
+            ? "Dein eigener Workflow kann im Agent bewusst ausgefuehrt werden."
+            : "Du kannst den Workflow vorbereiten und spaeter aktivieren."
     }
 
     private var automationInlineFeedbackSummary: String? {
@@ -852,6 +866,7 @@ struct SettingsView: View {
         }
         .sheet(item: activePresentedSheetBinding) { sheet in
             settingsSheetContent(for: sheet)
+                .fancyToast(isPresented: $showToast, message: toastMessage, style: toastStyle)
         }
         .confirmationDialog(
             AppLocalized.text("settings.support.send", fallback: "Send support request"),
@@ -2178,19 +2193,29 @@ struct SettingsView: View {
 
             case .automation:
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Firebase-Login bleibt. Primaer: Activepieces-Webhook. n8n bleibt optional sidelined.")
+                    Text(isOwnerUser
+                        ? "Globaler Owner-Flow fuer die ganze App. User triggern nie direkt Activepieces; das Backend prueft Rolle, Abo, Limits und Kontext vor jedem Lauf."
+                        : "Optionaler eigener Workflow. Du kannst Activepieces oder n8n anbinden und ihn im Agent bewusst triggern.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                    Toggle("External Workflow aktiv", isOn: $automationEnabledDraft)
+                    Toggle(isOwnerUser ? "Globalen Activepieces-Flow aktivieren" : "Eigenen Workflow aktivieren", isOn: $automationEnabledDraft)
 
                     Toggle("App-User-Kontext mitsenden", isOn: $automationSendsUserContextDraft)
+
+                    if !isOwnerUser {
+                        Picker("Provider", selection: $automationProviderDraft) {
+                            Text("Activepieces").tag("activepieces")
+                            Text("n8n").tag("n8n")
+                        }
+                        .pickerStyle(.segmented)
+                    }
 
                     SettingsInputField(
                         title: "Workflow Name",
                         text: $automationWorkflowNameDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. AI Script Pipeline"
+                        placeholder: "z. B. SkyOS Owner Flow"
                     )
 
                     SettingsInputField(
@@ -2228,7 +2253,7 @@ struct SettingsView: View {
                         title: "Knowledge-Kontext (optional)",
                         text: $automationKnowledgeContextDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. eigene Drive-Ordner, Projektregeln, Brand-Guidelines oder SOPs fuer deinen Workflow.",
+                        placeholder: "z. B. Drive-Ordner, Projektregeln, Brand-Guidelines oder SOPs fuer den globalen Owner-Flow.",
                         minHeight: 100
                     )
 
@@ -2288,7 +2313,7 @@ struct SettingsView: View {
 
                     Divider()
 
-                    Text("Mein Manus-Account (optional)")
+                    Text("Persoenlicher Manus-Account (optional)")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
@@ -3227,6 +3252,7 @@ struct SettingsView: View {
     }
 
     private func syncAutomationDrafts(with settings: WorkflowAutomationSettings) {
+        automationProviderDraft = settings.provider == "n8n" ? "n8n" : "activepieces"
         automationEnabledDraft = settings.isEnabled
         automationSendsUserContextDraft = settings.sendsUserContext
         automationWorkflowNameDraft = settings.workflowName
@@ -3238,11 +3264,13 @@ struct SettingsView: View {
     }
 
     private func normalizedAutomationSettings(_ settings: WorkflowAutomationSettings) -> WorkflowAutomationSettings {
-        let provider = settings.provider.trimmingCharacters(in: .whitespacesAndNewlines)
         let workflowName = settings.workflowName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let scope = isOwnerUser ? "owner_global" : "user_personal"
+        let provider = scope == "user_personal" && settings.provider == "n8n" ? "n8n" : "activepieces"
 
         return WorkflowAutomationSettings(
-            provider: provider.isEmpty ? "activepieces" : provider,
+            provider: provider,
+            scope: scope,
             isEnabled: settings.isEnabled,
             sendsUserContext: settings.sendsUserContext,
             workflowName: workflowName.isEmpty ? WorkflowAutomationSettings.default.workflowName : workflowName,
@@ -3389,17 +3417,17 @@ struct SettingsView: View {
         for section: SettingsAdminWorkspaceSection?,
         userID: String? = nil
     ) {
-        let resolvedUserID = userID ?? authManager.userSession?.id
         let shouldObserveUsers = isOwnerUser && (section == .users || section == .artists)
         let shouldObserveStripeSecrets = isOwnerUser && section == .payments
-        let shouldObserveAutomation = resolvedUserID != nil
+        let shouldObserveAutomation = (userID ?? authManager.userSession?.id) != nil
         let shouldObserveAIPrompts = isOwnerUser && section == .aiPrompts
 
         adminUserManagementStore.configureObservation(isAdmin: shouldObserveUsers)
         stripeBackendSecretsStore.setObservationEnabled(shouldObserveStripeSecrets)
         workflowAutomationSettings.configureObservation(
             isEnabled: shouldObserveAutomation,
-            userID: shouldObserveAutomation ? resolvedUserID : nil
+            userID: shouldObserveAutomation ? (userID ?? authManager.userSession?.id) : nil,
+            scope: isOwnerUser ? "owner_global" : "user_personal"
         )
         aiPromptSettingsStore.setObservationEnabled(shouldObserveAIPrompts)
         aiRuntimeSettingsStore.setObservationEnabled(shouldObserveAIPrompts)
@@ -3695,14 +3723,19 @@ struct SettingsView: View {
             do {
                 try await workflowAutomationSettings.save(updated)
                 await MainActor.run {
+                    let message = isOwnerUser
+                        ? "Globaler Activepieces Owner-Flow gespeichert."
+                        : "Eigener Workflow gespeichert."
                     isSavingAutomationSettings = false
                     syncAutomationDrafts(with: updated)
                     updateAutomationInlineFeedback(
-                        "Agent-Service gespeichert. Dein Konto nutzt jetzt diesen Workflow fuer Aktionen.",
+                        isOwnerUser
+                            ? "Globaler Activepieces Owner-Flow gespeichert. Rollen und Limits bleiben backendgefuehrt."
+                            : "Eigener Workflow gespeichert. Der Agent kann ihn jetzt bewusst triggern.",
                         style: .success
                     )
                     showToastMessage(
-                        "Agent-Service gespeichert. Dein Konto nutzt jetzt diesen Workflow fuer Aktionen.",
+                        message,
                         style: .success
                     )
                 }
@@ -5749,7 +5782,7 @@ private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, 
         case .visuals:
             return "Drive-Link, Namensschema und Referenzhinweise fuer Visual-Prompts pflegen."
         case .automation:
-            return "Persoenlichen Workflow-Service (Activepieces primaer, n8n optional) und Manus-BYOS-Key pro Konto anbinden."
+            return "Owner-Flow global oder eigenen Activepieces/n8n-Flow pro Konto sauber anbinden."
         case .aiPrompts:
             return "Serverseitige Anweisungen fuer Bot, Visuals und Agent zentral pflegen."
         case .membershipOps:

@@ -4,13 +4,16 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.widget.TextView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -43,18 +46,22 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -75,6 +82,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -86,7 +94,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -97,10 +107,16 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
+import androidx.core.text.HtmlCompat
 import com.nash.skyos.data.AiMembershipCoordinator
 import com.nash.skyos.data.AiMembershipUiState
+import com.nash.skyos.data.AgentResultEntry
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.MembershipOpenReason
 import com.nash.skyos.R
@@ -119,6 +135,7 @@ import com.nash.skyos.ui.component.rememberIsCompactAppLayout
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.theme.skydownAccentMystic
+import com.nash.skyos.ui.model.AgentAutomationScope
 import com.nash.skyos.ui.model.AgentInteractionPhase
 import com.nash.skyos.ui.model.AgentExecutionMode
 import com.nash.skyos.ui.model.AiExperienceLevel
@@ -126,6 +143,7 @@ import com.nash.skyos.ui.model.AgentMessage
 import com.nash.skyos.ui.model.AgentMessageRole
 import com.nash.skyos.ui.model.AgentResultType
 import com.nash.skyos.ui.viewmodel.AgentViewModel
+import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -191,6 +209,14 @@ fun AgentScreen(
             message.resultType.name,
             message.text,
             workflowToken,
+            message.results.joinToString("|") { result ->
+                listOf(
+                    result.type,
+                    result.url,
+                    result.title,
+                    result.text,
+                ).joinToString(":")
+            },
         ).joinToString("|")
     } ?: "agent-empty"
     val dismissKeyboard: () -> Unit = {
@@ -412,7 +438,7 @@ fun AgentScreen(
                     AgentPromptComposerSheet(
                         draft = uiState.draft,
                         selectedMode = uiState.selectedMode,
-                        selectedLevel = uiState.selectedLevel,
+                        selectedAutomationScope = uiState.selectedAutomationScope,
                         canTriggerAutomation = uiState.canTriggerAutomation,
                         shouldTriggerAutomation = uiState.shouldTriggerAutomation,
                         agentPhase = uiState.agentPhase,
@@ -421,7 +447,7 @@ fun AgentScreen(
                         onDismiss = { showPromptComposer = false },
                         onDraftChanged = viewModel::updateDraft,
                         onModeChanged = viewModel::updateMode,
-                        onLevelChanged = viewModel::updateLevel,
+                        onAutomationScopeChanged = viewModel::updateAutomationScope,
                         onToggleAutomation = viewModel::toggleAutomation,
                         onAddFiles = {
                             showPromptComposer = false
@@ -829,7 +855,7 @@ private fun AgentPromptFab(
 private fun AgentPromptComposerSheet(
     draft: String,
     selectedMode: AgentExecutionMode,
-    selectedLevel: AiExperienceLevel,
+    selectedAutomationScope: AgentAutomationScope,
     canTriggerAutomation: Boolean,
     shouldTriggerAutomation: Boolean,
     agentPhase: AgentInteractionPhase,
@@ -838,7 +864,7 @@ private fun AgentPromptComposerSheet(
     onDismiss: () -> Unit,
     onDraftChanged: (String) -> Unit,
     onModeChanged: (AgentExecutionMode) -> Unit,
-    onLevelChanged: (AiExperienceLevel) -> Unit,
+    onAutomationScopeChanged: (AgentAutomationScope) -> Unit,
     onToggleAutomation: () -> Unit,
     onAddFiles: () -> Unit,
     onRemoveAttachment: (AgentInputAttachment) -> Unit,
@@ -938,27 +964,18 @@ private fun AgentPromptComposerSheet(
                 enabled = !agentPhase.shouldBlockComposerChrome,
                 onModeChanged = onModeChanged,
             )
-            AgentLevelMenu(
-                selectedLevel = selectedLevel,
-                enabled = !agentPhase.shouldBlockComposerChrome,
-                onLevelChanged = onLevelChanged,
-            )
             if (canTriggerAutomation) {
+                AgentAutomationScopeMenu(
+                    selectedScope = selectedAutomationScope,
+                    enabled = !agentPhase.shouldBlockComposerChrome,
+                    onScopeChanged = onAutomationScopeChanged,
+                )
                 AgentAutomationTriggerButton(
                     isEnabled = shouldTriggerAutomation,
                     onToggle = onToggleAutomation,
                 )
             }
         }
-
-        Text(
-            text = stringResource(agentAiLevelSubtitleResId(selectedLevel)),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
 
         AgentQuickPromptCard(
             prompts = quickPrompts,
@@ -1213,6 +1230,39 @@ private fun AgentLevelMenu(
 }
 
 @Composable
+private fun AgentAutomationScopeMenu(
+    selectedScope: AgentAutomationScope,
+    enabled: Boolean,
+    onScopeChanged: (AgentAutomationScope) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        OutlinedButton(
+            onClick = { expanded = true },
+            enabled = enabled,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(22.dp),
+        ) {
+            Text(selectedScope.title)
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            AgentAutomationScope.entries.forEach { scope ->
+                DropdownMenuItem(
+                    text = { Text(scope.title) },
+                    onClick = {
+                        onScopeChanged(scope)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun AgentAutomationTriggerButton(
     isEnabled: Boolean,
     onToggle: () -> Unit,
@@ -1375,12 +1425,21 @@ private fun AgentMessageBubble(
                     )
                 }
 
-                Text(
-                    text = message.text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
+                if (message.text.isNotBlank()) {
+                    Text(
+                        text = message.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+
+                if (!isUser) {
+                    AgentStructuredResults(
+                        results = message.results,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
 
                 if (!isUser && !message.isStreaming) {
                     Row(
@@ -1410,6 +1469,420 @@ private fun AgentMessageBubble(
             }
         }
     }
+}
+
+@Composable
+private fun AgentStructuredResults(
+    results: List<AgentResultEntry>,
+    modifier: Modifier = Modifier,
+) {
+    val visibleResults = results.filter { result ->
+        val kind = result.agentOutputKind()
+        kind != "text" && kind != "workflow" && result.hasVisibleAgentOutput()
+    }
+    if (visibleResults.isNotEmpty()) {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            visibleResults.forEach { result ->
+                when (result.agentOutputKind()) {
+                    "image" -> AgentImageResultCard(result)
+                    "video" -> AgentVideoResultCard(result)
+                    "audio" -> AgentAudioResultCard(result)
+                    "file" -> AgentFileResultCard(result)
+                    "link" -> AgentLinkResultCard(result)
+                    "table" -> AgentTableResultCard(result)
+                    "html" -> AgentHtmlResultCard(result)
+                    else -> AgentFallbackResultCard(result)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgentResultShell(
+    result: AgentResultEntry,
+    fallbackTitle: String,
+    icon: ImageVector,
+    content: @Composable () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.46f))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
+                shape = RoundedCornerShape(22.dp),
+            )
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.13f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(15.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = result.agentDisplayTitle(fallbackTitle),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = result.agentSubtitle(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
+        content()
+    }
+}
+
+@Composable
+private fun AgentImageResultCard(result: AgentResultEntry) {
+    AgentResultShell(
+        result = result,
+        fallbackTitle = "Bild",
+        icon = Icons.Default.Photo,
+    ) {
+        val url = result.url.trim()
+        if (url.isNotBlank()) {
+            AsyncImage(
+                model = url,
+                contentDescription = result.agentDisplayTitle("Bild"),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(190.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            AgentFallbackResultText(result)
+        }
+    }
+}
+
+@Composable
+private fun AgentVideoResultCard(result: AgentResultEntry) {
+    AgentResultShell(
+        result = result,
+        fallbackTitle = "Video",
+        icon = Icons.Default.Movie,
+    ) {
+        val url = result.url.trim()
+        if (url.isNotBlank()) {
+            AgentInlineMediaPlayer(
+                url = url,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(18.dp)),
+            )
+        } else {
+            AgentFallbackResultText(result)
+        }
+    }
+}
+
+@Composable
+private fun AgentAudioResultCard(result: AgentResultEntry) {
+    AgentResultShell(
+        result = result,
+        fallbackTitle = "Audio",
+        icon = Icons.Default.MusicNote,
+    ) {
+        val url = result.url.trim()
+        if (url.isNotBlank()) {
+            AgentInlineMediaPlayer(
+                url = url,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(88.dp)
+                    .clip(RoundedCornerShape(18.dp)),
+            )
+        } else {
+            AgentFallbackResultText(result)
+        }
+    }
+}
+
+@Composable
+private fun AgentInlineMediaPlayer(
+    url: String,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val player = remember(url) {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(url))
+            prepare()
+            playWhenReady = false
+        }
+    }
+    DisposableEffect(player) {
+        onDispose {
+            player.release()
+        }
+    }
+    AndroidView(
+        modifier = modifier.background(Color.Black),
+        factory = { playerContext ->
+            PlayerView(playerContext).apply {
+                useController = true
+                this.player = player
+            }
+        },
+        update = { view ->
+            view.player = player
+        },
+    )
+}
+
+@Composable
+private fun AgentFileResultCard(result: AgentResultEntry) {
+    AgentResultShell(
+        result = result,
+        fallbackTitle = "Datei",
+        icon = Icons.Default.AttachFile,
+    ) {
+        AgentOpenResultButton(result = result, label = "Oeffnen")
+    }
+}
+
+@Composable
+private fun AgentLinkResultCard(result: AgentResultEntry) {
+    AgentResultShell(
+        result = result,
+        fallbackTitle = "Link",
+        icon = Icons.Default.Link,
+    ) {
+        AgentOpenResultButton(
+            result = result,
+            label = result.text.trim().ifBlank { "Link oeffnen" },
+        )
+    }
+}
+
+@Composable
+private fun AgentOpenResultButton(
+    result: AgentResultEntry,
+    label: String,
+) {
+    val context = LocalContext.current
+    val url = result.url.trim()
+    Button(
+        onClick = { openExternalLink(context, url) },
+        enabled = url.isNotBlank(),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = label,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+            contentDescription = null,
+            modifier = Modifier.size(15.dp),
+        )
+    }
+}
+
+@Composable
+private fun AgentTableResultCard(result: AgentResultEntry) {
+    val columnCount = maxOf(
+        result.columns.size,
+        result.rows.maxOfOrNull { it.size } ?: 0,
+        1,
+    )
+    val columns = result.columns.ifEmpty {
+        List(columnCount.coerceAtMost(8)) { index -> "Spalte ${index + 1}" }
+    }
+
+    AgentResultShell(
+        result = result,
+        fallbackTitle = "Tabelle",
+        icon = Icons.Default.TableChart,
+    ) {
+        if (result.rows.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(16.dp),
+                    ),
+            ) {
+                AgentTableResultRow(cells = columns, isHeader = true)
+                result.rows.forEach { row ->
+                    AgentTableResultRow(cells = row, isHeader = false)
+                }
+            }
+        } else {
+            AgentFallbackResultText(result)
+        }
+    }
+}
+
+@Composable
+private fun AgentTableResultRow(
+    cells: List<String>,
+    isHeader: Boolean,
+) {
+    Row {
+        cells.forEach { cell ->
+            Text(
+                text = cell.ifBlank { "-" },
+                style = if (isHeader) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall,
+                fontWeight = if (isHeader) FontWeight.Bold else FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .width(122.dp)
+                    .background(
+                        if (isHeader) {
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f)
+                        } else {
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.76f)
+                        },
+                    )
+                    .padding(horizontal = 10.dp, vertical = 9.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AgentHtmlResultCard(result: AgentResultEntry) {
+    AgentResultShell(
+        result = result,
+        fallbackTitle = "HTML",
+        icon = Icons.Default.Code,
+    ) {
+        val html = result.html.trim()
+        if (html.isNotBlank()) {
+            val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.76f))
+                    .padding(10.dp),
+                factory = { viewContext ->
+                    TextView(viewContext).apply {
+                        setTextColor(textColor)
+                        textSize = 14f
+                    }
+                },
+                update = { textView ->
+                    textView.setTextColor(textColor)
+                    textView.text = HtmlCompat.fromHtml(
+                        html.replace(Regex("(?is)<script.*?</script>"), ""),
+                        HtmlCompat.FROM_HTML_MODE_COMPACT,
+                    )
+                },
+            )
+        } else {
+            AgentFallbackResultText(result)
+        }
+    }
+}
+
+@Composable
+private fun AgentFallbackResultCard(result: AgentResultEntry) {
+    AgentResultShell(
+        result = result,
+        fallbackTitle = "Output",
+        icon = Icons.Default.Bolt,
+    ) {
+        AgentFallbackResultText(result)
+    }
+}
+
+@Composable
+private fun AgentFallbackResultText(result: AgentResultEntry) {
+    Text(
+        text = result.agentFallbackText(),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.76f))
+            .padding(10.dp),
+    )
+}
+
+private fun AgentResultEntry.agentOutputKind(): String {
+    return when (type.trim().lowercase()) {
+        "url", "button" -> "link"
+        "pdf", "document", "download" -> "file"
+        "" -> "text"
+        else -> type.trim().lowercase()
+    }
+}
+
+private fun AgentResultEntry.hasVisibleAgentOutput(): Boolean {
+    return url.isNotBlank() ||
+        text.isNotBlank() ||
+        title.isNotBlank() ||
+        fileName.isNotBlank() ||
+        html.isNotBlank() ||
+        rows.isNotEmpty()
+}
+
+private fun AgentResultEntry.agentDisplayTitle(fallback: String): String {
+    return listOf(title, fileName, workflowName, url)
+        .firstOrNull { it.isNotBlank() }
+        ?.trim()
+        ?: fallback
+}
+
+private fun AgentResultEntry.agentSubtitle(): String {
+    if (mimeType.isNotBlank()) return mimeType.trim()
+    val host = runCatching { Uri.parse(url).host }.getOrNull()
+    if (!host.isNullOrBlank()) return host
+    return agentOutputKind().uppercase()
+}
+
+private fun AgentResultEntry.agentFallbackText(): String {
+    return listOf(text, summary, url)
+        .firstOrNull { it.isNotBlank() }
+        ?.trim()
+        ?: agentDisplayTitle("Output bereit.")
 }
 
 @Composable

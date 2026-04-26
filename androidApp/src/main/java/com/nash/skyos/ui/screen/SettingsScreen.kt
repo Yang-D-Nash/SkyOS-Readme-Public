@@ -332,6 +332,7 @@ fun SettingsScreen(
     var videoHeaderTitleDraft by rememberSaveable { mutableStateOf("") }
     var videoHeaderSubtitleDraft by rememberSaveable { mutableStateOf("") }
     var videoHeaderDetailDraft by rememberSaveable { mutableStateOf("") }
+    var automationProviderDraft by rememberSaveable { mutableStateOf("activepieces") }
     var automationEnabledDraft by rememberSaveable { mutableStateOf(false) }
     var automationSendsUserContextDraft by rememberSaveable { mutableStateOf(true) }
     var automationWorkflowNameDraft by rememberSaveable { mutableStateOf("") }
@@ -564,6 +565,7 @@ fun SettingsScreen(
     }
 
     LaunchedEffect(uiState.workflowAutomationSettings) {
+        automationProviderDraft = uiState.workflowAutomationSettings.provider.ifBlank { "activepieces" }
         automationEnabledDraft = uiState.workflowAutomationSettings.isEnabled
         automationSendsUserContextDraft = uiState.workflowAutomationSettings.sendsUserContext
         automationWorkflowNameDraft = uiState.workflowAutomationSettings.workflowName
@@ -1903,14 +1905,18 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Automation -> {
                 Text(
-                    text = "Mein Agent-Service (Activepieces + Manus, n8n optional)",
+                    text = if (uiState.isOwner) "Globaler Activepieces Owner-Flow" else "Eigener Workflow",
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 SettingsToggleRow(
-                    title = "External Workflow aktiv",
-                    body = "Die App bleibt normal ueber Firebase eingeloggt. Dieser Workflow gilt nur fuer dein aktuelles Konto.",
+                    title = if (uiState.isOwner) "Owner-Flow aktivieren" else "Eigenen Workflow aktivieren",
+                    body = if (uiState.isOwner) {
+                        "User triggern nie direkt Activepieces. Das Backend prueft Rolle, Abo, Limits und Kontext vor jedem Lauf."
+                    } else {
+                        "Optionaler eigener Flow fuer den Agent. Du kannst Activepieces oder n8n verwenden und ihn bewusst triggern."
+                    },
                     checked = automationEnabledDraft,
                     onCheckedChange = { automationEnabledDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
@@ -1922,6 +1928,45 @@ fun SettingsScreen(
                     onCheckedChange = { automationSendsUserContextDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
                 )
+                if (!uiState.isOwner) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedButton(
+                            onClick = { automationProviderDraft = "activepieces" },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(18.dp),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = if (automationProviderDraft == "activepieces") {
+                                    MaterialTheme.colorScheme.tertiary
+                                } else {
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.32f)
+                                },
+                            ),
+                        ) {
+                            Text("Activepieces")
+                        }
+                        OutlinedButton(
+                            onClick = { automationProviderDraft = "n8n" },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(18.dp),
+                            border = BorderStroke(
+                                width = 1.dp,
+                                color = if (automationProviderDraft == "n8n") {
+                                    MaterialTheme.colorScheme.tertiary
+                                } else {
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.32f)
+                                },
+                            ),
+                        ) {
+                            Text("n8n")
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = automationWorkflowNameDraft,
                     onValueChange = { automationWorkflowNameDraft = it },
@@ -1929,8 +1974,9 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .padding(top = 12.dp),
                     label = { Text("Workflow Name") },
-                    placeholder = { Text("z. B. AI Script Pipeline") },
+                    placeholder = { Text("z. B. SkyOS Owner Flow") },
                     singleLine = true,
+                    shape = RoundedCornerShape(18.dp),
                 )
                 OutlinedTextField(
                     value = automationBaseUrlDraft,
@@ -1941,6 +1987,7 @@ fun SettingsScreen(
                     label = { Text("Activepieces Base URL") },
                     placeholder = { Text("https://cloud.activepieces.com") },
                     singleLine = true,
+                    shape = RoundedCornerShape(18.dp),
                 )
                 OutlinedTextField(
                     value = automationWebhookPathDraft,
@@ -1951,6 +1998,7 @@ fun SettingsScreen(
                     label = { Text("Webhook Path") },
                     placeholder = { Text("webhook/skydown-app") },
                     singleLine = true,
+                    shape = RoundedCornerShape(18.dp),
                 )
                 OutlinedTextField(
                     value = automationAuthHeaderNameDraft,
@@ -1961,6 +2009,7 @@ fun SettingsScreen(
                     label = { Text("Auth Header Name") },
                     placeholder = { Text("z. B. X-SkyOS-Automation-Key") },
                     singleLine = true,
+                    shape = RoundedCornerShape(18.dp),
                 )
                 OutlinedTextField(
                     value = automationAuthHeaderValueDraft,
@@ -1971,6 +2020,7 @@ fun SettingsScreen(
                     label = { Text("Auth Header Value") },
                     placeholder = { Text("optional") },
                     singleLine = true,
+                    shape = RoundedCornerShape(18.dp),
                 )
                 OutlinedTextField(
                     value = automationKnowledgeContextDraft,
@@ -1980,9 +2030,10 @@ fun SettingsScreen(
                         .padding(top = 10.dp),
                     label = { Text("Knowledge-Kontext (optional)") },
                     placeholder = {
-                        Text("z. B. Drive-Ordner, Brand-Guidelines, SOPs oder Projektregeln")
+                        Text("z. B. Drive-Ordner, Brand-Guidelines, SOPs oder Projektregeln fuer den Owner-Flow")
                     },
                     minLines = 3,
+                    shape = RoundedCornerShape(18.dp),
                 )
 
                 val resolvedWebhookUrl = resolveAutomationDraftWebhookUrl(
@@ -1991,7 +2042,7 @@ fun SettingsScreen(
                 )
 
                 Text(
-                    text = resolvedWebhookUrl?.let { "Webhook: $it" } ?: "Webhook noch nicht vollstaendig",
+                    text = resolvedWebhookUrl?.let { "Owner-Webhook: $it" } ?: "Owner-Webhook noch nicht vollstaendig",
                     modifier = Modifier.padding(top = 12.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -2003,6 +2054,8 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     val updatedAutomationSettings = uiState.workflowAutomationSettings.copy(
+                        provider = if (!uiState.isOwner && automationProviderDraft == "n8n") "n8n" else "activepieces",
+                        scope = if (uiState.isOwner) "owner_global" else "user_personal",
                         isEnabled = automationEnabledDraft,
                         sendsUserContext = automationSendsUserContextDraft,
                         workflowName = automationWorkflowNameDraft.trim(),
@@ -2020,7 +2073,7 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(18.dp),
                     ) {
-                        Text("Service speichern")
+                        Text("Flow speichern")
                     }
 
                     OutlinedButton(
@@ -5766,7 +5819,7 @@ private enum class AdminWorkspaceSection(
     ),
     Automation(
         label = "Agent-Service",
-        subtitle = "Persoenliche Automation und Agent-Skills pro Konto pflegen.",
+        subtitle = "Owner-Flow global oder eigenen Activepieces/n8n-Flow pro Konto pflegen.",
         icon = Icons.Default.Bolt,
     ),
     AiPrompts(

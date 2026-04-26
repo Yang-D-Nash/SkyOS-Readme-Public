@@ -49,14 +49,15 @@ SkyOS therefore supports both direct AI execution and controlled bridge patterns
 
 The agent layer can integrate with:
 
-- Activepieces
-- `n8n`
-- Manus BYOS
+- a global owner-managed Activepieces flow
+- optional user-owned Activepieces or `n8n` flows
+- optional Manus BYOS for user-owned agent execution
 
 Important boundary: these are optional execution routes. They should be:
 
-- scoped per account where user-owned
-- governed by owner runtime settings where system-owned
+- routed through the backend, never directly from the client
+- governed by owner runtime settings and role/plan limits
+- scoped per account when the user owns the external workflow
 - transparent to the user when automation is triggered
 - blocked when kill switches or confirmation policies require it
 

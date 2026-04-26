@@ -33,9 +33,9 @@ These controls are part of platform safety and cost management.
 
 ## 5. External Providers and Automation
 
-If enabled, SkyOS may route work through configured external systems such as Activepieces, `n8n`,
-or Manus BYOS. These routes should remain transparent, scoped, and governed by the current runtime
-settings.
+If enabled, SkyOS may route work through the owner-managed Activepieces workflow gateway, optional
+user-owned Activepieces/n8n workflows, or optional Manus BYOS. These routes should remain transparent,
+backend-gated, and governed by the current role, plan, runtime, and cost settings.
 
 ## 6. Misuse
 

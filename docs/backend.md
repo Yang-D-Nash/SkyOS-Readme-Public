@@ -29,7 +29,8 @@ collections than listed here.
 | `orders/*` | merch order records and owner workflow data |
 | `system/runtimeConfig` | platform-wide runtime switches for lockdown and write control |
 | `adminConfig/aiPromptSettings` | owner-governed AI prompt and runtime settings |
-| `adminConfig/automationN8n` and per-user variants | automation routing configuration |
+| `adminConfig/ownerActivepiecesFlow` | owner-managed global Activepieces workflow gateway |
+| `adminConfig/automationN8n_<uid>` | optional user-owned Activepieces/n8n workflow configuration |
 | `adminConfig/shopifyMerchPrivate` | private commerce configuration |
 | `appConfig/shopifyMerch` | public Shopify storefront configuration |
 | `adminConfig/stripeCheckoutSecrets` | Stripe secret status metadata |

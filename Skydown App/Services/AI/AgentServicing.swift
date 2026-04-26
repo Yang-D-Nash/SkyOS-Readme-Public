@@ -26,13 +26,53 @@ struct AgentChatResponse {
     let decision: AgentDecision?
 }
 
-struct AgentResultEntry {
+struct AgentResultEntry: Identifiable, Equatable {
+    let id: String
     let type: String
     let text: String
+    let url: String
+    let title: String
+    let mimeType: String
+    let fileName: String
+    let html: String
+    let columns: [String]
+    let rows: [[String]]
     let workflowName: String
     let status: String
     let summary: String
     let runId: String
+
+    init(
+        id: String = UUID().uuidString,
+        type: String,
+        text: String = "",
+        url: String = "",
+        title: String = "",
+        mimeType: String = "",
+        fileName: String = "",
+        html: String = "",
+        columns: [String] = [],
+        rows: [[String]] = [],
+        workflowName: String = "",
+        status: String = "",
+        summary: String = "",
+        runId: String = ""
+    ) {
+        self.id = id
+        self.type = type
+        self.text = text
+        self.url = url
+        self.title = title
+        self.mimeType = mimeType
+        self.fileName = fileName
+        self.html = html
+        self.columns = columns
+        self.rows = rows
+        self.workflowName = workflowName
+        self.status = status
+        self.summary = summary
+        self.runId = runId
+    }
 }
 
 struct AgentDecision: Equatable {
@@ -64,6 +104,7 @@ protocol AgentChatServicing {
         mode: String,
         aiLevel: String,
         executeAutomation: Bool,
+        automationScope: String,
         manusApiKeyOverride: String?
     ) async throws -> AgentChatResponse
 }
@@ -92,6 +133,7 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
         mode: String,
         aiLevel: String,
         executeAutomation: Bool,
+        automationScope: String,
         manusApiKeyOverride: String?
     ) async throws -> AgentChatResponse {
         try await ensureConnectivity()
@@ -105,7 +147,8 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
             },
             "mode": mode,
             "aiLevel": aiLevel,
-            "executeAutomation": executeAutomation
+            "executeAutomation": executeAutomation,
+            "automationScope": automationScope
         ]
         if let manusApiKeyOverride,
            !manusApiKeyOverride.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -142,11 +185,16 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
             )
         }
 
-        if let payload = result.data as? [String: Any],
-           let reply = payload["reply"] as? String,
-           !reply.isEmpty {
+        if let payload = result.data as? [String: Any] {
+            let reply = ((payload["reply"] as? String) ?? (payload["message"] as? String) ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let parsedResults = parseAgentResults(payload["results"] as? [Any])
+            guard !reply.isEmpty || !parsedResults.isEmpty else {
+                throw AgentServiceError.invalidResponse
+            }
+            let resolvedReply = reply.isEmpty ? "Dein Content ist fertig." : reply
             return AgentChatResponse(
-                reply: reply,
+                reply: resolvedReply,
                 historyRetentionDays: (payload["historyRetentionDays"] as? NSNumber)?.intValue
                     ?? UserRole.user.defaultAIHistoryRetentionDays,
                 automationTriggered: payload["automationTriggered"] as? Bool ?? false,
@@ -158,16 +206,7 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
                 providerNotice: (payload["providerNotice"] as? String) ?? "",
                 agentRunId: (payload["agentRunId"] as? String) ?? "",
                 resultType: (payload["resultType"] as? String) ?? "text",
-                results: (payload["results"] as? [[String: Any]] ?? []).map { entry in
-                    AgentResultEntry(
-                        type: (entry["type"] as? String) ?? "text",
-                        text: (entry["text"] as? String) ?? "",
-                        workflowName: (entry["workflowName"] as? String) ?? "",
-                        status: (entry["status"] as? String) ?? "",
-                        summary: (entry["summary"] as? String) ?? "",
-                        runId: (entry["runId"] as? String) ?? ""
-                    )
-                },
+                results: parsedResults.isEmpty ? [AgentResultEntry(type: "text", text: resolvedReply)] : parsedResults,
                 usage: parseUsage(payload["usage"] as? [String: Any]),
                 decision: parseDecision(payload["agentDecision"] as? [String: Any])
             )
@@ -189,6 +228,94 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
             retryAfterSeconds: (hints?["retryAfterSeconds"] as? NSNumber)?.intValue ?? 0,
             lowerCostOption: (hints?["lowerCostOption"] as? String) ?? ""
         )
+    }
+
+    private func parseAgentResults(_ payload: [Any]?) -> [AgentResultEntry] {
+        guard let payload else { return [] }
+        return payload.enumerated().compactMap { index, rawEntry in
+            if let text = rawEntry as? String {
+                let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmedText.isEmpty ? nil : AgentResultEntry(
+                    id: "result_\(index + 1)",
+                    type: "text",
+                    text: trimmedText
+                )
+            }
+            guard let entry = rawEntry as? [String: Any] else { return nil }
+            let type = ((entry["type"] as? String) ?? "text")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+            let columns = parseStringList(entry["columns"])
+            let rows = parseTableRows(entry["rows"], columns: columns)
+            return AgentResultEntry(
+                id: ((entry["id"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 } ?? "result_\(index + 1)",
+                type: type.isEmpty ? "text" : type,
+                text: (entry["text"] as? String) ?? "",
+                url: (entry["url"] as? String) ?? "",
+                title: (entry["title"] as? String) ?? "",
+                mimeType: (entry["mimeType"] as? String) ?? "",
+                fileName: ((entry["fileName"] as? String) ?? (entry["filename"] as? String) ?? ""),
+                html: (entry["html"] as? String) ?? "",
+                columns: columns,
+                rows: rows,
+                workflowName: (entry["workflowName"] as? String) ?? "",
+                status: (entry["status"] as? String) ?? "",
+                summary: (entry["summary"] as? String) ?? "",
+                runId: (entry["runId"] as? String) ?? ""
+            )
+        }
+    }
+
+    private func parseStringList(_ value: Any?) -> [String] {
+        guard let values = value as? [Any] else { return [] }
+        return values.compactMap { item in
+            if let string = item as? String {
+                let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmed.isEmpty ? nil : trimmed
+            }
+            if let map = item as? [String: Any] {
+                let label = (map["title"] as? String) ??
+                    (map["label"] as? String) ??
+                    (map["name"] as? String) ??
+                    (map["key"] as? String) ??
+                    ""
+                let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmed.isEmpty ? nil : trimmed
+            }
+            return nil
+        }
+    }
+
+    private func parseTableRows(_ value: Any?, columns: [String]) -> [[String]] {
+        guard let rows = value as? [Any] else { return [] }
+        return rows.compactMap { row in
+            if let rowValues = row as? [Any] {
+                let cells = rowValues.map { stringifyResultValue($0) }
+                return cells.contains(where: { !$0.isEmpty }) ? cells : nil
+            }
+            if let rowMap = row as? [String: Any] {
+                let keys = columns.isEmpty ? Array(rowMap.keys.prefix(8)) : columns
+                let cells = keys.map { stringifyResultValue(rowMap[$0]) }
+                return cells.contains(where: { !$0.isEmpty }) ? cells : nil
+            }
+            let text = stringifyResultValue(row)
+            return text.isEmpty ? nil : [text]
+        }
+    }
+
+    private func stringifyResultValue(_ value: Any?) -> String {
+        switch value {
+        case let value as String:
+            return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        case let value as Bool:
+            return value ? "true" : "false"
+        case let value as NSNumber:
+            return value.stringValue
+        case .none:
+            return ""
+        default:
+            return "\(value ?? "")"
+        }
     }
 
     private func parseDecision(_ payload: [String: Any]?) -> AgentDecision? {

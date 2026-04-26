@@ -8,6 +8,7 @@ import com.nash.skyos.R
 import com.nash.skyos.data.AgentHistoryTurn
 import com.nash.skyos.data.AgentPendingQueueEntry
 import com.nash.skyos.data.AgentPendingQueueStore
+import com.nash.skyos.data.AgentResultEntry
 import com.nash.skyos.data.AiConversationHistorySource
 import com.nash.skyos.data.AiConversationHistorySaveResult
 import com.nash.skyos.data.AiConversationHistoryStore
@@ -19,6 +20,7 @@ import com.nash.skyos.data.AppFeatureFlagsStore
 import com.nash.skyos.data.AppNetworkMonitor
 import com.nash.skyos.data.AppTextResolver
 import com.nash.skyos.data.ManusByosPreferences
+import com.nash.skyos.ui.model.AgentAutomationScope
 import com.nash.skyos.ui.model.AgentExecutionMode
 import com.nash.skyos.ui.model.AgentInteractionPhase
 import com.nash.skyos.ui.model.AgentMessage
@@ -50,6 +52,7 @@ class AgentViewModel : ViewModel() {
         val mode: String,
         val aiLevel: String,
         val executeAutomation: Boolean,
+        val automationScope: String,
         val assistantMessageId: String,
         val createdAtEpochMillis: Long,
     )
@@ -127,11 +130,7 @@ class AgentViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         planLabel = planLabel,
-                        selectedLevel = if (it.selectedLevel.isAvailableFor(quotaPlan)) {
-                            it.selectedLevel
-                        } else {
-                            AiExperienceLevel.Standard
-                        },
+                        selectedLevel = resolvedAgentExperienceLevel(quotaPlan),
                     )
                 }
 
@@ -185,6 +184,12 @@ class AgentViewModel : ViewModel() {
         }
     }
 
+    fun updateAutomationScope(scope: AgentAutomationScope) {
+        _uiState.update { state ->
+            if (state.agentPhase.shouldBlockComposerChrome) state else state.copy(selectedAutomationScope = scope)
+        }
+    }
+
     fun toggleAutomation() {
         _uiState.update { currentState ->
             if (!currentState.canTriggerAutomation) {
@@ -227,6 +232,7 @@ class AgentViewModel : ViewModel() {
         val modeAtSend = _uiState.value.selectedMode.rawValue
         val levelRawAtSend = levelAtSend.rawValue
         val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
+        val automationScopeAtSend = _uiState.value.selectedAutomationScope.rawValue
         val userMessage = AgentMessage(role = AgentMessageRole.User, text = trimmedPrompt)
         val assistantMessage = AgentMessage(
             role = AgentMessageRole.Assistant,
@@ -260,6 +266,7 @@ class AgentViewModel : ViewModel() {
                     mode = modeAtSend,
                     aiLevel = levelRawAtSend,
                     executeAutomation = executeAutomationAtSend,
+                    automationScope = automationScopeAtSend,
                     manusApiKeyOverride = ManusByosPreferences.currentManusApiKeyOrNull(),
                 )
                 if (!isRequestContextActive(requestContext)) return@launch
@@ -286,6 +293,7 @@ class AgentViewModel : ViewModel() {
                         AgentResultType.Text
                     },
                     workflowSummary = buildWorkflowSummary(result),
+                    results = result.results,
                 )
                 val trimmedNotice = result.providerNotice.trim()
                 val effectiveNotice = when {
@@ -321,6 +329,7 @@ class AgentViewModel : ViewModel() {
                             mode = modeAtSend,
                             aiLevel = levelRawAtSend,
                             executeAutomation = executeAutomationAtSend,
+                            automationScope = automationScopeAtSend,
                             assistantMessageId = assistantMessageId,
                             createdAtEpochMillis = System.currentTimeMillis(),
                         ),
@@ -456,6 +465,7 @@ class AgentViewModel : ViewModel() {
         val activeSessionId = ensureCurrentSessionId()
         val modeAtSend = _uiState.value.selectedMode.rawValue
         val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
+        val automationScopeAtSend = _uiState.value.selectedAutomationScope.rawValue
         val userMessage = AgentMessage(role = AgentMessageRole.User, text = trimmedPrompt)
         val assistantMessage = AgentMessage(
             role = AgentMessageRole.Assistant,
@@ -474,6 +484,7 @@ class AgentViewModel : ViewModel() {
                 mode = modeAtSend,
                 aiLevel = levelAtSend.rawValue,
                 executeAutomation = executeAutomationAtSend,
+                automationScope = automationScopeAtSend,
                 assistantMessageId = assistantMessage.id,
                 createdAtEpochMillis = System.currentTimeMillis(),
             ),
@@ -527,6 +538,7 @@ class AgentViewModel : ViewModel() {
                         mode = request.mode,
                         aiLevel = request.aiLevel,
                         executeAutomation = request.executeAutomation,
+                        automationScope = request.automationScope,
                         manusApiKeyOverride = ManusByosPreferences.currentManusApiKeyOrNull(),
                     )
                     if (!isRequestContextActive(requestContext)) {
@@ -556,6 +568,7 @@ class AgentViewModel : ViewModel() {
                             AgentResultType.Text
                         },
                         workflowSummary = buildWorkflowSummary(result),
+                        results = result.results,
                     )
                     val trimmedNotice = result.providerNotice.trim()
                     val effectiveNotice = when {
@@ -744,6 +757,7 @@ class AgentViewModel : ViewModel() {
         isStreaming: Boolean,
         resultType: AgentResultType = AgentResultType.Text,
         workflowSummary: AgentWorkflowSummary? = null,
+        results: List<AgentResultEntry> = emptyList(),
     ) {
         _uiState.update { state ->
             state.copy(
@@ -754,6 +768,7 @@ class AgentViewModel : ViewModel() {
                             isStreaming = isStreaming,
                             resultType = resultType,
                             workflowSummary = workflowSummary,
+                            results = results,
                         )
                     } else {
                         message
@@ -794,6 +809,7 @@ class AgentViewModel : ViewModel() {
                     mode = entry.mode,
                     aiLevel = entry.aiLevel,
                     executeAutomation = entry.executeAutomation,
+                    automationScope = entry.automationScope,
                     assistantMessageId = entry.assistantMessageId,
                     createdAtEpochMillis = entry.createdAtEpochMillis,
                 )
@@ -833,6 +849,7 @@ class AgentViewModel : ViewModel() {
                 mode = request.mode,
                 aiLevel = request.aiLevel,
                 executeAutomation = request.executeAutomation,
+                automationScope = request.automationScope,
                 assistantMessageId = request.assistantMessageId,
                 createdAtEpochMillis = request.createdAtEpochMillis,
             )
@@ -1044,6 +1061,15 @@ private fun AiExperienceLevel.isAvailableFor(plan: UserQuotaPlan): Boolean = whe
     AiExperienceLevel.Advanced,
     -> true
     AiExperienceLevel.Pro -> plan != UserQuotaPlan.Free
+}
+
+private fun resolvedAgentExperienceLevel(plan: UserQuotaPlan): AiExperienceLevel = when (plan) {
+    UserQuotaPlan.Free -> AiExperienceLevel.Standard
+    UserQuotaPlan.Creator,
+    UserQuotaPlan.Studio,
+    UserQuotaPlan.InternalTeam,
+    UserQuotaPlan.OwnerUnlimited,
+    -> AiExperienceLevel.Pro
 }
 
 private fun resolveTerminalPhase(

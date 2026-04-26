@@ -1,12 +1,12 @@
 import SwiftUI
 import UIKit
+import AVKit
 import UniformTypeIdentifiers
 
 struct AgentView: View {
     @StateObject private var viewModel: AgentChatViewModel
     @ObservedObject private var featureFlags: FeatureFlagsService
     @ObservedObject private var membershipCoordinator: AIMembershipCoordinator
-    @ObservedObject private var workflowAutomationSettingsStore = WorkflowAutomationSettingsStore.shared
     @ObservedObject private var aiRuntimeSettingsStore = AIRuntimeSettingsStore.shared
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
@@ -58,7 +58,7 @@ struct AgentView: View {
                 colorScheme: colorScheme,
                 draft: $viewModel.draft,
                 selectedMode: $viewModel.selectedMode,
-                selectedLevel: $viewModel.selectedLevel,
+                selectedAutomationScope: $viewModel.selectedAutomationScope,
                 shouldTriggerAutomation: $viewModel.shouldTriggerAutomation,
                 canTriggerAutomation: viewModel.canTriggerAutomation,
                 interactionPhase: viewModel.phase,
@@ -131,10 +131,6 @@ struct AgentView: View {
         }
         .onChange(of: featureFlags.isAIEnabled) { _, isEnabled in
             aiRuntimeSettingsStore.setObservationEnabled(isEnabled)
-            workflowAutomationSettingsStore.configureObservation(
-                isEnabled: isEnabled,
-                userID: authManager.userSession?.id
-            )
         }
         .onChange(of: viewModel.revenueUsage?.warningLevel) { _, level in
             handleCriticalUsageWarning(level)
@@ -228,7 +224,16 @@ struct AgentView: View {
                                     message.isStreaming.description,
                                     message.resultType.rawValue,
                                     message.text,
-                                    workflowToken
+                                    workflowToken,
+                                    message.results.map { result in
+                                        [
+                                            result.id,
+                                            result.type,
+                                            result.url,
+                                            result.title,
+                                            result.text
+                                        ].joined(separator: ":")
+                                    }.joined(separator: "|")
                                 ].joined(separator: "|")
                             } ?? "agent-chat-empty"
 
@@ -341,11 +346,7 @@ struct AgentView: View {
     }
 
     private func configureIntegrationObservations(for user: User?) {
-        let userID = user?.id?.trimmingCharacters(in: .whitespacesAndNewlines)
-        workflowAutomationSettingsStore.configureObservation(
-            isEnabled: featureFlags.isAIEnabled,
-            userID: userID?.isEmpty == true ? nil : userID
-        )
+        _ = user
         aiRuntimeSettingsStore.setObservationEnabled(featureFlags.isAIEnabled)
     }
 }
@@ -765,7 +766,7 @@ private struct AgentPromptComposerSheet: View {
     let colorScheme: ColorScheme
     @Binding var draft: String
     @Binding var selectedMode: AgentExecutionMode
-    @Binding var selectedLevel: AIExperienceLevel
+    @Binding var selectedAutomationScope: AgentAutomationScope
     @Binding var shouldTriggerAutomation: Bool
     let canTriggerAutomation: Bool
     let interactionPhase: AgentInteractionPhase
@@ -847,17 +848,17 @@ private struct AgentPromptComposerSheet: View {
                 }
                 .disabled(interactionPhase.shouldBlockComposerChrome)
 
-                Menu {
-                    ForEach(AIExperienceLevel.allCases) { level in
-                        Button(level.title) { selectedLevel = level }
-                    }
-                } label: {
-                    Label(selectedLevel.title, systemImage: "sparkles")
-                        .font(.caption.weight(.bold))
-                }
-                .disabled(interactionPhase.shouldBlockComposerChrome)
-
                 if canTriggerAutomation {
+                    Menu {
+                        ForEach(AgentAutomationScope.allCases) { scope in
+                            Button(scope.title) { selectedAutomationScope = scope }
+                        }
+                    } label: {
+                        Label(selectedAutomationScope.title, systemImage: "point.3.connected.trianglepath.dotted")
+                            .font(.caption.weight(.bold))
+                    }
+                    .disabled(interactionPhase.shouldBlockComposerChrome)
+
                     Button { shouldTriggerAutomation.toggle() } label: {
                         HStack(spacing: 7) {
                             Image(systemName: shouldTriggerAutomation ? "play.circle.fill" : "play.circle")
@@ -884,11 +885,6 @@ private struct AgentPromptComposerSheet: View {
                     .accessibilityLabel(shouldTriggerAutomation ? "Workflow aktiv" : "Workflow starten")
                 }
             }
-
-            Text(selectedLevel.subtitle)
-                .font(.caption2.weight(.semibold))
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                .lineLimit(2)
 
             AgentQuickPromptCard(
                 colorScheme: colorScheme,
@@ -1085,9 +1081,18 @@ private struct AgentMessageBubble: View {
                         )
                     }
 
-                    Text(message.text)
-                        .font(.body)
-                        .foregroundColor(isUser ? .white : AppColors.text(for: colorScheme))
+                    if !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(message.text)
+                            .font(.body)
+                            .foregroundColor(isUser ? .white : AppColors.text(for: colorScheme))
+                    }
+
+                    if !isUser {
+                        AgentStructuredResultsView(
+                            results: message.results,
+                            colorScheme: colorScheme
+                        )
+                    }
 
                     if !isUser {
                         HStack(spacing: 10) {
@@ -1155,6 +1160,561 @@ private struct AgentMessageBubble: View {
                 )
             }
         }
+    }
+}
+
+private struct AgentStructuredResultsView: View {
+    let results: [AgentResultEntry]
+    let colorScheme: ColorScheme
+
+    private var visibleResults: [AgentResultEntry] {
+        results.filter { result in
+            let kind = result.agentOutputKind
+            return kind != "text" && kind != "workflow" && result.hasVisibleAgentOutput
+        }
+    }
+
+    var body: some View {
+        if !visibleResults.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(visibleResults) { result in
+                    switch result.agentOutputKind {
+                    case "image":
+                        AgentImageResultCard(result: result, colorScheme: colorScheme)
+                    case "video":
+                        AgentVideoResultCard(result: result, colorScheme: colorScheme)
+                    case "audio":
+                        AgentAudioResultCard(result: result, colorScheme: colorScheme)
+                    case "file":
+                        AgentFileResultCard(result: result, colorScheme: colorScheme)
+                    case "link":
+                        AgentLinkResultCard(result: result, colorScheme: colorScheme)
+                    case "table":
+                        AgentTableResultCard(result: result, colorScheme: colorScheme)
+                    case "html":
+                        AgentHTMLResultCard(result: result, colorScheme: colorScheme)
+                    default:
+                        AgentFallbackResultCard(result: result, colorScheme: colorScheme)
+                    }
+                }
+            }
+            .padding(.top, 6)
+        }
+    }
+}
+
+private struct AgentResultCard<Content: View>: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let colorScheme: ColorScheme
+    let content: Content
+
+    init(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        colorScheme: ColorScheme,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.systemImage = systemImage
+        self.colorScheme = colorScheme
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 9) {
+                Image(systemName: systemImage)
+                    .font(.caption.weight(.black))
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                    .frame(width: 24, height: 24)
+                    .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .lineLimit(2)
+                    if !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            content
+        }
+        .padding(10)
+        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.9))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.12), lineWidth: 1)
+        )
+    }
+}
+
+private struct AgentImageResultCard: View {
+    let result: AgentResultEntry
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        AgentResultCard(
+            title: result.agentDisplayTitle(fallback: "Bild"),
+            subtitle: result.agentSubtitle,
+            systemImage: "photo",
+            colorScheme: colorScheme
+        ) {
+            if let url = result.agentURL {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .frame(maxWidth: .infinity, minHeight: 160)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        AgentFallbackResultText(result: result, colorScheme: colorScheme)
+                            .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 190)
+                .background(AppColors.cardBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            } else {
+                AgentFallbackResultText(result: result, colorScheme: colorScheme)
+            }
+        }
+    }
+}
+
+private struct AgentVideoResultCard: View {
+    let result: AgentResultEntry
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        AgentResultCard(
+            title: result.agentDisplayTitle(fallback: "Video"),
+            subtitle: result.agentSubtitle,
+            systemImage: "play.rectangle.fill",
+            colorScheme: colorScheme
+        ) {
+            if let url = result.agentURL {
+                AgentInlineVideoPlayer(url: url)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 210)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            } else {
+                AgentFallbackResultText(result: result, colorScheme: colorScheme)
+            }
+        }
+    }
+}
+
+private struct AgentInlineVideoPlayer: View {
+    let url: URL
+    @State private var player: AVPlayer
+
+    init(url: URL) {
+        self.url = url
+        _player = State(initialValue: AVPlayer(url: url))
+    }
+
+    var body: some View {
+        VideoPlayer(player: player)
+            .background(Color.black)
+            .onDisappear {
+                player.pause()
+            }
+    }
+}
+
+private struct AgentAudioResultCard: View {
+    let result: AgentResultEntry
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        AgentResultCard(
+            title: result.agentDisplayTitle(fallback: "Audio"),
+            subtitle: result.agentSubtitle,
+            systemImage: "waveform",
+            colorScheme: colorScheme
+        ) {
+            if let url = result.agentURL {
+                AgentInlineAudioPlayer(url: url, title: result.agentDisplayTitle(fallback: "Audio"), colorScheme: colorScheme)
+            } else {
+                AgentFallbackResultText(result: result, colorScheme: colorScheme)
+            }
+        }
+    }
+}
+
+private struct AgentInlineAudioPlayer: View {
+    let url: URL
+    let title: String
+    let colorScheme: ColorScheme
+    @State private var player: AVPlayer
+    @State private var isPlaying = false
+
+    init(url: URL, title: String, colorScheme: ColorScheme) {
+        self.url = url
+        self.title = title
+        self.colorScheme = colorScheme
+        _player = State(initialValue: AVPlayer(url: url))
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Button {
+                if isPlaying {
+                    player.pause()
+                } else {
+                    player.play()
+                }
+                isPlaying.toggle()
+            } label: {
+                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                    .font(.headline.weight(.black))
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(AppColors.accentMystic(for: colorScheme))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .skydownTactileAction()
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .lineLimit(1)
+                Text("Audio Player")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(AppColors.cardBackground(for: colorScheme).opacity(0.76))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .onDisappear {
+            player.pause()
+            isPlaying = false
+        }
+    }
+}
+
+private struct AgentFileResultCard: View {
+    let result: AgentResultEntry
+    let colorScheme: ColorScheme
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        AgentResultCard(
+            title: result.agentDisplayTitle(fallback: "Datei"),
+            subtitle: result.agentSubtitle,
+            systemImage: result.agentMimeLooksLikePDF ? "doc.richtext.fill" : "doc.fill",
+            colorScheme: colorScheme
+        ) {
+            AgentOpenResultButton(title: "Oeffnen", result: result, colorScheme: colorScheme)
+        }
+    }
+}
+
+private struct AgentLinkResultCard: View {
+    let result: AgentResultEntry
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        AgentResultCard(
+            title: result.agentDisplayTitle(fallback: "Link"),
+            subtitle: result.agentSubtitle,
+            systemImage: "link",
+            colorScheme: colorScheme
+        ) {
+            AgentOpenResultButton(title: result.text.isEmpty ? "Link oeffnen" : result.text, result: result, colorScheme: colorScheme)
+        }
+    }
+}
+
+private struct AgentOpenResultButton: View {
+    let title: String
+    let result: AgentResultEntry
+    let colorScheme: ColorScheme
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        Button {
+            if let url = result.agentURL {
+                openURL(url)
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.caption.weight(.bold))
+                    .lineLimit(1)
+                Image(systemName: "arrow.up.right")
+                    .font(.caption.weight(.black))
+            }
+            .foregroundColor(AppColors.accentMystic(for: colorScheme))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
+            .clipShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(result.agentURL == nil)
+        .opacity(result.agentURL == nil ? 0.55 : 1)
+        .skydownTactileAction()
+    }
+}
+
+private struct AgentTableResultCard: View {
+    let result: AgentResultEntry
+    let colorScheme: ColorScheme
+
+    private var columnCount: Int {
+        max(result.columns.count, result.rows.map(\.count).max() ?? 0)
+    }
+
+    private var columns: [String] {
+        if !result.columns.isEmpty {
+            return result.columns
+        }
+        return (0..<min(max(columnCount, 1), 8)).map { "Spalte \($0 + 1)" }
+    }
+
+    var body: some View {
+        AgentResultCard(
+            title: result.agentDisplayTitle(fallback: "Tabelle"),
+            subtitle: result.agentSubtitle,
+            systemImage: "tablecells.fill",
+            colorScheme: colorScheme
+        ) {
+            if !result.rows.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        AgentTableRow(cells: columns, isHeader: true, colorScheme: colorScheme)
+                        ForEach(Array(result.rows.enumerated()), id: \.offset) { _, row in
+                            AgentTableRow(cells: row, isHeader: false, colorScheme: colorScheme)
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.1), lineWidth: 1)
+                    )
+                }
+            } else {
+                AgentFallbackResultText(result: result, colorScheme: colorScheme)
+            }
+        }
+    }
+}
+
+private struct AgentTableRow: View {
+    let cells: [String]
+    let isHeader: Bool
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(cells.enumerated()), id: \.offset) { _, cell in
+                Text(cell.isEmpty ? "-" : cell)
+                    .font(isHeader ? .caption.weight(.black) : .caption.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .lineLimit(2)
+                    .frame(width: 118, alignment: .leading)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 9)
+                    .background(
+                        isHeader
+                            ? AppColors.accentMystic(for: colorScheme).opacity(0.14)
+                            : AppColors.cardBackground(for: colorScheme).opacity(0.72)
+                    )
+            }
+        }
+    }
+}
+
+private struct AgentHTMLResultCard: View {
+    let result: AgentResultEntry
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        AgentResultCard(
+            title: result.agentDisplayTitle(fallback: "HTML"),
+            subtitle: result.agentSubtitle,
+            systemImage: "curlybraces.square.fill",
+            colorScheme: colorScheme
+        ) {
+            if !result.html.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                AgentHTMLAttributedText(html: result.html, colorScheme: colorScheme)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(AppColors.cardBackground(for: colorScheme).opacity(0.76))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            } else {
+                AgentFallbackResultText(result: result, colorScheme: colorScheme)
+            }
+        }
+    }
+}
+
+private struct AgentHTMLAttributedText: UIViewRepresentable {
+    let html: String
+    let colorScheme: ColorScheme
+
+    func makeUIView(context: Context) -> UILabel {
+        let label = UILabel()
+        label.numberOfLines = 0
+        label.adjustsFontForContentSizeCategory = true
+        return label
+    }
+
+    func updateUIView(_ label: UILabel, context: Context) {
+        let cleanedHTML = html.replacingOccurrences(
+            of: "(?is)<script.*?</script>",
+            with: "",
+            options: .regularExpression
+        )
+        let htmlWithFont = """
+        <style>
+        body { font: -apple-system-body; }
+        </style>
+        \(cleanedHTML)
+        """
+        if let data = htmlWithFont.data(using: .utf8),
+           let attributed = try? NSMutableAttributedString(
+            data: data,
+            options: [
+                .documentType: NSAttributedString.DocumentType.html,
+                .characterEncoding: String.Encoding.utf8.rawValue
+            ],
+            documentAttributes: nil
+           ) {
+            attributed.addAttributes(
+                [
+                    .foregroundColor: colorScheme == .dark ? UIColor.white : UIColor.label,
+                    .font: UIFont.preferredFont(forTextStyle: .subheadline)
+                ],
+                range: NSRange(location: 0, length: attributed.length)
+            )
+            label.attributedText = attributed
+        } else {
+            label.text = html
+            label.textColor = colorScheme == .dark ? .white : .label
+            label.font = .preferredFont(forTextStyle: .subheadline)
+        }
+    }
+}
+
+private struct AgentFallbackResultCard: View {
+    let result: AgentResultEntry
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        AgentResultCard(
+            title: result.agentDisplayTitle(fallback: "Output"),
+            subtitle: result.agentSubtitle,
+            systemImage: "sparkles",
+            colorScheme: colorScheme
+        ) {
+            AgentFallbackResultText(result: result, colorScheme: colorScheme)
+        }
+    }
+}
+
+private struct AgentFallbackResultText: View {
+    let result: AgentResultEntry
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Text(result.agentFallbackText)
+            .font(.subheadline)
+            .foregroundColor(AppColors.text(for: colorScheme))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(AppColors.cardBackground(for: colorScheme).opacity(0.76))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+}
+
+private extension AgentResultEntry {
+    var agentOutputKind: String {
+        let normalized = type.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        switch normalized {
+        case "url", "button":
+            return "link"
+        case "pdf", "document", "download":
+            return "file"
+        default:
+            return normalized.isEmpty ? "text" : normalized
+        }
+    }
+
+    var agentURL: URL? {
+        let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: trimmed)
+    }
+
+    var agentSubtitle: String {
+        if !mimeType.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return mimeType
+        }
+        if let host = agentURL?.host, !host.isEmpty {
+            return host
+        }
+        return agentOutputKind.uppercased()
+    }
+
+    var agentMimeLooksLikePDF: Bool {
+        mimeType.lowercased().contains("pdf") || fileName.lowercased().hasSuffix(".pdf") || title.lowercased().hasSuffix(".pdf")
+    }
+
+    var hasVisibleAgentOutput: Bool {
+        !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !fileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !html.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !rows.isEmpty
+    }
+
+    var agentFallbackText: String {
+        [
+            text,
+            summary,
+            url
+        ]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first(where: { !$0.isEmpty }) ?? agentDisplayTitle(fallback: "Output bereit.")
+    }
+
+    func agentDisplayTitle(fallback: String) -> String {
+        [
+            title,
+            fileName,
+            workflowName,
+            url
+        ]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first(where: { !$0.isEmpty }) ?? fallback
     }
 }
 

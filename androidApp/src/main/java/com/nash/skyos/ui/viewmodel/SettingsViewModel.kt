@@ -66,7 +66,7 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             AppContainer.currentUser.collect { user ->
                 val isOwner = user?.isPlatformOwner == true
-                WorkflowAutomationPreferences.setUserMode(user?.id)
+                WorkflowAutomationPreferences.setUserMode(user?.id, isOwner)
                 AgentProfilePreferences.setUserMode(user?.id)
                 ManusByosPreferences.setUserMode(user?.id)
                 val displayName = user?.username
@@ -263,7 +263,7 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             if (_uiState.value.currentUserId.isNullOrBlank()) {
                 showPaymentFeedback(
-                    message = "Bitte melde dich an, um deinen Agent-Service zu speichern.",
+                    message = "Bitte melde dich an, um Workflow-Einstellungen zu speichern.",
                     isError = true,
                 )
                 return@launch
@@ -272,7 +272,11 @@ class SettingsViewModel : ViewModel() {
             if (result.isSuccess) {
                 _uiState.update { it.copy(workflowAutomationSettings = settings) }
                 showPaymentFeedback(
-                    message = "Agent-Service gespeichert. Dein Konto nutzt jetzt diesen Workflow fuer Aktionen.",
+                    message = if (_uiState.value.isOwner) {
+                        "Globaler Activepieces Owner-Flow gespeichert. Rollen und Limits bleiben backendgefuehrt."
+                    } else {
+                        "Eigener Workflow gespeichert. Der Agent kann ihn jetzt bewusst triggern."
+                    },
                     isError = false,
                 )
             } else {
@@ -517,7 +521,7 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             if (_uiState.value.currentUserId.isNullOrBlank()) {
                 showPaymentFeedback(
-                    message = "Bitte melde dich an, um deinen Agent-Service zu testen.",
+                    message = "Bitte melde dich an, um den Workflow zu testen.",
                     isError = true,
                 )
                 return@launch
@@ -536,7 +540,7 @@ class SettingsViewModel : ViewModel() {
             val testResult = WorkflowAutomationPreferences.triggerTest()
             if (testResult.isSuccess) {
                 showPaymentFeedback(
-                    message = testResult.getOrNull() ?: "Test an n8n gesendet.",
+                    message = testResult.getOrNull() ?: "Test an Activepieces gesendet.",
                     isError = false,
                 )
             } else {

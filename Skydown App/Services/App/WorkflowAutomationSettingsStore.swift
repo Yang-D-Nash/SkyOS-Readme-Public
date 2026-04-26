@@ -4,9 +4,10 @@ import FirebaseFunctions
 
 struct WorkflowAutomationSettings: Equatable {
     var provider: String = "activepieces"
+    var scope: String = "owner_global"
     var isEnabled: Bool = false
     var sendsUserContext: Bool = true
-    var workflowName: String = "SkyOS Automation"
+    var workflowName: String = "SkyOS Owner Activepieces Flow"
     var baseURL: String = ""
     var webhookPath: String = ""
     var authHeaderName: String = "X-SkyOS-Automation-Key"
@@ -14,6 +15,10 @@ struct WorkflowAutomationSettings: Equatable {
     var knowledgeContext: String = ""
 
     static let `default` = WorkflowAutomationSettings()
+
+    var isOwnerGlobal: Bool {
+        scope == "owner_global"
+    }
 
     var resolvedWebhookURL: String? {
         guard let normalizedBaseURL = normalizeAutomationBaseURL(baseURL) else {
@@ -39,10 +44,11 @@ struct WorkflowAutomationSettings: Equatable {
 protocol WorkflowAutomationSettingsServicing {
     func observeSettings(
         userID: String,
+        scope: String,
         _ onChange: @escaping @MainActor (Result<WorkflowAutomationSettings, Error>) -> Void
     ) -> () -> Void
-    func updateSettings(_ settings: WorkflowAutomationSettings, userID: String) async throws
-    func triggerTest(userID: String) async throws -> String
+    func updateSettings(_ settings: WorkflowAutomationSettings, userID: String, scope: String) async throws
+    func triggerTest(userID: String, scope: String) async throws -> String
 }
 
 final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServicing {
@@ -60,9 +66,10 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
 
     func observeSettings(
         userID: String,
+        scope: String,
         _ onChange: @escaping @MainActor (Result<WorkflowAutomationSettings, Error>) -> Void
     ) -> () -> Void {
-        let listener = firestore.collection(collectionName).document(documentName(for: userID)).addSnapshotListener { snapshot, error in
+        let listener = firestore.collection(collectionName).document(documentName(for: userID, scope: scope)).addSnapshotListener { snapshot, error in
             Task { @MainActor in
                 if let error {
                     onChange(.failure(error))
@@ -70,11 +77,11 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
                 }
 
                 if let snapshot, snapshot.exists {
-                    onChange(.success(Self.decode(snapshot.data() ?? [:])))
+                    onChange(.success(Self.decode(snapshot.data() ?? [:], fallbackScope: scope)))
                     return
                 }
 
-                onChange(.success(.default))
+                    onChange(.success(Self.emptySettings(scope: scope)))
             }
         }
 
@@ -83,11 +90,11 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
         }
     }
 
-    func updateSettings(_ settings: WorkflowAutomationSettings, userID: String) async throws {
-        try await firestore.collection(collectionName).document(documentName(for: userID)).setData(Self.encode(settings), merge: true)
+    func updateSettings(_ settings: WorkflowAutomationSettings, userID: String, scope: String) async throws {
+        try await firestore.collection(collectionName).document(documentName(for: userID, scope: scope)).setData(Self.encode(settings, scope: scope), merge: true)
     }
 
-    func triggerTest(userID: String) async throws -> String {
+    func triggerTest(userID: String, scope: String) async throws -> String {
         let isOnline = await MainActor.run { NetworkStatusMonitor.shared.isOnline }
         guard isOnline else {
             throw NSError(
@@ -100,6 +107,7 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
         let result = try await functions.invokeCallable("triggerWorkflowAutomation", payload: [
                 "trigger": "admin_settings_test",
                 "source": "ios_settings",
+                "automationScope": scope == "user_personal" ? "personal" : "owner",
                 "userId": userID
             ])
 
@@ -116,16 +124,28 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
         return "Test an externen Workflow gesendet."
     }
 
-    private func documentName(for userID: String) -> String {
-        "automationN8n_\(userID)"
+    private func documentName(for userID: String, scope: String) -> String {
+        scope == "user_personal" ? "automationN8n_\(userID)" : "ownerActivepiecesFlow"
     }
 
-    private static func decode(_ data: [String: Any]) -> WorkflowAutomationSettings {
+    private static func emptySettings(scope: String) -> WorkflowAutomationSettings {
         WorkflowAutomationSettings(
-            provider: (data["provider"] as? String)?.trimmedNonEmpty ?? "activepieces",
+            provider: "activepieces",
+            scope: scope == "user_personal" ? "user_personal" : "owner_global",
+            workflowName: scope == "user_personal" ? "Persoenlicher Workflow" : "SkyOS Owner Activepieces Flow"
+        )
+    }
+
+    private static func decode(_ data: [String: Any], fallbackScope: String = "owner_global") -> WorkflowAutomationSettings {
+        let scope = (data["scope"] as? String)?.trimmedNonEmpty ?? fallbackScope
+        let isPersonalScope = scope == "user_personal"
+        let provider = (data["provider"] as? String)?.trimmedNonEmpty ?? "activepieces"
+        return WorkflowAutomationSettings(
+            provider: isPersonalScope && ["activepieces", "n8n"].contains(provider) ? provider : "activepieces",
+            scope: scope,
             isEnabled: data["isEnabled"] as? Bool ?? false,
             sendsUserContext: data["sendsUserContext"] as? Bool ?? true,
-            workflowName: (data["workflowName"] as? String)?.trimmedNonEmpty ?? "SkyOS Automation",
+            workflowName: (data["workflowName"] as? String)?.trimmedNonEmpty ?? (isPersonalScope ? "Persoenlicher Workflow" : "SkyOS Owner Activepieces Flow"),
             baseURL: normalizeAutomationBaseURL(data["baseURL"] as? String) ?? "",
             webhookPath: normalizeAutomationWebhookPath(data["webhookPath"] as? String) ?? "",
             authHeaderName: (data["authHeaderName"] as? String)?.trimmed ?? "",
@@ -134,12 +154,15 @@ final class FirestoreAutomationSettingsService: WorkflowAutomationSettingsServic
         )
     }
 
-    private static func encode(_ settings: WorkflowAutomationSettings) -> [String: Any] {
-        [
-            "provider": settings.provider.trimmedNonEmpty ?? "activepieces",
+    private static func encode(_ settings: WorkflowAutomationSettings, scope: String) -> [String: Any] {
+        let isPersonalScope = scope == "user_personal"
+        let provider = isPersonalScope && settings.provider == "n8n" ? "n8n" : "activepieces"
+        return [
+            "provider": provider,
+            "scope": isPersonalScope ? "user_personal" : "owner_global",
             "isEnabled": settings.isEnabled,
             "sendsUserContext": settings.sendsUserContext,
-            "workflowName": settings.workflowName.trimmedNonEmpty ?? "SkyOS Automation",
+            "workflowName": settings.workflowName.trimmedNonEmpty ?? (isPersonalScope ? "Persoenlicher Workflow" : "SkyOS Owner Activepieces Flow"),
             "baseURL": normalizeAutomationBaseURL(settings.baseURL) ?? "",
             "webhookPath": normalizeAutomationWebhookPath(settings.webhookPath) ?? "",
             "authHeaderName": settings.authHeaderName.trimmed,
@@ -161,27 +184,30 @@ final class WorkflowAutomationSettingsStore: ObservableObject {
     private var stopObserving: (() -> Void)?
     private var isObserving = false
     private var currentUserID: String?
+    private var currentScope = "owner_global"
 
     init(service: WorkflowAutomationSettingsServicing = FirestoreAutomationSettingsService()) {
         self.service = service
     }
 
-    func configureObservation(isEnabled: Bool, userID: String?) {
+    func configureObservation(isEnabled: Bool, userID: String?, scope: String = "owner_global") {
         guard isEnabled, let userID, !userID.isEmpty else {
             stopObserving?()
             stopObserving = nil
             isObserving = false
             currentUserID = nil
+            currentScope = "owner_global"
             settings = .default
             lastErrorMessage = nil
             return
         }
 
-        if currentUserID != userID {
+        if currentUserID != userID || currentScope != scope {
             stopObserving?()
             stopObserving = nil
             isObserving = false
             currentUserID = userID
+            currentScope = scope
         }
 
         if isEnabled {
@@ -194,7 +220,7 @@ final class WorkflowAutomationSettingsStore: ObservableObject {
             throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine User-UID fuer Workflow-Konfiguration verfuegbar."])
         }
 
-        try await service.updateSettings(settings, userID: currentUserID)
+        try await service.updateSettings(settings, userID: currentUserID, scope: currentScope)
     }
 
     func triggerTest() async throws -> String {
@@ -202,7 +228,7 @@ final class WorkflowAutomationSettingsStore: ObservableObject {
             throw NSError(domain: "WorkflowAutomationSettingsStore", code: 401, userInfo: [NSLocalizedDescriptionKey: "Keine User-UID fuer Workflow-Test verfuegbar."])
         }
 
-        return try await service.triggerTest(userID: currentUserID)
+        return try await service.triggerTest(userID: currentUserID, scope: currentScope)
     }
 
     private func startObservingIfNeeded() {
@@ -210,7 +236,7 @@ final class WorkflowAutomationSettingsStore: ObservableObject {
         isObserving = true
         stopObserving?()
         guard let currentUserID else { return }
-        stopObserving = service.observeSettings(userID: currentUserID) { [weak self] result in
+        stopObserving = service.observeSettings(userID: currentUserID, scope: currentScope) { [weak self] result in
             guard let self else { return }
 
             switch result {

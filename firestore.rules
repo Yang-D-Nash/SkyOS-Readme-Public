@@ -192,6 +192,7 @@ service cloud.firestore {
     function validWorkflowAutomationUserPayload() {
       return request.resource.data.keys().hasOnly([
         "provider",
+        "scope",
         "isEnabled",
         "sendsUserContext",
         "workflowName",
@@ -204,7 +205,11 @@ service cloud.firestore {
       ])
       && (
         !request.resource.data.keys().hasAny(["provider"])
-        || request.resource.data.provider == "n8n"
+        || request.resource.data.provider in ["activepieces", "n8n"]
+      )
+      && (
+        !request.resource.data.keys().hasAny(["scope"])
+        || request.resource.data.scope == "user_personal"
       )
       && (
         !request.resource.data.keys().hasAny(["isEnabled"])

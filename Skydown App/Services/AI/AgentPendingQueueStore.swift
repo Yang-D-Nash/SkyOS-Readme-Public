@@ -13,6 +13,7 @@ struct AgentPendingQueueEntry: Codable, Equatable {
     let mode: String
     let aiLevel: String
     let executeAutomation: Bool
+    let automationScope: String
     let assistantMessageID: String
     let createdAt: Date
 
@@ -24,6 +25,7 @@ struct AgentPendingQueueEntry: Codable, Equatable {
         mode: String,
         aiLevel: String,
         executeAutomation: Bool,
+        automationScope: String = "owner",
         assistantMessageID: String,
         createdAt: Date
     ) {
@@ -34,6 +36,7 @@ struct AgentPendingQueueEntry: Codable, Equatable {
         self.mode = mode
         self.aiLevel = aiLevel
         self.executeAutomation = executeAutomation
+        self.automationScope = automationScope
         self.assistantMessageID = assistantMessageID
         self.createdAt = createdAt
     }
@@ -47,6 +50,7 @@ struct AgentPendingQueueEntry: Codable, Equatable {
         mode = try container.decode(String.self, forKey: .mode)
         aiLevel = try container.decodeIfPresent(String.self, forKey: .aiLevel) ?? AIExperienceLevel.standard.rawValue
         executeAutomation = try container.decode(Bool.self, forKey: .executeAutomation)
+        automationScope = try container.decodeIfPresent(String.self, forKey: .automationScope) ?? "owner"
         assistantMessageID = try container.decode(String.self, forKey: .assistantMessageID)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
     }
@@ -94,6 +98,7 @@ final class AgentPendingQueueStore {
                     mode: $0.mode,
                     aiLevel: $0.aiLevel,
                     executeAutomation: $0.executeAutomation,
+                    automationScope: $0.automationScope,
                     assistantMessageID: $0.assistantMessageID,
                     createdAt: $0.createdAt
                 )
@@ -130,6 +135,7 @@ final class AgentPendingQueueStore {
                 mode: entry.mode,
                 aiLevel: entry.aiLevel,
                 executeAutomation: entry.executeAutomation,
+                automationScope: entry.automationScope,
                 assistantMessageID: entry.assistantMessageID,
                 createdAt: entry.createdAt
             )
