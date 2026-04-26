@@ -37,6 +37,17 @@ class MusicHubAppFlowTest {
     )
 
     @Test
+    fun musicHubScrollSurfaceReachesEnd() {
+        composeRule.waitUntilAtLeastOneExists(hasTestTag("music.hub.root"), timeoutMillis = 15_000)
+
+        composeRule.onNodeWithTag("music.hub.root").performScrollToNode(hasTestTag("music.hub.scroll.end"))
+        composeRule.waitUntilAtLeastOneExists(hasTestTag("music.hub.scroll.end"), timeoutMillis = 15_000)
+
+        assertTrue(semanticsCount("music.hub.root") > 0)
+        assertTrue(semanticsCount("music.hub.scroll.end") > 0)
+    }
+
+    @Test
     fun musicHubSpotifyDialogCanBeClosedFromAppFlow() {
         composeRule.waitUntilAtLeastOneExists(hasTestTag("music.hub.songs.open"), timeoutMillis = 15_000)
         composeRule.onNodeWithTag("music.hub.songs.open").performClick()

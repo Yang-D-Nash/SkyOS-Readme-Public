@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -89,6 +90,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -1751,6 +1753,7 @@ private fun ZweizweiMusicLaneScreen(
     var artistPageReturnDestination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
     var highlightedSocialArtist by rememberSaveable { mutableStateOf("JANNO") }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val hubListState = rememberLazyListState()
     val hubHorizontalPadding = if (useCompactHubVisuals) 15.dp else 16.dp
     val hubTopPadding = if (useCompactHubVisuals) 12.dp else 18.dp
     val hubBottomPadding = if (useCompactHubVisuals) 18.dp else 24.dp
@@ -1764,7 +1767,7 @@ private fun ZweizweiMusicLaneScreen(
     ) {
         when (destination) {
         ZweizweiMusicDestination.Hub -> Scaffold(
-            modifier = Modifier,
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
@@ -1839,147 +1842,90 @@ private fun ZweizweiMusicLaneScreen(
                     "Die Services bleiben ohne Umweg direkt aus dem Music-Hub erreichbar."
                 }
                 val useAnchoredHubLayout = !isWideLayout && maxHeight >= 900.dp && maxWidth < 560.dp
+                val hubBottomScrollReserve = when {
+                    useAnchoredHubLayout -> 180.dp
+                    isShortHubHeight -> 104.dp
+                    else -> 144.dp
+                }
                 val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
 
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.TopCenter,
                 ) {
-                    if (useAnchoredHubLayout) {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .widthIn(max = contentMaxWidth)
-                                .testTag("music.hub.root"),
-                            contentPadding = PaddingValues(
-                                start = resolvedHubHorizontalPadding,
-                                top = resolvedHubTopPadding,
-                                end = resolvedHubHorizontalPadding,
-                                bottom = resolvedHubBottomPadding,
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(resolvedHubSectionSpacing),
-                        ) {
-                            item {
-                                BrandHeroCard(
-                                    eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "SkyOS" },
-                                    title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
-                                    subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Releases, Artists, Beats." },
-                                    detail = screenHeaderSettings.musicHubDetail.ifBlank { "Direkt zu Songs, Beats und Studio." },
-                                    backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
-                                    accent = MaterialTheme.colorScheme.primary,
-                                    secondaryAccent = MaterialTheme.colorScheme.secondary,
-                                    marks = listOf(BrandArtwork.Zweizwei),
-                                    compactVisualDensity = useCompactHubHero,
-                                    onSurfaceClick = {
-                                        catalogInitialArtist = "JANNO"
-                                        destination = ZweizweiMusicDestination.Catalog
-                                    },
-                                ) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        BrandPill(
-                                            text = "Catalog",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            onClick = {
-                                                catalogInitialArtist = "JANNO"
-                                                destination = ZweizweiMusicDestination.Catalog
-                                            },
-                                        )
-                                        BrandPill(
-                                            text = "Studio",
-                                            tint = MaterialTheme.colorScheme.tertiary,
-                                            onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
-                                        )
-                                    }
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .widthIn(max = contentMaxWidth)
+                            .testTag("music.hub.root"),
+                        state = hubListState,
+                        contentPadding = PaddingValues(
+                            start = resolvedHubHorizontalPadding,
+                            top = resolvedHubTopPadding,
+                            end = resolvedHubHorizontalPadding,
+                            bottom = resolvedHubBottomPadding + hubBottomScrollReserve,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(resolvedHubSectionSpacing),
+                        userScrollEnabled = true,
+                    ) {
+                        item {
+                            BrandHeroCard(
+                                eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "SkyOS" },
+                                title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
+                                subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Releases, Artists, Beats." },
+                                detail = screenHeaderSettings.musicHubDetail.ifBlank { "Direkt zu Songs, Beats und Studio." },
+                                backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
+                                accent = MaterialTheme.colorScheme.primary,
+                                secondaryAccent = MaterialTheme.colorScheme.secondary,
+                                marks = listOf(BrandArtwork.Zweizwei),
+                                compactVisualDensity = useCompactHubHero,
+                                onSurfaceClick = {
+                                    catalogInitialArtist = "JANNO"
+                                    destination = ZweizweiMusicDestination.Catalog
+                                },
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    BrandPill(
+                                        text = "Catalog",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        onClick = {
+                                            catalogInitialArtist = "JANNO"
+                                            destination = ZweizweiMusicDestination.Catalog
+                                        },
+                                    )
+                                    BrandPill(
+                                        text = "Studio",
+                                        tint = MaterialTheme.colorScheme.tertiary,
+                                        onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
+                                    )
                                 }
-                            }
-
-                            item {
-                                MusicHubQuickActions(
-                                    onOpenCatalog = {
-                                        catalogInitialArtist = "JANNO"
-                                        destination = ZweizweiMusicDestination.Catalog
-                                    },
-                                    onOpenStudio = { destination = ZweizweiMusicDestination.NicmaProducer },
-                                    activeSocialTitle = highlightedSocialArtist,
-                                    onOpenSocialLink = {
-                                        highlightedSocialArtist = musicHubInstagramQuickLinks
-                                            .firstOrNull { link -> link.url == it }
-                                            ?.title
-                                            ?: highlightedSocialArtist
-                                        openExternalLink(context, it)
-                                    },
-                                )
                             }
                         }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .widthIn(max = contentMaxWidth)
-                                .testTag("music.hub.root"),
-                            contentPadding = PaddingValues(
-                                start = resolvedHubHorizontalPadding,
-                                top = resolvedHubTopPadding,
-                                end = resolvedHubHorizontalPadding,
-                                bottom = if (compactLayout) resolvedHubBottomPadding else (resolvedHubBottomPadding + 6.dp),
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(resolvedHubSectionSpacing),
-                        ) {
-                            item {
-                                BrandHeroCard(
-                                    eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "SkyOS" },
-                                    title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
-                                    subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Releases, Artists, Beats." },
-                                    detail = screenHeaderSettings.musicHubDetail.ifBlank { "Direkt zu Songs, Beats und Studio." },
-                                    backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
-                                    accent = MaterialTheme.colorScheme.primary,
-                                    secondaryAccent = MaterialTheme.colorScheme.secondary,
-                                    marks = listOf(BrandArtwork.Zweizwei),
-                                    compactVisualDensity = useCompactHubHero,
-                                    onSurfaceClick = {
-                                        catalogInitialArtist = "JANNO"
-                                        destination = ZweizweiMusicDestination.Catalog
-                                    },
-                                ) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        BrandPill(
-                                            text = "Catalog",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            onClick = {
-                                                catalogInitialArtist = "JANNO"
-                                                destination = ZweizweiMusicDestination.Catalog
-                                            },
-                                        )
-                                        BrandPill(
-                                            text = "Studio",
-                                            tint = MaterialTheme.colorScheme.tertiary,
-                                            onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
-                                        )
-                                    }
-                                }
-                            }
 
-                            item {
-                                MusicHubQuickActions(
-                                    onOpenCatalog = {
-                                        catalogInitialArtist = "JANNO"
-                                        destination = ZweizweiMusicDestination.Catalog
-                                    },
-                                    onOpenStudio = { destination = ZweizweiMusicDestination.NicmaProducer },
-                                    activeSocialTitle = highlightedSocialArtist,
-                                    onOpenSocialLink = {
-                                        highlightedSocialArtist = musicHubInstagramQuickLinks
-                                            .firstOrNull { link -> link.url == it }
-                                            ?.title
-                                            ?: highlightedSocialArtist
-                                        openExternalLink(context, it)
-                                    },
-                                )
-                            }
+                        item {
+                            MusicHubQuickActions(
+                                onOpenCatalog = {
+                                    catalogInitialArtist = "JANNO"
+                                    destination = ZweizweiMusicDestination.Catalog
+                                },
+                                onOpenStudio = { destination = ZweizweiMusicDestination.NicmaProducer },
+                                activeSocialTitle = highlightedSocialArtist,
+                                onOpenSocialLink = {
+                                    highlightedSocialArtist = musicHubInstagramQuickLinks
+                                        .firstOrNull { link -> link.url == it }
+                                        ?.title
+                                        ?: highlightedSocialArtist
+                                    openExternalLink(context, it)
+                                },
+                            )
+                        }
 
-                            item {
-                                Spacer(modifier = Modifier.height(if (isShortHubHeight) 2.dp else 4.dp))
-                            }
+                        item {
+                            Spacer(
+                                modifier = Modifier
+                                    .height(if (isShortHubHeight) 24.dp else 36.dp)
+                                    .testTag("music.hub.scroll.end"),
+                            )
                         }
                     }
                 }

@@ -34,6 +34,13 @@ data class ExternalVideoHubRequest(
     val externalUrl: String,
 )
 
+data class VideoHubUpdateRequest(
+    val title: String,
+    val projectName: String,
+    val notes: String,
+    val isPublic: Boolean,
+)
+
 open class VideoHubService(
     private val storage: FirebaseStorage = FirebaseStorage.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
@@ -154,6 +161,30 @@ open class VideoHubService(
         firestore.collection(collectionName)
             .document(video.id)
             .delete()
+            .await()
+    }
+
+    suspend fun updateVideo(
+        video: VideoHubItem,
+        request: VideoHubUpdateRequest,
+        currentUser: User?,
+    ) {
+        val updates = mutableMapOf<String, Any>(
+            "title" to request.title,
+            "projectName" to request.projectName,
+            "notes" to request.notes,
+            "isPublic" to request.isPublic,
+            "updatedAt" to FieldValue.serverTimestamp(),
+            "updatedBy" to currentUser?.id.orEmpty(),
+        )
+
+        if (!request.isPublic) {
+            updates["isHomeFeatured"] = false
+        }
+
+        firestore.collection(collectionName)
+            .document(video.id)
+            .set(updates, SetOptions.merge())
             .await()
     }
 

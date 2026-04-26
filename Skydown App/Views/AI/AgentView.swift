@@ -1,18 +1,18 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct AgentView: View {
     @StateObject private var viewModel: AgentChatViewModel
     @ObservedObject private var featureFlags: FeatureFlagsService
     @ObservedObject private var membershipCoordinator: AIMembershipCoordinator
-    @ObservedObject private var manusByosStore = ManusBYOSStore.shared
     @ObservedObject private var workflowAutomationSettingsStore = WorkflowAutomationSettingsStore.shared
     @ObservedObject private var aiRuntimeSettingsStore = AIRuntimeSettingsStore.shared
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
-    @FocusState private var isComposerFocused: Bool
-    @StateObject private var keyboardObserver = SkydownKeyboardObserver()
-    @State private var composerBarHeight: CGFloat = 0
+    @State private var showingAttachmentImporter = false
+    @State private var showingPromptComposer = false
+    @State private var inputAttachments: [AgentInputAttachment] = []
     private let showsNavigation: Bool
     @State private var autoPresentedUpgradeHint = false
 
@@ -38,19 +38,48 @@ struct AgentView: View {
                 content
             }
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(AppLocalized.text("common.done", fallback: "Done")) {
-                    isComposerFocused = false
-                }
-            }
-        }
         .fancyToast(
             isPresented: $viewModel.showToast,
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
+        .fileImporter(
+            isPresented: $showingAttachmentImporter,
+            allowedContentTypes: [.item],
+            allowsMultipleSelection: true
+        ) { result in
+            handleAttachmentImport(result)
+        }
+        .sheet(isPresented: $showingPromptComposer) {
+            AgentPromptComposerSheet(
+                colorScheme: colorScheme,
+                draft: $viewModel.draft,
+                selectedMode: $viewModel.selectedMode,
+                selectedLevel: $viewModel.selectedLevel,
+                shouldTriggerAutomation: $viewModel.shouldTriggerAutomation,
+                canTriggerAutomation: viewModel.canTriggerAutomation,
+                interactionPhase: viewModel.phase,
+                attachments: inputAttachments,
+                onAddFiles: {
+                    showingPromptComposer = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        showingAttachmentImporter = true
+                    }
+                },
+                onRemoveAttachment: removeAttachment,
+                onClearAttachments: { inputAttachments.removeAll() },
+                onReset: {
+                    viewModel.resetConversation()
+                    showingPromptComposer = false
+                },
+                onSend: {
+                    viewModel.sendDraft()
+                    showingPromptComposer = false
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         .task(id: sessionObservationKey) {
             viewModel.configureUser(user: authManager.userSession)
             configureIntegrationObservations(for: authManager.userSession)
@@ -61,9 +90,6 @@ struct AgentView: View {
                 isEnabled: isEnabled,
                 userID: authManager.userSession?.id
             )
-        }
-        .onDisappear {
-            isComposerFocused = false
         }
         .onChange(of: viewModel.revenueUsage?.warningLevel) { _, level in
             handleCriticalUsageWarning(level)
@@ -88,29 +114,12 @@ struct AgentView: View {
         ].joined(separator: "|")
     }
 
-    /// Single line for the workspace status without exposing backend routing.
-    private var agentProviderStatusLine: String {
-        let hasRoutingNotice = !viewModel.lastProviderNotice.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        return AppLocalized.text(
-            hasRoutingNotice ? "agent.workspace.status.line.adjusted" : "agent.workspace.status.line.ready",
-            fallback: hasRoutingNotice ? "Agent · Workspace adjusted" : "Agent · Workspace"
-        )
-    }
-
-    private var agentWorkspaceHeroBadges: [String] {
-        [agentProviderStatusLine, "Modus: \(viewModel.selectedMode.title)"]
-    }
-
     private var usesCompactImmersiveLayout: Bool {
         !showsNavigation
     }
 
-    private var composerKeyboardOffset: CGFloat {
-        isComposerFocused ? keyboardObserver.bottomInset : 0
-    }
-
     private var composerReservedBottomSpace: CGFloat {
-        featureFlags.isAIEnabled ? composerBarHeight + composerKeyboardOffset : 0
+        featureFlags.isAIEnabled ? 86 : 0
     }
 
     private var content: some View {
@@ -120,45 +129,10 @@ struct AgentView: View {
                     if viewModel.messages.isEmpty {
                         ScrollView {
                             VStack(alignment: .leading, spacing: usesCompactImmersiveLayout ? 12 : 14) {
-                                if !usesCompactImmersiveLayout {
-                                    AgentHeroCard(colorScheme: colorScheme, badges: agentWorkspaceHeroBadges)
-                                }
-
                                 AgentEmptyStateHeader(
                                     colorScheme: colorScheme,
                                     isCompact: usesCompactImmersiveLayout
                                 )
-
-                                AgentQuickPromptCard(
-                                    colorScheme: colorScheme,
-                                    prompts: viewModel.quickPrompts,
-                                    onPromptSelected: { prompt in
-                                        isComposerFocused = false
-                                        viewModel.sendPrompt(prompt)
-                                    }
-                                )
-
-                                if let usage = viewModel.revenueUsage {
-                                    AgentRevenueUsageCard(usage: usage, colorScheme: colorScheme)
-                                        .onTapGesture {
-                                            if !usage.userFacingReason.isEmpty {
-                                                MembershipAnalyticsTracker().track(
-                                                    "upgrade_after_deny",
-                                                    reason: membershipCoordinator.lastOpenReason.rawValue,
-                                                    surface: "agent_empty",
-                                                    currentPlan: membershipCoordinator.currentPlanCache.rawValue
-                                                )
-                                            }
-                                            membershipCoordinator.openMembership(reason: .manual, surface: "agent_empty")
-                                        }
-                                } else {
-                                    AgentPlanPreviewCard(colorScheme: colorScheme)
-                                        .onTapGesture { membershipCoordinator.openMembership(reason: .manual, surface: "agent_empty") }
-                                }
-
-                                if !usesCompactImmersiveLayout {
-                                    serviceStatusCard
-                                }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -188,55 +162,21 @@ struct AgentView: View {
 
                             ScrollView {
                                 LazyVStack(alignment: .leading, spacing: 10) {
-                                    if let usage = viewModel.revenueUsage {
-                                        AgentRevenueUsageCard(usage: usage, colorScheme: colorScheme)
-                                            .onTapGesture {
-                                                if !usage.userFacingReason.isEmpty {
-                                                    MembershipAnalyticsTracker().track(
-                                                        "upgrade_after_deny",
-                                                        reason: membershipCoordinator.lastOpenReason.rawValue,
-                                                        surface: "agent_chat",
-                                                        currentPlan: membershipCoordinator.currentPlanCache.rawValue
-                                                    )
-                                                }
-                                                membershipCoordinator.openMembership(reason: .manual, surface: "agent_chat")
-                                            }
-                                    }
-                                    serviceStatusCard
+                                    AgentEmptyStateHeader(
+                                        colorScheme: colorScheme,
+                                        isCompact: true
+                                    )
 
-                                    VStack(alignment: .leading, spacing: 0) {
-                                        AgentWorkspaceContextCard(
-                                            colorScheme: colorScheme,
-                                            selectedMode: viewModel.selectedMode,
-                                            messageCount: viewModel.messages.count,
-                                            phase: viewModel.phase,
-                                            providerLine: agentProviderStatusLine
-                                        )
-
-                                        WorkspaceSectionHeader(colorScheme: colorScheme)
-
-                                        VStack(alignment: .leading, spacing: 10) {
-                                            ForEach(viewModel.messages) { message in
-                                                AgentMessageBubble(
-                                                    message: message,
-                                                    colorScheme: colorScheme
-                                                )
-                                                .id(message.id)
-                                            }
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        ForEach(viewModel.messages) { message in
+                                            AgentMessageBubble(
+                                                message: message,
+                                                colorScheme: colorScheme
+                                            )
+                                            .id(message.id)
                                         }
-                                        .padding(.top, 4)
-                                        .padding(.horizontal, 4)
-                                        .padding(.bottom, 5)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                .fill(AppColors.primaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.38 : 0.5))
-                                        )
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.08), lineWidth: 1)
-                                        )
                                     }
+                                    .padding(.top, 2)
 
                                     Color.clear
                                         .frame(height: 4)
@@ -249,11 +189,6 @@ struct AgentView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .scrollIndicators(.hidden)
                             .scrollDismissesKeyboard(.interactively)
-                            .simultaneousGesture(
-                                TapGesture().onEnded {
-                                    isComposerFocused = false
-                                }
-                            )
                             .onAppear {
                                 DispatchQueue.main.async {
                                     proxy.scrollTo("agent-chat-end", anchor: .bottom)
@@ -282,38 +217,30 @@ struct AgentView: View {
             }
 
             if featureFlags.isAIEnabled {
-                AgentComposerBar(
-                    colorScheme: colorScheme,
-                    draft: $viewModel.draft,
-                    selectedMode: $viewModel.selectedMode,
-                    selectedLevel: $viewModel.selectedLevel,
-                    shouldTriggerAutomation: $viewModel.shouldTriggerAutomation,
-                    canTriggerAutomation: viewModel.canTriggerAutomation,
-                    isFocused: $isComposerFocused,
-                    interactionPhase: viewModel.phase,
-                    onReset: viewModel.resetConversation,
-                    onSend: viewModel.sendDraft
-                )
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: AgentComposerBarHeightPreferenceKey.self,
-                            value: proxy.size.height
-                        )
-                    }
-                )
-                .padding(.bottom, composerKeyboardOffset)
-                .animation(.easeOut(duration: 0.22), value: composerKeyboardOffset)
+                HStack {
+                    Spacer(minLength: 0)
+                    AgentPromptFab(
+                        isWorking: viewModel.phase.shouldBlockComposerChrome,
+                        onOpen: { showingPromptComposer = true }
+                    )
+                }
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                .padding(.bottom, max(18, keyWindowSafeAreaBottomInset + 14))
                 .zIndex(1)
             }
-        }
-        .onPreferenceChange(AgentComposerBarHeightPreferenceKey.self) { height in
-            guard abs(composerBarHeight - height) > 0.5 else { return }
-            composerBarHeight = height
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .background(backgroundGradient.ignoresSafeArea())
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var keyWindowSafeAreaBottomInset: CGFloat {
+        let windowScenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let foregroundScene = windowScenes.first {
+            $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive
+        }
+        let keyWindow = foregroundScene?.windows.first(where: \.isKeyWindow) ?? foregroundScene?.windows.first
+        return keyWindow?.safeAreaInsets.bottom ?? 0
     }
 
     private var backgroundGradient: LinearGradient {
@@ -323,22 +250,27 @@ struct AgentView: View {
         )
     }
 
-    private var serviceStatusCard: some View {
-        AgentServiceStatusCard(
-            colorScheme: colorScheme,
-            isOnline: NetworkStatusMonitor.shared.isOnline,
-            canTriggerAutomation: viewModel.canTriggerAutomation,
-            shouldTriggerAutomation: viewModel.shouldTriggerAutomation,
-            runtimeSettings: aiRuntimeSettingsStore.settings,
-            runtimeErrorMessage: aiRuntimeSettingsStore.lastErrorMessage,
-            workflowSettings: workflowAutomationSettingsStore.settings,
-            workflowErrorMessage: workflowAutomationSettingsStore.lastErrorMessage,
-            manusSettings: manusByosStore.settings,
-            lastAgentProvider: viewModel.lastAgentProvider,
-            providerNotice: viewModel.lastProviderNotice,
-            integrationIssue: viewModel.lastIntegrationIssue,
-            lastAgentRunId: viewModel.lastAgentRunId
-        )
+    private func handleAttachmentImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            let attachments = urls.map(AgentInputAttachment.init)
+            guard !attachments.isEmpty else { return }
+
+            inputAttachments = (inputAttachments + attachments)
+                .reduce(into: [AgentInputAttachment]()) { partialResult, attachment in
+                    guard !partialResult.contains(where: { $0.id == attachment.id }) else { return }
+                    partialResult.append(attachment)
+                }
+                .suffix(12)
+                .map { $0 }
+            viewModel.showToastMessage("Dateien hinzugefuegt.", style: .success)
+        case .failure(let error):
+            viewModel.showToastMessage("Dateien konnten nicht geladen werden: \(error.localizedDescription)", style: .error)
+        }
+    }
+
+    private func removeAttachment(_ attachment: AgentInputAttachment) {
+        inputAttachments.removeAll { $0.id == attachment.id }
     }
 
     private func configureIntegrationObservations(for user: User?) {
@@ -570,294 +502,6 @@ private struct AgentPlanTile: View {
     }
 }
 
-private struct AgentServiceStatusCard: View {
-    let colorScheme: ColorScheme
-    let isOnline: Bool
-    let canTriggerAutomation: Bool
-    let shouldTriggerAutomation: Bool
-    let runtimeSettings: AIRuntimeSettings
-    let runtimeErrorMessage: String?
-    let workflowSettings: WorkflowAutomationSettings
-    let workflowErrorMessage: String?
-    let manusSettings: ManusBYOSSettings
-    let lastAgentProvider: AIRuntimeAgentProvider
-    let providerNotice: String
-    let integrationIssue: String
-    let lastAgentRunId: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            Text(AppLocalized.text("agent.service.eyebrow", fallback: "Runtime & handoffs"))
-                .font(.caption2.weight(.black))
-                .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.85))
-
-            HStack(spacing: 8) {
-                Image(systemName: "point.3.connected.trianglepath.dotted")
-                    .font(.caption.weight(.bold))
-                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(AppLocalized.text("agent.service.rail.title", fallback: "Where the work is wired in"))
-                        .font(.subheadline.weight(.bold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                    Text(AppLocalized.text("agent.service.rail.sub", fallback: "Workspace, automations, and your tools in one line — not a settings page."))
-                        .font(.caption2.weight(.medium))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
-                }
-                Spacer(minLength: 0)
-                AgentServicePill(
-                    title: isOnline ? "Online" : "Offline",
-                    tone: isOnline ? .ready : .blocked,
-                    colorScheme: colorScheme
-                )
-            }
-
-            HStack(spacing: 8) {
-                AgentServicePill(
-                    title: "Workspace: \(providerLabel)",
-                    tone: providerTone,
-                    colorScheme: colorScheme
-                )
-                AgentServicePill(
-                    title: manusLabel,
-                    tone: manusTone,
-                    colorScheme: colorScheme
-                )
-            }
-
-            HStack(spacing: 8) {
-                AgentServicePill(
-                    title: n8nLabel,
-                    tone: n8nTone,
-                    colorScheme: colorScheme
-                )
-                if shouldTriggerAutomation {
-                    AgentServicePill(
-                        title: "Agent-Aktion AN",
-                        tone: n8nReady ? .ready : .blocked,
-                        colorScheme: colorScheme
-                    )
-                }
-            }
-
-            if !lastAgentRunId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(AppLocalized.text("agent.service.run.caption", fallback: "Run reference (support)"))
-                        .font(.caption2.weight(.semibold))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    Text(lastAgentRunId)
-                        .font(.caption2)
-                        .monospaced()
-                        .foregroundColor(AppColors.text(for: colorScheme).opacity(0.92))
-                        .textSelection(.enabled)
-                        .accessibilityIdentifier("agent.lastRun.id")
-                }
-                .padding(.horizontal, 9)
-                .padding(.vertical, 7)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(AppColors.accentMystic(for: colorScheme).opacity(0.05))
-                )
-            }
-
-            if let detail = statusDetailMessage {
-                Text(detail)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundColor(
-                        detailTone == .blocked
-                            ? Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255)
-                            : AppColors.secondaryText(for: colorScheme)
-                    )
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(12)
-        .background(AppColors.secondaryBackground(for: colorScheme))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.12), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .transition(.opacity.combined(with: .move(edge: .top)))
-        .animation(SkydownMotion.statusTransition, value: statusDetailMessage ?? "")
-    }
-
-    private var providerLabel: String {
-        if let runtimeErrorMessage, !runtimeErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Status unklar"
-        }
-
-        let runtimeProvider = runtimeSettings.agentProvider
-        if runtimeProvider != lastAgentProvider && !providerNotice.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Fallback aktiv"
-        }
-        return "Aktiv"
-    }
-
-    private var providerTone: AgentServicePill.Tone {
-        if runtimeErrorMessage != nil {
-            return .warning
-        }
-        return .ready
-    }
-
-    private var manusLabel: String {
-        if runtimeSettings.agentProvider != .manus {
-            return "Externe Skills: aus"
-        }
-        if !runtimeSettings.manus.isEnabled {
-            return "Externe Skills: aus"
-        }
-        if manusSettings.isEnabled && manusSettings.hasAPIKey {
-            return "Eigener Zugang: aktiv"
-        }
-        if manusSettings.hasAPIKey && !manusSettings.isEnabled {
-            return "Eigener Zugang: pausiert"
-        }
-        return "Externe Skills: vorbereitet"
-    }
-
-    private var manusTone: AgentServicePill.Tone {
-        if runtimeSettings.agentProvider != .manus {
-            return .neutral
-        }
-        if !runtimeSettings.manus.isEnabled {
-            return .blocked
-        }
-        if manusSettings.isEnabled && manusSettings.hasAPIKey {
-            return .ready
-        }
-        return .warning
-    }
-
-    private var n8nReady: Bool {
-        canTriggerAutomation && workflowSettings.isPrepared
-    }
-
-    private var n8nLabel: String {
-        if !canTriggerAutomation {
-            return "Agent-Aktionen: Login fehlt"
-        }
-        if let workflowErrorMessage,
-           !workflowErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Agent-Aktionen: Status unklar"
-        }
-        if workflowSettings.isPrepared {
-            return "Agent-Aktionen: bereit"
-        }
-        if workflowSettings.isEnabled {
-            return "Agent-Aktionen: unvollstaendig"
-        }
-        return "Agent-Aktionen: aus"
-    }
-
-    private var n8nTone: AgentServicePill.Tone {
-        if !canTriggerAutomation {
-            return .blocked
-        }
-        if workflowErrorMessage != nil {
-            return .warning
-        }
-        if workflowSettings.isPrepared {
-            return .ready
-        }
-        if workflowSettings.isEnabled {
-            return .warning
-        }
-        return .neutral
-    }
-
-    private var statusDetailMessage: String? {
-        let trimmedIssue = integrationIssue.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedIssue.isEmpty {
-            return trimmedIssue
-        }
-
-        let trimmedNotice = providerNotice.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedNotice.isEmpty {
-            return AppLocalized.text(
-                "agent.service.status.adjusted",
-                fallback: "The agent adjusted the workspace path for this request."
-            )
-        }
-
-        if runtimeSettings.agentProvider == .manus && !runtimeSettings.manus.isEnabled {
-            return "Owner-Setup fehlt: Externe Agent-Laeufe muessen aktiviert werden."
-        }
-
-        if shouldTriggerAutomation && !n8nReady {
-            return "Agent-Aktion aktiv, aber die Automationsverbindung ist fuer dieses Konto noch nicht vollstaendig eingerichtet."
-        }
-
-        if !isOnline {
-            return AppLocalized.text(
-                "agent.offline.message",
-                fallback: "You are offline. The agent will continue once your connection is back."
-            )
-        }
-
-        return nil
-    }
-
-    private var detailTone: AgentServicePill.Tone {
-        guard let message = statusDetailMessage else { return .neutral }
-        if message.lowercased().contains("fallback") {
-            return .warning
-        }
-        if message.lowercased().contains("offline") || message.lowercased().contains("fehlt") || message.lowercased().contains("nicht") {
-            return .blocked
-        }
-        return .warning
-    }
-}
-
-private struct AgentServicePill: View {
-    enum Tone {
-        case ready
-        case warning
-        case blocked
-        case neutral
-    }
-
-    let title: String
-    let tone: Tone
-    let colorScheme: ColorScheme
-
-    var body: some View {
-        Text(title)
-            .font(.caption.weight(.bold))
-            .foregroundColor(foregroundColor)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(
-                Capsule()
-                    .fill(backgroundColor)
-            )
-    }
-
-    private var foregroundColor: Color {
-        switch tone {
-        case .ready:
-            return Color.white
-        case .warning, .blocked, .neutral:
-            return AppColors.text(for: colorScheme)
-        }
-    }
-
-    private var backgroundColor: Color {
-        switch tone {
-        case .ready:
-            return AppColors.accentMystic(for: colorScheme)
-        case .warning:
-            return Color(red: 1, green: 191 / 255, blue: 102 / 255).opacity(0.28)
-        case .blocked:
-            return Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255).opacity(0.2)
-        case .neutral:
-            return AppColors.secondaryBackground(for: colorScheme)
-        }
-    }
-}
-
 private struct AgentEmptyStateHeader: View {
     let colorScheme: ColorScheme
     var isCompact: Bool = false
@@ -886,230 +530,6 @@ private struct AgentEmptyStateHeader: View {
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
             }
         }
-    }
-}
-
-private struct AgentWorkspaceContextCard: View {
-    let colorScheme: ColorScheme
-    let selectedMode: AgentExecutionMode
-    let messageCount: Int
-    let phase: AgentInteractionPhase
-    let providerLine: String
-
-    private var phasePillText: String {
-        phase.composerStatusLabel
-            ?? AppLocalized.text("agent.workspace.status.ready", fallback: "Ready")
-    }
-
-    private var modeChipText: String {
-        String(
-            format: AppLocalized.text("agent.workspace.mode.format", fallback: "Mode · %@"),
-            selectedMode.title
-        )
-    }
-
-    private var sessionChipText: String {
-        String(
-            format: AppLocalized.text("agent.workspace.session.format", fallback: "%d messages in this session"),
-            messageCount
-        )
-    }
-
-    private var phasePillTone: AgentServicePill.Tone {
-        if phase.shouldBlockComposerChrome { return .ready }
-        switch phase {
-        case .failed, .externalFailed, .blocked:
-            return .blocked
-        case .partial, .retryable, .cancelled:
-            return .warning
-        case .idle:
-            return .neutral
-        default:
-            return .ready
-        }
-    }
-
-    private var isSettledSuccess: Bool {
-        switch phase {
-        case .completed, .externalCompleted: return true
-        default: return false
-        }
-    }
-
-    private var isError: Bool {
-        switch phase {
-        case .failed, .externalFailed, .blocked: return true
-        default: return false
-        }
-    }
-
-    private var borderColor: Color {
-        if isError { return Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255).opacity(0.55) }
-        if phase.shouldBlockComposerChrome { return AppColors.accentMystic(for: colorScheme).opacity(0.52) }
-        if isSettledSuccess { return AppColors.accentMystic(for: colorScheme).opacity(0.32) }
-        return AppColors.accentMystic(for: colorScheme).opacity(0.12)
-    }
-
-    private var borderWidth: CGFloat {
-        (isError || phase.shouldBlockComposerChrome) ? 1.5 : 1.0
-    }
-
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: statusBarColors,
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .frame(width: 3)
-                .frame(maxHeight: .infinity, alignment: .top)
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text(AppLocalized.text("agent.workspace.context.title", fallback: "Workspace").uppercased())
-                    .font(.caption2.weight(.bold))
-                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                Text(providerLine)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.92))
-                HStack(alignment: .top, spacing: 8) {
-                    AgentServicePill(title: modeChipText, tone: .ready, colorScheme: colorScheme)
-                    AgentServicePill(title: sessionChipText, tone: .ready, colorScheme: colorScheme)
-                }
-                AgentServicePill(title: phasePillText, tone: phasePillTone, colorScheme: colorScheme)
-            }
-            .padding(.vertical, 12)
-            .padding(.leading, 13)
-            .padding(.trailing, 12)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(borderColor, lineWidth: borderWidth)
-        )
-    }
-
-    private var statusBarColors: [Color] {
-        if isError {
-            return [Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255), Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255).opacity(0.25)]
-        }
-        if phase.shouldBlockComposerChrome {
-            return [AppColors.accentMystic(for: colorScheme), AppColors.accentMystic(for: colorScheme).opacity(0.35)]
-        }
-        if isSettledSuccess {
-            return [AppColors.accentMystic(for: colorScheme).opacity(0.85), AppColors.accentMystic(for: colorScheme).opacity(0.2)]
-        }
-        if phase == .partial {
-            return [AppColors.accentMystic(for: colorScheme).opacity(0.6), AppColors.accentMystic(for: colorScheme).opacity(0.15)]
-        }
-        return [AppColors.accentMystic(for: colorScheme).opacity(0.3), AppColors.accentMystic(for: colorScheme).opacity(0.1)]
-    }
-}
-
-private struct WorkspaceSectionHeader: View {
-    let colorScheme: ColorScheme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            RoundedRectangle(cornerRadius: 1, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            .clear,
-                            AppColors.accentMystic(for: colorScheme).opacity(0.2),
-                            .clear
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .frame(maxWidth: .infinity)
-                .frame(height: 1)
-
-            Text(AppLocalized.text("agent.section.conversation", fallback: "This thread").uppercased())
-                .font(.caption2.weight(.bold))
-                .foregroundColor(AppColors.text(for: colorScheme))
-            Text(AppLocalized.text("agent.section.conversation.sub", fallback: "The agent refines this turn with you — same workspace, not a side chat."))
-                .font(.caption2.weight(.semibold))
-                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.88))
-        }
-        .padding(.top, 8)
-        .padding(.bottom, 2)
-    }
-}
-
-private struct AgentHeroCard: View {
-    let colorScheme: ColorScheme
-    let badges: [String]
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("SkyOS Agent")
-                    .font(.system(size: 28, weight: .black, design: .rounded))
-                    .foregroundColor(AppColors.text(for: colorScheme))
-
-                Text("Fuer Briefings, Release-Plaene, Shotlists und naechste Schritte. Du bleibst im selben Flow, nur strukturierter.")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
-
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                AppColors.accentMystic(for: colorScheme).opacity(0.5),
-                                AppColors.accentMystic(for: colorScheme).opacity(0.14)
-                            ],
-                            center: .center,
-                            startRadius: 2,
-                            endRadius: 32
-                        )
-                    )
-                    .frame(width: 54, height: 54)
-                    .overlay(
-                        Circle()
-                            .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.12), lineWidth: 1)
-                    )
-
-                Image(systemName: "bolt.fill")
-                    .font(.title3.weight(.bold))
-                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
-            }
-        }
-        .padding(20)
-        .background(cardBackground)
-        .overlay(
-            RoundedRectangle(cornerRadius: 26)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 26))
-        .shadow(color: .black.opacity(colorScheme == .dark ? 0.24 : 0.08), radius: 18, y: 8)
-        .overlay(alignment: .bottomLeading) {
-            HStack(spacing: 10) {
-                ForEach(badges, id: \.self) { badge in
-                    AgentBadge(text: badge, colorScheme: colorScheme)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 18)
-        }
-    }
-
-    private var cardBackground: some View {
-        LinearGradient(
-            colors: [
-                AppColors.cardBackground(for: colorScheme),
-                AppColors.secondaryBackground(for: colorScheme).opacity(0.92)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
     }
 }
 
@@ -1154,56 +574,240 @@ private struct AgentDisabledCard: View {
     }
 }
 
-private struct AgentQuickPromptCard: View {
-    let colorScheme: ColorScheme
-    let prompts: [String]
-    let onPromptSelected: (String) -> Void
+private enum AgentInputAttachmentKind: String {
+    case text = "Text"
+    case video = "Video"
+    case audio = "Audio"
+    case image = "Bild"
+    case document = "Dokument"
+    case file = "Datei"
+
+    init(url: URL) {
+        let ext = url.pathExtension.lowercased()
+        if ["txt", "md", "rtf", "json", "csv", "xml", "html"].contains(ext) {
+            self = .text
+        } else if ["mp4", "mov", "m4v", "avi", "mkv", "webm"].contains(ext) {
+            self = .video
+        } else if ["mp3", "wav", "m4a", "aac", "flac", "aiff"].contains(ext) {
+            self = .audio
+        } else if ["png", "jpg", "jpeg", "webp", "heic", "gif"].contains(ext) {
+            self = .image
+        } else if ["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx"].contains(ext) {
+            self = .document
+        } else {
+            self = .file
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .text: return "text.alignleft"
+        case .video: return "play.rectangle.fill"
+        case .audio: return "waveform"
+        case .image: return "photo.fill"
+        case .document: return "doc.text.fill"
+        case .file: return "paperclip"
+        }
+    }
+}
+
+private struct AgentInputAttachment: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let kind: AgentInputAttachmentKind
+
+    init(url: URL) {
+        self.id = url.absoluteString
+        self.name = url.lastPathComponent.isEmpty ? "Datei" : url.lastPathComponent
+        self.kind = AgentInputAttachmentKind(url: url)
+    }
+}
+
+private struct AgentPromptFab: View {
+    let isWorking: Bool
+    let onOpen: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Text("Agent")
-                    .font(.caption2.weight(.bold))
-                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(AppColors.accentMystic(for: colorScheme).opacity(0.12))
-                    )
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Schnell planen")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                    Text("Starte mit einer konkreten Aufgabe und lass dir direkt Struktur bauen.")
-                        .font(.caption)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-            }
+        Button(action: onOpen) {
+            ZStack {
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 58, height: 58)
+                    .shadow(color: .black.opacity(0.16), radius: 16, x: 0, y: 8)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(prompts, id: \.self) { prompt in
-                        Button(action: { onPromptSelected(prompt) }, label: {
-                            Text(prompt)
-                                .font(.subheadline.weight(.semibold))
-                                .multilineTextAlignment(.leading)
-                                .foregroundColor(AppColors.text(for: colorScheme))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 12)
-                                .frame(width: 230, alignment: .leading)
-                                .background(
-                                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
-                                        .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.88))
-                                )
-                        })
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
-                    }
+                if isWorking {
+                    ProgressView()
+                        .scaleEffect(0.82)
+                } else {
+                    Image(systemName: "plus")
+                        .font(.title3.weight(.black))
                 }
             }
         }
-        .padding(.vertical, 2)
+        .buttonStyle(.plain)
+        .accessibilityLabel("Prompt oeffnen")
+    }
+}
+
+private struct AgentPromptComposerSheet: View {
+    let colorScheme: ColorScheme
+    @Binding var draft: String
+    @Binding var selectedMode: AgentExecutionMode
+    @Binding var selectedLevel: AIExperienceLevel
+    @Binding var shouldTriggerAutomation: Bool
+    let canTriggerAutomation: Bool
+    let interactionPhase: AgentInteractionPhase
+    let attachments: [AgentInputAttachment]
+    let onAddFiles: () -> Void
+    let onRemoveAttachment: (AgentInputAttachment) -> Void
+    let onClearAttachments: () -> Void
+    let onReset: () -> Void
+    let onSend: () -> Void
+    @FocusState private var isFocused: Bool
+
+    private var trimmedDraft: String {
+        draft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var body: some View {
+        ScrollView {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Neue Anfrage")
+                    .font(.title3.weight(.black))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Text("Erst Optionen waehlen, dann Prompt schreiben.")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            Text("Optionen")
+                .font(.caption2.weight(.black))
+                .foregroundColor(AppColors.accentMystic(for: colorScheme))
+
+            HStack(spacing: 10) {
+                Menu {
+                    ForEach(AgentExecutionMode.allCases) { mode in
+                        Button(mode.title) { selectedMode = mode }
+                    }
+                } label: {
+                    Label(selectedMode.title, systemImage: "slider.horizontal.3")
+                        .font(.caption.weight(.bold))
+                }
+                .disabled(interactionPhase.shouldBlockComposerChrome)
+
+                Menu {
+                    ForEach(AIExperienceLevel.allCases) { level in
+                        Button(level.title) { selectedLevel = level }
+                    }
+                } label: {
+                    Label(selectedLevel.title, systemImage: "sparkles")
+                        .font(.caption.weight(.bold))
+                }
+                .disabled(interactionPhase.shouldBlockComposerChrome)
+
+                if canTriggerAutomation {
+                    Button { shouldTriggerAutomation.toggle() } label: {
+                        Image(systemName: shouldTriggerAutomation ? "bolt.fill" : "bolt")
+                            .font(.caption.weight(.bold))
+                    }
+                    .disabled(interactionPhase.shouldBlockComposerChrome)
+                    .accessibilityLabel(shouldTriggerAutomation ? "Aktion aktiv" : "Aktion ausfuehren")
+                }
+            }
+
+            Text("Prompt")
+                .font(.caption2.weight(.black))
+                .foregroundColor(AppColors.accentMystic(for: colorScheme))
+
+            TextField(selectedMode.placeholder, text: $draft, axis: .vertical)
+                .lineLimit(4...8)
+                .focused($isFocused)
+                .submitLabel(.send)
+                .onSubmit {
+                    if !trimmedDraft.isEmpty && !interactionPhase.shouldBlockSend {
+                        onSend()
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(AppColors.secondaryBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            HStack(spacing: 10) {
+                Button(action: onAddFiles) {
+                    Image(systemName: "paperclip")
+                        .font(.subheadline.weight(.bold))
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Dateien hinzufuegen")
+
+                Text(attachments.isEmpty ? "Keine Dateien" : "\(attachments.count) Datei(en)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            if !attachments.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(attachments) { attachment in
+                        HStack(spacing: 8) {
+                            Image(systemName: attachment.kind.iconName)
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(AppColors.accent(for: colorScheme))
+                            Text(attachment.name)
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(AppColors.text(for: colorScheme))
+                                .lineLimit(1)
+                            Spacer(minLength: 0)
+                            Button { onRemoveAttachment(attachment) } label: {
+                                Image(systemName: "xmark")
+                                    .font(.caption2.weight(.bold))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.78))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+
+                    Button("Alle entfernen", action: onClearAttachments)
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                }
+            }
+
+            HStack(spacing: 10) {
+                Spacer(minLength: 0)
+                Button("Reset", action: onReset)
+                    .font(.caption.weight(.bold))
+                    .disabled(interactionPhase.shouldBlockComposerChrome)
+
+                Button(action: onSend) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.title2.weight(.black))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(AppColors.accentMystic(for: colorScheme))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .disabled(trimmedDraft.isEmpty || interactionPhase.shouldBlockSend)
+                .opacity(trimmedDraft.isEmpty || interactionPhase.shouldBlockSend ? 0.55 : 1)
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.top, 18)
+        .padding(.bottom, 22)
+        .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                isFocused = true
+            }
+        }
     }
 }
 
@@ -1352,250 +956,5 @@ private struct AgentWorkflowResultCard: View {
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-}
-
-private struct AgentComposerBar: View {
-    let colorScheme: ColorScheme
-    @Binding var draft: String
-    @Binding var selectedMode: AgentExecutionMode
-    @Binding var selectedLevel: AIExperienceLevel
-    @Binding var shouldTriggerAutomation: Bool
-    let canTriggerAutomation: Bool
-    let isFocused: FocusState<Bool>.Binding
-    let interactionPhase: AgentInteractionPhase
-    let onReset: () -> Void
-    let onSend: () -> Void
-
-    private var trimmedDraft: String {
-        draft.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var restingBottomSafeAreaInset: CGFloat {
-        isFocused.wrappedValue ? 0 : keyWindowSafeAreaBottomInset
-    }
-
-    private var keyWindowSafeAreaBottomInset: CGFloat {
-        let windowScenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        let foregroundScene = windowScenes.first {
-            $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive
-        }
-        let keyWindow = foregroundScene?.windows.first(where: \.isKeyWindow) ?? foregroundScene?.windows.first
-        return keyWindow?.safeAreaInsets.bottom ?? 0
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            if let status = interactionPhase.composerStatusLabel {
-                HStack {
-                    Text(status)
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-            }
-            if !AgentExecutionMode.allCases.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(AgentExecutionMode.allCases) { mode in
-                            Button {
-                                selectedMode = mode
-                            } label: {
-                                Text(mode.title)
-                                    .font(.caption.weight(.bold))
-                                    .foregroundColor(
-                                        selectedMode == mode
-                                            ? .white
-                                            : AppColors.text(for: colorScheme)
-                                    )
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(
-                                        Capsule()
-                                            .fill(
-                                                selectedMode == mode
-                                                    ? AppColors.accentMystic(for: colorScheme)
-                                                    : AppColors.secondaryBackground(for: colorScheme)
-                                            )
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                            .skydownTactileAction()
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 10)
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 5) {
-                Picker(AppLocalized.text("ai.level.picker.title", fallback: "AI Level"), selection: $selectedLevel) {
-                    ForEach(AIExperienceLevel.allCases) { level in
-                        Text(level.title).tag(level)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .disabled(interactionPhase.shouldBlockComposerChrome)
-                .skydownSelectionFeedback(trigger: selectedLevel)
-
-                Text(selectedLevel.subtitle)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-
-            if canTriggerAutomation {
-                HStack {
-                    Button {
-                        shouldTriggerAutomation.toggle()
-                    } label: {
-                        Label(
-                            shouldTriggerAutomation ? "Aktion aktiv" : "Aktion ausfuehren",
-                            systemImage: shouldTriggerAutomation ? "bolt.fill" : "bolt.badge.clock"
-                        )
-                        .font(.caption.weight(.bold))
-                        .foregroundColor(
-                            shouldTriggerAutomation
-                                ? .white
-                                : AppColors.accentMystic(for: colorScheme)
-                        )
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 9)
-                        .background(
-                            Capsule()
-                                .fill(
-                                    shouldTriggerAutomation
-                                        ? AppColors.accentMystic(for: colorScheme)
-                                        : AppColors.accentMystic(for: colorScheme).opacity(0.12)
-                                )
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-            }
-
-            HStack(alignment: .bottom, spacing: 10) {
-                TextField(
-                    selectedMode.placeholder,
-                    text: $draft,
-                    axis: .vertical
-                )
-                .lineLimit(1...4)
-                .focused(isFocused)
-                .submitLabel(.done)
-                .onSubmit {
-                    isFocused.wrappedValue = false
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
-                        .fill(AppColors.secondaryBackground(for: colorScheme))
-                )
-                .foregroundColor(AppColors.text(for: colorScheme))
-
-                HStack(spacing: 8) {
-                    if isFocused.wrappedValue {
-                        Button {
-                            isFocused.wrappedValue = false
-                        } label: {
-                            Image(systemName: "keyboard.chevron.compact.down")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(AppColors.text(for: colorScheme))
-                                .frame(width: 38, height: 38)
-                                .background(
-                                    Circle()
-                                        .fill(AppColors.secondaryBackground(for: colorScheme))
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
-                        .transition(.offset(y: 6).combined(with: .opacity))
-                    }
-
-                    Button(action: onReset) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundColor(AppColors.text(for: colorScheme))
-                            .frame(width: 38, height: 38)
-                            .background(
-                                Circle()
-                                    .fill(AppColors.secondaryBackground(for: colorScheme))
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                    .disabled(interactionPhase.shouldBlockComposerChrome)
-
-                    Button(action: {
-                        isFocused.wrappedValue = false
-                        onSend()
-                    }, label: {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.title3.weight(.bold))
-                            .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
-                            .background(
-                                Circle()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [
-                                                AppColors.accent(for: colorScheme),
-                                                AppColors.accentMystic(for: colorScheme)
-                                            ],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                            )
-                    })
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                    .disabled(trimmedDraft.isEmpty || interactionPhase.shouldBlockSend)
-                    .opacity(trimmedDraft.isEmpty || interactionPhase.shouldBlockSend ? 0.6 : 1)
-                }
-                .animation(SkydownMotion.pressInteraction, value: isFocused.wrappedValue)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, canTriggerAutomation || !AgentExecutionMode.allCases.isEmpty ? 8 : 10)
-            .padding(.bottom, 10 + restingBottomSafeAreaInset)
-            .background(
-                Rectangle()
-                    .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))
-                    .ignoresSafeArea(.container, edges: .bottom)
-            )
-            .overlay(alignment: .top) {
-                Divider().opacity(0.25)
-            }
-        }
-    }
-}
-
-private struct AgentComposerBarHeightPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
-private struct AgentBadge: View {
-    let text: String
-    let colorScheme: ColorScheme
-
-    var body: some View {
-        SkydownMetaLabel(
-            text: text,
-            tint: AppColors.accentMystic(for: colorScheme)
-        )
     }
 }

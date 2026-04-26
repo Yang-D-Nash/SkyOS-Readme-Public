@@ -603,6 +603,11 @@ fun VideoHubScreen(
                                 },
                                 onToggleHomeFeatured = viewModel::toggleHomeFeatured,
                                 onDeleteVideo = viewModel::deleteVideo,
+                                onEditVideo = viewModel::updateVideo,
+                                onCreateVideo = {
+                                    showAdminSheet = false
+                                    showUploadSheet = true
+                                },
                             )
                         }
 
@@ -2123,19 +2128,53 @@ private fun VideoLibraryCard(
     onOpenOriginal: (VideoHubItem) -> Unit,
     onToggleHomeFeatured: (VideoHubItem) -> Unit,
     onDeleteVideo: (VideoHubItem) -> Unit,
+    onEditVideo: (VideoHubItem, String, String, String, Boolean) -> Unit,
+    onCreateVideo: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    var editingVideoId by rememberSaveable { mutableStateOf<String?>(null) }
     SkydownCard {
-        Column(Modifier.testTag("video.hub.library.header")) {
+        Column(
+            modifier = Modifier.testTag("video.hub.library.header"),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             Text(
                 text = if (uiState.isAdmin) {
-                    "${uiState.videos.size} Titel im Hub"
+                    "Owner Video Control"
                 } else {
                     "${uiState.videos.size} zum Schauen bereit"
+                },
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = colorScheme.onSurface,
+            )
+            Text(
+                text = if (uiState.isAdmin) {
+                    "${uiState.videos.size} Videos hinterlegt. Liste, Home-Fokus, Bearbeiten und Loeschen bleiben nur fuer Owner sichtbar."
+                } else {
+                    "${uiState.videos.size} Videos sind freigegeben."
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = colorScheme.onSurface.copy(alpha = 0.64f),
             )
+            if (uiState.isAdmin) {
+                Button(
+                    onClick = onCreateVideo,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("video.hub.owner.create"),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Movie,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = "Neues Video anlegen",
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
         }
 
         when {
@@ -2194,13 +2233,119 @@ private fun VideoLibraryCard(
                             onOpenOriginal = { onOpenOriginal(video) },
                             onToggleHomeFeatured = { onToggleHomeFeatured(video) },
                             onDelete = { onDeleteVideo(video) },
+                            onEdit = { editingVideoId = video.id },
                             modifier = Modifier
                                 .padding(top = topPad)
                                 .padding(bottom = bottomAfterFeatured),
                         )
+                        if (uiState.isAdmin && editingVideoId == video.id) {
+                            VideoOwnerEditPanel(
+                                video = video,
+                                onCancel = { editingVideoId = null },
+                                onSave = { title, projectName, notes, isPublic ->
+                                    onEditVideo(video, title, projectName, notes, isPublic)
+                                    editingVideoId = null
+                                },
+                            )
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun VideoOwnerEditPanel(
+    video: VideoHubItem,
+    onCancel: () -> Unit,
+    onSave: (String, String, String, Boolean) -> Unit,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    var title by rememberSaveable(video.id) { mutableStateOf(video.title) }
+    var projectName by rememberSaveable(video.id) { mutableStateOf(video.projectName) }
+    var notes by rememberSaveable(video.id) { mutableStateOf(video.notes) }
+    var isPublic by rememberSaveable(video.id) { mutableStateOf(video.isPublic) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(colorScheme.skydownSecondaryBackground().copy(alpha = 0.72f))
+            .border(
+                width = 1.dp,
+                color = colorScheme.skydownAccentMystic().copy(alpha = 0.22f),
+                shape = RoundedCornerShape(22.dp),
+            )
+            .padding(14.dp)
+            .testTag("video.hub.owner.edit"),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = "Video bearbeiten",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = colorScheme.onSurface,
+        )
+        Text(
+            text = "${video.providerBadge} · ${formatVideoDate(video.createdAtMillis)}",
+            style = MaterialTheme.typography.labelSmall,
+            color = colorScheme.onSurface.copy(alpha = 0.58f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        OutlinedTextField(
+            value = title,
+            onValueChange = { title = it.take(120) },
+            label = { Text("Titel") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = projectName,
+            onValueChange = { projectName = it.take(120) },
+            label = { Text("Projekt / Artist") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = notes,
+            onValueChange = { notes = it.take(800) },
+            label = { Text("Notizen") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 2,
+            maxLines = 4,
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(
+                onClick = { isPublic = !isPublic },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                Icon(
+                    imageVector = if (isPublic) Icons.Default.CheckCircle else Icons.Default.Close,
+                    contentDescription = null,
+                )
+                Text(
+                    text = if (isPublic) "Public" else "Privat",
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+            Button(
+                onClick = { onSave(title, projectName, notes, isPublic) },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                Text("Speichern")
+            }
+        }
+        TextButton(
+            onClick = onCancel,
+            modifier = Modifier.align(Alignment.End),
+        ) {
+            Text("Abbrechen")
         }
     }
 }
@@ -2218,6 +2363,7 @@ private fun VideoLibraryRow(
     onOpenOriginal: () -> Unit,
     onToggleHomeFeatured: () -> Unit,
     onDelete: () -> Unit,
+    onEdit: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val providerAccent = videoHubProviderAccent(video)
@@ -2593,8 +2739,25 @@ private fun VideoLibraryRow(
                     }
 
                     OutlinedButton(
-                        onClick = onDelete,
+                        onClick = onEdit,
                         modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = null,
+                        )
+                        Text(
+                            text = "Bearbeiten",
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = onDelete,
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp),
                     ) {
                         Icon(

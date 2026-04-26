@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.ExternalVideoHubRequest
 import com.nash.skyos.data.VideoHubService
+import com.nash.skyos.data.VideoHubUpdateRequest
 import com.nash.skyos.data.VideoHubUploadRequest
 import com.nash.skyos.ui.model.VideoEquipmentItem
 import com.nash.skyos.ui.model.ProducedWithArtist
@@ -336,6 +337,73 @@ class VideoHubViewModel(
                 _uiState.update {
                     it.copy(
                         feedbackMessage = "Das Video konnte nicht geloescht werden.",
+                        feedbackIsError = true,
+                    )
+                }
+            }
+        }
+    }
+
+    fun updateVideo(
+        video: VideoHubItem,
+        title: String,
+        projectName: String,
+        notes: String,
+        isPublic: Boolean,
+    ) {
+        if (!_uiState.value.isAdmin) return
+
+        val trimmedTitle = title.trim()
+        val trimmedProject = projectName.trim()
+        val trimmedNotes = notes.trim()
+        when {
+            trimmedTitle.isBlank() -> {
+                _uiState.update {
+                    it.copy(
+                        validationMessage = "Bitte trag einen Titel fuer das Video ein.",
+                        feedbackMessage = "Der Video-Titel fehlt.",
+                        feedbackIsError = true,
+                    )
+                }
+                return
+            }
+
+            trimmedProject.isBlank() -> {
+                _uiState.update {
+                    it.copy(
+                        validationMessage = "Bitte trag Projekt oder Artist ein.",
+                        feedbackMessage = "Projekt oder Artist fehlt.",
+                        feedbackIsError = true,
+                    )
+                }
+                return
+            }
+        }
+
+        viewModelScope.launch {
+            runCatching {
+                videoHubService.updateVideo(
+                    video = video,
+                    request = VideoHubUpdateRequest(
+                        title = trimmedTitle,
+                        projectName = trimmedProject,
+                        notes = trimmedNotes,
+                        isPublic = isPublic,
+                    ),
+                    currentUser = currentUser,
+                )
+            }.onSuccess {
+                _uiState.update {
+                    it.copy(
+                        validationMessage = null,
+                        feedbackMessage = "Video gespeichert.",
+                        feedbackIsError = false,
+                    )
+                }
+            }.onFailure {
+                _uiState.update {
+                    it.copy(
+                        feedbackMessage = "Das Video konnte nicht gespeichert werden.",
                         feedbackIsError = true,
                     )
                 }

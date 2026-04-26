@@ -10,6 +10,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,8 +41,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
@@ -55,10 +58,12 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -133,13 +138,7 @@ fun AiScreen(
     val compactLayout = baseCompactLayout || compactVisualDensity
     val contentMaxWidth = if (compactLayout) 620.dp else 1040.dp
     val listState = rememberLazyListState()
-    val lastChatItemIndex = if (uiState.messages.isEmpty()) {
-        0
-    } else {
-        val leadingItems = 3 + if (uiState.lastDecision != null) 1 else 0
-        leadingItems + uiState.messages.lastIndex
-    }
-    val conversationEndItemIndex = if (uiState.messages.isEmpty()) 0 else lastChatItemIndex + 1
+    val conversationEndItemIndex = if (uiState.messages.isEmpty()) 0 else uiState.messages.size + 1
     val lastMessageRenderSignature = uiState.messages.lastOrNull()?.let { message ->
         "${message.id}:${message.text.length}:${message.imageBytes?.size ?: 0}:${message.isStreaming}"
     }
@@ -152,6 +151,8 @@ fun AiScreen(
     var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
     var localFeedbackType by remember { mutableStateOf(ToastType.Info) }
     var pendingImageSave by remember { mutableStateOf<Pair<ByteArray, String?>?>(null) }
+    var showPromptComposer by rememberSaveable { mutableStateOf(false) }
+    val promptSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val showLocalFeedback: (String, ToastType) -> Unit = { message, type ->
         localFeedbackMessage = message
@@ -256,32 +257,11 @@ fun AiScreen(
         } else {
             {}
         },
-        bottomBar = {
+        floatingActionButton = {
             if (uiState.isAiEnabled) {
-                AiComposerBar(
-                    draft = uiState.draft,
-                    composerMode = uiState.composerMode,
-                    textMode = uiState.textMode,
-                    selectedLevel = uiState.selectedLevel,
-                    botPhase = uiState.botPhase,
-                    compactLayout = compactLayout,
-                    contentMaxWidth = contentMaxWidth,
-                    embeddedInTools = !showTopBar,
-                    showDockClearance = !showTopBar && !immersiveInTools,
-                    applyBottomSystemInset = showTopBar || immersiveInTools,
-                    onDraftChanged = viewModel::updateDraft,
-                    onComposerModeChange = viewModel::updateComposerMode,
-                    onTextModeChange = viewModel::updateTextMode,
-                    onLevelChange = viewModel::updateLevel,
-                    onSend = {
-                        viewModel.sendDraft()
-                        dismissKeyboard()
-                    },
-                    onReset = {
-                        dismissKeyboard()
-                        viewModel.resetConversation()
-                    },
-                    onDismissKeyboard = dismissKeyboard,
+                AiPromptFab(
+                    isWorking = uiState.botPhase.isBusy,
+                    onOpen = { showPromptComposer = true },
                 )
             }
         },
@@ -313,47 +293,12 @@ fun AiScreen(
                                 start = SkydownUiTokens.screenHorizontalPadding,
                                 top = innerPadding.calculateTopPadding() + if (showTopBar) 2.dp else 0.dp,
                                 end = SkydownUiTokens.screenHorizontalPadding,
-                                bottom = innerPadding.calculateBottomPadding(),
+                                bottom = innerPadding.calculateBottomPadding() + 92.dp,
                             ),
-                        verticalArrangement = Arrangement.spacedBy(if (compactLayout) 10.dp else 12.dp),
+                        verticalArrangement = Arrangement.Top,
                     ) {
-                        AiCommandHeroCard(compactVisualDensity = compactLayout)
-                        AiRevenueUsageCard(
-                            usage = uiState.usageSnapshot,
-                            planLabel = uiState.planLabel,
-                            onOpenMembership = {
-                                if (uiState.usageSnapshot?.userFacingReason?.isNotBlank() == true) {
-                                    membershipCoordinator.trackUpgradeAfterDeny(surface = "ai_empty")
-                                }
-                                membershipCoordinator.openMembership(MembershipOpenReason.Manual, surface = "ai_empty")
-                            },
-                        )
-                        uiState.lastDecision?.let { decision ->
-                            AiDecisionCard(decision = decision)
-                        }
-                        AiSessionStrip(
-                            composerMode = uiState.composerMode,
-                            textMode = uiState.textMode,
-                            messageCount = uiState.messages.size,
-                            compactVisualDensity = compactLayout,
-                        )
-                        QuickPromptCard(
-                            prompts = uiState.quickPrompts,
-                            onPromptSelected = { prompt ->
-                                dismissKeyboard()
-                                viewModel.sendPrompt(prompt)
-                            },
-                            compactLayout = compactLayout,
-                        )
-                        VisualPromptCard(
-                            prompts = uiState.visualPrompts,
-                            onPromptSelected = { prompt ->
-                                dismissKeyboard()
-                                viewModel.generateVisual(prompt)
-                            },
-                            compactLayout = compactLayout,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        AiEmptyStateHeader(compactVisualDensity = compactLayout)
+                        Spacer(modifier = Modifier.height(78.dp))
                     }
                 } else {
                     LazyColumn(
@@ -371,11 +316,7 @@ fun AiScreen(
                                 0.dp
                             },
                             end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = innerPadding.calculateBottomPadding() + if (showTopBar) {
-                                2.dp
-                            } else {
-                                0.dp
-                            },
+                            bottom = innerPadding.calculateBottomPadding() + 92.dp,
                         ),
                         verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
                     ) {
@@ -385,35 +326,7 @@ fun AiScreen(
                             }
                         } else {
                             item {
-                                AiRevenueUsageCard(
-                                    usage = uiState.usageSnapshot,
-                                    planLabel = uiState.planLabel,
-                                    onOpenMembership = {
-                                        if (uiState.usageSnapshot?.userFacingReason?.isNotBlank() == true) {
-                                            membershipCoordinator.trackUpgradeAfterDeny(surface = "ai_chat")
-                                        }
-                                        membershipCoordinator.openMembership(MembershipOpenReason.Manual, surface = "ai_chat")
-                                    },
-                                )
-                            }
-
-                            uiState.lastDecision?.let { decision ->
-                                item {
-                                    AiDecisionCard(decision = decision)
-                                }
-                            }
-
-                            item {
-                                AiOverviewCard(isEnabled = true)
-                            }
-
-                            item {
-                                AiSessionStrip(
-                                    composerMode = uiState.composerMode,
-                                    textMode = uiState.textMode,
-                                    messageCount = uiState.messages.size,
-                                    compactVisualDensity = compactLayout,
-                                )
+                                AiEmptyStateHeader(compactVisualDensity = true)
                             }
 
                             items(uiState.messages, key = { it.id }) { message ->
@@ -446,6 +359,35 @@ fun AiScreen(
                         28.dp
                     }),
             )
+
+            if (showPromptComposer) {
+                ModalBottomSheet(
+                    onDismissRequest = { showPromptComposer = false },
+                    sheetState = promptSheetState,
+                ) {
+                    AiPromptComposerSheet(
+                        draft = uiState.draft,
+                        composerMode = uiState.composerMode,
+                        textMode = uiState.textMode,
+                        selectedLevel = uiState.selectedLevel,
+                        botPhase = uiState.botPhase,
+                        onDraftChanged = viewModel::updateDraft,
+                        onComposerModeChange = viewModel::updateComposerMode,
+                        onTextModeChange = viewModel::updateTextMode,
+                        onLevelChange = viewModel::updateLevel,
+                        onSend = {
+                            viewModel.sendDraft()
+                            dismissKeyboard()
+                            showPromptComposer = false
+                        },
+                        onReset = {
+                            viewModel.resetConversation()
+                            dismissKeyboard()
+                            showPromptComposer = false
+                        },
+                    )
+                }
+            }
         }
 
         if (membershipState.isOpen) {
@@ -477,6 +419,244 @@ private fun aiLevelSubtitleResId(level: AiExperienceLevel): Int = when (level) {
     AiExperienceLevel.Standard -> R.string.ai_level_standard_subtitle
     AiExperienceLevel.Advanced -> R.string.ai_level_advanced_subtitle
     AiExperienceLevel.Pro -> R.string.ai_level_pro_subtitle
+}
+
+@Composable
+private fun AiEmptyStateHeader(
+    compactVisualDensity: Boolean,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 6.dp else 8.dp),
+    ) {
+        Text(
+            text = "Hey, ich bin SkyOS AI.",
+            style = if (compactVisualDensity) {
+                MaterialTheme.typography.headlineSmall
+            } else {
+                MaterialTheme.typography.headlineMedium
+            },
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = "Tippe auf +, waehle deine Optionen und starte dann den Prompt.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        )
+    }
+}
+
+@Composable
+private fun AiPromptFab(
+    isWorking: Boolean,
+    onOpen: () -> Unit,
+) {
+    FloatingActionButton(
+        onClick = onOpen,
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+    ) {
+        if (isWorking) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Prompt oeffnen",
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AiPromptComposerSheet(
+    draft: String,
+    composerMode: AiComposerMode,
+    textMode: AiTextMode,
+    selectedLevel: AiExperienceLevel,
+    botPhase: BotInteractionPhase,
+    onDraftChanged: (String) -> Unit,
+    onComposerModeChange: (AiComposerMode) -> Unit,
+    onTextModeChange: (AiTextMode) -> Unit,
+    onLevelChange: (AiExperienceLevel) -> Unit,
+    onSend: () -> Unit,
+    onReset: () -> Unit,
+) {
+    val composerAccent = if (composerMode == AiComposerMode.Visual) {
+        MaterialTheme.colorScheme.tertiary
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.92f)
+            .verticalScroll(rememberScrollState())
+            .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars).only(WindowInsetsSides.Bottom))
+            .padding(horizontal = 18.dp)
+            .padding(top = 8.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                text = "Neue AI-Anfrage",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "Erst Optionen waehlen, dann Prompt schreiben.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+            )
+        }
+
+        botPhase.composerStatusLabel?.let { label ->
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.tertiary,
+            )
+        }
+
+        Text(
+            text = "Optionen",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Black,
+            color = composerAccent,
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            BrandActionButton(
+                text = "Text",
+                onClick = { onComposerModeChange(AiComposerMode.Text) },
+                accent = MaterialTheme.colorScheme.primary,
+                filled = composerMode == AiComposerMode.Text,
+                compact = true,
+                modifier = Modifier.weight(1f),
+            )
+            BrandActionButton(
+                text = "Visual",
+                onClick = { onComposerModeChange(AiComposerMode.Visual) },
+                accent = MaterialTheme.colorScheme.tertiary,
+                filled = composerMode == AiComposerMode.Visual,
+                compact = true,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        if (composerMode == AiComposerMode.Text) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                AiTextMode.entries.forEach { mode ->
+                    val isSelected = mode == textMode
+                    BrandStatusChip(
+                        text = mode.title,
+                        accent = if (isSelected) composerAccent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        isActive = isSelected,
+                        onClick = { onTextModeChange(mode) },
+                    )
+                }
+            }
+        }
+
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            AiExperienceLevel.entries.forEach { level ->
+                val isSelected = level == selectedLevel
+                BrandStatusChip(
+                    text = level.title,
+                    accent = if (isSelected) composerAccent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    isActive = isSelected,
+                    onClick = {
+                        if (!botPhase.isBusy) {
+                            onLevelChange(level)
+                        }
+                    },
+                )
+            }
+        }
+
+        Text(
+            text = stringResource(aiLevelSubtitleResId(selectedLevel)),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        Text(
+            text = "Prompt",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Black,
+            color = composerAccent,
+        )
+
+        OutlinedTextField(
+            value = draft,
+            onValueChange = onDraftChanged,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = {
+                Text(
+                    if (composerMode == AiComposerMode.Text) {
+                        textMode.placeholder
+                    } else {
+                        "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release."
+                    },
+                )
+            },
+            minLines = 4,
+            maxLines = 8,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = { onSend() }),
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = composerAccent.copy(alpha = 0.72f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                cursorColor = composerAccent,
+            ),
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedButton(
+                onClick = onReset,
+                enabled = !botPhase.isBusy,
+            ) {
+                Text("Reset")
+            }
+            BrandActionButton(
+                text = if (composerMode == AiComposerMode.Text) "Senden" else "Rendern",
+                onClick = onSend,
+                accent = composerAccent,
+                icon = Icons.AutoMirrored.Filled.Send,
+                filled = true,
+                compact = true,
+                enabled = draft.isNotBlank() && !botPhase.isBusy,
+                isLoading = botPhase.isBusy,
+            )
+        }
+    }
 }
 
 @Composable
@@ -1372,274 +1552,6 @@ fun AiMessageBubble(
                                 },
                             )
                         }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AiComposerBar(
-    draft: String,
-    composerMode: AiComposerMode,
-    textMode: AiTextMode,
-    selectedLevel: AiExperienceLevel,
-    botPhase: BotInteractionPhase,
-    compactLayout: Boolean,
-    contentMaxWidth: Dp,
-    embeddedInTools: Boolean,
-    showDockClearance: Boolean,
-    applyBottomSystemInset: Boolean,
-    onDraftChanged: (String) -> Unit,
-    onComposerModeChange: (AiComposerMode) -> Unit,
-    onTextModeChange: (AiTextMode) -> Unit,
-    onLevelChange: (AiExperienceLevel) -> Unit,
-    onSend: () -> Unit,
-    onReset: () -> Unit,
-    onDismissKeyboard: () -> Unit,
-) {
-    val composerAccent = if (composerMode == AiComposerMode.Visual) {
-        MaterialTheme.colorScheme.tertiary
-    } else {
-        MaterialTheme.colorScheme.primary
-    }
-    val outerVerticalPadding = when {
-        embeddedInTools -> 0.dp
-        compactLayout -> 6.dp
-        else -> 8.dp
-    }
-    val dockClearancePadding = when {
-        showDockClearance && compactLayout -> 72.dp
-        showDockClearance -> 76.dp
-        else -> 0.dp
-    }
-    val cardVerticalPadding = when {
-        embeddedInTools -> 4.dp
-        compactLayout -> 8.dp
-        else -> 10.dp
-    }
-    val sectionSpacing = if (embeddedInTools) 6.dp else if (compactLayout) 8.dp else 10.dp
-    val fieldMaxLines = if (embeddedInTools || compactLayout) 3 else 4
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f))
-            .windowInsetsPadding(
-                (if (applyBottomSystemInset) {
-                    WindowInsets.navigationBars.union(WindowInsets.ime)
-                } else {
-                    WindowInsets.ime
-                })
-                    .only(WindowInsetsSides.Bottom),
-            )
-            .padding(
-                start = if (compactLayout) 8.dp else 10.dp,
-                top = outerVerticalPadding,
-                end = if (compactLayout) 8.dp else 10.dp,
-                bottom = outerVerticalPadding + dockClearancePadding,
-            ),
-        contentAlignment = Alignment.TopCenter,
-    ) {
-        Box(
-            modifier = Modifier
-                .widthIn(max = contentMaxWidth)
-                .fillMaxWidth(),
-        ) {
-            SkydownCard(
-                contentPadding = PaddingValues(
-                    horizontal = if (compactLayout) 10.dp else 12.dp,
-                    vertical = cardVerticalPadding,
-                ),
-            ) {
-                botPhase.composerStatusLabel?.let { label ->
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 6.dp),
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    BrandActionButton(
-                        text = "Text",
-                        onClick = { onComposerModeChange(AiComposerMode.Text) },
-                        accent = MaterialTheme.colorScheme.primary,
-                        filled = composerMode == AiComposerMode.Text,
-                        compact = true,
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("ai.composer.mode.text"),
-                    )
-
-                    BrandActionButton(
-                        text = "Visual",
-                        onClick = { onComposerModeChange(AiComposerMode.Visual) },
-                        accent = MaterialTheme.colorScheme.tertiary,
-                        filled = composerMode == AiComposerMode.Visual,
-                        compact = true,
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("ai.composer.mode.visual"),
-                    )
-
-                    BrandActionButton(
-                        text = "Neu",
-                        onClick = onReset,
-                        accent = MaterialTheme.colorScheme.secondary,
-                        icon = Icons.Default.Refresh,
-                        filled = false,
-                        compact = true,
-                        enabled = !botPhase.isBusy,
-                        modifier = Modifier
-                            .widthIn(min = if (embeddedInTools) 88.dp else 96.dp)
-                            .testTag("ai.composer.reset"),
-                    )
-                }
-
-                if (composerMode == AiComposerMode.Text) {
-                    LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = sectionSpacing),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(end = 4.dp),
-                    ) {
-                        items(AiTextMode.entries, key = { it.rawValue }) { mode ->
-                            val isSelected = mode == textMode
-                            BrandStatusChip(
-                                text = mode.title,
-                                accent = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
-                                },
-                                isActive = isSelected,
-                                onClick = { onTextModeChange(mode) },
-                            )
-                        }
-                    }
-                }
-
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = sectionSpacing),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(end = 4.dp),
-                ) {
-                    items(AiExperienceLevel.entries, key = { it.rawValue }) { level ->
-                        val isSelected = level == selectedLevel
-                        BrandStatusChip(
-                            text = level.title,
-                            accent = if (isSelected) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
-                            },
-                            isActive = isSelected,
-                            onClick = {
-                                if (!botPhase.isBusy) {
-                                    onLevelChange(level)
-                                }
-                            },
-                        )
-                    }
-                }
-
-                Text(
-                    text = stringResource(aiLevelSubtitleResId(selectedLevel)),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-
-                OutlinedTextField(
-                    value = draft,
-                    onValueChange = onDraftChanged,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = sectionSpacing)
-                        .testTag("ai.composer.input"),
-                    placeholder = {
-                        Text(
-                            if (composerMode == AiComposerMode.Text) {
-                                textMode.placeholder
-                            } else {
-                                "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release."
-                            },
-                        )
-                    },
-                    minLines = 1,
-                    maxLines = fieldMaxLines,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            onSend()
-                            onDismissKeyboard()
-                        },
-                    ),
-                    shape = RoundedCornerShape(if (compactLayout) 18.dp else 20.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = composerAccent.copy(alpha = 0.72f),
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
-                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
-                        cursorColor = composerAccent,
-                        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.46f),
-                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
-                    ),
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = sectionSpacing),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    BrandStatusChip(
-                        text = if (composerMode == AiComposerMode.Text) {
-                            textMode.title
-                        } else {
-                            "Cinematic"
-                        },
-                        accent = composerAccent,
-                        isActive = true,
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onDismissKeyboard) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Keyboard",
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
-                        }
-                        BrandActionButton(
-                            text = if (composerMode == AiComposerMode.Text) "Senden" else "Rendern",
-                            onClick = {
-                                onSend()
-                                onDismissKeyboard()
-                            },
-                            accent = composerAccent,
-                            icon = Icons.AutoMirrored.Filled.Send,
-                            filled = true,
-                            compact = true,
-                            enabled = draft.isNotBlank() && !botPhase.isBusy,
-                            isLoading = botPhase.isBusy,
-                            modifier = Modifier.testTag("ai.composer.send"),
-                        )
                     }
                 }
             }

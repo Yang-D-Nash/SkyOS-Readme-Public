@@ -7,7 +7,7 @@ struct AIView: View {
     @ObservedObject private var membershipCoordinator: AIMembershipCoordinator
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
-    @FocusState private var isComposerFocused: Bool
+    @State private var showingPromptComposer = false
     private let showsNavigation: Bool
     @State private var autoPresentedUpgradeHint = false
 
@@ -38,11 +38,28 @@ struct AIView: View {
             message: viewModel.toastMessage,
             style: viewModel.toastStyle
         )
+        .sheet(isPresented: $showingPromptComposer) {
+            AIPromptComposerSheet(
+                colorScheme: colorScheme,
+                draft: $viewModel.draft,
+                composerMode: $viewModel.composerMode,
+                textMode: $viewModel.textMode,
+                selectedLevel: $viewModel.selectedLevel,
+                interactionPhase: viewModel.phase,
+                onReset: {
+                    viewModel.resetConversation()
+                    showingPromptComposer = false
+                },
+                onSend: {
+                    viewModel.sendDraft()
+                    showingPromptComposer = false
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         .task(id: sessionObservationKey) {
             viewModel.configureUser(user: authManager.userSession)
-        }
-        .onDisappear {
-            isComposerFocused = false
         }
         .onChange(of: viewModel.revenueUsage?.warningLevel) { _, level in
             handleCriticalUsageWarning(level)
@@ -72,182 +89,109 @@ struct AIView: View {
     }
 
     private var content: some View {
-        VStack(spacing: 0) {
-            if featureFlags.isAIEnabled {
-                if viewModel.messages.isEmpty {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: usesCompactImmersiveLayout ? 12 : 14) {
-                            AIEmptyStateHeader(
-                                colorScheme: colorScheme,
-                                isCompact: usesCompactImmersiveLayout
-                            )
-
-                            if usesCompactImmersiveLayout {
-                                if viewModel.composerMode == .visual {
-                                    AIVisualPromptCard(
-                                        colorScheme: colorScheme,
-                                        prompts: viewModel.visualPrompts,
-                                        onPromptSelected: { prompt in
-                                            isComposerFocused = false
-                                            viewModel.generateVisual(prompt)
-                                        }
-                                    )
-                                } else {
-                                    AIQuickPromptCard(
-                                        colorScheme: colorScheme,
-                                        prompts: viewModel.quickPrompts,
-                                        onPromptSelected: { prompt in
-                                            isComposerFocused = false
-                                            viewModel.sendPrompt(prompt)
-                                        }
-                                    )
-                                }
-                            }
-
-                            if let usage = viewModel.revenueUsage {
-                                AIRevenueUsageCard(usage: usage, colorScheme: colorScheme)
-                                    .onTapGesture {
-                                        if !usage.userFacingReason.isEmpty {
-                                            MembershipAnalyticsTracker().track(
-                                                "upgrade_after_deny",
-                                                reason: membershipCoordinator.lastOpenReason.rawValue,
-                                                surface: "ai_empty",
-                                                currentPlan: membershipCoordinator.currentPlanCache.rawValue
-                                            )
-                                        }
-                                        membershipCoordinator.openMembership(reason: .manual, surface: "ai_empty")
-                                    }
-                            } else {
-                                AIPlanPreviewCard(colorScheme: colorScheme)
-                                    .onTapGesture {
-                                        membershipCoordinator.openMembership(reason: .manual, surface: "ai_empty")
-                                    }
-                            }
-
-                            if let decision = viewModel.lastDecision {
-                                AIDecisionTransparencyCard(decision: decision, colorScheme: colorScheme)
-                            }
-
-                            if !usesCompactImmersiveLayout {
-                                aiSessionDeck
-
-                                AIQuickPromptCard(
-                                    colorScheme: colorScheme,
-                                    prompts: viewModel.quickPrompts,
-                                    onPromptSelected: { prompt in
-                                        isComposerFocused = false
-                                        viewModel.sendPrompt(prompt)
-                                    }
-                                )
-
-                                AIVisualPromptCard(
-                                    colorScheme: colorScheme,
-                                    prompts: viewModel.visualPrompts,
-                                    onPromptSelected: { prompt in
-                                        isComposerFocused = false
-                                        viewModel.generateVisual(prompt)
-                                    }
-                                )
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                        .padding(.top, showsNavigation ? 20 : 10)
-                        .padding(.bottom, usesCompactImmersiveLayout ? 16 : 28)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .scrollIndicators(.hidden)
-                } else {
-                    ScrollViewReader { proxy in
-                        let scrollToken = viewModel.messages.last.map { message in
-                            "\(message.id.uuidString)-\(message.isStreaming)-\(message.text.count)-\(message.imageData?.count ?? 0)"
-                        } ?? "chat-empty"
-
+        ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
+                if featureFlags.isAIEnabled {
+                    if viewModel.messages.isEmpty {
                         ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 10) {
-                                if let usage = viewModel.revenueUsage {
-                                    AIRevenueUsageCard(usage: usage, colorScheme: colorScheme)
-                                        .onTapGesture {
-                                            if !usage.userFacingReason.isEmpty {
-                                                MembershipAnalyticsTracker().track(
-                                                    "upgrade_after_deny",
-                                                    reason: membershipCoordinator.lastOpenReason.rawValue,
-                                                    surface: "ai_chat",
-                                                    currentPlan: membershipCoordinator.currentPlanCache.rawValue
-                                                )
-                                            }
-                                            membershipCoordinator.openMembership(reason: .manual, surface: "ai_chat")
-                                        }
-                                }
-                                if let decision = viewModel.lastDecision {
-                                    AIDecisionTransparencyCard(decision: decision, colorScheme: colorScheme)
-                                }
-                                aiSessionDeck
-
-                                ForEach(viewModel.messages) { message in
-                                    AIMessageBubble(
-                                        message: message,
-                                        colorScheme: colorScheme
-                                    )
-                                    .id(message.id)
-                                }
-
-                                Color.clear
-                                    .frame(height: 4)
-                                    .id("chat-end")
+                            VStack(alignment: .leading, spacing: usesCompactImmersiveLayout ? 12 : 14) {
+                                AIEmptyStateHeader(
+                                    colorScheme: colorScheme,
+                                    isCompact: usesCompactImmersiveLayout
+                                )
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                            .padding(.top, showsNavigation ? 6 : 2)
-                            .padding(.bottom, 6)
+                            .padding(.top, showsNavigation ? 20 : 10)
+                            .padding(.bottom, usesCompactImmersiveLayout ? 16 : 28)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                         .scrollIndicators(.hidden)
-                        .scrollDismissesKeyboard(.interactively)
-                        .simultaneousGesture(
-                            TapGesture().onEnded {
-                                isComposerFocused = false
+                    } else {
+                        ScrollViewReader { proxy in
+                            let scrollToken = viewModel.messages.last.map { message in
+                                "\(message.id.uuidString)-\(message.isStreaming)-\(message.text.count)-\(message.imageData?.count ?? 0)"
+                            } ?? "chat-empty"
+
+                            ScrollView {
+                                LazyVStack(alignment: .leading, spacing: 10) {
+                                    AIEmptyStateHeader(
+                                        colorScheme: colorScheme,
+                                        isCompact: true
+                                    )
+
+                                    ForEach(viewModel.messages) { message in
+                                        AIMessageBubble(
+                                            message: message,
+                                            colorScheme: colorScheme
+                                        )
+                                        .id(message.id)
+                                    }
+
+                                    Color.clear
+                                        .frame(height: 4)
+                                        .id("chat-end")
+                                }
+                                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                                .padding(.top, showsNavigation ? 6 : 2)
+                                .padding(.bottom, 6)
                             }
-                        )
-                        .onAppear {
-                            DispatchQueue.main.async {
-                                proxy.scrollTo("chat-end", anchor: .bottom)
-                            }
-                        }
-                        .onChange(of: scrollToken) { _, _ in
-                            DispatchQueue.main.async {
-                                withAnimation(.easeOut(duration: 0.25)) {
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .scrollIndicators(.hidden)
+                            .scrollDismissesKeyboard(.interactively)
+                            .onAppear {
+                                DispatchQueue.main.async {
                                     proxy.scrollTo("chat-end", anchor: .bottom)
                                 }
                             }
+                            .onChange(of: scrollToken) { _, _ in
+                                DispatchQueue.main.async {
+                                    withAnimation(.easeOut(duration: 0.25)) {
+                                        proxy.scrollTo("chat-end", anchor: .bottom)
+                                    }
+                                }
+                            }
                         }
                     }
-                }
-            } else {
-                VStack {
-                    Spacer(minLength: 24)
-                    AIDisabledCard(colorScheme: colorScheme)
-                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                    Spacer()
+                } else {
+                    VStack {
+                        Spacer(minLength: 24)
+                        AIDisabledCard(colorScheme: colorScheme)
+                            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        Spacer()
+                    }
                 }
             }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear
+                    .frame(height: featureFlags.isAIEnabled ? 86 : 0)
+                    .allowsHitTesting(false)
+            }
+
             if featureFlags.isAIEnabled {
-                AIComposerBar(
-                    colorScheme: colorScheme,
-                    draft: $viewModel.draft,
-                    composerMode: $viewModel.composerMode,
-                    textMode: $viewModel.textMode,
-                    selectedLevel: $viewModel.selectedLevel,
-                    isFocused: $isComposerFocused,
-                    interactionPhase: viewModel.phase,
-                    onReset: viewModel.resetConversation,
-                    onSend: viewModel.sendDraft
-                )
+                HStack {
+                    Spacer(minLength: 0)
+                    AIPromptFab(
+                        isWorking: viewModel.phase.isBusy,
+                        onOpen: { showingPromptComposer = true }
+                    )
+                }
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                .padding(.bottom, max(18, keyWindowSafeAreaBottomInset + 14))
+                .zIndex(1)
             }
         }
         .background(backgroundGradient.ignoresSafeArea())
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var keyWindowSafeAreaBottomInset: CGFloat {
+        let windowScenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let foregroundScene = windowScenes.first {
+            $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive
+        }
+        let keyWindow = foregroundScene?.windows.first(where: \.isKeyWindow) ?? foregroundScene?.windows.first
+        return keyWindow?.safeAreaInsets.bottom ?? 0
     }
 
     private var backgroundGradient: LinearGradient {
@@ -620,20 +564,18 @@ private struct AIEmptyStateHeader: View {
     var isCompact: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: isCompact ? 8 : 10) {
-            Text(AppLocalized.text("ai.empty.title", fallback: "What do you need?"))
-                .font(isCompact ? .title2.weight(.bold) : AppTypography.sectionHeadline)
+        VStack(alignment: .leading, spacing: isCompact ? 6 : 8) {
+            Text("Hey, ich bin SkyOS AI.")
+                .font(
+                    isCompact
+                        ? .system(size: 24, weight: .black, design: .rounded)
+                        : .system(size: 28, weight: .black, design: .rounded)
+                )
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text(AppLocalized.text("ai.empty.subtitle", fallback: "Write briefly and start calmly."))
-                .font(isCompact ? .subheadline.weight(.semibold) : AppTypography.bodyCaption)
+            Text("Tippe auf +, waehle deine Optionen und starte dann den Prompt.")
+                .font(isCompact ? .subheadline.weight(.semibold) : .subheadline.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.95))
-
-            if !isCompact {
-                Text(AppLocalized.text("ai.empty.memory", fallback: "Your history stays per account, so the bot does not restart from zero each time."))
-                    .font(.footnote)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
-            }
         }
     }
 }
@@ -909,207 +851,182 @@ private struct AIMessageBubble: View {
     }
 }
 
-private struct AIComposerBar: View {
+private struct AIPromptFab: View {
+    let isWorking: Bool
+    let onOpen: () -> Void
+
+    var body: some View {
+        Button(action: onOpen) {
+            ZStack {
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 58, height: 58)
+                    .shadow(color: .black.opacity(0.16), radius: 16, x: 0, y: 8)
+
+                if isWorking {
+                    ProgressView()
+                        .scaleEffect(0.82)
+                } else {
+                    Image(systemName: "plus")
+                        .font(.title3.weight(.black))
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Prompt oeffnen")
+    }
+}
+
+private struct AIPromptComposerSheet: View {
     let colorScheme: ColorScheme
     @Binding var draft: String
     @Binding var composerMode: AIComposerMode
     @Binding var textMode: AITextMode
     @Binding var selectedLevel: AIExperienceLevel
-    let isFocused: FocusState<Bool>.Binding
     let interactionPhase: BotInteractionPhase
     let onReset: () -> Void
     let onSend: () -> Void
-    @StateObject private var keyboardObserver = SkydownKeyboardObserver()
+    @FocusState private var isFocused: Bool
 
     private var trimmedDraft: String {
         draft.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var activeKeyboardInset: CGFloat {
-        isFocused.wrappedValue ? keyboardObserver.bottomInset : 0
-    }
-
-    private var restingBottomSafeAreaInset: CGFloat {
-        isFocused.wrappedValue ? 0 : keyWindowSafeAreaBottomInset
-    }
-
-    private var keyWindowSafeAreaBottomInset: CGFloat {
-        let windowScenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        let foregroundScene = windowScenes.first {
-            $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive
-        }
-        let keyWindow = foregroundScene?.windows.first(where: \.isKeyWindow) ?? foregroundScene?.windows.first
-        return keyWindow?.safeAreaInsets.bottom ?? 0
+    private var composerAccent: Color {
+        composerMode == .visual
+            ? AppColors.accentMystic(for: colorScheme)
+            : AppColors.accent(for: colorScheme)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            VStack(spacing: 10) {
-                if let status = interactionPhase.composerStatusLabel {
-                    HStack {
-                        Text(status)
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                        Spacer(minLength: 0)
-                    }
-                }
-                HStack(spacing: 10) {
-                    Picker("Modus", selection: $composerMode) {
-                        ForEach(AIComposerMode.allCases) { mode in
-                            Text(mode.title).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .skydownSelectionFeedback(trigger: composerMode)
-
-                    Button(action: onReset) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundColor(AppColors.text(for: colorScheme))
-                            .frame(width: 38, height: 38)
-                            .background(
-                                Circle()
-                                    .fill(AppColors.secondaryBackground(for: colorScheme))
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                    .disabled(interactionPhase.isBusy)
-                }
-
-                VStack(alignment: .leading, spacing: 5) {
-                    Picker(AppLocalized.text("ai.level.picker.title", fallback: "AI Level"), selection: $selectedLevel) {
-                        ForEach(AIExperienceLevel.allCases) { level in
-                            Text(level.title).tag(level)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .disabled(interactionPhase.isBusy)
-                    .skydownSelectionFeedback(trigger: selectedLevel)
-
-                    Text(selectedLevel.subtitle)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .lineLimit(1)
-                }
-
-                if composerMode == .text {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(AITextMode.allCases) { mode in
-                                Button {
-                                    textMode = mode
-                                } label: {
-                                    Text(mode.title)
-                                        .font(.caption.weight(.bold))
-                                        .foregroundColor(
-                                            textMode == mode
-                                                ? .white
-                                                : AppColors.text(for: colorScheme)
-                                        )
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(
-                                            Capsule()
-                                                .fill(
-                                                    textMode == mode
-                                                        ? AppColors.accent(for: colorScheme)
-                                                        : AppColors.secondaryBackground(for: colorScheme)
-                                                )
-                                        )
-                                }
-                                .buttonStyle(.plain)
-                                .skydownTactileAction()
-                            }
-                        }
-                    }
-                    .skydownSelectionFeedback(trigger: textMode)
-                }
-
-                HStack(alignment: .bottom, spacing: 10) {
-                    TextField(
-                        composerMode == .text
-                            ? textMode.placeholder
-                            : "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release.",
-                        text: $draft,
-                        axis: .vertical
-                    )
-                    .lineLimit(1...4)
-                    .focused(isFocused)
-                    .submitLabel(.done)
-                    .onSubmit {
-                        isFocused.wrappedValue = false
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
-                            .fill(AppColors.secondaryBackground(for: colorScheme))
-                    )
+        ScrollView {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Neue AI-Anfrage")
+                    .font(.title3.weight(.black))
                     .foregroundColor(AppColors.text(for: colorScheme))
+                Text("Erst Optionen waehlen, dann Prompt schreiben.")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
 
+            if let status = interactionPhase.composerStatusLabel {
+                Text(status)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
+            }
+
+            Text("Optionen")
+                .font(.caption2.weight(.black))
+                .foregroundColor(composerAccent)
+
+            Picker("Modus", selection: $composerMode) {
+                ForEach(AIComposerMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .disabled(interactionPhase.isBusy)
+            .skydownSelectionFeedback(trigger: composerMode)
+
+            if composerMode == .text {
+                ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        if isFocused.wrappedValue {
+                        ForEach(AITextMode.allCases) { mode in
                             Button {
-                                isFocused.wrappedValue = false
+                                textMode = mode
                             } label: {
-                                Image(systemName: "keyboard.chevron.compact.down")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(AppColors.text(for: colorScheme))
-                                    .frame(width: 38, height: 38)
+                                Text(mode.title)
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(textMode == mode ? .white : AppColors.text(for: colorScheme))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
                                     .background(
-                                        Circle()
-                                            .fill(AppColors.secondaryBackground(for: colorScheme))
+                                        Capsule()
+                                            .fill(textMode == mode ? composerAccent : AppColors.secondaryBackground(for: colorScheme))
                                     )
                             }
                             .buttonStyle(.plain)
                             .skydownTactileAction()
-                            .transition(.offset(y: 6).combined(with: .opacity))
                         }
-
-                        Button(action: {
-                            isFocused.wrappedValue = false
-                            onSend()
-                        }, label: {
-                            Image(systemName: composerMode == .text ? "arrow.up.circle.fill" : "sparkles")
-                                .font(.title3.weight(.bold))
-                                .foregroundColor(.white)
-                                .frame(width: 44, height: 44)
-                                .background(
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [
-                                                    AppColors.accent(for: colorScheme),
-                                                    AppColors.accentMystic(for: colorScheme)
-                                                ],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
-                                )
-                        })
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
-                        .disabled(trimmedDraft.isEmpty || interactionPhase.isBusy)
-                        .opacity(trimmedDraft.isEmpty || interactionPhase.isBusy ? 0.6 : 1)
                     }
-                    .animation(SkydownMotion.pressInteraction, value: isFocused.wrappedValue)
+                }
+                .skydownSelectionFeedback(trigger: textMode)
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Picker(AppLocalized.text("ai.level.picker.title", fallback: "AI Level"), selection: $selectedLevel) {
+                    ForEach(AIExperienceLevel.allCases) { level in
+                        Text(level.title).tag(level)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .disabled(interactionPhase.isBusy)
+                .skydownSelectionFeedback(trigger: selectedLevel)
+
+                Text(selectedLevel.subtitle)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineLimit(2)
+            }
+
+            Text("Prompt")
+                .font(.caption2.weight(.black))
+                .foregroundColor(composerAccent)
+
+            TextField(
+                composerMode == .text
+                    ? textMode.placeholder
+                    : "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release.",
+                text: $draft,
+                axis: .vertical
+            )
+            .lineLimit(4...8)
+            .focused($isFocused)
+            .submitLabel(.send)
+            .onSubmit {
+                if !trimmedDraft.isEmpty && !interactionPhase.isBusy {
+                    onSend()
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
-            .padding(.bottom, 10 + restingBottomSafeAreaInset)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
             .background(
-                Rectangle()
-                    .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.96))
-                    .ignoresSafeArea()
+                RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
+                    .fill(AppColors.secondaryBackground(for: colorScheme))
             )
-            .overlay(alignment: .top) {
-                Divider().opacity(0.25)
+            .foregroundColor(AppColors.text(for: colorScheme))
+
+            HStack(spacing: 10) {
+                Spacer(minLength: 0)
+                Button("Reset", action: onReset)
+                    .font(.caption.weight(.bold))
+                    .disabled(interactionPhase.isBusy)
+
+                Button(action: onSend) {
+                    Image(systemName: composerMode == .text ? "arrow.up.circle.fill" : "sparkles")
+                        .font(.title2.weight(.bold))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(composerAccent)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .skydownTactileAction()
+                .disabled(trimmedDraft.isEmpty || interactionPhase.isBusy)
+                .opacity(trimmedDraft.isEmpty || interactionPhase.isBusy ? 0.55 : 1)
             }
         }
-        .padding(.bottom, activeKeyboardInset)
+        .padding(.horizontal, 18)
+        .padding(.top, 18)
+        .padding(.bottom, 22)
+        .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                isFocused = true
+            }
+        }
     }
 }
 

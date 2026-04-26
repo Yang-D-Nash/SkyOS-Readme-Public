@@ -1057,6 +1057,13 @@ struct SkydownExternalVideoRequest {
     let externalURL: String
 }
 
+struct SkydownVideoUpdateRequest {
+    let title: String
+    let projectName: String
+    let notes: String
+    let isPublic: Bool
+}
+
 protocol SkydownVideoHubServicing {
     func observeVideos(
         isAdmin: Bool,
@@ -1067,6 +1074,7 @@ protocol SkydownVideoHubServicing {
     ) -> () -> Void
     func uploadVideos(_ request: SkydownVideoUploadRequest, currentUser: User?) async throws
     func addExternalVideo(_ request: SkydownExternalVideoRequest, currentUser: User?) async throws
+    func updateVideo(_ video: SkydownVideoHubItem, request: SkydownVideoUpdateRequest, currentUser: User?) async throws
     func setHomeFeaturedVideo(_ video: SkydownVideoHubItem?) async throws
     func deleteVideo(_ video: SkydownVideoHubItem) async throws
     func savePublicConfig(_ config: SkydownVideoHubPublicConfig, currentUser: User?) async throws
@@ -1187,6 +1195,29 @@ final class FirebaseSkydownVideoHubService: SkydownVideoHubServicing {
         ]
 
         try await firestore.collection(collectionName).addDocument(data: payload)
+    }
+
+    func updateVideo(
+        _ video: SkydownVideoHubItem,
+        request: SkydownVideoUpdateRequest,
+        currentUser: User?
+    ) async throws {
+        var updates: [String: Any] = [
+            "title": request.title,
+            "projectName": request.projectName,
+            "notes": request.notes,
+            "isPublic": request.isPublic,
+            "updatedAt": FieldValue.serverTimestamp(),
+            "updatedBy": currentUser?.id ?? ""
+        ]
+
+        if !request.isPublic {
+            updates["isHomeFeatured"] = false
+        }
+
+        try await firestore.collection(collectionName)
+            .document(video.id)
+            .setData(updates, merge: true)
     }
 
     func deleteVideo(_ video: SkydownVideoHubItem) async throws {
@@ -1781,6 +1812,49 @@ final class SkydownVideoHubViewModel: ObservableObject {
         }
 
         isUploading = false
+    }
+
+    func updateVideo(
+        _ video: SkydownVideoHubItem,
+        title: String,
+        projectName: String,
+        notes: String,
+        isPublic: Bool
+    ) async {
+        guard isAdmin else { return }
+
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedProject = projectName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedTitle.isEmpty else {
+            validationMessage = "Bitte trag einen Videotitel ein."
+            showUserToast("Videotitel fehlt.", style: .error)
+            return
+        }
+
+        guard !trimmedProject.isEmpty else {
+            validationMessage = "Bitte trag ein Projekt oder einen Artist ein."
+            showUserToast("Projekt oder Artist fehlt.", style: .error)
+            return
+        }
+
+        do {
+            try await service.updateVideo(
+                video,
+                request: SkydownVideoUpdateRequest(
+                    title: trimmedTitle,
+                    projectName: trimmedProject,
+                    notes: trimmedNotes,
+                    isPublic: isPublic
+                ),
+                currentUser: currentUser
+            )
+            validationMessage = nil
+            showUserToast("Video gespeichert.", style: .success)
+        } catch {
+            showUserToast("Das Video konnte nicht gespeichert werden.", style: .error)
+        }
     }
 
     func deleteVideo(_ video: SkydownVideoHubItem) async {

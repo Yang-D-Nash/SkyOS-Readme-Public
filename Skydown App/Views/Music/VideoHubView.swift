@@ -30,6 +30,7 @@ struct VideoHubView: View {
     @State private var showingReelViewer = false
     @State private var hasHandledInitialSelection = false
     @State private var showingAdminEditor = false
+    @State private var editingVideoID: String?
     @State private var selectedEquipmentItem: SkydownVideoEquipmentItem?
     @State private var originalViewerTarget: VideoOriginalViewerTarget?
     let onBack: (() -> Void)?
@@ -742,14 +743,43 @@ struct VideoHubView: View {
 
     private var libraryCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(
-                    viewModel.isAdmin
-                    ? "\(viewModel.videos.count) Titel im Hub"
-                    : "\(viewModel.videos.count) zum Schauen bereit"
-                )
-                .font(.caption)
-                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(
+                        viewModel.isAdmin
+                        ? "\(viewModel.videos.count) Titel im Hub"
+                        : "\(viewModel.videos.count) zum Schauen bereit"
+                    )
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                    if viewModel.isAdmin {
+                        Text("Owner Video Control")
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                        Text("Liste ansehen, Home-Video setzen, Clips bearbeiten oder loeschen.")
+                            .font(.caption)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
+                }
+
+                Spacer()
+
+                if viewModel.isAdmin {
+                    Button {
+                        editingVideoID = nil
+                        showingAdminEditor = false
+                        withAnimation(SkydownMotion.screenTransition) {
+                            showingUploadComposer = true
+                        }
+                    } label: {
+                        Label("Neu", systemImage: "plus")
+                            .labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accent(for: colorScheme))
+                    .accessibilityLabel("Neues Video anlegen")
+                }
             }
             .accessibilityIdentifier("video.hub.library.header")
 
@@ -797,8 +827,16 @@ struct VideoHubView: View {
                                 await viewModel.toggleHomeFeatured(video)
                             }
                         },
+                        onEdit: {
+                            withAnimation(SkydownMotion.screenTransition) {
+                                editingVideoID = editingVideoID == video.id ? nil : video.id
+                            }
+                        },
                         onDelete: {
                             Task {
+                                if editingVideoID == video.id {
+                                    editingVideoID = nil
+                                }
                                 await viewModel.deleteVideo(video)
                             }
                         }
@@ -812,6 +850,33 @@ struct VideoHubView: View {
                         .bottom,
                         (index == 0 && viewModel.videos.count > 1) ? 8 : 0
                     )
+
+                    if editingVideoID == video.id {
+                        VideoOwnerEditPanel(
+                            video: video,
+                            colorScheme: colorScheme,
+                            onCancel: {
+                                withAnimation(SkydownMotion.screenTransition) {
+                                    editingVideoID = nil
+                                }
+                            },
+                            onSave: { title, projectName, notes, isPublic in
+                                Task {
+                                    await viewModel.updateVideo(
+                                        video,
+                                        title: title,
+                                        projectName: projectName,
+                                        notes: notes,
+                                        isPublic: isPublic
+                                    )
+                                    withAnimation(SkydownMotion.screenTransition) {
+                                        editingVideoID = nil
+                                    }
+                                }
+                            }
+                        )
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
             }
         }
@@ -874,6 +939,7 @@ private struct VideoHubLibraryRow: View {
     let onOpenReel: () -> Void
     let onOpenOriginal: () -> Void
     let onToggleHomeFeatured: () -> Void
+    let onEdit: () -> Void
     let onDelete: () -> Void
 
     private var routeTitle: String {
@@ -1137,12 +1203,20 @@ private struct VideoHubLibraryRow: View {
                 }
 
                 if isAdmin {
-                    HStack(spacing: 10) {
-                        Button(action: onToggleHomeFeatured) {
-                            Label(video.isHomeFeatured ? "Home aktiv" : "Im Home zeigen", systemImage: "house.fill")
-                                .frame(maxWidth: .infinity)
+                    VStack(spacing: 10) {
+                        HStack(spacing: 10) {
+                            Button(action: onToggleHomeFeatured) {
+                                Label(video.isHomeFeatured ? "Home aktiv" : "Im Home zeigen", systemImage: "house.fill")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+
+                            Button(action: onEdit) {
+                                Label("Bearbeiten", systemImage: "slider.horizontal.3")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
                         }
-                        .buttonStyle(.bordered)
 
                         Button(role: .destructive, action: onDelete) {
                             Label("Loeschen", systemImage: "trash")
@@ -1262,12 +1336,20 @@ private struct VideoHubLibraryRow: View {
             }
 
             if isAdmin {
-                HStack(spacing: 10) {
-                    Button(action: onToggleHomeFeatured) {
-                        Label(video.isHomeFeatured ? "Home aktiv" : "Im Home zeigen", systemImage: "house.fill")
-                            .frame(maxWidth: .infinity)
+                VStack(spacing: 10) {
+                    HStack(spacing: 10) {
+                        Button(action: onToggleHomeFeatured) {
+                            Label(video.isHomeFeatured ? "Home aktiv" : "Im Home zeigen", systemImage: "house.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button(action: onEdit) {
+                            Label("Bearbeiten", systemImage: "slider.horizontal.3")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.bordered)
 
                     Button(role: .destructive, action: onDelete) {
                         Label("Loeschen", systemImage: "trash")
@@ -1321,6 +1403,127 @@ private struct VideoHubLibraryRow: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
         )
+    }
+}
+
+private struct VideoOwnerEditPanel: View {
+    let video: SkydownVideoHubItem
+    let colorScheme: ColorScheme
+    let onCancel: () -> Void
+    let onSave: (String, String, String, Bool) -> Void
+
+    @State private var title: String
+    @State private var projectName: String
+    @State private var notes: String
+    @State private var isPublic: Bool
+
+    private var sourceLabel: String {
+        let fileName = video.fileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return fileName.isEmpty ? video.provider.rawValue : fileName
+    }
+
+    init(
+        video: SkydownVideoHubItem,
+        colorScheme: ColorScheme,
+        onCancel: @escaping () -> Void,
+        onSave: @escaping (String, String, String, Bool) -> Void
+    ) {
+        self.video = video
+        self.colorScheme = colorScheme
+        self.onCancel = onCancel
+        self.onSave = onSave
+        _title = State(initialValue: video.title)
+        _projectName = State(initialValue: video.projectName)
+        _notes = State(initialValue: video.notes)
+        _isPublic = State(initialValue: video.isPublic)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Video bearbeiten")
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    Text("\(sourceLabel) · \(skydownVideoDateFormatter.string(from: video.createdAt))")
+                        .font(.caption)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineLimit(1)
+                }
+                Spacer()
+                Button(action: onCancel) {
+                    Image(systemName: "xmark")
+                        .font(.caption.weight(.bold))
+                }
+                .buttonStyle(.bordered)
+                .accessibilityLabel("Bearbeitung schliessen")
+            }
+
+            NicmaUploadField(
+                title: "Titel",
+                text: $title,
+                colorScheme: colorScheme
+            )
+
+            NicmaUploadField(
+                title: "Projekt / Artist",
+                text: $projectName,
+                colorScheme: colorScheme
+            )
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Notiz")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+
+                TextEditor(text: $notes)
+                    .frame(minHeight: 92)
+                    .padding(12)
+                    .scrollContentBackground(.hidden)
+                    .background(AppColors.secondaryBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+                    )
+            }
+
+            Toggle(isOn: $isPublic) {
+                Label(
+                    isPublic ? "Public sichtbar" : "Privat verborgen",
+                    systemImage: isPublic ? "checkmark.circle.fill" : "eye.slash.fill"
+                )
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+            }
+            .tint(AppColors.accent(for: colorScheme))
+
+            HStack(spacing: 10) {
+                Button(action: onCancel) {
+                    Label("Abbrechen", systemImage: "xmark")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    onSave(title, projectName, notes, isPublic)
+                } label: {
+                    Label("Speichern", systemImage: "checkmark.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColors.accent(for: colorScheme))
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.74))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
+        )
+        .accessibilityIdentifier("video.hub.owner.edit")
     }
 }
 

@@ -1,8 +1,15 @@
 package com.nash.skyos.ui.screen
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,11 +42,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,12 +63,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -80,6 +99,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nash.skyos.data.AiMembershipCoordinator
@@ -127,6 +147,25 @@ fun AgentScreen(
     val context = LocalContext.current
     val membershipCoordinator = remember(context) { AiMembershipCoordinator(context.applicationContext) }
     val membershipState by membershipCoordinator.uiState.collectAsStateWithLifecycle()
+    var inputAttachments by remember { mutableStateOf<List<AgentInputAttachment>>(emptyList()) }
+    var showPromptComposer by rememberSaveable { mutableStateOf(false) }
+    val promptSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val attachmentPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenMultipleDocuments(),
+    ) { uris ->
+        val mappedAttachments = uris.map { uri ->
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            resolveAgentInputAttachment(context, uri)
+        }
+        inputAttachments = (inputAttachments + mappedAttachments)
+            .distinctBy { it.id }
+            .takeLast(12)
+    }
     var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
     var localFeedbackType by remember { mutableStateOf(ToastType.Info) }
     var hasAutoUpgradePrompted by rememberSaveable { mutableStateOf(false) }
@@ -154,8 +193,7 @@ fun AgentScreen(
 
     LaunchedEffect(messageRenderToken) {
         if (uiState.isAgentEnabled && uiState.messages.isNotEmpty()) {
-            // usage + workspace & thread lead + messages; scroll to end spacer
-            listState.animateScrollToItem(uiState.messages.lastIndex + 3)
+            listState.animateScrollToItem(uiState.messages.size)
         }
     }
 
@@ -209,33 +247,11 @@ fun AgentScreen(
         } else {
             {}
         },
-        bottomBar = {
+        floatingActionButton = {
             if (uiState.isAgentEnabled) {
-                AgentComposerBar(
-                    draft = uiState.draft,
-                    selectedMode = uiState.selectedMode,
-                    selectedLevel = uiState.selectedLevel,
-                    canTriggerAutomation = uiState.canTriggerAutomation,
-                    shouldTriggerAutomation = uiState.shouldTriggerAutomation,
-                    agentPhase = uiState.agentPhase,
-                    compactLayout = compactLayout,
-                    contentMaxWidth = contentMaxWidth,
-                    embeddedInTools = !showTopBar,
-                    showDockClearance = !showTopBar && !immersiveInTools,
-                    applyBottomSystemInset = showTopBar || immersiveInTools,
-                    onDraftChanged = viewModel::updateDraft,
-                    onModeChanged = viewModel::updateMode,
-                    onLevelChanged = viewModel::updateLevel,
-                    onToggleAutomation = viewModel::toggleAutomation,
-                    onSend = {
-                        viewModel.sendDraft()
-                        dismissKeyboard()
-                    },
-                    onReset = {
-                        viewModel.resetConversation()
-                        dismissKeyboard()
-                    },
-                    onDismissKeyboard = dismissKeyboard,
+                AgentPromptFab(
+                    isWorking = uiState.agentPhase.shouldBlockComposerChrome,
+                    onOpen = { showPromptComposer = true },
                 )
             }
         },
@@ -263,44 +279,15 @@ fun AgentScreen(
                 )
         ) {
             if (uiState.isAgentEnabled && uiState.messages.isEmpty()) {
-                val agentStatusLine = stringResource(
-                    if (uiState.lastProviderNotice.trim().isNotEmpty()) {
-                        R.string.agent_workspace_status_line_adjusted
-                    } else {
-                        R.string.agent_workspace_status_line_ready
-                    },
-                )
                 Column(
                     modifier = Modifier
                         .widthIn(max = contentMaxWidth)
                         .fillMaxSize()
                         .padding(safeContentPadding),
-                    verticalArrangement = Arrangement.Bottom,
+                    verticalArrangement = Arrangement.Top,
                 ) {
-                    AgentWorkspaceHeroCard(
-                        isEnabled = true,
-                        statusLine = agentStatusLine,
-                    )
                     AgentEmptyStateHeader()
-                    AgentRevenueUsageCard(
-                        usage = uiState.usageSnapshot,
-                        planLabel = uiState.planLabel,
-                        onOpenMembership = {
-                            if (uiState.usageSnapshot?.userFacingReason?.isNotBlank() == true) {
-                                membershipCoordinator.trackUpgradeAfterDeny(surface = "agent_empty")
-                            }
-                            membershipCoordinator.openMembership(MembershipOpenReason.Manual, surface = "agent_empty")
-                        },
-                    )
-                    AgentQuickPromptCard(
-                        prompts = uiState.quickPrompts,
-                        onPromptSelected = { prompt ->
-                            dismissKeyboard()
-                            viewModel.sendPrompt(prompt)
-                        },
-                        compactLayout = compactLayout,
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(78.dp))
                 }
             } else {
                 LazyColumn(
@@ -317,36 +304,7 @@ fun AgentScreen(
                         }
                     } else {
                         item {
-                            AgentRevenueUsageCard(
-                                usage = uiState.usageSnapshot,
-                                planLabel = uiState.planLabel,
-                                onOpenMembership = {
-                                    if (uiState.usageSnapshot?.userFacingReason?.isNotBlank() == true) {
-                                        membershipCoordinator.trackUpgradeAfterDeny(surface = "agent_chat")
-                                    }
-                                    membershipCoordinator.openMembership(MembershipOpenReason.Manual, surface = "agent_chat")
-                                },
-                            )
-                        }
-                        item {
-                            val line = stringResource(
-                                if (uiState.lastProviderNotice.trim().isNotEmpty()) {
-                                    R.string.agent_workspace_status_line_adjusted
-                                } else {
-                                    R.string.agent_workspace_status_line_ready
-                                },
-                            )
-                            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                                AgentWorkspaceContextCard(
-                                    selectedMode = uiState.selectedMode,
-                                    messageCount = uiState.messages.size,
-                                    agentPhase = uiState.agentPhase,
-                                    providerLine = line,
-                                )
-                                AgentConversationLeadIn(
-                                    showHairline = true,
-                                )
-                            }
+                            AgentEmptyStateHeader()
                         }
                         items(uiState.messages, key = { it.id }) { message ->
                             Box(
@@ -366,7 +324,7 @@ fun AgentScreen(
                         }
 
                         item {
-                            Spacer(modifier = Modifier.height(2.dp))
+                            Spacer(modifier = Modifier.height(78.dp))
                         }
                     }
                 }
@@ -383,6 +341,45 @@ fun AgentScreen(
                         28.dp
                     }),
             )
+
+            if (showPromptComposer) {
+                ModalBottomSheet(
+                    onDismissRequest = { showPromptComposer = false },
+                    sheetState = promptSheetState,
+                ) {
+                    AgentPromptComposerSheet(
+                        draft = uiState.draft,
+                        selectedMode = uiState.selectedMode,
+                        selectedLevel = uiState.selectedLevel,
+                        canTriggerAutomation = uiState.canTriggerAutomation,
+                        shouldTriggerAutomation = uiState.shouldTriggerAutomation,
+                        agentPhase = uiState.agentPhase,
+                        attachments = inputAttachments,
+                        onDraftChanged = viewModel::updateDraft,
+                        onModeChanged = viewModel::updateMode,
+                        onLevelChanged = viewModel::updateLevel,
+                        onToggleAutomation = viewModel::toggleAutomation,
+                        onAddFiles = {
+                            showPromptComposer = false
+                            attachmentPicker.launch(arrayOf("*/*"))
+                        },
+                        onRemoveAttachment = { attachment ->
+                            inputAttachments = inputAttachments.filterNot { it.id == attachment.id }
+                        },
+                        onClearAttachments = { inputAttachments = emptyList() },
+                        onSend = {
+                            viewModel.sendDraft()
+                            dismissKeyboard()
+                            showPromptComposer = false
+                        },
+                        onReset = {
+                            viewModel.resetConversation()
+                            dismissKeyboard()
+                            showPromptComposer = false
+                        },
+                    )
+                }
+            }
         }
         if (membershipState.isOpen) {
             AiMembershipSheet(
@@ -627,252 +624,15 @@ private fun AgentEmptyStateHeader() {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = stringResource(R.string.agent_empty_title),
+            text = "Hey, ich bin SkyOS AI.",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = stringResource(R.string.agent_empty_subtitle),
+            text = "Tippe auf +, waehle deine Optionen und starte dann den Prompt.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
-        Text(
-            text = stringResource(R.string.agent_empty_first_step),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.tertiary,
-        )
-    }
-}
-
-@Composable
-private fun AgentConversationLeadIn(
-    showHairline: Boolean,
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 6.dp, bottom = 2.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        if (showHairline) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                colorScheme.tertiary.copy(alpha = 0.16f),
-                                colorScheme.tertiary.copy(alpha = 0.16f),
-                                Color.Transparent,
-                            ),
-                        ),
-                    ),
-            )
-        }
-        Text(
-            text = stringResource(R.string.agent_section_conversation),
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = stringResource(R.string.agent_section_conversation_sub),
-            style = MaterialTheme.typography.bodySmall,
-            color = colorScheme.onSurface.copy(alpha = 0.64f),
-        )
-    }
-}
-
-@Composable
-private fun AgentWorkspaceHeroCard(
-    isEnabled: Boolean,
-    statusLine: String,
-) {
-    val scheme = MaterialTheme.colorScheme
-    val heroTint = if (isEnabled) scheme.tertiary else scheme.onSurface.copy(alpha = 0.5f)
-    SkydownCard {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(CircleShape)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                heroTint.copy(alpha = 0.42f),
-                                heroTint.copy(alpha = 0.12f),
-                            ),
-                            center = Offset(25f, 25f),
-                            radius = 36f,
-                        ),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Bolt,
-                    contentDescription = null,
-                    tint = heroTint,
-                )
-            }
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.agent_workspace_hero_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = if (isEnabled) {
-                        stringResource(R.string.agent_workspace_hero_status_on)
-                    } else {
-                        stringResource(R.string.agent_workspace_hero_status_off)
-                    },
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (isEnabled) {
-                        scheme.tertiary
-                    } else {
-                        scheme.onSurface.copy(alpha = 0.65f)
-                    },
-                )
-                Text(
-                    text = stringResource(R.string.agent_workspace_hero_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                )
-                Text(
-                    text = statusLine,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun AgentWorkspaceContextCard(
-    selectedMode: AgentExecutionMode,
-    messageCount: Int,
-    agentPhase: AgentInteractionPhase,
-    providerLine: String,
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    val isBusy = agentPhase.shouldBlockComposerChrome
-    val isError = when (agentPhase) {
-        AgentInteractionPhase.Failed, AgentInteractionPhase.ExternalFailed, AgentInteractionPhase.Blocked -> true
-        else -> false
-    }
-    val isSettledSuccess = when (agentPhase) {
-        AgentInteractionPhase.Completed, AgentInteractionPhase.ExternalCompleted -> true
-        else -> false
-    }
-    val (phaseAccent, phaseIsActive) = when (agentPhase) {
-        AgentInteractionPhase.Failed, AgentInteractionPhase.ExternalFailed, AgentInteractionPhase.Blocked -> {
-            colorScheme.error to true
-        }
-        AgentInteractionPhase.Partial, AgentInteractionPhase.Retryable, AgentInteractionPhase.Cancelled,
-        -> colorScheme.tertiary to true
-        AgentInteractionPhase.Idle -> colorScheme.tertiary to false
-        else -> colorScheme.tertiary to true
-    }
-    val phaseText = agentPhase.composerStatusLabel
-        ?: stringResource(R.string.agent_workspace_status_ready)
-    val borderWidth = when {
-        isError || isBusy -> 1.5.dp
-        isSettledSuccess -> 1.dp
-        else -> 1.dp
-    }
-    val borderColor = when {
-        isError -> colorScheme.error.copy(alpha = 0.5f)
-        isBusy -> colorScheme.tertiary.copy(alpha = 0.52f)
-        isSettledSuccess -> colorScheme.tertiary.copy(alpha = 0.32f)
-        else -> colorScheme.tertiary.copy(alpha = 0.10f)
-    }
-    val barBrush = when {
-        isError -> Brush.verticalGradient(
-            listOf(colorScheme.error, colorScheme.error.copy(alpha = 0.25f)),
-        )
-        isBusy -> Brush.verticalGradient(
-            listOf(colorScheme.tertiary, colorScheme.tertiary.copy(alpha = 0.35f)),
-        )
-        isSettledSuccess -> Brush.verticalGradient(
-            listOf(colorScheme.tertiary.copy(alpha = 0.85f), colorScheme.tertiary.copy(alpha = 0.2f)),
-        )
-        agentPhase == AgentInteractionPhase.Partial -> Brush.verticalGradient(
-            listOf(colorScheme.tertiary.copy(alpha = 0.6f), colorScheme.tertiary.copy(alpha = 0.15f)),
-        )
-        else -> Brush.verticalGradient(
-            listOf(colorScheme.tertiary.copy(alpha = 0.3f), colorScheme.tertiary.copy(alpha = 0.1f)),
-        )
-    }
-    val cardShape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
-    SkydownCard(
-        contentPadding = PaddingValues(0.dp),
-        modifier = Modifier.border(borderWidth, borderColor, cardShape),
-    ) {
-        Row(
-            modifier = Modifier
-                .height(IntrinsicSize.Min)
-                .padding(12.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(barBrush),
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.agent_workspace_context_title).uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colorScheme.tertiary,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = providerLine,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = colorScheme.tertiary.copy(alpha = 0.92f),
-                )
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    BrandStatusChip(
-                        text = stringResource(R.string.agent_workspace_mode_format, selectedMode.title),
-                        accent = colorScheme.tertiary,
-                        isActive = true,
-                    )
-                    BrandStatusChip(
-                        text = stringResource(R.string.agent_workspace_session_format, messageCount),
-                        accent = colorScheme.tertiary,
-                        isActive = true,
-                    )
-                    BrandStatusChip(
-                        text = phaseText,
-                        accent = phaseAccent,
-                        isActive = phaseIsActive,
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -924,58 +684,329 @@ private fun AgentDisabledCard() {
 }
 
 @Composable
-private fun AgentQuickPromptCard(
-    prompts: List<String>,
-    onPromptSelected: (String) -> Unit,
-    compactLayout: Boolean,
+private fun AgentPromptFab(
+    isWorking: Boolean,
+    onOpen: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp)) {
+    FloatingActionButton(
+        onClick = onOpen,
+        containerColor = MaterialTheme.colorScheme.tertiary,
+        contentColor = MaterialTheme.colorScheme.onTertiary,
+    ) {
+        if (isWorking) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.onTertiary,
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Prompt oeffnen",
+            )
+        }
+    }
+}
+
+@Composable
+private fun AgentPromptComposerSheet(
+    draft: String,
+    selectedMode: AgentExecutionMode,
+    selectedLevel: AiExperienceLevel,
+    canTriggerAutomation: Boolean,
+    shouldTriggerAutomation: Boolean,
+    agentPhase: AgentInteractionPhase,
+    attachments: List<AgentInputAttachment>,
+    onDraftChanged: (String) -> Unit,
+    onModeChanged: (AgentExecutionMode) -> Unit,
+    onLevelChanged: (AiExperienceLevel) -> Unit,
+    onToggleAutomation: () -> Unit,
+    onAddFiles: () -> Unit,
+    onRemoveAttachment: (AgentInputAttachment) -> Unit,
+    onClearAttachments: () -> Unit,
+    onSend: () -> Unit,
+    onReset: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.92f)
+            .verticalScroll(rememberScrollState())
+            .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars).only(WindowInsetsSides.Bottom))
+            .padding(horizontal = 18.dp)
+            .padding(top = 8.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                text = "Neue Anfrage",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "Erst Optionen waehlen, dann Prompt schreiben.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+            )
+        }
+
+        Text(
+            text = "Optionen",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.tertiary,
+        )
+
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BrandStatusChip(
-                text = "Agent",
-                accent = MaterialTheme.colorScheme.tertiary,
-                isActive = true,
+            AgentModeMenu(
+                selectedMode = selectedMode,
+                enabled = !agentPhase.shouldBlockComposerChrome,
+                onModeChanged = onModeChanged,
             )
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "Direkt starten",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Starte mit einer klaren Aufgabe und hole dir sofort Struktur.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                )
-            }
-        }
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
-            contentPadding = PaddingValues(end = 4.dp),
-        ) {
-            items(prompts) { prompt ->
-                OutlinedButton(
-                    onClick = { onPromptSelected(prompt) },
-                    modifier = Modifier.widthIn(min = 190.dp, max = 236.dp),
-                    contentPadding = PaddingValues(
-                        horizontal = 12.dp,
-                        vertical = if (compactLayout) 8.dp else 10.dp,
-                    ),
-                    shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                ) {
-                    Text(
-                        text = prompt,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodyMedium,
+            AgentLevelMenu(
+                selectedLevel = selectedLevel,
+                enabled = !agentPhase.shouldBlockComposerChrome,
+                onLevelChanged = onLevelChanged,
+            )
+            if (canTriggerAutomation) {
+                IconButton(onClick = onToggleAutomation) {
+                    Icon(
+                        imageVector = Icons.Default.Bolt,
+                        contentDescription = if (shouldTriggerAutomation) "Aktion aktiv" else "Aktion ausfuehren",
+                        tint = if (shouldTriggerAutomation) {
+                            MaterialTheme.colorScheme.tertiary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)
+                        },
                     )
                 }
             }
         }
+
+        Text(
+            text = "Prompt",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.tertiary,
+        )
+
+        OutlinedTextField(
+            value = draft,
+            onValueChange = onDraftChanged,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = {
+                Text(selectedMode.placeholder)
+            },
+            minLines = 4,
+            maxLines = 8,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = { onSend() }),
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onAddFiles) {
+                Icon(
+                    imageVector = Icons.Default.AttachFile,
+                    contentDescription = "Dateien hinzufuegen",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Text(
+                text = if (attachments.isEmpty()) "Keine Dateien" else "${attachments.size} Datei(en)",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+            )
+        }
+
+        if (attachments.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                attachments.forEach { attachment ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f))
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = attachment.kind.icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            text = attachment.name,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        IconButton(
+                            onClick = { onRemoveAttachment(attachment) },
+                            modifier = Modifier.size(28.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Datei entfernen",
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                }
+                TextButton(onClick = onClearAttachments) {
+                    Text("Alle entfernen")
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(
+                onClick = onReset,
+                enabled = !agentPhase.shouldBlockComposerChrome,
+            ) {
+                Text("Reset")
+            }
+            FilledIconButton(
+                onClick = onSend,
+                enabled = draft.isNotBlank() && !agentPhase.shouldBlockSend,
+                modifier = Modifier.size(44.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Senden",
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun AgentModeMenu(
+    selectedMode: AgentExecutionMode,
+    enabled: Boolean,
+    onModeChanged: (AgentExecutionMode) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        OutlinedButton(
+            onClick = { expanded = true },
+            enabled = enabled,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
+        ) {
+            Text(selectedMode.title)
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            AgentExecutionMode.entries.forEach { mode ->
+                DropdownMenuItem(
+                    text = { Text(mode.title) },
+                    onClick = {
+                        onModeChanged(mode)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgentLevelMenu(
+    selectedLevel: AiExperienceLevel,
+    enabled: Boolean,
+    onLevelChanged: (AiExperienceLevel) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        OutlinedButton(
+            onClick = { expanded = true },
+            enabled = enabled,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
+        ) {
+            Text(selectedLevel.title)
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            AiExperienceLevel.entries.forEach { level ->
+                DropdownMenuItem(
+                    text = { Text(level.title) },
+                    onClick = {
+                        onLevelChanged(level)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+private enum class AgentInputAttachmentKind(
+    val label: String,
+    val icon: ImageVector,
+) {
+    Text("Text", Icons.Default.Bolt),
+    Video("Video", Icons.Default.Movie),
+    Audio("Audio", Icons.Default.MusicNote),
+    Image("Bild", Icons.Default.Photo),
+    Document("Dokument", Icons.Default.Refresh),
+    File("Datei", Icons.Default.Refresh),
+}
+
+private data class AgentInputAttachment(
+    val id: String,
+    val name: String,
+    val kind: AgentInputAttachmentKind,
+)
+
+private fun resolveAgentInputAttachment(
+    context: Context,
+    uri: Uri,
+): AgentInputAttachment {
+    val displayName = context.contentResolver.query(
+        uri,
+        arrayOf(OpenableColumns.DISPLAY_NAME),
+        null,
+        null,
+        null,
+    )?.use { cursor ->
+        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
+    }?.takeIf { it.isNotBlank() } ?: uri.lastPathSegment.orEmpty().ifBlank { "Datei" }
+    val mimeType = context.contentResolver.getType(uri).orEmpty()
+    val extension = displayName.substringAfterLast('.', missingDelimiterValue = "").lowercase()
+    val kind = when {
+        mimeType.startsWith("video/") || extension in setOf("mp4", "mov", "m4v", "avi", "mkv", "webm") -> AgentInputAttachmentKind.Video
+        mimeType.startsWith("audio/") || extension in setOf("mp3", "wav", "m4a", "aac", "flac", "aiff") -> AgentInputAttachmentKind.Audio
+        mimeType.startsWith("image/") || extension in setOf("png", "jpg", "jpeg", "webp", "heic", "gif") -> AgentInputAttachmentKind.Image
+        mimeType.startsWith("text/") || extension in setOf("txt", "md", "rtf", "json", "csv", "xml", "html") -> AgentInputAttachmentKind.Text
+        extension in setOf("pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx") -> AgentInputAttachmentKind.Document
+        else -> AgentInputAttachmentKind.File
+    }
+    return AgentInputAttachment(
+        id = uri.toString(),
+        name = displayName,
+        kind = kind,
+    )
 }
 
 @Composable
@@ -1141,240 +1172,6 @@ private fun AgentWorkflowResultCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AgentComposerBar(
-    draft: String,
-    selectedMode: AgentExecutionMode,
-    selectedLevel: AiExperienceLevel,
-    canTriggerAutomation: Boolean,
-    shouldTriggerAutomation: Boolean,
-    agentPhase: AgentInteractionPhase,
-    compactLayout: Boolean,
-    contentMaxWidth: Dp,
-    embeddedInTools: Boolean,
-    showDockClearance: Boolean,
-    applyBottomSystemInset: Boolean,
-    onDraftChanged: (String) -> Unit,
-    onModeChanged: (AgentExecutionMode) -> Unit,
-    onLevelChanged: (AiExperienceLevel) -> Unit,
-    onToggleAutomation: () -> Unit,
-    onSend: () -> Unit,
-    onReset: () -> Unit,
-    onDismissKeyboard: () -> Unit,
-) {
-    val outerVerticalPadding = when {
-        embeddedInTools -> 0.dp
-        compactLayout -> 6.dp
-        else -> 8.dp
-    }
-    val dockClearancePadding = when {
-        showDockClearance && compactLayout -> 72.dp
-        showDockClearance -> 76.dp
-        else -> 0.dp
-    }
-    val cardVerticalPadding = when {
-        embeddedInTools -> 4.dp
-        compactLayout -> 8.dp
-        else -> 10.dp
-    }
-    val sectionSpacing = if (embeddedInTools) 6.dp else if (compactLayout) 8.dp else 10.dp
-    val fieldMaxLines = if (embeddedInTools || compactLayout) 3 else 4
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f))
-            .windowInsetsPadding(
-                (if (applyBottomSystemInset) {
-                    WindowInsets.navigationBars.union(WindowInsets.ime)
-                } else {
-                    WindowInsets.ime
-                })
-                    .only(WindowInsetsSides.Bottom),
-            )
-            .padding(
-                start = if (compactLayout) 8.dp else 10.dp,
-                top = outerVerticalPadding,
-                end = if (compactLayout) 8.dp else 10.dp,
-                bottom = outerVerticalPadding + dockClearancePadding,
-            ),
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            SkydownCard(
-                modifier = Modifier
-                    .widthIn(max = contentMaxWidth)
-                    .fillMaxWidth(),
-                contentPadding = PaddingValues(
-                    horizontal = if (compactLayout) 10.dp else 12.dp,
-                    vertical = cardVerticalPadding,
-                ),
-            ) {
-            agentPhase.composerStatusLabel?.let { label ->
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp),
-                )
-            }
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(end = 4.dp),
-            ) {
-                items(AgentExecutionMode.entries, key = { it.rawValue }) { mode ->
-                    val isSelected = mode == selectedMode
-                    if (isSelected) {
-                        Button(
-                            onClick = { onModeChanged(mode) },
-                            shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Text(mode.title)
-                        }
-                    } else {
-                        OutlinedButton(
-                            onClick = { onModeChanged(mode) },
-                            shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Text(mode.title)
-                        }
-                    }
-                }
-            }
-
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = sectionSpacing),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(end = 4.dp),
-            ) {
-                items(AiExperienceLevel.entries, key = { it.rawValue }) { level ->
-                    val isSelected = level == selectedLevel
-                    BrandStatusChip(
-                        text = level.title,
-                        accent = if (isSelected) {
-                            MaterialTheme.colorScheme.tertiary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
-                        },
-                        isActive = isSelected,
-                        onClick = {
-                            if (!agentPhase.shouldBlockComposerChrome) {
-                                onLevelChanged(level)
-                            }
-                        },
-                    )
-                }
-            }
-
-            Text(
-                text = stringResource(agentAiLevelSubtitleResId(selectedLevel)),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-
-            if (canTriggerAutomation) {
-                if (shouldTriggerAutomation) {
-                    Button(
-                        onClick = onToggleAutomation,
-                        modifier = Modifier.padding(top = sectionSpacing),
-                        shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    ) {
-                        Text("Aktion aktiv")
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = onToggleAutomation,
-                        modifier = Modifier.padding(top = sectionSpacing),
-                        shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    ) {
-                        Text("Aktion ausfuehren")
-                    }
-                }
-            }
-
-            OutlinedTextField(
-                value = draft,
-                onValueChange = onDraftChanged,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = sectionSpacing),
-                placeholder = {
-                    Text(selectedMode.placeholder)
-                },
-                minLines = 1,
-                maxLines = fieldMaxLines,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(
-                    onSend = {
-                        onSend()
-                        onDismissKeyboard()
-                    },
-                ),
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = sectionSpacing),
-                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(
-                    onClick = onDismissKeyboard,
-                    modifier = Modifier.size(if (embeddedInTools) 32.dp else 36.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Tastatur ausblenden",
-                    )
-                }
-
-                IconButton(
-                    onClick = onReset,
-                    enabled = !agentPhase.shouldBlockComposerChrome,
-                    modifier = Modifier.size(if (embeddedInTools) 32.dp else 36.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Agent zuruecksetzen",
-                    )
-                }
-
-                FilledIconButton(
-                    onClick = {
-                        onSend()
-                        onDismissKeyboard()
-                    },
-                    enabled = draft.isNotBlank() && !agentPhase.shouldBlockSend,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Senden",
-                    )
-                }
-            }
-            }
         }
     }
 }

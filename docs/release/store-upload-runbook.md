@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-04-26 (release distribution)
+Last updated: 2026-04-26 (release distribution, AI smoke fix)
 Owner: Release Engineering
 
 ## Build Identity
@@ -9,38 +9,40 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10005`
+- Build: `10006`
 - Team ID: `F3BNLG6L7P`
 
 ### Android
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10011`
+- versionCode: `10013`
 - Play Billing Library: `8.3.0`
 
 ## Build Artifacts
 
-- iOS archive: `build/ios/SkyOS-1.0.0-10005-20260426.xcarchive` (rebuilt 2026-04-26 Europe/Berlin)
-- iOS upload export options used: `build/ios/ExportOptions-AppStore-Upload-10005.plist`
-- iOS upload: direct App Store Connect upload from archive; uploaded package is processing.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-26 Europe/Berlin, versionCode `10011`)
+- iOS archive: `build/ios/SkyOS-1.0.0-10006-20260426.xcarchive` (rebuilt 2026-04-26 Europe/Berlin)
+- iOS IPA export: `build/ios/export-app-store/SkyOS.ipa` (App Store Connect export succeeded)
+- iOS upload: direct App Store Connect upload from archive; build `10006` uploaded and is processing.
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-26 Europe/Berlin, versionCode `10013`)
 - Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (`18997697` bytes, rebuilt 2026-04-25 13:12:14 Europe/Berlin)
 
 ## Upload Status
 
 ### iOS Upload Status
-- Archive build: DONE
-- App Store Connect archive export/upload: DONE
+- Archive build: DONE for build `10006`
+- App Store Connect IPA export/upload: DONE
 - Processing status: uploaded package is processing in App Store Connect
 - Notes:
+  - Build `10006` uploaded successfully on 2026-04-26 via `xcodebuild -exportArchive` with `destination=upload`.
   - Build `10005` uploaded successfully on 2026-04-26 via `xcodebuild -exportArchive` with `destination=upload`.
   - Xcode reported missing dSYMs for Firebase binary frameworks during symbol upload; app package upload still succeeded.
+  - Previous build `10005` was superseded by build `10006` after the AI callable entitlement fix and smoke test.
   - Previous build `10004` was superseded by build `10005` for the public Video Hub player cleanup.
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: DONE for versionCode `10011`
+- Release AAB build: DONE for versionCode `10013`
 - Play upload automation: CONFIGURED via Fastlane `upload_android_internal`
 - CLI upload attempt: BLOCKED
 - Blocker details:
@@ -49,10 +51,12 @@ Owner: Release Engineering
 
 ## Execution Log (Direct Upload Run)
 
-1. Rebuilt Android release bundle (`./gradlew :androidApp:bundleRelease`) -> `BUILD SUCCESSFUL` for versionCode `10011`.
-2. Rebuilt iOS archive (`xcodebuild archive`) -> `ARCHIVE SUCCEEDED` for build `10005`.
-3. Uploaded iOS build `10005` to App Store Connect (`xcodebuild -exportArchive` with `destination=upload`) -> `EXPORT SUCCEEDED`; uploaded package is processing.
-4. Play upload via CLI was not rerun because `SUPPLY_JSON_KEY` is still unset; upload the AAB manually or rerun Fastlane after exporting the service-account JSON path.
+1. Deployed AI callable fix to Firebase Functions (`authorizeAiUsage`, `generateAiText`, `generateAiVisual`, `skydownAgent`) -> deploy complete.
+2. Rebuilt Android release bundle (`./gradlew :androidApp:bundleRelease`) -> `BUILD SUCCESSFUL` for versionCode `10013`.
+3. Rebuilt iOS archive (`xcodebuild archive`) -> `ARCHIVE SUCCEEDED` for build `10006`.
+4. Exported iOS IPA (`xcodebuild -exportArchive` with `destination=export`) -> `EXPORT SUCCEEDED`.
+5. Uploaded iOS build `10006` to App Store Connect (`xcodebuild -exportArchive` with `destination=upload`) -> `EXPORT SUCCEEDED`; uploaded package is processing.
+6. Play upload via CLI was not rerun because `SUPPLY_JSON_KEY` is still unset and no service-account JSON was found locally; upload the AAB manually or rerun Fastlane after exporting the service-account JSON path.
 
 ## Post-Upload Hardening Notes
 
@@ -67,6 +71,9 @@ Owner: Release Engineering
 - App Check defaults are set to enforce in code; verify production runtime config does not override them back to monitor/soft-fail.
 - Public Video Hub now opens a focused player/reel instead of showing a scrollable public video list; owner-only video ordering, Home feature control, and deletion remain in the admin/premium control sheet.
 - Android Music Hub uses a real lazy scroll surface so new sections can grow without blocking the page.
+- AI Bot/Agent surfaces use the FAB-driven prompt sheet; the persistent inline input is removed from the AI chat screen.
+- Android Google Sign-In was smoke-tested on the Pixel 9 emulator after adding the local debug OAuth SHA1 client to `google-services.json`.
+- App Check callable flow was smoke-tested after registering the current Android Studio emulator debug token; `generateAiText` returned a real response and Cloud Logging showed `AI usage authorized`.
 
 ## Backend Deployment Log
 
@@ -87,6 +94,10 @@ Owner: Release Engineering
   - `studioPriceList` is now bounded to 12 list entries in Rules; app-side readers still only materialize valid `{title, detail, price}` entries.
 - Owner Auth fallback check:
   - Firebase Auth export check on 2026-04-25 found the fixed owner account and confirmed `emailVerified=true`.
+- AI callable hotfix:
+  - Deployed on 2026-04-26 to `authorizeAiUsage`, `generateAiText`, `generateAiVisual`, and `skydownAgent`.
+  - Fixed invalid Firestore event payloads when canonical AI entitlement fields such as provider/productId are absent.
+  - Post-deploy Android emulator smoke test returned a real SkyOS AI response instead of `INTERNAL`.
 
 ## Metadata and URLs to Fill In Console
 
@@ -127,7 +138,7 @@ Suggested review note text:
 
 1. Confirm final legal approval for public privacy/terms wording.
 2. Confirm final production domain and replace URL placeholders in App Store Connect and Play Console.
-3. Verify subscription product setup status for iOS build `10005` and Android versionCode `10011`.
+3. Verify subscription product setup status for iOS build `10006` and Android versionCode `10013`.
 4. Update production Firestore `appConfig/legalContent` and `appConfig/commerceSettings` if old remote operator/legal values still exist.
 5. Firestore/Storage rules were deployed on 2026-04-25; fixed owner Firebase Auth account was verified with `emailVerified=true`.
 6. Verify data safety/privacy forms reflect actual SDK usage:
@@ -139,7 +150,7 @@ Suggested review note text:
    - Not used by current binaries: precise/coarse location, camera capture, microphone, contacts, calendar. Photo/video selection uses system pickers; Android `WRITE_EXTERNAL_STORAGE` is capped to API 28 only for saving generated images.
 7. Upload and map final screenshot sets for iPhone and Android phone form factors.
 8. Set age rating/content rating questionnaires in both consoles.
-9. Build numbers are current for the 2026-04-26 upload set: iOS `10005`, Android `10011`.
+9. Build numbers are current for the 2026-04-26 upload set: iOS `10006`, Android `10013`.
 
 ## Go/No-Go Checklist
 
@@ -159,7 +170,7 @@ Suggested review note text:
 2. Go to **My Apps** -> select/create app for bundle `com.skydown.ios`.
 3. Open **TestFlight** tab.
 4. Under **Builds**, click **+** (or wait for uploaded build).
-5. Wait for uploaded build `10005` to finish processing, then attach it to Internal Testers.
+5. Wait for uploaded build `10006` to finish processing, then attach it to Internal Testers.
 6. When build appears, assign to Internal Testers first.
 7. Fill **App Information** and **App Privacy** sections.
 8. Fill **Pricing and Availability** (manual business decision required).
@@ -171,7 +182,7 @@ Suggested review note text:
 1. Open [Google Play Console](https://play.google.com/console/).
 2. Select app with package `com.nash.skyos` (or create it if missing).
 3. Go to **Testing** -> **Internal testing** (or **Closed testing**).
-4. Create/Edit release and upload `androidApp/build/outputs/bundle/release/androidApp-release.aab` (versionCode `10011`).
+4. Create/Edit release and upload `androidApp/build/outputs/bundle/release/androidApp-release.aab` (versionCode `10013`).
 5. Add release notes and save.
 6. Go to **Store presence** and complete store listing fields.
 7. Go to **App content** and complete:

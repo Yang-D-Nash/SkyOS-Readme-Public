@@ -1010,6 +1010,7 @@ async function saveCanonicalAiEntitlement(uid, state, {
     originEventId: originEventId || dedupeId,
     version: 1,
   });
+  const nextState = resolveCanonicalAiEntitlement(payload);
   const normalizedMetadata = metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {};
   let wasDuplicate = false;
   await admin.firestore().runTransaction(async (transaction) => {
@@ -1022,11 +1023,11 @@ async function saveCanonicalAiEntitlement(uid, state, {
     transaction.set(eventRef, {
       eventType: normalizedEventType,
       source: normalizedEventSource,
-      provider: payload.provider || null,
+      provider: nextState.provider || null,
       externalEventId: nonEmptyString(externalEventId) || null,
-      productId: payload.productId || null,
+      productId: nextState.productId || null,
       previousState: previousState || null,
-      nextState: resolveCanonicalAiEntitlement(payload),
+      nextState,
       rawRef: nonEmptyString(rawRef) || null,
       metadata: normalizedMetadata,
       idempotencyKey: dedupeId,

@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "1069068117600-7vdb8pf2d46ihjpju633dutnmrp9cj5v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nash.skyos",
+            "certificate_hash": "f164b2ae4edf589a31cec1455161ce2c667918b2"
+          }
+        },
+        {
           "client_id": "1069068117600-ns5mdglpghvodjau6mrrgiu0ha9v4p1d.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
