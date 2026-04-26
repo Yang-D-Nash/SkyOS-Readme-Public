@@ -79,6 +79,7 @@ struct VideoHubView: View {
                         uploadCard
                             .transition(.move(edge: .top).combined(with: .opacity))
                     }
+                    playerCard
                     VideoEquipmentCard(
                         colorScheme: colorScheme,
                         items: viewModel.publicConfig.equipmentItems,
@@ -686,7 +687,7 @@ struct VideoHubView: View {
                     Button {
                         openVideoPlayer()
                     } label: {
-                        Label("Player oeffnen", systemImage: "rectangle.portrait.and.arrow.right")
+                        Label("Vollbild oeffnen", systemImage: "rectangle.portrait.and.arrow.right")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
