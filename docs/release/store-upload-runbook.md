@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-04-25 (post-upload hardening)
+Last updated: 2026-04-26 (release distribution)
 Owner: Release Engineering
 
 ## Build Identity
@@ -9,22 +9,22 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10002`
+- Build: `10003`
 - Team ID: `F3BNLG6L7P`
 
 ### Android
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10007`
+- versionCode: `10008`
 - Play Billing Library: `8.3.0`
 
 ## Build Artifacts
 
-- iOS archive: `build/ios/SkyOS-10002.xcarchive` (`109M`, rebuilt 2026-04-25 13:15 Europe/Berlin)
+- iOS archive: `build/ios/SkyOS-1.0.0-10003-20260426.xcarchive` (rebuilt 2026-04-26 Europe/Berlin)
 - iOS export options used: `build/ios/ExportOptions-AppStore.plist`
-- iOS IPA: `build/ios/export-10002/SkyOS.ipa` (`26040256` bytes, exported 2026-04-25 13:15:50 Europe/Berlin)
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (`26110935` bytes, rebuilt 2026-04-25 13:12:16 Europe/Berlin)
+- iOS IPA: `build/ios/export-1.0.0-10003-20260426/SkyOS.ipa` (exported 2026-04-26 Europe/Berlin)
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-26 Europe/Berlin)
 - Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (`18997697` bytes, rebuilt 2026-04-25 13:12:14 Europe/Berlin)
 
 ## Upload Status
@@ -125,7 +125,7 @@ Suggested review note text:
 
 1. Confirm final legal approval for public privacy/terms wording.
 2. Confirm final production domain and replace URL placeholders in App Store Connect and Play Console.
-3. Verify subscription product setup status for iOS build `10002` and Android versionCode `10007`.
+3. Verify subscription product setup status for iOS build `10003` and Android versionCode `10008`.
 4. Update production Firestore `appConfig/legalContent` and `appConfig/commerceSettings` if old remote operator/legal values still exist.
 5. Firestore/Storage rules were deployed on 2026-04-25; fixed owner Firebase Auth account was verified with `emailVerified=true`.
 6. Verify data safety/privacy forms reflect actual SDK usage:
@@ -157,7 +157,7 @@ Suggested review note text:
 2. Go to **My Apps** -> select/create app for bundle `com.skydown.ios`.
 3. Open **TestFlight** tab.
 4. Under **Builds**, click **+** (or wait for uploaded build).
-5. Upload `build/ios/export-10002/SkyOS.ipa` using Xcode Organizer or Transporter app after login/2FA.
+5. Upload `build/ios/export-1.0.0-10003-20260426/SkyOS.ipa` using Xcode Organizer or Transporter app after login/2FA.
 6. When build appears, assign to Internal Testers first.
 7. Fill **App Information** and **App Privacy** sections.
 8. Fill **Pricing and Availability** (manual business decision required).
