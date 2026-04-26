@@ -350,16 +350,24 @@ private struct HomeFullscreenVideoViewer: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .zIndex(14)
                 }
-            }
-            .ignoresSafeArea()
-            .overlay(alignment: .topTrailing) {
-                SkydownVideoFullscreenCloseButton {
-                    dismiss()
+
+                VStack {
+                    HStack {
+                        Spacer()
+
+                        SkydownVideoFullscreenCloseButton {
+                            dismiss()
+                        }
+                    }
+                    .padding(.top, max(proxy.safeAreaInsets.top + 12, 22))
+                    .padding(.trailing, 18)
+
+                    Spacer()
                 }
-                .padding(.top, max(proxy.safeAreaInsets.top + 12, 22))
-                .padding(.trailing, 18)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                 .zIndex(1_100)
             }
+            .ignoresSafeArea()
         }
         .onDisappear {
             player.pause()

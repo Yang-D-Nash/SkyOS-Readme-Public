@@ -1619,6 +1619,25 @@ private struct VideoReelViewer: View {
                             .padding(.horizontal, 20)
                             .padding(.bottom, 30)
                             .padding(.trailing, 54)
+
+                            if index == currentIndex && video.isPlayable && !video.usesEmbeddedPreview {
+                                VStack {
+                                    Spacer()
+
+                                    HStack {
+                                        Spacer()
+
+                                        SkydownVideoFullscreenPlaybackButton(isPlaying: isPlaying) {
+                                            togglePlayback()
+                                        }
+                                    }
+                                    .padding(.trailing, 20)
+                                    .padding(.bottom, 30)
+                                    .frame(maxWidth: .infinity)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                                .zIndex(6)
+                            }
                         }
                         .rotationEffect(.degrees(90))
                         .frame(width: proxy.size.width, height: proxy.size.height)
@@ -1660,11 +1679,17 @@ private struct VideoReelViewer: View {
                         }
                     }
 
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, max(proxy.safeAreaInsets.top, 12))
-                .zIndex(10)
+                        Spacer()
+
+                        SkydownVideoFullscreenCloseButton {
+                            dismiss()
+                        }
+                        .zIndex(1_100)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, max(proxy.safeAreaInsets.top + 12, 22))
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .zIndex(1_100)
 
                 if isTransitioning {
                     VStack(spacing: 10) {
@@ -1681,29 +1706,7 @@ private struct VideoReelViewer: View {
                     .transition(.opacity)
                     .zIndex(12)
                 }
-
-                if currentVideoSupportsAppControls {
-                    HStack {
-                        Spacer()
-
-                        SkydownVideoFullscreenPlaybackButton(isPlaying: isPlaying) {
-                            togglePlayback()
-                        }
-                    }
-                    .padding(.trailing, 18)
-                    .padding(.bottom, max(proxy.safeAreaInsets.bottom + 18, 30))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .zIndex(14)
-                }
-                }
-                .overlay(alignment: .topTrailing) {
-                    SkydownVideoFullscreenCloseButton {
-                        dismiss()
-                    }
-                    .padding(.top, max(proxy.safeAreaInsets.top + 12, 22))
-                    .padding(.trailing, 18)
-                    .zIndex(1_100)
-                }
+            }
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 0.16)) {
