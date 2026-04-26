@@ -165,6 +165,11 @@ fun BrandHeroCard(
         null
     }
     val surfaceHeaderInteraction = remember { MutableInteractionSource() }
+    val backgroundImageModifier = if (topContentPadding > 0.dp) {
+        Modifier.padding(top = topContentPadding)
+    } else {
+        Modifier
+    }
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val stageModifier = Modifier.fillMaxWidth()
@@ -274,6 +279,7 @@ fun BrandHeroCard(
                     contentDescription = null,
                     modifier = Modifier
                         .matchParentSize()
+                        .then(backgroundImageModifier)
                         .clip(shape),
                     contentScale = ContentScale.Crop,
                 )
