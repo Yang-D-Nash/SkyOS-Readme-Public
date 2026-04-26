@@ -197,14 +197,14 @@ private struct LaunchLandingView: View {
             let quickActionStackSpacing: CGFloat = isTightPhoneHeight ? 6 : 10
             let compactCardSpacing = isShortHeightLayout ? 8.0 : 10.0
             let musicDetail = isShortHeightLayout
-                ? "Wenn du direkt in kreative Tiefe starten willst."
-                : "Wenn du direkt in kreative Tiefe starten willst."
+                ? AppLocalized.text("landing.music.detail", fallback: "Open music.")
+                : AppLocalized.text("landing.music.detail", fallback: "Open music.")
             let videoDetail = isShortHeightLayout
-                ? "Wenn du Story, Bewegung und Playback zuerst erleben willst."
-                : "Wenn du Story, Bewegung und Playback zuerst erleben willst."
+                ? AppLocalized.text("landing.video.detail", fallback: "Open videos.")
+                : AppLocalized.text("landing.video.detail", fallback: "Open videos.")
             let merchDetail = isShortHeightLayout
-                ? "Wenn du direkt in Produkte, Fits und den klaren Kaufweg willst."
-                : "Wenn du direkt in Produkte, Fits und den klaren Kaufweg willst."
+                ? AppLocalized.text("landing.merch.detail", fallback: "Open merch.")
+                : AppLocalized.text("landing.merch.detail", fallback: "Open merch.")
             let musicBackgroundURL = screenHeaderSettingsStore.settings.resolvedMusicHubImageURL
             let videoBackgroundURL = screenHeaderSettingsStore.settings.resolvedVideoHubImageURL
             let merchBackgroundURL = screenHeaderSettingsStore.settings.resolvedShopImageURL
@@ -270,8 +270,8 @@ private struct LaunchLandingView: View {
                             colorScheme: hubColorScheme,
                             eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "Willkommen",
                             title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? "SkyOS",
-                            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? "Ein ruhiger Einstieg in Music, Video und Merch.",
-                            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? "Alles greift ineinander — dein naechster Move folgt direkt hier, Home bündelt den Ueberblick.",
+                            subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? AppLocalized.text("landing.home.subtitle", fallback: "Open music, videos and merch."),
+                            detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? AppLocalized.text("landing.home.detail", fallback: "Choose where you want to start."),
                             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedHomeImageURL,
                             accent: AppColors.accent(for: hubColorScheme),
                             secondaryAccent: AppColors.accentMystic(for: hubColorScheme),
@@ -279,10 +279,10 @@ private struct LaunchLandingView: View {
                             onSurfaceTap: onOpenHome
                         ) {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Empfohlener Einstieg: Home")
+                                Text(AppLocalized.text("landing.home.recommended", fallback: "Start with Home"))
                                     .font(.footnote.weight(.semibold))
                                     .foregroundColor(AppColors.spotify(for: hubColorScheme).opacity(0.96))
-                                Text("Tippen zum Starten")
+                                Text(AppLocalized.text("landing.home.tap", fallback: "Tap to open"))
                                     .font(.caption.weight(.medium))
                                     .foregroundColor(.white.opacity(0.78))
                             }
@@ -293,7 +293,7 @@ private struct LaunchLandingView: View {
 
                         VStack(spacing: quickActionStackSpacing) {
                             LaunchLandingActionButton(
-                                title: "Home öffnen",
+                                title: AppLocalized.text("landing.home.open", fallback: "Open Home"),
                                 systemImage: "house.fill",
                                 style: .primary,
                                 action: onOpenHome
@@ -323,7 +323,7 @@ private struct LaunchLandingView: View {
                         Group {
                             VStack(alignment: .leading, spacing: compactCardSpacing) {
                                 if !isShortHeightLayout && !isTightPhoneHeight {
-                                    Text("Music ist der natuerliche Start; Video und Merch bleiben als ruhige Alternativen.")
+                                    Text(AppLocalized.text("landing.home.note", fallback: "Choose any section to start."))
                                         .font(.subheadline)
                                         .foregroundColor(.white.opacity(0.62))
                                         .fixedSize(horizontal: false, vertical: true)
@@ -335,14 +335,14 @@ private struct LaunchLandingView: View {
                                         LaunchLandingButton(
                                             eyebrow: "Music",
                                             title: "Music",
-                                            subtitle: "Artists · Beats · Studio",
+                                            subtitle: AppLocalized.text("landing.music.subtitle", fallback: "Songs and artists"),
                                             detail: musicDetail,
                                             accent: AppColors.spotify(for: hubColorScheme),
                                             systemImage: "music.note",
-                                            badges: ["Catalog", "Beats", "Studio"],
+                                            badges: [],
                                             emphasis: .primary,
-                                            pathLabel: "Empfohlener Einstieg",
-                                            ctaLabel: "In Music eintreten",
+                                            pathLabel: AppLocalized.text("landing.path.recommended", fallback: "Start"),
+                                            ctaLabel: AppLocalized.text("landing.music.open", fallback: "Open"),
                                             accessibilityID: "launch.open_music",
                                         backgroundImageURL: musicBackgroundURL,
                                             useTightHeights: isTightPhoneHeight,
@@ -355,14 +355,14 @@ private struct LaunchLandingView: View {
                                         LaunchLandingButton(
                                             eyebrow: "Video",
                                             title: "Videos",
-                                            subtitle: "Reels · Clips · YouTube",
+                                            subtitle: AppLocalized.text("landing.video.subtitle", fallback: "Clips and reels"),
                                             detail: videoDetail,
                                             accent: AppColors.accentMystic(for: hubColorScheme),
                                             systemImage: "play.rectangle.fill",
-                                            badges: ["Playback", "Reels", "YouTube"],
+                                            badges: [],
                                             emphasis: .secondary,
                                             pathLabel: "",
-                                            ctaLabel: "In Videos eintreten",
+                                            ctaLabel: AppLocalized.text("landing.video.open", fallback: "Open"),
                                             accessibilityID: "launch.open_video",
                                         backgroundImageURL: videoBackgroundURL,
                                             useTightHeights: isTightPhoneHeight,
@@ -374,14 +374,14 @@ private struct LaunchLandingView: View {
                                         LaunchLandingButton(
                                             eyebrow: "Store",
                                             title: "Merch",
-                                            subtitle: "Drops · Checkout",
+                                            subtitle: AppLocalized.text("landing.merch.subtitle", fallback: "Drops and checkout"),
                                             detail: merchDetail,
                                             accent: AppColors.accentHighlight(for: hubColorScheme),
                                             systemImage: "bag.fill",
-                                            badges: ["Drops", "Fits", "Checkout"],
+                                            badges: [],
                                             emphasis: .secondary,
                                             pathLabel: "",
-                                            ctaLabel: "In Merch eintreten",
+                                            ctaLabel: AppLocalized.text("landing.merch.open", fallback: "Open"),
                                             accessibilityID: "launch.open_shop",
                                         backgroundImageURL: merchBackgroundURL,
                                             useTightHeights: isTightPhoneHeight,
@@ -395,14 +395,14 @@ private struct LaunchLandingView: View {
                                         LaunchLandingButton(
                                             eyebrow: "Music",
                                             title: "Music",
-                                            subtitle: "Artists · Beats · Studio",
+                                            subtitle: AppLocalized.text("landing.music.subtitle", fallback: "Songs and artists"),
                                             detail: musicDetail,
                                             accent: AppColors.spotify(for: hubColorScheme),
                                             systemImage: "music.note",
-                                            badges: ["Catalog", "Beats", "Studio"],
+                                            badges: [],
                                             emphasis: .primary,
-                                            pathLabel: "Empfohlener Einstieg",
-                                            ctaLabel: "In Music eintreten",
+                                            pathLabel: AppLocalized.text("landing.path.recommended", fallback: "Start"),
+                                            ctaLabel: AppLocalized.text("landing.music.open", fallback: "Open"),
                                             accessibilityID: "launch.open_music",
                                         backgroundImageURL: musicBackgroundURL,
                                             useTightHeights: isTightPhoneHeight,
@@ -414,14 +414,14 @@ private struct LaunchLandingView: View {
                                             LaunchLandingButton(
                                                 eyebrow: "Video",
                                                 title: "Videos",
-                                                subtitle: "Reels · Clips · YouTube",
+                                                subtitle: AppLocalized.text("landing.video.subtitle", fallback: "Clips and reels"),
                                                 detail: videoDetail,
                                                 accent: AppColors.accentMystic(for: hubColorScheme),
                                                 systemImage: "play.rectangle.fill",
-                                                badges: ["Playback", "Reels", "YouTube"],
+                                                badges: [],
                                                 emphasis: .secondary,
                                                 pathLabel: "",
-                                                ctaLabel: "In Videos eintreten",
+                                                ctaLabel: AppLocalized.text("landing.video.open", fallback: "Open"),
                                                 accessibilityID: "launch.open_video",
                                                 backgroundImageURL: videoBackgroundURL,
                                                 useTightHeights: isTightPhoneHeight,
@@ -430,14 +430,14 @@ private struct LaunchLandingView: View {
                                             LaunchLandingButton(
                                                 eyebrow: "Store",
                                                 title: "Merch",
-                                                subtitle: "Drops · Checkout",
+                                                subtitle: AppLocalized.text("landing.merch.subtitle", fallback: "Drops and checkout"),
                                                 detail: merchDetail,
                                                 accent: AppColors.accentHighlight(for: hubColorScheme),
                                                 systemImage: "bag.fill",
-                                                badges: ["Drops", "Fits", "Checkout"],
+                                                badges: [],
                                                 emphasis: .secondary,
                                                 pathLabel: "",
-                                                ctaLabel: "In Merch eintreten",
+                                                ctaLabel: AppLocalized.text("landing.merch.open", fallback: "Open"),
                                                 accessibilityID: "launch.open_shop",
                                                 backgroundImageURL: merchBackgroundURL,
                                                 useTightHeights: isTightPhoneHeight,
@@ -450,14 +450,14 @@ private struct LaunchLandingView: View {
                                         LaunchLandingButton(
                                             eyebrow: "Music",
                                             title: "Music",
-                                            subtitle: "Artists · Beats · Studio",
+                                            subtitle: AppLocalized.text("landing.music.subtitle", fallback: "Songs and artists"),
                                             detail: musicDetail,
                                             accent: AppColors.spotify(for: hubColorScheme),
                                             systemImage: "music.note",
-                                            badges: ["Catalog", "Beats", "Studio"],
+                                            badges: [],
                                             emphasis: .primary,
-                                            pathLabel: "Empfohlener Einstieg",
-                                            ctaLabel: "In Music eintreten",
+                                            pathLabel: AppLocalized.text("landing.path.recommended", fallback: "Start"),
+                                            ctaLabel: AppLocalized.text("landing.music.open", fallback: "Open"),
                                             accessibilityID: "launch.open_music",
                                             backgroundImageURL: musicBackgroundURL,
                                             useTightHeights: isTightPhoneHeight,
@@ -469,14 +469,14 @@ private struct LaunchLandingView: View {
                                             LaunchLandingButton(
                                                 eyebrow: "Video",
                                                 title: "Videos",
-                                                subtitle: "Reels · Clips · YouTube",
+                                                subtitle: AppLocalized.text("landing.video.subtitle", fallback: "Clips and reels"),
                                                 detail: videoDetail,
                                                 accent: AppColors.accentMystic(for: hubColorScheme),
                                                 systemImage: "play.rectangle.fill",
-                                                badges: ["Playback", "Reels", "YouTube"],
+                                                badges: [],
                                                 emphasis: .secondary,
                                                 pathLabel: "",
-                                                ctaLabel: "In Videos eintreten",
+                                                ctaLabel: AppLocalized.text("landing.video.open", fallback: "Open"),
                                                 accessibilityID: "launch.open_video",
                                                 backgroundImageURL: videoBackgroundURL,
                                                 useTightHeights: isTightPhoneHeight,
@@ -485,14 +485,14 @@ private struct LaunchLandingView: View {
                                             LaunchLandingButton(
                                                 eyebrow: "Store",
                                                 title: "Merch",
-                                                subtitle: "Drops · Checkout",
+                                                subtitle: AppLocalized.text("landing.merch.subtitle", fallback: "Drops and checkout"),
                                                 detail: merchDetail,
                                                 accent: AppColors.accentHighlight(for: hubColorScheme),
                                                 systemImage: "bag.fill",
-                                                badges: ["Drops", "Fits", "Checkout"],
+                                                badges: [],
                                                 emphasis: .secondary,
                                                 pathLabel: "",
-                                                ctaLabel: "In Merch eintreten",
+                                                ctaLabel: AppLocalized.text("landing.merch.open", fallback: "Open"),
                                                 accessibilityID: "launch.open_shop",
                                                 backgroundImageURL: merchBackgroundURL,
                                                 useTightHeights: isTightPhoneHeight,
@@ -826,18 +826,18 @@ private struct LaunchLandingButton: View {
                     }
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(emphasis == .primary ? 0.07 : (emphasis == .secondary ? 0.015 : 0.05)),
+                            Color.white.opacity(emphasis == .primary ? 0.10 : (emphasis == .secondary ? 0.04 : 0.08)),
                             Color.black.opacity(
                                 emphasis == .secondary
-                                    ? (hasBackgroundImage ? 0.84 : 0.76)
-                                    : (hasBackgroundImage ? 0.88 : 0.80)
+                                    ? (hasBackgroundImage ? 0.58 : 0.76)
+                                    : (hasBackgroundImage ? 0.62 : 0.80)
                             ),
                             Color(red: 8/255, green: 14/255, blue: 24/255).opacity(
                                 emphasis == .secondary
-                                    ? (hasBackgroundImage ? 0.92 : 0.86)
-                                    : (hasBackgroundImage ? 0.96 : 0.92)
+                                    ? (hasBackgroundImage ? 0.70 : 0.86)
+                                    : (hasBackgroundImage ? 0.72 : 0.92)
                             ),
-                            accent.opacity(emphasis == .primary ? 0.24 : (emphasis == .secondary ? 0.035 : 0.16))
+                            accent.opacity(emphasis == .primary ? 0.16 : (emphasis == .secondary ? 0.03 : 0.12))
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -845,9 +845,9 @@ private struct LaunchLandingButton: View {
                     if hasBackgroundImage {
                         LinearGradient(
                             colors: [
-                                Color.black.opacity(readabilityFloorOpacity * 0.55),
-                                Color.black.opacity(readabilityFloorOpacity * 0.85),
-                                Color.black.opacity(readabilityFloorOpacity)
+                                Color.black.opacity(readabilityFloorOpacity * 0.28),
+                                Color.black.opacity(readabilityFloorOpacity * 0.52),
+                                Color.black.opacity(readabilityFloorOpacity * 0.68)
                             ],
                             startPoint: .top,
                             endPoint: .bottom

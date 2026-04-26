@@ -1,7 +1,11 @@
 package com.nash.skyos.ui.viewmodel
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.nash.skyos.R
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
@@ -20,13 +24,32 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.tasks.await
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(
+    application: Application
+) : AndroidViewModel(application) {
     private val musicService = AppContainer.musicService
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
     private var refreshGeneration: Long = 0
+
+    private fun resString(resId: Int) = getApplication<Application>().getString(resId)
+
+    private fun resString(resId: Int, vararg formatArgs: Any) =
+        getApplication<Application>().getString(resId, *formatArgs)
+
+    companion object {
+        fun provideFactory(app: Application): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
+                    return HomeViewModel(app) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class: $modelClass")
+            }
+        }
+    }
 
     private val featuredArtists = listOf(
         "JANNO",
@@ -52,7 +75,7 @@ class HomeViewModel : ViewModel() {
                         val updatedState = it.copy(
                             featuredTrack = latestTrack,
                             homeTrackMessage = if (latestTrack == null) {
-                                "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
+                                resString(R.string.home_track_placeholder)
                             } else {
                                 null
                             },
@@ -69,7 +92,7 @@ class HomeViewModel : ViewModel() {
                         val updatedState = it.copy(
                             featuredVideo = latestVideo,
                             homeVideoMessage = if (latestVideo == null) {
-                                "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
+                                resString(R.string.home_video_placeholder)
                             } else {
                                 null
                             },
@@ -198,11 +221,15 @@ class HomeViewModel : ViewModel() {
     private fun isCurrentRefresh(generation: Long): Boolean = generation == refreshGeneration
 
     private fun buildContentSignal(state: HomeUiState): String? {
-        return when {
-            state.featuredTrack != null -> "New drop active: ${state.featuredTrack.trackName}"
-            state.featuredVideo != null -> "Video activity: ${state.featuredVideo.title}"
-            else -> null
+        val track = state.featuredTrack
+        if (track != null) {
+            return resString(R.string.home_content_signal_new_drop, track.trackName)
         }
+        val video = state.featuredVideo
+        if (video != null) {
+            return resString(R.string.home_content_signal_video_activity, video.title)
+        }
+        return null
     }
 
     private suspend fun loadLatestTrack(): Track? {

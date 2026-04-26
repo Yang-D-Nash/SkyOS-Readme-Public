@@ -366,13 +366,19 @@ final class HomeViewModel: ObservableObject {
                     case .track(let track):
                         featuredTrack = track
                         homeTrackMessage = track == nil
-                            ? "Sobald ein neuer Release verfuegbar ist, taucht er hier direkt auf."
+                            ? AppLocalized.text(
+                                "home.track.placeholder",
+                                fallback: "As soon as a new release is available, it will appear right here."
+                            )
                             : nil
                         contentSignal = buildContentSignal()
                     case .video(let video):
                         featuredVideo = video
                         homeVideoMessage = video == nil
-                            ? "Sobald ein oeffentliches Video live ist, taucht hier dein Highlight auf."
+                            ? AppLocalized.text(
+                                "home.video.placeholder",
+                                fallback: "As soon as a public video is live, it will appear here under Current."
+                            )
                             : nil
                         contentSignal = buildContentSignal()
                     case .signals(let signals):
@@ -470,10 +476,16 @@ final class HomeViewModel: ObservableObject {
 
     private func buildContentSignal() -> String? {
         if let track = featuredTrack {
-            return "New drop active: \(track.trackName)"
+            return String(
+                format: AppLocalized.text("home.content_signal.new_drop", fallback: "New drop active: %@"),
+                track.trackName
+            )
         }
         if let video = featuredVideo {
-            return "Video activity: \(video.title)"
+            return String(
+                format: AppLocalized.text("home.content_signal.video_activity", fallback: "Video activity: %@"),
+                video.title
+            )
         }
         return nil
     }

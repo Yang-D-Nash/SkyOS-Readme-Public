@@ -2125,12 +2125,6 @@ private fun VideoLibraryCard(
     SkydownCard {
         Column(Modifier.testTag("video.hub.library.header")) {
             Text(
-                text = "Aus deinen Clips",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = colorScheme.onSurface,
-            )
-            Text(
                 text = if (uiState.isAdmin) {
                     "${uiState.videos.size} Titel im Hub"
                 } else {
@@ -2138,7 +2132,6 @@ private fun VideoLibraryCard(
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = colorScheme.onSurface.copy(alpha = 0.64f),
-                modifier = Modifier.padding(top = 4.dp),
             )
         }
 

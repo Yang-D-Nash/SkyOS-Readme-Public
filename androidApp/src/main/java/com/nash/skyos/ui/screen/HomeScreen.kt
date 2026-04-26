@@ -1,5 +1,6 @@
 package com.nash.skyos.ui.screen
 
+import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,7 +36,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Movie
@@ -82,6 +81,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
@@ -89,9 +89,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.Calendar
+import com.nash.skyos.R
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.ExternalMediaProvider
 import com.nash.skyos.data.mediaAttributionContext
@@ -125,14 +128,11 @@ import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.model.FeaturedVideoHighlight
 import com.nash.skyos.ui.model.HomeUiState
 import com.nash.skyos.ui.theme.InstagramOrange
-import com.nash.skyos.ui.theme.InstagramPink
-import com.nash.skyos.ui.theme.InstagramPurple
 import com.nash.skyos.ui.theme.SpotifyGreen
 import com.nash.skyos.ui.theme.skydownAccent
 import com.nash.skyos.ui.theme.skydownAccentHighlight
 import com.nash.skyos.ui.theme.skydownAccentMystic
 import com.nash.skyos.ui.theme.skydownCardBackground
-import com.nash.skyos.ui.theme.skydownCinematicShadow
 import com.nash.skyos.ui.theme.skydownIsDarkPalette
 import com.nash.skyos.ui.theme.skydownSecondaryBackground
 import com.nash.skyos.ui.theme.skydownSpotify
@@ -148,8 +148,11 @@ fun HomeScreen(
     onOpenSettings: () -> Unit = {},
     onGuestSignIn: (() -> Unit)? = null,
     onOpenWorkflow: (() -> Unit)? = null,
-    viewModel: HomeViewModel = viewModel(),
 ) {
+    val app = LocalContext.current.applicationContext as Application
+    val viewModel: HomeViewModel = viewModel(
+        factory = remember(app) { HomeViewModel.provideFactory(app) },
+    )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     var activeDestination by rememberSaveable { mutableStateOf<String?>(null) }
@@ -248,9 +251,9 @@ fun HomeScreen(
         hasTrackSignal = uiState.featuredTrack != null,
         hasVideoSignal = uiState.featuredVideo != null,
     )
-    val homeGreetingTitle = homeGreetingTitle()
-    val homeGreetingSubtitle = homeGreetingSubtitle(activeSignalCount, homeSignalTotal)
-    val homeGreetingDetail = "$activeSignalCount / $homeSignalTotal live · Daily Ops bereit"
+    val homeGreetingTitle = stringResource(R.string.home_hero_title)
+    val homeGreetingSubtitle = stringResource(R.string.home_hero_live_count, activeSignalCount, homeSignalTotal)
+    val homeGreetingDetail = stringResource(R.string.home_hero_detail)
     val colorScheme = MaterialTheme.colorScheme
     val homeAccent = colorScheme.skydownAccent()
     val homeMysticAccent = colorScheme.skydownAccentMystic()
@@ -404,10 +407,14 @@ fun HomeScreen(
                                                         ),
                                                 ) {
                                                     BrandPill(
-                                                        text = if (heroPriorityTarget == "track") {
-                                                            if (uiState.featuredTrack == null) "Next: Musik laden" else "Next: Musik"
-                                                        } else {
-                                                            if (uiState.featuredTrack == null) "Musik laedt" else "Musik live"
+                                                        text = when {
+                                                            heroPriorityTarget == "track" && uiState.featuredTrack == null ->
+                                                                stringResource(R.string.home_hero_pill_track_next_load)
+                                                            heroPriorityTarget == "track" && uiState.featuredTrack != null ->
+                                                                stringResource(R.string.home_hero_pill_track_next)
+                                                            heroPriorityTarget != "track" && uiState.featuredTrack == null ->
+                                                                stringResource(R.string.home_hero_pill_track_loading)
+                                                            else -> stringResource(R.string.home_hero_pill_track_live)
                                                         },
                                                         tint = heroPillTint("track"),
                                                         onClick = {
@@ -425,10 +432,14 @@ fun HomeScreen(
                                                         ),
                                                 ) {
                                                     BrandPill(
-                                                        text = if (heroPriorityTarget == "video") {
-                                                            if (uiState.featuredVideo == null) "Next: Visual laden" else "Next: Visual"
-                                                        } else {
-                                                            if (uiState.featuredVideo == null) "Video laedt" else "Video live"
+                                                        text = when {
+                                                            heroPriorityTarget == "video" && uiState.featuredVideo == null ->
+                                                                stringResource(R.string.home_hero_pill_video_next_load)
+                                                            heroPriorityTarget == "video" && uiState.featuredVideo != null ->
+                                                                stringResource(R.string.home_hero_pill_video_next)
+                                                            heroPriorityTarget != "video" && uiState.featuredVideo == null ->
+                                                                stringResource(R.string.home_hero_pill_video_loading)
+                                                            else -> stringResource(R.string.home_hero_pill_video_live)
                                                         },
                                                         tint = heroPillTint("video"),
                                                         onClick = {
@@ -445,36 +456,10 @@ fun HomeScreen(
                             }
                         }
                         HomeAnimatedItem(order = 1) {
-                            HomeDailyOpsStrip(
-                                modifier = Modifier,
-                                activeSignalCount = activeSignalCount,
-                                totalSignalCount = homeSignalTotal,
-                                hasTrackSignal = uiState.featuredTrack != null,
-                                hasVideoSignal = uiState.featuredVideo != null,
-                                onRefresh = viewModel::refresh,
-                                onOpenRelease = {
-                                    coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
-                                },
-                                onOpenVideo = {
-                                    coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) }
-                                },
-                            )
-                        }
-                        HomeAnimatedItem(order = 2) {
-                            HomeCommandDockStrip(
-                                priorityTarget = heroPriorityTarget,
-                                onOpenWorkflow = onOpenWorkflow,
-                                onOpenCart = onOpenCart,
-                                onOpenSettings = onOpenSettings,
-                            )
-                        }
-                        HomeAnimatedItem(order = 3) {
                             HomeUtilityRow(
-                                onOpenAi = { onOpenWorkflow?.invoke() ?: onOpenSettings() },
                                 onOpenMusic = { coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) } },
-                                onOpenCreate = { activeDestination = homeDestinationNicmaProducer },
-                                onOpenOrders = onOpenCart,
-                                onOpenSearch = { coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) } },
+                                onOpenVideos = { coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) } },
+                                onOpenMerch = onOpenCart,
                                 onOpenSettings = onOpenSettings,
                             )
                         }
@@ -483,34 +468,20 @@ fun HomeScreen(
                 }
 
                 item {
-                    HomeAnimatedItem(order = 4) {
-                        HomeStoryCard(
-                            onOpenNicma = { activeDestination = homeDestinationNicmaProducer },
-                        )
-                    }
-                }
-
-                item {
-                    HomeAnimatedItem(order = 5) {
-                        HomeLiveSignalSurface(
-                            hasTrackSignal = uiState.featuredTrack != null,
-                            hasVideoSignal = uiState.featuredVideo != null,
-                            trackName = uiState.featuredTrack?.trackName,
-                            videoName = uiState.featuredVideo?.title,
-                            aiUsageWarning = uiState.aiUsageWarning,
-                            creatorLimitZone = uiState.creatorLimitZone,
-                            agentRunning = uiState.agentRunning,
-                            workflowWaiting = uiState.workflowWaiting,
-                            newOrderHint = uiState.commerceSignal,
-                            syncPaused = uiState.syncPaused,
-                            recoverableError = uiState.recoverableError,
-                            contentSignal = uiState.contentSignal,
-                        )
-                    }
-                }
-
-                item {
-                    HomeAnimatedItem(order = 6) {
+                    HomeAnimatedItem(order = 2) {
+                        val homeMediaColorScheme = MaterialTheme.colorScheme
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 2.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.home_section_current),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = homeMediaColorScheme.onSurface.copy(alpha = 0.50f),
+                            )
                         HomeMediaCluster(
                             uiState = uiState,
                             isTrackPlaying = currentAudioKey == uiState.featuredTrack?.let(::homeTrackAudioKey),
@@ -578,13 +549,14 @@ fun HomeScreen(
                                 inAppOriginalVideoUrl = originalUrl
                             },
                         )
+                        }
                     }
                 }
 
                 item {
-                    HomeAnimatedItem(order = 8) {
+                    HomeAnimatedItem(order = 3) {
                         Text(
-                            text = "SkyOS Home fuehrt ruhig: Signal lesen, Fokus setzen, naechsten Schritt ausfuehren.",
+                            text = stringResource(R.string.home_hero_tagline),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
                             modifier = Modifier
@@ -609,83 +581,90 @@ fun HomeScreen(
 
 @Composable
 private fun HomeUtilityRow(
-    onOpenAi: () -> Unit,
     onOpenMusic: () -> Unit,
-    onOpenCreate: () -> Unit,
-    onOpenOrders: () -> Unit,
-    onOpenSearch: () -> Unit,
+    onOpenVideos: () -> Unit,
+    onOpenMerch: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val view = LocalView.current
     data class UtilityItem(
+        val id: String,
         val label: String,
         val icon: ImageVector,
-        val iconOnly: Boolean,
         val action: () -> Unit,
     )
     val items = listOf(
-        UtilityItem("AI", Icons.Default.AutoAwesome, false, onOpenAi),
-        UtilityItem("Music", Icons.Default.MusicNote, false, onOpenMusic),
-        UtilityItem("Create", Icons.Default.CheckCircle, false, onOpenCreate),
-        UtilityItem("Orders", Icons.Default.ShoppingBag, false, onOpenOrders),
-        UtilityItem("Search", Icons.Default.Search, true, onOpenSearch),
-        UtilityItem("Settings", Icons.Default.Settings, true, onOpenSettings),
+        UtilityItem("music", stringResource(R.string.home_utility_music), Icons.Default.MusicNote, onOpenMusic),
+        UtilityItem("videos", stringResource(R.string.home_utility_videos), Icons.Default.Movie, onOpenVideos),
+        UtilityItem("merch", stringResource(R.string.home_utility_merch), Icons.Default.ShoppingBag, onOpenMerch),
+        UtilityItem("settings", stringResource(R.string.home_utility_settings), Icons.Default.Settings, onOpenSettings),
     )
-    LazyRow(
+    val utilityTint: (String) -> Color = { id ->
+        when (id) {
+            "music" -> colorScheme.skydownAccent().copy(alpha = 0.94f)
+            "videos" -> colorScheme.skydownAccentHighlight().copy(alpha = 0.94f)
+            "merch" -> colorScheme.skydownAccentMystic().copy(alpha = 0.94f)
+            else -> colorScheme.onSurface.copy(alpha = 0.76f)
+        }
+    }
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(top = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(items) { item ->
-            val isPrimary = item.label == "AI"
-            if (isPrimary) {
-                Button(
+        Text(
+            text = stringResource(R.string.home_explore_title),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = colorScheme.onSurface.copy(alpha = 0.50f),
+        )
+        Text(
+            text = stringResource(R.string.home_explore_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = colorScheme.onSurface.copy(alpha = 0.72f),
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            items(items) { item ->
+                val tint = utilityTint(item.id)
+                Surface(
                     onClick = {
                         view.performSkydownHaptic(SkydownHapticKind.Selection)
                         item.action()
                     },
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colorScheme.tertiary.copy(alpha = 0.52f),
-                        contentColor = colorScheme.onTertiary.copy(alpha = 0.96f),
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = 0.dp,
-                        pressedElevation = 0.dp,
-                        focusedElevation = 0.dp,
-                        hoveredElevation = 0.dp,
-                    ),
+                    color = colorScheme.skydownSecondaryBackground().copy(alpha = 0.72f),
+                    border = BorderStroke(1.dp, tint.copy(alpha = 0.22f)),
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = item.icon, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Text(item.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                }
-            } else {
-                TextButton(
-                    onClick = {
-                        view.performSkydownHaptic(SkydownHapticKind.Selection)
-                        item.action()
-                    },
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = colorScheme.onSurface.copy(alpha = 0.48f),
-                    ),
-                ) {
-                    if (item.iconOnly) {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.label,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    } else {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = item.icon, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text(item.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(
+                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(tint.copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp),
+                                tint = tint,
+                            )
                         }
+                        Text(
+                            item.label,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = tint,
+                            style = MaterialTheme.typography.labelMedium,
+                        )
                     }
                 }
             }
@@ -710,20 +689,23 @@ private fun HomeLiveSignalSurface(
 ) {
     val missingCount = listOf(hasTrackSignal, hasVideoSignal).count { !it }
     val nowText = when {
-        hasTrackSignal && !trackName.isNullOrBlank() -> "Now: Music live - $trackName"
-        hasVideoSignal && !videoName.isNullOrBlank() -> "Now: Visual live - $videoName"
-        else -> "Now: Noch kein Kernsignal live."
+        hasTrackSignal && !trackName.isNullOrBlank() -> stringResource(R.string.home_live_now_music, trackName)
+        hasVideoSignal && !videoName.isNullOrBlank() -> stringResource(R.string.home_live_now_visual, videoName)
+        else -> stringResource(R.string.home_live_now_empty)
     }
     val nextText = when {
-        !hasTrackSignal -> "Next: Musik-Status finalisieren."
-        !hasVideoSignal -> "Next: Visual-Signal finalisieren."
-        else -> "Next: Fokus halten und direkt im Content arbeiten."
+        !hasTrackSignal -> stringResource(R.string.home_live_next_track)
+        !hasVideoSignal -> stringResource(R.string.home_live_next_video)
+        else -> stringResource(R.string.home_live_next_focus)
     }
     val riskText = if (missingCount > 0) {
-        "Risk: $missingCount Kernsignal(e) fehlen aktuell."
+        stringResource(R.string.home_live_risk, missingCount)
     } else {
         null
     }
+    val contentFederatedLine = contentSignal
+        ?.takeIf { it.isNotBlank() }
+        ?.let { stringResource(R.string.home_federated_content, it) }
     val federatedSignals = buildList {
         aiUsageWarning?.takeIf { it.isNotBlank() }?.let { add("AI: $it") }
         if (creatorLimitZone == true) add("AI: Creator limit zone reached.")
@@ -732,7 +714,7 @@ private fun HomeLiveSignalSurface(
         newOrderHint?.takeIf { it.isNotBlank() }?.let { add("Commerce: $it") }
         if (syncPaused == true) add("System: Sync currently paused.")
         recoverableError?.takeIf { it.isNotBlank() }?.let { add("System: $it") }
-        contentSignal?.takeIf { it.isNotBlank() }?.let { add("Content: $it") }
+        contentFederatedLine?.let { add(it) }
     }
     val colorScheme = MaterialTheme.colorScheme
     Column(
@@ -742,7 +724,7 @@ private fun HomeLiveSignalSurface(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = "Status / Signale",
+            text = stringResource(R.string.home_status_signals),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium,
             color = colorScheme.onSurface.copy(alpha = 0.50f),
@@ -819,12 +801,28 @@ private fun HomeDailyOpsStrip(
         else -> colorScheme.skydownAccentHighlight()
     }
     val priorityTitle = when (priorityTarget) {
-        "music" -> if (hasTrackSignal) "Jetzt wichtig: Musik" else "Jetzt wichtig: Musik herstellen"
-        else -> if (hasVideoSignal) "Jetzt wichtig: Visuals" else "Jetzt wichtig: Visuals herstellen"
+        "music" -> if (hasTrackSignal) {
+            stringResource(R.string.home_dailyops_priority_music_ready)
+        } else {
+            stringResource(R.string.home_dailyops_priority_music_build)
+        }
+        else -> if (hasVideoSignal) {
+            stringResource(R.string.home_dailyops_priority_visuals_ready)
+        } else {
+            stringResource(R.string.home_dailyops_priority_visuals_build)
+        }
     }
     val priorityHint = when (priorityTarget) {
-        "music" -> if (hasTrackSignal) "Morgens zuerst Musik-Status checken." else "Musik ist noch nicht live."
-        else -> if (hasVideoSignal) "Abends zuerst Visuals-Status pruefen." else "Visuals-Signal fehlt noch."
+        "music" -> if (hasTrackSignal) {
+            stringResource(R.string.home_dailyops_hint_music_morning)
+        } else {
+            stringResource(R.string.home_dailyops_hint_music_missing)
+        }
+        else -> if (hasVideoSignal) {
+            stringResource(R.string.home_dailyops_hint_visuals_evening)
+        } else {
+            stringResource(R.string.home_dailyops_hint_visuals_missing)
+        }
     }
 
     Column(
@@ -844,7 +842,7 @@ private fun HomeDailyOpsStrip(
                 modifier = Modifier.size(12.dp),
             )
             Text(
-                text = "Aktueller Fokus",
+                text = stringResource(R.string.home_dailyops_current_focus),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Normal,
                 color = colorScheme.onSurface.copy(alpha = 0.58f),
@@ -858,12 +856,12 @@ private fun HomeDailyOpsStrip(
             ) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
-                    contentDescription = "Aktualisieren",
+                    contentDescription = stringResource(R.string.home_dailyops_refresh_a11y),
                     tint = priorityAccent.copy(alpha = 0.5f),
                 )
             }
             Text(
-                text = "$activeSignalCount/$totalSignalCount live",
+                text = stringResource(R.string.home_dailyops_live_count, activeSignalCount, totalSignalCount),
                 style = MaterialTheme.typography.labelSmall,
                 color = priorityAccent.copy(alpha = 0.7f),
                 fontWeight = FontWeight.Medium,
@@ -871,7 +869,7 @@ private fun HomeDailyOpsStrip(
         }
 
         Text(
-            text = "Hier: ein Schritt, der zu deinen Kernsignalen passt.",
+            text = stringResource(R.string.home_dailyops_hint),
             style = MaterialTheme.typography.bodySmall,
             color = colorScheme.onSurface.copy(alpha = 0.55f),
         )
@@ -942,7 +940,7 @@ private fun HomeCommandDockStrip(
                 modifier = Modifier.size(11.dp),
             )
             Text(
-                text = "Kurzaktionen",
+                text = stringResource(R.string.home_shortcuts_title),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Medium,
                 color = colorScheme.onSurface.copy(alpha = 0.6f),
@@ -950,7 +948,7 @@ private fun HomeCommandDockStrip(
             Spacer(modifier = Modifier.weight(1f))
         }
         Text(
-            text = "Agent, Warenkorb, Einstellungen — ohne die Seite zu wechseln.",
+            text = stringResource(R.string.home_shortcuts_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = colorScheme.onSurface.copy(alpha = 0.52f),
         )
@@ -959,7 +957,7 @@ private fun HomeCommandDockStrip(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BrandActionButton(
-                text = "KI-Agent",
+                text = stringResource(R.string.home_command_ai_agent),
                 onClick = {
                     view.performSkydownHaptic(SkydownHapticKind.Selection)
                     onOpenWorkflow?.invoke()
@@ -970,7 +968,7 @@ private fun HomeCommandDockStrip(
                 enabled = onOpenWorkflow != null,
             )
             BrandActionButton(
-                text = "Warenkorb",
+                text = stringResource(R.string.home_command_cart),
                 onClick = {
                     view.performSkydownHaptic(SkydownHapticKind.Selection)
                     onOpenCart()
@@ -980,7 +978,7 @@ private fun HomeCommandDockStrip(
                 filled = false,
             )
             BrandActionButton(
-                text = "Settings",
+                text = stringResource(R.string.home_command_settings),
                 onClick = {
                     view.performSkydownHaptic(SkydownHapticKind.Selection)
                     onOpenSettings()
@@ -1456,269 +1454,6 @@ private fun HomeMediaActionButton(
     )
 }
 
-@Composable
-private fun HomeStoryCard(
-    onOpenNicma: () -> Unit,
-) {
-    val context = LocalContext.current
-    val colorScheme = MaterialTheme.colorScheme
-    SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
-        HomeSectionBanner(
-            title = "Community",
-            subtitle = "Direkte Wege zu Studio und Support.",
-            icon = Icons.Default.AutoAwesome,
-            accent = colorScheme.skydownAccent(),
-            tag = "LINKS",
-        )
-
-        Text(
-            text = "Music-spezifische Artist-Links sind jetzt im Music Hub gebuendelt.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-            modifier = Modifier.padding(top = 8.dp),
-        )
-
-        Column(
-            modifier = Modifier.padding(top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            HomeLaneSection(
-                title = "Music Hub",
-                subtitle = "Studio und Artist-Links.",
-                accent = colorScheme.skydownSpotify(),
-            ) {
-                HomeStoryLinkButton(
-                    title = "Studio",
-                    icon = Icons.Default.AutoAwesome,
-                    onClick = onOpenNicma,
-                )
-            }
-
-            HomeLaneSection(
-                title = "Support & Media",
-                subtitle = "Instagram plus Kontakt.",
-                accent = colorScheme.skydownAccentHighlight(),
-            ) {
-                HomeStoryLinkButton(
-                    title = "Instagram",
-                    icon = Icons.Default.Movie,
-                    brand = HomeStoryBrand.Instagram,
-                    subtitle = "@skydown_entertainment",
-                    onClick = {
-                        openExternalLink(context, "https://www.instagram.com/skydown_entertainment/")
-                    },
-                )
-
-                HomeStoryLinkButton(
-                    title = "E-Mail",
-                    icon = Icons.Default.Email,
-                    subtitle = "skydownent@gmail.com",
-                    onClick = {
-                        openEmailDraft(
-                            context = context,
-                            recipients = listOf("skydownent@gmail.com"),
-                            subject = "Video Anfrage",
-                            body = "",
-                        )
-                    },
-                )
-            }
-        }
-    }
-}
-
-private enum class HomeStoryBrand {
-    Neutral,
-    Core,
-    Instagram,
-}
-
-@Composable
-private fun HomeStoryLinkButton(
-    title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    brand: HomeStoryBrand = HomeStoryBrand.Neutral,
-    subtitle: String? = null,
-    onClick: () -> Unit,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val colorScheme = MaterialTheme.colorScheme
-    val brandGradient = when (brand) {
-        HomeStoryBrand.Neutral -> Brush.linearGradient(
-            colors = listOf(
-                colorScheme.skydownCardBackground().copy(alpha = 0.99f),
-                colorScheme.skydownSecondaryBackground().copy(alpha = 0.76f),
-                colorScheme.skydownAccent().copy(alpha = 0.04f),
-            ),
-        )
-        HomeStoryBrand.Core -> Brush.linearGradient(
-            colors = listOf(
-                colorScheme.skydownCinematicShadow().copy(alpha = 0.96f),
-                colorScheme.skydownAccentMystic().copy(alpha = 0.72f),
-                colorScheme.skydownAccentHighlight().copy(alpha = 0.54f),
-            ),
-        )
-        HomeStoryBrand.Instagram -> Brush.linearGradient(
-            colors = listOf(
-                colorScheme.skydownCardBackground().copy(alpha = 0.98f),
-                InstagramPurple.copy(alpha = 0.16f),
-                InstagramPink.copy(alpha = 0.13f),
-                InstagramOrange.copy(alpha = 0.10f),
-            ),
-        )
-    }
-    val iconTint = when (brand) {
-        HomeStoryBrand.Neutral -> colorScheme.skydownAccent()
-        HomeStoryBrand.Core -> Color.White
-        HomeStoryBrand.Instagram -> Color.White
-    }
-    val iconBackground = when (brand) {
-        HomeStoryBrand.Neutral -> Brush.linearGradient(
-            colors = listOf(
-                colorScheme.skydownAccent().copy(alpha = 0.10f),
-                colorScheme.skydownAccent().copy(alpha = 0.10f),
-            ),
-        )
-        HomeStoryBrand.Core -> Brush.linearGradient(
-            colors = listOf(
-                colorScheme.skydownAccentMystic(),
-                colorScheme.skydownAccentHighlight(),
-            ),
-        )
-        HomeStoryBrand.Instagram -> Brush.linearGradient(
-            colors = listOf(
-                InstagramPurple,
-                InstagramPink,
-                InstagramOrange,
-            ),
-        )
-    }
-    val borderColor = when (brand) {
-        HomeStoryBrand.Neutral -> colorScheme.skydownAccent().copy(alpha = 0.08f)
-        HomeStoryBrand.Core -> colorScheme.skydownAccentHighlight().copy(alpha = 0.32f)
-        HomeStoryBrand.Instagram -> InstagramPink.copy(alpha = 0.22f)
-    }
-    val titleColor = when (brand) {
-        HomeStoryBrand.Neutral -> MaterialTheme.colorScheme.onSurface
-        HomeStoryBrand.Core -> Color.White
-        HomeStoryBrand.Instagram -> MaterialTheme.colorScheme.onSurface
-    }
-    val subtitleColor = when (brand) {
-        HomeStoryBrand.Neutral -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
-        HomeStoryBrand.Core -> Color.White.copy(alpha = 0.76f)
-        HomeStoryBrand.Instagram -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
-    }
-    val content: @Composable () -> Unit = {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(iconBackground)
-                    .padding(10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            )
-            {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = titleColor,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                subtitle?.let { detail ->
-                    Text(
-                        text = detail,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = subtitleColor,
-                    )
-                }
-            }
-        }
-    }
-
-    Surface(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .skydownPressable(interactionSource),
-        interactionSource = interactionSource,
-        shape = RoundedCornerShape(16.dp),
-        color = androidx.compose.ui.graphics.Color.Transparent,
-        tonalElevation = 4.dp,
-        shadowElevation = 5.dp,
-        border = BorderStroke(
-            1.dp,
-            borderColor,
-        ),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(brandGradient)
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-        ) {
-            content()
-        }
-    }
-}
-
-@Composable
-private fun HomeLaneSection(
-    title: String,
-    subtitle: String,
-    accent: Color = MaterialTheme.colorScheme.primary,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        colorScheme.skydownCardBackground().copy(alpha = 0.86f),
-                        accent.copy(alpha = 0.08f),
-                        colorScheme.skydownSecondaryBackground().copy(alpha = 0.34f),
-                    ),
-                ),
-            )
-            .border(
-                width = 1.dp,
-                color = accent.copy(alpha = 0.14f),
-                shape = RoundedCornerShape(18.dp),
-            )
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = accent,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-        )
-        content()
-    }
-}
-
 private fun homeVideoModeDescription(video: FeaturedVideoHighlight): String {
     return when {
         video.usesEmbeddedPreview -> "Vorschau hier, ein Tap oeffnet den Clip direkt mit sichtbarem Rueckweg."
@@ -1733,24 +1468,6 @@ private fun homeTrackedSignalCount(uiState: HomeUiState): Int = listOf(
     uiState.featuredTrack,
     uiState.featuredVideo,
 ).count { it != null }
-
-private fun homeGreetingTitle(): String {
-    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-    return when (hour) {
-        in 5..11 -> "Guten Morgen, Creator."
-        in 12..17 -> "Guten Tag, Creator."
-        else -> "Guten Abend, Creator."
-    }
-}
-
-private fun homeGreetingSubtitle(activeSignalCount: Int, totalSignalCount: Int): String {
-    val signalLine = if (activeSignalCount == totalSignalCount) {
-        "Alle Kernsignale sind live."
-    } else {
-        "Nicht alle Kernsignale sind live."
-    }
-    return "Weitblick oben. Fokus unten. $signalLine"
-}
 
 private fun homeHeroPriorityTarget(
     hasTrackSignal: Boolean,
@@ -1798,6 +1515,6 @@ private fun homeResolvedSpotifyArtistId(track: com.skydown.shared.model.Track): 
 
 private const val homeDestinationNicmaProducer = "home_nicma_producer"
 private const val homeDestinationVideoHub = "home_video_hub"
-/** LazyColumn index of [HomeMediaCluster] (0-based: hero, daily ops, command, utility, story, live signals, media, footer). */
-private const val homeMediaClusterSectionIndex = 3
+/** LazyColumn index of [HomeMediaCluster] (0-based: hero, utility, media, footer). */
+private const val homeMediaClusterSectionIndex = 1
 private const val homeSignalTotal = 2

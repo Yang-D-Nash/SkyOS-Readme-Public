@@ -2,86 +2,114 @@ import SwiftUI
 
 struct HomeUtilityRow: View {
     let colorScheme: ColorScheme
-    let onOpenAI: () -> Void
     let onOpenMusic: () -> Void
-    let onOpenCreate: () -> Void
-    let onOpenOrders: () -> Void
-    let onOpenSearch: () -> Void
+    let onOpenVideo: () -> Void
+    let onOpenMerch: () -> Void
     let onOpenSettings: () -> Void
 
-    private enum UtilityStyle {
-        case primary
-        case iconOnly
-    }
+    private enum UtilityKind: Hashable { case music, video, merch, settings }
 
     private struct UtilityItem {
+        let kind: UtilityKind
         let title: String
         let icon: String
-        let style: UtilityStyle
         let action: () -> Void
     }
 
     private var utilities: [UtilityItem] {
         [
-            UtilityItem(title: "AI", icon: "sparkles", style: .primary, action: onOpenAI),
-            UtilityItem(title: "Music", icon: "music.note", style: .primary, action: onOpenMusic),
-            UtilityItem(title: "Create", icon: "plus.circle", style: .primary, action: onOpenCreate),
-            UtilityItem(title: "Orders", icon: "bag", style: .primary, action: onOpenOrders),
-            UtilityItem(title: "Search", icon: "magnifyingglass", style: .iconOnly, action: onOpenSearch),
-            UtilityItem(title: "Settings", icon: "gearshape", style: .iconOnly, action: onOpenSettings)
+            UtilityItem(
+                kind: .music,
+                title: AppLocalized.text("home.utility.music", fallback: "Music"),
+                icon: "music.note",
+                action: onOpenMusic
+            ),
+            UtilityItem(
+                kind: .video,
+                title: AppLocalized.text("home.utility.videos", fallback: "Videos"),
+                icon: "play.rectangle",
+                action: onOpenVideo
+            ),
+            UtilityItem(
+                kind: .merch,
+                title: AppLocalized.text("home.utility.merch", fallback: "Merch"),
+                icon: "bag",
+                action: onOpenMerch
+            ),
+            UtilityItem(
+                kind: .settings,
+                title: AppLocalized.text("home.utility.settings", fallback: "Settings"),
+                icon: "gearshape",
+                action: onOpenSettings
+            )
         ]
     }
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 2) {
-                ForEach(Array(utilities.enumerated()), id: \.offset) { _, utility in
-                    utilityButton(utility)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(
+                AppLocalized.text("home.explore.title", fallback: "Explore")
+            )
+            .font(.caption2.weight(.medium))
+            .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
+            Text(
+                AppLocalized.text("home.explore.subtitle", fallback: "Open music, videos, merch and settings fast.")
+            )
+            .font(.caption)
+            .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.75))
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(Array(utilities.enumerated()), id: \.offset) { _, utility in
+                        utilityButton(utility)
+                    }
                 }
             }
         }
-        .padding(.top, 2)
+        .padding(.top, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
     private func utilityButton(_ utility: UtilityItem) -> some View {
-        let isAI = utility.title == "AI"
-        let tint = isAI ? AppColors.accentMystic(for: colorScheme) : AppColors.accent(for: colorScheme)
-        if isAI {
-            Button {
-                SkydownHaptics.selection()
-                utility.action()
-            } label: {
-                switch utility.style {
-                case .primary:
-                    Label(utility.title, systemImage: utility.icon)
-                case .iconOnly:
-                    Image(systemName: utility.icon)
-                        .frame(width: 18, height: 18)
-                        .accessibilityLabel(utility.title)
-                }
+        let tint = utilityTint(for: utility.kind)
+        Button {
+            SkydownHaptics.selection()
+            utility.action()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: utility.icon)
+                    .font(.caption.weight(.semibold))
+                    .padding(5)
+                    .background(Circle().fill(tint.opacity(0.14)))
+                Text(utility.title)
+                    .font(.caption.weight(.semibold))
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .tint(tint.opacity(0.58))
-        } else {
-            Button {
-                SkydownHaptics.selection()
-                utility.action()
-            } label: {
-                switch utility.style {
-                case .primary:
-                    Label(utility.title, systemImage: utility.icon)
-                case .iconOnly:
-                    Image(systemName: utility.icon)
-                        .frame(width: 18, height: 18)
-                        .accessibilityLabel(utility.title)
-                }
-            }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-            .tint(tint.opacity(0.46))
+            .padding(.horizontal, 11)
+            .padding(.vertical, 9)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.72))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(tint.opacity(0.22), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .foregroundColor(tint)
+    }
+
+    private func utilityTint(for kind: UtilityKind) -> Color {
+        switch kind {
+        case .music:
+            return AppColors.accent(for: colorScheme).opacity(0.94)
+        case .video:
+            return AppColors.accentHighlight(for: colorScheme).opacity(0.94)
+        case .merch:
+            return AppColors.accentMystic(for: colorScheme).opacity(0.94)
+        case .settings:
+            return AppColors.text(for: colorScheme).opacity(0.76)
         }
     }
 }

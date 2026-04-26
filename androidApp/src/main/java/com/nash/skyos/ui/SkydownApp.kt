@@ -1171,19 +1171,19 @@ private fun LaunchLandingScreen(
         val signalSpacer = if (isShortHeightLayout) 2.dp else 4.dp
         val cardsTopSpacer = if (isShortHeightLayout) 3.dp else 6.dp
         val musicDetailText = if (isShortHeightLayout) {
-            "Katalog, Releases und Studio in einer direkten Lane."
+            stringResource(R.string.landing_music_detail)
         } else {
-            "Katalog, Releases und Studio in einer direkten Lane ohne Umwege."
+            stringResource(R.string.landing_music_detail)
         }
         val videoDetailText = if (isShortHeightLayout) {
-            "Playback und Creator-Flows greifen wie ein Produkt zusammen."
+            stringResource(R.string.landing_video_detail)
         } else {
-            "Playback, Creator-Flows und finale Clips greifen wie ein Produkt zusammen."
+            stringResource(R.string.landing_video_detail)
         }
         val merchDetailText = if (isShortHeightLayout) {
-            "Direkt zu Fits, neuen Pieces und sauber im Checkout."
+            stringResource(R.string.landing_merch_detail)
         } else {
-            "Direkt zu Fits, neuen Pieces und sauber im Checkout bleiben."
+            stringResource(R.string.landing_merch_detail)
         }
         val musicCardBackgroundUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null }
         val videoCardBackgroundUrl = screenHeaderSettings.videoHubImageUrl.ifBlank { null }
@@ -1255,9 +1255,9 @@ private fun LaunchLandingScreen(
                 BrandHeroCard(
                     eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Willkommen" },
                     title = screenHeaderSettings.homeTitle.ifBlank { "SkyOS" },
-                    subtitle = screenHeaderSettings.homeSubtitle.ifBlank { "Ein ruhiger Einstieg in Music, Video und Merch." },
+                    subtitle = screenHeaderSettings.homeSubtitle.ifBlank { stringResource(R.string.landing_home_subtitle) },
                     detail = screenHeaderSettings.homeDetail.ifBlank {
-                        "Alles greift ineinander — dein naechster Move folgt direkt hier, Home bündelt den Ueberblick."
+                        stringResource(R.string.landing_home_detail)
                     },
                     backgroundImageUrl = screenHeaderSettings.homeImageUrl.ifBlank { null },
                     accent = MaterialTheme.colorScheme.primary,
@@ -1268,13 +1268,13 @@ private fun LaunchLandingScreen(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "Empfohlener Einstieg: Home",
+                            text = stringResource(R.string.landing_home_recommended),
                             style = MaterialTheme.typography.labelLarge,
                             color = SpotifyGreen,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            text = "Tippen zum Starten",
+                            text = stringResource(R.string.landing_home_tap),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
                         )
@@ -1283,7 +1283,7 @@ private fun LaunchLandingScreen(
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     LaunchLandingActionButton(
-                        title = "Home öffnen",
+                        title = stringResource(R.string.landing_home_open),
                         icon = Icons.Default.Home,
                         primary = true,
                         onClick = onOpenHome,
@@ -1322,9 +1322,9 @@ private fun LaunchLandingScreen(
                         LaunchLandingChoiceCard(
                             eyebrow = "Music",
                             title = "Music",
-                            subtitle = "Songs, Artists und Beats.",
+                            subtitle = stringResource(R.string.landing_music_subtitle),
                             detail = musicDetailText,
-                            chips = listOf("Catalog", "Beats", "Studio"),
+                            chips = emptyList(),
                             accentColor = MaterialTheme.colorScheme.primary,
                             icon = Icons.Default.GraphicEq,
                             onClick = onOpenMusic,
@@ -1338,9 +1338,9 @@ private fun LaunchLandingScreen(
                         LaunchLandingChoiceCard(
                             eyebrow = "Video",
                             title = "Videos",
-                            subtitle = "Reels, Clips und Collabs.",
+                            subtitle = stringResource(R.string.landing_video_subtitle),
                             detail = videoDetailText,
-                            chips = listOf("Playback", "Reels", "Collabs"),
+                            chips = emptyList(),
                             accentColor = MaterialTheme.colorScheme.tertiary,
                             icon = Icons.Default.PlayCircleFilled,
                             onClick = onOpenVideography,
@@ -1351,9 +1351,9 @@ private fun LaunchLandingScreen(
                         LaunchLandingChoiceCard(
                             eyebrow = "Store",
                             title = "Merch",
-                            subtitle = "Drops und Checkout.",
+                            subtitle = stringResource(R.string.landing_merch_subtitle),
                             detail = merchDetailText,
-                            chips = listOf("Drops", "Fits", "Checkout"),
+                            chips = emptyList(),
                             accentColor = MaterialTheme.colorScheme.secondary,
                             icon = Icons.Default.ShoppingBag,
                             onClick = onOpenShop,
@@ -1366,9 +1366,9 @@ private fun LaunchLandingScreen(
                     LaunchLandingChoiceCard(
                         eyebrow = "Music",
                         title = "Music",
-                        subtitle = "Songs, Artists und Beats.",
+                        subtitle = stringResource(R.string.landing_music_subtitle),
                         detail = musicDetailText,
-                        chips = listOf("Catalog", "Beats", "Studio"),
+                        chips = emptyList(),
                         accentColor = MaterialTheme.colorScheme.primary,
                         icon = Icons.Default.GraphicEq,
                         onClick = onOpenMusic,
@@ -1381,9 +1381,9 @@ private fun LaunchLandingScreen(
                         LaunchLandingChoiceCard(
                             eyebrow = "Video",
                             title = "Videos",
-                            subtitle = "Reels, Clips und Collabs.",
+                            subtitle = stringResource(R.string.landing_video_subtitle),
                             detail = videoDetailText,
-                            chips = listOf("Playback", "Reels", "Collabs"),
+                            chips = emptyList(),
                             accentColor = MaterialTheme.colorScheme.tertiary,
                             icon = Icons.Default.PlayCircleFilled,
                             onClick = onOpenVideography,
@@ -1394,9 +1394,9 @@ private fun LaunchLandingScreen(
                         LaunchLandingChoiceCard(
                             eyebrow = "Store",
                             title = "Merch",
-                            subtitle = "Drops und Checkout.",
+                            subtitle = stringResource(R.string.landing_merch_subtitle),
                             detail = merchDetailText,
-                            chips = listOf("Drops", "Fits", "Checkout"),
+                            chips = emptyList(),
                             accentColor = MaterialTheme.colorScheme.secondary,
                             icon = Icons.Default.ShoppingBag,
                             onClick = onOpenShop,
@@ -1409,9 +1409,9 @@ private fun LaunchLandingScreen(
                     LaunchLandingChoiceCard(
                         eyebrow = "Music",
                         title = "Music",
-                        subtitle = "Songs, Artists und Beats.",
+                        subtitle = stringResource(R.string.landing_music_subtitle),
                         detail = musicDetailText,
-                        chips = listOf("Catalog", "Beats", "Studio"),
+                        chips = emptyList(),
                         accentColor = MaterialTheme.colorScheme.primary,
                         icon = Icons.Default.GraphicEq,
                         onClick = onOpenMusic,
@@ -1424,9 +1424,9 @@ private fun LaunchLandingScreen(
                         LaunchLandingChoiceCard(
                             eyebrow = "Video",
                             title = "Videos",
-                            subtitle = "Reels, Clips und Collabs.",
+                            subtitle = stringResource(R.string.landing_video_subtitle),
                             detail = videoDetailText,
-                            chips = listOf("Playback", "Reels", "Collabs"),
+                            chips = emptyList(),
                             accentColor = MaterialTheme.colorScheme.tertiary,
                             icon = Icons.Default.PlayCircleFilled,
                             onClick = onOpenVideography,
@@ -1437,9 +1437,9 @@ private fun LaunchLandingScreen(
                         LaunchLandingChoiceCard(
                             eyebrow = "Store",
                             title = "Merch",
-                            subtitle = "Drops und Checkout.",
+                            subtitle = stringResource(R.string.landing_merch_subtitle),
                             detail = merchDetailText,
-                            chips = listOf("Drops", "Fits", "Checkout"),
+                            chips = emptyList(),
                             accentColor = MaterialTheme.colorScheme.secondary,
                             icon = Icons.Default.ShoppingBag,
                             onClick = onOpenShop,
@@ -2185,14 +2185,14 @@ private fun HubEntryCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .matchParentSize()
-                        .alpha(if (isSecondary) 0.12f else 0.16f),
+                        .alpha(if (isSecondary) 0.44f else 0.52f),
                 )
             }
             if (hasBackgroundImage) {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .background(Color.Black.copy(alpha = if (isSecondary) 0.38f else 0.30f)),
+                        .background(Color.Black.copy(alpha = if (isSecondary) 0.18f else 0.14f)),
                 )
             }
             Box(
@@ -2202,10 +2202,10 @@ private fun HubEntryCard(
                         if (isSecondary) {
                             Brush.linearGradient(
                                 colors = listOf(
-                                    colorScheme.surface.copy(alpha = if (isDarkPalette) 0.10f else 0.18f),
-                                    colorScheme.surfaceVariant.copy(alpha = if (isDarkPalette) if (hasBackgroundImage) 0.26f else 0.18f else if (hasBackgroundImage) 0.30f else 0.24f),
-                                    accentColor.copy(alpha = if (isDarkPalette) 0.045f else 0.04f),
-                                    colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) if (hasBackgroundImage) 0.20f else 0.12f else if (hasBackgroundImage) 0.12f else 0.06f),
+                                    colorScheme.surface.copy(alpha = if (isDarkPalette) 0.06f else 0.12f),
+                                    colorScheme.surfaceVariant.copy(alpha = if (isDarkPalette) if (hasBackgroundImage) 0.14f else 0.18f else if (hasBackgroundImage) 0.18f else 0.24f),
+                                    accentColor.copy(alpha = if (isDarkPalette) 0.035f else 0.03f),
+                                    colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) if (hasBackgroundImage) 0.12f else 0.12f else if (hasBackgroundImage) 0.08f else 0.06f),
                                 ),
                                 start = Offset.Zero,
                                 end = Offset.Infinite,
@@ -2213,10 +2213,10 @@ private fun HubEntryCard(
                         } else {
                             Brush.linearGradient(
                                 colors = listOf(
-                                    colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.07f else 0.18f),
-                                    accentColor.copy(alpha = if (isDarkPalette) 0.09f else 0.06f),
-                                    colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) if (hasBackgroundImage) 0.22f else 0.16f else if (hasBackgroundImage) 0.34f else 0.30f),
-                                    colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) if (hasBackgroundImage) 0.30f else 0.21f else if (hasBackgroundImage) 0.10f else 0.04f),
+                                    colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.06f else 0.12f),
+                                    accentColor.copy(alpha = if (isDarkPalette) 0.07f else 0.04f),
+                                    colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) if (hasBackgroundImage) 0.14f else 0.16f else if (hasBackgroundImage) 0.22f else 0.30f),
+                                    colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) if (hasBackgroundImage) 0.18f else 0.21f else if (hasBackgroundImage) 0.08f else 0.04f),
                                 ),
                                 start = Offset.Zero,
                                 end = Offset.Infinite,
@@ -2231,9 +2231,9 @@ private fun HubEntryCard(
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.Black.copy(alpha = (readabilityFloor * 0.46f).coerceIn(0.14f, 0.36f)),
-                                    Color.Black.copy(alpha = (readabilityFloor * 1.04f).coerceIn(0.34f, 0.62f)),
-                                    Color.Black.copy(alpha = (readabilityFloor + 0.30f).coerceIn(0.56f, 0.84f)),
+                                    Color.Black.copy(alpha = (readabilityFloor * 0.24f).coerceIn(0.08f, 0.22f)),
+                                    Color.Black.copy(alpha = (readabilityFloor * 0.54f).coerceIn(0.16f, 0.36f)),
+                                    Color.Black.copy(alpha = (readabilityFloor + 0.10f).coerceIn(0.28f, 0.56f)),
                                 ),
                             ),
                         ),

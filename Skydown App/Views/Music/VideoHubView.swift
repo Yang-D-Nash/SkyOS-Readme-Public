@@ -574,10 +574,6 @@ struct VideoHubView: View {
 
     private var playerCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Video Player")
-                .font(.headline)
-                .foregroundColor(AppColors.text(for: colorScheme))
-
             Text("Der Clip bleibt jetzt gross, vertikal und direkt im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Video-Modus springen.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -746,9 +742,6 @@ struct VideoHubView: View {
     private var libraryCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Aus deinen Clips")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AppColors.text(for: colorScheme))
                 Text(
                     viewModel.isAdmin
                     ? "\(viewModel.videos.count) Titel im Hub"

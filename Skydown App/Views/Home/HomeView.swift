@@ -95,8 +95,6 @@ struct HomeViewContent: View {
                             let hasTrackSignal = featuredTrack != nil
                             let hasVideoSignal = featuredVideo != nil
 
-                            let commandPriorityTarget = homeCommandPriorityTarget(viewModel)
-
                             VStack(alignment: .leading, spacing: 6) {
                                 Spacer()
                                     .frame(height: 4)
@@ -110,37 +108,14 @@ struct HomeViewContent: View {
                                 .padding(.vertical, 4)
                                 .homeReveal(0)
 
-                                HomeDailyOpsStrip(
-                                    colorScheme: colorScheme,
-                                    activeSignalCount: homeTrackedSignalCount(viewModel),
-                                    totalSignalCount: 2,
-                                    hasTrackSignal: hasTrackSignal,
-                                    hasVideoSignal: hasVideoSignal,
-                                    onRefresh: { viewModel.refresh() },
-                                    onOpenRelease: openReleaseSection,
-                                    onOpenVideo: openVideoSection
-                                )
-                                .homeReveal(2)
-
-                                HomeCommandDockStrip(
-                                    colorScheme: colorScheme,
-                                    priorityTarget: commandPriorityTarget,
-                                    onOpenWorkflow: onOpenWorkflow,
-                                    onOpenCart: onOpenCart,
-                                    onOpenSettings: onOpenSettings
-                                )
-                                .homeReveal(3)
-
                                 HomeUtilityRow(
                                     colorScheme: colorScheme,
-                                    onOpenAI: { (onOpenWorkflow ?? onOpenSettings)() },
                                     onOpenMusic: openReleaseSection,
-                                    onOpenCreate: { presentSheet(.nicmaProducer) },
-                                    onOpenOrders: onOpenCart,
-                                    onOpenSearch: openReleaseSection,
+                                    onOpenVideo: openVideoSection,
+                                    onOpenMerch: onOpenCart,
                                     onOpenSettings: onOpenSettings
                                 )
-                                .homeReveal(4)
+                                .homeReveal(2)
                             }
                             .background {
                                 LinearGradient(
@@ -155,23 +130,6 @@ struct HomeViewContent: View {
                                 )
                             }
 
-                            HomeLiveSignalSection(
-                                colorScheme: colorScheme,
-                                hasTrackSignal: hasTrackSignal,
-                                hasVideoSignal: hasVideoSignal,
-                                trackName: featuredTrack?.trackName,
-                                videoName: featuredVideo?.title,
-                                aiUsageWarning: viewModel.aiUsageWarning,
-                                creatorLimitZone: viewModel.creatorLimitZone,
-                                agentRunning: viewModel.agentRunning,
-                                workflowWaiting: viewModel.workflowWaiting,
-                                commerceHint: viewModel.commerceSignal,
-                                syncPaused: viewModel.syncPaused,
-                                recoverableError: viewModel.recoverableError,
-                                contentSignal: viewModel.contentSignal
-                            )
-                            .homeReveal(5)
-
                             HomeMediaClusterSection(
                                 colorScheme: colorScheme,
                                 viewModel: viewModel,
@@ -180,14 +138,19 @@ struct HomeViewContent: View {
                                 onOpenVideoHub: openVideoHubFromMediaCluster(video:),
                                 onOpenOriginal: openOriginalFromMediaCluster(video:)
                             )
-                            .homeReveal(6)
+                            .homeReveal(3)
 
-                            Text("SkyOS Home fuehrt ruhig: Signal lesen, Fokus setzen, naechsten Schritt ausfuehren.")
+                            Text(
+                                AppLocalized.text(
+                                    "home.hero.tagline",
+                                    fallback: "Open and play."
+                                )
+                            )
                                 .font(.footnote)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 6)
-                                .homeReveal(8)
+                                .homeReveal(4)
                         }
                         .frame(maxWidth: contentWidth, alignment: .leading)
                         .padding(.horizontal, layout.horizontalPadding)
@@ -348,14 +311,21 @@ private struct HomeMediaClusterSection: View {
     let onOpenOriginal: (FeaturedHomeVideo) -> Void
 
     var body: some View {
-        HomeMediaCluster(
-            colorScheme: colorScheme,
-            viewModel: viewModel,
-            playbackManager: playbackManager,
-            videoPlaybackManager: videoPlaybackManager,
-            onOpenVideoHub: onOpenVideoHub,
-            onOpenOriginal: onOpenOriginal
-        )
+        VStack(alignment: .leading, spacing: 6) {
+            Text(
+                AppLocalized.text("home.section.current", fallback: "Current")
+            )
+                .font(.caption2.weight(.medium))
+                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
+            HomeMediaCluster(
+                colorScheme: colorScheme,
+                viewModel: viewModel,
+                playbackManager: playbackManager,
+                videoPlaybackManager: videoPlaybackManager,
+                onOpenVideoHub: onOpenVideoHub,
+                onOpenOriginal: onOpenOriginal
+            )
+        }
     }
 }
 

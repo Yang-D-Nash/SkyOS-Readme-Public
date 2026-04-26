@@ -46,16 +46,19 @@ struct HomeHeroIntroCard: View {
     private var activeSignalCount: Int {
         [viewModel.featuredTrack != nil, viewModel.featuredVideo != nil].filter { $0 }.count
     }
-    private var daypartGreeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour { case 5..<12: return "Guten Morgen"; case 12..<18: return "Guten Tag"; default: return "Guten Abend" }
+    private var dynamicTitle: String {
+        AppLocalized.text("home.hero.title", fallback: "SkyOS")
     }
-    private var dynamicTitle: String { "\(daypartGreeting), Creator." }
     private var dynamicSubtitle: String {
-        let signalLine = activeSignalCount == 2 ? "Alle Kernsignale sind live." : "Nicht alle Kernsignale sind live."
-        return "Weitblick oben. Fokus unten. \(signalLine)"
+        String(
+            format: AppLocalized.text("home.hero.live_count", fallback: "%d/%d live"),
+            activeSignalCount,
+            2
+        )
     }
-    private var dynamicDetail: String { "\(activeSignalCount)/2 live · Daily Ops bereit" }
+    private var dynamicDetail: String {
+        AppLocalized.text("home.hero.detail", fallback: "Open music, videos or merch.")
+    }
     private var heroPriorityTarget: HeroPriorityTarget {
         if viewModel.featuredTrack == nil { return .track }
         if viewModel.featuredVideo == nil { return .video }
@@ -99,8 +102,12 @@ struct HomeHeroIntroCard: View {
                         case .track:
                             BrandHeroPill(
                                 text: heroPriorityTarget == .track
-                                    ? (viewModel.featuredTrack == nil ? "Next: Musik laden" : "Next: Musik")
-                                    : (viewModel.featuredTrack == nil ? "Musik laedt" : "Musik live"),
+                                    ? (viewModel.featuredTrack == nil
+                                        ? AppLocalized.text("home.hero.pill.track.next.load", fallback: "Next: Load music")
+                                        : AppLocalized.text("home.hero.pill.track.next", fallback: "Next: Music"))
+                                    : (viewModel.featuredTrack == nil
+                                        ? AppLocalized.text("home.hero.pill.track.loading", fallback: "Music loading")
+                                        : AppLocalized.text("home.hero.pill.track.live", fallback: "Music live")),
                                 colorScheme: colorScheme,
                                 tint: heroPillTint(for: .track),
                                 onTap: onOpenTrack
@@ -108,8 +115,12 @@ struct HomeHeroIntroCard: View {
                         case .video:
                             BrandHeroPill(
                                 text: heroPriorityTarget == .video
-                                    ? (viewModel.featuredVideo == nil ? "Next: Visual laden" : "Next: Visual")
-                                    : (viewModel.featuredVideo == nil ? "Video laedt" : "Video live"),
+                                    ? (viewModel.featuredVideo == nil
+                                        ? AppLocalized.text("home.hero.pill.video.next.load", fallback: "Next: Load video")
+                                        : AppLocalized.text("home.hero.pill.video.next", fallback: "Next: Video"))
+                                    : (viewModel.featuredVideo == nil
+                                        ? AppLocalized.text("home.hero.pill.video.loading", fallback: "Video loading")
+                                        : AppLocalized.text("home.hero.pill.video.live", fallback: "Video live")),
                                 colorScheme: colorScheme,
                                 tint: heroPillTint(for: .video),
                                 onTap: onOpenVideo

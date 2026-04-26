@@ -64,8 +64,14 @@ struct HomeDailyOpsStrip: View {
     }
     private var priorityTitle: String {
         switch priorityTarget {
-        case .music: return hasTrackSignal ? "Jetzt wichtig: Musik" : "Jetzt wichtig: Musik herstellen"
-        case .visuals: return hasVideoSignal ? "Jetzt wichtig: Visuals" : "Jetzt wichtig: Visuals herstellen"
+        case .music:
+            return hasTrackSignal
+                ? AppLocalized.text("home.dailyops.priority.music.ready", fallback: "Now priority: Music")
+                : AppLocalized.text("home.dailyops.priority.music.build", fallback: "Now priority: Add music")
+        case .visuals:
+            return hasVideoSignal
+                ? AppLocalized.text("home.dailyops.priority.visuals.ready", fallback: "Now priority: Visuals")
+                : AppLocalized.text("home.dailyops.priority.visuals.build", fallback: "Now priority: Add visuals")
         }
     }
     private func triggerPriorityAction() {
@@ -73,8 +79,14 @@ struct HomeDailyOpsStrip: View {
     }
     private var priorityHint: String {
         switch priorityTarget {
-        case .music: return hasTrackSignal ? "Morgens zuerst Musik-Status checken." : "Musik-Signal ist noch nicht live."
-        case .visuals: return hasVideoSignal ? "Abends zuerst Visuals-Status pruefen." : "Visuals-Signal fehlt noch."
+        case .music:
+            return hasTrackSignal
+                ? AppLocalized.text("home.dailyops.hint.music.morning", fallback: "Check music status first in the morning.")
+                : AppLocalized.text("home.dailyops.hint.music.missing", fallback: "Music signal is not live yet.")
+        case .visuals:
+            return hasVideoSignal
+                ? AppLocalized.text("home.dailyops.hint.visuals.evening", fallback: "Check visuals status first in the evening.")
+                : AppLocalized.text("home.dailyops.hint.visuals.missing", fallback: "Visuals signal is not live yet.")
         }
     }
     private var priorityAccent: Color {
@@ -89,7 +101,9 @@ struct HomeDailyOpsStrip: View {
                 Image(systemName: "gauge.with.dots.needle.50percent")
                     .font(.caption2.weight(.medium))
                     .foregroundColor(priorityAccent.opacity(0.5))
-                Text("Aktueller Fokus")
+                Text(
+                    AppLocalized.text("home.dailyops.current_focus", fallback: "Current focus")
+                )
                     .font(.subheadline.weight(.regular))
                     .foregroundColor(AppColors.text(for: colorScheme).opacity(0.6))
                 Spacer(minLength: 0)
@@ -102,12 +116,25 @@ struct HomeDailyOpsStrip: View {
                         .foregroundColor(priorityAccent.opacity(0.55))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Aktualisieren")
-                Text("\(activeSignalCount)/\(totalSignalCount) live")
+                .accessibilityLabel(
+                    AppLocalized.text("home.dailyops.refresh", fallback: "Refresh")
+                )
+                Text(
+                    String(
+                        format: AppLocalized.text("home.dailyops.live_count", fallback: "%d/%d live"),
+                        activeSignalCount,
+                        totalSignalCount
+                    )
+                )
                     .font(.caption2.weight(.medium))
                     .foregroundColor(priorityAccent.opacity(0.7))
             }
-            Text("Hier: ein Schritt, der zu deinen Kernsignalen passt.")
+            Text(
+                AppLocalized.text(
+                    "home.dailyops.hint",
+                    fallback: "Here: one step that fits your core signals."
+                )
+            )
                 .font(.footnote)
                 .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
             Button(action: triggerPriorityAction) {
@@ -150,26 +177,42 @@ struct HomeCommandDockStrip: View {
                 Image(systemName: "command")
                     .font(.caption2.weight(.medium))
                     .foregroundColor(priorityAccent.opacity(0.48))
-                Text("Kurzaktionen")
+                Text(
+                    AppLocalized.text("home.shortcuts.title", fallback: "Shortcuts")
+                )
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(AppColors.text(for: colorScheme).opacity(0.58))
                 Spacer(minLength: 0)
             }
-            Text("Agent, Warenkorb, Einstellungen — ohne die Seite zu wechseln.")
+            Text(
+                AppLocalized.text(
+                    "home.shortcuts.subtitle",
+                    fallback: "Agent, cart, and settings without leaving the page."
+                )
+            )
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.72))
             HStack(spacing: 8) {
                 if let onOpenWorkflow {
-                    Button("KI-Agent", action: onOpenWorkflow)
+                    Button(
+                        AppLocalized.text("home.command.ai_agent", fallback: "AI agent"),
+                        action: onOpenWorkflow
+                    )
                         .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
                         .buttonStyle(.borderedProminent)
                         .tint(actionTint("agent"))
                 }
-                Button("Warenkorb", action: onOpenCart)
+                Button(
+                    AppLocalized.text("home.command.cart", fallback: "Cart"),
+                    action: onOpenCart
+                )
                     .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
                     .buttonStyle(.bordered)
                     .tint(actionTint("music"))
-                Button("Einstellungen", action: onOpenSettings)
+                Button(
+                    AppLocalized.text("home.command.settings", fallback: "Settings"),
+                    action: onOpenSettings
+                )
                     .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
                     .buttonStyle(.bordered)
                     .tint(actionTint("visuals"))
@@ -198,16 +241,36 @@ struct HomeLiveSignalSurface: View {
 
     private var missingCount: Int { [hasTrackSignal, hasVideoSignal].filter { !$0 }.count }
     private var nowText: String {
-        if hasTrackSignal, let trackName, !trackName.isEmpty { return "Now: Music live - \(trackName)" }
-        if hasVideoSignal, let videoName, !videoName.isEmpty { return "Now: Visual live - \(videoName)" }
-        return "Now: Noch kein Kernsignal live."
+        if hasTrackSignal, let trackName, !trackName.isEmpty {
+            return String(
+                format: AppLocalized.text("home.live.now.music", fallback: "Now: Music live - %@"),
+                trackName
+            )
+        }
+        if hasVideoSignal, let videoName, !videoName.isEmpty {
+            return String(
+                format: AppLocalized.text("home.live.now.visual", fallback: "Now: Visual live - %@"),
+                videoName
+            )
+        }
+        return AppLocalized.text("home.live.now.empty", fallback: "Now: No core signal live yet.")
     }
     private var nextText: String {
-        if !hasTrackSignal { return "Next: Musik-Signal finalisieren." }
-        if !hasVideoSignal { return "Next: Visual-Signal finalisieren." }
-        return "Next: Fokus halten und direkt im Content arbeiten."
+        if !hasTrackSignal {
+            return AppLocalized.text("home.live.next.track", fallback: "Next: Finalize the music signal.")
+        }
+        if !hasVideoSignal {
+            return AppLocalized.text("home.live.next.video", fallback: "Next: Finalize the video signal.")
+        }
+        return AppLocalized.text("home.live.next.focus", fallback: "Next: Keep focus and work directly in content.")
     }
-    private var riskText: String? { missingCount > 0 ? "Risk: \(missingCount) Kernsignal(e) fehlen aktuell." : nil }
+    private var riskText: String? {
+        guard missingCount > 0 else { return nil }
+        return String(
+            format: AppLocalized.text("home.live.risk", fallback: "Risk: %d core signal(s) missing right now."),
+            missingCount
+        )
+    }
     private var federatedSignals: [String] {
         var signals: [String] = []
         if let aiUsageWarning, !aiUsageWarning.isEmpty { signals.append("AI: \(aiUsageWarning)") }
@@ -217,12 +280,21 @@ struct HomeLiveSignalSurface: View {
         if let commerceHint, !commerceHint.isEmpty { signals.append("Commerce: \(commerceHint)") }
         if syncPaused == true { signals.append("System: Sync currently paused.") }
         if let recoverableError, !recoverableError.isEmpty { signals.append("System: \(recoverableError)") }
-        if let contentSignal, !contentSignal.isEmpty { signals.append("Content: \(contentSignal)") }
+        if let contentSignal, !contentSignal.isEmpty {
+            signals.append(
+                String(
+                    format: AppLocalized.text("home.federated.content", fallback: "Content: %@"),
+                    contentSignal
+                )
+            )
+        }
         return signals
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Status / Signale")
+            Text(
+                AppLocalized.text("home.status.signals", fallback: "Status / signals")
+            )
                 .font(.caption2.weight(.medium))
                 .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
             Text(nowText)
