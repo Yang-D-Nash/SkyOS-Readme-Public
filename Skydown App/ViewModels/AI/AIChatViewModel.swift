@@ -288,6 +288,7 @@ final class AIChatViewModel: ObservableObject {
     private var conversationRevision = 0
     private var activeRequestTask: Task<Void, Never>?
     private var remoteHydrationTask: Task<Void, Never>?
+    private var stopRemoteHistoryObservation: (() -> Void)?
     private var activeRequestContext: InFlightRequestContext?
     private var currentQuotaPlan: UserQuotaPlan = .free
 
@@ -311,6 +312,7 @@ final class AIChatViewModel: ObservableObject {
     deinit {
         activeRequestTask?.cancel()
         remoteHydrationTask?.cancel()
+        stopRemoteHistoryObservation?()
     }
 
     func configureUser(user: User?) {
@@ -341,10 +343,13 @@ final class AIChatViewModel: ObservableObject {
             return
         }
         invalidateConversation(cancelActiveRequest: true)
+        stopRemoteHistoryObservation?()
+        stopRemoteHistoryObservation = nil
         currentUserID = normalizedUserID
         currentUserKey = normalizedUserKey
         restoreConversationState()
         hydrateRemoteHistoryIfNeeded(preferredSessionID: currentSessionID)
+        startRemoteHistoryObservation()
     }
 
     func sendDraft() {
@@ -746,6 +751,46 @@ final class AIChatViewModel: ObservableObject {
             } catch {
                 // Keep local history as fallback when remote sync is unavailable.
             }
+        }
+    }
+
+    private func startRemoteHistoryObservation() {
+        guard let currentUserID else { return }
+        let userID = currentUserID
+        let userKey = currentUserKey
+        stopRemoteHistoryObservation = syncService.observeSnapshot(
+            userID: userID,
+            source: .bot
+        ) { [weak self] result in
+            Task { @MainActor [weak self] in
+                guard let self,
+                      self.currentUserID == userID,
+                      self.currentUserKey == userKey else {
+                    return
+                }
+
+                switch result {
+                case .success(let snapshot):
+                    self.applyRemoteSnapshot(snapshot, userKey: userKey)
+                case .failure:
+                    break
+                }
+            }
+        }
+    }
+
+    private func applyRemoteSnapshot(_ snapshot: AIScriptHistoryRemoteSnapshot, userKey: String?) {
+        historyStore.replaceRemoteState(
+            userKey: userKey,
+            source: .bot,
+            sessions: snapshot.sessions,
+            entries: snapshot.entries
+        )
+
+        if phase.isBusy {
+            refreshConversationMetadata(preferredSessionID: currentSessionID)
+        } else {
+            restoreConversationState(preferredSessionID: currentSessionID)
         }
     }
 

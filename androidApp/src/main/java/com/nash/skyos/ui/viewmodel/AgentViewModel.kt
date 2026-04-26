@@ -2,6 +2,7 @@ package com.nash.skyos.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.nash.skyos.R
 import com.nash.skyos.data.AgentHistoryTurn
@@ -10,6 +11,7 @@ import com.nash.skyos.data.AgentPendingQueueStore
 import com.nash.skyos.data.AiConversationHistorySource
 import com.nash.skyos.data.AiConversationHistorySaveResult
 import com.nash.skyos.data.AiConversationHistoryStore
+import com.nash.skyos.data.AiConversationRemoteSnapshot
 import com.nash.skyos.data.AiConversationSyncRepository
 import com.nash.skyos.data.AiRuntimeAgentProvider
 import com.nash.skyos.data.AppContainer
@@ -76,6 +78,7 @@ class AgentViewModel : ViewModel() {
     private var activeRequestJob: Job? = null
     private var pendingRetryJob: Job? = null
     private var remoteHydrationJob: Job? = null
+    private var remoteHistoryListener: ListenerRegistration? = null
     private var activeRequestContext: InFlightRequestContext? = null
 
     init {
@@ -131,11 +134,14 @@ class AgentViewModel : ViewModel() {
                 ManusByosPreferences.setUserMode(user?.id)
                 if (userKey != currentUserKey || userId != currentUserId) {
                     invalidateConversation(cancelActiveWork = true)
+                    remoteHistoryListener?.remove()
+                    remoteHistoryListener = null
                     currentUserId = userId
                     currentUserKey = userKey
                     currentSessionId = null
                     restoreHistory()
                     hydrateRemoteHistoryIfNeeded(currentSessionId)
+                    startRemoteHistoryObservation()
                     if (AppNetworkMonitor.isOnline.value) {
                         retryPendingMessages()
                     }
@@ -420,6 +426,12 @@ class AgentViewModel : ViewModel() {
 
     fun dismissError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    override fun onCleared() {
+        remoteHistoryListener?.remove()
+        remoteHistoryListener = null
+        super.onCleared()
     }
 
     private fun enqueuePromptForRetry(trimmedPrompt: String) {
@@ -853,6 +865,46 @@ class AgentViewModel : ViewModel() {
                 if (AppNetworkMonitor.isOnline.value) {
                     retryPendingMessages()
                 }
+            }
+        }
+    }
+
+    private fun startRemoteHistoryObservation() {
+        remoteHistoryListener?.remove()
+        val userId = currentUserId ?: return
+        val userKey = currentUserKey
+        remoteHistoryListener = syncRepository.observeSnapshot(
+            userId = userId,
+            source = AiConversationHistorySource.Agent,
+        ) { result ->
+            result.onSuccess { snapshot ->
+                viewModelScope.launch {
+                    if (currentUserId != userId || currentUserKey != userKey) {
+                        return@launch
+                    }
+                    applyRemoteSnapshot(snapshot, userKey)
+                }
+            }
+        }
+    }
+
+    private fun applyRemoteSnapshot(
+        snapshot: AiConversationRemoteSnapshot,
+        userKey: String?,
+    ) {
+        AiConversationHistoryStore.replaceRemoteState(
+            userKey = userKey,
+            source = AiConversationHistorySource.Agent,
+            sessions = snapshot.sessions,
+            entries = snapshot.entries,
+        )
+
+        if (_uiState.value.agentPhase.shouldBlockComposerChrome) {
+            refreshSessionState(currentSessionId)
+        } else {
+            restoreHistory()
+            if (AppNetworkMonitor.isOnline.value) {
+                retryPendingMessages()
             }
         }
     }

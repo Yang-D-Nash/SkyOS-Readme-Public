@@ -2,6 +2,7 @@ package com.nash.skyos.data
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 
@@ -49,6 +50,46 @@ class AiConversationSyncRepository(
         return AiConversationRemoteSnapshot(
             sessions = sessions,
             entries = entries,
+        )
+    }
+
+    fun observeSnapshot(
+        userId: String,
+        source: AiConversationHistorySource,
+        onChange: (Result<AiConversationRemoteSnapshot>) -> Unit,
+    ): ListenerRegistration {
+        val accumulator = AiConversationRemoteSnapshotAccumulator()
+
+        val sessionListener = sessionsCollection(userId)
+            .orderBy("updatedAt")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onChange(Result.failure(error))
+                    return@addSnapshotListener
+                }
+
+                accumulator.sessions = snapshot?.documents.orEmpty().mapNotNull { document ->
+                    decodeSession(document.data.orEmpty(), document.id, source, userId)
+                }
+                deliverAccumulatedSnapshot(accumulator, userId, source, onChange)
+            }
+
+        val entryListener = entriesCollection(userId)
+            .orderBy("createdAt")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onChange(Result.failure(error))
+                    return@addSnapshotListener
+                }
+
+                accumulator.entries = snapshot?.documents.orEmpty().mapNotNull { document ->
+                    decodeEntry(document.data.orEmpty(), document.id, source, userId)
+                }
+                deliverAccumulatedSnapshot(accumulator, userId, source, onChange)
+            }
+
+        return CompositeListenerRegistration(
+            listOf(sessionListener, entryListener),
         )
     }
 
@@ -184,6 +225,29 @@ class AiConversationSyncRepository(
     private fun entriesCollection(userId: String) =
         firestore.collection("users").document(userId).collection("aiEntries")
 
+    private fun deliverAccumulatedSnapshot(
+        accumulator: AiConversationRemoteSnapshotAccumulator,
+        userId: String,
+        source: AiConversationHistorySource,
+        onChange: (Result<AiConversationRemoteSnapshot>) -> Unit,
+    ) {
+        val entries = accumulator.entries ?: return
+        val sessions = accumulator.sessions ?: return
+        onChange(
+            Result.success(
+                AiConversationRemoteSnapshot(
+                    sessions = normalizeSessions(
+                        sessions = sessions,
+                        entries = entries,
+                        userId = userId,
+                        source = source,
+                    ).sortedByDescending { it.updatedAtEpochMillis },
+                    entries = entries.sortedByDescending { it.createdAtEpochMillis },
+                ),
+            ),
+        )
+    }
+
     private fun encodeSession(session: AiConversationHistorySession): Map<String, Any> {
         return mapOf(
             "source" to session.source.name.lowercase(),
@@ -282,5 +346,18 @@ class AiConversationSyncRepository(
     private fun suggestedSessionTitle(prompt: String): String {
         val collapsedPrompt = prompt.replace("\\s+".toRegex(), " ").trim()
         return collapsedPrompt.take(42).ifBlank { AiConversationHistorySession.DEFAULT_SESSION_TITLE }
+    }
+}
+
+private class AiConversationRemoteSnapshotAccumulator {
+    var sessions: List<AiConversationHistorySession>? = null
+    var entries: List<AiConversationHistoryEntry>? = null
+}
+
+private class CompositeListenerRegistration(
+    private val listeners: List<ListenerRegistration>,
+) : ListenerRegistration {
+    override fun remove() {
+        listeners.forEach { it.remove() }
     }
 }

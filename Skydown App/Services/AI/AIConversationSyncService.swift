@@ -12,6 +12,11 @@ struct AIScriptHistoryRemoteSnapshot {
 
 protocol AIConversationSyncServicing {
     func fetchSnapshot(userID: String, source: AIScriptHistorySource) async throws -> AIScriptHistoryRemoteSnapshot
+    func observeSnapshot(
+        userID: String,
+        source: AIScriptHistorySource,
+        onChange: @escaping @Sendable (Result<AIScriptHistoryRemoteSnapshot, Error>) -> Void
+    ) -> () -> Void
     func migrateLocalHistoryIfRemoteEmpty(
         userID: String,
         source: AIScriptHistorySource,
@@ -57,6 +62,59 @@ final class FirestoreAIConversationSyncService: AIConversationSyncServicing {
             sessions: sessions.sorted { $0.updatedAt > $1.updatedAt },
             entries: entries.sorted { $0.createdAt > $1.createdAt }
         )
+    }
+
+    func observeSnapshot(
+        userID: String,
+        source: AIScriptHistorySource,
+        onChange: @escaping @Sendable (Result<AIScriptHistoryRemoteSnapshot, Error>) -> Void
+    ) -> () -> Void {
+        let accumulator = RemoteSnapshotAccumulator()
+
+        let sessionListener = sessionsCollection(for: userID)
+            .order(by: "updatedAt", descending: true)
+            .addSnapshotListener { [weak self, weak accumulator] snapshot, error in
+                guard let self, let accumulator else { return }
+                if let error {
+                    onChange(.failure(error))
+                    return
+                }
+
+                accumulator.sessions = snapshot?.documents.compactMap { document in
+                    self.decodeSession(document, expectedSource: source, userID: userID)
+                } ?? []
+                self.deliverAccumulatedSnapshot(
+                    accumulator,
+                    userID: userID,
+                    source: source,
+                    onChange: onChange
+                )
+            }
+
+        let entryListener = entriesCollection(for: userID)
+            .order(by: "createdAt", descending: true)
+            .addSnapshotListener { [weak self, weak accumulator] snapshot, error in
+                guard let self, let accumulator else { return }
+                if let error {
+                    onChange(.failure(error))
+                    return
+                }
+
+                accumulator.entries = snapshot?.documents.compactMap { document in
+                    self.decodeEntry(document, expectedSource: source, userID: userID)
+                } ?? []
+                self.deliverAccumulatedSnapshot(
+                    accumulator,
+                    userID: userID,
+                    source: source,
+                    onChange: onChange
+                )
+            }
+
+        return {
+            sessionListener.remove()
+            entryListener.remove()
+        }
     }
 
     func migrateLocalHistoryIfRemoteEmpty(
@@ -181,6 +239,34 @@ final class FirestoreAIConversationSyncService: AIConversationSyncServicing {
         firestore.collection("users").document(userID).collection("aiEntries")
     }
 
+    private func deliverAccumulatedSnapshot(
+        _ accumulator: RemoteSnapshotAccumulator,
+        userID: String,
+        source: AIScriptHistorySource,
+        onChange: @escaping @Sendable (Result<AIScriptHistoryRemoteSnapshot, Error>) -> Void
+    ) {
+        guard let entries = accumulator.entries,
+              let rawSessions = accumulator.sessions else {
+            return
+        }
+
+        let sessions = normalizedSessions(
+            from: rawSessions,
+            entries: entries,
+            userID: userID,
+            source: source
+        )
+
+        onChange(
+            .success(
+                AIScriptHistoryRemoteSnapshot(
+                    sessions: sessions.sorted { $0.updatedAt > $1.updatedAt },
+                    entries: entries.sorted { $0.createdAt > $1.createdAt }
+                )
+            )
+        )
+    }
+
     private func encodeSession(_ session: AIScriptHistorySession) -> [String: Any] {
         [
             "source": session.source.rawValue,
@@ -292,4 +378,9 @@ final class FirestoreAIConversationSyncService: AIConversationSyncServicing {
         guard !collapsedPrompt.isEmpty else { return AIScriptHistoryStore.defaultSessionTitle }
         return String(collapsedPrompt.prefix(38))
     }
+}
+
+private final class RemoteSnapshotAccumulator {
+    var sessions: [AIScriptHistorySession]?
+    var entries: [AIScriptHistoryEntry]?
 }

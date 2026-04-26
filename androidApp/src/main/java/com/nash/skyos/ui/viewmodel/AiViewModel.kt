@@ -2,6 +2,7 @@ package com.nash.skyos.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.nash.skyos.R
 import com.nash.skyos.data.AiConversationHistorySource
@@ -49,6 +50,7 @@ class AiViewModel : ViewModel() {
     private var conversationRevision = 0
     private var activeRequestJob: Job? = null
     private var remoteHydrationJob: Job? = null
+    private var remoteHistoryListener: ListenerRegistration? = null
     private var activeRequestContext: InFlightRequestContext? = null
 
     private data class InFlightRequestContext(
@@ -94,11 +96,14 @@ class AiViewModel : ViewModel() {
                 }
                 if (userKey != currentUserKey || userId != currentUserId) {
                     invalidateConversation(cancelActiveRequest = true)
+                    remoteHistoryListener?.remove()
+                    remoteHistoryListener = null
                     currentUserId = userId
                     currentUserKey = userKey
                     currentSessionId = null
                     restoreHistory()
                     hydrateRemoteHistoryIfNeeded(currentSessionId)
+                    startRemoteHistoryObservation()
                 } else {
                     refreshSessionState()
                     pruneRemoteHistoryIfNeeded()
@@ -422,6 +427,12 @@ class AiViewModel : ViewModel() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
+    override fun onCleared() {
+        remoteHistoryListener?.remove()
+        remoteHistoryListener = null
+        super.onCleared()
+    }
+
     private fun ensureCurrentSessionId(): String {
         val session = AiConversationHistoryStore.ensureSession(
             userKey = currentUserKey,
@@ -607,6 +618,43 @@ class AiViewModel : ViewModel() {
                 )
                 restoreHistory(preferredSessionId)
             }
+        }
+    }
+
+    private fun startRemoteHistoryObservation() {
+        remoteHistoryListener?.remove()
+        val userId = currentUserId ?: return
+        val userKey = currentUserKey
+        remoteHistoryListener = syncRepository.observeSnapshot(
+            userId = userId,
+            source = AiConversationHistorySource.Bot,
+        ) { result ->
+            result.onSuccess { snapshot ->
+                viewModelScope.launch {
+                    if (currentUserId != userId || currentUserKey != userKey) {
+                        return@launch
+                    }
+                    applyRemoteSnapshot(snapshot, userKey)
+                }
+            }
+        }
+    }
+
+    private fun applyRemoteSnapshot(
+        snapshot: com.nash.skyos.data.AiConversationRemoteSnapshot,
+        userKey: String?,
+    ) {
+        AiConversationHistoryStore.replaceRemoteState(
+            userKey = userKey,
+            source = AiConversationHistorySource.Bot,
+            sessions = snapshot.sessions,
+            entries = snapshot.entries,
+        )
+
+        if (_uiState.value.botPhase.isBusy) {
+            refreshSessionState(currentSessionId)
+        } else {
+            restoreHistory(currentSessionId)
         }
     }
 
