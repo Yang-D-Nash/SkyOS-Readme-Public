@@ -83,7 +83,7 @@ struct HomeHeroIntroCard: View {
     var body: some View {
         BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "SkyOS Home",
+            eyebrow: screenHeaderSettingsStore.settings.resolvedHomeEyebrow ?? "SkyOS",
             title: screenHeaderSettingsStore.settings.resolvedHomeTitle ?? dynamicTitle,
             subtitle: screenHeaderSettingsStore.settings.resolvedHomeSubtitle ?? dynamicSubtitle,
             detail: screenHeaderSettingsStore.settings.resolvedHomeDetail ?? dynamicDetail,
@@ -101,26 +101,14 @@ struct HomeHeroIntroCard: View {
                         switch target {
                         case .track:
                             BrandHeroPill(
-                                text: heroPriorityTarget == .track
-                                    ? (viewModel.featuredTrack == nil
-                                        ? AppLocalized.text("home.hero.pill.track.next.load", fallback: "Next: Load music")
-                                        : AppLocalized.text("home.hero.pill.track.next", fallback: "Next: Music"))
-                                    : (viewModel.featuredTrack == nil
-                                        ? AppLocalized.text("home.hero.pill.track.loading", fallback: "Music loading")
-                                        : AppLocalized.text("home.hero.pill.track.live", fallback: "Music live")),
+                                text: AppLocalized.text("home.utility.music", fallback: "Music"),
                                 colorScheme: colorScheme,
                                 tint: heroPillTint(for: .track),
                                 onTap: onOpenTrack
                             )
                         case .video:
                             BrandHeroPill(
-                                text: heroPriorityTarget == .video
-                                    ? (viewModel.featuredVideo == nil
-                                        ? AppLocalized.text("home.hero.pill.video.next.load", fallback: "Next: Load video")
-                                        : AppLocalized.text("home.hero.pill.video.next", fallback: "Next: Video"))
-                                    : (viewModel.featuredVideo == nil
-                                        ? AppLocalized.text("home.hero.pill.video.loading", fallback: "Video loading")
-                                        : AppLocalized.text("home.hero.pill.video.live", fallback: "Video live")),
+                                text: AppLocalized.text("home.utility.videos", fallback: "Videos"),
                                 colorScheme: colorScheme,
                                 tint: heroPillTint(for: .video),
                                 onTap: onOpenVideo

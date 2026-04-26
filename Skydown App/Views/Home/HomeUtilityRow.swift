@@ -48,15 +48,10 @@ struct HomeUtilityRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(
-                AppLocalized.text("home.explore.title", fallback: "Explore")
+                AppLocalized.text("home.explore.title", fallback: "Open")
             )
             .font(.caption2.weight(.medium))
             .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
-            Text(
-                AppLocalized.text("home.explore.subtitle", fallback: "Open music, videos, merch and settings fast.")
-            )
-            .font(.caption)
-            .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.75))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {

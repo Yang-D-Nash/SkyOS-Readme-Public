@@ -271,6 +271,13 @@ fun HomeScreen(
         else -> listOf("video", "track")
     }
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
+    val topBarActionDescription = stringResource(
+        if (onOpenWorkflow != null) {
+            R.string.home_topbar_workflow_a11y
+        } else {
+            R.string.home_topbar_refresh_a11y
+        },
+    )
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -307,11 +314,7 @@ fun HomeScreen(
                                     } else {
                                         Icons.Default.Refresh
                                     },
-                                    contentDescription = if (onOpenWorkflow != null) {
-                                        "Automationen oeffnen"
-                                    } else {
-                                        "Hub aktualisieren"
-                                    },
+                                    contentDescription = topBarActionDescription,
                                 )
                             }
                         }
@@ -407,15 +410,7 @@ fun HomeScreen(
                                                         ),
                                                 ) {
                                                     BrandPill(
-                                                        text = when {
-                                                            heroPriorityTarget == "track" && uiState.featuredTrack == null ->
-                                                                stringResource(R.string.home_hero_pill_track_next_load)
-                                                            heroPriorityTarget == "track" && uiState.featuredTrack != null ->
-                                                                stringResource(R.string.home_hero_pill_track_next)
-                                                            heroPriorityTarget != "track" && uiState.featuredTrack == null ->
-                                                                stringResource(R.string.home_hero_pill_track_loading)
-                                                            else -> stringResource(R.string.home_hero_pill_track_live)
-                                                        },
+                                                        text = stringResource(R.string.home_utility_music),
                                                         tint = heroPillTint("track"),
                                                         onClick = {
                                                             coroutineScope.launch {
@@ -432,15 +427,7 @@ fun HomeScreen(
                                                         ),
                                                 ) {
                                                     BrandPill(
-                                                        text = when {
-                                                            heroPriorityTarget == "video" && uiState.featuredVideo == null ->
-                                                                stringResource(R.string.home_hero_pill_video_next_load)
-                                                            heroPriorityTarget == "video" && uiState.featuredVideo != null ->
-                                                                stringResource(R.string.home_hero_pill_video_next)
-                                                            heroPriorityTarget != "video" && uiState.featuredVideo == null ->
-                                                                stringResource(R.string.home_hero_pill_video_loading)
-                                                            else -> stringResource(R.string.home_hero_pill_video_live)
-                                                        },
+                                                        text = stringResource(R.string.home_utility_videos),
                                                         tint = heroPillTint("video"),
                                                         onClick = {
                                                             coroutineScope.launch {
@@ -619,11 +606,6 @@ private fun HomeUtilityRow(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium,
             color = colorScheme.onSurface.copy(alpha = 0.50f),
-        )
-        Text(
-            text = stringResource(R.string.home_explore_subtitle),
-            style = MaterialTheme.typography.bodySmall,
-            color = colorScheme.onSurface.copy(alpha = 0.72f),
         )
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1167,17 +1149,16 @@ private fun HomeLatestReleaseCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         HomeSectionBanner(
-            title = "Musik",
-            subtitle = "Neuester Release direkt auf Home.",
+            title = stringResource(R.string.home_media_music_title),
+            subtitle = stringResource(R.string.home_media_music_subtitle),
             icon = Icons.Default.MusicNote,
             accent = SpotifyGreen,
-            tag = "TRACK 02",
         )
         val track = uiState.featuredTrack
 
         if (track == null) {
             Text(
-                text = uiState.homeTrackMessage ?: "Neuer Song erscheint hier.",
+                text = uiState.homeTrackMessage ?: stringResource(R.string.home_track_placeholder),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 8.dp),
@@ -1236,9 +1217,9 @@ private fun HomeLatestReleaseCard(
 
         Text(
             text = when {
-                hasPreview -> "Die Vorschau startet direkt hier."
-                hasSpotifyTarget -> "Falls keine Vorschau da ist, springst du direkt zu Spotify."
-                else -> "Der neueste Track ist hier hinterlegt."
+                hasPreview -> stringResource(R.string.home_track_preview_here)
+                hasSpotifyTarget -> stringResource(R.string.home_track_open_spotify)
+                else -> stringResource(R.string.home_track_ready)
             },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
@@ -1251,7 +1232,11 @@ private fun HomeLatestReleaseCard(
         ) {
             if (hasPreview) {
                 HomeMediaActionButton(
-                    label = if (isPlaying) "Stop" else "Play",
+                    label = if (isPlaying) {
+                        stringResource(R.string.home_media_stop)
+                    } else {
+                        stringResource(R.string.home_media_play)
+                    },
                     isActive = isPlaying,
                     accent = SpotifyGreen,
                     modifier = Modifier.fillMaxWidth(),
@@ -1261,7 +1246,12 @@ private fun HomeLatestReleaseCard(
 
             if (hasSpotifyTarget) {
                 BrandActionButton(
-                    text = homeSpotifyActionLabel(track),
+                    text = homeSpotifyActionLabel(
+                        track = track,
+                        songLabel = stringResource(R.string.home_spotify_song),
+                        artistLabel = stringResource(R.string.home_spotify_artist),
+                        fallbackLabel = stringResource(R.string.home_spotify_open),
+                    ),
                     onClick = { onOpenSpotify(track) },
                     accent = SpotifyGreen,
                     modifier = Modifier.fillMaxWidth(),
@@ -1284,17 +1274,16 @@ private fun HomeLatestVideoCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(SkydownUiTokens.cardPadding)) {
         HomeSectionBanner(
-            title = "Videos",
-            subtitle = "Aktueller Clip direkt auf Home.",
+            title = stringResource(R.string.home_media_video_title),
+            subtitle = stringResource(R.string.home_media_video_subtitle),
             icon = Icons.Default.Movie,
             accent = InstagramOrange,
-            tag = "VIDEO 04",
         )
         val video = uiState.featuredVideo
 
         if (video == null) {
             Text(
-                text = uiState.homeVideoMessage ?: "Neues Video erscheint hier.",
+                text = uiState.homeVideoMessage ?: stringResource(R.string.home_video_placeholder),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 8.dp),
@@ -1352,7 +1341,11 @@ private fun HomeLatestVideoCard(
         }
 
         Text(
-            text = homeVideoModeDescription(video),
+            text = when {
+                video.usesEmbeddedPreview -> stringResource(R.string.home_video_preview_here)
+                video.supportsInlinePlayback -> stringResource(R.string.home_video_in_app)
+                else -> stringResource(R.string.home_video_open_original)
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 14.dp),
@@ -1395,7 +1388,11 @@ private fun HomeLatestVideoCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = video.originalDestinationDescription,
+                    text = if (video.openUrl.isBlank()) {
+                        stringResource(R.string.home_video_no_link)
+                    } else {
+                        stringResource(R.string.home_video_open_original)
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -1404,7 +1401,11 @@ private fun HomeLatestVideoCard(
 
         if (video.downloadUrl.isNotBlank()) {
             HomeMediaActionButton(
-                label = if (isPlaying) "Stoppen" else "Abspielen",
+                label = if (isPlaying) {
+                    stringResource(R.string.home_media_stop)
+                } else {
+                    stringResource(R.string.home_media_play)
+                },
                 isActive = isPlaying,
                 accent = InstagramOrange,
                 modifier = Modifier
@@ -1414,7 +1415,7 @@ private fun HomeLatestVideoCard(
             )
         } else if (video.openUrl.isNotBlank() || video.inlineEmbedUrl.isNotBlank()) {
             HomeMediaActionButton(
-                label = if (video.supportsInlinePlayback) "Video direkt oeffnen" else video.originalActionLabel,
+                label = stringResource(R.string.home_video_open),
                 isActive = false,
                 accent = InstagramOrange,
                 modifier = Modifier
@@ -1424,7 +1425,7 @@ private fun HomeLatestVideoCard(
             )
         } else if (video.supportsInlinePlayback) {
             HomeMediaActionButton(
-                label = "Im Video ansehen",
+                label = stringResource(R.string.home_video_open_hub),
                 isActive = false,
                 accent = InstagramOrange,
                 modifier = Modifier
@@ -1454,14 +1455,6 @@ private fun HomeMediaActionButton(
     )
 }
 
-private fun homeVideoModeDescription(video: FeaturedVideoHighlight): String {
-    return when {
-        video.usesEmbeddedPreview -> "Vorschau hier, ein Tap oeffnet den Clip direkt mit sichtbarem Rueckweg."
-        video.supportsInlinePlayback -> "Ein Tap oeffnet den Clip direkt in der In-App-Ansicht."
-        else -> video.originalDestinationDescription
-    }
-}
-
 private fun homeTrackAudioKey(track: com.skydown.shared.model.Track): String = "track:${track.trackId}"
 
 private fun homeTrackedSignalCount(uiState: HomeUiState): Int = listOf(
@@ -1485,11 +1478,16 @@ private fun homeHasSpotifyTarget(track: com.skydown.shared.model.Track): Boolean
         !track.externalUrl.isNullOrBlank()
 }
 
-private fun homeSpotifyActionLabel(track: com.skydown.shared.model.Track): String {
+private fun homeSpotifyActionLabel(
+    track: com.skydown.shared.model.Track,
+    songLabel: String,
+    artistLabel: String,
+    fallbackLabel: String,
+): String {
     return when {
-        homeResolvedSpotifyTrackId(track) != null -> "Song auf Spotify"
-        homeResolvedSpotifyArtistId(track) != null -> "Artist auf Spotify"
-        else -> "Auf Spotify ansehen"
+        homeResolvedSpotifyTrackId(track) != null -> songLabel
+        homeResolvedSpotifyArtistId(track) != null -> artistLabel
+        else -> fallbackLabel
     }
 }
 

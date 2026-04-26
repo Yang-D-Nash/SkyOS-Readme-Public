@@ -368,7 +368,7 @@ final class HomeViewModel: ObservableObject {
                         homeTrackMessage = track == nil
                             ? AppLocalized.text(
                                 "home.track.placeholder",
-                                fallback: "As soon as a new release is available, it will appear right here."
+                                fallback: "New song soon."
                             )
                             : nil
                         contentSignal = buildContentSignal()
@@ -377,7 +377,7 @@ final class HomeViewModel: ObservableObject {
                         homeVideoMessage = video == nil
                             ? AppLocalized.text(
                                 "home.video.placeholder",
-                                fallback: "As soon as a public video is live, it will appear here under Current."
+                                fallback: "New video soon."
                             )
                             : nil
                         contentSignal = buildContentSignal()

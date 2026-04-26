@@ -90,11 +90,6 @@ struct HomeViewContent: View {
                                     proxy.scrollTo(HomeSectionAnchor.video.rawValue, anchor: .top)
                                 }
                             }
-                            let featuredTrack = viewModel.featuredTrack
-                            let featuredVideo = viewModel.featuredVideo
-                            let hasTrackSignal = featuredTrack != nil
-                            let hasVideoSignal = featuredVideo != nil
-
                             VStack(alignment: .leading, spacing: 6) {
                                 Spacer()
                                     .frame(height: 4)
@@ -193,7 +188,7 @@ struct HomeViewContent: View {
                                 .overlay(Circle().stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.22), lineWidth: 1))
                         }
                         .skydownTactileAction()
-                        .accessibilityLabel("Automationen oeffnen")
+                        .accessibilityLabel(AppLocalized.text("home.toolbar.workflow", fallback: "Open automations"))
                     }
                     AppSessionToolbarActions(
                         onOpenCart: onOpenCart,

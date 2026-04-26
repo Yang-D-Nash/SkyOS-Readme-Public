@@ -43,7 +43,13 @@ private struct HomeLatestReleaseCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HomeSectionBanner(title: "Music Update", subtitle: "Neuester Release aus dem Katalog.", icon: "music.note", colorScheme: colorScheme, accent: AppColors.accent(for: colorScheme))
+            HomeSectionBanner(
+                title: AppLocalized.text("home.media.music.title", fallback: "Music"),
+                subtitle: AppLocalized.text("home.media.music.subtitle", fallback: "Latest release"),
+                icon: "music.note",
+                colorScheme: colorScheme,
+                accent: AppColors.accent(for: colorScheme)
+            )
             if let track = viewModel.featuredTrack {
                 let hasPreview = !(track.previewUrl?.isEmpty ?? true)
                 let hasSpotifyTarget = homeSpotifyTargetURL(for: track) != nil
@@ -59,12 +65,20 @@ private struct HomeLatestReleaseCard: View {
                     }
                     Spacer()
                 }
-                Text(hasPreview ? "Vorschau direkt hier in der App." : (hasSpotifyTarget ? "Direkt bei Spotify weiterhoeren." : "Der neueste Track ist hier fuer dich hinterlegt."))
+                Text(
+                    hasPreview
+                        ? AppLocalized.text("home.track.preview_here", fallback: "Preview here.")
+                        : (hasSpotifyTarget
+                            ? AppLocalized.text("home.track.open_spotify", fallback: "Open on Spotify.")
+                            : AppLocalized.text("home.track.ready", fallback: "Latest track."))
+                )
                     .font(.caption).foregroundColor(AppColors.secondaryText(for: colorScheme))
                 VStack(spacing: 10) {
                     if hasPreview {
                         HomeActionButton(
-                            title: playbackManager.currentlyPlayingId == track.trackId ? "Stop" : "Play",
+                            title: playbackManager.currentlyPlayingId == track.trackId
+                                ? AppLocalized.text("home.media.stop", fallback: "Stop")
+                                : AppLocalized.text("home.media.play", fallback: "Play"),
                             icon: playbackManager.currentlyPlayingId == track.trackId ? "stop.fill" : "play.fill",
                             colorScheme: colorScheme,
                             isPrimary: playbackManager.currentlyPlayingId == track.trackId
@@ -75,7 +89,11 @@ private struct HomeLatestReleaseCard: View {
                     }
                 }
             } else {
-                Text(viewModel.homeTrackMessage ?? "Neuer Song erscheint hier.").font(.body).foregroundColor(AppColors.secondaryText(for: colorScheme))
+                Text(
+                    viewModel.homeTrackMessage
+                        ?? AppLocalized.text("home.track.placeholder", fallback: "New song soon.")
+                )
+                    .font(.body).foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
         }
         .padding(SkydownLayout.cardPadding)
@@ -93,7 +111,13 @@ private struct HomeLatestVideoCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HomeSectionBanner(title: "Visual Update", subtitle: "Naechster Clip direkt im Fokus.", icon: "video.fill", colorScheme: colorScheme, accent: AppColors.accentHighlight(for: colorScheme))
+            HomeSectionBanner(
+                title: AppLocalized.text("home.media.video.title", fallback: "Videos"),
+                subtitle: AppLocalized.text("home.media.video.subtitle", fallback: "Latest clip"),
+                icon: "video.fill",
+                colorScheme: colorScheme,
+                accent: AppColors.accentHighlight(for: colorScheme)
+            )
             if let video = viewModel.featuredVideo {
                 Text(video.title).font(.headline).foregroundColor(AppColors.text(for: colorScheme))
                 if video.usesEmbeddedPreview {
@@ -105,18 +129,24 @@ private struct HomeLatestVideoCard: View {
                 }
                 if !video.downloadURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     HomeActionButton(
-                        title: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "Stoppen" : "Abspielen",
+                        title: playbackManager.isPlaying && playbackManager.currentVideoID == video.id
+                            ? AppLocalized.text("home.media.stop", fallback: "Stop")
+                            : AppLocalized.text("home.media.play", fallback: "Play"),
                         icon: playbackManager.isPlaying && playbackManager.currentVideoID == video.id ? "stop.fill" : "play.rectangle.fill",
                         colorScheme: colorScheme,
                         isPrimary: playbackManager.isPlaying && playbackManager.currentVideoID == video.id
                     ) { onPlayToggle(video) }
                 } else if !video.openURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !video.embedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    HomeActionButton(title: video.supportsInlinePlayback ? "Video direkt oeffnen" : video.provider.originalVideoActionTitle, icon: video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square", colorScheme: colorScheme, isPrimary: true) { onOpenOriginal(video) }
+                    HomeActionButton(title: AppLocalized.text("home.video.open", fallback: "Open video"), icon: video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square", colorScheme: colorScheme, isPrimary: true) { onOpenOriginal(video) }
                 } else if video.supportsInlinePlayback {
-                    HomeActionButton(title: "Im Video ansehen", icon: "rectangle.portrait.and.arrow.right", colorScheme: colorScheme, isPrimary: true) { onOpenVideoHub(video) }
+                    HomeActionButton(title: AppLocalized.text("home.video.open_hub", fallback: "Open videos"), icon: "rectangle.portrait.and.arrow.right", colorScheme: colorScheme, isPrimary: true) { onOpenVideoHub(video) }
                 }
             } else {
-                Text(viewModel.homeVideoMessage ?? "Neues Video erscheint hier.").font(.body).foregroundColor(AppColors.secondaryText(for: colorScheme))
+                Text(
+                    viewModel.homeVideoMessage
+                        ?? AppLocalized.text("home.video.placeholder", fallback: "New video soon.")
+                )
+                    .font(.body).foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
         }
         .padding(SkydownLayout.cardPadding)
@@ -138,10 +168,16 @@ private func homeSpotifyTargetURL(for track: Track) -> URL? {
 }
 
 private func homeSpotifyActionTitle(for track: Track) -> String {
-    if let spotifyTrackID = track.spotifyTrackID, !spotifyTrackID.isEmpty { return "Song auf Spotify" }
-    if let spotifyArtistID = track.spotifyArtistID, !spotifyArtistID.isEmpty { return "Artist auf Spotify" }
-    if let externalURL = track.externalURL, externalURL.contains("/artist/") { return "Artist auf Spotify" }
-    return "Auf Spotify ansehen"
+    if let spotifyTrackID = track.spotifyTrackID, !spotifyTrackID.isEmpty {
+        return AppLocalized.text("home.spotify.song", fallback: "Open song")
+    }
+    if let spotifyArtistID = track.spotifyArtistID, !spotifyArtistID.isEmpty {
+        return AppLocalized.text("home.spotify.artist", fallback: "Open artist")
+    }
+    if let externalURL = track.externalURL, externalURL.contains("/artist/") {
+        return AppLocalized.text("home.spotify.artist", fallback: "Open artist")
+    }
+    return AppLocalized.text("home.spotify.open", fallback: "Open Spotify")
 }
 
 enum HomeActionBrand { case neutral, spotify, instagram, youtube }
