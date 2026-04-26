@@ -32,29 +32,30 @@ Owner: Release Engineering
 ### iOS Upload Status
 - Archive build: DONE
 - IPA export: DONE
-- Apple developer/App Store Connect release: USER-REPORTED DONE
-- CLI validation/upload attempt: BLOCKED
-- Blocker details:
-  - `xcrun altool --list-providers` requires explicit auth params (`--api-key/--api-issuer` or `--username/--app-password/--provider-public-id`)
-  - `xcrun iTMSTransporter` reports local Transporter app dependency and cannot proceed in current CLI environment
-- CLI upload remains unavailable in this local shell without App Store Connect API credentials or an authenticated Transporter app session
+- App Store Connect CLI upload: DONE
+- Processing status: uploaded package is processing in App Store Connect
+- Notes:
+  - Initial upload attempt was rejected by App Store Connect for Apple AppIcon alpha (`90717`).
+  - Active Apple `AppIcon.appiconset` PNGs were converted to opaque RGB files and the upload succeeded.
+  - Xcode reported missing dSYMs for Firebase binary frameworks during symbol upload; app package upload still succeeded.
 
 ### Google Upload Status
 - Release AAB build: DONE
-- Play Console release: USER-REPORTED DONE
-- Play upload automation: NOT CONFIGURED IN REPO
-- Reason: no Google Play Publisher/Fastlane service-account upload pipeline is present
-- Future uploads still require manual Play Console upload or a new service-account based automation path
+- Play upload automation: CONFIGURED via Fastlane `upload_android_internal`
+- CLI upload attempt: BLOCKED
+- Blocker details:
+  - Fastlane requires `SUPPLY_JSON_KEY` to point at a Google Play service-account JSON key.
+  - Current shell has no `SUPPLY_JSON_KEY`, so Play Console upload must be manual or rerun after exporting that environment variable.
 
 ## Execution Log (Direct Upload Run)
 
-1. Re-validated release artifacts exist (`SkyOS.xcarchive`, `SkyOS.ipa`, `androidApp-release.aab`).
-2. Rebuilt Android release bundle (`./gradlew :androidApp:bundleRelease`) -> `BUILD SUCCESSFUL`.
-3. Attempted Apple CLI validation/upload path:
-   - `xcrun altool --validate-app ...` (hang/no usable auth context in this shell session)
-   - `xcrun altool --list-providers` -> explicit auth required
-   - `xcrun iTMSTransporter -m verify ...` -> local Transporter app requirement message
-4. Stopped before any public release submission.
+1. Rebuilt Android release bundle (`./gradlew :androidApp:bundleRelease`) -> `BUILD SUCCESSFUL`.
+2. Rebuilt iOS archive (`xcodebuild archive`) -> `ARCHIVE SUCCEEDED`.
+3. Exported iOS App Store package (`xcodebuild -exportArchive`) -> `EXPORT SUCCEEDED`.
+4. Attempted App Store Connect upload for build `10003`; first attempt failed with `90717` because Apple does not allow alpha in the large AppIcon.
+5. Converted active Apple `AppIcon.appiconset` PNGs to opaque RGB, rebuilt archive/export, and retried upload.
+6. App Store Connect upload for iOS build `10003` succeeded; uploaded package is processing.
+7. Attempted Play upload via `fastlane android upload_android_internal`; stopped at missing `SUPPLY_JSON_KEY`.
 
 ## Post-Upload Hardening Notes
 

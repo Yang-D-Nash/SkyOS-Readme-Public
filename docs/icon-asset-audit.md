@@ -21,6 +21,7 @@ Result:
 - Marketing icon (`1024x1024`) is present
 - All referenced PNG files exist
 - Pixel dimensions match expected values from `size x scale`
+- Active Apple AppIcon PNGs are opaque RGB files without alpha, matching App Store upload requirements
 - No "Icon too large" mismatch found in catalog metadata
 
 ## Android audit

@@ -114,7 +114,8 @@ Inset margin: `@dimen/ic_launcher_foreground_inset` in `values/dimens.xml`. Keep
 (a few dp): the Android-specific PNG already carries launcher safe-area padding, so a large XML
 inset would make the round mark look tiny on the home screen.
 
-**Note:** iOS uses the full 1024×1024 SkyOS master. Android uses
+**Note:** iOS uses the full 1024×1024 SkyOS master as Apple-compliant opaque
+AppIcon PNGs without alpha. Android uses
 `docs/assets/skyos-app-icon-1024-android-padded.png`, a 78% scaled mirror of that master, as
 `ic_launcher_foreground_src.png` so OEM adaptive masks do not clip the circle or bottom badge.
 

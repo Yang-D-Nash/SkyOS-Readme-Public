@@ -52,7 +52,7 @@ Alle Produktflaechen sind Teil eines Systems, nicht lose Einzel-Apps:
 
 ## App Icon Gallery
 
-Aktives Master-Icon (derzeit im Projekt ausgerollt). **iOS:** `docs/assets/skyos-app-icon-1024.png` = transparenter 1024×1024-Master → `AppIcon.appiconset`. **Android:** `ic_launcher_foreground_src` nutzt den Android-Spiegel `docs/assets/skyos-app-icon-1024-android-padded.png` mit 78% Motivgroesse plus kleinem `ic_launcher_foreground_inset`, damit Adaptive-Icon-Masken nichts anschneiden. README-Vorschau (iOS):
+Aktives Master-Icon (derzeit im Projekt ausgerollt). **iOS:** `docs/assets/skyos-app-icon-1024.png` bleibt der transparente 1024×1024-Master; `AppIcon.appiconset` nutzt daraus Apple-konforme opaque PNGs ohne Alpha-Kanal. **Android:** `ic_launcher_foreground_src` nutzt den Android-Spiegel `docs/assets/skyos-app-icon-1024-android-padded.png` mit 78% Motivgroesse plus kleinem `ic_launcher_foreground_inset`, damit Adaptive-Icon-Masken nichts anschneiden. README-Vorschau (iOS):
 
 <p align="center">
   <img src="docs/assets/skyos-app-icon.png" alt="SkyOS Active App Icon Master" width="220" />
