@@ -297,12 +297,22 @@ struct FeaturedHomeVideo: Identifiable {
         ExternalMediaProvider(rawValueOrDefault: sourceProvider)
     }
 
+    var nativePlaybackURLString: String {
+        let trimmedDownloadURL = downloadURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedDownloadURL.isEmpty {
+            return trimmedDownloadURL
+        }
+
+        let trimmedExternalURL = externalURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        return isDirectFeaturedHomeVideoURL(trimmedExternalURL) ? trimmedExternalURL : ""
+    }
+
     var usesEmbeddedPreview: Bool {
-        provider != .firebaseStorage && !embedURL.isEmpty && downloadURL.isEmpty
+        provider != .firebaseStorage && !embedURL.isEmpty && nativePlaybackURLString.isEmpty
     }
 
     var supportsInlinePlayback: Bool {
-        usesEmbeddedPreview || !downloadURL.isEmpty
+        usesEmbeddedPreview || !nativePlaybackURLString.isEmpty
     }
 
     var opensOriginalInApp: Bool {
@@ -314,7 +324,7 @@ struct FeaturedHomeVideo: Identifiable {
             return "Kein Original-Link verfuegbar."
         }
 
-        if !downloadURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if !nativePlaybackURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Dieser Clip startet direkt in der In-App-Ansicht."
         }
 
@@ -324,6 +334,17 @@ struct FeaturedHomeVideo: Identifiable {
     var openURLString: String {
         externalURL.isEmpty ? downloadURL : externalURL
     }
+}
+
+private func isDirectFeaturedHomeVideoURL(_ value: String) -> Bool {
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let url = URL(string: trimmed) else { return false }
+    let path = url.path.lowercased()
+    return path.hasSuffix(".mp4")
+        || path.hasSuffix(".mov")
+        || path.hasSuffix(".m4v")
+        || path.hasSuffix(".webm")
+        || path.hasSuffix(".m3u8")
 }
 
 @MainActor

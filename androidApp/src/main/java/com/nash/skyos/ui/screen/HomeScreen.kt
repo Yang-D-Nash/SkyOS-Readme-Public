@@ -232,14 +232,14 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(uiState.featuredVideo?.id, uiState.featuredVideo?.downloadUrl) {
+    LaunchedEffect(uiState.featuredVideo?.id, uiState.featuredVideo?.nativePlaybackUrl) {
         val featuredVideo = uiState.featuredVideo
-        if (featuredVideo == null || featuredVideo.downloadUrl.isBlank()) {
+        if (featuredVideo == null || featuredVideo.nativePlaybackUrl.isBlank()) {
             videoPlayer.stop()
             videoPlayer.clearMediaItems()
             currentVideoId = null
         } else {
-            videoPlayer.setMediaItem(MediaItem.fromUri(featuredVideo.downloadUrl))
+            videoPlayer.setMediaItem(MediaItem.fromUri(featuredVideo.nativePlaybackUrl))
             videoPlayer.prepare()
             videoPlayer.pause()
             currentVideoId = null
@@ -494,7 +494,8 @@ fun HomeScreen(
                                 }
                             },
                             onPlayVideoToggle = { video ->
-                                if (video.downloadUrl.isBlank()) return@HomeMediaCluster
+                                val playbackUrl = video.nativePlaybackUrl
+                                if (playbackUrl.isBlank()) return@HomeMediaCluster
                                 if (currentVideoId == video.id) {
                                     videoPlayer.pause()
                                     videoPlayer.seekTo(0)
@@ -503,7 +504,7 @@ fun HomeScreen(
                                     audioPlayer.stop()
                                     audioPlayer.clearMediaItems()
                                     currentAudioKey = null
-                                    videoPlayer.setMediaItem(MediaItem.fromUri(video.downloadUrl))
+                                    videoPlayer.setMediaItem(MediaItem.fromUri(playbackUrl))
                                     videoPlayer.prepare()
                                     videoPlayer.play()
                                     currentVideoId = video.id
@@ -1361,7 +1362,7 @@ private fun HomeLatestVideoCard(
                     .padding(top = 14.dp)
                     .clip(MaterialTheme.shapes.extraLarge),
             )
-        } else if (video.downloadUrl.isNotBlank()) {
+        } else if (video.nativePlaybackUrl.isNotBlank()) {
             AndroidView(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1400,7 +1401,7 @@ private fun HomeLatestVideoCard(
             }
         }
 
-        if (video.downloadUrl.isNotBlank()) {
+        if (video.nativePlaybackUrl.isNotBlank()) {
             HomeMediaActionButton(
                 label = if (isPlaying) {
                     stringResource(R.string.home_media_stop)

@@ -166,6 +166,7 @@ private fun directMimeType(
             path.endsWith(".mov") -> "video/quicktime"
             path.endsWith(".m4v") -> "video/x-m4v"
             path.endsWith(".webm") -> "video/webm"
+            path.endsWith(".m3u8") -> "application/x-mpegURL"
             else -> null
         }
 

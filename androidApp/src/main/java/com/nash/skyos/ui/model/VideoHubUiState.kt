@@ -35,7 +35,9 @@ data class VideoHubItem(
         get() = ExternalMediaProvider.from(sourceProvider)
 
     val nativePlaybackUrl: String
-        get() = downloadUrl.takeIf { it.isNotBlank() }.orEmpty()
+        get() = downloadUrl.takeIf { it.isNotBlank() }
+            ?: externalUrl.takeIf(::isDirectVideoPlaybackUrl)
+            ?: ""
 
     val openUrl: String
         get() = externalUrl.takeIf { it.isNotBlank() } ?: nativePlaybackUrl
@@ -76,7 +78,7 @@ data class VideoHubItem(
         get() = provider.originalVideoActionLabel
 
     val directOpenActionLabel: String
-        get() = if (supportsInlinePlayback) "Video direkt oeffnen" else originalActionLabel
+        get() = originalActionLabel
 
     val originalDestinationDescription: String
         get() = when {
@@ -86,12 +88,19 @@ data class VideoHubItem(
         }
 
     val isPlayable: Boolean
-        get() = nativePlaybackUrl.isNotBlank() && (
-            mimeType.startsWith("video/") ||
-            fileName.lowercase().endsWith(".mp4") ||
-            fileName.lowercase().endsWith(".mov") ||
-            fileName.lowercase().endsWith(".m4v")
-        )
+        get() = nativePlaybackUrl.isNotBlank() &&
+            (mimeType.startsWith("video/") || isDirectVideoPlaybackUrl(nativePlaybackUrl))
+}
+
+private fun isDirectVideoPlaybackUrl(rawValue: String): Boolean {
+    val normalizedPath = runCatching {
+        Uri.parse(rawValue.trim()).path.orEmpty().lowercase()
+    }.getOrDefault("")
+    return normalizedPath.endsWith(".mp4") ||
+        normalizedPath.endsWith(".mov") ||
+        normalizedPath.endsWith(".m4v") ||
+        normalizedPath.endsWith(".webm") ||
+        normalizedPath.endsWith(".m3u8")
 }
 
 data class VideoHubUiState(

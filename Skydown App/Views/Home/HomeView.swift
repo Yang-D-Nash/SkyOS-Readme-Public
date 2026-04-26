@@ -316,7 +316,7 @@ private struct HomeFullscreenVideoViewer: View {
                 if video.usesEmbeddedPreview {
                     ExternalVideoEmbedSurface(urlString: video.embedURL)
                         .ignoresSafeArea()
-                } else if let url = URL(string: video.downloadURL), !video.downloadURL.isEmpty {
+                } else if let url = URL(string: video.nativePlaybackURLString), !video.nativePlaybackURLString.isEmpty {
                     VideoPlayer(player: player)
                         .ignoresSafeArea()
                         .onAppear {
@@ -386,7 +386,7 @@ private struct HomeFullscreenVideoViewer: View {
     }
 
     private var supportsAppPlaybackControls: Bool {
-        !video.usesEmbeddedPreview && !video.downloadURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !video.usesEmbeddedPreview && !video.nativePlaybackURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func togglePlayback() {

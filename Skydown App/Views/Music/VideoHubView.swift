@@ -952,11 +952,11 @@ private struct VideoHubLibraryRow: View {
     let onDelete: () -> Void
 
     private var routeTitle: String {
-        if video.opensOriginalInApp {
-            return video.supportsInlinePlayback ? "Direkt in App + Original" : "Original in App"
-        }
         if video.supportsInlinePlayback {
             return "Direkt im Reel"
+        }
+        if video.opensOriginalInApp {
+            return "Original in App"
         }
         return "Externer Clip"
     }
@@ -968,22 +968,20 @@ private struct VideoHubLibraryRow: View {
                     ? "Der Clip sitzt gerade im Player und kann sofort gestartet oder gestoppt werden."
                     : "Ein Tap setzt den Clip in den Player. Von dort bleibt er als Fokus-Video sichtbar."
             }
-            if video.opensOriginalInApp {
-                return "Das Original bleibt in der App erreichbar, inklusive Schliessen und Rueckweg."
-            }
             if video.supportsInlinePlayback {
                 return "Der Clip laeuft direkt als In-App-Reel mit schnellem Preview-Flow."
+            }
+            if video.opensOriginalInApp {
+                return "Das Original bleibt in der App erreichbar, inklusive Schliessen und Rueckweg."
             }
             return "Aktuell steht hier nur der externe Aufruf zur Verfuegung."
         }
 
-        if video.opensOriginalInApp {
-            return video.supportsInlinePlayback
-                ? "Ein Tap oeffnet den Clip direkt in der App, ohne Zwischenweg ueber den Browser."
-                : "Ein Tap bringt dich in die In-App-Originalansicht mit sicherem Zurueck in die App."
-        }
         if video.supportsInlinePlayback {
             return "Ein Tap startet die direkte Videoansicht ohne weiteren Zwischenscreen."
+        }
+        if video.opensOriginalInApp {
+            return "Ein Tap bringt dich in die In-App-Originalansicht mit sicherem Zurueck in die App."
         }
         return "Dieses Video wird derzeit ueber einen externen Link geoeffnet."
     }
@@ -1171,16 +1169,14 @@ private struct VideoHubLibraryRow: View {
                         }
                         .buttonStyle(.bordered)
 
-                        Button(action: video.isPlayable ? onPlayToggle : (video.opensOriginalInApp ? onOpenOriginal : onOpenReel)) {
+                        Button(action: video.isPlayable ? onPlayToggle : (video.supportsInlinePlayback ? onOpenReel : onOpenOriginal)) {
                             Label(
                                 video.isPlayable
                                     ? (isPlaying ? "Stoppen" : "Abspielen")
-                                    : (video.opensOriginalInApp ? "Direkt oeffnen" : (video.supportsInlinePlayback ? "Ansehen" : "Oeffnen")),
+                                    : (video.supportsInlinePlayback ? "Ansehen" : "Oeffnen"),
                                 systemImage: video.isPlayable
                                     ? (isPlaying ? "stop.fill" : "play.fill")
-                                    : (video.opensOriginalInApp
-                                        ? "rectangle.portrait.and.arrow.right"
-                                        : (video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square"))
+                                    : (video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square")
                             )
                             .frame(maxWidth: .infinity)
                         }
@@ -1189,25 +1185,23 @@ private struct VideoHubLibraryRow: View {
                         .disabled(!video.isPlayable && !video.supportsInlinePlayback && !video.opensOriginalInApp)
                     }
                 } else {
-                    if video.opensOriginalInApp {
-                        Button(action: onOpenOriginal) {
-                            Label(
-                                video.directOpenActionTitle,
-                                systemImage: video.supportsInlinePlayback
-                                    ? "rectangle.portrait.and.arrow.right"
-                                    : "arrow.up.forward.square"
-                            )
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(video.supportsInlinePlayback ? AppColors.accentMystic(for: colorScheme) : AppColors.accent(for: colorScheme))
-                    } else if video.supportsInlinePlayback {
+                    if video.supportsInlinePlayback {
                         Button(action: onOpenReel) {
                             Label("Direkt im Video", systemImage: "play.rectangle.fill")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(AppColors.accentMystic(for: colorScheme))
+                    } else if video.opensOriginalInApp {
+                        Button(action: onOpenOriginal) {
+                            Label(
+                                video.directOpenActionTitle,
+                                systemImage: "arrow.up.forward.square"
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.accent(for: colorScheme))
                     }
                 }
 
@@ -1304,16 +1298,14 @@ private struct VideoHubLibraryRow: View {
                     }
                     .buttonStyle(.bordered)
 
-                    Button(action: video.isPlayable ? onPlayToggle : (video.opensOriginalInApp ? onOpenOriginal : onOpenReel)) {
+                    Button(action: video.isPlayable ? onPlayToggle : (video.supportsInlinePlayback ? onOpenReel : onOpenOriginal)) {
                         Label(
                             video.isPlayable
                                 ? (isPlaying ? "Stoppen" : "Abspielen")
-                                : (video.opensOriginalInApp ? "Direkt oeffnen" : (video.supportsInlinePlayback ? "Ansehen" : "Oeffnen")),
+                                : (video.supportsInlinePlayback ? "Ansehen" : "Oeffnen"),
                             systemImage: video.isPlayable
                                 ? (isPlaying ? "stop.fill" : "play.fill")
-                                : (video.opensOriginalInApp
-                                    ? "rectangle.portrait.and.arrow.right"
-                                    : (video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square"))
+                                : (video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square")
                         )
                             .frame(maxWidth: .infinity)
                     }
@@ -1322,25 +1314,23 @@ private struct VideoHubLibraryRow: View {
                     .disabled(!video.isPlayable && !video.supportsInlinePlayback && !video.opensOriginalInApp)
                 }
             } else {
-                if video.opensOriginalInApp {
-                    Button(action: onOpenOriginal) {
-                        Label(
-                            video.directOpenActionTitle,
-                            systemImage: video.supportsInlinePlayback
-                                ? "rectangle.portrait.and.arrow.right"
-                                : "arrow.up.forward.square"
-                        )
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(video.supportsInlinePlayback ? AppColors.accentMystic(for: colorScheme) : AppColors.accent(for: colorScheme))
-                } else if video.supportsInlinePlayback {
+                if video.supportsInlinePlayback {
                     Button(action: onOpenReel) {
                         Label("Direkt im Video", systemImage: "play.rectangle.fill")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(AppColors.accentMystic(for: colorScheme))
+                } else if video.opensOriginalInApp {
+                    Button(action: onOpenOriginal) {
+                        Label(
+                            video.directOpenActionTitle,
+                            systemImage: "arrow.up.forward.square"
+                        )
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accent(for: colorScheme))
                 }
             }
 

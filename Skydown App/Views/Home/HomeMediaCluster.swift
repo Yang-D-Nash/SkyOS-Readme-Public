@@ -122,12 +122,12 @@ private struct HomeLatestVideoCard: View {
                 Text(video.title).font(.headline).foregroundColor(AppColors.text(for: colorScheme))
                 if video.usesEmbeddedPreview {
                     ExternalVideoEmbedSurface(urlString: video.embedURL).frame(height: 220).clipShape(RoundedRectangle(cornerRadius: 20))
-                } else if !video.downloadURL.isEmpty {
+                } else if !video.nativePlaybackURLString.isEmpty {
                     VideoPlayer(player: playbackManager.player).frame(height: 220).allowsHitTesting(false).clipShape(RoundedRectangle(cornerRadius: 20))
                         .onAppear { playbackManager.prepare(video: video) }
                         .onChange(of: video.id) { _, _ in playbackManager.prepare(video: video) }
                 }
-                if !video.downloadURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if !video.nativePlaybackURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     HomeActionButton(
                         title: playbackManager.isPlaying && playbackManager.currentVideoID == video.id
                             ? AppLocalized.text("home.media.stop", fallback: "Stop")
@@ -237,7 +237,9 @@ final class HomeInlineVideoPlaybackManager: ObservableObject {
     }
 
     func prepare(video: FeaturedHomeVideo?) {
-        guard let video, let url = URL(string: video.downloadURL), !video.downloadURL.isEmpty else {
+        guard let video,
+              let url = URL(string: video.nativePlaybackURLString),
+              !video.nativePlaybackURLString.isEmpty else {
             stop()
             player.replaceCurrentItem(with: nil)
             currentVideoID = nil

@@ -2784,31 +2784,21 @@ private fun VideoLibraryRow(
                     }
                 }
             } else {
-                if (video.opensOriginalInApp) {
-                    if (video.supportsInlinePlayback) {
-                        Button(
-                            onClick = onOpenOriginal,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                        ) {
-                            Text(videoHubDirectCompactActionLabel(video))
-                        }
-                    } else {
-                        OutlinedButton(
-                            onClick = onOpenOriginal,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                        ) {
-                            Text(video.originalActionLabel)
-                        }
-                    }
-                } else if (video.supportsInlinePlayback) {
+                if (video.supportsInlinePlayback) {
                     Button(
                         onClick = onOpenReel,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp),
                     ) {
                         Text(videoHubInlineCompactActionLabel(video))
+                    }
+                } else if (video.opensOriginalInApp) {
+                    OutlinedButton(
+                        onClick = onOpenOriginal,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Text(video.originalActionLabel)
                     }
                 }
             }
@@ -2829,24 +2819,20 @@ private fun videoLibraryInteractionHint(
                 "Ein Tap laedt den Clip in den Player und macht ihn zum aktuellen Fokus."
             }
         }
-        if (video.opensOriginalInApp) {
-            return "Das Original bleibt in der App und fuehrt mit Schliessen sicher zurueck."
-        }
         if (video.supportsInlinePlayback) {
             return "Dieser Clip laeuft direkt im In-App-Reel ohne Browser-Zwischenweg."
         }
-            return "Aktuell steht hier nur der externe Aufruf zur Verfuegung."
+        if (video.opensOriginalInApp) {
+            return "Das Original bleibt in der App und fuehrt mit Schliessen sicher zurueck."
+        }
+        return "Aktuell steht hier nur der externe Aufruf zur Verfuegung."
     }
 
-    if (video.opensOriginalInApp) {
-        return if (video.supportsInlinePlayback) {
-            "Ein Tap oeffnet den Clip direkt in der App, ohne weiteren Zwischenscreen."
-        } else {
-            "Ein Tap bringt dich in die In-App-Originalansicht mit sicherem Rueckweg."
-        }
-    }
     if (video.supportsInlinePlayback) {
         return "Ein Tap startet die direkte Videoansicht sofort im Feed-Flow."
+    }
+    if (video.opensOriginalInApp) {
+        return "Ein Tap bringt dich in die In-App-Originalansicht mit sicherem Rueckweg."
     }
     return "Dieses Video wird derzeit ueber einen externen Link geoeffnet."
 }
@@ -3036,7 +3022,7 @@ private fun VideoReelViewerDialog(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            if (it.opensOriginalInApp) {
+                            if (it.opensOriginalInApp && !it.supportsInlinePlayback) {
                                 BrandActionButton(
                                     text = it.directOpenActionLabel,
                                     onClick = { onOpenOriginal(it) },
@@ -3208,14 +3194,6 @@ private fun videoHubInlineCompactActionLabel(video: VideoHubItem): String {
         "In Preview"
     } else {
         "Direkt im Video"
-    }
-}
-
-private fun videoHubDirectCompactActionLabel(video: VideoHubItem): String {
-    return if (video.supportsInlinePlayback) {
-        "Direkt oeffnen"
-    } else {
-        video.originalActionLabel
     }
 }
 

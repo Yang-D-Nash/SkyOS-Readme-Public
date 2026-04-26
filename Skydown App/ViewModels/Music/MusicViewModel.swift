@@ -292,6 +292,7 @@ private func directMimeType(for url: URL, kind: ExternalMediaKind) -> String? {
         if path.hasSuffix(".mov") { return "video/quicktime" }
         if path.hasSuffix(".m4v") { return "video/x-m4v" }
         if path.hasSuffix(".webm") { return "video/webm" }
+        if path.hasSuffix(".m3u8") { return "application/x-mpegURL" }
         return nil
     case .audio:
         if path.hasSuffix(".mp3") { return "audio/mpeg" }
@@ -309,6 +310,12 @@ private extension String {
         guard trimmed.count == 11 else { return nil }
         return trimmed
     }
+}
+
+private func isDirectVideoPlaybackURLString(_ value: String) -> Bool {
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let url = URL(string: trimmed) else { return false }
+    return directMimeType(for: url, kind: .video) != nil
 }
 
 struct NicmaSelectedFile: Identifiable {
@@ -980,7 +987,13 @@ struct SkydownVideoHubItem: Identifiable {
     }
 
     var nativePlaybackURLString: String {
-        downloadURL
+        let trimmedDownloadURL = downloadURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedDownloadURL.isEmpty {
+            return trimmedDownloadURL
+        }
+
+        let trimmedExternalURL = externalURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        return isDirectVideoPlaybackURLString(trimmedExternalURL) ? trimmedExternalURL : ""
     }
 
     var openURLString: String {
@@ -1016,7 +1029,7 @@ struct SkydownVideoHubItem: Identifiable {
     }
 
     var directOpenActionTitle: String {
-        supportsInlinePlayback ? "Video direkt oeffnen" : provider.originalVideoActionTitle
+        provider.originalVideoActionTitle
     }
 
     var originalDestinationDescription: String {
@@ -1032,11 +1045,10 @@ struct SkydownVideoHubItem: Identifiable {
     }
 
     var isPlayable: Bool {
-        !nativePlaybackURLString.isEmpty && (
+        let playbackURLString = nativePlaybackURLString.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !playbackURLString.isEmpty && (
             mimeType.hasPrefix("video/")
-            || fileName.lowercased().hasSuffix(".mp4")
-            || fileName.lowercased().hasSuffix(".mov")
-            || fileName.lowercased().hasSuffix(".m4v")
+            || isDirectVideoPlaybackURLString(playbackURLString)
         )
     }
 }

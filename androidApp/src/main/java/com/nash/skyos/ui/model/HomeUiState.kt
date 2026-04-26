@@ -17,13 +17,18 @@ data class FeaturedVideoHighlight(
     val provider: ExternalMediaProvider
         get() = ExternalMediaProvider.from(sourceProvider)
 
+    val nativePlaybackUrl: String
+        get() = downloadUrl.takeIf { it.isNotBlank() }
+            ?: externalUrl.takeIf(::isDirectHomeVideoPlaybackUrl)
+            ?: ""
+
     val usesEmbeddedPreview: Boolean
         get() = provider != ExternalMediaProvider.FIREBASE_STORAGE &&
             inlineEmbedUrl.isNotBlank() &&
-            downloadUrl.isBlank()
+            nativePlaybackUrl.isBlank()
 
     val supportsInlinePlayback: Boolean
-        get() = usesEmbeddedPreview || downloadUrl.isNotBlank()
+        get() = usesEmbeddedPreview || nativePlaybackUrl.isNotBlank()
 
     val isYouTubeSource: Boolean
         get() = resolveYouTubeVideoId(embedUrl.ifBlank { externalUrl }) != null
@@ -47,9 +52,20 @@ data class FeaturedVideoHighlight(
     val originalDestinationDescription: String
         get() = when {
             openUrl.isBlank() -> "Kein Original-Link verfuegbar."
-            downloadUrl.isNotBlank() -> "Dieser Clip startet direkt in der In-App-Ansicht."
+            nativePlaybackUrl.isNotBlank() -> "Dieser Clip startet direkt in der In-App-Ansicht."
             else -> "Dieser Link startet in einer In-App-Webansicht mit Zurueck und Schliessen."
         }
+}
+
+private fun isDirectHomeVideoPlaybackUrl(rawValue: String): Boolean {
+    val normalizedPath = runCatching {
+        android.net.Uri.parse(rawValue.trim()).path.orEmpty().lowercase()
+    }.getOrDefault("")
+    return normalizedPath.endsWith(".mp4") ||
+        normalizedPath.endsWith(".mov") ||
+        normalizedPath.endsWith(".m4v") ||
+        normalizedPath.endsWith(".webm") ||
+        normalizedPath.endsWith(".m3u8")
 }
 
 data class HomeUiState(
