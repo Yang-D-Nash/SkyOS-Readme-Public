@@ -306,6 +306,7 @@ private struct HomeFullscreenVideoViewer: View {
     let video: FeaturedHomeVideo
     @Environment(\.dismiss) private var dismiss
     @State private var player = AVPlayer()
+    @State private var isPlaying = false
 
     var body: some View {
         GeometryReader { proxy in
@@ -321,6 +322,7 @@ private struct HomeFullscreenVideoViewer: View {
                         .onAppear {
                             player.replaceCurrentItem(with: AVPlayerItem(url: url))
                             player.play()
+                            isPlaying = true
                         }
                 } else {
                     VStack(spacing: 12) {
@@ -334,20 +336,50 @@ private struct HomeFullscreenVideoViewer: View {
                     }
                     .padding(24)
                 }
+
+                if supportsAppPlaybackControls {
+                    HStack {
+                        Spacer()
+
+                        SkydownVideoFullscreenPlaybackButton(isPlaying: isPlaying) {
+                            togglePlayback()
+                        }
+                    }
+                    .padding(.trailing, 18)
+                    .padding(.bottom, max(proxy.safeAreaInsets.bottom + 18, 30))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .zIndex(14)
+                }
             }
             .ignoresSafeArea()
             .overlay(alignment: .topTrailing) {
                 SkydownVideoFullscreenCloseButton {
                     dismiss()
                 }
-                .padding(.top, max(proxy.safeAreaInsets.top + 10, 18))
-                .padding(.trailing, 16)
-                .zIndex(1_000)
+                .padding(.top, max(proxy.safeAreaInsets.top + 12, 22))
+                .padding(.trailing, 18)
+                .zIndex(1_100)
             }
         }
         .onDisappear {
             player.pause()
             player.replaceCurrentItem(with: nil)
+            isPlaying = false
+        }
+    }
+
+    private var supportsAppPlaybackControls: Bool {
+        !video.usesEmbeddedPreview && !video.downloadURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func togglePlayback() {
+        guard supportsAppPlaybackControls else { return }
+        if isPlaying {
+            player.pause()
+            isPlaying = false
+        } else {
+            player.play()
+            isPlaying = true
         }
     }
 }

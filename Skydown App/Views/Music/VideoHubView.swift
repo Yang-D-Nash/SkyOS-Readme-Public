@@ -1543,6 +1543,7 @@ private struct VideoReelViewer: View {
     @State private var currentIndex: Int
     @State private var player = AVPlayer()
     @State private var isTransitioning = false
+    @State private var isPlaying = false
 
     init(
         videos: [SkydownVideoHubItem],
@@ -1680,15 +1681,29 @@ private struct VideoReelViewer: View {
                     .transition(.opacity)
                     .zIndex(12)
                 }
-            }
-            .overlay(alignment: .topTrailing) {
-                SkydownVideoFullscreenCloseButton {
-                    dismiss()
+
+                if currentVideoSupportsAppControls {
+                    HStack {
+                        Spacer()
+
+                        SkydownVideoFullscreenPlaybackButton(isPlaying: isPlaying) {
+                            togglePlayback()
+                        }
+                    }
+                    .padding(.trailing, 18)
+                    .padding(.bottom, max(proxy.safeAreaInsets.bottom + 18, 30))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .zIndex(14)
                 }
-                .padding(.top, max(proxy.safeAreaInsets.top + 10, 18))
-                .padding(.trailing, 16)
-                .zIndex(1_000)
-            }
+                }
+                .overlay(alignment: .topTrailing) {
+                    SkydownVideoFullscreenCloseButton {
+                        dismiss()
+                    }
+                    .padding(.top, max(proxy.safeAreaInsets.top + 12, 22))
+                    .padding(.trailing, 18)
+                    .zIndex(1_100)
+                }
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 0.16)) {
@@ -1715,6 +1730,24 @@ private struct VideoReelViewer: View {
         .onDisappear {
             player.pause()
             player.replaceCurrentItem(with: nil)
+            isPlaying = false
+        }
+    }
+
+    private var currentVideoSupportsAppControls: Bool {
+        guard videos.indices.contains(currentIndex) else { return false }
+        let video = videos[currentIndex]
+        return video.isPlayable && !video.usesEmbeddedPreview
+    }
+
+    private func togglePlayback() {
+        guard currentVideoSupportsAppControls else { return }
+        if isPlaying {
+            player.pause()
+            isPlaying = false
+        } else {
+            player.play()
+            isPlaying = true
         }
     }
 
@@ -1724,6 +1757,7 @@ private struct VideoReelViewer: View {
               !videos[currentIndex].nativePlaybackURLString.isEmpty else {
             player.pause()
             player.replaceCurrentItem(with: nil)
+            isPlaying = false
             return
         }
 
@@ -1731,6 +1765,7 @@ private struct VideoReelViewer: View {
         player.replaceCurrentItem(with: AVPlayerItem(url: url))
         player.seek(to: .zero)
         player.play()
+        isPlaying = true
     }
 }
 
@@ -2909,9 +2944,9 @@ struct SkydownOriginalVideoDestinationView: View {
                         SkydownVideoFullscreenCloseButton {
                             dismiss()
                         }
-                        .padding(.top, max(proxy.safeAreaInsets.top + 10, 18))
-                        .padding(.trailing, 16)
-                        .zIndex(1_000)
+                        .padding(.top, max(proxy.safeAreaInsets.top + 12, 22))
+                        .padding(.trailing, 18)
+                        .zIndex(1_100)
                     }
                 }
             } else if let resolvedURL {
@@ -2951,23 +2986,61 @@ struct SkydownVideoFullscreenCloseButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "xmark")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(.white.opacity(0.96))
-                .frame(width: 46, height: 46)
-                .background(Circle().fill(Color.black.opacity(0.34)))
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(
-                    Circle()
-                        .stroke(Color.white.opacity(0.22), lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.42), radius: 16, x: 0, y: 6)
+            ZStack {
+                Circle()
+                    .fill(Color.black.opacity(0.62))
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.72)
+                Image(systemName: "xmark")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.white)
+            }
+            .frame(width: 52, height: 52)
+            .overlay(
+                Circle()
+                    .stroke(Color.white.opacity(0.30), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.50), radius: 18, x: 0, y: 7)
         }
         .buttonStyle(.plain)
         .contentShape(Circle())
         .skydownTactileAction()
         .accessibilityLabel("Video schliessen")
         .accessibilityIdentifier("video.fullscreen.close")
+    }
+}
+
+struct SkydownVideoFullscreenPlaybackButton: View {
+    let isPlaying: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Capsule()
+                    .fill(Color.black.opacity(0.54))
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.70)
+
+                Label(isPlaying ? "Pause" : "Play", systemImage: isPlaying ? "pause.fill" : "play.fill")
+                    .font(.footnote.weight(.bold))
+                    .foregroundColor(.white)
+                    .labelStyle(.iconOnly)
+            }
+            .frame(width: 54, height: 46)
+            .overlay(
+                Capsule()
+                    .stroke(Color.white.opacity(0.24), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.34), radius: 14, x: 0, y: 6)
+        }
+        .buttonStyle(.plain)
+        .contentShape(Capsule())
+        .skydownTactileAction()
+        .accessibilityLabel(isPlaying ? "Video pausieren" : "Video abspielen")
+        .accessibilityIdentifier("video.fullscreen.playback")
     }
 }
 
@@ -3110,14 +3183,14 @@ struct SkydownManagedBrowserView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .overlay(alignment: .topTrailing) {
-                SkydownVideoFullscreenCloseButton {
-                    dismiss()
+                .overlay(alignment: .topTrailing) {
+                    SkydownVideoFullscreenCloseButton {
+                        dismiss()
+                    }
+                    .padding(.top, max(proxy.safeAreaInsets.top + 12, 22))
+                    .padding(.trailing, 18)
+                    .zIndex(1_100)
                 }
-                .padding(.top, max(proxy.safeAreaInsets.top + 10, 18))
-                .padding(.trailing, 16)
-                .zIndex(1_000)
-            }
         }
         .onDisappear {
             browserState.stopLoading()
