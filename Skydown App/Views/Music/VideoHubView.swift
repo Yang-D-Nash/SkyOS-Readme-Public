@@ -1542,7 +1542,6 @@ private struct VideoReelViewer: View {
     @Environment(\.dismiss) private var dismiss
     @State private var currentIndex: Int
     @State private var player = AVPlayer()
-    @State private var originalViewerTarget: VideoOriginalViewerTarget?
     @State private var isTransitioning = false
 
     init(
@@ -1616,22 +1615,6 @@ private struct VideoReelViewer: View {
                                         .lineLimit(3)
                                 }
 
-                                if video.opensOriginalInApp {
-                                    Button {
-                                        originalViewerTarget = VideoOriginalViewerTarget(
-                                            urlString: video.inAppOriginalURLString,
-                                            title: video.title.isEmpty ? "Original" : video.title
-                                        )
-                                    } label: {
-                                        Label(video.directOpenActionTitle, systemImage: "arrow.up.forward.square")
-                                            .font(.subheadline.weight(.semibold))
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 12)
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .tint(.white)
-                                    .foregroundColor(.black)
-                                }
                             }
                             .padding(.horizontal, 20)
                             .padding(.bottom, 30)
@@ -1740,12 +1723,6 @@ private struct VideoReelViewer: View {
         .onDisappear {
             player.pause()
             player.replaceCurrentItem(with: nil)
-        }
-        .fullScreenCover(item: $originalViewerTarget) { target in
-            SkydownOriginalVideoDestinationView(
-                urlString: target.urlString,
-                title: target.title
-            )
         }
     }
 
