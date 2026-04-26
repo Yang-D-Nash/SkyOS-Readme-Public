@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Scale app-icon artwork inside a 1024 canvas (Android adaptive foreground only).
+"""Optionally scale app-icon artwork inside a 1024 canvas.
 
-iOS AppIcon uses the *unpadded* 1024 master; Android applies this script to the same
-design to avoid the circular mask clipping the round mark, then that PNG is
-`ic_launcher_foreground_src` with a small dimen inset.
+The current SkyOS master already includes transparent breathing room, so Android
+uses it directly with a small dimen inset. Keep this helper for future artwork
+that needs extra safe-area padding before becoming `ic_launcher_foreground_src`.
 """
 from __future__ import annotations
 

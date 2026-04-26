@@ -52,27 +52,21 @@ Alle Produktflaechen sind Teil eines Systems, nicht lose Einzel-Apps:
 
 ## App Icon Gallery
 
-Aktives Master-Icon (derzeit im Projekt ausgerollt). **iOS:** `docs/assets/skyos-app-icon-1024.png` = vollflächiger 1024×1024-Export (wie im Design) → `AppIcon.appiconset` (gute Squircle-Ablesbarkeit). **Android:** `ic_launcher_foreground_src` = leicht eingerückte/geschrumpfte Fassung (`docs/assets/skyos-app-icon-1024-android-padded.png` spiegelt das; erzeugt mit `scripts/pad_skyos_app_icon.py --scale 0.86` aus dem iOS-Master) plus `ic_launcher_foreground_inset`. README-Vorschau (iOS):
+Aktives Master-Icon (derzeit im Projekt ausgerollt). **iOS:** `docs/assets/skyos-app-icon-1024.png` = transparenter 1024×1024-Master → `AppIcon.appiconset`. **Android:** `ic_launcher_foreground_src` nutzt denselben transparenten Master mit dem kleinen `ic_launcher_foreground_inset`; `docs/assets/skyos-app-icon-1024-android-padded.png` bleibt als Android-Spiegeldatei erhalten, wird aber nicht zusätzlich verkleinert. README-Vorschau (iOS):
 
 <p align="center">
   <img src="docs/assets/skyos-app-icon.png" alt="SkyOS Active App Icon Master" width="220" />
 </p>
 
-Premium-Varianten (A/B/C) für Brand- und Store-Testing:
+Release-Spiegelpfade fuer Icon-Checks:
 
 <p align="center">
-  <img src="docs/assets/icon-variants/A-original-premium/master-1024.png" alt="SkyOS Icon Variant A Original Premium" width="180" />
-  <img src="docs/assets/icon-variants/B-minimal-legacy/master-1024.png" alt="SkyOS Icon Variant B Minimal Legacy" width="180" />
-  <img src="docs/assets/icon-variants/C-luxury-dark/master-1024.png" alt="SkyOS Icon Variant C Luxury Dark" width="180" />
+  <img src="docs/assets/icon-variants/A-original-premium/master-1024.png" alt="SkyOS release icon mirror" width="180" />
 </p>
 
-| Variante | Stil | Einsatzempfehlung |
-| --- | --- | --- |
-| `A` Original Premium | maximal markennah, aus Originalwelt abgeleitet | Brand-Konsistenz / Default-Baseline |
-| `B` Minimal Legacy | ruhiger, reduzierter Look | kleine Größen, klare Launcher-Lesbarkeit |
-| `C` Luxury Dark | kontraststark, cineastisch | Premium-Kampagnen / Store-Visual-Tests |
-
-> Empfehlung: `A` als stabile Release-Baseline, `B/C` für kontrollierte Store-Experimente.
+| Pfad | Zweck |
+| --- | --- |
+| `A/B/C` Icon-Variant-Pfade | Spiegeln das aktive Release-Icon, damit keine alten SkyOS-App-Icon-Varianten im Repo bleiben. |
 
 ## Vision
 

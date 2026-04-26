@@ -114,10 +114,10 @@ Inset margin: `@dimen/ic_launcher_foreground_inset` in `values/dimens.xml`. Keep
 (a few dp): together with `fill`, a **large** inset shrinks the artwork and a round mark looks
 tiny on the home screen. Raise the inset only if OEM masks still clip edges.
 
-**Note:** The bitmap is usually a *padded* 1024×1024 (`scripts/pad_skyos_app_icon.py` on the
-iOS master) so the circular adaptive mask does not cut into the mark. The **iOS** `AppIcon`
-uses the unpadded 1024 master; see `docs/assets/skyos-app-icon-1024.png` vs
-`docs/assets/skyos-app-icon-1024-android-padded.png` in [branding.md](branding.md).
+**Note:** The current SkyOS master already contains transparent breathing room, so Android uses
+the 1024×1024 master directly with only the small XML inset. The
+`docs/assets/skyos-app-icon-1024-android-padded.png` mirror is retained for the
+Android source-of-truth path, but it is not additionally shrunk.
 
 ## 9. Instrumentation Expectations
 
