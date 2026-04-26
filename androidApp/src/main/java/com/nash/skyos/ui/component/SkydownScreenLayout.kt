@@ -40,7 +40,7 @@ import com.nash.skyos.ui.theme.skydownText
 object SkydownUiTokens {
     val screenHorizontalPadding = 16.dp
     val screenTopPadding = 14.dp
-    val screenBottomPadding = 22.dp
+    val screenBottomPadding = 48.dp
     val cardPadding = 12.dp
     /// Größere Karten/Module (Music, Video, Profil) — iOS `SkydownLayout.panelPadding` Parität.
     val panelPadding = 18.dp

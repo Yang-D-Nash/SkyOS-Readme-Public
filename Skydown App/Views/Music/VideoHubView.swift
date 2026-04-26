@@ -79,7 +79,6 @@ struct VideoHubView: View {
                         uploadCard
                             .transition(.move(edge: .top).combined(with: .opacity))
                     }
-                    playerCard
                     VideoEquipmentCard(
                         colorScheme: colorScheme,
                         items: viewModel.publicConfig.equipmentItems,
@@ -328,7 +327,8 @@ struct VideoHubView: View {
            let video = videos.first(where: { $0.id == initialSelectedVideoID }) {
             playbackManager.load(video: video)
             if autoplayInitialSelection {
-                playbackManager.togglePlayback(for: video)
+                activePresentedSheetBinding.wrappedValue = nil
+                showingReelViewer = true
             }
             hasHandledInitialSelection = true
             return
