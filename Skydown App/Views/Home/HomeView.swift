@@ -308,50 +308,43 @@ private struct HomeFullscreenVideoViewer: View {
     @State private var player = AVPlayer()
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            Color.black.ignoresSafeArea()
+        GeometryReader { proxy in
+            ZStack {
+                Color.black.ignoresSafeArea()
 
-            if video.usesEmbeddedPreview {
-                ExternalVideoEmbedSurface(urlString: video.embedURL)
-                    .ignoresSafeArea()
-            } else if let url = URL(string: video.downloadURL), !video.downloadURL.isEmpty {
-                VideoPlayer(player: player)
-                    .ignoresSafeArea()
-                    .onAppear {
-                        player.replaceCurrentItem(with: AVPlayerItem(url: url))
-                        player.play()
+                if video.usesEmbeddedPreview {
+                    ExternalVideoEmbedSurface(urlString: video.embedURL)
+                        .ignoresSafeArea()
+                } else if let url = URL(string: video.downloadURL), !video.downloadURL.isEmpty {
+                    VideoPlayer(player: player)
+                        .ignoresSafeArea()
+                        .onAppear {
+                            player.replaceCurrentItem(with: AVPlayerItem(url: url))
+                            player.play()
+                        }
+                } else {
+                    VStack(spacing: 12) {
+                        Image(systemName: "play.rectangle.fill")
+                            .font(.system(size: 48, weight: .bold))
+                            .foregroundColor(.white.opacity(0.72))
+                        Text(video.title)
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
                     }
-            } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "play.rectangle.fill")
-                        .font(.system(size: 48, weight: .bold))
-                        .foregroundColor(.white.opacity(0.72))
-                    Text(video.title)
-                        .font(.headline.weight(.bold))
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
+                    .padding(24)
                 }
-                .padding(24)
             }
-
-            Button(action: { dismiss() }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white.opacity(0.94))
-                    .frame(width: 38, height: 38)
-                    .background(.ultraThinMaterial, in: Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                    )
+            .ignoresSafeArea()
+            .overlay(alignment: .topTrailing) {
+                SkydownVideoFullscreenCloseButton {
+                    dismiss()
+                }
+                .padding(.top, max(proxy.safeAreaInsets.top + 10, 18))
+                .padding(.trailing, 16)
+                .zIndex(1_000)
             }
-            .buttonStyle(.plain)
-            .skydownTactileAction()
-            .accessibilityLabel("Video schliessen")
-            .padding(.top, 14)
-            .padding(.trailing, 18)
         }
-        .ignoresSafeArea()
         .onDisappear {
             player.pause()
             player.replaceCurrentItem(with: nil)

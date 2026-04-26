@@ -1614,7 +1614,6 @@ private struct VideoReelViewer: View {
                                         .foregroundColor(.white.opacity(0.72))
                                         .lineLimit(3)
                                 }
-
                             }
                             .padding(.horizontal, 20)
                             .padding(.bottom, 30)
@@ -1661,21 +1660,6 @@ private struct VideoReelViewer: View {
                     }
 
                     Spacer()
-
-                    Button(action: { dismiss() }, label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white.opacity(0.94))
-                            .frame(width: 38, height: 38)
-                            .background(.ultraThinMaterial, in: Circle())
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                            )
-                    })
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                    .accessibilityLabel("Video schliessen")
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, max(proxy.safeAreaInsets.top, 12))
@@ -1696,6 +1680,14 @@ private struct VideoReelViewer: View {
                     .transition(.opacity)
                     .zIndex(12)
                 }
+            }
+            .overlay(alignment: .topTrailing) {
+                SkydownVideoFullscreenCloseButton {
+                    dismiss()
+                }
+                .padding(.top, max(proxy.safeAreaInsets.top + 10, 18))
+                .padding(.trailing, 16)
+                .zIndex(1_000)
             }
         }
         .onAppear {
@@ -2913,6 +2905,14 @@ struct SkydownOriginalVideoDestinationView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .zIndex(3)
                     }
+                    .overlay(alignment: .topTrailing) {
+                        SkydownVideoFullscreenCloseButton {
+                            dismiss()
+                        }
+                        .padding(.top, max(proxy.safeAreaInsets.top + 10, 18))
+                        .padding(.trailing, 16)
+                        .zIndex(1_000)
+                    }
                 }
             } else if let resolvedURL {
                 SkydownManagedBrowserView(
@@ -2943,6 +2943,31 @@ struct SkydownOriginalVideoDestinationView: View {
             player.replaceCurrentItem(with: nil)
             isPlaying = false
         }
+    }
+}
+
+struct SkydownVideoFullscreenCloseButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.white.opacity(0.96))
+                .frame(width: 46, height: 46)
+                .background(Circle().fill(Color.black.opacity(0.34)))
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.42), radius: 16, x: 0, y: 6)
+        }
+        .buttonStyle(.plain)
+        .contentShape(Circle())
+        .skydownTactileAction()
+        .accessibilityLabel("Video schliessen")
+        .accessibilityIdentifier("video.fullscreen.close")
     }
 }
 
@@ -3084,6 +3109,14 @@ struct SkydownManagedBrowserView: View {
                     .padding(.bottom, max(proxy.safeAreaInsets.bottom, 16))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .overlay(alignment: .topTrailing) {
+                SkydownVideoFullscreenCloseButton {
+                    dismiss()
+                }
+                .padding(.top, max(proxy.safeAreaInsets.top + 10, 18))
+                .padding(.trailing, 16)
+                .zIndex(1_000)
             }
         }
         .onDisappear {
