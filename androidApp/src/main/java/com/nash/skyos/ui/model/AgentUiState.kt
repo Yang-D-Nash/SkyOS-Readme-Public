@@ -9,7 +9,7 @@ enum class AgentExecutionMode(val rawValue: String, val title: String, val place
     Briefing("briefing", "Briefing", "Zum Beispiel: Briefing fuer ein Video-Team."),
     Content("content", "Content", "Zum Beispiel: Content-Plan fuer Reels und Story."),
     Merch("merch", "Merch", "Zum Beispiel: Struktur fuer einen Merch-Drop."),
-    Automation("automation", "Automation", "Zum Beispiel: Uebergabe fuer einen n8n-Workflow."),
+    Automation("automation", "Automation", "Zum Beispiel: Uebergabe fuer einen Activepieces-Workflow."),
 }
 
 data class AgentUiState(
@@ -59,7 +59,7 @@ fun agentQuickPromptsFor(mode: AgentExecutionMode): List<String> = when (mode) {
         "Plane eine Merch-Aktion mit Story, Shop und Follow-up.",
     )
     AgentExecutionMode.Automation -> listOf(
-        "Erstelle eine n8n-Uebergabe fuer einen Content-Workflow mit Inputs und Outputs.",
+        "Erstelle eine Activepieces-Uebergabe fuer einen Content-Workflow mit Inputs und Outputs.",
         "Strukturiere einen Automations-Flow fuer Asset-Freigaben und Social-Copy.",
         "Mach ein Workflow-Briefing fuer einen Release-Reminder-Prozess.",
         "Welche Schritte und Fehlerfaelle muss eine Release-Automation abdecken?",

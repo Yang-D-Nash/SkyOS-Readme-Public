@@ -629,7 +629,7 @@ const DEFAULT_AI_RUNTIME_SETTINGS = Object.freeze({
     creator: {
       providers: ["google_vertex", "grok"],
       maxEstimatedCostMicros: 280_000,
-      allowWorkflow: false,
+      allowWorkflow: true,
       degradeProvider: "google_vertex",
       degradeModel: "gemini-2.5-flash-lite",
     },
@@ -903,7 +903,7 @@ function resolveAiCapabilities({plan, status, role = USER_ROLES.user} = {}) {
     botText: true,
     botImage: isStaff || isActive || normalizedPlan === USER_QUOTA_PLANS.creator || normalizedPlan === USER_QUOTA_PLANS.studio,
     agentStandard: isStaff || isActive || normalizedPlan === USER_QUOTA_PLANS.creator || normalizedPlan === USER_QUOTA_PLANS.studio,
-    workflowAutomation: isStaff || (isActive && normalizedPlan === USER_QUOTA_PLANS.studio),
+    workflowAutomation: isStaff || isActive || normalizedPlan === USER_QUOTA_PLANS.creator || normalizedPlan === USER_QUOTA_PLANS.studio,
     premiumOutputs: isStaff || (isActive && normalizedPlan === USER_QUOTA_PLANS.studio),
     textDailyLimit: defaults.text,
     imageDailyLimit: defaults.visual,
@@ -12358,7 +12358,7 @@ exports.skydownAgent = onCall({
     agentSystemInstruction: effectiveAgentSystemInstruction,
   };
   const agentCore = runtimeSettings.bot.agentCore || resolveAiBotAgentCore({});
-  const requestedTask = input.mode === "automation" || input.mode === "merch" ?
+  const requestedTask = input.mode === "merch" ?
     "commerce_order" :
     (input.mode === "briefing" ? "owner_ops" : "support_recovery");
   const stateByFallback = agentCore.fallbackPolicy || {};

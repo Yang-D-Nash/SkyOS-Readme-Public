@@ -105,7 +105,11 @@ class AgentViewModel : ViewModel() {
                     val canTriggerAutomation = user != null
                     it.copy(
                         canTriggerAutomation = canTriggerAutomation,
-                        shouldTriggerAutomation = if (canTriggerAutomation) it.shouldTriggerAutomation else false,
+                        shouldTriggerAutomation = when {
+                            !canTriggerAutomation -> false
+                            it.selectedMode == AgentExecutionMode.Automation -> true
+                            else -> it.shouldTriggerAutomation
+                        },
                     )
                 }
 
@@ -161,6 +165,11 @@ class AgentViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 selectedMode = mode,
+                shouldTriggerAutomation = if (mode == AgentExecutionMode.Automation && it.canTriggerAutomation) {
+                    true
+                } else {
+                    it.shouldTriggerAutomation
+                },
                 quickPrompts = agentQuickPromptsFor(mode),
             )
         }

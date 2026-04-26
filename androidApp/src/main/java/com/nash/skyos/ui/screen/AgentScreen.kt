@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -775,6 +776,7 @@ private fun AgentPromptFab(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AgentPromptComposerSheet(
     draft: String,
@@ -825,9 +827,9 @@ private fun AgentPromptComposerSheet(
             color = MaterialTheme.colorScheme.tertiary,
         )
 
-        Row(
+        FlowRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             AgentModeMenu(
                 selectedMode = selectedMode,
@@ -840,17 +842,10 @@ private fun AgentPromptComposerSheet(
                 onLevelChanged = onLevelChanged,
             )
             if (canTriggerAutomation) {
-                IconButton(onClick = onToggleAutomation) {
-                    Icon(
-                        imageVector = Icons.Default.Bolt,
-                        contentDescription = if (shouldTriggerAutomation) "Aktion aktiv" else "Aktion ausfuehren",
-                        tint = if (shouldTriggerAutomation) {
-                            MaterialTheme.colorScheme.tertiary
-                        } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)
-                        },
-                    )
-                }
+                AgentAutomationTriggerButton(
+                    isEnabled = shouldTriggerAutomation,
+                    onToggle = onToggleAutomation,
+                )
             }
         }
 
@@ -1023,6 +1018,44 @@ private fun AgentLevelMenu(
                     },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun AgentAutomationTriggerButton(
+    isEnabled: Boolean,
+    onToggle: () -> Unit,
+) {
+    val accent = if (isEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+    val shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius)
+    OutlinedButton(
+        onClick = onToggle,
+        contentPadding = PaddingValues(horizontal = 13.dp, vertical = 9.dp),
+        shape = shape,
+        modifier = Modifier.height(54.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.PlayArrow,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(24.dp),
+        )
+        Spacer(modifier = Modifier.width(7.dp))
+        Column(verticalArrangement = Arrangement.Center) {
+            Text(
+                text = if (isEnabled) "Workflow aktiv" else "Workflow starten",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = accent,
+                maxLines = 1,
+            )
+            Text(
+                text = if (isEnabled) "wird mitgesendet" else "Activepieces",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                maxLines = 1,
+            )
         }
     }
 }
