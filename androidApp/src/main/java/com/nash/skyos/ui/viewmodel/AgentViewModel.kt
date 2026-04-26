@@ -399,6 +399,15 @@ class AgentViewModel : ViewModel() {
         }
     }
 
+    fun refreshActiveConversation() {
+        if (_uiState.value.agentPhase.shouldBlockComposerChrome) return
+        invalidateConversation(cancelActiveWork = true)
+        restoreHistory()
+        if (AppNetworkMonitor.isOnline.value) {
+            retryPendingMessages()
+        }
+    }
+
     fun renameActiveConversation(title: String) {
         AiConversationHistoryStore.renameSession(
             userKey = currentUserKey,

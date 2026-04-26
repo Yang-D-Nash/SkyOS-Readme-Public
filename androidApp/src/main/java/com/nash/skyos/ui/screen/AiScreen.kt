@@ -307,60 +307,18 @@ fun AiScreen(
                 contentAlignment = Alignment.TopCenter,
             ) {
                 if (uiState.isAiEnabled && uiState.messages.isEmpty()) {
-                    Column(
+                    Box(
                         modifier = Modifier
                             .widthIn(max = contentMaxWidth)
                             .fillMaxWidth()
                             .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
                             .padding(
                                 start = SkydownUiTokens.screenHorizontalPadding,
                                 top = sessionHeaderTopPadding + sessionHeaderReservedHeight,
                                 end = SkydownUiTokens.screenHorizontalPadding,
                                 bottom = innerPadding.calculateBottomPadding() + 92.dp,
                             ),
-                        verticalArrangement = Arrangement.Top,
-                    ) {
-                        AiEmptyStateHeader(compactVisualDensity = compactLayout)
-                        Spacer(modifier = Modifier.height(14.dp))
-                        AiSessionStrip(
-                            composerMode = uiState.composerMode,
-                            textMode = uiState.textMode,
-                            messageCount = uiState.messages.size,
-                            compactVisualDensity = compactLayout,
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        QuickPromptCard(
-                            prompts = uiState.quickPrompts,
-                            compactLayout = compactLayout,
-                            onPromptSelected = { prompt ->
-                                viewModel.updateComposerMode(AiComposerMode.Text)
-                                viewModel.updateDraft(prompt)
-                                showPromptComposer = true
-                            },
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                        VisualPromptCard(
-                            prompts = uiState.visualPrompts,
-                            compactLayout = compactLayout,
-                            onPromptSelected = { prompt ->
-                                viewModel.updateComposerMode(AiComposerMode.Visual)
-                                viewModel.updateDraft(prompt)
-                                showPromptComposer = true
-                            },
-                        )
-                        if (uiState.usageSnapshot != null) {
-                            Spacer(modifier = Modifier.height(14.dp))
-                            AiRevenueUsageCard(
-                                usage = uiState.usageSnapshot,
-                                planLabel = uiState.planLabel,
-                                onOpenMembership = {
-                                    membershipCoordinator.openMembership(MembershipOpenReason.Manual, surface = "ai_chat")
-                                },
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(78.dp))
-                    }
+                    )
                 } else {
                     LazyColumn(
                         state = listState,
@@ -386,15 +344,6 @@ fun AiScreen(
                                 AiDisabledCard()
                             }
                         } else {
-                            item {
-                                AiSessionStrip(
-                                    composerMode = uiState.composerMode,
-                                    textMode = uiState.textMode,
-                                    messageCount = uiState.messages.size,
-                                    compactVisualDensity = true,
-                                )
-                            }
-
                             items(uiState.messages, key = { it.id }) { message ->
                                 AiMessageBubble(
                                     message = message,
@@ -432,7 +381,7 @@ fun AiScreen(
                             subtitle = activeSessionSubtitle,
                             accent = MaterialTheme.colorScheme.primary,
                             enabled = !uiState.botPhase.isBusy,
-                            canDelete = uiState.messages.isNotEmpty(),
+                            canDelete = uiState.activeSessionId != null,
                             showsManagementActions = true,
                             onOpenSessions = { showSessionsSheet = true },
                             onCreateNewChat = viewModel::startNewConversation,
@@ -466,6 +415,8 @@ fun AiScreen(
                         textMode = uiState.textMode,
                         selectedLevel = uiState.selectedLevel,
                         botPhase = uiState.botPhase,
+                        quickPrompts = uiState.quickPrompts,
+                        visualPrompts = uiState.visualPrompts,
                         onDismiss = { showPromptComposer = false },
                         onDraftChanged = viewModel::updateDraft,
                         onComposerModeChange = viewModel::updateComposerMode,
@@ -700,6 +651,8 @@ private fun AiPromptComposerSheet(
     textMode: AiTextMode,
     selectedLevel: AiExperienceLevel,
     botPhase: BotInteractionPhase,
+    quickPrompts: List<String>,
+    visualPrompts: List<AiVisualPrompt>,
     onDismiss: () -> Unit,
     onDraftChanged: (String) -> Unit,
     onComposerModeChange: (AiComposerMode) -> Unit,
@@ -864,6 +817,20 @@ private fun AiPromptComposerSheet(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+
+        if (composerMode == AiComposerMode.Text) {
+            QuickPromptCard(
+                prompts = quickPrompts,
+                compactLayout = true,
+                onPromptSelected = onDraftChanged,
+            )
+        } else {
+            VisualPromptCard(
+                prompts = visualPrompts,
+                compactLayout = true,
+                onPromptSelected = onDraftChanged,
+            )
+        }
 
         Text(
             text = "Prompt",

@@ -467,6 +467,17 @@ final class AgentChatViewModel: ObservableObject {
         }
     }
 
+    func refreshActiveConversation() {
+        guard !phase.shouldBlockComposerChrome else { return }
+        invalidateConversation(cancelActiveWork: true)
+        lastAgentRunId = ""
+        restoreConversationState(preferredSessionID: currentSessionID)
+        if NetworkStatusMonitor.shared.isOnline {
+            startPendingRetryIfNeeded()
+        }
+        showUserToast("Chat aktualisiert.", style: .success)
+    }
+
     func renameActiveConversation(_ title: String) {
         guard let currentSessionID else { return }
         let renamedSession = historyStore.renameSession(

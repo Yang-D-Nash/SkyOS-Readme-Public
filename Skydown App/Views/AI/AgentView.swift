@@ -63,6 +63,10 @@ struct AgentView: View {
                 canTriggerAutomation: viewModel.canTriggerAutomation,
                 interactionPhase: viewModel.phase,
                 attachments: inputAttachments,
+                quickPrompts: viewModel.quickPrompts,
+                onDismiss: {
+                    showingPromptComposer = false
+                },
                 onAddFiles: {
                     showingPromptComposer = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
@@ -183,35 +187,32 @@ struct AgentView: View {
             }
             return "Noch leer"
         }()
+        let pinnedSessionStrip = AIConversationSessionStrip(
+            title: viewModel.activeSessionTitle,
+            subtitle: activeSessionSubtitle,
+            accent: AppColors.accentMystic(for: colorScheme),
+            colorScheme: colorScheme,
+            isBusy: viewModel.phase.shouldBlockComposerChrome,
+            canDelete: viewModel.activeSessionID != nil,
+            showsManagementActions: true,
+            onOpenSessions: { showingConversationSessions = true },
+            onCreateNewChat: viewModel.startNewConversation,
+            onRefreshChat: viewModel.refreshActiveConversation,
+            onDeleteChat: { showingDeleteConversationDialog = true }
+        )
 
         return ZStack(alignment: .bottom) {
             VStack(spacing: 0) {
                 if featureFlags.isAIEnabled {
-                    if viewModel.messages.isEmpty {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: usesCompactImmersiveLayout ? 12 : 14) {
-                                AIConversationSessionStrip(
-                                    title: viewModel.activeSessionTitle,
-                                    subtitle: activeSessionSubtitle,
-                                    accent: AppColors.accentMystic(for: colorScheme),
-                                    colorScheme: colorScheme,
-                                    isBusy: viewModel.phase.shouldBlockComposerChrome,
-                                    onOpenSessions: { showingConversationSessions = true },
-                                    onCreateNewChat: viewModel.startNewConversation
-                                )
+                    pinnedSessionStrip
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        .padding(.top, showsNavigation ? 12 : 8)
+                        .padding(.bottom, 10)
+                        .background(.ultraThinMaterial)
+                        .zIndex(2)
 
-                                AgentEmptyStateHeader(
-                                    colorScheme: colorScheme,
-                                    isCompact: usesCompactImmersiveLayout
-                                )
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                            .padding(.top, showsNavigation ? 8 : 6)
-                            .padding(.bottom, usesCompactImmersiveLayout ? 16 : 12)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .scrollIndicators(.hidden)
+                    if viewModel.messages.isEmpty {
+                        Spacer(minLength: 0)
                     } else {
                         ScrollViewReader { proxy in
                             let scrollToken = viewModel.messages.last.map { message in
@@ -233,21 +234,6 @@ struct AgentView: View {
 
                             ScrollView {
                                 LazyVStack(alignment: .leading, spacing: 10) {
-                                    AIConversationSessionStrip(
-                                        title: viewModel.activeSessionTitle,
-                                        subtitle: activeSessionSubtitle,
-                                        accent: AppColors.accentMystic(for: colorScheme),
-                                        colorScheme: colorScheme,
-                                        isBusy: viewModel.phase.shouldBlockComposerChrome,
-                                        onOpenSessions: { showingConversationSessions = true },
-                                        onCreateNewChat: viewModel.startNewConversation
-                                    )
-
-                                    AgentEmptyStateHeader(
-                                        colorScheme: colorScheme,
-                                        isCompact: true
-                                    )
-
                                     VStack(alignment: .leading, spacing: 10) {
                                         ForEach(viewModel.messages) { message in
                                             AgentMessageBubble(
@@ -264,7 +250,7 @@ struct AgentView: View {
                                         .id("agent-chat-end")
                                 }
                                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                                .padding(.top, showsNavigation ? 6 : 2)
+                                .padding(.top, 2)
                                 .padding(.bottom, 6)
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -614,6 +600,30 @@ private struct AgentEmptyStateHeader: View {
     }
 }
 
+private struct AgentStatusChip: View {
+    let text: String
+    let accent: Color
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Text(text)
+            .font(.caption2.weight(.black))
+            .foregroundColor(accent)
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(accent.opacity(colorScheme == .dark ? 0.16 : 0.1))
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(accent.opacity(0.16), lineWidth: 1)
+            )
+    }
+}
+
 private struct AgentDisabledCard: View {
     let colorScheme: ColorScheme
 
@@ -710,22 +720,43 @@ private struct AgentPromptFab: View {
 
     var body: some View {
         Button(action: onOpen) {
-            ZStack {
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 58, height: 58)
-                    .shadow(color: .black.opacity(0.16), radius: 16, x: 0, y: 8)
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(.thinMaterial)
+                        .frame(width: 34, height: 34)
 
-                if isWorking {
-                    ProgressView()
-                        .scaleEffect(0.82)
-                } else {
-                    Image(systemName: "plus")
-                        .font(.title3.weight(.black))
+                    if isWorking {
+                        ProgressView()
+                            .scaleEffect(0.68)
+                    } else {
+                        Image(systemName: "wand.and.stars")
+                            .font(.subheadline.weight(.black))
+                    }
                 }
+
+                Text(isWorking ? "Arbeitet" : "Agent")
+                    .font(.subheadline.weight(.black))
+                    .lineLimit(1)
+
+                Image(systemName: "plus")
+                    .font(.caption.weight(.black))
+                    .opacity(isWorking ? 0 : 0.86)
             }
+            .foregroundColor(.primary)
+            .padding(.leading, 10)
+            .padding(.trailing, 15)
+            .frame(height: 58)
+            .background(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(.white.opacity(0.18), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 10)
         }
         .buttonStyle(.plain)
+        .skydownTactileAction()
         .accessibilityLabel("Prompt oeffnen")
     }
 }
@@ -739,6 +770,8 @@ private struct AgentPromptComposerSheet: View {
     let canTriggerAutomation: Bool
     let interactionPhase: AgentInteractionPhase
     let attachments: [AgentInputAttachment]
+    let quickPrompts: [String]
+    let onDismiss: () -> Void
     let onAddFiles: () -> Void
     let onRemoveAttachment: (AgentInputAttachment) -> Void
     let onClearAttachments: () -> Void
@@ -753,13 +786,50 @@ private struct AgentPromptComposerSheet: View {
     var body: some View {
         ScrollView {
         VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Neue Anfrage")
-                    .font(.title3.weight(.black))
-                    .foregroundColor(AppColors.text(for: colorScheme))
-                Text("Erst Optionen waehlen, dann Prompt schreiben.")
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(AppColors.accentMystic(for: colorScheme).opacity(0.14))
+                    Image(systemName: "wand.and.stars")
+                        .font(.headline.weight(.black))
+                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                }
+                .frame(width: 48, height: 48)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Neue Agent-Anfrage")
+                        .font(.title3.weight(.black))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    Text("Modus, Workflow und Prompt in einem ruhigen Flow.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                Spacer(minLength: 0)
+
+                AgentStatusChip(
+                    text: selectedMode.title,
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    colorScheme: colorScheme
+                )
+
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.caption.weight(.black))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .frame(width: 36, height: 36)
+                        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.9))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .skydownTactileAction()
+                .accessibilityLabel("Prompt schliessen")
+            }
+
+            if let status = interactionPhase.composerStatusLabel {
+                Text(status)
                     .font(.caption.weight(.semibold))
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
             }
 
             Text("Optionen")
@@ -789,13 +859,44 @@ private struct AgentPromptComposerSheet: View {
 
                 if canTriggerAutomation {
                     Button { shouldTriggerAutomation.toggle() } label: {
-                        Image(systemName: shouldTriggerAutomation ? "bolt.fill" : "bolt")
-                            .font(.caption.weight(.bold))
+                        HStack(spacing: 7) {
+                            Image(systemName: shouldTriggerAutomation ? "play.circle.fill" : "play.circle")
+                                .font(.subheadline.weight(.black))
+                            Text(shouldTriggerAutomation ? "Workflow aktiv" : "Workflow")
+                                .font(.caption.weight(.bold))
+                                .lineLimit(1)
+                        }
+                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(AppColors.accentMystic(for: colorScheme).opacity(shouldTriggerAutomation ? 0.16 : 0.09))
+                        )
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
+                        )
                     }
+                    .buttonStyle(.plain)
+                    .skydownTactileAction()
                     .disabled(interactionPhase.shouldBlockComposerChrome)
-                    .accessibilityLabel(shouldTriggerAutomation ? "Aktion aktiv" : "Aktion ausfuehren")
+                    .accessibilityLabel(shouldTriggerAutomation ? "Workflow aktiv" : "Workflow starten")
                 }
             }
+
+            Text(selectedLevel.subtitle)
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .lineLimit(2)
+
+            AgentQuickPromptCard(
+                colorScheme: colorScheme,
+                prompts: quickPrompts,
+                onPromptSelected: { prompt in
+                    draft = prompt
+                }
+            )
 
             Text("Prompt")
                 .font(.caption2.weight(.black))
@@ -887,6 +988,61 @@ private struct AgentPromptComposerSheet: View {
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                 isFocused = true
+            }
+        }
+    }
+}
+
+private struct AgentQuickPromptCard: View {
+    let colorScheme: ColorScheme
+    let prompts: [String]
+    let onPromptSelected: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                AgentStatusChip(
+                    text: "Prompts",
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    colorScheme: colorScheme
+                )
+
+                Text("Schnelle Starts")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(prompts, id: \.self) { prompt in
+                        Button(action: { onPromptSelected(prompt) }, label: {
+                            Text(prompt)
+                                .font(.subheadline.weight(.semibold))
+                                .multilineTextAlignment(.leading)
+                                .foregroundColor(AppColors.text(for: colorScheme))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 12)
+                                .frame(width: 230, alignment: .leading)
+                                .background(
+                                    LinearGradient(
+                                        colors: [
+                                            AppColors.cardBackground(for: colorScheme).opacity(0.96),
+                                            AppColors.accentMystic(for: colorScheme).opacity(0.1)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
+                                        .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
+                                )
+                        })
+                        .buttonStyle(.plain)
+                        .skydownTactileAction()
+                    }
+                }
             }
         }
     }

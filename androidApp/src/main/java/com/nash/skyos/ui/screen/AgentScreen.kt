@@ -38,7 +38,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -46,10 +45,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
@@ -58,7 +57,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +67,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -94,9 +93,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -106,6 +103,7 @@ import com.nash.skyos.data.AiMembershipUiState
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.MembershipOpenReason
 import com.nash.skyos.R
+import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.BrandStatusChip
 import com.nash.skyos.ui.component.AiConversationSessionStrip
 import com.nash.skyos.ui.component.AiConversationSessionsSheet
@@ -287,6 +285,8 @@ fun AgentScreen(
                 bottom = innerPadding.calculateBottomPadding() + 8.dp,
             )
         }
+        val sessionHeaderTopPadding = safeContentPadding.calculateTopPadding()
+        val sessionHeaderReservedHeight = 72.dp
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -298,32 +298,31 @@ fun AgentScreen(
                 )
         ) {
             if (uiState.isAgentEnabled && uiState.messages.isEmpty()) {
-                Column(
+                Box(
                     modifier = Modifier
+                        .align(Alignment.TopCenter)
                         .widthIn(max = contentMaxWidth)
                         .fillMaxSize()
-                        .padding(safeContentPadding),
-                    verticalArrangement = Arrangement.Top,
-                ) {
-                    AiConversationSessionStrip(
-                        title = uiState.activeSessionTitle,
-                        subtitle = activeSessionSubtitle,
-                        accent = MaterialTheme.colorScheme.tertiary,
-                        enabled = !uiState.agentPhase.shouldBlockComposerChrome,
-                        onOpenSessions = { showSessionsSheet = true },
-                        onCreateNewChat = viewModel::startNewConversation,
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    AgentEmptyStateHeader()
-                    Spacer(modifier = Modifier.height(78.dp))
-                }
+                        .padding(
+                            start = safeContentPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                            top = sessionHeaderTopPadding + sessionHeaderReservedHeight,
+                            end = safeContentPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                            bottom = safeContentPadding.calculateBottomPadding() + 78.dp,
+                        ),
+                )
             } else {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier
+                        .align(Alignment.TopCenter)
                         .widthIn(max = contentMaxWidth)
                         .fillMaxSize(),
-                    contentPadding = safeContentPadding,
+                    contentPadding = PaddingValues(
+                        start = safeContentPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                        top = safeContentPadding.calculateTopPadding() + if (uiState.isAgentEnabled) sessionHeaderReservedHeight else 0.dp,
+                        end = safeContentPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                        bottom = safeContentPadding.calculateBottomPadding(),
+                    ),
                     verticalArrangement = Arrangement.spacedBy(listVerticalSpacing),
                 ) {
                     if (!uiState.isAgentEnabled) {
@@ -331,20 +330,6 @@ fun AgentScreen(
                             AgentDisabledCard()
                         }
                     } else {
-                        item {
-                            AiConversationSessionStrip(
-                                title = uiState.activeSessionTitle,
-                                subtitle = activeSessionSubtitle,
-                                accent = MaterialTheme.colorScheme.tertiary,
-                                enabled = !uiState.agentPhase.shouldBlockComposerChrome,
-                                onOpenSessions = { showSessionsSheet = true },
-                                onCreateNewChat = viewModel::startNewConversation,
-                            )
-                        }
-
-                        item {
-                            AgentEmptyStateHeader()
-                        }
                         items(uiState.messages, key = { it.id }) { message ->
                             Box(
                                 modifier = Modifier
@@ -366,6 +351,35 @@ fun AgentScreen(
                             Spacer(modifier = Modifier.height(78.dp))
                         }
                     }
+                }
+            }
+
+            if (uiState.isAgentEnabled) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .widthIn(max = contentMaxWidth)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+                        .padding(
+                            start = safeContentPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                            top = sessionHeaderTopPadding,
+                            end = safeContentPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+                            bottom = 10.dp,
+                        ),
+                ) {
+                    AiConversationSessionStrip(
+                        title = uiState.activeSessionTitle,
+                        subtitle = activeSessionSubtitle,
+                        accent = MaterialTheme.colorScheme.tertiary,
+                        enabled = !uiState.agentPhase.shouldBlockComposerChrome,
+                        canDelete = uiState.activeSessionId != null,
+                        showsManagementActions = true,
+                        onOpenSessions = { showSessionsSheet = true },
+                        onCreateNewChat = viewModel::startNewConversation,
+                        onRefreshChat = viewModel::refreshActiveConversation,
+                        onDeleteChat = viewModel::deleteActiveConversation,
+                    )
                 }
             }
 
@@ -394,6 +408,8 @@ fun AgentScreen(
                         shouldTriggerAutomation = uiState.shouldTriggerAutomation,
                         agentPhase = uiState.agentPhase,
                         attachments = inputAttachments,
+                        quickPrompts = uiState.quickPrompts,
+                        onDismiss = { showPromptComposer = false },
                         onDraftChanged = viewModel::updateDraft,
                         onModeChanged = viewModel::updateMode,
                         onLevelChanged = viewModel::updateLevel,
@@ -758,20 +774,43 @@ private fun AgentPromptFab(
 ) {
     FloatingActionButton(
         onClick = onOpen,
+        modifier = Modifier
+            .widthIn(min = 132.dp)
+            .height(58.dp),
+        shape = RoundedCornerShape(22.dp),
         containerColor = MaterialTheme.colorScheme.tertiary,
         contentColor = MaterialTheme.colorScheme.onTertiary,
     ) {
-        if (isWorking) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.onTertiary,
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (isWorking) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onTertiary,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = "Prompt oeffnen",
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Text(
+                text = if (isWorking) "Arbeitet" else "Agent",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Black,
             )
-        } else {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Prompt oeffnen",
-            )
+            if (!isWorking) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }
@@ -786,6 +825,8 @@ private fun AgentPromptComposerSheet(
     shouldTriggerAutomation: Boolean,
     agentPhase: AgentInteractionPhase,
     attachments: List<AgentInputAttachment>,
+    quickPrompts: List<String>,
+    onDismiss: () -> Unit,
     onDraftChanged: (String) -> Unit,
     onModeChanged: (AgentExecutionMode) -> Unit,
     onLevelChanged: (AiExperienceLevel) -> Unit,
@@ -806,17 +847,69 @@ private fun AgentPromptComposerSheet(
             .padding(top = 8.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(
-                text = "Neue Anfrage",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onSurface,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Text(
+                    text = "Neue Agent-Anfrage",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "Modus, Workflow und Prompt in einem ruhigen Flow.",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            BrandStatusChip(
+                text = selectedMode.title,
+                accent = MaterialTheme.colorScheme.tertiary,
+                isActive = true,
             )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Prompt schliessen",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+
+        agentPhase.composerStatusLabel?.let { label ->
             Text(
-                text = "Erst Optionen waehlen, dann Prompt schreiben.",
+                text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                color = MaterialTheme.colorScheme.tertiary,
             )
         }
 
@@ -850,6 +943,20 @@ private fun AgentPromptComposerSheet(
         }
 
         Text(
+            text = stringResource(agentAiLevelSubtitleResId(selectedLevel)),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        AgentQuickPromptCard(
+            prompts = quickPrompts,
+            onPromptSelected = onDraftChanged,
+        )
+
+        Text(
             text = "Prompt",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Black,
@@ -867,6 +974,14 @@ private fun AgentPromptComposerSheet(
             maxLines = 8,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { onSend() }),
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.72f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
+                focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+                cursorColor = MaterialTheme.colorScheme.tertiary,
+            ),
         )
 
         Row(
@@ -942,15 +1057,81 @@ private fun AgentPromptComposerSheet(
             ) {
                 Text("Neuer Chat")
             }
-            FilledIconButton(
+            BrandActionButton(
+                text = "Senden",
                 onClick = onSend,
+                accent = MaterialTheme.colorScheme.tertiary,
+                icon = Icons.AutoMirrored.Filled.Send,
+                filled = true,
+                compact = true,
                 enabled = draft.isNotBlank() && !agentPhase.shouldBlockSend,
-                modifier = Modifier.size(44.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Senden",
-                )
+                isLoading = agentPhase.shouldBlockComposerChrome,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AgentQuickPromptCard(
+    prompts: List<String>,
+    onPromptSelected: (String) -> Unit,
+) {
+    if (prompts.isEmpty()) return
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BrandStatusChip(
+                text = "Prompts",
+                accent = MaterialTheme.colorScheme.tertiary,
+                isActive = true,
+            )
+            Text(
+                text = "Schnelle Starts",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(end = 4.dp),
+        ) {
+            items(prompts, key = { it }) { prompt ->
+                Column(
+                    modifier = Modifier
+                        .widthIn(min = 220.dp, max = 260.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f))
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
+                            shape = RoundedCornerShape(20.dp),
+                        )
+                        .clickable { onPromptSelected(prompt) }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = prompt,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    BrandStatusChip(
+                        text = "Einsetzen",
+                        accent = MaterialTheme.colorScheme.tertiary,
+                        isActive = false,
+                    )
+                }
             }
         }
     }

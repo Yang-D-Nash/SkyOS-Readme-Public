@@ -44,6 +44,8 @@ struct AIView: View {
                 textMode: $viewModel.textMode,
                 selectedLevel: $viewModel.selectedLevel,
                 interactionPhase: viewModel.phase,
+                quickPrompts: viewModel.quickPrompts,
+                visualPrompts: viewModel.visualPrompts,
                 onDismiss: {
                     showingPromptComposer = false
                 },
@@ -153,7 +155,7 @@ struct AIView: View {
             accent: AppColors.accent(for: colorScheme),
             colorScheme: colorScheme,
             isBusy: viewModel.phase.isBusy,
-            canDelete: !viewModel.messages.isEmpty,
+            canDelete: viewModel.activeSessionID != nil,
             showsManagementActions: true,
             onOpenSessions: { showingConversationSessions = true },
             onCreateNewChat: viewModel.startNewConversation,
@@ -172,45 +174,7 @@ struct AIView: View {
                         .zIndex(2)
 
                     if viewModel.messages.isEmpty {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: usesCompactImmersiveLayout ? 12 : 14) {
-                                AIEmptyStateHeader(
-                                    colorScheme: colorScheme,
-                                    isCompact: usesCompactImmersiveLayout
-                                )
-
-                                aiSessionDeck
-
-                                AIQuickPromptCard(
-                                    colorScheme: colorScheme,
-                                    prompts: viewModel.quickPrompts,
-                                    onPromptSelected: { prompt in
-                                        prefillPrompt(prompt, mode: .text)
-                                    }
-                                )
-
-                                AIVisualPromptCard(
-                                    colorScheme: colorScheme,
-                                    prompts: viewModel.visualPrompts,
-                                    onPromptSelected: { prompt in
-                                        prefillPrompt(prompt, mode: .visual)
-                                    }
-                                )
-
-                                if let revenueUsage = viewModel.revenueUsage {
-                                    AIRevenueUsageCard(
-                                        usage: revenueUsage,
-                                        colorScheme: colorScheme
-                                    )
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                            .padding(.top, 2)
-                            .padding(.bottom, usesCompactImmersiveLayout ? 16 : 28)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .scrollIndicators(.hidden)
+                        Spacer(minLength: 0)
                     } else {
                         ScrollViewReader { proxy in
                             let scrollToken = viewModel.messages.last.map { message in
@@ -219,8 +183,6 @@ struct AIView: View {
 
                             ScrollView {
                                 LazyVStack(alignment: .leading, spacing: 10) {
-                                    aiSessionDeck
-
                                     ForEach(viewModel.messages) { message in
                                         AIMessageBubble(
                                             message: message,
@@ -1209,6 +1171,8 @@ private struct AIPromptComposerSheet: View {
     @Binding var textMode: AITextMode
     @Binding var selectedLevel: AIExperienceLevel
     let interactionPhase: BotInteractionPhase
+    let quickPrompts: [String]
+    let visualPrompts: [AIVisualPrompt]
     let onDismiss: () -> Void
     let onCreateNewChat: () -> Void
     let onSend: () -> Void
@@ -1325,6 +1289,24 @@ private struct AIPromptComposerSheet: View {
                     .font(.caption2.weight(.semibold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .lineLimit(2)
+            }
+
+            if composerMode == .text {
+                AIQuickPromptCard(
+                    colorScheme: colorScheme,
+                    prompts: quickPrompts,
+                    onPromptSelected: { prompt in
+                        draft = prompt
+                    }
+                )
+            } else {
+                AIVisualPromptCard(
+                    colorScheme: colorScheme,
+                    prompts: visualPrompts,
+                    onPromptSelected: { prompt in
+                        draft = prompt
+                    }
+                )
             }
 
             Text("Prompt")
