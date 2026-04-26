@@ -65,7 +65,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.media3.common.util.UnstableApi
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -90,7 +89,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -1752,7 +1750,6 @@ private fun ZweizweiMusicLaneScreen(
     var selectedArtistPage by rememberSaveable { mutableStateOf<String?>(null) }
     var artistPageReturnDestination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
     var highlightedSocialArtist by rememberSaveable { mutableStateOf("JANNO") }
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hubListState = rememberLazyListState()
     val hubHorizontalPadding = if (useCompactHubVisuals) 15.dp else 16.dp
     val hubTopPadding = if (useCompactHubVisuals) 12.dp else 18.dp
@@ -1767,7 +1764,6 @@ private fun ZweizweiMusicLaneScreen(
     ) {
         when (destination) {
         ZweizweiMusicDestination.Hub -> Scaffold(
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             containerColor = MaterialTheme.colorScheme.background,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
@@ -1800,7 +1796,6 @@ private fun ZweizweiMusicLaneScreen(
                         )
                     },
                     colors = skydownTopBarColors(),
-                    scrollBehavior = scrollBehavior,
                 )
             },
         ) { innerPadding ->
