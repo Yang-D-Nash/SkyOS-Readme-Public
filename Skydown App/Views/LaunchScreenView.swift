@@ -306,12 +306,6 @@ private struct LaunchLandingView: View {
                                     action: onOpenMusic
                                 )
                                 LaunchLandingActionButton(
-                                    title: "Video",
-                                    systemImage: "play.rectangle.fill",
-                                    style: .secondary,
-                                    action: onOpenVideography
-                                )
-                                LaunchLandingActionButton(
                                     title: "Merch",
                                     systemImage: "bag.fill",
                                     style: .secondary,

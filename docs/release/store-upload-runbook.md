@@ -9,38 +9,37 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10003`
+- Build: `10004`
 - Team ID: `F3BNLG6L7P`
 
 ### Android
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10008`
+- versionCode: `10009`
 - Play Billing Library: `8.3.0`
 
 ## Build Artifacts
 
-- iOS archive: `build/ios/SkyOS-1.0.0-10003-20260426.xcarchive` (rebuilt 2026-04-26 Europe/Berlin)
-- iOS export options used: `build/ios/ExportOptions-AppStore.plist`
-- iOS IPA: `build/ios/export-1.0.0-10003-20260426/SkyOS.ipa` (exported 2026-04-26 Europe/Berlin)
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-26 Europe/Berlin)
+- iOS archive: `build/ios/SkyOS-1.0.0-10004-20260426.xcarchive` (rebuilt 2026-04-26 Europe/Berlin)
+- iOS upload export options used: `build/ios/ExportOptions-AppStore-Upload-10004.plist`
+- iOS upload: direct App Store Connect upload from archive; uploaded package is processing.
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-26 Europe/Berlin, versionCode `10009`)
 - Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (`18997697` bytes, rebuilt 2026-04-25 13:12:14 Europe/Berlin)
 
 ## Upload Status
 
 ### iOS Upload Status
 - Archive build: DONE
-- IPA export: DONE
-- App Store Connect CLI upload: DONE
+- App Store Connect archive export/upload: DONE
 - Processing status: uploaded package is processing in App Store Connect
 - Notes:
-  - Initial upload attempt was rejected by App Store Connect for Apple AppIcon alpha (`90717`).
-  - Active Apple `AppIcon.appiconset` PNGs were converted to opaque RGB files and the upload succeeded.
+  - Build `10004` uploaded successfully on 2026-04-26 via `xcodebuild -exportArchive` with `destination=upload`.
   - Xcode reported missing dSYMs for Firebase binary frameworks during symbol upload; app package upload still succeeded.
+  - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: DONE
+- Release AAB build: DONE for versionCode `10009`
 - Play upload automation: CONFIGURED via Fastlane `upload_android_internal`
 - CLI upload attempt: BLOCKED
 - Blocker details:
@@ -49,13 +48,10 @@ Owner: Release Engineering
 
 ## Execution Log (Direct Upload Run)
 
-1. Rebuilt Android release bundle (`./gradlew :androidApp:bundleRelease`) -> `BUILD SUCCESSFUL`.
-2. Rebuilt iOS archive (`xcodebuild archive`) -> `ARCHIVE SUCCEEDED`.
-3. Exported iOS App Store package (`xcodebuild -exportArchive`) -> `EXPORT SUCCEEDED`.
-4. Attempted App Store Connect upload for build `10003`; first attempt failed with `90717` because Apple does not allow alpha in the large AppIcon.
-5. Converted active Apple `AppIcon.appiconset` PNGs to opaque RGB, rebuilt archive/export, and retried upload.
-6. App Store Connect upload for iOS build `10003` succeeded; uploaded package is processing.
-7. Attempted Play upload via `fastlane android upload_android_internal`; stopped at missing `SUPPLY_JSON_KEY`.
+1. Rebuilt Android release bundle (`./gradlew :androidApp:bundleRelease`) -> `BUILD SUCCESSFUL` for versionCode `10009`.
+2. Rebuilt iOS archive (`xcodebuild archive`) -> `ARCHIVE SUCCEEDED` for build `10004`.
+3. Uploaded iOS build `10004` to App Store Connect (`xcodebuild -exportArchive` with `destination=upload`) -> `EXPORT SUCCEEDED`; uploaded package is processing.
+4. Attempted Play upload via `fastlane android upload_android_internal`; stopped at missing `SUPPLY_JSON_KEY`.
 
 ## Post-Upload Hardening Notes
 
@@ -126,7 +122,7 @@ Suggested review note text:
 
 1. Confirm final legal approval for public privacy/terms wording.
 2. Confirm final production domain and replace URL placeholders in App Store Connect and Play Console.
-3. Verify subscription product setup status for iOS build `10003` and Android versionCode `10008`.
+3. Verify subscription product setup status for iOS build `10004` and Android versionCode `10009`.
 4. Update production Firestore `appConfig/legalContent` and `appConfig/commerceSettings` if old remote operator/legal values still exist.
 5. Firestore/Storage rules were deployed on 2026-04-25; fixed owner Firebase Auth account was verified with `emailVerified=true`.
 6. Verify data safety/privacy forms reflect actual SDK usage:
@@ -138,7 +134,7 @@ Suggested review note text:
    - Not used by current binaries: precise/coarse location, camera capture, microphone, contacts, calendar. Photo/video selection uses system pickers; Android `WRITE_EXTERNAL_STORAGE` is capped to API 28 only for saving generated images.
 7. Upload and map final screenshot sets for iPhone and Android phone form factors.
 8. Set age rating/content rating questionnaires in both consoles.
-9. Build numbers are bumped for the next upload after post-upload hardening changes.
+9. Build numbers are current for the 2026-04-26 upload set: iOS `10004`, Android `10009`.
 
 ## Go/No-Go Checklist
 
@@ -158,7 +154,7 @@ Suggested review note text:
 2. Go to **My Apps** -> select/create app for bundle `com.skydown.ios`.
 3. Open **TestFlight** tab.
 4. Under **Builds**, click **+** (or wait for uploaded build).
-5. Upload `build/ios/export-1.0.0-10003-20260426/SkyOS.ipa` using Xcode Organizer or Transporter app after login/2FA.
+5. Wait for uploaded build `10004` to finish processing, then attach it to Internal Testers.
 6. When build appears, assign to Internal Testers first.
 7. Fill **App Information** and **App Privacy** sections.
 8. Fill **Pricing and Availability** (manual business decision required).
@@ -170,7 +166,7 @@ Suggested review note text:
 1. Open [Google Play Console](https://play.google.com/console/).
 2. Select app with package `com.nash.skyos` (or create it if missing).
 3. Go to **Testing** -> **Internal testing** (or **Closed testing**).
-4. Create/Edit release and upload `androidApp/build/outputs/bundle/release/androidApp-release.aab`.
+4. Create/Edit release and upload `androidApp/build/outputs/bundle/release/androidApp-release.aab` (versionCode `10009`).
 5. Add release notes and save.
 6. Go to **Store presence** and complete store listing fields.
 7. Go to **App content** and complete:

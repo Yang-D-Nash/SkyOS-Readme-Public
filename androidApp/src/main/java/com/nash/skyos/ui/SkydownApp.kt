@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -1297,13 +1298,6 @@ private fun LaunchLandingScreen(
                             onClick = onOpenMusic,
                         )
                         LaunchLandingActionButton(
-                            title = "Video",
-                            icon = Icons.Default.PlayCircleFilled,
-                            primary = false,
-                            modifier = Modifier.weight(1f),
-                            onClick = onOpenVideography,
-                        )
-                        LaunchLandingActionButton(
                             title = "Merch",
                             icon = Icons.Default.ShoppingBag,
                             primary = false,
@@ -1845,6 +1839,7 @@ private fun ZweizweiMusicLaneScreen(
                     "Die Services bleiben ohne Umweg direkt aus dem Music-Hub erreichbar."
                 }
                 val useAnchoredHubLayout = !isWideLayout && maxHeight >= 900.dp && maxWidth < 560.dp
+                val hubScrollState = rememberScrollState()
                 val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
 
                 Box(
@@ -1857,6 +1852,8 @@ private fun ZweizweiMusicLaneScreen(
                                 .widthIn(max = contentMaxWidth)
                                 .fillMaxWidth()
                                 .fillMaxHeight()
+                                .verticalScroll(hubScrollState)
+                                .testTag("music.hub.root")
                                 .padding(
                                     start = resolvedHubHorizontalPadding,
                                     top = resolvedHubTopPadding,
@@ -1919,6 +1916,8 @@ private fun ZweizweiMusicLaneScreen(
                                 .widthIn(max = contentMaxWidth)
                                 .fillMaxWidth()
                                 .fillMaxHeight()
+                                .verticalScroll(hubScrollState)
+                                .testTag("music.hub.root")
                                 .padding(
                                     start = resolvedHubHorizontalPadding,
                                     top = resolvedHubTopPadding,

@@ -22,6 +22,7 @@ struct ShopView: View {
     @State private var selectedItem: MerchandiseItem?
     @State private var selectedCollabLaneID = MerchandiseCollabLane.allID
     @State private var openedCollectionLane: MerchandiseCollabLane?
+    @State private var pendingCollectionItem: MerchandiseItem?
     @Environment(\.colorScheme) private var colorScheme
 
     init(
@@ -119,9 +120,6 @@ struct ShopView: View {
                     layout.contentMaxWidth,
                     max(proxy.size.width - (layout.horizontalPadding * 2), 0)
                 )
-                let sidebarWidth = layout.prefersDesktopChrome
-                    ? min(max(contentWidth * 0.26, 260), 320)
-                    : min(max(contentWidth * 0.27, 220), 272)
                 let laneSignature = merchCollabLanes.map(\.id).joined(separator: "|")
 
                 Group {
@@ -151,21 +149,7 @@ struct ShopView: View {
                                     selectedLaneID: selectedCollabLaneID
                                 ) { lane in
                                     selectedCollabLaneID = lane.id
-                                } onOpenLane: { lane in
-                                    selectedCollabLaneID = lane.id
                                     openedCollectionLane = lane
-                                }
-
-                                if !viewModel.merchandiseItems.isEmpty {
-                                    ShopMerchOpeningBlock(
-                                        showFeatured: !editorialPickItems.isEmpty,
-                                        colorScheme: colorScheme,
-                                        featuredItem: featuredDropItem,
-                                        editorialPicks: editorialPickItems,
-                                        onOpenItem: { item in
-                                            selectedItem = item
-                                        }
-                                    )
                                 }
 
                                 if isAdmin {
@@ -231,115 +215,6 @@ struct ShopView: View {
                                                 ? AppLocalized.text("shop.empty.body.loading.guest", fallback: "We are loading products.")
                                                 : AppLocalized.text("shop.empty.body.idle.guest", fallback: "When new pieces go live, they show up here."))
                                     )
-                                } else if layout.prefersTwoColumn {
-                                    HStack(alignment: .top, spacing: layout.sectionSpacing) {
-                                        MerchandiseCollabSidebar(
-                                            lanes: merchCollabLanes,
-                                            selectedLaneID: selectedCollabLaneID,
-                                            colorScheme: colorScheme
-                                        ) { lane in
-                                            selectedCollabLaneID = lane.id
-                                        }
-                                        .frame(width: sidebarWidth)
-
-                                        VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                                            MerchandiseCollabSelectionCard(
-                                                selectedLane: selectedCollabLane,
-                                                totalItemCount: viewModel.merchandiseItems.count,
-                                                colorScheme: colorScheme
-                                            )
-
-                                            if filteredMerchandiseItems.isEmpty {
-                                                ShopInfoCard(
-                                                    colorScheme: colorScheme,
-                                                    title: AppLocalized.text("shop.filter.empty.title", fallback: "Nothing in this view"),
-                                                    message: String(
-                                                        format: AppLocalized.text(
-                                                            "shop.filter.empty.body",
-                                                            fallback: "There is no visible product in “%@” right now."
-                                                        ),
-                                                        shopLaneTitle(selectedCollabLane)
-                                                    ),
-                                                    actionTitle: selectedCollabLaneID == MerchandiseCollabLane.allID
-                                                        ? nil
-                                                        : AppLocalized.text("shop.lane.all_drops_title", fallback: "All pieces"),
-                                                    action: selectedCollabLaneID == MerchandiseCollabLane.allID ? nil : {
-                                                        selectedCollabLaneID = MerchandiseCollabLane.allID
-                                                    }
-                                                )
-                                            } else {
-                                                LazyVStack(alignment: .leading, spacing: 9) {
-                                                    ForEach(0..<filteredMerchandiseItems.count, id: \.self) { index in
-                                                        let item = filteredMerchandiseItems[index]
-                                                        MerchandiseRowView(
-                                                            item: item,
-                                                            environmentColorScheme: colorScheme,
-                                                            shelfSpotlight: index < 2,
-                                                            shelfSettled: index > 2
-                                                        ) {
-                                                            selectedItem = $0
-                                                        }
-                                                        .padding(.top, index == 2 ? 18 : 0)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                } else {
-                                    VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-                                        MerchandiseCollabCarousel(
-                                            lanes: merchCollabLanes,
-                                            selectedLaneID: $selectedCollabLaneID,
-                                            totalItemCount: viewModel.merchandiseItems.count,
-                                            colorScheme: colorScheme
-                                        )
-
-                                        if merchCollabLanes.count > 1 {
-                                            MerchandiseCollabQuickGrid(
-                                                lanes: merchCollabLanes,
-                                                selectedLaneID: selectedCollabLaneID,
-                                                colorScheme: colorScheme
-                                            ) { lane in
-                                                selectedCollabLaneID = lane.id
-                                            }
-                                        }
-                                    }
-
-                                    if filteredMerchandiseItems.isEmpty {
-                                        ShopInfoCard(
-                                            colorScheme: colorScheme,
-                                            title: AppLocalized.text("shop.filter.empty.title", fallback: "Nothing in this view"),
-                                            message: String(
-                                                format: AppLocalized.text(
-                                                    "shop.filter.empty.body",
-                                                    fallback: "There is no visible product in “%@” right now."
-                                                ),
-                                                shopLaneTitle(selectedCollabLane)
-                                            ),
-                                            actionTitle: selectedCollabLaneID == MerchandiseCollabLane.allID
-                                                ? nil
-                                                : AppLocalized.text("shop.lane.all_drops_title", fallback: "All pieces"),
-                                            action: selectedCollabLaneID == MerchandiseCollabLane.allID ? nil : {
-                                                selectedCollabLaneID = MerchandiseCollabLane.allID
-                                            }
-                                        )
-                                    } else {
-                                        LazyVStack(alignment: .leading, spacing: 9) {
-                                            ForEach(0..<filteredMerchandiseItems.count, id: \.self) { index in
-                                                let item = filteredMerchandiseItems[index]
-                                                MerchandiseRowView(
-                                                    item: item,
-                                                    environmentColorScheme: colorScheme,
-                                                    shelfSpotlight: index < 2,
-                                                    shelfSettled: index > 2
-                                                ) {
-                                                    selectedItem = $0
-                                                }
-                                                .padding(.top, index == 2 ? 18 : 0)
-                                            }
-                                        }
-                                    }
                                 }
                             }
                             .frame(maxWidth: contentWidth, alignment: .leading)
@@ -414,12 +289,18 @@ struct ShopView: View {
                         allItems: viewModel.merchandiseItems,
                         colorScheme: colorScheme,
                         onOpenItem: { item in
-                            selectedItem = item
+                            pendingCollectionItem = item
+                            openedCollectionLane = nil
                         },
                         onDismiss: {
                             openedCollectionLane = nil
                         }
                     )
+                }
+                .onChange(of: openedCollectionLane) { _, lane in
+                    guard lane == nil, let item = pendingCollectionItem else { return }
+                    pendingCollectionItem = nil
+                    selectedItem = item
                 }
             }
         }
@@ -548,117 +429,45 @@ private struct ShopWelcomeQuickEntryCard: View {
     let colorScheme: ColorScheme
     let lanes: [MerchandiseCollabLane]
     let selectedLaneID: String
-    let onSelectLane: (MerchandiseCollabLane) -> Void
     let onOpenLane: (MerchandiseCollabLane) -> Void
 
     private var quickLanes: [MerchandiseCollabLane] {
         lanes
-    }
-
-    private var entryLanes: [MerchandiseCollabLane] {
-        lanes.filter { $0.id != MerchandiseCollabLane.allID }
+            .filter { $0.id != MerchandiseCollabLane.allID }
+            .sorted { lhs, rhs in
+                if lhs.itemCount != rhs.itemCount {
+                    return lhs.itemCount > rhs.itemCount
+                }
+                return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+            }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "sparkles")
-                    .font(.caption.weight(.bold))
-                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Willkommen im Store")
-                        .font(AppTypography.sectionHeadline)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                    Text("Starte ueber den Katalog und waehle direkt deinen Bereich.")
-                        .font(AppTypography.bodyCaption)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        VStack(alignment: .leading, spacing: 10) {
+            HomeActionButton(
+                title: "Willkommen im Store · Alle Drops",
+                subtitle: "Kompletter Katalog",
+                icon: "bag.fill",
+                colorScheme: colorScheme,
+                brand: .neutral,
+                isPrimary: true
+            ) {
+                if let lane = lanes.first(where: { $0.id == MerchandiseCollabLane.allID }) {
+                    onOpenLane(lane)
                 }
-                Spacer(minLength: 0)
-                Text("Katalog")
-                    .font(.caption2.weight(.bold))
-                    .foregroundColor(AppColors.accent(for: colorScheme))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(AppColors.accent(for: colorScheme).opacity(0.12))
-                    )
             }
-
             VStack(alignment: .leading, spacing: 8) {
-                Text("Direkter Einstieg")
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                HomeActionButton(
-                    title: "Alle Drops",
-                    subtitle: "Kompletter Katalog",
-                    icon: "bag.fill",
-                    colorScheme: colorScheme,
-                    brand: .neutral,
-                    isPrimary: true
-                ) {
-                    if let lane = lanes.first(where: { $0.id == MerchandiseCollabLane.allID }) {
+                ForEach(quickLanes, id: \.id) { lane in
+                    HomeActionButton(
+                        title: lane.id == selectedLaneID ? "Aktiv · \(lane.title)" : lane.title,
+                        subtitle: lane.subtitle,
+                        icon: "bag.fill",
+                        colorScheme: colorScheme,
+                        brand: .neutral,
+                        isPrimary: lane.id == selectedLaneID
+                    ) {
                         onOpenLane(lane)
                     }
-                }
-
-                HStack(spacing: 8) {
-                    ForEach(Array(entryLanes.prefix(2)), id: \.id) { lane in
-                        HomeActionButton(
-                            title: lane.title,
-                            subtitle: lane.subtitle,
-                            icon: "square.grid.2x2.fill",
-                            colorScheme: colorScheme,
-                            brand: .neutral,
-                            isPrimary: false
-                        ) {
-                            onOpenLane(lane)
-                        }
-                    }
-                }
-            }
-
-            VStack(spacing: 8) {
-                ForEach(quickLanes, id: \.id) { lane in
-                    Button(action: { onOpenLane(lane) }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: lane.id == selectedLaneID ? "checkmark.circle.fill" : "circle")
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(AppColors.accent(for: colorScheme).opacity(lane.id == selectedLaneID ? 0.9 : 0.45))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(lane.title)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundColor(AppColors.text(for: colorScheme))
-                                    .lineLimit(1)
-                                Text(lane.subtitle)
-                                    .font(.caption)
-                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                                    .lineLimit(1)
-                            }
-                            Spacer(minLength: 0)
-                            Image(systemName: "chevron.right")
-                                .font(.caption2.weight(.bold))
-                                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.68))
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(
-                                    lane.id == selectedLaneID
-                                        ? AppColors.accent(for: colorScheme).opacity(0.12)
-                                        : AppColors.secondaryBackground(for: colorScheme)
-                                )
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(AppColors.accent(for: colorScheme).opacity(lane.id == selectedLaneID ? 0.32 : 0.14), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
                 }
             }
         }

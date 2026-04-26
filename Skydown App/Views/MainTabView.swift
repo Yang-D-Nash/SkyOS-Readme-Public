@@ -634,110 +634,114 @@ private struct ZweizweiTabView: View {
                         let topPadding = isShortHubHeight ? 10.0 : SkydownLayout.screenTopPadding
                         let bottomPadding = isShortHubHeight ? 14.0 : SkydownLayout.screenBottomPadding
 
-                        VStack(alignment: .leading, spacing: sectionSpacing) {
-                            BrandHeroSurface(
-                                colorScheme: colorScheme,
-                                eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "SkyOS",
-                                title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? "Music",
-                                subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Ein Hub · drei Wege.",
-                                detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "Katalog, Releases, Studio.",
-                                backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
-                                accent: AppColors.spotify(for: colorScheme),
-                                secondaryAccent: AppColors.accent(for: colorScheme),
-                                marks: [.zweizwei],
-                                onSurfaceTap: {
-                                    catalogInitialArtist = "JANNO"
-                                    catalogAutoPresentArtistPage = false
-                                    withAnimation(SkydownMotion.screenTransition) {
-                                        destination = .catalog
+                        ScrollView(.vertical, showsIndicators: true) {
+                            LazyVStack(alignment: .leading, spacing: sectionSpacing) {
+                                BrandHeroSurface(
+                                    colorScheme: colorScheme,
+                                    eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "SkyOS",
+                                    title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? "Music",
+                                    subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Ein Hub · drei Wege.",
+                                    detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "Katalog, Releases, Studio.",
+                                    backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
+                                    accent: AppColors.spotify(for: colorScheme),
+                                    secondaryAccent: AppColors.accent(for: colorScheme),
+                                    marks: [.zweizwei],
+                                    onSurfaceTap: {
+                                        catalogInitialArtist = "JANNO"
+                                        catalogAutoPresentArtistPage = false
+                                        withAnimation(SkydownMotion.screenTransition) {
+                                            destination = .catalog
+                                        }
+                                    }
+                                ) {
+                                    HStack(spacing: 10) {
+                                        BrandHeroPill(
+                                            text: "Catalog",
+                                            colorScheme: colorScheme,
+                                            tint: AppColors.spotify(for: colorScheme),
+                                            onTap: {
+                                                catalogInitialArtist = "JANNO"
+                                                catalogAutoPresentArtistPage = false
+                                                withAnimation(SkydownMotion.screenTransition) {
+                                                    destination = .catalog
+                                                }
+                                            }
+                                        )
+                                        BrandHeroPill(
+                                            text: "Studio",
+                                            colorScheme: colorScheme,
+                                            tint: AppColors.accentMystic(for: colorScheme),
+                                            onTap: {
+                                                withAnimation(SkydownMotion.screenTransition) {
+                                                    destination = .nicma
+                                                }
+                                            }
+                                        )
                                     }
                                 }
-                            ) {
-                                HStack(spacing: 10) {
-                                    BrandHeroPill(
-                                        text: "Catalog",
-                                        colorScheme: colorScheme,
-                                        tint: AppColors.spotify(for: colorScheme),
-                                        onTap: {
-                                            catalogInitialArtist = "JANNO"
-                                            catalogAutoPresentArtistPage = false
-                                            withAnimation(SkydownMotion.screenTransition) {
-                                                destination = .catalog
-                                            }
+
+                                if layout.prefersThreeColumn && !isShortHubHeight {
+                                    HStack(spacing: 12) {
+                                        MusicHubStatusCard(
+                                            title: "Catalog",
+                                            value: "Artists · Tracks · Pages",
+                                            accent: AppColors.spotify(for: colorScheme)
+                                        )
+                                        MusicHubStatusCard(
+                                            title: "Studio",
+                                            value: "Record · Mix · Master",
+                                            accent: AppColors.accentMystic(for: colorScheme)
+                                        )
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Direkter Einstieg")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                    compactMusicHubAction(
+                                        title: "Catalog",
+                                        systemImage: "waveform.circle.fill",
+                                        accent: AppColors.spotify(for: colorScheme)
+                                    ) {
+                                        catalogInitialArtist = "JANNO"
+                                        catalogAutoPresentArtistPage = false
+                                        withAnimation(SkydownMotion.screenTransition) {
+                                            destination = .catalog
                                         }
-                                    )
-                                    BrandHeroPill(
-                                        text: "Studio",
-                                        colorScheme: colorScheme,
-                                        tint: AppColors.accentMystic(for: colorScheme),
-                                        onTap: {
+                                    }
+                                    HStack(spacing: 8) {
+                                        compactMusicHubAction(
+                                            title: "Studio",
+                                            systemImage: "sparkles",
+                                            accent: AppColors.accentMystic(for: colorScheme)
+                                        ) {
                                             withAnimation(SkydownMotion.screenTransition) {
                                                 destination = .nicma
                                             }
                                         }
-                                    )
-                                }
-                            }
-
-                            if layout.prefersThreeColumn && !isShortHubHeight {
-                                HStack(spacing: 12) {
-                                    MusicHubStatusCard(
-                                        title: "Catalog",
-                                        value: "Artists · Tracks · Pages",
-                                        accent: AppColors.spotify(for: colorScheme)
-                                    )
-                                    MusicHubStatusCard(
-                                        title: "Studio",
-                                        value: "Record · Mix · Master",
-                                        accent: AppColors.accentMystic(for: colorScheme)
-                                    )
-                                }
-                            }
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Direkter Einstieg")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                                compactMusicHubAction(
-                                    title: "Catalog",
-                                    systemImage: "waveform.circle.fill",
-                                    accent: AppColors.spotify(for: colorScheme)
-                                ) {
-                                    catalogInitialArtist = "JANNO"
-                                    catalogAutoPresentArtistPage = false
-                                    withAnimation(SkydownMotion.screenTransition) {
-                                        destination = .catalog
                                     }
-                                }
-                                HStack(spacing: 8) {
-                                    compactMusicHubAction(
-                                        title: "Studio",
-                                        systemImage: "sparkles",
-                                        accent: AppColors.accentMystic(for: colorScheme)
-                                    ) {
-                                        withAnimation(SkydownMotion.screenTransition) {
-                                            destination = .nicma
-                                        }
-                                    }
-                                }
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Artist Links")
-                                        .font(.caption2.weight(.semibold))
-                                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
                                     VStack(alignment: .leading, spacing: 6) {
-                                        ForEach(musicHubSocialDestinations, id: \.id) { destination in
-                                            compactMusicHubSocialLink(destination: destination)
+                                        Text("Artist Links")
+                                            .font(.caption2.weight(.semibold))
+                                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            ForEach(musicHubSocialDestinations, id: \.id) { destination in
+                                                compactMusicHubSocialLink(destination: destination)
+                                            }
                                         }
                                     }
                                 }
                             }
-                        .frame(maxWidth: contentWidth, alignment: .leading)
-                        .padding(.horizontal, layout.horizontalPadding)
-                        .padding(.top, topPadding)
-                        .padding(.bottom, bottomPadding)
+                            .frame(maxWidth: contentWidth, alignment: .leading)
+                            .padding(.horizontal, layout.horizontalPadding)
+                            .padding(.top, topPadding)
+                            .padding(.bottom, bottomPadding)
+                            .frame(maxWidth: .infinity, alignment: .top)
+                        }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .accessibilityIdentifier("music.hub.root")
                     }
-                    .accessibilityIdentifier("music.hub.root")
                 }
                 .background(
                     AppColors.screenGradient(
@@ -762,31 +766,32 @@ private struct ZweizweiTabView: View {
                         )
                     }
                 }
-            }
-        case .catalog:
-            MusicView(
-                brand: .zweizwei,
-                initialArtist: catalogInitialArtist,
-                autoPresentArtistPageOnAppear: catalogAutoPresentArtistPage,
-                onBack: {
-                    catalogInitialArtist = nil
-                    catalogAutoPresentArtistPage = false
-                    withAnimation(SkydownMotion.screenTransition) {
-                        destination = .hub
-                    }
-                },
-                onArtistContextChange: { highlightedSocialArtist = $0 },
-                onOpenCart: onOpenCart,
-                onOpenProfile: onOpenProfile,
-                onOpenSettings: onOpenSettings,
-                onGuestSignIn: onGuestSignIn
-            )
-        case .nicma:
-            NavigationStack {
-                NicmaProducerView {
-                    withAnimation(SkydownMotion.screenTransition) {
-                        destination = .hub
-                    }
+
+            case .catalog:
+                MusicView(
+                    brand: .zweizwei,
+                    initialArtist: catalogInitialArtist,
+                    autoPresentArtistPageOnAppear: catalogAutoPresentArtistPage,
+                    onBack: {
+                        catalogInitialArtist = nil
+                        catalogAutoPresentArtistPage = false
+                        withAnimation(SkydownMotion.screenTransition) {
+                            destination = .hub
+                        }
+                    },
+                    onArtistContextChange: { highlightedSocialArtist = $0 },
+                    onOpenCart: onOpenCart,
+                    onOpenProfile: onOpenProfile,
+                    onOpenSettings: onOpenSettings,
+                    onGuestSignIn: onGuestSignIn
+                )
+
+            case .nicma:
+                NavigationStack {
+                    NicmaProducerView {
+                        withAnimation(SkydownMotion.screenTransition) {
+                            destination = .hub
+                        }
                     }
                 }
             }
