@@ -378,10 +378,10 @@ private struct AgentPlanPreviewCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.16), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 }
 
@@ -439,10 +439,10 @@ private struct AgentRevenueUsageCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.15), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 }
 
@@ -459,10 +459,10 @@ private struct CalmUpgradeCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.accent(for: colorScheme).opacity(0.06))
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -478,7 +478,7 @@ private struct LowerCostOptionCard: View {
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.accentHighlight(for: colorScheme).opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -494,7 +494,7 @@ private struct RetryLaterCard: View {
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.72))
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -565,7 +565,7 @@ private struct AgentPlanTile: View {
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -656,10 +656,10 @@ private struct AgentDisabledCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .transition(.opacity.combined(with: .move(edge: .top)))
         .animation(SkydownMotion.statusTransition, value: colorScheme)
     }
@@ -749,10 +749,10 @@ private struct AgentPromptFab: View {
             .frame(height: 58)
             .background(.ultraThinMaterial)
             .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
                     .stroke(.white.opacity(0.18), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
             .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 10)
         }
         .buttonStyle(.plain)
@@ -788,7 +788,7 @@ private struct AgentPromptComposerSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center, spacing: 12) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .fill(AppColors.accentMystic(for: colorScheme).opacity(0.14))
                     Image(systemName: "wand.and.stars")
                         .font(.headline.weight(.black))
@@ -914,7 +914,7 @@ private struct AgentPromptComposerSheet: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
                 .background(AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             HStack(spacing: 10) {
@@ -952,7 +952,7 @@ private struct AgentPromptComposerSheet: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
                         .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.78))
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     }
 
                     Button("Alle entfernen", action: onClearAttachments)
@@ -1032,10 +1032,10 @@ private struct AgentQuickPromptCard: View {
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
-                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous))
+                                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                                 )
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                                         .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
                                 )
                         })
@@ -1115,9 +1115,9 @@ private struct AgentMessageBubble: View {
             .padding(.vertical, 14)
             .frame(maxWidth: 360, alignment: .leading)
             .background(bubbleBackground)
-            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
                     .stroke(
                         isUser
                             ? Color.clear
@@ -1189,9 +1189,9 @@ private struct AgentWorkflowResultCard: View {
         .padding(10)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }

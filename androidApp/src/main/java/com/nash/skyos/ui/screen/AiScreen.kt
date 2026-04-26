@@ -368,7 +368,15 @@ fun AiScreen(
                             .align(Alignment.TopCenter)
                             .widthIn(max = contentMaxWidth)
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                                    ),
+                                ),
+                            )
                             .padding(
                                 start = SkydownUiTokens.screenHorizontalPadding,
                                 top = sessionHeaderTopPadding,
@@ -536,7 +544,7 @@ private fun AiEmptyStateHeader(
             Box(
                 modifier = Modifier
                     .size(if (compactVisualDensity) 48.dp else 54.dp)
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(22.dp))
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
@@ -605,7 +613,7 @@ private fun AiPromptFab(
         modifier = Modifier
             .widthIn(min = 132.dp)
             .height(58.dp),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(26.dp),
         containerColor = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
     ) {
@@ -684,7 +692,7 @@ private fun AiPromptComposerSheet(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(22.dp))
                     .background(composerAccent.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -856,7 +864,7 @@ private fun AiPromptComposerSheet(
             maxLines = 8,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { onSend() }),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = composerAccent.copy(alpha = 0.72f),
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
@@ -954,7 +962,7 @@ private fun AiRevenueUsageCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 modifier = Modifier
                     .padding(top = 6.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f))
                     .padding(horizontal = 10.dp, vertical = 7.dp),
             )
@@ -982,7 +990,7 @@ private fun AiRevenueUsageCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                 modifier = Modifier
                     .padding(top = 3.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
                     .padding(horizontal = 10.dp, vertical = 7.dp),
             )
@@ -1191,7 +1199,7 @@ private fun LinearUsageBar(
 private fun AiCommandHeroCard(
     compactVisualDensity: Boolean,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(24.dp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1286,7 +1294,7 @@ private fun AiOverviewCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp)
-                .clip(RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(24.dp))
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
@@ -1305,7 +1313,7 @@ private fun AiOverviewCard(
                             MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
                         ),
                     ),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(24.dp),
                 )
                 .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
@@ -1386,7 +1394,7 @@ private fun AiSessionSignalCard(
 
 @Composable
 private fun AiDisabledCard() {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(24.dp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1538,7 +1546,7 @@ private fun AiPromptActionCard(
     detail: String? = null,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(if (compactLayout) 18.dp else 20.dp)
+    val shape = RoundedCornerShape(if (compactLayout) 22.dp else 24.dp)
 
     Box(
         modifier = modifier
@@ -1622,8 +1630,8 @@ fun AiMessageBubble(
     val bubbleShape = RoundedCornerShape(
         topStart = SkydownUiTokens.cardCornerRadius,
         topEnd = SkydownUiTokens.cardCornerRadius,
-        bottomStart = if (isUser) SkydownUiTokens.cardCornerRadius else 10.dp,
-        bottomEnd = if (isUser) 10.dp else SkydownUiTokens.cardCornerRadius,
+        bottomStart = if (isUser) SkydownUiTokens.cardCornerRadius else 18.dp,
+        bottomEnd = if (isUser) 18.dp else SkydownUiTokens.cardCornerRadius,
     )
     val bubbleColor = if (isUser) {
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f)
@@ -1709,7 +1717,7 @@ fun AiMessageBubble(
                             .semantics(mergeDescendants = true) {
                                 contentDescription = "Generiertes Visual"
                             }
-                            .clip(RoundedCornerShape(SkydownUiTokens.buttonCornerRadius)),
+                            .clip(RoundedCornerShape(22.dp)),
                     ) {
                         Image(
                             bitmap = generatedBitmap.asImageBitmap(),

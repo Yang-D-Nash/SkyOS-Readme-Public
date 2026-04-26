@@ -40,7 +40,7 @@ struct AIConversationSessionStrip: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 9) {
             Button(action: onOpenSessions) {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -60,8 +60,8 @@ struct AIConversationSessionStrip: View {
                         .font(.caption.weight(.bold))
                         .foregroundColor(accent)
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 15)
+                .padding(.vertical, 13)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     LinearGradient(
@@ -74,10 +74,10 @@ struct AIConversationSessionStrip: View {
                     )
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
                         .stroke(accent.opacity(0.14), lineWidth: 1)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
             }
             .buttonStyle(.plain)
             .disabled(isBusy)
@@ -131,8 +131,8 @@ private struct AIConversationToolbarButton: View {
             Image(systemName: systemName)
                 .font(.subheadline.weight(.black))
                 .foregroundColor(isDestructive ? .red : AppColors.text(for: colorScheme))
-                .frame(width: 44, height: 44)
-                .background(AppColors.cardBackground(for: colorScheme).opacity(0.94))
+                .frame(width: 46, height: 46)
+                .background(.ultraThinMaterial)
                 .overlay(
                     Circle()
                         .stroke(accent.opacity(0.14), lineWidth: 1)
@@ -175,10 +175,10 @@ struct AIConversationSessionsSheet: View {
                             Spacer(minLength: 0)
                         }
                         .foregroundColor(accent)
-                        .padding(14)
+                        .padding(15)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(AppColors.secondaryBackground(for: colorScheme))
-                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .disabled(isBusy)
@@ -195,7 +195,7 @@ struct AIConversationSessionsSheet: View {
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
                                 .background(AppColors.secondaryBackground(for: colorScheme))
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
 
                             HStack(spacing: 10) {
                                 Button(role: .destructive, action: onDeleteActiveSession) {
@@ -289,10 +289,10 @@ private struct AIConversationSessionRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             (isSelected ? accent.opacity(0.08) : AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(isSelected ? accent.opacity(0.16) : Color.clear, lineWidth: 1)
         )
     }

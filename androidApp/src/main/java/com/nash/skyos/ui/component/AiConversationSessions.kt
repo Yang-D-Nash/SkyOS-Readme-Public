@@ -59,7 +59,7 @@ fun AiConversationSessionStrip(
             enabled = enabled,
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(26.dp),
         ) {
             Column(
                 modifier = Modifier.weight(1f),
@@ -166,7 +166,7 @@ fun AiConversationSessionsSheet(
                 onClick = onCreateNewChat,
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(26.dp),
             ) {
                 Text("Neuer Chat")
             }
@@ -188,6 +188,7 @@ fun AiConversationSessionsSheet(
                             Text(activeSession.title)
                         },
                         singleLine = true,
+                        shape = RoundedCornerShape(24.dp),
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -247,7 +248,7 @@ fun AiConversationSessionsSheet(
                                     } else {
                                         MaterialTheme.colorScheme.surface.copy(alpha = 0.74f)
                                     },
-                                    shape = RoundedCornerShape(20.dp),
+                                    shape = RoundedCornerShape(24.dp),
                                 )
                                 .clickable(enabled = enabled) {
                                     onSelectSession(session.sessionId)

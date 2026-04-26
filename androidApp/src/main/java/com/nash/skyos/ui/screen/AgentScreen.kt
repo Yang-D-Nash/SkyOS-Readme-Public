@@ -84,6 +84,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
@@ -360,7 +361,15 @@ fun AgentScreen(
                         .align(Alignment.TopCenter)
                         .widthIn(max = contentMaxWidth)
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                                ),
+                            ),
+                        )
                         .padding(
                             start = safeContentPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
                             top = sessionHeaderTopPadding,
@@ -556,7 +565,7 @@ private fun AgentRevenueUsageCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 modifier = Modifier
                     .padding(top = 6.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f))
                     .padding(horizontal = 10.dp, vertical = 7.dp),
             )
@@ -584,7 +593,7 @@ private fun AgentRevenueUsageCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                 modifier = Modifier
                     .padding(top = 3.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
                     .padding(horizontal = 10.dp, vertical = 7.dp),
             )
@@ -722,7 +731,7 @@ private fun AgentEmptyStateHeader() {
 
 @Composable
 private fun AgentDisabledCard() {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(24.dp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -777,7 +786,7 @@ private fun AgentPromptFab(
         modifier = Modifier
             .widthIn(min = 132.dp)
             .height(58.dp),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(26.dp),
         containerColor = MaterialTheme.colorScheme.tertiary,
         contentColor = MaterialTheme.colorScheme.onTertiary,
     ) {
@@ -855,7 +864,7 @@ private fun AgentPromptComposerSheet(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(22.dp))
                     .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -974,7 +983,7 @@ private fun AgentPromptComposerSheet(
             maxLines = 8,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { onSend() }),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.72f),
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
@@ -1008,7 +1017,7 @@ private fun AgentPromptComposerSheet(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(20.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f))
                             .padding(horizontal = 10.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1107,12 +1116,12 @@ private fun AgentQuickPromptCard(
                 Column(
                     modifier = Modifier
                         .widthIn(min = 220.dp, max = 260.dp)
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(24.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f))
                         .border(
                             width = 1.dp,
                             color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
-                            shape = RoundedCornerShape(20.dp),
+                            shape = RoundedCornerShape(24.dp),
                         )
                         .clickable { onPromptSelected(prompt) }
                         .padding(horizontal = 14.dp, vertical = 12.dp),
@@ -1149,7 +1158,7 @@ private fun AgentModeMenu(
             onClick = { expanded = true },
             enabled = enabled,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
+            shape = RoundedCornerShape(22.dp),
         ) {
             Text(selectedMode.title)
         }
@@ -1182,7 +1191,7 @@ private fun AgentLevelMenu(
             onClick = { expanded = true },
             enabled = enabled,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius),
+            shape = RoundedCornerShape(22.dp),
         ) {
             Text(selectedLevel.title)
         }
@@ -1209,7 +1218,7 @@ private fun AgentAutomationTriggerButton(
     onToggle: () -> Unit,
 ) {
     val accent = if (isEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
-    val shape = RoundedCornerShape(SkydownUiTokens.buttonCornerRadius)
+    val shape = RoundedCornerShape(22.dp)
     OutlinedButton(
         onClick = onToggle,
         contentPadding = PaddingValues(horizontal = 13.dp, vertical = 9.dp),
@@ -1301,8 +1310,8 @@ private fun AgentMessageBubble(
     val bubbleShape = RoundedCornerShape(
         topStart = SkydownUiTokens.cardCornerRadius,
         topEnd = SkydownUiTokens.cardCornerRadius,
-        bottomStart = if (isUser) SkydownUiTokens.cardCornerRadius else 10.dp,
-        bottomEnd = if (isUser) 10.dp else SkydownUiTokens.cardCornerRadius,
+        bottomStart = if (isUser) SkydownUiTokens.cardCornerRadius else 18.dp,
+        bottomEnd = if (isUser) 18.dp else SkydownUiTokens.cardCornerRadius,
     )
     val bubbleColor = if (isUser) {
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f)
@@ -1414,9 +1423,9 @@ private fun AgentWorkflowResultCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f))
-            .border(1.dp, accent.copy(alpha = 0.28f), RoundedCornerShape(12.dp))
+            .border(1.dp, accent.copy(alpha = 0.28f), RoundedCornerShape(20.dp))
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {

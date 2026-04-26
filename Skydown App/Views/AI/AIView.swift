@@ -335,10 +335,10 @@ private struct AIPlanPreviewCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 }
 
@@ -403,10 +403,10 @@ private struct AIRevenueUsageCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.15), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 }
 
@@ -500,10 +500,10 @@ private struct AIDecisionTransparencyCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 }
 
@@ -520,10 +520,10 @@ private struct CalmUpgradeCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.accent(for: colorScheme).opacity(0.06))
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -539,7 +539,7 @@ private struct LowerCostOptionCard: View {
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.accentMystic(for: colorScheme).opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -555,7 +555,7 @@ private struct RetryLaterCard: View {
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.72))
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -636,7 +636,7 @@ private struct AIPlanTile: View {
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -651,7 +651,7 @@ private struct AIEmptyStateHeader: View {
         VStack(alignment: .leading, spacing: isCompact ? 12 : 14) {
             HStack(alignment: .top, spacing: 12) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .fill(
                             LinearGradient(
                                 colors: [
@@ -713,7 +713,7 @@ private struct AIEmptyStateHeader: View {
             )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .stroke(
                     LinearGradient(
                         colors: [
@@ -727,7 +727,7 @@ private struct AIEmptyStateHeader: View {
                     lineWidth: 1
                 )
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.06), radius: 18, y: 10)
     }
 }
@@ -788,10 +788,10 @@ private struct AIDisabledCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .transition(.opacity.combined(with: .move(edge: .top)))
         .animation(SkydownMotion.statusTransition, value: colorScheme)
     }
@@ -840,10 +840,10 @@ private struct AIQuickPromptCard: View {
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
-                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous))
+                                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                                 )
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                                         .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                                 )
                         })
@@ -900,10 +900,10 @@ private struct AIVisualPromptCard: View {
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
-                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous))
+                                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                                 )
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                                         .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
                                 )
                         })
@@ -958,7 +958,7 @@ private struct AIMessageBubble: View {
                             .scaledToFill()
                             .frame(maxWidth: .infinity)
                             .frame(height: 220)
-                            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius))
+                            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                             .padding(.top, 4)
                     }
 
@@ -989,9 +989,9 @@ private struct AIMessageBubble: View {
             .padding(.vertical, 14)
             .frame(maxWidth: 360, alignment: .leading)
             .background(bubbleBackground)
-            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
                     .stroke(
                         isUser
                             ? Color.clear
@@ -1076,10 +1076,10 @@ private struct AIPromptFab: View {
             .frame(height: 58)
             .background(.ultraThinMaterial)
             .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
                     .stroke(.white.opacity(0.18), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
             .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 10)
         }
         .buttonStyle(.plain)
@@ -1125,10 +1125,10 @@ private struct AIInlineNotice: View {
                 .frame(maxWidth: 330, alignment: .leading)
                 .background(.ultraThinMaterial)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(style.color.opacity(0.22), lineWidth: 1)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 .shadow(color: style.color.opacity(0.16), radius: 18, y: 8)
                 .transition(
                     .move(edge: .bottom)
@@ -1193,7 +1193,7 @@ private struct AIPromptComposerSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center, spacing: 12) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .fill(composerAccent.opacity(0.14))
                     Image(systemName: composerMode == .visual ? "camera.aperture" : "text.bubble.fill")
                         .font(.headline.weight(.black))
@@ -1331,7 +1331,7 @@ private struct AIPromptComposerSheet: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(AppColors.secondaryBackground(for: colorScheme))
             )
             .foregroundColor(AppColors.text(for: colorScheme))
@@ -1408,11 +1408,11 @@ private struct AISessionSignalCard: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 11)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(AppColors.secondaryBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(accent.opacity(0.16), lineWidth: 1)
         )
     }
