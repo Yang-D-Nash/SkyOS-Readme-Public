@@ -13,13 +13,17 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -35,9 +39,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,7 +57,7 @@ fun ToastHost(
     type: ToastType = ToastType.Info,
 ) {
     val view = LocalView.current
-    val shape = RoundedCornerShape(18.dp)
+    val shape = RoundedCornerShape(20.dp)
 
     LaunchedEffect(message, type) {
         if (!message.isNullOrBlank()) {
@@ -102,10 +110,10 @@ fun ToastHost(
                 .fillMaxWidth()
                 .padding(16.dp)
                 .shadow(
-                    elevation = 10.dp,
+                    elevation = 14.dp,
                     shape = shape,
-                    ambientColor = Color.Black.copy(alpha = 0.14f),
-                    spotColor = Color.Black.copy(alpha = 0.16f),
+                    ambientColor = Color.Black.copy(alpha = 0.16f),
+                    spotColor = Color.Black.copy(alpha = 0.20f),
                 )
                 .clip(shape)
                 .animateContentSize(
@@ -114,21 +122,54 @@ fun ToastHost(
                         easing = FastOutSlowInEasing,
                     ),
                 )
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.98f))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.99f))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            type.accent.copy(alpha = 0.11f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.04f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.00f),
+                        ),
+                    ),
+                )
                 .border(
                     width = 1.dp,
-                    color = type.accent.copy(alpha = 0.32f),
+                    color = type.accent.copy(alpha = 0.24f),
                     shape = shape,
                 )
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .semantics {
+                    liveRegion = LiveRegionMode.Polite
+                }
+                .padding(horizontal = 12.dp, vertical = 11.dp)
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(11.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(type.accent.copy(alpha = 0.14f)),
+                    .width(3.dp)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                type.accent.copy(alpha = 0.92f),
+                                type.accent.copy(alpha = 0.18f),
+                            ),
+                        ),
+                    ),
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(type.accent.copy(alpha = 0.13f))
+                    .border(
+                        width = 1.dp,
+                        color = type.accent.copy(alpha = 0.20f),
+                        shape = RoundedCornerShape(14.dp),
+                    ),
             ) {
                 Icon(
                     imageVector = type.icon,
@@ -136,7 +177,7 @@ fun ToastHost(
                     tint = type.accent,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(21.dp),
+                        .size(22.dp),
                 )
             }
 
@@ -146,13 +187,15 @@ fun ToastHost(
             ) {
                 Text(
                     text = type.title,
-                    color = type.accent,
-                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = message.orEmpty(),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.92f),
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
