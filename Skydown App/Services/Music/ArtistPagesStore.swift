@@ -74,9 +74,23 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
         guard
             let brandRaw = data["brand"] as? String,
             let brand = ArtistPageBrand(rawValue: brandRaw),
-            let artistName = data["artistName"] as? String
+            let fieldArtistName = data["artistName"] as? String
         else {
             return nil
+        }
+
+        let trimmed = fieldArtistName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        // Firestore `artistName` can be copy-paste wrong; document ID (same as on save) is source of truth.
+        let artistName: String
+        if brand == .nicma {
+            switch document.documentID {
+            case "nicma-nicma-music": artistName = "NICMA MUSIC"
+            case "nicma-nicma-studio": artistName = "NICMA STUDIO"
+            default: artistName = trimmed
+            }
+        } else {
+            artistName = trimmed
         }
 
         let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? .now

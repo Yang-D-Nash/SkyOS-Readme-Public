@@ -77,6 +77,26 @@ private fun artistPageDocumentId(brand: ArtistPageBrand, artistName: String): St
     return "${brand.rawValue}-${artistPageSlug(artistName)}"
 }
 
+/**
+ * Firestore-Feld `artistName` ist manchmal falsch kopiert (z. B. beide "NICMA MUSIC");
+ * dann würde daraus ein falscher [ArtistPageUi.slug] gebaut und `pageFor("NICMA STUDIO")` findet das Doc nicht.
+ * Die **Document-ID** (wie beim [save]) ist die verlässliche Quelle.
+ */
+private fun canonicalArtistNameForDocument(
+    brand: ArtistPageBrand,
+    documentId: String,
+    storedArtistName: String,
+): String {
+    if (brand != ArtistPageBrand.Nicma) {
+        return storedArtistName
+    }
+    return when (documentId) {
+        "nicma-nicma-music" -> "NICMA MUSIC"
+        "nicma-nicma-studio" -> "NICMA STUDIO"
+        else -> storedArtistName
+    }
+}
+
 private fun draftArtistPage(
     brand: ArtistPageBrand,
     artistName: String,
@@ -121,6 +141,9 @@ object ArtistPagesStore {
         return pages.value.firstOrNull { it.brand == brand && it.slug == slug }
             ?: draftArtistPage(brand = brand, artistName = artistName)
     }
+
+    fun documentIdFor(brand: ArtistPageBrand, artistName: String): String =
+        artistPageDocumentId(brand, artistName)
 
     fun canEdit(page: ArtistPageUi, user: User?): Boolean {
         if (user?.isPlatformOwner == true) {
@@ -183,8 +206,9 @@ object ArtistPagesStore {
                     val brand = ArtistPageBrand.entries.firstOrNull {
                         it.rawValue == document.getString("brand")?.trim()?.lowercase()
                     } ?: return@mapNotNull null
-                    val artistName = document.getString("artistName")?.trim().orEmpty()
-                    if (artistName.isBlank()) return@mapNotNull null
+                    val rawArtistName = document.getString("artistName")?.trim().orEmpty()
+                    if (rawArtistName.isBlank()) return@mapNotNull null
+                    val artistName = canonicalArtistNameForDocument(brand, document.id, rawArtistName)
 
                     ArtistPageUi(
                         slug = artistPageDocumentId(brand, artistName),

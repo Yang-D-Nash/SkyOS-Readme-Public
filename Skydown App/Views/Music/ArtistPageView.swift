@@ -56,17 +56,31 @@ struct ArtistPageView: View {
         store.page(for: brand, artistName: artistName)
     }
 
+    private var routeArtistName: String {
+        artistName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var allowsStudioPriceEditing: Bool {
-        brand == .nicma && page.artistName.caseInsensitiveCompare("NICMA STUDIO") == .orderedSame
+        brand == .nicma && routeArtistName.caseInsensitiveCompare("NICMA STUDIO") == .orderedSame
+    }
+
+    /// Kurz halten: `BrandSurface` blendet die Eyebrow aus, sobald der Titel mit derselben Zeichenkette beginnt
+    /// (lange Labels wie "NICMA STUDIO" würden bei Titel "NICMA STUDIO" komplett fehlen).
+    private var nicmaHeroEyebrow: String {
+        if brand == .nicma {
+            if routeArtistName.caseInsensitiveCompare("NICMA STUDIO") == .orderedSame { return "STUDIO" }
+            if routeArtistName.caseInsensitiveCompare("NICMA MUSIC") == .orderedSame { return "PRODUCER" }
+        }
+        return brand.displayTitle
     }
 
     private var displayPage: ArtistPage {
         guard isEditing else { return page }
-
+        let stableId = artistPageDocumentID(brand: page.brand, artistName: routeArtistName)
         return ArtistPage(
-            id: page.id,
+            id: stableId,
             brand: page.brand,
-            artistName: page.artistName,
+            artistName: routeArtistName,
             tagline: taglineDraft.trimmedNilIfEmpty,
             bio: bioDraft.trimmedNilIfEmpty,
             profileImageURL: profileImageURLDraft.trimmedNilIfEmpty,
@@ -483,7 +497,7 @@ struct ArtistPageView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack(spacing: 8) {
                         ArtistHeroTag(
-                            text: brand.displayTitle,
+                            text: nicmaHeroEyebrow,
                             background: .white.opacity(0.14)
                         )
 
@@ -1220,10 +1234,11 @@ struct ArtistPageView: View {
         defer { isSaving = false }
 
         do {
+            let documentId = artistPageDocumentID(brand: page.brand, artistName: routeArtistName)
             let updatedPage = ArtistPage(
-                id: page.slug,
+                id: documentId,
                 brand: page.brand,
-                artistName: page.artistName,
+                artistName: routeArtistName,
                 tagline: taglineDraft.trimmedNilIfEmpty,
                 bio: bioDraft.trimmedNilIfEmpty,
                 profileImageURL: profileImageURLDraft.trimmedNilIfEmpty,

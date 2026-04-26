@@ -62,8 +62,8 @@ fun NicmaProducerScreen(
     val currentUser = LocalSessionUser.current
     val profileOptions = remember { listOf("NICMA MUSIC", "NICMA STUDIO") }
     var selectedProfile by rememberSaveable { mutableStateOf("NICMA MUSIC") }
-    var viewingProfile by rememberSaveable { mutableStateOf<String?>(null) }
-    var editingProfile by rememberSaveable { mutableStateOf<String?>(null) }
+    /** Ein Karten-/Toolbar-Tap: dieselbe vollflächige Künstlerseite (Vorsch + Bearbeiten in einem Screen) — kein zweiter „Nur ansehen“-Stack. */
+    var presentedNicmaPage by rememberSaveable { mutableStateOf<String?>(null) }
     val page = ArtistPagesStore.pageFor(brand = ArtistPageBrand.Nicma, artistName = selectedProfile)
     val isStudioProfile = selectedProfile == "NICMA STUDIO"
     val canEdit = ArtistPagesStore.canEdit(page, currentUser)
@@ -85,20 +85,11 @@ fun NicmaProducerScreen(
         "Artist Page: NICMA MUSIC, Links und Profil."
     }
 
-    viewingProfile?.let { profile ->
+    presentedNicmaPage?.let { profile ->
         ArtistPageScreen(
             artistName = profile,
             brand = ArtistPageBrand.Nicma,
-            onBack = { viewingProfile = null },
-        )
-        return
-    }
-
-    editingProfile?.let { profile ->
-        ArtistPageScreen(
-            artistName = profile,
-            brand = ArtistPageBrand.Nicma,
-            onBack = { editingProfile = null },
+            onBack = { presentedNicmaPage = null },
         )
         return
     }
@@ -128,10 +119,10 @@ fun NicmaProducerScreen(
                 },
                 actions = {
                     if (canEdit) {
-                        IconButton(onClick = { editingProfile = selectedProfile }) {
+                        IconButton(onClick = { presentedNicmaPage = selectedProfile }) {
                             Icon(
                                 imageVector = Icons.Filled.Edit,
-                                contentDescription = "Bearbeiten",
+                                contentDescription = "Seite oeffnen / bearbeiten",
                             )
                         }
                     }
@@ -182,7 +173,7 @@ fun NicmaProducerScreen(
                         body = page.bio ?: profileFallbackBio,
                         tagline = hubTagline,
                         heroImageUrl = page.heroImageURL,
-                        onSurfaceClick = { viewingProfile = selectedProfile },
+                        onSurfaceClick = { presentedNicmaPage = selectedProfile },
                     )
                 }
 

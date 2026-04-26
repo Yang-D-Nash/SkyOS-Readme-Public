@@ -128,15 +128,18 @@ fun ArtistPageScreen(
             volume = 0f
         }
     }
-    val page = remember(pages, artistName, brand) {
-        ArtistPagesStore.pageFor(brand = brand, artistName = artistName)
+    val routeArtistName = artistName.trim()
+    val page = remember(pages, routeArtistName, brand) {
+        ArtistPagesStore.pageFor(brand = brand, artistName = routeArtistName)
     }
     val canEdit = ArtistPagesStore.canEdit(page, currentUser)
-    val allowsStudioPriceEditing = brand == ArtistPageBrand.Nicma && page.artistName.equals("NICMA STUDIO", ignoreCase = true)
+    // Navigation-Intent, nicht unbedingt ein evtl. falsch gespeichertes `page.artistName` aus Firestore.
+    val allowsStudioPriceEditing = brand == ArtistPageBrand.Nicma &&
+        routeArtistName.equals("NICMA STUDIO", ignoreCase = true)
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
     val listState = rememberLazyListState()
-    val visualStyle = artistPageVisualStyle(brand)
+    val visualStyle = artistPageVisualStyle(brand = brand, artistName = routeArtistName)
 
     var isEditing by rememberSaveable(page.slug) { mutableStateOf(false) }
     var taglineDraft by rememberSaveable(page.slug) { mutableStateOf(page.tagline.orEmpty()) }
@@ -188,6 +191,8 @@ fun ArtistPageScreen(
             page
         } else {
             page.copy(
+                slug = ArtistPagesStore.documentIdFor(brand, routeArtistName),
+                artistName = routeArtistName,
                 tagline = taglineDraft.trimmedOrNull(),
                 bio = bioDraft.trimmedOrNull(),
                 profileImageURL = profileImageDraft.trimmedOrNull(),
@@ -375,11 +380,11 @@ fun ArtistPageScreen(
         }
     }
 
-    LaunchedEffect(page.artistName) {
+    LaunchedEffect(routeArtistName) {
         isLoadingTracks = true
         tracksError = null
 
-        AppContainer.musicService.fetchTracks(page.artistName)
+        AppContainer.musicService.fetchTracks(routeArtistName)
             .onSuccess { fetchedTracks ->
                 tracks = fetchedTracks
                 if (selectedTrackId == null || fetchedTracks.none { it.trackId == selectedTrackId }) {
@@ -431,7 +436,7 @@ fun ArtistPageScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        title = page.artistName,
+                        title = routeArtistName,
                         subtitle = "${brand.displayTitle} Artist Page",
                         accent = visualStyle.accent,
                     )
@@ -575,7 +580,7 @@ fun ArtistPageScreen(
                 }
                 item {
                     ArtistPageTracksCard(
-                        artistName = page.artistName,
+                        artistName = routeArtistName,
                         tracks = tracks.take(5),
                         isLoading = isLoadingTracks,
                         errorMessage = tracksError,
@@ -1451,7 +1456,7 @@ private data class ArtistPageVisualStyle(
 )
 
 @Composable
-private fun artistPageVisualStyle(brand: ArtistPageBrand): ArtistPageVisualStyle {
+private fun artistPageVisualStyle(brand: ArtistPageBrand, artistName: String = ""): ArtistPageVisualStyle {
     val colorScheme = MaterialTheme.colorScheme
     return when (brand) {
         ArtistPageBrand.Zweizwei -> ArtistPageVisualStyle(
@@ -1466,12 +1471,21 @@ private fun artistPageVisualStyle(brand: ArtistPageBrand): ArtistPageVisualStyle
             secondaryAccent = colorScheme.tertiary,
             marks = listOf(BrandArtwork.Skydown),
         )
-        ArtistPageBrand.Nicma -> ArtistPageVisualStyle(
-            eyebrow = "NICMA PRODUCER",
-            accent = colorScheme.tertiary,
-            secondaryAccent = colorScheme.primary,
-            marks = emptyList(),
-        )
+        ArtistPageBrand.Nicma -> {
+            // Kurz halten: `BrandHeroCard` blendet die Eyebrow aus, sobald `title` mit `eyebrow` beginnt
+            // (z. B. wäre "NICMA STUDIO" + Titel "NICMA STUDIO" unsichtbar).
+            val nicmaEyebrow = when {
+                artistName.equals("NICMA STUDIO", ignoreCase = true) -> "STUDIO"
+                artistName.equals("NICMA MUSIC", ignoreCase = true) -> "PRODUCER"
+                else -> "NICMA"
+            }
+            ArtistPageVisualStyle(
+                eyebrow = nicmaEyebrow,
+                accent = colorScheme.tertiary,
+                secondaryAccent = colorScheme.primary,
+                marks = emptyList(),
+            )
+        }
     }
 }
 

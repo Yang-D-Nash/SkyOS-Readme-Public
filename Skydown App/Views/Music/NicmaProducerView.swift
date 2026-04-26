@@ -13,10 +13,9 @@ struct NicmaProducerView: View {
     @EnvironmentObject private var authManager: AuthManager
     @ObservedObject private var artistPagesStore = ArtistPagesStore.shared
     let onBack: (() -> Void)?
-    @State private var showingEditor = false
     @State private var selectedProfile = "NICMA MUSIC"
-    @State private var editingProfile: String?
-    @State private var viewingProfile: String?
+    /// Ein Tap (Hero oder Stift): eine `ArtistPageView` — kein doppelter View- vs. Edit-Stack.
+    @State private var openNicmaPage: String?
 
     init(onBack: (() -> Void)? = nil) {
         self.onBack = onBack
@@ -127,24 +126,16 @@ struct NicmaProducerView: View {
             if canEdit {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        editingProfile = selectedProfile
+                        openNicmaPage = selectedProfile
                     } label: {
                         Image(systemName: "square.and.pencil")
                             .font(.headline.weight(.semibold))
                     }
-                    .accessibilityLabel("Bearbeiten")
+                    .accessibilityLabel("Seite oeffnen / bearbeiten")
                 }
             }
         }
-        .sheet(item: $viewingProfile) { profile in
-            ArtistPageView(
-                authManager: authManager,
-                store: artistPagesStore,
-                brand: .nicma,
-                artistName: profile
-            )
-        }
-        .sheet(item: $editingProfile) { profile in
+        .sheet(item: $openNicmaPage) { profile in
             ArtistPageView(
                 authManager: authManager,
                 store: artistPagesStore,
@@ -192,7 +183,7 @@ struct NicmaProducerView: View {
         )
         .contentShape(RoundedRectangle(cornerRadius: 26))
         .onTapGesture {
-            viewingProfile = selectedProfile
+            openNicmaPage = selectedProfile
         }
     }
 
