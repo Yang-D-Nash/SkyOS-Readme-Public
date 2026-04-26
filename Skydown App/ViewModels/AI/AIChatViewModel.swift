@@ -278,12 +278,16 @@ final class AIChatViewModel: ObservableObject {
     ]
 
     private let service: AIChatServicing
+    private let syncService: AIConversationSyncServicing
     private let historyStore: AIScriptHistoryStore
+    private var currentUserID: String?
     private var currentUserKey: String?
     private var currentSessionID: UUID?
     private var currentPlanTitle: String = "Free"
+    private var currentHistoryRetentionDays: Int = UserRole.user.defaultAIHistoryRetentionDays
     private var conversationRevision = 0
     private var activeRequestTask: Task<Void, Never>?
+    private var remoteHydrationTask: Task<Void, Never>?
     private var activeRequestContext: InFlightRequestContext?
     private var currentQuotaPlan: UserQuotaPlan = .free
 
@@ -296,17 +300,22 @@ final class AIChatViewModel: ObservableObject {
     }
 
     init(
-        service: AIChatServicing = FirebaseFunctionsAIChatService()
+        service: AIChatServicing = FirebaseFunctionsAIChatService(),
+        syncService: AIConversationSyncServicing = FirestoreAIConversationSyncService()
     ) {
         self.service = service
+        self.syncService = syncService
         self.historyStore = AIScriptHistoryStore.shared
     }
 
     deinit {
         activeRequestTask?.cancel()
+        remoteHydrationTask?.cancel()
     }
 
     func configureUser(user: User?) {
+        let trimmedUserID = user?.id?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let normalizedUserID = trimmedUserID.isEmpty ? nil : trimmedUserID
         let normalizedUserKey = normalizedUserKey(for: user?.id ?? user?.email)
         if let user {
             currentQuotaPlan = user.resolvedQuotaPlan
@@ -321,14 +330,21 @@ final class AIChatViewModel: ObservableObject {
             currentQuotaPlan = .free
             currentPlanTitle = "Free"
         }
+        currentHistoryRetentionDays = user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays
         if !selectedLevel.isAvailable(for: currentQuotaPlan) {
             selectedLevel = .standard
         }
-        historyStore.updateRetentionDays(user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays)
-        guard normalizedUserKey != currentUserKey else { return }
+        historyStore.updateRetentionDays(currentHistoryRetentionDays)
+        let didChangeIdentity = normalizedUserKey != currentUserKey || normalizedUserID != currentUserID
+        if !didChangeIdentity {
+            pruneRemoteHistoryIfNeeded()
+            return
+        }
         invalidateConversation(cancelActiveRequest: true)
+        currentUserID = normalizedUserID
         currentUserKey = normalizedUserKey
         restoreConversationState()
+        hydrateRemoteHistoryIfNeeded(preferredSessionID: currentSessionID)
     }
 
     func sendDraft() {
@@ -386,13 +402,15 @@ final class AIChatViewModel: ObservableObject {
                     text: result.text,
                     isStreaming: false
                 )
-                historyStore.saveEntry(
+                if let savedResult = historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .bot,
                     sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
                     response: result.text
-                )
+                ) {
+                    syncSavedEntryToRemote(savedResult)
+                }
                 refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 phase = resolvedTerminalPhase(for: result.decision)
                 clearActiveRequestIfNeeded(requestContext)
@@ -406,13 +424,15 @@ final class AIChatViewModel: ObservableObject {
                 lastDecision = decision(for: error)
                 phase = resolvedTerminalPhase(for: lastDecision)
                 updateAssistantMessage(id: assistantID, text: assistantText, isStreaming: false)
-                historyStore.saveEntry(
+                if let savedResult = historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .bot,
                     sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
                     response: assistantText
-                )
+                ) {
+                    syncSavedEntryToRemote(savedResult)
+                }
                 refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 showUserToast(userFacingErrorMessage(for: error), style: .error)
                 clearActiveRequestIfNeeded(requestContext)
@@ -464,14 +484,16 @@ final class AIChatViewModel: ObservableObject {
                     isStreaming: false,
                     imageData: result.imageData
                 )
-                historyStore.saveEntry(
+                if let savedResult = historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .bot,
                     sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
                     response: result.text,
                     imageData: result.imageData
-                )
+                ) {
+                    syncSavedEntryToRemote(savedResult)
+                }
                 refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 phase = resolvedTerminalPhase(for: result.decision)
                 clearActiveRequestIfNeeded(requestContext)
@@ -485,13 +507,15 @@ final class AIChatViewModel: ObservableObject {
                 lastDecision = decision(for: error)
                 phase = resolvedTerminalPhase(for: lastDecision)
                 updateAssistantMessage(id: assistantID, text: assistantText, isStreaming: false)
-                historyStore.saveEntry(
+                if let savedResult = historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .bot,
                     sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
                     response: assistantText
-                )
+                ) {
+                    syncSavedEntryToRemote(savedResult)
+                }
                 refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 showUserToast(userFacingErrorMessage(for: error), style: .error)
                 clearActiveRequestIfNeeded(requestContext)
@@ -514,6 +538,7 @@ final class AIChatViewModel: ObservableObject {
         )
         currentSessionID = newSession.id
         refreshConversationMetadata(preferredSessionID: newSession.id)
+        syncSessionToRemote(newSession)
         phase = draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .idle : .typing
     }
 
@@ -526,13 +551,16 @@ final class AIChatViewModel: ObservableObject {
 
     func renameActiveConversation(_ title: String) {
         guard let currentSessionID else { return }
-        _ = historyStore.renameSession(
+        let renamedSession = historyStore.renameSession(
             userKey: currentUserKey,
             source: .bot,
             sessionID: currentSessionID,
             title: title
         )
         refreshConversationMetadata(preferredSessionID: currentSessionID)
+        if let renamedSession {
+            syncSessionToRemote(renamedSession)
+        }
     }
 
     func deleteActiveConversation() {
@@ -546,6 +574,7 @@ final class AIChatViewModel: ObservableObject {
         messages = []
         lastDecision = nil
         restoreConversationState()
+        deleteSessionFromRemote(currentSessionID)
     }
 
     private func updateAssistantMessage(id: UUID, text: String, isStreaming: Bool, imageData: Data? = nil) {
@@ -583,6 +612,8 @@ final class AIChatViewModel: ObservableObject {
         if cancelActiveRequest {
             activeRequestTask?.cancel()
             activeRequestTask = nil
+            remoteHydrationTask?.cancel()
+            remoteHydrationTask = nil
             activeRequestContext = nil
         }
         conversationRevision += 1
@@ -674,6 +705,98 @@ final class AIChatViewModel: ObservableObject {
         toastMessage = message
         toastStyle = style
         showToast = true
+    }
+
+    private func hydrateRemoteHistoryIfNeeded(preferredSessionID: UUID?) {
+        remoteHydrationTask?.cancel()
+        guard let currentUserID else { return }
+
+        let source: AIScriptHistorySource = .bot
+        let userID = currentUserID
+        let userKey = currentUserKey
+        let retentionDays = currentHistoryRetentionDays
+
+        let localSessions = historyStore.sessionRecords(for: userKey, source: source)
+        let localEntries = historyStore.entries(for: userKey, source: source)
+
+        remoteHydrationTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                _ = try await syncService.migrateLocalHistoryIfRemoteEmpty(
+                    userID: userID,
+                    source: source,
+                    localSessions: localSessions,
+                    localEntries: localEntries
+                )
+                try? await syncService.pruneHistory(
+                    userID: userID,
+                    source: source,
+                    retentionDays: retentionDays
+                )
+                let refreshedSnapshot = try await syncService.fetchSnapshot(userID: userID, source: source)
+                guard Task.isCancelled == false else { return }
+                guard self.currentUserID == userID, self.currentUserKey == userKey else { return }
+                self.historyStore.replaceRemoteState(
+                    userKey: userKey,
+                    source: source,
+                    sessions: refreshedSnapshot.sessions,
+                    entries: refreshedSnapshot.entries
+                )
+                self.restoreConversationState(preferredSessionID: preferredSessionID)
+            } catch {
+                // Keep local history as fallback when remote sync is unavailable.
+            }
+        }
+    }
+
+    private func syncSessionToRemote(_ session: AIScriptHistorySession) {
+        guard let currentUserID else { return }
+        let retentionDays = currentHistoryRetentionDays
+        Task { @MainActor in
+            do {
+                try await syncService.upsertSession(userID: currentUserID, session: session)
+                try? await syncService.pruneHistory(userID: currentUserID, source: .bot, retentionDays: retentionDays)
+            } catch {
+                // Local cache stays authoritative until the next successful sync.
+            }
+        }
+    }
+
+    private func syncSavedEntryToRemote(_ saveResult: AIScriptHistorySaveResult) {
+        guard let currentUserID else { return }
+        let retentionDays = currentHistoryRetentionDays
+        Task { @MainActor in
+            do {
+                try await syncService.upsertSession(userID: currentUserID, session: saveResult.session)
+                try await syncService.upsertEntry(userID: currentUserID, entry: saveResult.entry)
+                try? await syncService.pruneHistory(userID: currentUserID, source: .bot, retentionDays: retentionDays)
+            } catch {
+                // Local cache stays authoritative until the next successful sync.
+            }
+        }
+    }
+
+    private func deleteSessionFromRemote(_ sessionID: UUID) {
+        guard let currentUserID else { return }
+        Task { @MainActor in
+            do {
+                try await syncService.deleteSession(userID: currentUserID, sessionID: sessionID)
+            } catch {
+                // Ignore and let the next hydration pull the remote truth again.
+            }
+        }
+    }
+
+    private func pruneRemoteHistoryIfNeeded() {
+        guard let currentUserID else { return }
+        let retentionDays = currentHistoryRetentionDays
+        Task { @MainActor in
+            try? await syncService.pruneHistory(
+                userID: currentUserID,
+                source: .bot,
+                retentionDays: retentionDays
+            )
+        }
     }
 
     func showToastMessage(_ message: String, style: ToastStyle) {

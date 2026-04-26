@@ -6,6 +6,8 @@ import com.google.firebase.functions.FirebaseFunctionsException
 import com.nash.skyos.R
 import com.nash.skyos.data.AiConversationHistorySource
 import com.nash.skyos.data.AiConversationHistoryStore
+import com.nash.skyos.data.AiConversationHistorySaveResult
+import com.nash.skyos.data.AiConversationSyncRepository
 import com.nash.skyos.data.AiVisualReferenceLibraryPreferences
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.AppFeatureFlagsStore
@@ -35,14 +37,18 @@ import kotlinx.coroutines.launch
 class AiViewModel : ViewModel() {
     private val aiChatClient = AppContainer.aiChatClient
     private val aiImageClient = AppContainer.aiImageClient
+    private val syncRepository = AiConversationSyncRepository()
     private val _uiState = MutableStateFlow(AiUiState())
     val uiState: StateFlow<AiUiState> = _uiState.asStateFlow()
 
+    private var currentUserId: String? = null
     private var currentUserKey: String? = null
     private var currentQuotaPlan: UserQuotaPlan = UserQuotaPlan.Free
+    private var currentHistoryRetentionDays: Int = UserRole.User.defaultAiHistoryRetentionDays
     private var currentSessionId: String? = null
     private var conversationRevision = 0
     private var activeRequestJob: Job? = null
+    private var remoteHydrationJob: Job? = null
     private var activeRequestContext: InFlightRequestContext? = null
 
     private data class InFlightRequestContext(
@@ -62,10 +68,11 @@ class AiViewModel : ViewModel() {
 
         viewModelScope.launch {
             AppContainer.currentUser.collect { user ->
-                AiConversationHistoryStore.updateRetentionDays(
-                    user?.resolvedAiHistoryRetentionDays ?: UserRole.User.defaultAiHistoryRetentionDays,
-                )
+                currentHistoryRetentionDays =
+                    user?.resolvedAiHistoryRetentionDays ?: UserRole.User.defaultAiHistoryRetentionDays
+                AiConversationHistoryStore.updateRetentionDays(currentHistoryRetentionDays)
                 val userKey = normalizeUserKey(user)
+                val userId = user?.id?.takeIf { it.isNotBlank() }
                 val quotaPlan = user?.resolvedQuotaPlan ?: UserQuotaPlan.Free
                 currentQuotaPlan = quotaPlan
                 val planLabel = when (quotaPlan) {
@@ -85,13 +92,16 @@ class AiViewModel : ViewModel() {
                         },
                     )
                 }
-                if (userKey != currentUserKey) {
+                if (userKey != currentUserKey || userId != currentUserId) {
                     invalidateConversation(cancelActiveRequest = true)
+                    currentUserId = userId
                     currentUserKey = userKey
                     currentSessionId = null
                     restoreHistory()
+                    hydrateRemoteHistoryIfNeeded(currentSessionId)
                 } else {
                     refreshSessionState()
+                    pruneRemoteHistoryIfNeeded()
                 }
             }
         }
@@ -190,13 +200,14 @@ class AiViewModel : ViewModel() {
                 if (!isRequestContextActive(requestContext)) return@launch
 
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
-                AiConversationHistoryStore.saveEntry(
+                val savedResult = AiConversationHistoryStore.saveEntry(
                     userKey = requestContext.userKeyAtSend,
                     source = AiConversationHistorySource.Bot,
                     sessionId = requestContext.sessionIdAtSend,
                     prompt = trimmedPrompt,
                     response = result.text,
                 )
+                savedResult?.let(::syncSavedEntryToRemote)
                 refreshSessionState(requestContext.sessionIdAtSend)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
@@ -218,13 +229,14 @@ class AiViewModel : ViewModel() {
 
                 val assistantText = userFacingErrorMessage(error)
                 val decision = decisionFor(error)
-                AiConversationHistoryStore.saveEntry(
+                val savedResult = AiConversationHistoryStore.saveEntry(
                     userKey = requestContext.userKeyAtSend,
                     source = AiConversationHistorySource.Bot,
                     sessionId = requestContext.sessionIdAtSend,
                     prompt = trimmedPrompt,
                     response = assistantText,
                 )
+                savedResult?.let(::syncSavedEntryToRemote)
                 refreshSessionState(requestContext.sessionIdAtSend)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
@@ -290,13 +302,14 @@ class AiViewModel : ViewModel() {
                 if (!isRequestContextActive(requestContext)) return@launch
 
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
-                AiConversationHistoryStore.saveEntry(
+                val savedResult = AiConversationHistoryStore.saveEntry(
                     userKey = requestContext.userKeyAtSend,
                     source = AiConversationHistorySource.Bot,
                     sessionId = requestContext.sessionIdAtSend,
                     prompt = trimmedPrompt,
                     response = result.text,
                 )
+                savedResult?.let(::syncSavedEntryToRemote)
                 refreshSessionState(requestContext.sessionIdAtSend)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
@@ -320,13 +333,14 @@ class AiViewModel : ViewModel() {
 
                 val assistantText = userFacingErrorMessage(error)
                 val decision = decisionFor(error)
-                AiConversationHistoryStore.saveEntry(
+                val savedResult = AiConversationHistoryStore.saveEntry(
                     userKey = requestContext.userKeyAtSend,
                     source = AiConversationHistorySource.Bot,
                     sessionId = requestContext.sessionIdAtSend,
                     prompt = trimmedPrompt,
                     response = assistantText,
                 )
+                savedResult?.let(::syncSavedEntryToRemote)
                 refreshSessionState(requestContext.sessionIdAtSend)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
@@ -357,6 +371,7 @@ class AiViewModel : ViewModel() {
         )
         currentSessionId = newSession.id
         refreshSessionState(newSession.id)
+        syncSessionToRemote(newSession)
         _uiState.update { currentState ->
             currentState.copy(
                 messages = emptyList(),
@@ -380,7 +395,7 @@ class AiViewModel : ViewModel() {
             source = AiConversationHistorySource.Bot,
             sessionId = currentSessionId,
             title = title,
-        )
+        )?.let(::syncSessionToRemote)
         refreshSessionState()
     }
 
@@ -392,6 +407,7 @@ class AiViewModel : ViewModel() {
             source = AiConversationHistorySource.Bot,
             sessionId = sessionId,
         )
+        deleteSessionFromRemote(sessionId)
         currentSessionId = null
         restoreHistory()
     }
@@ -467,6 +483,8 @@ class AiViewModel : ViewModel() {
         if (cancelActiveRequest) {
             activeRequestJob?.cancel()
             activeRequestJob = null
+            remoteHydrationJob?.cancel()
+            remoteHydrationJob = null
             activeRequestContext = null
         }
         conversationRevision += 1
@@ -549,6 +567,98 @@ class AiViewModel : ViewModel() {
     private fun normalizeUserKey(user: User?): String? {
         return user?.id?.takeIf { it.isNotBlank() }
             ?: user?.email?.takeIf { it.isNotBlank() }
+    }
+
+    private fun hydrateRemoteHistoryIfNeeded(preferredSessionId: String?) {
+        remoteHydrationJob?.cancel()
+        val userId = currentUserId ?: return
+        val userKey = currentUserKey
+        val localSessions = AiConversationHistoryStore.sessionsFor(
+            userKey = userKey,
+            source = AiConversationHistorySource.Bot,
+        )
+        val localEntries = AiConversationHistoryStore.entriesFor(
+            userKey = userKey,
+            source = AiConversationHistorySource.Bot,
+        )
+        remoteHydrationJob = viewModelScope.launch {
+            runCatching {
+                syncRepository.migrateLocalHistoryIfRemoteEmpty(
+                    userId = userId,
+                    source = AiConversationHistorySource.Bot,
+                    localSessions = localSessions,
+                    localEntries = localEntries,
+                )
+                syncRepository.pruneHistory(
+                    userId = userId,
+                    source = AiConversationHistorySource.Bot,
+                    retentionDays = currentHistoryRetentionDays,
+                )
+                syncRepository.fetchSnapshot(userId, AiConversationHistorySource.Bot)
+            }.onSuccess { snapshot ->
+                if (currentUserId != userId || currentUserKey != userKey) {
+                    return@onSuccess
+                }
+                AiConversationHistoryStore.replaceRemoteState(
+                    userKey = userKey,
+                    source = AiConversationHistorySource.Bot,
+                    sessions = snapshot.sessions,
+                    entries = snapshot.entries,
+                )
+                restoreHistory(preferredSessionId)
+            }
+        }
+    }
+
+    private fun syncSessionToRemote(session: com.nash.skyos.data.AiConversationHistorySession) {
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                syncRepository.upsertSession(userId, session)
+                syncRepository.pruneHistory(
+                    userId = userId,
+                    source = AiConversationHistorySource.Bot,
+                    retentionDays = currentHistoryRetentionDays,
+                )
+            }
+        }
+    }
+
+    private fun syncSavedEntryToRemote(saveResult: AiConversationHistorySaveResult) {
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                syncRepository.upsertSession(userId, saveResult.session)
+                syncRepository.upsertEntry(userId, saveResult.entry)
+                syncRepository.pruneHistory(
+                    userId = userId,
+                    source = AiConversationHistorySource.Bot,
+                    retentionDays = currentHistoryRetentionDays,
+                )
+            }
+        }
+    }
+
+    private fun deleteSessionFromRemote(sessionId: String) {
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                syncRepository.deleteSession(userId, sessionId)
+            }
+        }
+    }
+
+    private fun pruneRemoteHistoryIfNeeded() {
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                syncRepository.pruneHistory(
+                    userId = userId,
+                    source = AiConversationHistorySource.Bot,
+                    retentionDays = currentHistoryRetentionDays,
+                )
+            }
+        }
     }
 
     private fun buildVisualPrompt(userPrompt: String): String {

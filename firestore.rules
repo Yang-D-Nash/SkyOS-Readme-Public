@@ -697,6 +697,34 @@ service cloud.firestore {
       && request.resource.data.updatedAt is timestamp;
     }
 
+    function validAiConversationSessionPayload() {
+      return request.resource.data.keys().hasOnly([
+        "source",
+        "title",
+        "createdAt",
+        "updatedAt"
+      ])
+      && request.resource.data.source in ["bot", "agent"]
+      && requiredString(request.resource.data.title, 1, 120)
+      && request.resource.data.createdAt is timestamp
+      && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validAiConversationEntryPayload() {
+      return request.resource.data.keys().hasOnly([
+        "sessionId",
+        "source",
+        "prompt",
+        "response",
+        "createdAt"
+      ])
+      && requiredString(request.resource.data.sessionId, 8, 80)
+      && request.resource.data.source in ["bot", "agent"]
+      && requiredString(request.resource.data.prompt, 1, 8000)
+      && requiredString(request.resource.data.response, 1, 64000)
+      && request.resource.data.createdAt is timestamp;
+    }
+
     function validGalleryMetaPayload(uid) {
       return request.resource.data.keys().hasOnly([
         "ownerUid",
@@ -828,6 +856,24 @@ service cloud.firestore {
     match /users/{uid}/texts/{textId} {
       allow read: if isSelf(uid) || isOwner();
       allow create, update, delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+    }
+
+    match /users/{uid}/aiSessions/{sessionId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update: if (
+        (isSelf(uid) && regularUserWriteAllowed())
+        || isOwner()
+      ) && validAiConversationSessionPayload();
+      allow delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+    }
+
+    match /users/{uid}/aiEntries/{entryId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update: if (
+        (isSelf(uid) && regularUserWriteAllowed())
+        || isOwner()
+      ) && validAiConversationEntryPayload();
+      allow delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
     }
 
     match /users/{uid}/aiUsage/{usageId} {

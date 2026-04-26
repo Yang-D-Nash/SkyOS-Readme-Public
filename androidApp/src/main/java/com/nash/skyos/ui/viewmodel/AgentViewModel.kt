@@ -8,7 +8,9 @@ import com.nash.skyos.data.AgentHistoryTurn
 import com.nash.skyos.data.AgentPendingQueueEntry
 import com.nash.skyos.data.AgentPendingQueueStore
 import com.nash.skyos.data.AiConversationHistorySource
+import com.nash.skyos.data.AiConversationHistorySaveResult
 import com.nash.skyos.data.AiConversationHistoryStore
+import com.nash.skyos.data.AiConversationSyncRepository
 import com.nash.skyos.data.AiRuntimeAgentProvider
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.AppFeatureFlagsStore
@@ -60,16 +62,20 @@ class AgentViewModel : ViewModel() {
     )
 
     private val agentClient = AppContainer.agentClient
+    private val syncRepository = AiConversationSyncRepository()
     private val _uiState = MutableStateFlow(AgentUiState())
     val uiState: StateFlow<AgentUiState> = _uiState.asStateFlow()
 
+    private var currentUserId: String? = null
     private var currentUserKey: String? = null
     private var currentQuotaPlan: UserQuotaPlan = UserQuotaPlan.Free
+    private var currentHistoryRetentionDays: Int = UserRole.User.defaultAiHistoryRetentionDays
     private var currentSessionId: String? = null
     private val pendingRequests = ArrayDeque<PendingAgentRequest>()
     private var conversationRevision = 0
     private var activeRequestJob: Job? = null
     private var pendingRetryJob: Job? = null
+    private var remoteHydrationJob: Job? = null
     private var activeRequestContext: InFlightRequestContext? = null
 
     init {
@@ -89,9 +95,9 @@ class AgentViewModel : ViewModel() {
 
         viewModelScope.launch {
             AppContainer.currentUser.collect { user ->
-                AiConversationHistoryStore.updateRetentionDays(
-                    user?.resolvedAiHistoryRetentionDays ?: UserRole.User.defaultAiHistoryRetentionDays,
-                )
+                currentHistoryRetentionDays =
+                    user?.resolvedAiHistoryRetentionDays ?: UserRole.User.defaultAiHistoryRetentionDays
+                AiConversationHistoryStore.updateRetentionDays(currentHistoryRetentionDays)
                 _uiState.update {
                     val canTriggerAutomation = user != null
                     it.copy(
@@ -101,6 +107,7 @@ class AgentViewModel : ViewModel() {
                 }
 
                 val userKey = normalizeUserKey(user)
+                val userId = user?.id?.takeIf { it.isNotBlank() }
                 val quotaPlan = user?.resolvedQuotaPlan ?: UserQuotaPlan.Free
                 currentQuotaPlan = quotaPlan
                 val planLabel = when (quotaPlan) {
@@ -122,16 +129,19 @@ class AgentViewModel : ViewModel() {
                 }
 
                 ManusByosPreferences.setUserMode(user?.id)
-                if (userKey != currentUserKey) {
+                if (userKey != currentUserKey || userId != currentUserId) {
                     invalidateConversation(cancelActiveWork = true)
+                    currentUserId = userId
                     currentUserKey = userKey
                     currentSessionId = null
                     restoreHistory()
+                    hydrateRemoteHistoryIfNeeded(currentSessionId)
                     if (AppNetworkMonitor.isOnline.value) {
                         retryPendingMessages()
                     }
                 } else {
                     refreshSessionState()
+                    pruneRemoteHistoryIfNeeded()
                 }
             }
         }
@@ -240,13 +250,14 @@ class AgentViewModel : ViewModel() {
                 if (!isRequestContextActive(requestContext)) return@launch
 
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
-                AiConversationHistoryStore.saveEntry(
+                val savedResult = AiConversationHistoryStore.saveEntry(
                     userKey = requestContext.userKeyAtSend,
                     source = AiConversationHistorySource.Agent,
                     sessionId = requestContext.sessionIdAtSend,
                     prompt = trimmedPrompt,
                     response = augmentedReply(result),
                 )
+                savedResult?.let(::syncSavedEntryToRemote)
                 refreshSessionState(requestContext.sessionIdAtSend)
                 _uiState.update { it.copy(usageSnapshot = result.usage) }
                 val replyText = augmentedReply(result)
@@ -314,13 +325,14 @@ class AgentViewModel : ViewModel() {
                 }
 
                 val errorMessage = userFacingErrorMessage(error)
-                AiConversationHistoryStore.saveEntry(
+                val savedResult = AiConversationHistoryStore.saveEntry(
                     userKey = requestContext.userKeyAtSend,
                     source = AiConversationHistorySource.Agent,
                     sessionId = requestContext.sessionIdAtSend,
                     prompt = trimmedPrompt,
                     response = errorMessage,
                 )
+                savedResult?.let(::syncSavedEntryToRemote)
                 refreshSessionState(requestContext.sessionIdAtSend)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
@@ -352,6 +364,7 @@ class AgentViewModel : ViewModel() {
         )
         currentSessionId = newSession.id
         refreshSessionState(newSession.id)
+        syncSessionToRemote(newSession)
         _uiState.update { currentState ->
             currentState.copy(
                 messages = emptyList(),
@@ -377,7 +390,7 @@ class AgentViewModel : ViewModel() {
             source = AiConversationHistorySource.Agent,
             sessionId = currentSessionId,
             title = title,
-        )
+        )?.let(::syncSessionToRemote)
         refreshSessionState()
     }
 
@@ -391,6 +404,7 @@ class AgentViewModel : ViewModel() {
             source = AiConversationHistorySource.Agent,
             sessionId = sessionId,
         )
+        deleteSessionFromRemote(sessionId)
         currentSessionId = null
         restoreHistory()
         if (AppNetworkMonitor.isOnline.value) {
@@ -491,13 +505,14 @@ class AgentViewModel : ViewModel() {
                     }
 
                     AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
-                    AiConversationHistoryStore.saveEntry(
+                    val savedResult = AiConversationHistoryStore.saveEntry(
                         userKey = requestContext.userKeyAtSend,
                         source = AiConversationHistorySource.Agent,
                         sessionId = requestContext.sessionIdAtSend,
                         prompt = request.prompt,
                         response = augmentedReply(result),
                     )
+                    savedResult?.let(::syncSavedEntryToRemote)
                     refreshSessionState(requestContext.sessionIdAtSend)
                     _uiState.update { it.copy(usageSnapshot = result.usage) }
                     val replyText = augmentedReply(result)
@@ -563,13 +578,14 @@ class AgentViewModel : ViewModel() {
                     }
 
                     val message = userFacingErrorMessage(error)
-                    AiConversationHistoryStore.saveEntry(
+                    val savedResult = AiConversationHistoryStore.saveEntry(
                         userKey = requestContext.userKeyAtSend,
                         source = AiConversationHistorySource.Agent,
                         sessionId = requestContext.sessionIdAtSend,
                         prompt = request.prompt,
                         response = message,
                     )
+                    savedResult?.let(::syncSavedEntryToRemote)
                     refreshSessionState(requestContext.sessionIdAtSend)
                     updateAssistantMessage(
                         messageId = request.assistantMessageId,
@@ -676,6 +692,8 @@ class AgentViewModel : ViewModel() {
             activeRequestJob = null
             pendingRetryJob?.cancel()
             pendingRetryJob = null
+            remoteHydrationJob?.cancel()
+            remoteHydrationJob = null
             activeRequestContext = null
         }
         conversationRevision += 1
@@ -790,6 +808,104 @@ class AgentViewModel : ViewModel() {
             )
         }
         AgentPendingQueueStore.saveEntriesForSession(currentUserKey, currentSessionId, entries)
+    }
+
+    private fun hydrateRemoteHistoryIfNeeded(preferredSessionId: String?) {
+        remoteHydrationJob?.cancel()
+        val userId = currentUserId ?: return
+        val userKey = currentUserKey
+        val localSessions = AiConversationHistoryStore.sessionsFor(
+            userKey = userKey,
+            source = AiConversationHistorySource.Agent,
+        )
+        val localEntries = AiConversationHistoryStore.entriesFor(
+            userKey = userKey,
+            source = AiConversationHistorySource.Agent,
+        )
+        remoteHydrationJob = viewModelScope.launch {
+            runCatching {
+                syncRepository.migrateLocalHistoryIfRemoteEmpty(
+                    userId = userId,
+                    source = AiConversationHistorySource.Agent,
+                    localSessions = localSessions,
+                    localEntries = localEntries,
+                )
+                syncRepository.pruneHistory(
+                    userId = userId,
+                    source = AiConversationHistorySource.Agent,
+                    retentionDays = currentHistoryRetentionDays,
+                )
+                syncRepository.fetchSnapshot(userId, AiConversationHistorySource.Agent)
+            }.onSuccess { snapshot ->
+                if (currentUserId != userId || currentUserKey != userKey) {
+                    return@onSuccess
+                }
+                AiConversationHistoryStore.replaceRemoteState(
+                    userKey = userKey,
+                    source = AiConversationHistorySource.Agent,
+                    sessions = snapshot.sessions,
+                    entries = snapshot.entries,
+                )
+                if (preferredSessionId != null) {
+                    currentSessionId = preferredSessionId
+                }
+                restoreHistory()
+                if (AppNetworkMonitor.isOnline.value) {
+                    retryPendingMessages()
+                }
+            }
+        }
+    }
+
+    private fun syncSessionToRemote(session: com.nash.skyos.data.AiConversationHistorySession) {
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                syncRepository.upsertSession(userId, session)
+                syncRepository.pruneHistory(
+                    userId = userId,
+                    source = AiConversationHistorySource.Agent,
+                    retentionDays = currentHistoryRetentionDays,
+                )
+            }
+        }
+    }
+
+    private fun syncSavedEntryToRemote(saveResult: AiConversationHistorySaveResult) {
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                syncRepository.upsertSession(userId, saveResult.session)
+                syncRepository.upsertEntry(userId, saveResult.entry)
+                syncRepository.pruneHistory(
+                    userId = userId,
+                    source = AiConversationHistorySource.Agent,
+                    retentionDays = currentHistoryRetentionDays,
+                )
+            }
+        }
+    }
+
+    private fun deleteSessionFromRemote(sessionId: String) {
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                syncRepository.deleteSession(userId, sessionId)
+            }
+        }
+    }
+
+    private fun pruneRemoteHistoryIfNeeded() {
+        val userId = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                syncRepository.pruneHistory(
+                    userId = userId,
+                    source = AiConversationHistorySource.Agent,
+                    retentionDays = currentHistoryRetentionDays,
+                )
+            }
+        }
     }
 
     private fun normalizeUserKey(user: User?): String? {

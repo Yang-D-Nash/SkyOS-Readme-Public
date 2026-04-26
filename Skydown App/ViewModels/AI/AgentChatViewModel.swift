@@ -165,16 +165,20 @@ final class AgentChatViewModel: ObservableObject {
     }
 
     private let service: AgentChatServicing
+    private let syncService: AIConversationSyncServicing
     private let historyStore: AIScriptHistoryStore
     private let pendingQueueStore: AgentPendingQueueStore
+    private var currentUserID: String?
     private var currentUserKey: String?
     private var currentSessionID: UUID?
     private var pendingRequests: [PendingAgentRequest] = []
     private var networkObserver: AnyCancellable?
     private var currentPlanTitle: String = "Free"
+    private var currentHistoryRetentionDays: Int = UserRole.user.defaultAIHistoryRetentionDays
     private var conversationRevision = 0
     private var activeRequestTask: Task<Void, Never>?
     private var pendingRetryTask: Task<Void, Never>?
+    private var remoteHydrationTask: Task<Void, Never>?
     private var activeRequestContext: InFlightRequestContext?
     private var currentQuotaPlan: UserQuotaPlan = .free
 
@@ -198,9 +202,11 @@ final class AgentChatViewModel: ObservableObject {
     }
 
     init(
-        service: AgentChatServicing = FirebaseFunctionsAgentService()
+        service: AgentChatServicing = FirebaseFunctionsAgentService(),
+        syncService: AIConversationSyncServicing = FirestoreAIConversationSyncService()
     ) {
         self.service = service
+        self.syncService = syncService
         self.historyStore = AIScriptHistoryStore.shared
         self.pendingQueueStore = AgentPendingQueueStore.shared
         networkObserver = NetworkStatusMonitor.shared.$isOnline
@@ -216,9 +222,12 @@ final class AgentChatViewModel: ObservableObject {
     deinit {
         activeRequestTask?.cancel()
         pendingRetryTask?.cancel()
+        remoteHydrationTask?.cancel()
     }
 
     func configureUser(user: User?) {
+        let trimmedUserID = user?.id?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let normalizedUserID = trimmedUserID.isEmpty ? nil : trimmedUserID
         let normalizedUserKey = normalizedUserKey(for: user?.id ?? user?.email)
         if let user {
             currentQuotaPlan = user.resolvedQuotaPlan
@@ -233,19 +242,26 @@ final class AgentChatViewModel: ObservableObject {
             currentQuotaPlan = .free
             currentPlanTitle = "Free"
         }
+        currentHistoryRetentionDays = user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays
         if !selectedLevel.isAvailable(for: currentQuotaPlan) {
             selectedLevel = .standard
         }
-        historyStore.updateRetentionDays(user?.resolvedAIHistoryRetentionDays ?? UserRole.user.defaultAIHistoryRetentionDays)
+        historyStore.updateRetentionDays(currentHistoryRetentionDays)
         canTriggerAutomation = user != nil
         ManusBYOSStore.shared.setUserMode(userID: user?.id)
         if !canTriggerAutomation {
             shouldTriggerAutomation = false
         }
-        guard normalizedUserKey != currentUserKey else { return }
+        let didChangeIdentity = normalizedUserKey != currentUserKey || normalizedUserID != currentUserID
+        if !didChangeIdentity {
+            pruneRemoteHistoryIfNeeded()
+            return
+        }
         invalidateConversation(cancelActiveWork: true)
+        currentUserID = normalizedUserID
         currentUserKey = normalizedUserKey
         restoreConversationState()
+        hydrateRemoteHistoryIfNeeded(preferredSessionID: currentSessionID)
         if NetworkStatusMonitor.shared.isOnline {
             startPendingRetryIfNeeded()
         }
@@ -321,13 +337,15 @@ final class AgentChatViewModel: ObservableObject {
                     resultType: (result.automationTriggered || result.automationAttempted) ? .workflow : .text,
                     workflowSummary: buildWorkflowSummary(from: result)
                 )
-                historyStore.saveEntry(
+                if let savedResult = historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .agent,
                     sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
                     response: replyText
-                )
+                ) {
+                    syncSavedEntryToRemote(savedResult)
+                }
                 refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 if result.automationTriggered {
                     lastIntegrationIssue = ""
@@ -397,13 +415,15 @@ final class AgentChatViewModel: ObservableObject {
                     isStreaming: false,
                     resultType: .error
                 )
-                historyStore.saveEntry(
+                if let savedResult = historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .agent,
                     sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
                     response: message
-                )
+                ) {
+                    syncSavedEntryToRemote(savedResult)
+                }
                 refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 showUserToast(message, style: .error)
                 phase = .idle
@@ -427,6 +447,7 @@ final class AgentChatViewModel: ObservableObject {
         )
         currentSessionID = newSession.id
         refreshConversationMetadata(preferredSessionID: newSession.id)
+        syncSessionToRemote(newSession)
         phase = .idle
         lastAgentRunId = ""
     }
@@ -443,13 +464,16 @@ final class AgentChatViewModel: ObservableObject {
 
     func renameActiveConversation(_ title: String) {
         guard let currentSessionID else { return }
-        _ = historyStore.renameSession(
+        let renamedSession = historyStore.renameSession(
             userKey: currentUserKey,
             source: .agent,
             sessionID: currentSessionID,
             title: title
         )
         refreshConversationMetadata(preferredSessionID: currentSessionID)
+        if let renamedSession {
+            syncSessionToRemote(renamedSession)
+        }
     }
 
     func deleteActiveConversation() {
@@ -468,6 +492,7 @@ final class AgentChatViewModel: ObservableObject {
         messages = []
         lastAgentRunId = ""
         restoreConversationState()
+        deleteSessionFromRemote(currentSessionID)
         if NetworkStatusMonitor.shared.isOnline {
             startPendingRetryIfNeeded()
         }
@@ -624,6 +649,8 @@ final class AgentChatViewModel: ObservableObject {
             activeRequestTask = nil
             pendingRetryTask?.cancel()
             pendingRetryTask = nil
+            remoteHydrationTask?.cancel()
+            remoteHydrationTask = nil
             activeRequestContext = nil
         }
         conversationRevision += 1
@@ -762,13 +789,15 @@ final class AgentChatViewModel: ObservableObject {
                     resultType: (result.automationTriggered || result.automationAttempted) ? .workflow : .text,
                     workflowSummary: buildWorkflowSummary(from: result)
                 )
-                historyStore.saveEntry(
+                if let savedResult = historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .agent,
                     sessionID: requestContext.sessionIDAtSend,
                     prompt: request.prompt,
                     response: replyText
-                )
+                ) {
+                    syncSavedEntryToRemote(savedResult)
+                }
                 refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 if result.automationTriggered {
                     lastIntegrationIssue = ""
@@ -828,13 +857,15 @@ final class AgentChatViewModel: ObservableObject {
                     isStreaming: false,
                     resultType: .error
                 )
-                historyStore.saveEntry(
+                if let savedResult = historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .agent,
                     sessionID: requestContext.sessionIDAtSend,
                     prompt: request.prompt,
                     response: message
-                )
+                ) {
+                    syncSavedEntryToRemote(savedResult)
+                }
                 refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 showUserToast(message, style: .error)
                 persistPendingRequests()
@@ -879,6 +910,99 @@ final class AgentChatViewModel: ObservableObject {
             for: normalizedUserKey,
             sessionID: activeSessionIdentifier
         )
+    }
+
+    private func hydrateRemoteHistoryIfNeeded(preferredSessionID: UUID?) {
+        remoteHydrationTask?.cancel()
+        guard let currentUserID else { return }
+
+        let source: AIScriptHistorySource = .agent
+        let userID = currentUserID
+        let userKey = currentUserKey
+        let retentionDays = currentHistoryRetentionDays
+        let localSessions = historyStore.sessionRecords(for: userKey, source: source)
+        let localEntries = historyStore.entries(for: userKey, source: source)
+
+        remoteHydrationTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                _ = try await syncService.migrateLocalHistoryIfRemoteEmpty(
+                    userID: userID,
+                    source: source,
+                    localSessions: localSessions,
+                    localEntries: localEntries
+                )
+                try? await syncService.pruneHistory(
+                    userID: userID,
+                    source: source,
+                    retentionDays: retentionDays
+                )
+                let refreshedSnapshot = try await syncService.fetchSnapshot(userID: userID, source: source)
+                guard self.currentUserID == userID, self.currentUserKey == userKey else { return }
+                historyStore.replaceRemoteState(
+                    userKey: userKey,
+                    source: source,
+                    sessions: refreshedSnapshot.sessions,
+                    entries: refreshedSnapshot.entries
+                )
+                restoreConversationState(preferredSessionID: preferredSessionID)
+                if NetworkStatusMonitor.shared.isOnline {
+                    startPendingRetryIfNeeded()
+                }
+            } catch {
+                // Keep local history as fallback when remote sync is unavailable.
+            }
+        }
+    }
+
+    private func syncSessionToRemote(_ session: AIScriptHistorySession) {
+        guard let currentUserID else { return }
+        let retentionDays = currentHistoryRetentionDays
+        Task { @MainActor in
+            do {
+                try await syncService.upsertSession(userID: currentUserID, session: session)
+                try? await syncService.pruneHistory(userID: currentUserID, source: .agent, retentionDays: retentionDays)
+            } catch {
+                // Local cache stays authoritative until the next successful sync.
+            }
+        }
+    }
+
+    private func syncSavedEntryToRemote(_ saveResult: AIScriptHistorySaveResult) {
+        guard let currentUserID else { return }
+        let retentionDays = currentHistoryRetentionDays
+        Task { @MainActor in
+            do {
+                try await syncService.upsertSession(userID: currentUserID, session: saveResult.session)
+                try await syncService.upsertEntry(userID: currentUserID, entry: saveResult.entry)
+                try? await syncService.pruneHistory(userID: currentUserID, source: .agent, retentionDays: retentionDays)
+            } catch {
+                // Local cache stays authoritative until the next successful sync.
+            }
+        }
+    }
+
+    private func deleteSessionFromRemote(_ sessionID: UUID) {
+        guard let currentUserID else { return }
+        Task { @MainActor in
+            do {
+                try await syncService.deleteSession(userID: currentUserID, sessionID: sessionID)
+            } catch {
+                // Ignore and let the next hydration pull the remote truth again.
+            }
+        }
+    }
+
+    private func pruneRemoteHistoryIfNeeded() {
+        guard let currentUserID else { return }
+        let retentionDays = currentHistoryRetentionDays
+        Task { @MainActor in
+            try? await syncService.pruneHistory(
+                userID: currentUserID,
+                source: .agent,
+                retentionDays: retentionDays
+            )
+        }
     }
 
     private func augmentedReplyText(from response: AgentChatResponse) -> String {

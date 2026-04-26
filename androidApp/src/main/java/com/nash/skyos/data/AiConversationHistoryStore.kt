@@ -43,6 +43,11 @@ data class AiConversationHistoryEntry(
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
 )
 
+data class AiConversationHistorySaveResult(
+    val session: AiConversationHistorySession,
+    val entry: AiConversationHistoryEntry,
+)
+
 private data class LegacyHistoryEntry(
     val id: String = UUID.randomUUID().toString(),
     val userKey: String,
@@ -109,6 +114,18 @@ object AiConversationHistoryStore {
                         latestEntry?.createdAtEpochMillis ?: session.updatedAtEpochMillis,
                     ),
                 )
+            }
+            .sortedByDescending { it.updatedAtEpochMillis }
+    }
+
+    fun sessionsFor(
+        userKey: String?,
+        source: AiConversationHistorySource,
+    ): List<AiConversationHistorySession> {
+        val normalizedUserKey = normalizeUserKey(userKey)
+        return readSessions()
+            .filter { session ->
+                session.userKey == normalizedUserKey && session.source == source
             }
             .sortedByDescending { it.updatedAtEpochMillis }
     }
@@ -230,17 +247,29 @@ object AiConversationHistoryStore {
             .sortedBy { it.createdAtEpochMillis }
     }
 
+    fun entriesFor(
+        userKey: String?,
+        source: AiConversationHistorySource,
+    ): List<AiConversationHistoryEntry> {
+        val normalizedUserKey = normalizeUserKey(userKey)
+        return readEntries()
+            .filter { entry ->
+                entry.userKey == normalizedUserKey && entry.source == source
+            }
+            .sortedByDescending { it.createdAtEpochMillis }
+    }
+
     fun saveEntry(
         userKey: String?,
         source: AiConversationHistorySource,
         sessionId: String?,
         prompt: String,
         response: String,
-    ): AiConversationHistorySession {
+    ): AiConversationHistorySaveResult? {
         val trimmedPrompt = prompt.trim()
         val trimmedResponse = response.trim()
         if (trimmedPrompt.isBlank() || trimmedResponse.isBlank()) {
-            return ensureSession(userKey = userKey, source = source, preferredSessionId = sessionId)
+            return null
         }
 
         val baseSession = ensureSession(
@@ -265,17 +294,16 @@ object AiConversationHistoryStore {
             .sortedByDescending { it.updatedAtEpochMillis }
             .take(maximumSessions)
 
+        val savedEntry = AiConversationHistoryEntry(
+            sessionId = updatedSession.id,
+            userKey = updatedSession.userKey,
+            source = source,
+            prompt = trimmedPrompt,
+            response = trimmedResponse,
+            createdAtEpochMillis = now,
+        )
         val updatedEntries = buildList {
-            add(
-                AiConversationHistoryEntry(
-                    sessionId = updatedSession.id,
-                    userKey = updatedSession.userKey,
-                    source = source,
-                    prompt = trimmedPrompt,
-                    response = trimmedResponse,
-                    createdAtEpochMillis = now,
-                ),
-            )
+            add(savedEntry)
             addAll(readEntries())
         }
             .sortedByDescending { it.createdAtEpochMillis }
@@ -284,7 +312,59 @@ object AiConversationHistoryStore {
         writeSessions(updatedSessions)
         writeEntries(updatedEntries)
         pruneExpiredEntries()
-        return updatedSession
+        return AiConversationHistorySaveResult(
+            session = updatedSession,
+            entry = savedEntry,
+        )
+    }
+
+    fun replaceRemoteState(
+        userKey: String?,
+        source: AiConversationHistorySource,
+        sessions: List<AiConversationHistorySession>,
+        entries: List<AiConversationHistoryEntry>,
+    ) {
+        val normalizedUserKey = normalizeUserKey(userKey)
+        val normalizedSessions = sessions
+            .filter { it.userKey == normalizedUserKey && it.source == source }
+            .map { session ->
+                session.copy(
+                    userKey = normalizedUserKey,
+                    source = source,
+                    title = session.title.trim().ifBlank { AiConversationHistorySession.DEFAULT_SESSION_TITLE },
+                )
+            }
+            .sortedByDescending { it.updatedAtEpochMillis }
+        val normalizedEntries = entries
+            .filter { it.userKey == normalizedUserKey && it.source == source }
+            .map { entry ->
+                entry.copy(
+                    userKey = normalizedUserKey,
+                    source = source,
+                )
+            }
+            .sortedByDescending { it.createdAtEpochMillis }
+
+        val updatedSessions = buildList {
+            addAll(normalizedSessions)
+            addAll(
+                readSessions().filterNot { session ->
+                    session.userKey == normalizedUserKey && session.source == source
+                },
+            )
+        }.sortedByDescending { it.updatedAtEpochMillis }
+
+        val updatedEntries = buildList {
+            addAll(normalizedEntries)
+            addAll(
+                readEntries().filterNot { entry ->
+                    entry.userKey == normalizedUserKey && entry.source == source
+                },
+            )
+        }.sortedByDescending { it.createdAtEpochMillis }
+
+        writeSessions(updatedSessions)
+        writeEntries(updatedEntries)
     }
 
     private fun migrateLegacyEntriesIfNeeded() {

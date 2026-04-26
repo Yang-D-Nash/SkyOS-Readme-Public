@@ -79,7 +79,7 @@ struct AIScriptHistoryEntry: Identifiable, Codable, Equatable {
     var sessionID: UUID?
     let prompt: String
     let response: String
-    let imageFileName: String?
+    var imageFileName: String?
     let createdAt: Date
 
     init(
@@ -101,6 +101,11 @@ struct AIScriptHistoryEntry: Identifiable, Codable, Equatable {
         self.imageFileName = imageFileName
         self.createdAt = createdAt
     }
+}
+
+struct AIScriptHistorySaveResult {
+    let session: AIScriptHistorySession
+    let entry: AIScriptHistoryEntry
 }
 
 @MainActor
@@ -159,6 +164,13 @@ final class AIScriptHistoryStore: ObservableObject {
                     updatedAt: session.updatedAt
                 )
             }
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    func sessionRecords(for userKey: String?, source: AIScriptHistorySource) -> [AIScriptHistorySession] {
+        let normalizedUserKey = normalizeUserKey(userKey)
+        return sessions
+            .filter { $0.userKey == normalizedUserKey && $0.source == source }
             .sorted { $0.updatedAt > $1.updatedAt }
     }
 
@@ -253,6 +265,7 @@ final class AIScriptHistoryStore: ObservableObject {
         persistSessions()
     }
 
+    @discardableResult
     func saveEntry(
         userKey: String?,
         source: AIScriptHistorySource,
@@ -260,10 +273,10 @@ final class AIScriptHistoryStore: ObservableObject {
         prompt: String,
         response: String,
         imageData: Data? = nil
-    ) {
+    ) -> AIScriptHistorySaveResult? {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedResponse = response.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedPrompt.isEmpty, !trimmedResponse.isEmpty else { return }
+        guard !trimmedPrompt.isEmpty, !trimmedResponse.isEmpty else { return nil }
 
         var session = ensureSession(
             userKey: userKey,
@@ -285,21 +298,20 @@ final class AIScriptHistoryStore: ObservableObject {
 
         let entryID = UUID()
         let imageFileName = imageData.flatMap { storeImageData($0, for: entryID) }
-        entries.insert(
-            AIScriptHistoryEntry(
-                id: entryID,
-                userKey: session.userKey,
-                source: source,
-                sessionID: session.id,
-                prompt: trimmedPrompt,
-                response: trimmedResponse,
-                imageFileName: imageFileName
-            ),
-            at: 0
+        let entry = AIScriptHistoryEntry(
+            id: entryID,
+            userKey: session.userKey,
+            source: source,
+            sessionID: session.id,
+            prompt: trimmedPrompt,
+            response: trimmedResponse,
+            imageFileName: imageFileName
         )
+        entries.insert(entry, at: 0)
         persistEntries()
         pruneExpiredEntries()
         pruneOverflowIfNeeded()
+        return AIScriptHistorySaveResult(session: session, entry: entry)
     }
 
     func deleteEntry(_ entry: AIScriptHistoryEntry) {
@@ -342,6 +354,67 @@ final class AIScriptHistoryStore: ObservableObject {
         guard let imageFileName = entry.imageFileName,
               let imageURL = storedImageURL(for: imageFileName) else { return nil }
         return try? Data(contentsOf: imageURL)
+    }
+
+    func replaceRemoteState(
+        userKey: String?,
+        source: AIScriptHistorySource,
+        sessions remoteSessions: [AIScriptHistorySession],
+        entries remoteEntries: [AIScriptHistoryEntry]
+    ) {
+        let normalizedUserKey = normalizeUserKey(userKey)
+        let existingEntries = entries.filter {
+            $0.userKey == normalizedUserKey && $0.source == source
+        }
+        let existingImageFileNamesByEntryID: [UUID: String] = Dictionary(
+            uniqueKeysWithValues: existingEntries.compactMap { entry in
+                guard let imageFileName = entry.imageFileName else { return nil }
+                return (entry.id, imageFileName)
+            }
+        )
+
+        let normalizedSessions = remoteSessions
+            .filter { $0.userKey == normalizedUserKey && $0.source == source }
+            .map { session in
+                AIScriptHistorySession(
+                    id: session.id,
+                    userKey: normalizedUserKey,
+                    source: source,
+                    title: sanitizeSessionTitle(session.title),
+                    createdAt: session.createdAt,
+                    updatedAt: session.updatedAt
+                )
+            }
+            .sorted { $0.updatedAt > $1.updatedAt }
+
+        let normalizedEntries = remoteEntries
+            .filter { $0.userKey == normalizedUserKey && $0.source == source }
+            .map { entry in
+                AIScriptHistoryEntry(
+                    id: entry.id,
+                    userKey: normalizedUserKey,
+                    source: source,
+                    sessionID: entry.sessionID,
+                    prompt: entry.prompt,
+                    response: entry.response,
+                    imageFileName: existingImageFileNamesByEntryID[entry.id] ?? entry.imageFileName,
+                    createdAt: entry.createdAt
+                )
+            }
+            .sorted { $0.createdAt > $1.createdAt }
+
+        let retainedEntryIDs = Set(normalizedEntries.map { $0.id })
+        let removedEntries = existingEntries.filter { retainedEntryIDs.contains($0.id) == false }
+        removeStoredImages(for: removedEntries)
+
+        sessions.removeAll { $0.userKey == normalizedUserKey && $0.source == source }
+        entries.removeAll { $0.userKey == normalizedUserKey && $0.source == source }
+        sessions.append(contentsOf: normalizedSessions)
+        entries.append(contentsOf: normalizedEntries)
+        sessions.sort { $0.updatedAt > $1.updatedAt }
+        entries.sort { $0.createdAt > $1.createdAt }
+        persistSessions()
+        persistEntries()
     }
 
     private func migrateLegacyEntriesIfNeeded() {
