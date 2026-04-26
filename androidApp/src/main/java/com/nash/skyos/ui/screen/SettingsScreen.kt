@@ -4677,7 +4677,7 @@ fun SettingsScreen(
             }
 
             ToastHost(
-                message = feedbackMessage,
+                message = if (showAdminWorkspaceSheet) null else feedbackMessage,
                 type = feedbackType,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -4691,19 +4691,34 @@ fun SettingsScreen(
             onDismissRequest = { showAdminWorkspaceSheet = false },
             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
         ) {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                    .fillMaxHeight(0.92f),
             ) {
-                Text(
-                    text = activeAdminWorkspace.label,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .padding(bottom = if (!feedbackMessage.isNullOrBlank()) 84.dp else 0.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Text(
+                        text = activeAdminWorkspace.label,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    adminWorkspaceContent(activeAdminWorkspace)
+                }
+
+                ToastHost(
+                    message = feedbackMessage,
+                    type = feedbackType,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 8.dp),
                 )
-                adminWorkspaceContent(activeAdminWorkspace)
             }
         }
     }
