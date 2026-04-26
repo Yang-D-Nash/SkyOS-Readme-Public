@@ -44,13 +44,27 @@ Release build validation:
 The release build intentionally fails if signing is not configured, unless
 `-PallowDebugReleaseSigning=true` is used for non-store smoke only.
 
+Clean public release build:
+
+```bash
+./scripts/android_release_clean_build.sh
+```
+
+Use this script before distributing Android artifacts. It deletes old Android build outputs,
+rebuilds the release APK and AAB from the current checkout, and verifies that the generated release
+metadata matches the `versionCode` and `versionName` in `androidApp/build.gradle.kts`.
+
 ## 4. Android Studio Workflow
 
 1. Open the project root in Android Studio.
 2. Confirm SDK and Gradle sync.
 3. Confirm the correct `google-services.json`.
 4. Select emulator or physical device.
-5. Run the `androidApp` configuration.
+5. Run the `androidApp` configuration for development only.
+
+Android Studio's green Run button normally installs the `debug` variant. The public app should be
+validated from `release` artifacts built by `./scripts/android_release_clean_build.sh`, because
+debug and release differ in signing, minification, and Firebase App Check behavior.
 
 ## 5. Fold and Large-Screen Testing
 

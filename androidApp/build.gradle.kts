@@ -49,7 +49,7 @@ android {
         applicationId = "com.nash.skyos"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10014
+        versionCode = 10015
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

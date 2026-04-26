@@ -14,7 +14,9 @@ trust paths, backend authority, and support readiness all line up at the same ti
 
 - [ ] iOS debug build passes
 - [ ] Android debug build passes
+- [ ] Android public artifacts were produced with `./scripts/android_release_clean_build.sh`
 - [ ] release build validation completed for the platform(s) being shipped
+- [ ] distributed Android APK/AAB `versionCode` and `versionName` match `androidApp/build.gradle.kts`
 - [ ] Functions tests pass
 - [ ] Firestore and Storage rules tests pass
 - [ ] localization audit has been reviewed for user-facing copy changes
