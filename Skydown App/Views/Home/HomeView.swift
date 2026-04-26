@@ -1,3 +1,4 @@
+import AVKit
 import SwiftUI
 
 /// Dedicated Home entry surface for clearer ownership and faster iteration.
@@ -43,7 +44,7 @@ struct HomeViewContent: View {
     @StateObject private var audioPlayerManager = AudioPlayerManager()
     @StateObject private var videoPlaybackManager = HomeInlineVideoPlaybackManager()
     @State private var sheetPresentation = SkydownQueuedPresentation<HomePresentedSheet>()
-    @State private var videoHubLaunchTarget: HomeVideoHubLaunchTarget?
+    @State private var fullscreenVideoTarget: HomeFullscreenVideoTarget?
     @State private var originalVideoViewerTarget: HomeOriginalVideoViewerTarget?
     @State private var hasLoadedInitialHomeContent = false
     @Environment(\.colorScheme) private var colorScheme
@@ -218,14 +219,8 @@ struct HomeViewContent: View {
         .fullScreenCover(item: $originalVideoViewerTarget) { target in
             SkydownOriginalVideoDestinationView(urlString: target.urlString, title: target.title)
         }
-        .fullScreenCover(item: $videoHubLaunchTarget) { target in
-            NavigationStack {
-                VideoHubView(
-                    onBack: { videoHubLaunchTarget = nil },
-                    initialSelectedVideoID: target.videoID,
-                    autoplayInitialSelection: true
-                )
-            }
+        .fullScreenCover(item: $fullscreenVideoTarget) { target in
+            HomeFullscreenVideoViewer(video: target.video)
         }
     }
 
@@ -263,10 +258,15 @@ struct HomeViewContent: View {
 
     private func openVideoHubFromMediaCluster(video: FeaturedHomeVideo) {
         stopAllMediaPlayback()
-        videoHubLaunchTarget = HomeVideoHubLaunchTarget(videoID: video.id)
+        activePresentedSheetBinding.wrappedValue = nil
+        fullscreenVideoTarget = HomeFullscreenVideoTarget(video: video)
     }
 
     private func openOriginalFromMediaCluster(video: FeaturedHomeVideo) {
+        if video.supportsInlinePlayback {
+            openVideoHubFromMediaCluster(video: video)
+            return
+        }
         openOriginalVideo(video)
     }
 }
@@ -295,6 +295,68 @@ private struct HomeOriginalVideoViewerTarget: Identifiable {
     let id = UUID()
     let urlString: String
     let title: String
+}
+
+private struct HomeFullscreenVideoTarget: Identifiable {
+    let video: FeaturedHomeVideo
+    var id: String { video.id }
+}
+
+private struct HomeFullscreenVideoViewer: View {
+    let video: FeaturedHomeVideo
+    @Environment(\.dismiss) private var dismiss
+    @State private var player = AVPlayer()
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.black.ignoresSafeArea()
+
+            if video.usesEmbeddedPreview {
+                ExternalVideoEmbedSurface(urlString: video.embedURL)
+                    .ignoresSafeArea()
+            } else if let url = URL(string: video.downloadURL), !video.downloadURL.isEmpty {
+                VideoPlayer(player: player)
+                    .ignoresSafeArea()
+                    .onAppear {
+                        player.replaceCurrentItem(with: AVPlayerItem(url: url))
+                        player.play()
+                    }
+            } else {
+                VStack(spacing: 12) {
+                    Image(systemName: "play.rectangle.fill")
+                        .font(.system(size: 48, weight: .bold))
+                        .foregroundColor(.white.opacity(0.72))
+                    Text(video.title)
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(24)
+            }
+
+            Button(action: { dismiss() }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white.opacity(0.94))
+                    .frame(width: 38, height: 38)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+            .skydownTactileAction()
+            .accessibilityLabel("Video schliessen")
+            .padding(.top, 14)
+            .padding(.trailing, 18)
+        }
+        .ignoresSafeArea()
+        .onDisappear {
+            player.pause()
+            player.replaceCurrentItem(with: nil)
+        }
+    }
 }
 
 private struct HomeMediaClusterSection: View {
