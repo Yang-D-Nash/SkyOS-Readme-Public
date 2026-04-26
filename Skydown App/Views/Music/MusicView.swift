@@ -490,6 +490,7 @@ struct MusicView: View {
             accent: AppColors.spotify(for: colorScheme),
             secondaryAccent: AppColors.accent(for: colorScheme),
             marks: brand == .zweizwei ? [.zweizwei] : [.skydown],
+            edgeToEdge: true,
             onSurfaceTap: onOpenTracks
         ) {
             VStack(alignment: .leading, spacing: 10) {

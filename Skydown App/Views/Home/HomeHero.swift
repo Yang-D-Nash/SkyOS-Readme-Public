@@ -92,6 +92,7 @@ struct HomeHeroIntroCard: View {
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [.skyos, .skydown],
             immersive: true,
+            edgeToEdge: true,
             onSurfaceTap: onOpenProfile
         ) {
             HStack(alignment: .top, spacing: 10) {

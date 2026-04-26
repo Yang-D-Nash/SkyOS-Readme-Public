@@ -276,6 +276,7 @@ private struct LaunchLandingView: View {
                             accent: AppColors.accent(for: hubColorScheme),
                             secondaryAccent: AppColors.accentMystic(for: hubColorScheme),
                             marks: [],
+                            edgeToEdge: true,
                             onSurfaceTap: onOpenHome
                         ) {
                             VStack(alignment: .leading, spacing: 8) {

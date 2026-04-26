@@ -242,6 +242,13 @@ struct VideoHubView: View {
     }
 
     private func openOriginalVideo(_ video: SkydownVideoHubItem) {
+        if video.supportsInlinePlayback {
+            playbackManager.load(video: video)
+            activePresentedSheetBinding.wrappedValue = nil
+            showingReelViewer = true
+            return
+        }
+
         let trimmedURL = video.inAppOriginalURLString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedURL.isEmpty, let url = URL(string: trimmedURL) else { return }
         playbackManager.player.pause()
@@ -354,6 +361,7 @@ struct VideoHubView: View {
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
             marks: [.zweizwei],
+            edgeToEdge: true,
             onSurfaceTap: {
                 if let heroVideoURL, !heroVideoURL.isEmpty {
                     playbackManager.player.pause()
@@ -1671,20 +1679,19 @@ private struct VideoReelViewer: View {
                     Spacer()
 
                     Button(action: { dismiss() }, label: {
-                        Label("Zurueck zur App", systemImage: "xmark")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 14)
-                            .frame(height: 48)
-                            .background(Color.black.opacity(0.42))
-                            .clipShape(Capsule())
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white.opacity(0.94))
+                            .frame(width: 38, height: 38)
+                            .background(.ultraThinMaterial, in: Circle())
                             .overlay(
-                                Capsule()
-                                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                                Circle()
+                                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
                             )
                     })
                     .buttonStyle(.plain)
                     .skydownTactileAction()
+                    .accessibilityLabel("Video schliessen")
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, max(proxy.safeAreaInsets.top, 12))

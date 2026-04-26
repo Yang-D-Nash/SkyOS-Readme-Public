@@ -354,6 +354,7 @@ private struct ShopHeroCard: View {
             accent: AppColors.accentHighlight(for: colorScheme),
             secondaryAccent: AppColors.accentMystic(for: colorScheme),
             marks: [],
+            edgeToEdge: true,
             onSurfaceTap: onSurfaceTap
         ) {
             ScrollView(.horizontal, showsIndicators: false) {

@@ -646,6 +646,7 @@ private struct ZweizweiTabView: View {
                                     accent: AppColors.spotify(for: colorScheme),
                                     secondaryAccent: AppColors.accent(for: colorScheme),
                                     marks: [.zweizwei],
+                                    edgeToEdge: true,
                                     onSurfaceTap: {
                                         catalogInitialArtist = "JANNO"
                                         catalogAutoPresentArtistPage = false

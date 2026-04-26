@@ -83,6 +83,8 @@ struct BrandHeroSurface<Footer: View>: View {
     let marks: [BrandMark]
     /// Flache Unterkante, leichter Schatten — Home-Intro als Atmosphäre statt Karte.
     var immersive: Bool
+    /// Primaere Header-Buehne: weniger Card-Rand, ruhigere Tiefe, eigenstaendiger als Standard-Panels.
+    var edgeToEdge: Bool
     /// Tap auf Titel- und Textbereich (nicht den Footer) — vermeidet verschachtelte Buttons in den Pills.
     var onSurfaceTap: (() -> Void)?
     let footer: Footer
@@ -99,6 +101,7 @@ struct BrandHeroSurface<Footer: View>: View {
         secondaryAccent: Color,
         marks: [BrandMark] = [],
         immersive: Bool = false,
+        edgeToEdge: Bool = false,
         onSurfaceTap: (() -> Void)? = nil,
         @ViewBuilder footer: () -> Footer
     ) {
@@ -112,6 +115,7 @@ struct BrandHeroSurface<Footer: View>: View {
         self.secondaryAccent = secondaryAccent
         self.marks = marks
         self.immersive = immersive
+        self.edgeToEdge = edgeToEdge
         self.onSurfaceTap = onSurfaceTap
         self.footer = footer()
     }
@@ -315,8 +319,8 @@ struct BrandHeroSurface<Footer: View>: View {
             colorScheme: colorScheme,
             accent: accent,
             cornerRadius: SkydownLayout.heroCornerRadius,
-            shadowRadius: immersive ? 0 : 12,
-            shadowYOffset: immersive ? 0 : 5
+            shadowRadius: immersive ? 0 : (edgeToEdge ? 7 : 12),
+            shadowYOffset: immersive ? 0 : (edgeToEdge ? 3 : 5)
         )
         .overlay {
             if !immersive {
@@ -351,13 +355,13 @@ struct BrandHeroSurface<Footer: View>: View {
                         LinearGradient(
                             colors: [
                                 AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.24),
-                                accent.opacity(0.12),
-                                secondaryAccent.opacity(0.08)
+                                accent.opacity(edgeToEdge ? 0.055 : 0.12),
+                                secondaryAccent.opacity(edgeToEdge ? 0.04 : 0.08)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1
+                        lineWidth: edgeToEdge ? 0.65 : 1
                     )
             }
         }

@@ -18,9 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -127,8 +125,7 @@ fun BrandHeroCard(
     val colorScheme = MaterialTheme.colorScheme
     val r = SkydownUiTokens.heroCornerRadius
     val shape = when {
-        immersive && edgeToEdge -> RoundedCornerShape(0.dp)
-        edgeToEdge -> RoundedCornerShape(bottomStart = r, bottomEnd = r)
+        edgeToEdge -> RoundedCornerShape(r)
         immersive -> RoundedCornerShape(topStart = r, topEnd = r, bottomStart = 0.dp, bottomEnd = 0.dp)
         else -> RoundedCornerShape(r)
     }
@@ -170,26 +167,23 @@ fun BrandHeroCard(
     val surfaceHeaderInteraction = remember { MutableInteractionSource() }
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val bleed = if (edgeToEdge) SkydownUiTokens.screenHorizontalPadding else 0.dp
-        val stageModifier = if (edgeToEdge) {
-            Modifier
-                .requiredWidth(maxWidth + bleed * 2)
-                .offset(x = -bleed)
-        } else {
-            Modifier.fillMaxWidth()
-        }
+        val stageModifier = Modifier.fillMaxWidth()
 
         Box(
             modifier = stageModifier
                 .then(
-                    if (immersive || edgeToEdge) {
+                    if (immersive) {
                         Modifier
                     } else {
                         Modifier.shadow(
-                            elevation = if (autoCompactDensity) 13.dp else 18.dp,
+                            elevation = when {
+                                edgeToEdge -> if (autoCompactDensity) 7.dp else 9.dp
+                                autoCompactDensity -> 13.dp
+                                else -> 18.dp
+                            },
                             shape = shape,
-                            ambientColor = secondaryAccent.copy(alpha = if (isDarkPalette) 0.04f else 0.07f),
-                            spotColor = Color.Black.copy(alpha = if (isDarkPalette) 0.12f else 0.14f),
+                            ambientColor = secondaryAccent.copy(alpha = if (edgeToEdge) 0.025f else if (isDarkPalette) 0.04f else 0.07f),
+                            spotColor = Color.Black.copy(alpha = if (edgeToEdge) 0.08f else if (isDarkPalette) 0.12f else 0.14f),
                         )
                     },
                 )
@@ -240,16 +234,16 @@ fun BrandHeroCard(
                     drawContent()
                 }
                 .then(
-                    if (immersive || edgeToEdge) {
+                    if (immersive) {
                         Modifier
                     } else {
                         Modifier.border(
-                            width = 0.9.dp,
+                            width = if (edgeToEdge) 0.55.dp else 0.9.dp,
                             brush = Brush.linearGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = if (isDarkPalette) 0.18f else 0.24f),
-                                    accent.copy(alpha = 0.12f),
-                                    secondaryAccent.copy(alpha = if (isDarkPalette) 0.05f else 0.08f),
+                                    Color.White.copy(alpha = if (edgeToEdge) 0.10f else if (isDarkPalette) 0.18f else 0.24f),
+                                    accent.copy(alpha = if (edgeToEdge) 0.055f else 0.12f),
+                                    secondaryAccent.copy(alpha = if (edgeToEdge) 0.04f else if (isDarkPalette) 0.05f else 0.08f),
                                 ),
                             ),
                             shape = shape,
