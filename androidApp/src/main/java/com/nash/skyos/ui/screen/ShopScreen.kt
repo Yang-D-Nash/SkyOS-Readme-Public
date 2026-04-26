@@ -414,6 +414,7 @@ private fun ShopOverviewCard(
         accent = MaterialTheme.colorScheme.primary,
         secondaryAccent = MaterialTheme.colorScheme.tertiary,
         marks = listOf(BrandArtwork.Combined),
+        edgeToEdge = true,
         onSurfaceClick = onSurfaceClick,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -2327,4 +2328,3 @@ private fun ShopBadge(
         isActive = isActive,
     )
 }
-

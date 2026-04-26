@@ -977,6 +977,7 @@ private fun MusicOverviewCard(
         secondaryAccent = beatAccent,
         marks = listOf(BrandArtwork.Zweizwei),
         compactVisualDensity = compactVisualDensity,
+        edgeToEdge = true,
         onSurfaceClick = onOpenTracks,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

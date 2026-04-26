@@ -745,6 +745,7 @@ private fun VideoHubHeroCard(
         accent = mysticAccent,
         secondaryAccent = highlightAccent,
         marks = listOf(BrandArtwork.Skydown),
+        edgeToEdge = true,
         onSurfaceClick = onHeroHeaderClick,
     ) {
         Row(

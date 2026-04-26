@@ -1265,6 +1265,7 @@ private fun LaunchLandingScreen(
                     secondaryAccent = MaterialTheme.colorScheme.secondary,
                     marks = emptyList(),
                     compactVisualDensity = !isWideLayout,
+                    edgeToEdge = true,
                     onSurfaceClick = onOpenHome,
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1874,6 +1875,7 @@ private fun ZweizweiMusicLaneScreen(
                                 secondaryAccent = MaterialTheme.colorScheme.secondary,
                                 marks = listOf(BrandArtwork.Zweizwei),
                                 compactVisualDensity = useCompactHubHero,
+                                edgeToEdge = true,
                                 onSurfaceClick = {
                                     catalogInitialArtist = "JANNO"
                                     destination = ZweizweiMusicDestination.Catalog

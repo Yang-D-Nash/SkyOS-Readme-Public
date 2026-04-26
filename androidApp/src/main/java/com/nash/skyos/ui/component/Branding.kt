@@ -10,6 +10,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -17,7 +18,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -111,6 +114,8 @@ fun BrandHeroCard(
     compactVisualDensity: Boolean = false,
     /** Flache Unterkante, kein Karten-Schatten — für Home-Gesamtraum. */
     immersive: Boolean = false,
+    /** Volle Header-Buehne statt Card im gepolsterten Scroll-Stack. */
+    edgeToEdge: Boolean = false,
     /** Tap auf Titelzeile (ohne Footer mit Pills) — gleiche Fläche wie iOS `onSurfaceTap`. */
     onSurfaceClick: (() -> Unit)? = null,
     footer: @Composable ColumnScope.() -> Unit = {},
@@ -118,10 +123,11 @@ fun BrandHeroCard(
     val autoCompactDensity = compactVisualDensity || rememberUsesCompactVisualDensity()
     val colorScheme = MaterialTheme.colorScheme
     val r = SkydownUiTokens.heroCornerRadius
-    val shape = if (immersive) {
-        RoundedCornerShape(topStart = r, topEnd = r, bottomStart = 0.dp, bottomEnd = 0.dp)
-    } else {
-        RoundedCornerShape(r)
+    val shape = when {
+        immersive && edgeToEdge -> RoundedCornerShape(0.dp)
+        edgeToEdge -> RoundedCornerShape(bottomStart = r, bottomEnd = r)
+        immersive -> RoundedCornerShape(topStart = r, topEnd = r, bottomStart = 0.dp, bottomEnd = 0.dp)
+        else -> RoundedCornerShape(r)
     }
     val hasBackgroundImage = !backgroundImageUrl.isNullOrBlank()
     val titleColor = if (hasBackgroundImage) Color.White else colorScheme.skydownText()
@@ -160,101 +166,120 @@ fun BrandHeroCard(
     }
     val surfaceHeaderInteraction = remember { MutableInteractionSource() }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (immersive) {
-                    Modifier
-                } else {
-                    Modifier.shadow(
-                        elevation = if (autoCompactDensity) 13.dp else 18.dp,
-                        shape = shape,
-                        ambientColor = secondaryAccent.copy(alpha = if (isDarkPalette) 0.04f else 0.07f),
-                        spotColor = Color.Black.copy(alpha = if (isDarkPalette) 0.12f else 0.14f),
-                    )
-                },
-            )
-            .clip(shape)
-            .drawWithContent {
-                val s = if (immersive) 0.74f else 1f
-                val baseBrush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = (if (isDarkPalette) 0.16f else 0.28f) * s),
-                        colorScheme.skydownCardBackground().copy(
-                            alpha = (if (isDarkPalette) 0.99f else 0.975f) * s,
-                        ),
-                        colorScheme.skydownSecondaryBackground().copy(alpha = (if (isDarkPalette) 0.36f else 0.28f) * s),
-                        accent.copy(alpha = 0.05f * s),
-                        secondaryAccent.copy(alpha = 0.04f * s),
-                        Color.Black.copy(alpha = (if (isDarkPalette) 0.015f else 0.010f) * s),
-                    ),
-                    start = Offset(size.width * 0.08f, 0f),
-                    end = Offset(size.width, size.height),
-                )
-                val upperBloom = Brush.radialGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = (if (isDarkPalette) 0.07f else 0.14f) * s),
-                        accent.copy(alpha = (if (isDarkPalette) 0.08f else 0.10f) * s),
-                        Color.Transparent,
-                    ),
-                    center = Offset(size.width * 0.16f, size.height * 0.12f),
-                    radius = size.width * 0.94f,
-                )
-                val lowerMist = Brush.radialGradient(
-                    colors = listOf(
-                        secondaryAccent.copy(alpha = (if (isDarkPalette) 0.06f else 0.08f) * s),
-                        Color.Transparent,
-                    ),
-                    center = Offset(size.width * 0.86f, size.height * 0.84f),
-                    radius = size.width * 1.08f,
-                )
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val bleed = if (edgeToEdge) SkydownUiTokens.screenHorizontalPadding else 0.dp
+        val stageModifier = if (edgeToEdge) {
+            Modifier
+                .requiredWidth(maxWidth + bleed * 2)
+                .offset(x = -bleed)
+        } else {
+            Modifier.fillMaxWidth()
+        }
 
-                drawRect(baseBrush)
-                drawRect(lowerMist)
-                drawRect(upperBloom, blendMode = BlendMode.Screen)
-                drawContent()
-            }
-            .then(
-                if (immersive) {
-                    Modifier
-                } else {
-                    Modifier.border(
-                        width = 0.9.dp,
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = if (isDarkPalette) 0.18f else 0.24f),
-                                accent.copy(alpha = 0.12f),
-                                secondaryAccent.copy(alpha = if (isDarkPalette) 0.05f else 0.08f),
+        Box(
+            modifier = stageModifier
+                .then(
+                    if (immersive || edgeToEdge) {
+                        Modifier
+                    } else {
+                        Modifier.shadow(
+                            elevation = if (autoCompactDensity) 13.dp else 18.dp,
+                            shape = shape,
+                            ambientColor = secondaryAccent.copy(alpha = if (isDarkPalette) 0.04f else 0.07f),
+                            spotColor = Color.Black.copy(alpha = if (isDarkPalette) 0.12f else 0.14f),
+                        )
+                    },
+                )
+                .clip(shape)
+                .drawWithContent {
+                    val s = when {
+                        immersive -> 0.74f
+                        edgeToEdge -> 0.86f
+                        else -> 1f
+                    }
+                    val baseBrush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = (if (isDarkPalette) 0.16f else 0.28f) * s),
+                            colorScheme.skydownCardBackground().copy(
+                                alpha = (if (isDarkPalette) 0.99f else 0.975f) * s,
                             ),
+                            colorScheme.skydownSecondaryBackground().copy(
+                                alpha = (if (isDarkPalette) 0.36f else 0.28f) * s,
+                            ),
+                            accent.copy(alpha = 0.05f * s),
+                            secondaryAccent.copy(alpha = 0.04f * s),
+                            Color.Black.copy(alpha = (if (isDarkPalette) 0.015f else 0.010f) * s),
                         ),
-                        shape = shape,
+                        start = Offset(size.width * 0.08f, 0f),
+                        end = Offset(size.width, size.height),
                     )
-                },
-            )
-            .then(
-                if (immersive) {
-                    Modifier.skydownSheen(
-                        accent = MaterialTheme.colorScheme.tertiary,
-                        alpha = if (isDarkPalette) 0.012f else 0.010f,
+                    val upperBloom = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = (if (isDarkPalette) 0.07f else 0.14f) * s),
+                            accent.copy(alpha = (if (isDarkPalette) 0.08f else 0.10f) * s),
+                            Color.Transparent,
+                        ),
+                        center = Offset(size.width * 0.16f, size.height * 0.12f),
+                        radius = size.width * 0.94f,
                     )
-                } else {
-                    Modifier.skydownSheen(
-                        accent = MaterialTheme.colorScheme.tertiary,
-                        alpha = if (isDarkPalette) 0.034f else 0.032f,
+                    val lowerMist = Brush.radialGradient(
+                        colors = listOf(
+                            secondaryAccent.copy(alpha = (if (isDarkPalette) 0.06f else 0.08f) * s),
+                            Color.Transparent,
+                        ),
+                        center = Offset(size.width * 0.86f, size.height * 0.84f),
+                        radius = size.width * 1.08f,
                     )
-                },
-            ),
-    ) {
-        if (hasBackgroundImage) {
-            AsyncImage(
-                model = backgroundImageUrl,
-                contentDescription = null,
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(shape),
-                contentScale = ContentScale.Crop,
-            )
+
+                    drawRect(baseBrush)
+                    drawRect(lowerMist)
+                    drawRect(upperBloom, blendMode = BlendMode.Screen)
+                    drawContent()
+                }
+                .then(
+                    if (immersive || edgeToEdge) {
+                        Modifier
+                    } else {
+                        Modifier.border(
+                            width = 0.9.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = if (isDarkPalette) 0.18f else 0.24f),
+                                    accent.copy(alpha = 0.12f),
+                                    secondaryAccent.copy(alpha = if (isDarkPalette) 0.05f else 0.08f),
+                                ),
+                            ),
+                            shape = shape,
+                        )
+                    },
+                )
+                .then(
+                    if (immersive) {
+                        Modifier.skydownSheen(
+                            accent = MaterialTheme.colorScheme.tertiary,
+                            alpha = if (isDarkPalette) 0.012f else 0.010f,
+                        )
+                    } else {
+                        Modifier.skydownSheen(
+                            accent = MaterialTheme.colorScheme.tertiary,
+                            alpha = if (isDarkPalette) {
+                                if (edgeToEdge) 0.020f else 0.034f
+                            } else {
+                                if (edgeToEdge) 0.018f else 0.032f
+                            },
+                        )
+                    },
+                ),
+        ) {
+            if (hasBackgroundImage) {
+                AsyncImage(
+                    model = backgroundImageUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(shape),
+                    contentScale = ContentScale.Crop,
+                )
 
             Box(
                 modifier = Modifier
@@ -426,6 +451,7 @@ fun BrandHeroCard(
                 footer()
             }
         }
+    }
     }
 }
 
