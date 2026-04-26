@@ -4,42 +4,42 @@
 
 <h1 align="center">SkyOS</h1>
 <p align="center">
-  A premium native product space for AI, creator media, membership, merch commerce, and trusted account controls.
+  Ein hochwertiger nativer Produktraum fuer KI, Creator-Medien, Membership, Merch-Commerce und vertrauenswuerdige Kontosteuerung.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20iOS%20%7C%20Android-0A84FF?style=for-the-badge" alt="Platforms: macOS, iOS, Android" />
+  <img src="https://img.shields.io/badge/plattform-macOS%20%7C%20iOS%20%7C%20Android-0A84FF?style=for-the-badge" alt="Plattformen: macOS, iOS, Android" />
   <img src="https://img.shields.io/badge/stack-KMP%20%2B%20SwiftUI%20%2B%20Compose-111827?style=for-the-badge" alt="Stack: KMP, SwiftUI, Compose" />
   <img src="https://img.shields.io/badge/release-v1.0.0-16A34A?style=for-the-badge" alt="Release: v1.0.0" />
 </p>
 
 ---
 
-## What SkyOS Is
+## Was SkyOS ist
 
-SkyOS is the operating core behind the Skydown app experience. It brings AI assistance, music,
-video, merch, membership, support, and legal/account controls into one calm native interface instead
-of scattering them across disconnected tools.
+SkyOS ist der Betriebskern hinter der Skydown-App. Die App verbindet KI-Assistenz, Musik, Video,
+Merch, Membership, Support sowie rechtliche und kontobezogene Steuerung in einer ruhigen nativen
+Oberflaeche, statt diese Bereiche auf lose Einzeltools zu verteilen.
 
-The product is designed for everyday users, creators, operators, and reviewers who need a clear
-answer to three questions:
+Das Produkt ist fuer Nutzer, Creator, Betreiber und Reviewer so aufgebaut, dass drei Fragen schnell
+klar werden:
 
-- what the app does
-- which brand or feature area they are currently using
-- where trust, account, billing, and legal controls live
+- was die App leistet
+- in welchem Marken- oder Funktionsbereich man sich befindet
+- wo Vertrauen, Konto, Zahlung, Support und Rechtliches gesteuert werden
 
-## Product Surfaces
+## Produktbereiche
 
-| Surface | User Value |
+| Bereich | Nutzen |
 | --- | --- |
-| Home | Entry point for orientation, featured content, and system context |
-| AI / Agent | Assistant, visual, FAQ, and structured workflow support |
-| Music | Curated creator and `ZweiZwei / 22` music context |
-| Video | Focused media surface for clips and visual storytelling |
-| Shop / Orders | `Skydown x 22` merch discovery, cart, order, and purchase visibility |
-| Profile / Settings | Account, membership, support, privacy, legal, and trust controls |
+| Home | Einstieg fuer Orientierung, hervorgehobene Inhalte und Systemkontext |
+| AI / Agent | Assistenz, Visuals, FAQ und strukturierte Workflow-Unterstuetzung |
+| Music | Kuratierter Creator- und `ZweiZwei / 22`-Musikkontext |
+| Video | Fokussierte Medienflaeche fuer Clips und visuelles Storytelling |
+| Shop / Orders | `Skydown x 22` Merch, Warenkorb, Bestellungen und Kaufuebersicht |
+| Profile / Settings | Konto, Membership, Support, Datenschutz, Rechtliches und Trust Controls |
 
-## Brand System
+## Markensystem
 
 <p align="center">
   <img src="docs/assets/skyos-logo-original.png" alt="SkyOS Original Logo" width="220" />
@@ -47,72 +47,72 @@ answer to three questions:
   <img src="docs/assets/zweizwei-logo-original.png" alt="ZweiZwei Original Logo" width="220" />
 </p>
 
-| Brand | Role | Primary Use |
+| Marke | Rolle | Primaerer Einsatz |
 | --- | --- | --- |
-| `SkyOS` | System identity and operating core | Launcher, Home, platform architecture, trust surfaces |
-| `Skydown` | Product and operator identity | App experience, AI, video, support, product communication |
-| `ZweiZwei / 22` | Music identity | Music screens, artist context, release context |
-| `Skydown x 22` | Merch collaboration identity | Shop, product, checkout, and commerce surfaces |
+| `SkyOS` | Systemidentitaet und Betriebskern | Launcher, Home, Plattformarchitektur, Trust-Bereiche |
+| `Skydown` | Produkt- und Betreiberidentitaet | App-Erlebnis, AI, Video, Support, Produktkommunikation |
+| `ZweiZwei / 22` | Musikidentitaet | Music-Screens, Artist-Kontext, Release-Kontext |
+| `Skydown x 22` | Merch-Kollaboration | Shop, Produkt, Checkout und Commerce-Bereiche |
 
-## Design Principles
+## Designprinzipien
 
-- One system: every feature should feel like part of the same product.
-- Calm hierarchy: important actions stay visible without turning the UI into noise.
-- Native quality: SwiftUI, Jetpack Compose, and shared domain logic are used where they fit best.
-- Trust is visible: support, legal, privacy, billing, and account controls are part of the product.
-- AI is assistive: AI can help users draft, explore, and execute, but outputs must be reviewed.
+- Ein System: Jede Funktion soll sich wie Teil desselben Produkts anfuehlen.
+- Ruhige Hierarchie: Wichtige Aktionen bleiben sichtbar, ohne die Oberflaeche laut zu machen.
+- Native Qualitaet: SwiftUI, Jetpack Compose und gemeinsame Domain-Logik werden dort eingesetzt, wo sie am besten passen.
+- Vertrauen ist sichtbar: Support, Rechtliches, Datenschutz, Billing und Kontoaktionen sind Teil des Produkts.
+- KI bleibt assistiv: KI kann beim Entwerfen, Strukturieren und Ausfuehren helfen, Ergebnisse muessen aber geprueft werden.
 
-## App Icon
+## App-Icon
 
-The active release icon is maintained as a single master asset and mirrored into platform-specific
-icon slots for Apple and Android builds.
+Das aktive Release-Icon wird als Master-Asset gepflegt und in die plattformspezifischen Icon-Slots
+fuer Apple und Android gespiegelt.
 
 <p align="center">
   <img src="docs/assets/skyos-app-icon.png" alt="SkyOS Active App Icon" width="220" />
 </p>
 
-| Asset | Purpose |
+| Asset | Zweck |
 | --- | --- |
-| `docs/assets/skyos-app-icon-1024.png` | Apple master artwork |
-| `docs/assets/skyos-app-icon-1024-android-padded.png` | Android adaptive-icon source with platform-safe padding |
-| `docs/assets/icon-variants/A-original-premium/master-1024.png` | Release mirror for icon QA |
+| `docs/assets/skyos-app-icon-1024.png` | Apple-Master-Artwork |
+| `docs/assets/skyos-app-icon-1024-android-padded.png` | Android Adaptive-Icon-Quelle mit plattformsicherem Padding |
+| `docs/assets/icon-variants/A-original-premium/master-1024.png` | Release-Spiegel fuer Icon-QA |
 
-## Architecture
+## Architektur
 
 ```mermaid
 flowchart TB
-    skyos["SkyOS Core: system, motion, brand"]
-    skyos --> apple["Apple apps: iOS, iPadOS, macOS"]
-    skyos --> android["Android app"]
-    skyos --> shared["Shared KMP domain"]
-    apple --> firebase["Firebase backend"]
+    skyos["SkyOS Core: System, Motion, Brand"]
+    skyos --> apple["Apple Apps: iOS, iPadOS, macOS"]
+    skyos --> android["Android App"]
+    skyos --> shared["Shared KMP Domain"]
+    apple --> firebase["Firebase Backend"]
     android --> firebase
     shared --> apple
     shared --> android
     firebase --> functions["Cloud Functions"]
-    functions --> ai["AI runtime"]
-    functions --> commerce["Commerce and checkout"]
-    functions --> trust["Auth, legal, governance"]
+    functions --> ai["AI Runtime"]
+    functions --> commerce["Commerce und Checkout"]
+    functions --> trust["Auth, Recht, Governance"]
 ```
 
 ## Tech Stack
 
-| Layer | Technology |
+| Layer | Technologie |
 | --- | --- |
-| Apple client | SwiftUI, Xcode, Asset Catalog |
-| Android client | Kotlin, Jetpack Compose, Android Gradle |
-| Shared domain | Kotlin Multiplatform (`shared/`) |
+| Apple Client | SwiftUI, Xcode, Asset Catalog |
+| Android Client | Kotlin, Jetpack Compose, Android Gradle |
+| Shared Domain | Kotlin Multiplatform (`shared/`) |
 | Backend | Firebase Auth, Firestore, Storage, Cloud Functions, App Check |
-| AI runtime | Cloud Functions, Genkit/Gemini-backed execution where enabled |
-| Documentation | Markdown, release, store, legal, and compliance documents |
+| AI Runtime | Cloud Functions, Genkit/Gemini-basierte Ausfuehrung, wo aktiv |
+| Dokumentation | Markdown, Release-, Store-, Legal- und Compliance-Dokumente |
 
 ## Build
 
-| Platform | Module | Build Reference |
+| Plattform | Modul | Build-Referenz |
 | --- | --- | --- |
-| iOS / iPadOS / macOS | `Skydown App.xcodeproj` | `xcodebuild` with the required destination |
-| Android | `androidApp/` | `./gradlew :androidApp:assembleRelease` |
-| Shared | `shared/` | Included by Apple and Android builds |
+| iOS / iPadOS / macOS | `Skydown App.xcodeproj` | `xcodebuild` mit passender Destination |
+| Android | `androidApp/` | `./scripts/android_release_clean_build.sh` fuer oeffentliche Artefakte |
+| Shared | `shared/` | Wird in Apple- und Android-Builds eingebunden |
 | Functions | `functions/` | `npm ci --prefix functions`, `npm run build --prefix functions`, `npm test --prefix functions` |
 
 ```bash
@@ -121,89 +121,92 @@ npm ci --prefix functions
 npm run build --prefix functions
 npm test --prefix functions
 
-# Android
-./gradlew :androidApp:assembleRelease
+# Android: saubere oeffentliche Release-Artefakte
+./scripts/android_release_clean_build.sh
 
-# Apple example
+# Apple-Beispiel
 xcodebuild -project "Skydown App.xcodeproj" -scheme "Skydown App" -configuration Debug -destination "generic/platform=iOS Simulator" build
 ```
 
-For local Android release smoke tests without store signing, use:
+Fuer lokale Android-Smoke-Tests ohne Store-Signing kann weiterhin gebaut werden mit:
 
 ```bash
 ./gradlew :androidApp:assembleRelease -PallowDebugReleaseSigning=true
 ```
 
-Store-ready builds require production signing through `keystore.properties` or `SKYOS_UPLOAD_*`
-secrets.
+Store-faehige Builds benoetigen Produktionssigning ueber `keystore.properties` oder
+`SKYOS_UPLOAD_*` Secrets. Android Studio installiert mit dem Run-Button normalerweise `debug`;
+fuer Verteilung und Store-Tests muessen die Release-Artefakte aus dem Clean-Build-Script verwendet
+werden.
 
-## Trust, Privacy, and AI Transparency
+## Vertrauen, Datenschutz und KI-Transparenz
 
-SkyOS includes legal, privacy, support, and AI-usage entry points inside the product. The repository
-also keeps release and compliance working documents so product behavior, data handling, and public
-language can stay aligned.
+SkyOS enthaelt rechtliche Hinweise, Datenschutz, Support und KI-Nutzungshinweise direkt im Produkt.
+Das Repository haelt zusaetzlich Release- und Compliance-Arbeitsdokumente vor, damit Produktverhalten,
+Datenverarbeitung und oeffentliche Kommunikation zusammenpassen.
 
-Core documents:
+Zentrale Dokumente:
 
-- [Privacy](docs/legal/privacy.md)
-- [Terms](docs/legal/terms.md)
-- [Imprint](docs/legal/imprint.md)
-- [AI Usage Notice](docs/legal/AI_USAGE_NOTICE.md)
+- [Datenschutz](docs/legal/privacy.md)
+- [AGB / Terms](docs/legal/terms.md)
+- [Impressum](docs/legal/imprint.md)
+- [KI-Nutzungshinweis](docs/legal/AI_USAGE_NOTICE.md)
 - [Subscription Terms](docs/legal/SUBSCRIPTION_TERMS.md)
 - [Compliance Kit](docs/compliance/README.md)
 
-Public regulatory references:
+Oeffentliche regulatorische Referenzen:
 
-- [EU AI Act - European Commission overview](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
-- [EU AI Act - Regulation (EU) 2024/1689 on EUR-Lex](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32024R1689)
-- [GDPR / DSGVO - European Commission Data Protection Rules](https://commission.europa.eu/law/law-topic/data-protection/eu-data-protection-rules_en)
-- [GDPR / DSGVO - Regulation (EU) 2016/679 on EUR-Lex](https://eur-lex.europa.eu/eli/reg/2016/679/oj)
-- [EU Data Protection Legal Framework - European Commission](https://commission.europa.eu/law/law-topic/data-protection/data-protection-eu_en)
+- [EU AI Act - Uebersicht der Europaeischen Kommission](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
+- [EU AI Act - Verordnung (EU) 2024/1689 auf EUR-Lex](https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX%3A32024R1689)
+- [DSGVO / GDPR - Datenschutzregeln der Europaeischen Kommission](https://commission.europa.eu/law/law-topic/data-protection/eu-data-protection-rules_de)
+- [DSGVO / GDPR - Verordnung (EU) 2016/679 auf EUR-Lex](https://eur-lex.europa.eu/eli/reg/2016/679/oj/deu)
+- [EU-Datenschutzrahmen - Europaeische Kommission](https://commission.europa.eu/law/law-topic/data-protection/data-protection-eu_de)
 
-These links are official public references. They do not replace qualified legal review for a specific
-release, market, provider setup, or data-processing configuration.
+Diese Links sind offizielle oeffentliche Referenzen. Sie ersetzen keine qualifizierte Rechtspruefung
+fuer einen konkreten Release, Markt, Provider-Setup oder eine konkrete Datenverarbeitung.
 
-## Documentation
+## Dokumentation
 
-| Topic | Document |
+| Thema | Dokument |
 | --- | --- |
-| Documentation index | [docs/README.md](docs/README.md) |
-| Architecture | [docs/architecture.md](docs/architecture.md) |
+| Dokumentationsindex | [docs/README.md](docs/README.md) |
+| Architektur | [docs/architecture.md](docs/architecture.md) |
 | Backend | [docs/backend.md](docs/backend.md) |
 | iOS | [docs/ios.md](docs/ios.md) |
 | Android | [docs/android.md](docs/android.md) |
-| AI system | [docs/ai-system.md](docs/ai-system.md) |
+| AI-System | [docs/ai-system.md](docs/ai-system.md) |
 | Commerce | [docs/commerce.md](docs/commerce.md) |
-| Owner/admin operations | [docs/owner-admin.md](docs/owner-admin.md) |
+| Owner/Admin-Betrieb | [docs/owner-admin.md](docs/owner-admin.md) |
 | Deployment | [docs/deployment.md](docs/deployment.md) |
-| Release checklist | [docs/release-checklist.md](docs/release-checklist.md) |
+| Release-Checkliste | [docs/release-checklist.md](docs/release-checklist.md) |
 | Branding | [docs/branding.md](docs/branding.md) |
 | FAQ | [docs/faq.md](docs/faq.md) |
-| Store documents | [docs/store/README.md](docs/store/README.md) |
-| Store listing | [docs/store-listing.md](docs/store-listing.md) |
-| Store screenshots | [docs/store-screenshots.md](docs/store-screenshots.md) |
+| Store-Dokumente | [docs/store/README.md](docs/store/README.md) |
+| Store Listing | [docs/store-listing.md](docs/store-listing.md) |
+| Store Screenshots | [docs/store-screenshots.md](docs/store-screenshots.md) |
 
-## Release Readiness
+## Release-Bereitschaft
 
-SkyOS is documented as a v1.0.0 release candidate with cross-platform build paths, brand assets,
-store-prep material, and legal/compliance working documents in place.
+SkyOS ist als v1.0.0 Release Candidate dokumentiert. Cross-Plattform-Buildpfade, Brand-Assets,
+Store-Vorbereitung sowie Legal- und Compliance-Arbeitsdokumente sind im Repository vorhanden.
 
-Before public distribution, confirm:
+Vor oeffentlicher Auslieferung muessen bestaetigt werden:
 
-- production signing and distribution credentials
-- store listing URLs for privacy, terms, support, and deletion requests
-- final provider list and data-processing roles
-- final legal approval for privacy, terms, subscription, AI, and imprint texts
-- platform review requirements for App Store and Google Play
+- Produktionssigning und Distribution-Credentials
+- Store-Listing-URLs fuer Datenschutz, AGB, Support und Loeschanfragen
+- finale Provider-Liste und Datenverarbeitungsrollen
+- finale rechtliche Freigabe fuer Datenschutz, AGB, Subscription, KI-Hinweis und Impressum
+- Plattformanforderungen fuer App Store und Google Play
 
 ## Support
 
-Current repository support contact: `skydownent@gmail.com`
+Aktueller Repository-Supportkontakt: `skydownent@gmail.com`
 
-The production release should publish the final support, privacy, deletion, and legal routing in
-the app, store listings, and public policy pages.
+Der Produktionsrelease sollte die finalen Wege fuer Support, Datenschutz, Loeschanfragen und
+rechtliche Kontaktaufnahme in der App, in den Store Listings und auf den oeffentlichen Policy-Seiten
+veroeffentlichen.
 
-## License
+## Lizenz
 
-Project-specific. Add a central `LICENSE` file before distributing code under a public open-source
-license.
+Projektspezifisch. Vor einer oeffentlichen Open-Source-Verteilung sollte eine zentrale `LICENSE`
+Datei ergaenzt werden.
