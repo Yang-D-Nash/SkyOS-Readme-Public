@@ -243,7 +243,6 @@ struct MusicView: View {
                                     VStack(alignment: .leading, spacing: layout.sectionSpacing) {
                                         artistsCard
                                             .id(MusicSectionAnchor.artists.rawValue)
-                                        shortcutHubCard
                                     }
                                     .frame(maxWidth: .infinity, alignment: .topLeading)
 
@@ -264,13 +263,12 @@ struct MusicView: View {
                                     .id(MusicSectionAnchor.artists.rawValue)
                                 spotifyCard
                                     .id(MusicSectionAnchor.spotify.rawValue)
-                                shortcutHubCard
                             }
                         }
                         .frame(maxWidth: contentWidth, alignment: .leading)
                         .padding(.horizontal, layout.horizontalPadding)
                         .padding(.top, SkydownLayout.screenTopPadding)
-                        .padding(.bottom, SkydownLayout.screenBottomPadding)
+                        .padding(.bottom, SkydownLayout.screenBottomPadding + 28)
                         .frame(maxWidth: .infinity)
                     }
                     .accessibilityIdentifier("music.catalog.root")
@@ -658,56 +656,6 @@ struct MusicView: View {
                 }
                 .skydownTactileAction()
             }
-        }
-    }
-
-    @ViewBuilder
-    private var shortcutHubCard: some View {
-        if brand.workflowTitle != nil {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Quick Access")
-                    .font(.headline)
-
-                Text("Optionaler Schnellzugriff fuer Studio.")
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-
-                if let workflowTitle = brand.workflowTitle,
-                          let workflowSubtitle = brand.workflowSubtitle {
-                    NavigationLink {
-                        NicmaProducerView()
-                    } label: {
-                        quickAccessTile(
-                            title: workflowTitle,
-                            subtitle: workflowSubtitle,
-                            accent: AppColors.accentMystic(for: colorScheme),
-                            systemImage: "sparkles"
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                }
-            }
-            .padding(max(14, SkydownLayout.cardPadding - 4))
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                musicCardBackground(
-                    accent: AppColors.accent(for: colorScheme),
-                    secondaryAccent: AppColors.spotify(for: colorScheme)
-                )
-            )
-            .overlay(
-                musicCardStroke(
-                    accent: AppColors.accent(for: colorScheme),
-                    secondaryAccent: AppColors.spotify(for: colorScheme)
-                )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
-            .shadow(
-                color: .black.opacity(colorScheme == .dark ? 0.12 : 0.06),
-                radius: 12,
-                y: 7
-            )
         }
     }
 
@@ -1372,7 +1320,7 @@ struct MusicView: View {
     private var tracksCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Aus dem Set")
+                Text("Catalog")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
                 Text(queueStatusText)
@@ -1562,7 +1510,6 @@ struct MusicView: View {
 
     private func trackListPresentation(index: Int, total: Int) -> TrackListPresentation {
         if index == 0 { return .featured }
-        if index == 1, total > 1 { return .secondary }
         return .catalog
     }
 

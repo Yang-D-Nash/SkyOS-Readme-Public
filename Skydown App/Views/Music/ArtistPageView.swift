@@ -56,6 +56,10 @@ struct ArtistPageView: View {
         store.page(for: brand, artistName: artistName)
     }
 
+    private var allowsStudioPriceEditing: Bool {
+        brand == .nicma && page.artistName.caseInsensitiveCompare("NICMA STUDIO") == .orderedSame
+    }
+
     private var displayPage: ArtistPage {
         guard isEditing else { return page }
 
@@ -71,7 +75,7 @@ struct ArtistPageView: View {
             instagramURL: instagramURLDraft.trimmedNilIfEmpty,
             spotifyURL: spotifyURLDraft.trimmedNilIfEmpty,
             youtubeURL: youtubeURLDraft.trimmedNilIfEmpty,
-            studioPriceList: parseStudioPriceItems(from: studioPriceListDraft),
+            studioPriceList: allowsStudioPriceEditing ? parseStudioPriceItems(from: studioPriceListDraft) : page.studioPriceList,
             editorUids: page.editorUids,
             createdAt: page.createdAt,
             updatedAt: page.updatedAt,
@@ -1101,7 +1105,7 @@ struct ArtistPageView: View {
                 colorScheme: colorScheme
             )
 
-            if brand == .nicma {
+            if allowsStudioPriceEditing {
                 ArtistPageMultilineInput(
                     title: "Studio-Preisliste",
                     text: $studioPriceListDraft,
@@ -1228,7 +1232,7 @@ struct ArtistPageView: View {
                 instagramURL: instagramURLDraft.trimmedNilIfEmpty,
                 spotifyURL: spotifyURLDraft.trimmedNilIfEmpty,
                 youtubeURL: youtubeURLDraft.trimmedNilIfEmpty,
-                studioPriceList: parseStudioPriceItems(from: studioPriceListDraft),
+                studioPriceList: allowsStudioPriceEditing ? parseStudioPriceItems(from: studioPriceListDraft) : page.studioPriceList,
                 editorUids: page.editorUids,
                 createdAt: page.createdAt,
                 updatedAt: .now,

@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -41,7 +43,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -170,14 +171,13 @@ fun MusicScreen(
             else -> "Queue ${uiState.tracks.size} Tracks"
         }
     }
-    val hasShortcutHub = onOpenStudio != null
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
     val spotlightSectionIndex = 1
-    val artistSectionIndex = if (hasShortcutHub) 3 else 2
-    val spotifyStatusSectionIndex = if (hasShortcutHub) 5 else 4
+    val artistSectionIndex = 2
+    val spotifyStatusSectionIndex = 3
     val tracksSectionIndex = if (uiState.tracks.isNotEmpty()) {
-        if (hasShortcutHub) 6 else 5
+        4
     } else {
         spotifyStatusSectionIndex
     }
@@ -332,24 +332,6 @@ fun MusicScreen(
                 colors = skydownTopBarColors(),
             )
         },
-        floatingActionButton = {
-            onOpenStudio?.let { openStudio ->
-                ExtendedFloatingActionButton(
-                    onClick = openStudio,
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = "Studio",
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
-            }
-        },
     ) { innerPadding ->
         val colorScheme = MaterialTheme.colorScheme
         Box(
@@ -380,7 +362,9 @@ fun MusicScreen(
                         start = SkydownUiTokens.screenHorizontalPadding,
                         top = 0.dp,
                         end = SkydownUiTokens.screenHorizontalPadding,
-                        bottom = innerPadding.calculateBottomPadding() + SkydownUiTokens.screenBottomPadding,
+                        bottom = innerPadding.calculateBottomPadding() +
+                            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+                            SkydownUiTokens.screenBottomPadding + 24.dp,
                     ),
                     verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                 ) {
@@ -389,6 +373,7 @@ fun MusicScreen(
                             uiState = uiState,
                             compactVisualDensity = compactVisualDensity,
                             topContentPadding = innerPadding.calculateTopPadding(),
+                            onOpenStudio = onOpenStudio,
                             onOpenArtistPage = onOpenArtistPage?.let { openArtistPage ->
                                 { openArtistPage(uiState.selectedArtist) }
                             },
@@ -502,7 +487,7 @@ fun MusicScreen(
                                     .testTag("music.tracks.header"),
                             ) {
                                 Text(
-                                    text = "Aus dem Set",
+                                    text = "Catalog",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface,
@@ -516,15 +501,10 @@ fun MusicScreen(
                         }
 
                         itemsIndexed(uiState.tracks, key = { _, t -> t.trackId }) { index, track ->
-                            val stepPresentation = when {
-                                index == 0 -> TrackRowPresentation.Featured
-                                index == 1 && uiState.tracks.size > 1 -> TrackRowPresentation.Secondary
-                                else -> TrackRowPresentation.Catalog
-                            }
-                            val flowTop = if (index == 2 && uiState.tracks.size > 2) {
-                                8.dp
+                            val stepPresentation = if (index == 0) {
+                                TrackRowPresentation.Featured
                             } else {
-                                0.dp
+                                TrackRowPresentation.Catalog
                             }
                             TrackRow(
                                 track = track,
@@ -536,15 +516,6 @@ fun MusicScreen(
                                     viewModel.togglePreview(track)
                                 },
                                 presentation = stepPresentation,
-                                modifier = Modifier.padding(top = flowTop),
-                            )
-                        }
-                    }
-
-                    onOpenStudio?.let { openStudio ->
-                        item {
-                            MusicShortcutHubCard(
-                                onOpenStudio = openStudio,
                             )
                         }
                     }
@@ -959,6 +930,7 @@ private fun MusicOverviewCard(
     uiState: MusicUiState,
     compactVisualDensity: Boolean,
     topContentPadding: Dp = 0.dp,
+    onOpenStudio: (() -> Unit)?,
     onOpenArtistPage: (() -> Unit)?,
     onOpenSpotlight: () -> Unit,
     onOpenArtistHub: () -> Unit,
@@ -987,7 +959,7 @@ private fun MusicOverviewCard(
         compactVisualDensity = compactVisualDensity,
         edgeToEdge = true,
         topContentPadding = topContentPadding,
-        onSurfaceClick = onOpenTracks,
+        onSurfaceClick = onOpenStudio ?: onOpenTracks,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
@@ -998,11 +970,6 @@ private fun MusicOverviewCard(
                     text = uiState.selectedArtist,
                     tint = SpotifyGreen,
                     onClick = onOpenArtistHub,
-                )
-                BrandPill(
-                    text = "Featured Drop",
-                    tint = beatAccent,
-                    onClick = onOpenSpotlight,
                 )
                 BrandPill(
                     text = trackLabel,
@@ -1022,100 +989,14 @@ private fun MusicOverviewCard(
                     onClick = onOpenSpotifyStatus,
                 )
             }
-            BoxWithConstraints(
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                val stackMetrics = maxWidth < 420.dp
-
-                if (stackMetrics) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MusicHeroStatusCard(
-                            label = "Artist",
-                            value = socialProfile?.handle ?: uiState.selectedArtist,
-                            icon = Icons.Default.MusicNote,
-                            accent = SpotifyGreen,
-                            isActive = socialProfile != null || uiState.selectedArtist.isNotBlank(),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        MusicHeroStatusCard(
-                            label = "Tracks",
-                            value = trackLabel,
-                            icon = Icons.Default.GraphicEq,
-                            accent = beatAccent,
-                            isActive = uiState.isLoading || uiState.tracks.isNotEmpty(),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        MusicHeroStatusCard(
-                            label = "Status",
-                            value = musicHeroStatusValue(uiState),
-                            icon = Icons.Default.Sync,
-                            accent = statusAccent,
-                            isActive = uiState.currentPreviewUrl != null || uiState.isSpotifyConnected || uiState.isLoading,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        MusicHeroStatusCard(
-                            label = "Artist",
-                            value = socialProfile?.handle ?: uiState.selectedArtist,
-                            icon = Icons.Default.MusicNote,
-                            accent = SpotifyGreen,
-                            isActive = socialProfile != null || uiState.selectedArtist.isNotBlank(),
-                            modifier = Modifier.weight(1f),
-                        )
-                        MusicHeroStatusCard(
-                            label = "Tracks",
-                            value = trackLabel,
-                            icon = Icons.Default.GraphicEq,
-                            accent = beatAccent,
-                            isActive = uiState.isLoading || uiState.tracks.isNotEmpty(),
-                            modifier = Modifier.weight(1f),
-                        )
-                        MusicHeroStatusCard(
-                            label = "Status",
-                            value = musicHeroStatusValue(uiState),
-                            icon = Icons.Default.Sync,
-                            accent = statusAccent,
-                            isActive = uiState.currentPreviewUrl != null || uiState.isSpotifyConnected || uiState.isLoading,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
+            socialProfile?.handle?.takeIf { it.isNotBlank() }?.let { handle ->
+                BrandPill(
+                    text = handle,
+                    tint = SpotifyGreen,
+                    onClick = onOpenArtistHub,
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun MusicHeroStatusCard(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    accent: Color,
-    isActive: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    BrandHeroMetricCard(
-        label = label,
-        value = value,
-        accent = accent,
-        modifier = modifier,
-        icon = icon,
-        isActive = isActive,
-    )
-}
-
-private fun musicHeroStatusValue(uiState: MusicUiState): String {
-    return when {
-        uiState.currentPreviewUrl != null -> "Preview live"
-        !uiState.errorMessage.isNullOrBlank() -> "Check feed"
-        uiState.isSpotifyConnected -> "Spotify live"
-        uiState.isLoading -> "Loading"
-        else -> "Ready"
     }
 }
 

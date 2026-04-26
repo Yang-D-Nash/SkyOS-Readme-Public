@@ -479,24 +479,12 @@ struct SettingsView: View {
 
                     controlCenterSectionCard
 
-                    if isOwnerUser {
-                        adminWorkspaceSectionCard
-                    }
-
                     SettingsSectionCard(title: AppLocalized.text("settings.section.profile_account", fallback: "Profile / Account"), colorScheme: effectiveColorScheme) {
                         if let user = authManager.userSession {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text(AppLocalized.text("settings.profile_account.subtitle", fallback: "Personal identity, login status and account security."))
-                                    .font(.footnote)
-                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                                 Text("\(AppLocalized.text("settings.logged_in_as", fallback: "Signed in as")) \(user.username)")
                                     .font(.headline)
                                     .foregroundColor(AppColors.text(for: effectiveColorScheme))
-
-                                Text(user.email)
-                                    .font(.subheadline)
-                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-                                    .accessibilityIdentifier("settings.current_email")
 
                                 Button {
                                     presentSheet(.profileEditor)
@@ -508,10 +496,6 @@ struct SettingsView: View {
                                 .skydownInteractiveFeedback()
                                 .tint(AppColors.accent(for: effectiveColorScheme))
                                 .accessibilityIdentifier("settings.open_profile_editor")
-
-                                Text(AppLocalized.text("settings.account_actions", fallback: "Account actions"))
-                                    .font(.body)
-                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                                 VStack(spacing: 10) {
                                     Button(role: .destructive) {
@@ -551,10 +535,6 @@ struct SettingsView: View {
                             }
                         } else {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text(AppLocalized.text("auth.settings.guest_hint", fallback: "Sign in or register when you want orders, saved preferences, and personal areas in sync."))
-                                    .font(.body)
-                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-
                                 Button {
                                     presentSheet(.login(.settings))
                                 } label: {
@@ -580,21 +560,18 @@ struct SettingsView: View {
                         }
                     }
 
-                    membershipSectionCard
-
-                    if !isOwnerUser {
-                        adminWorkspaceSectionCard
-                    }
-
                     if authManager.userSession != nil {
                         personalAgentServiceSectionCard
                     }
 
+                    membershipSectionCard
+
+                    if isOwnerUser {
+                        adminWorkspaceSectionCard
+                    }
+
                     SettingsSectionCard(title: AppLocalized.text("settings.section.system", fallback: "System"), colorScheme: effectiveColorScheme) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(AppLocalized.text("settings.system.subtitle", fallback: "Language, notifications and system behavior."))
-                                .font(.footnote)
-                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                             HStack {
                                 Text(
                                     AppLocalized.text(
@@ -607,10 +584,6 @@ struct SettingsView: View {
                                 Text(systemLanguage)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                             }
-
-                            Text(AppLanguageSupport.supportedLanguagesSummary)
-                                .font(.footnote)
-                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                             SettingsToggleCard(
                                 colorScheme: effectiveColorScheme,
@@ -629,10 +602,6 @@ struct SettingsView: View {
 
                     SettingsSectionCard(title: AppLocalized.text("settings.section.theme", fallback: "Theme"), colorScheme: effectiveColorScheme) {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("\(AppLocalized.text("settings.current", fallback: "Current")): \(currentAppearanceLabel)")
-                                .font(.subheadline)
-                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-
                             ForEach(Appearance.allCases) { appearance in
                                 AppearanceChoiceCard(
                                     colorScheme: effectiveColorScheme,
@@ -647,9 +616,6 @@ struct SettingsView: View {
 
                     SettingsSectionCard(title: AppLocalized.text("settings.section.privacy_legal_help", fallback: "Privacy / Legal / Help"), colorScheme: effectiveColorScheme) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(AppLocalized.text("settings.legal.subtitle", fallback: "Legal, help and trust in one clear sequence."))
-                                .font(.footnote)
-                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                             Text("\(AppLocalized.text("settings.version", fallback: "Version")) \(appVersion)")
                                 .font(.headline)
                                 .foregroundColor(AppColors.text(for: effectiveColorScheme))
@@ -1192,13 +1158,21 @@ struct SettingsView: View {
     }
 
     private var managedShowcasePages: [ArtistPage] {
-        (artistPagesStore.pages(for: .zweizwei) + artistPagesStore.pages(for: .nicma))
-            .sorted { lhs, rhs in
-                if lhs.brand != rhs.brand {
-                    return lhs.brand.displayTitle < rhs.brand.displayTitle
-                }
-                return lhs.artistName.localizedCaseInsensitiveCompare(rhs.artistName) == .orderedAscending
+        let existingPages = artistPagesStore.pages(for: .zweizwei) + artistPagesStore.pages(for: .nicma)
+        let requiredNicmaPages = ["NICMA MUSIC", "NICMA STUDIO"].map { name in
+            artistPagesStore.page(for: .nicma, artistName: name)
+        }
+        var pagesBySlug: [String: ArtistPage] = [:]
+        (existingPages + requiredNicmaPages).forEach { page in
+            pagesBySlug[page.slug] = page
+        }
+
+        return pagesBySlug.values.sorted { lhs, rhs in
+            if lhs.brand != rhs.brand {
+                return lhs.brand.displayTitle < rhs.brand.displayTitle
             }
+            return lhs.artistName.localizedCaseInsensitiveCompare(rhs.artistName) == .orderedAscending
+        }
     }
 
     private var assignedArtistPageCount: Int {
@@ -1215,7 +1189,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var controlCenterSectionCard: some View {
-        SettingsSectionCard(title: "System", colorScheme: effectiveColorScheme) {
+        SettingsSectionCard(title: "Control Center", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
                 SettingsInlineStatusStrip(
                     icon: "slider.horizontal.3",
@@ -1301,10 +1275,6 @@ struct SettingsView: View {
     private var membershipSectionCard: some View {
         SettingsSectionCard(title: "Membership", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 12) {
-                Text(AppLocalized.text("settings.membership.subtitle", fallback: "Current plan, billing clarity, and restore in one place."))
-                    .font(.footnote)
-                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-
                 if let user = authManager.userSession {
                     if canUseAISelfPaySubscription {
                         NativeAISubscriptionStatusCard(
@@ -1330,9 +1300,15 @@ struct SettingsView: View {
                         )
                     }
                 } else {
-                    Text(AppLocalized.text("settings.membership.signin_prompt", fallback: "Sign in to view your plan and manage billing."))
-                        .font(.footnote)
-                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                    Button {
+                        presentSheet(.login(.settings))
+                    } label: {
+                        Label(AppLocalized.text("auth.sign_in", fallback: "Sign in"), systemImage: "person.crop.circle.fill.badge.plus")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .skydownInteractiveFeedback()
+                    .tint(AppColors.accent(for: effectiveColorScheme))
                 }
             }
         }
@@ -1343,89 +1319,45 @@ struct SettingsView: View {
     private var adminWorkspaceSectionCard: some View {
         SettingsSectionCard(title: "Owner-Bereich", colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(isOwnerUser ? "Geschuetzte Steuerung fuer Revenue, Nutzer und Runtime." : "Geschuetzter Owner-Bereich.")
+                Text("Admin & Revenue zentral steuern.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                if isOwnerUser {
-                    Button {
-                        presentSheet(.adminWorkspace(.membershipOps))
-                    } label: {
-                        HStack(alignment: .center, spacing: 12) {
-                            Image(systemName: "chart.xyaxis.line")
-                                .font(.headline.weight(.semibold))
-                                .foregroundColor(AppColors.accent(for: effectiveColorScheme))
+                OwnerCommandCenterCard(
+                    colorScheme: effectiveColorScheme,
+                    isOwner: isOwnerUser,
+                    paymentStatus: "\(visiblePaymentMethodCount) Zahlungsrouten",
+                    userStatus: "\(adminUserManagementStore.users.count) Konten",
+                    headerStatus: "\(configuredScreenHeaderCount) Header",
+                    membershipStatus: adminWorkspaceStatusText(for: .membershipOps),
+                    aiStatus: aiRuntimeSettingsStore.settings.costGuardEnabled ? "AI Guard aktiv" : "AI Guard pruefen",
+                    onOpenUsers: { presentSheet(.adminWorkspace(.users)) },
+                    onOpenPayments: { presentSheet(.adminWorkspace(.payments)) },
+                    onOpenHeaders: { presentSheet(.adminWorkspace(.headers)) },
+                    onOpenMembershipOps: { presentSheet(.adminWorkspace(.membershipOps)) },
+                    onOpenAI: { presentSheet(.adminWorkspace(.aiPrompts)) }
+                )
+                .accessibilityIdentifier("settings.owner.command_center")
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Membership-Steuerung")
-                                    .font(.headline.weight(.semibold))
-                                    .foregroundColor(AppColors.text(for: effectiveColorScheme))
-
-                                Text(adminWorkspaceStatusText(for: .membershipOps))
-                                    .font(.footnote)
-                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-                                    .lineLimit(2)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "arrow.up.right")
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(14)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppColors.accent(for: effectiveColorScheme))
-                    .skydownInteractiveFeedback()
-                    .accessibilityIdentifier("settings.owner.command.membershipOps")
-
-                    OwnerCommandCenterCard(
-                        colorScheme: effectiveColorScheme,
-                        isOwner: isOwnerUser,
-                        paymentStatus: "\(visiblePaymentMethodCount) Zahlungsrouten",
-                        userStatus: "\(adminUserManagementStore.users.count) Konten",
-                        headerStatus: "\(configuredScreenHeaderCount) Header",
-                        membershipStatus: adminWorkspaceStatusText(for: .membershipOps),
-                        aiStatus: aiRuntimeSettingsStore.settings.costGuardEnabled ? "AI Guard aktiv" : "AI Guard pruefen",
-                        onOpenUsers: { presentSheet(.adminWorkspace(.users)) },
-                        onOpenPayments: { presentSheet(.adminWorkspace(.payments)) },
-                        onOpenHeaders: { presentSheet(.adminWorkspace(.headers)) },
-                        onOpenMembershipOps: { presentSheet(.adminWorkspace(.membershipOps)) },
-                        onOpenAI: { presentSheet(.adminWorkspace(.aiPrompts)) }
-                    )
-                    .accessibilityIdentifier("settings.owner.command_center")
-
-                    Button {
-                        presentSheet(.orders)
-                    } label: {
-                        Label(AppLocalized.text("settings.orders.open", fallback: "Open orders"), systemImage: "suitcase.cart")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .skydownInteractiveFeedback()
-                    .accessibilityIdentifier("settings.owner.open_orders")
-
-                    VStack(spacing: 10) {
-                        ForEach(SettingsAdminWorkspaceSection.allCases) { section in
-                            SettingsAdminWorkspaceListRow(
-                                section: section,
-                                colorScheme: effectiveColorScheme,
-                                detailText: adminWorkspaceStatusText(for: section),
-                                accessibilityIdentifier: "settings.owner.workspace.\(section.accessibilityKey)"
-                            ) {
-                                presentSheet(.adminWorkspace(section))
-                            }
-                        }
-                    }
-                } else {
-                    SettingsLockedHintCard(
-                        colorScheme: effectiveColorScheme,
-                        text: "Nicht verfuegbar fuer dieses Konto."
-                    )
-                    .accessibilityIdentifier("settings.owner.locked_hint")
+                Button {
+                    presentSheet(.adminWorkspace(.users))
+                } label: {
+                    Label("Alle Admin-Bereiche", systemImage: "rectangle.grid.2x2")
+                        .frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.bordered)
+                .skydownInteractiveFeedback()
+                .accessibilityIdentifier("settings.owner.open_workspace")
+
+                Button {
+                    presentSheet(.orders)
+                } label: {
+                    Label(AppLocalized.text("settings.orders.open", fallback: "Open orders"), systemImage: "suitcase.cart")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .skydownInteractiveFeedback()
+                .accessibilityIdentifier("settings.owner.open_orders")
             }
         }
         .accessibilityIdentifier("settings.owner.section")
@@ -1434,12 +1366,9 @@ struct SettingsView: View {
     @ViewBuilder
     private var personalAgentServiceSectionCard: some View {
         SettingsSectionCard(title: "AI Control", colorScheme: effectiveColorScheme) {
-            VStack(alignment: .leading, spacing: 14) {
-                    Text(AppLocalized.text("settings.ai_control.subtitle", fallback: "Control bot, agent, and workflow defaults in one place."))
-                    .font(.body)
-                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-
-                HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 10) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 10) {
                     SettingsBadge(
                         text: workflowAutomationSettings.settings.isPrepared ? "Workflow bereit" : "Workflow offen",
                         colorScheme: effectiveColorScheme,
@@ -1447,7 +1376,7 @@ struct SettingsView: View {
                     )
                     if !workflowAutomationSettings.settings.workflowName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         SettingsBadge(
-                            text: workflowAutomationSettings.settings.workflowName,
+                            text: String(workflowAutomationSettings.settings.workflowName.prefix(26)),
                             colorScheme: effectiveColorScheme,
                             onTap: { presentSheet(.adminWorkspace(.automation)) }
                         )
@@ -1457,6 +1386,7 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme,
                         onTap: { presentSheet(.adminWorkspace(.automation)) }
                     )
+                    }
                 }
 
                 Button {
@@ -6011,7 +5941,8 @@ private struct SettingsArtistPageCard: View {
         self.users = users
         self.colorScheme = colorScheme
         self.onSave = onSave
-        _selectedEditorUids = State(initialValue: Set(page.editorUids))
+        let initialEditors = page.brand == .nicma ? Array(page.editorUids.prefix(1)) : page.editorUids
+        _selectedEditorUids = State(initialValue: Set(initialEditors))
     }
 
     var body: some View {
@@ -6031,7 +5962,12 @@ private struct SettingsArtistPageCard: View {
 
                 VStack(alignment: .trailing, spacing: 6) {
                     SettingsBadge(text: page.hasCustomPresentation ? "Live" : "Platzhalter", colorScheme: colorScheme)
-                    SettingsBadge(text: "\(selectedEditorUids.count) Editoren", colorScheme: colorScheme)
+                    SettingsBadge(
+                        text: page.brand == .nicma
+                            ? (selectedEditorUids.isEmpty ? "Kein Editor" : "1 Editor")
+                            : "\(selectedEditorUids.count) Editoren",
+                        colorScheme: colorScheme
+                    )
                 }
             }
 
@@ -6040,7 +5976,7 @@ private struct SettingsArtistPageCard: View {
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             } else {
-                Text("Editoren")
+                Text(page.brand == .nicma ? "Editor" : "Editoren")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -6054,10 +5990,14 @@ private struct SettingsArtistPageCard: View {
 
                         Button {
                             guard let userId = user.id, !userId.isEmpty else { return }
-                            if isSelected {
-                                selectedEditorUids.remove(userId)
+                            if page.brand == .nicma {
+                                selectedEditorUids = isSelected ? [] : [userId]
                             } else {
-                                selectedEditorUids.insert(userId)
+                                if isSelected {
+                                    selectedEditorUids.remove(userId)
+                                } else {
+                                    selectedEditorUids.insert(userId)
+                                }
                             }
                         } label: {
                             HStack(spacing: 6) {
@@ -6101,7 +6041,9 @@ private struct SettingsArtistPageCard: View {
                         spotifyURL: page.spotifyURL,
                         youtubeURL: page.youtubeURL,
                         studioPriceList: page.studioPriceList,
-                        editorUids: Array(selectedEditorUids).sorted(),
+                        editorUids: page.brand == .nicma
+                            ? Array(selectedEditorUids.prefix(1))
+                            : Array(selectedEditorUids).sorted(),
                         createdAt: page.createdAt,
                         updatedAt: .now,
                         isPlaceholder: false

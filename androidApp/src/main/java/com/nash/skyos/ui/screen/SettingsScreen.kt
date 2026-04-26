@@ -95,6 +95,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -106,6 +107,7 @@ import com.nash.skyos.R
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.AiFaqOwnerReviewLoop
 import com.nash.skyos.data.AiRuntimeAgentProvider
+import com.nash.skyos.data.ArtistPageBrand
 import com.nash.skyos.data.ArtistPageUi
 import com.nash.skyos.data.ArtistPagesStore
 import com.nash.skyos.data.LegalContentSettings
@@ -430,12 +432,18 @@ fun SettingsScreen(
     var legalSymbolicLeetCodeDraft by rememberSaveable { mutableStateOf("") }
     var legalSymbolicCodeExplanationDraft by rememberSaveable { mutableStateOf("") }
     val managedShowcasePages = remember(artistPages) {
-        (
-            ArtistPagesStore.pagesForBrand(com.nash.skyos.data.ArtistPageBrand.Zweizwei) +
-                ArtistPagesStore.pagesForBrand(com.nash.skyos.data.ArtistPageBrand.Nicma)
-            ).sortedWith(
-                compareBy<ArtistPageUi>({ it.brand.displayTitle }, { it.artistName.lowercase() }),
-            )
+        val existingPages = ArtistPagesStore.pagesForBrand(com.nash.skyos.data.ArtistPageBrand.Zweizwei) +
+            ArtistPagesStore.pagesForBrand(com.nash.skyos.data.ArtistPageBrand.Nicma)
+        val requiredNicmaPages = listOf("NICMA MUSIC", "NICMA STUDIO")
+            .map { profileName ->
+                ArtistPagesStore.pageFor(
+                    brand = com.nash.skyos.data.ArtistPageBrand.Nicma,
+                    artistName = profileName,
+                )
+            }
+        (existingPages + requiredNicmaPages)
+            .distinctBy { it.slug }
+            .sortedWith(compareBy<ArtistPageUi>({ it.brand.displayTitle }, { it.artistName.lowercase() }))
     }
     val assignedArtistPageCount = managedShowcasePages.count { it.editorUids.isNotEmpty() }
     val publishedArtistPageCount = managedShowcasePages.count { it.hasCustomPresentation }
@@ -4009,10 +4017,6 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                 ) {
                 item {
-                    SettingsOverviewCard(uiState = uiState)
-                }
-
-                item {
                     SettingsUtilityRow(
                         isOwner = uiState.isOwner,
                         onOpenPayments = {
@@ -4036,11 +4040,6 @@ fun SettingsScreen(
                 item {
                     SkydownCard {
                         SectionHeader("Profile / Account")
-                        Text(
-                            text = "Persoenliche Identitaet, Login-Status und Kontosicherheit.",
-                            modifier = Modifier.padding(top = 8.dp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                        )
                         if (uiState.isLoggedIn) {
                             Text(
                                 text = "Angemeldet als ${uiState.username}",
@@ -4084,11 +4083,6 @@ fun SettingsScreen(
                             ) {
                                 Text("KI-Einwilligung speichern")
                             }
-                            Text(
-                                text = "Kontoaktionen",
-                                modifier = Modifier.padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -4137,11 +4131,6 @@ fun SettingsScreen(
                                 )
                             }
                         } else {
-                            Text(
-                                text = stringResource(R.string.auth_settings_guest_hint),
-                                modifier = Modifier.padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -4179,11 +4168,6 @@ fun SettingsScreen(
                         )
                         if (uiState.isLoggedIn) {
                             val membershipState = if (uiState.aiAccessEnabled) "Aktiv" else "Eingeschraenkt"
-                            Text(
-                                text = "Status: $membershipState",
-                                modifier = Modifier.padding(top = 10.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -4207,7 +4191,7 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(18.dp),
                                 ) {
-                                    Text(if (uiState.isOwner) "Plan verwalten" else "Billing-Hilfe")
+                                    Text(if (uiState.isOwner) "Plan verwalten ($membershipState)" else "Billing-Hilfe ($membershipState)")
                                 }
                                 OutlinedButton(
                                     onClick = {
@@ -4225,28 +4209,28 @@ fun SettingsScreen(
                                 }
                             }
                         } else {
-                            Text(
-                                text = "Melde dich an, um Membership-Status und Billing zu sehen.",
-                                modifier = Modifier.padding(top = 10.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
+                            OutlinedButton(
+                                onClick = onOpenLogin,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                Text(stringResource(R.string.auth_sign_in))
+                            }
                         }
                     }
                 }
 
-                item {
-                    SkydownCard {
-                        SectionHeader("Owner-Bereich")
-                        Text(
-                            text = if (uiState.isOwner) {
-                                "Geschuetzte Steuerung fuer Revenue, Nutzer und Runtime."
-                            } else {
-                                "Geschuetzter Owner-Bereich."
-                            },
-                            modifier = Modifier.padding(top = 8.dp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                        )
-                        if (uiState.isOwner) {
+                if (uiState.isOwner) {
+                    item {
+                        SkydownCard {
+                            SectionHeader("Owner-Bereich")
+                            Text(
+                                text = "Geschuetzte Steuerung fuer Revenue, Nutzer und Runtime.",
+                                modifier = Modifier.padding(top = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                            )
                             OwnerCommandCenterCard(
                                 isOwner = uiState.isOwner,
                                 paymentStatus = "$visiblePaymentMethodCount Zahlungsrouten",
@@ -4272,6 +4256,18 @@ fun SettingsScreen(
                                 modifier = Modifier.padding(top = 14.dp),
                             )
                             OutlinedButton(
+                                onClick = {
+                                    activeAdminWorkspaceKey = AdminWorkspaceSection.Users.name
+                                    showAdminWorkspaceSheet = true
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                Text("Alle Admin-Bereiche")
+                            }
+                            OutlinedButton(
                                 onClick = onOpenOrders,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -4279,35 +4275,6 @@ fun SettingsScreen(
                                 shape = RoundedCornerShape(18.dp),
                             ) {
                                 Text("Bestellungen oeffnen")
-                            }
-                        } else {
-                            SettingsLockedHint(
-                                text = "Nicht verfuegbar fuer dieses Konto.",
-                                modifier = Modifier.padding(top = 10.dp),
-                            )
-                        }
-
-                        if (uiState.isOwner) {
-                            Column(
-                                modifier = Modifier.padding(top = 14.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                AdminWorkspaceSection.entries.forEach { section ->
-                                    AdminWorkspaceListRow(
-                                        section = section,
-                                        detailText = adminWorkspaceStatusText(
-                                            section = section,
-                                            uiState = uiState,
-                                            visiblePaymentMethodCount = visiblePaymentMethodCount,
-                                            publishedArtistPageCount = publishedArtistPageCount,
-                                            configuredScreenHeaderCount = screenHeaderSettings.configuredCount,
-                                        ),
-                                        onClick = {
-                                            activeAdminWorkspaceKey = section.name
-                                            showAdminWorkspaceSheet = true
-                                        },
-                                    )
-                                }
                             }
                         }
                     }
@@ -4317,11 +4284,6 @@ fun SettingsScreen(
                     item {
                         SkydownCard {
                             SectionHeader("AI & Agent")
-                            Text(
-                                text = "Bot, Agent und Automation zentral steuern.",
-                                modifier = Modifier.padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
                             Row(
                                 modifier = Modifier.padding(top = 12.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -4361,7 +4323,7 @@ fun SettingsScreen(
                                     .takeIf { it.isNotBlank() }
                                     ?.let { workflowName ->
                                         SettingsBadge(
-                                            text = workflowName,
+                                            text = workflowName.take(26),
                                             icon = Icons.Default.Settings,
                                             isActive = true,
                                             onClick = {
@@ -4394,16 +4356,6 @@ fun SettingsScreen(
                         val notificationsManageInSettingsToast = stringResource(R.string.settings_notifications_toast_manage_in_settings)
 
                         SectionHeader("System")
-                        Text(
-                            text = stringResource(R.string.settings_system_language_value, uiState.language),
-                            modifier = Modifier.padding(top = 8.dp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                        )
-                        Text(
-                            text = stringResource(R.string.settings_supported_languages_summary),
-                            modifier = Modifier.padding(top = 4.dp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                        )
                         SettingsToggleRow(
                             title = stringResource(R.string.settings_notifications_title),
                             body = stringResource(R.string.settings_notifications_subtitle),
@@ -4435,11 +4387,6 @@ fun SettingsScreen(
                 item {
                     SkydownCard {
                         SectionHeader("Theme")
-                        Text(
-                            text = "Aktuell: ${uiState.colorScheme.label}",
-                            modifier = Modifier.padding(top = 8.dp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                        )
                         AppearanceMode.entries.forEach { scheme ->
                             AppearanceChoiceRow(
                                 title = scheme.label,
@@ -5224,78 +5171,6 @@ private fun ProfileEditorCard(
 }
 
 @Composable
-private fun SettingsOverviewCard(
-    uiState: SettingsUiState,
-) {
-    val shape = RoundedCornerShape(16.dp)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f))
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-                shape = shape,
-            )
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(14.dp),
-            )
-            Text(
-                text = if (uiState.isLoggedIn) "${uiState.username} · Einstellungen aktiv" else "SkyOS Einstellungen",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(modifier = Modifier.weight(1f))
-        }
-
-        Text(
-            text = "Konto, Rechtliches, Anzeige und Support bleiben in einem klaren Flow gebuendelt.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-        )
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SettingsBadge(
-                text = if (uiState.isLoggedIn) "Konto aktiv" else "Gast",
-                icon = Icons.Default.Person,
-                isActive = uiState.isLoggedIn,
-            )
-            SettingsBadge(
-                text = if (uiState.notificationsEnabled) "Hinweise an" else "Hinweise aus",
-                icon = Icons.Default.Notifications,
-                isActive = uiState.notificationsEnabled,
-            )
-            SettingsBadge(
-                text = uiState.colorScheme.label,
-                icon = Icons.Default.Palette,
-                isActive = true,
-            )
-        }
-
-        if (uiState.isOwner) {
-            SettingsBadge(
-                text = "Owner aktiv",
-                icon = Icons.Default.CheckCircle,
-                isActive = true,
-                modifier = Modifier.padding(top = 10.dp),
-            )
-        }
-    }
-}
-
-@Composable
 private fun SettingsUtilityRow(
     isOwner: Boolean,
     onOpenPayments: () -> Unit,
@@ -5739,6 +5614,8 @@ private fun SettingsBadge(
             text = text,
             color = contentColor,
             style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -6146,7 +6023,13 @@ private fun ArtistPageAdminCard(
     onSave: (ArtistPageUi) -> Unit,
 ) {
     var selectedEditorUids by rememberSaveable(page.slug, page.editorUids) {
-        mutableStateOf(page.editorUids.toSet())
+        mutableStateOf(
+            if (page.brand == ArtistPageBrand.Nicma) {
+                page.editorUids.take(1).toSet()
+            } else {
+                page.editorUids.toSet()
+            },
+        )
     }
 
     SkydownCard {
@@ -6186,7 +6069,11 @@ private fun ArtistPageAdminCard(
                         isActive = page.hasCustomPresentation,
                     )
                     SettingsBadge(
-                        text = "${selectedEditorUids.size} Editoren",
+                        text = if (page.brand == ArtistPageBrand.Nicma) {
+                            if (selectedEditorUids.isEmpty()) "Kein Editor" else "1 Editor"
+                        } else {
+                            "${selectedEditorUids.size} Editoren"
+                        },
                         icon = Icons.Default.Person,
                         isActive = selectedEditorUids.isNotEmpty(),
                     )
@@ -6201,7 +6088,7 @@ private fun ArtistPageAdminCard(
                 )
             } else {
                 Text(
-                    text = "Editoren",
+                    text = if (page.brand == ArtistPageBrand.Nicma) "Editor" else "Editoren",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -6213,10 +6100,10 @@ private fun ArtistPageAdminCard(
 
                         Button(
                             onClick = {
-                                selectedEditorUids = if (isSelected) {
-                                    selectedEditorUids - userId
+                                selectedEditorUids = if (page.brand == ArtistPageBrand.Nicma) {
+                                    if (isSelected) emptySet() else setOf(userId)
                                 } else {
-                                    selectedEditorUids + userId
+                                    if (isSelected) selectedEditorUids - userId else selectedEditorUids + userId
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
@@ -6251,7 +6138,11 @@ private fun ArtistPageAdminCard(
                 onClick = {
                     onSave(
                         page.copy(
-                            editorUids = selectedEditorUids.toList().sorted(),
+                            editorUids = if (page.brand == ArtistPageBrand.Nicma) {
+                                selectedEditorUids.take(1)
+                            } else {
+                                selectedEditorUids.toList().sorted()
+                            },
                             updatedAtEpochMillis = System.currentTimeMillis(),
                             isPlaceholder = false,
                         ),

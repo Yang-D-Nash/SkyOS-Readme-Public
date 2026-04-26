@@ -14,17 +14,37 @@ struct NicmaProducerView: View {
     @ObservedObject private var artistPagesStore = ArtistPagesStore.shared
     let onBack: (() -> Void)?
     @State private var showingEditor = false
+    @State private var selectedProfile = "NICMA MUSIC"
+    @State private var editingProfile: String?
+    @State private var viewingProfile: String?
 
     init(onBack: (() -> Void)? = nil) {
         self.onBack = onBack
     }
 
     private var page: ArtistPage {
-        artistPagesStore.page(for: .nicma, artistName: "NICMA MUSIC")
+        artistPagesStore.page(for: .nicma, artistName: selectedProfile)
     }
 
     private var canEdit: Bool {
         artistPagesStore.canEdit(page, user: authManager.userSession)
+    }
+    
+    private var isStudioProfile: Bool {
+        selectedProfile == "NICMA STUDIO"
+    }
+    
+    private var profileFallbackBio: String {
+        isStudioProfile
+            ? "Studio Page: Preise, Production und Recording."
+            : "Artist Page: NICMA MUSIC, Links und Profil."
+    }
+
+    private var nicmaInstagramURL: URL? {
+        let fallbackInstagramURL = nicmaInstagramDestination.urlString
+        let resolvedURL = (page.instagramURL ?? fallbackInstagramURL).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !resolvedURL.isEmpty else { return nil }
+        return URL(string: resolvedURL)
     }
 
     private var nicmaLinks: [NicmaPageLink] {
@@ -83,6 +103,7 @@ struct NicmaProducerView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 heroCard
+                seiteInfoCard
                 pricingCard
                 contactCard
             }
@@ -90,7 +111,7 @@ struct NicmaProducerView: View {
             .padding(.vertical, 14)
         }
         .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
-        .navigationTitle("NICMA MUSIC")
+        .navigationTitle(selectedProfile)
         .navigationBarTitleDisplayMode(.inline)
         .skydownNavigationChrome(colorScheme: colorScheme)
         .toolbar {
@@ -105,36 +126,58 @@ struct NicmaProducerView: View {
 
             if canEdit {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Bearbeiten") {
-                        showingEditor = true
+                    Button {
+                        editingProfile = selectedProfile
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                            .font(.headline.weight(.semibold))
                     }
+                    .accessibilityLabel("Bearbeiten")
                 }
             }
         }
-        .sheet(isPresented: $showingEditor) {
+        .sheet(item: $viewingProfile) { profile in
             ArtistPageView(
                 authManager: authManager,
                 store: artistPagesStore,
                 brand: .nicma,
-                artistName: "NICMA MUSIC"
+                artistName: profile
+            )
+        }
+        .sheet(item: $editingProfile) { profile in
+            ArtistPageView(
+                authManager: authManager,
+                store: artistPagesStore,
+                brand: .nicma,
+                artistName: profile
             )
         }
     }
 
     private var heroCard: some View {
         VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                nicmaProfileSwitchButton(title: "NICMA MUSIC")
+                nicmaProfileSwitchButton(title: "NICMA STUDIO")
+            }
             Text(page.artistName)
                 .font(.largeTitle.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text(page.bio ?? "Mix, Master, Recording — klar, direkt.")
+            Text(page.bio ?? profileFallbackBio)
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             HStack(spacing: 8) {
-                MusicBadge(text: "Studio Services", isAccent: true)
-                MusicBadge(text: "Mix & Master", isAccent: false)
-                MusicBadge(text: "Recording", isAccent: false)
+                if isStudioProfile {
+                    MusicBadge(text: "Studio Services", isAccent: true)
+                    MusicBadge(text: "Mix & Master", isAccent: false)
+                    MusicBadge(text: "Recording", isAccent: false)
+                } else {
+                    MusicBadge(text: "Artist Page", isAccent: true)
+                    MusicBadge(text: "Katalog", isAccent: false)
+                    MusicBadge(text: "Links", isAccent: false)
+                }
             }
         }
         .padding(20)
@@ -146,6 +189,36 @@ struct NicmaProducerView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 26)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 26))
+        .onTapGesture {
+            viewingProfile = selectedProfile
+        }
+    }
+
+    private var seiteInfoCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(isStudioProfile ? "NICMA STUDIO Seite" : "NICMA MUSIC Seite")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+            Text(
+                page.tagline
+                    ?? (isStudioProfile
+                        ? "Studio-Profil, Preisliste, Production und Links."
+                        : "Artist Profil und Links.")
+            )
+            .font(.subheadline)
+            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
+        .padding(SkydownLayout.panelPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(AppColors.cardBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
         )
     }
 
@@ -215,6 +288,25 @@ struct NicmaProducerView: View {
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
         )
     }
+
+    private func nicmaProfileSwitchButton(title: String) -> some View {
+        Button {
+            selectedProfile = title
+        } label: {
+            Text(selectedProfile == title ? "\(title) aktiv" : title)
+                .font(.caption.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(selectedProfile == title ? AppColors.accent(for: colorScheme) : AppColors.secondaryBackground(for: colorScheme))
+        .foregroundColor(selectedProfile == title ? .white : AppColors.text(for: colorScheme))
+    }
+
+}
+
+extension String: @retroactive Identifiable {
+    public var id: String { self }
 }
 
 private struct NicmaPageLink: Identifiable {

@@ -132,6 +132,7 @@ fun ArtistPageScreen(
         ArtistPagesStore.pageFor(brand = brand, artistName = artistName)
     }
     val canEdit = ArtistPagesStore.canEdit(page, currentUser)
+    val allowsStudioPriceEditing = brand == ArtistPageBrand.Nicma && page.artistName.equals("NICMA STUDIO", ignoreCase = true)
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
     val listState = rememberLazyListState()
@@ -195,7 +196,7 @@ fun ArtistPageScreen(
                 instagramURL = instagramDraft.trimmedOrNull(),
                 spotifyURL = spotifyDraft.trimmedOrNull(),
                 youtubeURL = youtubeDraft.trimmedOrNull(),
-                studioPriceList = parseStudioPriceItems(studioPriceListDraft),
+                studioPriceList = if (allowsStudioPriceEditing) parseStudioPriceItems(studioPriceListDraft) else page.studioPriceList,
                 isPlaceholder = false,
             )
         }
@@ -691,7 +692,7 @@ fun ArtistPageScreen(
                                 ArtistPageInput(title = "Instagram", value = instagramDraft, onValueChange = { instagramDraft = it })
                                 ArtistPageInput(title = "Spotify", value = spotifyDraft, onValueChange = { spotifyDraft = it })
                                 ArtistPageInput(title = "YouTube", value = youtubeDraft, onValueChange = { youtubeDraft = it })
-                                if (brand == ArtistPageBrand.Nicma) {
+                                if (allowsStudioPriceEditing) {
                                     ArtistPageInput(
                                         title = "Studio-Preisliste (Titel | Detail | Preis)",
                                         value = studioPriceListDraft,
