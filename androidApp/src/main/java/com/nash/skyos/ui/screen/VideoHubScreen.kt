@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -98,6 +99,7 @@ import com.nash.skyos.data.resolveYouTubeThumbnailUrl
 import com.nash.skyos.data.ExternalMediaProvider
 import com.nash.skyos.data.mediaAttributionContext
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.nash.skyos.ui.component.AppTopBarSessionActions
@@ -112,7 +114,10 @@ import com.nash.skyos.ui.component.BrandStatusChip
 import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.ExternalVideoWebPlayer
 import com.nash.skyos.ui.component.OriginalVideoViewerDialog
+import com.nash.skyos.ui.component.SkydownFullscreenChromeIconButton
+import com.nash.skyos.ui.component.SkydownFullscreenVideoControlBar
 import com.nash.skyos.ui.component.isLikelyDirectVideoUrl
+import com.nash.skyos.ui.component.seekByAppOffset
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -271,9 +276,12 @@ fun VideoHubScreen(
         } else {
             player.setMediaItem(MediaItem.fromUri(url))
             player.prepare()
-            if (shouldAutoplaySelection || showReelViewer) {
-                player.play()
+            val shouldPlayInline = shouldAutoplaySelection && !showReelViewer
+            if (shouldAutoplaySelection) {
                 shouldAutoplaySelection = false
+            }
+            if (shouldPlayInline) {
+                player.play()
             } else {
                 player.pause()
             }
@@ -287,6 +295,10 @@ fun VideoHubScreen(
         ) {
             selectedVideoId = initialSelectedVideoId
             hasHandledInitialSelection = true
+            if (autoplayInitialSelection) {
+                player.pause()
+                showReelViewer = true
+            }
         } else if (selectedVideoId == null || uiState.videos.none { it.id == selectedVideoId }) {
             selectedVideoId = fallbackSelectedVideo?.id
         }
@@ -2862,27 +2874,47 @@ private fun VideoReelViewerDialog(
         initialPage = initialPage,
         pageCount = { videos.size.coerceAtLeast(1) },
     )
+    val coroutineScope = rememberCoroutineScope()
     var isTransitioning by remember { mutableStateOf(true) }
+    var isVideoPlaying by remember { mutableStateOf(false) }
+    val currentVideo = videos.getOrNull(pagerState.currentPage)
+    val currentVideoSupportsPlayback =
+        currentVideo != null && !currentVideo.usesEmbeddedPreview && currentVideo.nativePlaybackUrl.isNotBlank()
 
     LaunchedEffect(pagerState.currentPage, videos) {
         val video = videos.getOrNull(pagerState.currentPage)
         video?.let(onSelectVideo)
         isTransitioning = true
         val url = video?.nativePlaybackUrl
-        if (url.isNullOrBlank()) {
+        if (video?.usesEmbeddedPreview == true || url.isNullOrBlank()) {
             reelPlayer.stop()
             reelPlayer.clearMediaItems()
+            isVideoPlaying = false
         } else {
             reelPlayer.setMediaItem(MediaItem.fromUri(url))
             reelPlayer.prepare()
             reelPlayer.play()
+            isVideoPlaying = true
         }
         delay(220)
         isTransitioning = false
     }
 
     DisposableEffect(reelPlayer) {
+        val listener = object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                isVideoPlaying = isPlaying
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) {
+                    isVideoPlaying = false
+                }
+            }
+        }
+        reelPlayer.addListener(listener)
         onDispose {
+            reelPlayer.removeListener(listener)
             reelPlayer.release()
         }
     }
@@ -2979,7 +3011,7 @@ private fun VideoReelViewerDialog(
                         Column(
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
-                                .padding(horizontal = 22.dp, vertical = 30.dp),
+                                .padding(start = 22.dp, end = 90.dp, bottom = 30.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Text(
@@ -3084,13 +3116,46 @@ private fun VideoReelViewerDialog(
                     }
                 }
 
-                BrandActionButton(
-                    text = "Zurueck",
+                SkydownFullscreenChromeIconButton(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Video schliessen",
                     onClick = onDismiss,
-                    accent = MaterialTheme.colorScheme.onPrimary,
-                    icon = Icons.Default.Close,
-                    filled = false,
-                    compact = true,
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(end = 18.dp, bottom = 82.dp),
+            ) {
+                SkydownFullscreenVideoControlBar(
+                    isPlaying = isVideoPlaying,
+                    playbackControlsEnabled = currentVideoSupportsPlayback,
+                    showsClipNavigation = videos.size > 1,
+                    canGoToPreviousClip = pagerState.currentPage > 0,
+                    canGoToNextClip = pagerState.currentPage < videos.lastIndex,
+                    onPreviousClip = {
+                        val targetPage = (pagerState.currentPage - 1).coerceAtLeast(0)
+                        coroutineScope.launch { pagerState.animateScrollToPage(targetPage) }
+                    },
+                    onRewind = { reelPlayer.seekByAppOffset(-10_000L) },
+                    onPlayPause = {
+                        if (currentVideoSupportsPlayback) {
+                            if (isVideoPlaying) {
+                                reelPlayer.pause()
+                            } else {
+                                reelPlayer.play()
+                            }
+                            isVideoPlaying = reelPlayer.isPlaying
+                        }
+                    },
+                    onForward = { reelPlayer.seekByAppOffset(10_000L) },
+                    onNextClip = {
+                        val targetPage = (pagerState.currentPage + 1).coerceAtMost(videos.lastIndex)
+                        coroutineScope.launch { pagerState.animateScrollToPage(targetPage) }
+                    },
+                    onClose = onDismiss,
                 )
             }
 
