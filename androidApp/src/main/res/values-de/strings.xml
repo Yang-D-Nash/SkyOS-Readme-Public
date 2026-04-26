@@ -194,8 +194,8 @@
     <string name="ai_membership_tiers">Free, Pro, Creator</string>
     <string name="ai_membership_title_short">KI Membership</string>
     <string name="agent_membership_title_short">Agent Membership</string>
-    <string name="ai_membership_caption">SkyOS hält AI fähigkeitsbasiert. Upgrade schaltet mehr Reichweite frei.</string>
-    <string name="agent_membership_caption">Creator bringt mehr Reichweite und priorisierte Agent-Ausführung.</string>
+    <string name="ai_membership_caption">AI startet erst mit aktivem Plan. Nutzung ist ueber Pro oder Creator gedeckelt.</string>
+    <string name="agent_membership_caption">Agent-Ausfuehrung startet erst mit aktivem Plan. Creator bringt priorisierte Workflows.</string>
     <string name="ai_available">verfügbar</string>
     <string name="ai_open">offen</string>
     <string name="ai_warning_critical">Kontingent fast aufgebraucht. Upgrade entlastet den Flow.</string>
@@ -206,10 +206,10 @@
     <string name="ai_next_step">Nächster Schritt</string>
     <string name="ai_upgrade_hint">Upgrade-Tipp</string>
     <string name="ai_membership_sheet_title">SkyOS KI Membership</string>
-    <string name="ai_membership_sheet_subtitle">Free / Pro / Creator · fähigkeitsbasierter AI-Zugang.</string>
-    <string name="ai_membership_free_detail">Free: Bot Basis, wenig Images, leichter Agent</string>
-    <string name="ai_membership_pro_detail">Pro: mehr Reichweite, stärkere Ausführung</string>
-    <string name="ai_membership_creator_detail">Creator: mehr Reichweite, Premium Outputs, Priorität</string>
+    <string name="ai_membership_sheet_subtitle">Waehle Pro oder Creator, bevor AI-Generierungen laufen.</string>
+    <string name="ai_membership_free_detail">Free: Konto, Restore und Planuebersicht. Keine AI-Generierung.</string>
+    <string name="ai_membership_pro_detail">Pro: Bot, Standard-Visuals und Tageslimits fuer regelmaessige Arbeit.</string>
+    <string name="ai_membership_creator_detail">Creator: hoehere Limits, Agent-Ausfuehrung und Premium-Workflow-Outputs.</string>
     <string name="membership_annual_option">Annual Option</string>
     <string name="membership_pro_activate">Pro aktivieren</string>
     <string name="membership_creator_activate">Creator aktivieren</string>

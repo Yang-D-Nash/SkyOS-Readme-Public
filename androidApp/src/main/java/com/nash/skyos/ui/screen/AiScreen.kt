@@ -108,7 +108,7 @@ import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberIsCompactAppLayout
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
-import com.nash.skyos.ui.component.skydownScreenBrush
+import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.model.BotInteractionPhase
 import com.nash.skyos.ui.model.AiComposerMode
@@ -211,7 +211,16 @@ fun AiScreen(
     }
 
     LaunchedEffect(uiState.errorMessage) {
-        if (!uiState.errorMessage.isNullOrBlank()) {
+        val message = uiState.errorMessage
+        if (!message.isNullOrBlank()) {
+            if (
+                message.contains("Abo", ignoreCase = true) ||
+                message.contains("Membership", ignoreCase = true) ||
+                message.contains("Pro oder Creator", ignoreCase = true)
+            ) {
+                membershipCoordinator.trackUpgradeAfterDeny("ai_chat")
+                membershipCoordinator.openMembership(MembershipOpenReason.FeatureLocked, surface = "ai_chat")
+            }
             delay(3500)
             viewModel.dismissError()
         }
@@ -270,13 +279,11 @@ fun AiScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .testTag("ai.screen.root")
-                .background(
-                    skydownScreenBrush(
-                        primaryColor = MaterialTheme.colorScheme.primary,
-                        secondaryColor = MaterialTheme.colorScheme.tertiary,
-                        primaryAlpha = 0.048f,
-                        secondaryAlpha = 0.035f,
-                    ),
+                .skydownAtmosphereBackground(
+                    primaryColor = MaterialTheme.colorScheme.primary,
+                    secondaryColor = MaterialTheme.colorScheme.tertiary,
+                    primaryAlpha = 0.016f,
+                    secondaryAlpha = 0.012f,
                 )
         ) {
             Box(
@@ -1393,39 +1400,15 @@ fun AiMessageBubble(
         bottomStart = if (isUser) SkydownUiTokens.cardCornerRadius else 10.dp,
         bottomEnd = if (isUser) 10.dp else SkydownUiTokens.cardCornerRadius,
     )
-    val bubbleBrush = if (isUser) {
-        Brush.linearGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.primary,
-                MaterialTheme.colorScheme.secondary,
-                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
-            ),
-        )
+    val bubbleColor = if (isUser) {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f)
     } else {
-        Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.06f),
-                MaterialTheme.colorScheme.surface.copy(alpha = 0.99f),
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.70f),
-            ),
-        )
+        Color.Transparent
     }
-    val bubbleBorder = if (isUser) {
-        Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.24f),
-                MaterialTheme.colorScheme.secondary.copy(alpha = 0.34f),
-            ),
-        )
+    val bubbleBorderColor = if (isUser) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     } else {
-        Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.16f),
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
-            ),
-        )
+        Color.Transparent
     }
     val bubbleMaxWidth = when {
         message.imageBytes != null && compactLayout -> 372.dp
@@ -1443,10 +1426,10 @@ fun AiMessageBubble(
                 .widthIn(max = bubbleMaxWidth)
                 .testTag("ai.message.bubble")
                 .clip(bubbleShape)
-                .background(bubbleBrush)
+                .background(bubbleColor)
                 .border(
-                    width = 1.dp,
-                    brush = bubbleBorder,
+                    width = if (isUser) 1.dp else 0.dp,
+                    color = bubbleBorderColor,
                     shape = bubbleShape,
                 )
                 .padding(
@@ -1458,7 +1441,7 @@ fun AiMessageBubble(
                 text = if (isUser) "Du" else "SkyOS AI",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.primary,
             )
 
             if (message.isStreaming && message.text.isBlank()) {
@@ -1481,11 +1464,7 @@ fun AiMessageBubble(
                 Text(
                     text = message.text,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isUser) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 8.dp),
                 )
 

@@ -84,8 +84,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
@@ -116,7 +114,7 @@ import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.skydownContentPadding
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberIsCompactAppLayout
-import com.nash.skyos.ui.component.skydownScreenBrush
+import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.theme.skydownAccentMystic
 import com.nash.skyos.ui.model.AgentInteractionPhase
@@ -202,7 +200,16 @@ fun AgentScreen(
     }
 
     LaunchedEffect(uiState.errorMessage) {
-        if (!uiState.errorMessage.isNullOrBlank()) {
+        val message = uiState.errorMessage
+        if (!message.isNullOrBlank()) {
+            if (
+                message.contains("Abo", ignoreCase = true) ||
+                message.contains("Membership", ignoreCase = true) ||
+                message.contains("Pro oder Creator", ignoreCase = true)
+            ) {
+                membershipCoordinator.trackUpgradeAfterDeny("agent_chat")
+                membershipCoordinator.openMembership(MembershipOpenReason.FeatureLocked, surface = "agent_chat")
+            }
             delay(3500)
             viewModel.dismissError()
         }
@@ -269,13 +276,11 @@ fun AgentScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    skydownScreenBrush(
-                        primaryColor = MaterialTheme.colorScheme.primary,
-                        secondaryColor = MaterialTheme.colorScheme.skydownAccentMystic(),
-                        primaryAlpha = 0.028f,
-                        secondaryAlpha = 0.018f,
-                    ),
+                .skydownAtmosphereBackground(
+                    primaryColor = MaterialTheme.colorScheme.primary,
+                    secondaryColor = MaterialTheme.colorScheme.skydownAccentMystic(),
+                    primaryAlpha = 0.016f,
+                    secondaryAlpha = 0.012f,
                 )
         ) {
             if (uiState.isAgentEnabled && uiState.messages.isEmpty()) {
@@ -1023,6 +1028,16 @@ private fun AgentMessageBubble(
         bottomStart = if (isUser) SkydownUiTokens.cardCornerRadius else 10.dp,
         bottomEnd = if (isUser) 10.dp else SkydownUiTokens.cardCornerRadius,
     )
+    val bubbleColor = if (isUser) {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f)
+    } else {
+        Color.Transparent
+    }
+    val bubbleBorderColor = if (isUser) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    } else {
+        Color.Transparent
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1032,22 +1047,11 @@ private fun AgentMessageBubble(
             modifier = Modifier
                 .widthIn(max = 360.dp)
                 .clip(bubbleShape)
-                .background(
-                    if (isUser) {
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.secondary,
-                            ),
-                        )
-                    } else {
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                            ),
-                        )
-                    },
+                .background(bubbleColor)
+                .border(
+                    width = if (isUser) 1.dp else 0.dp,
+                    color = bubbleBorderColor,
+                    shape = bubbleShape,
                 )
                 .padding(
                     horizontal = if (compactLayout) 12.dp else 14.dp,
@@ -1058,7 +1062,7 @@ private fun AgentMessageBubble(
                 text = if (isUser) "Du" else "SkyOS Agent",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.tertiary,
+                color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
             )
 
             if (message.resultType == AgentResultType.Progress || (message.isStreaming && message.text.isBlank())) {
@@ -1089,11 +1093,7 @@ private fun AgentMessageBubble(
                 Text(
                     text = message.text,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isUser) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 8.dp),
                 )
 

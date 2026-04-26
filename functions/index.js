@@ -894,16 +894,17 @@ function resolveAiCapabilities({plan, status, role = USER_ROLES.user} = {}) {
   const normalizedStatus = normalizeAiSubscriptionStatus(status, "inactive");
   const normalizedPlan = normalizeAiSubscriptionPlan(plan);
   const isActive = isAiSubscriptionStatusActive(normalizedStatus);
+  const isStaff = roleHasStaffAccess(role);
   const defaults = defaultAiLimitsForQuotaPlan(
       normalizedPlan ||
       (role === USER_ROLES.owner ? USER_QUOTA_PLANS.ownerUnlimited : USER_QUOTA_PLANS.free),
   );
   return {
     botText: true,
-    botImage: isActive || normalizedPlan === USER_QUOTA_PLANS.creator || normalizedPlan === USER_QUOTA_PLANS.studio,
-    agentStandard: isActive || normalizedPlan === USER_QUOTA_PLANS.creator || normalizedPlan === USER_QUOTA_PLANS.studio,
-    workflowAutomation: isActive && normalizedPlan === USER_QUOTA_PLANS.studio,
-    premiumOutputs: isActive && normalizedPlan === USER_QUOTA_PLANS.studio,
+    botImage: isStaff || isActive || normalizedPlan === USER_QUOTA_PLANS.creator || normalizedPlan === USER_QUOTA_PLANS.studio,
+    agentStandard: isStaff || isActive || normalizedPlan === USER_QUOTA_PLANS.creator || normalizedPlan === USER_QUOTA_PLANS.studio,
+    workflowAutomation: isStaff || (isActive && normalizedPlan === USER_QUOTA_PLANS.studio),
+    premiumOutputs: isStaff || (isActive && normalizedPlan === USER_QUOTA_PLANS.studio),
     textDailyLimit: defaults.text,
     imageDailyLimit: defaults.visual,
     agentDailyLimit: defaults.agent,
@@ -3255,14 +3256,23 @@ function resolveFeatureClass(kind, explicitFeatureClass = "") {
 }
 
 function resolvePlanRoutingPolicy(runtimeSettings, plan) {
-  const normalizedPlan = normalizeAiSubscriptionPlan(plan);
-  if (normalizedPlan === USER_QUOTA_PLANS.studio) {
+  const normalizedPlan = normalizeAiSubscriptionPlan(plan) || nonEmptyString(plan)?.toLowerCase() || USER_QUOTA_PLANS.free;
+  if (
+    normalizedPlan === USER_QUOTA_PLANS.studio ||
+    normalizedPlan === USER_QUOTA_PLANS.ownerUnlimited ||
+    normalizedPlan === USER_QUOTA_PLANS.internalTeam
+  ) {
     return runtimeSettings.planRouting.studio;
   }
   if (normalizedPlan === USER_QUOTA_PLANS.creator) {
     return runtimeSettings.planRouting.creator;
   }
   return runtimeSettings.planRouting.free;
+}
+
+function hasActivePaidAiEntitlement(entitlement = {}) {
+  const plan = normalizeAiSubscriptionPlan(entitlement.plan);
+  return Boolean(plan) && isAiSubscriptionStatusActive(entitlement.status);
 }
 
 function featureAllowedByCapability(capabilities, featureClass) {
@@ -3301,6 +3311,8 @@ function buildGuardrailHints({
   let userFacingReason = "";
   if (denyReason === "plan_feature_not_allowed") {
     userFacingReason = "Dein aktueller Plan deckt diese Funktion noch nicht ab.";
+  } else if (denyReason === "paid_subscription_required") {
+    userFacingReason = "SkyOS AI braucht ein aktives Pro- oder Creator-Abo. So werden AI-Kosten planbasiert freigeschaltet.";
   } else if (denyReason === "plan_provider_not_allowed") {
     userFacingReason = "Diese Modellklasse ist in deinem Plan nicht freigeschaltet.";
   } else if (denyReason === "plan_cost_cap_exceeded") {
@@ -4589,10 +4601,13 @@ async function authorizeAiUsage({
   const normalizedEventType = nonEmptyString(eventType) || `${kind}_request`;
   const normalizedRequestId = nonEmptyString(requestId) || `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   const normalizedWeight = Number.isFinite(Number(requestWeight)) ? Math.max(1, Math.floor(Number(requestWeight))) : 1;
-  const plan = effectiveEntitlement.plan || USER_QUOTA_PLANS.free;
-  const quotaPlan = profile.aiLimits?.quotaPlan || plan;
+  const quotaPlan = profile.aiLimits?.quotaPlan || effectiveEntitlement.plan || USER_QUOTA_PLANS.free;
+  const plan = effectiveEntitlement.plan || quotaPlan || USER_QUOTA_PLANS.free;
   const normalizedAiLevel = normalizeAiExperienceLevel(aiLevel);
   const routingPolicy = resolvePlanRoutingPolicy(runtimeSettings, plan);
+  const effectiveCapabilities = profile.isStaff ?
+    resolveAiCapabilities({plan: quotaPlan, status: "active", role: profile.role}) :
+    effectiveEntitlement.capabilities;
   const normalizedEstimatedCostMicros = resolveEstimatedCostMicros({
     runtimeSettings,
     featureClass: normalizedFeatureClass,
@@ -4627,7 +4642,10 @@ async function authorizeAiUsage({
       resultType,
       requestId: normalizedRequestId,
     });
-    throw new HttpsError("resource-exhausted", hints.userFacingReason, {
+    const errorCode = ["paid_subscription_required", "plan_feature_not_allowed"].includes(denyReason) ?
+      "failed-precondition" :
+      "resource-exhausted";
+    throw new HttpsError(errorCode, hints.userFacingReason, {
       denyReason,
       ...hints,
       allow: false,
@@ -4636,7 +4654,11 @@ async function authorizeAiUsage({
     });
   };
 
-  if (!featureAllowedByCapability(effectiveEntitlement.capabilities, normalizedFeatureClass)) {
+  if (!profile.isStaff && !hasActivePaidAiEntitlement(effectiveEntitlement)) {
+    await denyAndRecord("paid_subscription_required");
+  }
+
+  if (!featureAllowedByCapability(effectiveCapabilities, normalizedFeatureClass)) {
     await denyAndRecord("plan_feature_not_allowed");
   }
 

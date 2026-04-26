@@ -201,8 +201,8 @@
     <string name="ai_membership_tiers">Free, Pro, Creator</string>
     <string name="ai_membership_title_short">AI Membership</string>
     <string name="agent_membership_title_short">Agent Membership</string>
-    <string name="ai_membership_caption">SkyOS keeps AI capability-based. Upgrades unlock more reach.</string>
-    <string name="agent_membership_caption">Creator unlocks more reach and prioritized agent execution.</string>
+    <string name="ai_membership_caption">AI starts after an active plan. Usage is capped by Pro or Creator.</string>
+    <string name="agent_membership_caption">Agent execution starts after an active plan. Creator adds priority workflows.</string>
     <string name="ai_available">available</string>
     <string name="ai_open">open</string>
     <string name="ai_warning_critical">Quota is almost used up. Upgrade keeps the flow steady.</string>
@@ -213,10 +213,10 @@
     <string name="ai_next_step">Next step</string>
     <string name="ai_upgrade_hint">Upgrade hint</string>
     <string name="ai_membership_sheet_title">SkyOS AI Membership</string>
-    <string name="ai_membership_sheet_subtitle">Free / Pro / Creator · capability-first AI access.</string>
-    <string name="ai_membership_free_detail">Free: core bot, fewer images, light agent</string>
-    <string name="ai_membership_pro_detail">Pro: more reach, stronger execution</string>
-    <string name="ai_membership_creator_detail">Creator: more reach, premium outputs, priority</string>
+    <string name="ai_membership_sheet_subtitle">Choose Pro or Creator before AI generations run.</string>
+    <string name="ai_membership_free_detail">Free: account, restore and plan overview. No AI generation.</string>
+    <string name="ai_membership_pro_detail">Pro: Bot, standard visuals and daily limits for regular work.</string>
+    <string name="ai_membership_creator_detail">Creator: higher limits, Agent execution and premium workflow outputs.</string>
     <string name="membership_annual_option">Annual option</string>
     <string name="membership_pro_activate">Activate Pro</string>
     <string name="membership_creator_activate">Activate Creator</string>
