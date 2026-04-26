@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -40,8 +41,12 @@ fun AiConversationSessionStrip(
     subtitle: String,
     accent: Color,
     enabled: Boolean,
+    canDelete: Boolean = false,
+    showsManagementActions: Boolean = false,
     onOpenSessions: () -> Unit,
     onCreateNewChat: () -> Unit,
+    onRefreshChat: () -> Unit = {},
+    onDeleteChat: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -54,7 +59,7 @@ fun AiConversationSessionStrip(
             enabled = enabled,
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(22.dp),
         ) {
             Column(
                 modifier = Modifier.weight(1f),
@@ -82,6 +87,18 @@ fun AiConversationSessionStrip(
                 tint = accent,
             )
         }
+        if (showsManagementActions) {
+            FilledIconButton(
+                onClick = onRefreshChat,
+                enabled = enabled,
+                modifier = Modifier.size(46.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Chat aktualisieren",
+                )
+            }
+        }
         FilledIconButton(
             onClick = onCreateNewChat,
             enabled = enabled,
@@ -91,6 +108,18 @@ fun AiConversationSessionStrip(
                 imageVector = Icons.Default.Add,
                 contentDescription = "Neuer Chat",
             )
+        }
+        if (showsManagementActions) {
+            FilledIconButton(
+                onClick = onDeleteChat,
+                enabled = enabled && canDelete,
+                modifier = Modifier.size(46.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Chat loeschen",
+                )
+            }
         }
     }
 }
@@ -137,6 +166,7 @@ fun AiConversationSessionsSheet(
                 onClick = onCreateNewChat,
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(22.dp),
             ) {
                 Text("Neuer Chat")
             }
@@ -217,7 +247,7 @@ fun AiConversationSessionsSheet(
                                     } else {
                                         MaterialTheme.colorScheme.surface.copy(alpha = 0.74f)
                                     },
-                                    shape = RoundedCornerShape(16.dp),
+                                    shape = RoundedCornerShape(20.dp),
                                 )
                                 .clickable(enabled = enabled) {
                                     onSelectSession(session.sessionId)

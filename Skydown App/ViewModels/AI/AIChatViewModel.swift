@@ -554,6 +554,14 @@ final class AIChatViewModel: ObservableObject {
         restoreConversationState(preferredSessionID: sessionID)
     }
 
+    func refreshActiveConversation() {
+        guard !phase.isBusy else { return }
+        invalidateConversation(cancelActiveRequest: true)
+        lastDecision = nil
+        restoreConversationState(preferredSessionID: currentSessionID)
+        showUserToast("Chat aktualisiert.", style: .success)
+    }
+
     func renameActiveConversation(_ title: String) {
         guard let currentSessionID else { return }
         let renamedSession = historyStore.renameSession(

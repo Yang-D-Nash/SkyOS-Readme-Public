@@ -394,6 +394,12 @@ class AiViewModel : ViewModel() {
         restoreHistory(sessionId)
     }
 
+    fun refreshActiveConversation() {
+        if (_uiState.value.botPhase.isBusy) return
+        invalidateConversation(cancelActiveRequest = true)
+        restoreHistory(currentSessionId)
+    }
+
     fun renameActiveConversation(title: String) {
         AiConversationHistoryStore.renameSession(
             userKey = currentUserKey,

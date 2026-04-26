@@ -46,9 +46,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -289,6 +288,9 @@ fun AiScreen(
             }
         },
     ) { innerPadding ->
+        val sessionHeaderTopPadding = innerPadding.calculateTopPadding() + if (showTopBar) 2.dp else 0.dp
+        val sessionHeaderReservedHeight = 72.dp
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -313,21 +315,12 @@ fun AiScreen(
                             .verticalScroll(rememberScrollState())
                             .padding(
                                 start = SkydownUiTokens.screenHorizontalPadding,
-                                top = innerPadding.calculateTopPadding() + if (showTopBar) 2.dp else 0.dp,
+                                top = sessionHeaderTopPadding + sessionHeaderReservedHeight,
                                 end = SkydownUiTokens.screenHorizontalPadding,
                                 bottom = innerPadding.calculateBottomPadding() + 92.dp,
                             ),
                         verticalArrangement = Arrangement.Top,
                     ) {
-                        AiConversationSessionStrip(
-                            title = uiState.activeSessionTitle,
-                            subtitle = activeSessionSubtitle,
-                            accent = MaterialTheme.colorScheme.primary,
-                            enabled = !uiState.botPhase.isBusy,
-                            onOpenSessions = { showSessionsSheet = true },
-                            onCreateNewChat = viewModel::startNewConversation,
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
                         AiEmptyStateHeader(compactVisualDensity = compactLayout)
                         Spacer(modifier = Modifier.height(14.dp))
                         AiSessionStrip(
@@ -379,9 +372,9 @@ fun AiScreen(
                         contentPadding = PaddingValues(
                             start = SkydownUiTokens.screenHorizontalPadding,
                             top = if (showTopBar) {
-                                innerPadding.calculateTopPadding()
+                                innerPadding.calculateTopPadding() + if (uiState.isAiEnabled) sessionHeaderReservedHeight else 0.dp
                             } else {
-                                0.dp
+                                if (uiState.isAiEnabled) sessionHeaderReservedHeight else 0.dp
                             },
                             end = SkydownUiTokens.screenHorizontalPadding,
                             bottom = innerPadding.calculateBottomPadding() + 92.dp,
@@ -393,17 +386,6 @@ fun AiScreen(
                                 AiDisabledCard()
                             }
                         } else {
-                            item {
-                                AiConversationSessionStrip(
-                                    title = uiState.activeSessionTitle,
-                                    subtitle = activeSessionSubtitle,
-                                    accent = MaterialTheme.colorScheme.primary,
-                                    enabled = !uiState.botPhase.isBusy,
-                                    onOpenSessions = { showSessionsSheet = true },
-                                    onCreateNewChat = viewModel::startNewConversation,
-                                )
-                            }
-
                             item {
                                 AiSessionStrip(
                                     composerMode = uiState.composerMode,
@@ -428,6 +410,35 @@ fun AiScreen(
                                 Spacer(modifier = Modifier.height(2.dp))
                             }
                         }
+                    }
+                }
+
+                if (uiState.isAiEnabled) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .widthIn(max = contentMaxWidth)
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+                            .padding(
+                                start = SkydownUiTokens.screenHorizontalPadding,
+                                top = sessionHeaderTopPadding,
+                                end = SkydownUiTokens.screenHorizontalPadding,
+                                bottom = 10.dp,
+                            ),
+                    ) {
+                        AiConversationSessionStrip(
+                            title = uiState.activeSessionTitle,
+                            subtitle = activeSessionSubtitle,
+                            accent = MaterialTheme.colorScheme.primary,
+                            enabled = !uiState.botPhase.isBusy,
+                            canDelete = uiState.messages.isNotEmpty(),
+                            showsManagementActions = true,
+                            onOpenSessions = { showSessionsSheet = true },
+                            onCreateNewChat = viewModel::startNewConversation,
+                            onRefreshChat = viewModel::refreshActiveConversation,
+                            onDeleteChat = viewModel::deleteActiveConversation,
+                        )
                     }
                 }
             }
@@ -455,6 +466,7 @@ fun AiScreen(
                         textMode = uiState.textMode,
                         selectedLevel = uiState.selectedLevel,
                         botPhase = uiState.botPhase,
+                        onDismiss = { showPromptComposer = false },
                         onDraftChanged = viewModel::updateDraft,
                         onComposerModeChange = viewModel::updateComposerMode,
                         onTextModeChange = viewModel::updateTextMode,
@@ -688,6 +700,7 @@ private fun AiPromptComposerSheet(
     textMode: AiTextMode,
     selectedLevel: AiExperienceLevel,
     botPhase: BotInteractionPhase,
+    onDismiss: () -> Unit,
     onDraftChanged: (String) -> Unit,
     onComposerModeChange: (AiComposerMode) -> Unit,
     onTextModeChange: (AiTextMode) -> Unit,
@@ -756,6 +769,16 @@ private fun AiPromptComposerSheet(
                 accent = composerAccent,
                 isActive = true,
             )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Prompt schliessen",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
         }
 
         botPhase.composerStatusLabel?.let { label ->

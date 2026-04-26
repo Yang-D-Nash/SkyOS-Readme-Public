@@ -6,11 +6,41 @@ struct AIConversationSessionStrip: View {
     let accent: Color
     let colorScheme: ColorScheme
     let isBusy: Bool
+    let canDelete: Bool
+    let showsManagementActions: Bool
     let onOpenSessions: () -> Void
     let onCreateNewChat: () -> Void
+    let onRefreshChat: () -> Void
+    let onDeleteChat: () -> Void
+
+    init(
+        title: String,
+        subtitle: String,
+        accent: Color,
+        colorScheme: ColorScheme,
+        isBusy: Bool,
+        canDelete: Bool = false,
+        showsManagementActions: Bool = false,
+        onOpenSessions: @escaping () -> Void,
+        onCreateNewChat: @escaping () -> Void,
+        onRefreshChat: @escaping () -> Void = { },
+        onDeleteChat: @escaping () -> Void = { }
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.accent = accent
+        self.colorScheme = colorScheme
+        self.isBusy = isBusy
+        self.canDelete = canDelete
+        self.showsManagementActions = showsManagementActions
+        self.onOpenSessions = onOpenSessions
+        self.onCreateNewChat = onCreateNewChat
+        self.onRefreshChat = onRefreshChat
+        self.onDeleteChat = onDeleteChat
+    }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Button(action: onOpenSessions) {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -33,32 +63,85 @@ struct AIConversationSessionStrip: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.92))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(accent.opacity(0.12), lineWidth: 1)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            AppColors.cardBackground(for: colorScheme).opacity(0.96),
+                            AppColors.secondaryBackground(for: colorScheme).opacity(0.86)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(accent.opacity(0.14), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             }
             .buttonStyle(.plain)
             .disabled(isBusy)
 
-            Button(action: onCreateNewChat) {
-                Image(systemName: "plus")
-                    .font(.subheadline.weight(.black))
-                    .foregroundColor(AppColors.text(for: colorScheme))
-                    .frame(width: 46, height: 46)
-                    .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.92))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(accent.opacity(0.12), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            if showsManagementActions {
+                AIConversationToolbarButton(
+                    systemName: "arrow.clockwise",
+                    title: "Chat aktualisieren",
+                    accent: accent,
+                    colorScheme: colorScheme,
+                    action: onRefreshChat
+                )
+                .disabled(isBusy)
             }
-            .buttonStyle(.plain)
+
+            AIConversationToolbarButton(
+                systemName: "plus",
+                title: "Neuer Chat",
+                accent: accent,
+                colorScheme: colorScheme,
+                action: onCreateNewChat
+            )
             .disabled(isBusy)
-            .accessibilityLabel("Neuer Chat")
+
+            if showsManagementActions {
+                AIConversationToolbarButton(
+                    systemName: "trash",
+                    title: "Chat loeschen",
+                    accent: .red,
+                    isDestructive: true,
+                    colorScheme: colorScheme,
+                    action: onDeleteChat
+                )
+                .disabled(isBusy || !canDelete)
+                .opacity(canDelete ? 1 : 0.46)
+            }
         }
+    }
+}
+
+private struct AIConversationToolbarButton: View {
+    let systemName: String
+    let title: String
+    let accent: Color
+    var isDestructive: Bool = false
+    let colorScheme: ColorScheme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.subheadline.weight(.black))
+                .foregroundColor(isDestructive ? .red : AppColors.text(for: colorScheme))
+                .frame(width: 44, height: 44)
+                .background(AppColors.cardBackground(for: colorScheme).opacity(0.94))
+                .overlay(
+                    Circle()
+                        .stroke(accent.opacity(0.14), lineWidth: 1)
+                )
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
+        .accessibilityLabel(title)
     }
 }
 
@@ -95,7 +178,7 @@ struct AIConversationSessionsSheet: View {
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(AppColors.secondaryBackground(for: colorScheme))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .disabled(isBusy)
@@ -112,7 +195,7 @@ struct AIConversationSessionsSheet: View {
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
                                 .background(AppColors.secondaryBackground(for: colorScheme))
-                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                             HStack(spacing: 10) {
                                 Button(role: .destructive, action: onDeleteActiveSession) {
@@ -206,10 +289,10 @@ private struct AIConversationSessionRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             (isSelected ? accent.opacity(0.08) : AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(isSelected ? accent.opacity(0.16) : Color.clear, lineWidth: 1)
         )
     }

@@ -44,6 +44,9 @@ struct AIView: View {
                 textMode: $viewModel.textMode,
                 selectedLevel: $viewModel.selectedLevel,
                 interactionPhase: viewModel.phase,
+                onDismiss: {
+                    showingPromptComposer = false
+                },
                 onCreateNewChat: {
                     viewModel.startNewConversation()
                     showingPromptComposer = false
@@ -144,23 +147,33 @@ struct AIView: View {
             }
             return "Noch leer"
         }()
+        let pinnedSessionStrip = AIConversationSessionStrip(
+            title: viewModel.activeSessionTitle,
+            subtitle: activeSessionSubtitle,
+            accent: AppColors.accent(for: colorScheme),
+            colorScheme: colorScheme,
+            isBusy: viewModel.phase.isBusy,
+            canDelete: !viewModel.messages.isEmpty,
+            showsManagementActions: true,
+            onOpenSessions: { showingConversationSessions = true },
+            onCreateNewChat: viewModel.startNewConversation,
+            onRefreshChat: viewModel.refreshActiveConversation,
+            onDeleteChat: { showingDeleteConversationDialog = true }
+        )
 
         return ZStack(alignment: .bottom) {
             VStack(spacing: 0) {
                 if featureFlags.isAIEnabled {
+                    pinnedSessionStrip
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        .padding(.top, showsNavigation ? 12 : 8)
+                        .padding(.bottom, 10)
+                        .background(.ultraThinMaterial)
+                        .zIndex(2)
+
                     if viewModel.messages.isEmpty {
                         ScrollView {
                             VStack(alignment: .leading, spacing: usesCompactImmersiveLayout ? 12 : 14) {
-                                AIConversationSessionStrip(
-                                    title: viewModel.activeSessionTitle,
-                                    subtitle: activeSessionSubtitle,
-                                    accent: AppColors.accent(for: colorScheme),
-                                    colorScheme: colorScheme,
-                                    isBusy: viewModel.phase.isBusy,
-                                    onOpenSessions: { showingConversationSessions = true },
-                                    onCreateNewChat: viewModel.startNewConversation
-                                )
-
                                 AIEmptyStateHeader(
                                     colorScheme: colorScheme,
                                     isCompact: usesCompactImmersiveLayout
@@ -193,7 +206,7 @@ struct AIView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                            .padding(.top, showsNavigation ? 20 : 10)
+                            .padding(.top, 2)
                             .padding(.bottom, usesCompactImmersiveLayout ? 16 : 28)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -206,16 +219,6 @@ struct AIView: View {
 
                             ScrollView {
                                 LazyVStack(alignment: .leading, spacing: 10) {
-                                    AIConversationSessionStrip(
-                                        title: viewModel.activeSessionTitle,
-                                        subtitle: activeSessionSubtitle,
-                                        accent: AppColors.accent(for: colorScheme),
-                                        colorScheme: colorScheme,
-                                        isBusy: viewModel.phase.isBusy,
-                                        onOpenSessions: { showingConversationSessions = true },
-                                        onCreateNewChat: viewModel.startNewConversation
-                                    )
-
                                     aiSessionDeck
 
                                     ForEach(viewModel.messages) { message in
@@ -231,7 +234,7 @@ struct AIView: View {
                                         .id("chat-end")
                                 }
                                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-                                .padding(.top, showsNavigation ? 6 : 2)
+                                .padding(.top, 2)
                                 .padding(.bottom, 6)
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1206,6 +1209,7 @@ private struct AIPromptComposerSheet: View {
     @Binding var textMode: AITextMode
     @Binding var selectedLevel: AIExperienceLevel
     let interactionPhase: BotInteractionPhase
+    let onDismiss: () -> Void
     let onCreateNewChat: () -> Void
     let onSend: () -> Void
     @FocusState private var isFocused: Bool
@@ -1249,6 +1253,18 @@ private struct AIPromptComposerSheet: View {
                     accent: composerAccent,
                     colorScheme: colorScheme
                 )
+
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.caption.weight(.black))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .frame(width: 36, height: 36)
+                        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.9))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .skydownTactileAction()
+                .accessibilityLabel("Prompt schliessen")
             }
 
             if let status = interactionPhase.composerStatusLabel {
