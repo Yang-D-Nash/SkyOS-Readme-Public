@@ -36,11 +36,6 @@ struct AIView: View {
                 content
             }
         }
-        .fancyToast(
-            isPresented: $viewModel.showToast,
-            message: viewModel.toastMessage,
-            style: viewModel.toastStyle
-        )
         .sheet(isPresented: $showingPromptComposer) {
             AIPromptComposerSheet(
                 colorScheme: colorScheme,
@@ -170,6 +165,31 @@ struct AIView: View {
                                     colorScheme: colorScheme,
                                     isCompact: usesCompactImmersiveLayout
                                 )
+
+                                aiSessionDeck
+
+                                AIQuickPromptCard(
+                                    colorScheme: colorScheme,
+                                    prompts: viewModel.quickPrompts,
+                                    onPromptSelected: { prompt in
+                                        prefillPrompt(prompt, mode: .text)
+                                    }
+                                )
+
+                                AIVisualPromptCard(
+                                    colorScheme: colorScheme,
+                                    prompts: viewModel.visualPrompts,
+                                    onPromptSelected: { prompt in
+                                        prefillPrompt(prompt, mode: .visual)
+                                    }
+                                )
+
+                                if let revenueUsage = viewModel.revenueUsage {
+                                    AIRevenueUsageCard(
+                                        usage: revenueUsage,
+                                        colorScheme: colorScheme
+                                    )
+                                }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -196,10 +216,7 @@ struct AIView: View {
                                         onCreateNewChat: viewModel.startNewConversation
                                     )
 
-                                    AIEmptyStateHeader(
-                                        colorScheme: colorScheme,
-                                        isCompact: true
-                                    )
+                                    aiSessionDeck
 
                                     ForEach(viewModel.messages) { message in
                                         AIMessageBubble(
@@ -250,12 +267,21 @@ struct AIView: View {
             }
 
             if featureFlags.isAIEnabled {
-                HStack {
-                    Spacer(minLength: 0)
-                    AIPromptFab(
-                        isWorking: viewModel.phase.isBusy,
-                        onOpen: { showingPromptComposer = true }
+                VStack(alignment: .trailing, spacing: 12) {
+                    AIInlineNotice(
+                        isPresented: $viewModel.showToast,
+                        message: viewModel.toastMessage,
+                        style: viewModel.toastStyle,
+                        colorScheme: colorScheme
                     )
+
+                    HStack {
+                        Spacer(minLength: 0)
+                        AIPromptFab(
+                            isWorking: viewModel.phase.isBusy,
+                            onOpen: { showingPromptComposer = true }
+                        )
+                    }
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .padding(.bottom, max(18, keyWindowSafeAreaBottomInset + 14))
@@ -307,6 +333,15 @@ struct AIView: View {
                     colorScheme: colorScheme
                 )
             }
+        }
+    }
+
+    private func prefillPrompt(_ prompt: String, mode: AIComposerMode) {
+        guard !viewModel.phase.isBusy else { return }
+        viewModel.composerMode = mode
+        viewModel.draft = prompt
+        withAnimation(SkydownMotion.sheetPresentation) {
+            showingPromptComposer = true
         }
     }
 }
@@ -645,19 +680,114 @@ private struct AIEmptyStateHeader: View {
     var isCompact: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: isCompact ? 6 : 8) {
-            Text("Hey, ich bin SkyOS AI.")
-                .font(
-                    isCompact
-                        ? .system(size: 24, weight: .black, design: .rounded)
-                        : .system(size: 28, weight: .black, design: .rounded)
-                )
-                .foregroundColor(AppColors.text(for: colorScheme))
+        let accent = AppColors.accent(for: colorScheme)
+        let mystic = AppColors.accentMystic(for: colorScheme)
 
-            Text("Tippe auf +, waehle deine Optionen und starte dann den Prompt.")
-                .font(isCompact ? .subheadline.weight(.semibold) : .subheadline.weight(.medium))
-                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.95))
+        VStack(alignment: .leading, spacing: isCompact ? 12 : 14) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    accent.opacity(0.92),
+                                    mystic.opacity(0.82)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+
+                    Image(systemName: "sparkles")
+                        .font(.title3.weight(.black))
+                        .foregroundColor(.white)
+                }
+                .frame(width: isCompact ? 48 : 54, height: isCompact ? 48 : 54)
+                .shadow(color: accent.opacity(0.22), radius: 14, y: 8)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("SkyOS AI")
+                        .font(
+                            isCompact
+                                ? .system(size: 25, weight: .black, design: .rounded)
+                                : .system(size: 30, weight: .black, design: .rounded)
+                        )
+                        .foregroundColor(AppColors.text(for: colorScheme))
+
+                    Text("Copy, Release-Ideen und Visual-Prompts in einem ruhigen Flow.")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+
+                AIStatusChip(
+                    text: "Live",
+                    accent: accent,
+                    colorScheme: colorScheme
+                )
+            }
+
+            HStack(spacing: 8) {
+                AIStatusChip(text: "Text", accent: accent, colorScheme: colorScheme)
+                AIStatusChip(text: "Visual", accent: mystic, colorScheme: colorScheme)
+                AIStatusChip(text: "Memory", accent: AppColors.spotify(for: colorScheme), colorScheme: colorScheme)
+            }
         }
+        .padding(isCompact ? 14 : 16)
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.cardBackground(for: colorScheme).opacity(0.96),
+                    AppColors.secondaryBackground(for: colorScheme).opacity(0.88),
+                    accent.opacity(colorScheme == .dark ? 0.12 : 0.06)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            .white.opacity(colorScheme == .dark ? 0.12 : 0.72),
+                            accent.opacity(0.18),
+                            mystic.opacity(0.12)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.06), radius: 18, y: 10)
+    }
+}
+
+private struct AIStatusChip: View {
+    let text: String
+    let accent: Color
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Text(text)
+            .font(.caption2.weight(.black))
+            .foregroundColor(accent)
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(accent.opacity(colorScheme == .dark ? 0.16 : 0.1))
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(accent.opacity(0.16), lineWidth: 1)
+            )
     }
 }
 
@@ -710,15 +840,11 @@ private struct AIQuickPromptCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Text("Text")
-                    .font(.caption2.weight(.bold))
-                    .foregroundColor(AppColors.accent(for: colorScheme))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(AppColors.accent(for: colorScheme).opacity(0.12))
-                    )
+                AIStatusChip(
+                    text: "Text",
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme
+                )
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Prompts")
                         .font(.subheadline.weight(.bold))
@@ -741,8 +867,19 @@ private struct AIQuickPromptCard: View {
                                 .padding(.vertical, 12)
                                 .frame(width: 230, alignment: .leading)
                                 .background(
-                                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
-                                        .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.88))
+                                    LinearGradient(
+                                        colors: [
+                                            AppColors.cardBackground(for: colorScheme).opacity(0.96),
+                                            AppColors.accent(for: colorScheme).opacity(0.08)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
+                                        .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                                 )
                         })
                         .buttonStyle(.plain)
@@ -763,15 +900,11 @@ private struct AIVisualPromptCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Text("Visual")
-                    .font(.caption2.weight(.bold))
-                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
-                    )
+                AIStatusChip(
+                    text: "Visual",
+                    accent: AppColors.accentHighlight(for: colorScheme),
+                    colorScheme: colorScheme
+                )
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Visuals")
                         .font(.subheadline.weight(.bold))
@@ -794,8 +927,19 @@ private struct AIVisualPromptCard: View {
                                 .padding(.vertical, 12)
                                 .frame(width: 170, alignment: .leading)
                                 .background(
-                                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
-                                        .fill(AppColors.primaryBackground(for: colorScheme).opacity(0.88))
+                                    LinearGradient(
+                                        colors: [
+                                            AppColors.cardBackground(for: colorScheme).opacity(0.96),
+                                            AppColors.accentHighlight(for: colorScheme).opacity(0.1)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
+                                        .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
                                 )
                         })
                         .buttonStyle(.plain)
@@ -938,23 +1082,120 @@ private struct AIPromptFab: View {
 
     var body: some View {
         Button(action: onOpen) {
-            ZStack {
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 58, height: 58)
-                    .shadow(color: .black.opacity(0.16), radius: 16, x: 0, y: 8)
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(.thinMaterial)
+                        .frame(width: 34, height: 34)
 
-                if isWorking {
-                    ProgressView()
-                        .scaleEffect(0.82)
-                } else {
-                    Image(systemName: "plus")
-                        .font(.title3.weight(.black))
+                    if isWorking {
+                        ProgressView()
+                            .scaleEffect(0.68)
+                    } else {
+                        Image(systemName: "sparkles")
+                            .font(.subheadline.weight(.black))
+                    }
+                }
+
+                Text(isWorking ? "Arbeitet" : "Prompt")
+                    .font(.subheadline.weight(.black))
+                    .lineLimit(1)
+
+                Image(systemName: "plus")
+                    .font(.caption.weight(.black))
+                    .opacity(isWorking ? 0 : 0.86)
+            }
+            .foregroundColor(.primary)
+            .padding(.leading, 10)
+            .padding(.trailing, 15)
+            .frame(height: 58)
+            .background(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(.white.opacity(0.18), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 10)
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
+        .accessibilityLabel("Prompt oeffnen")
+    }
+}
+
+private struct AIInlineNotice: View {
+    @Binding var isPresented: Bool
+    let message: String
+    let style: ToastStyle
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Group {
+            if isPresented && !message.isEmpty {
+                HStack(spacing: 10) {
+                    Image(systemName: style.icon)
+                        .font(.subheadline.weight(.black))
+                        .foregroundColor(style.color)
+                        .frame(width: 28, height: 28)
+                        .background(
+                            Circle()
+                                .fill(style.color.opacity(0.12))
+                        )
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(style.title)
+                            .font(.caption2.weight(.black))
+                            .foregroundColor(style.color)
+                            .lineLimit(1)
+
+                        Text(message)
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .frame(maxWidth: 330, alignment: .leading)
+                .background(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(style.color.opacity(0.22), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .shadow(color: style.color.opacity(0.16), radius: 18, y: 8)
+                .transition(
+                    .move(edge: .bottom)
+                    .combined(with: .opacity)
+                    .combined(with: .scale(scale: 0.97, anchor: .bottom))
+                )
+                .task(id: message + style.title) {
+                    SkydownHaptics.announce(message)
+                    switch style {
+                    case .success:
+                        SkydownHaptics.notification(.success)
+                    case .warning:
+                        SkydownHaptics.notification(.warning)
+                    case .error:
+                        SkydownHaptics.notification(.error)
+                    case .info:
+                        SkydownHaptics.impact(.soft)
+                    }
+
+                    let duration = min(max(2.4, Double(message.count) / 22.0), 5.2)
+                    try? await Task.sleep(for: .seconds(duration))
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run {
+                        withAnimation(SkydownMotion.statusTransition) {
+                            isPresented = false
+                        }
+                    }
                 }
             }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Prompt oeffnen")
+        .animation(SkydownMotion.statusTransition, value: isPresented)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -982,13 +1223,32 @@ private struct AIPromptComposerSheet: View {
     var body: some View {
         ScrollView {
         VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Neue AI-Anfrage")
-                    .font(.title3.weight(.black))
-                    .foregroundColor(AppColors.text(for: colorScheme))
-                Text("Erst Optionen waehlen, dann Prompt schreiben.")
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(composerAccent.opacity(0.14))
+                    Image(systemName: composerMode == .visual ? "camera.aperture" : "text.bubble.fill")
+                        .font(.headline.weight(.black))
+                        .foregroundColor(composerAccent)
+                }
+                .frame(width: 48, height: 48)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Neue AI-Anfrage")
+                        .font(.title3.weight(.black))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    Text("Optionen waehlen, Prompt schaerfen, senden.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+
+                Spacer(minLength: 0)
+
+                AIStatusChip(
+                    text: composerMode.title,
+                    accent: composerAccent,
+                    colorScheme: colorScheme
+                )
             }
 
             if let status = interactionPhase.composerStatusLabel {

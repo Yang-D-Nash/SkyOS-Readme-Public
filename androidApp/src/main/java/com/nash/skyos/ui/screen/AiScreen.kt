@@ -310,6 +310,7 @@ fun AiScreen(
                             .widthIn(max = contentMaxWidth)
                             .fillMaxWidth()
                             .fillMaxHeight()
+                            .verticalScroll(rememberScrollState())
                             .padding(
                                 start = SkydownUiTokens.screenHorizontalPadding,
                                 top = innerPadding.calculateTopPadding() + if (showTopBar) 2.dp else 0.dp,
@@ -328,6 +329,43 @@ fun AiScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         AiEmptyStateHeader(compactVisualDensity = compactLayout)
+                        Spacer(modifier = Modifier.height(14.dp))
+                        AiSessionStrip(
+                            composerMode = uiState.composerMode,
+                            textMode = uiState.textMode,
+                            messageCount = uiState.messages.size,
+                            compactVisualDensity = compactLayout,
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        QuickPromptCard(
+                            prompts = uiState.quickPrompts,
+                            compactLayout = compactLayout,
+                            onPromptSelected = { prompt ->
+                                viewModel.updateComposerMode(AiComposerMode.Text)
+                                viewModel.updateDraft(prompt)
+                                showPromptComposer = true
+                            },
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        VisualPromptCard(
+                            prompts = uiState.visualPrompts,
+                            compactLayout = compactLayout,
+                            onPromptSelected = { prompt ->
+                                viewModel.updateComposerMode(AiComposerMode.Visual)
+                                viewModel.updateDraft(prompt)
+                                showPromptComposer = true
+                            },
+                        )
+                        if (uiState.usageSnapshot != null) {
+                            Spacer(modifier = Modifier.height(14.dp))
+                            AiRevenueUsageCard(
+                                usage = uiState.usageSnapshot,
+                                planLabel = uiState.planLabel,
+                                onOpenMembership = {
+                                    membershipCoordinator.openMembership(MembershipOpenReason.Manual, surface = "ai_chat")
+                                },
+                            )
+                        }
                         Spacer(modifier = Modifier.height(78.dp))
                     }
                 } else {
@@ -367,7 +405,12 @@ fun AiScreen(
                             }
 
                             item {
-                                AiEmptyStateHeader(compactVisualDensity = true)
+                                AiSessionStrip(
+                                    composerMode = uiState.composerMode,
+                                    textMode = uiState.textMode,
+                                    messageCount = uiState.messages.size,
+                                    compactVisualDensity = true,
+                                )
                             }
 
                             items(uiState.messages, key = { it.id }) { message ->
@@ -495,25 +538,97 @@ private fun aiLevelSubtitleResId(level: AiExperienceLevel): Int = when (level) {
 private fun AiEmptyStateHeader(
     compactVisualDensity: Boolean,
 ) {
+    val shape = RoundedCornerShape(if (compactVisualDensity) 24.dp else 28.dp)
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 6.dp else 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.09f),
+                    ),
+                ),
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.18f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
+                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
+                    ),
+                ),
+                shape = shape,
+            )
+            .padding(if (compactVisualDensity) 14.dp else 16.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 12.dp else 14.dp),
     ) {
-        Text(
-            text = "Hey, ich bin SkyOS AI.",
-            style = if (compactVisualDensity) {
-                MaterialTheme.typography.headlineSmall
-            } else {
-                MaterialTheme.typography.headlineMedium
-            },
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = "Tippe auf +, waehle deine Optionen und starte dann den Prompt.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(if (compactVisualDensity) 48.dp else 54.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.84f),
+                            ),
+                        ),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Text(
+                    text = "SkyOS AI",
+                    style = if (compactVisualDensity) {
+                        MaterialTheme.typography.headlineSmall
+                    } else {
+                        MaterialTheme.typography.headlineMedium
+                    },
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "Copy, Release-Ideen und Visual-Prompts in einem ruhigen Flow.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            BrandStatusChip(
+                text = "Live",
+                accent = MaterialTheme.colorScheme.primary,
+                isActive = true,
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BrandStatusChip(text = "Text", accent = MaterialTheme.colorScheme.primary, isActive = true)
+            BrandStatusChip(text = "Visual", accent = MaterialTheme.colorScheme.tertiary, isActive = true)
+            BrandStatusChip(text = "Memory", accent = MaterialTheme.colorScheme.secondary, isActive = true)
+        }
     }
 }
 
@@ -524,20 +639,43 @@ private fun AiPromptFab(
 ) {
     FloatingActionButton(
         onClick = onOpen,
+        modifier = Modifier
+            .widthIn(min = 132.dp)
+            .height(58.dp),
+        shape = RoundedCornerShape(22.dp),
         containerColor = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
     ) {
-        if (isWorking) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.onPrimary,
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (isWorking) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = "Prompt oeffnen",
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Text(
+                text = if (isWorking) "Arbeitet" else "Prompt",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Black,
             )
-        } else {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Prompt oeffnen",
-            )
+            if (!isWorking) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }
@@ -572,17 +710,51 @@ private fun AiPromptComposerSheet(
             .padding(top = 8.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(
-                text = "Neue AI-Anfrage",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = "Erst Optionen waehlen, dann Prompt schreiben.",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(composerAccent.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = composerAccent,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Text(
+                    text = "Neue AI-Anfrage",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "Optionen waehlen, Prompt schaerfen, senden.",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            BrandStatusChip(
+                text = if (composerMode == AiComposerMode.Visual) "Visual" else "Text",
+                accent = composerAccent,
+                isActive = true,
             )
         }
 
