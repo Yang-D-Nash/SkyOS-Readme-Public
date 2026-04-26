@@ -52,7 +52,7 @@ Alle Produktflaechen sind Teil eines Systems, nicht lose Einzel-Apps:
 
 ## App Icon Gallery
 
-Aktives Master-Icon (derzeit im Projekt ausgerollt). **iOS:** `docs/assets/skyos-app-icon-1024.png` = transparenter 1024×1024-Master → `AppIcon.appiconset`. **Android:** `ic_launcher_foreground_src` nutzt denselben transparenten Master mit dem kleinen `ic_launcher_foreground_inset`; `docs/assets/skyos-app-icon-1024-android-padded.png` bleibt als Android-Spiegeldatei erhalten, wird aber nicht zusätzlich verkleinert. README-Vorschau (iOS):
+Aktives Master-Icon (derzeit im Projekt ausgerollt). **iOS:** `docs/assets/skyos-app-icon-1024.png` = transparenter 1024×1024-Master → `AppIcon.appiconset`. **Android:** `ic_launcher_foreground_src` nutzt den Android-Spiegel `docs/assets/skyos-app-icon-1024-android-padded.png` mit 78% Motivgroesse plus kleinem `ic_launcher_foreground_inset`, damit Adaptive-Icon-Masken nichts anschneiden. README-Vorschau (iOS):
 
 <p align="center">
   <img src="docs/assets/skyos-app-icon.png" alt="SkyOS Active App Icon Master" width="220" />
@@ -177,7 +177,7 @@ Ableitung im Projekt (aus den SoT-Logos):
 - iOS/macOS App-Icon-Slots: `Skydown App/Assets.xcassets/AppIcon.appiconset/*`
 - Android In-App-Branding: `androidApp/src/main/res/drawable-nodpi/*_brand_logo.png`
 - Android Launcher-Icons: `androidApp/src/main/res/mipmap-*/ic_launcher.png`
-- Android Adaptive: `mipmap-anydpi/ic_launcher*.xml` + `drawable/ic_launcher_foreground.xml` (Bitmap `gravity=fill` + `@dimen/ic_launcher_foreground_inset` — Inset **klein** halten, sonst wirkt ein rundes Motiv im Launcher winzig)
+- Android Adaptive: `mipmap-anydpi/ic_launcher*.xml` + `drawable/ic_launcher_foreground.xml` (Bitmap `gravity=fill` + Android-gepaddeter Foreground — Inset **klein** halten, sonst wirkt ein rundes Motiv im Launcher winzig)
 - Android Foreground-Quelle: `androidApp/src/main/res/drawable-nodpi/ic_launcher_foreground_src.png`
 
 ## README Navigation

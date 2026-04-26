@@ -54,7 +54,7 @@ Adaptive icon verification:
   - background: `@color/ic_launcher_background`
   - foreground: `@drawable/ic_launcher_foreground`
 - `ic_launcher_background` exists in `androidApp/src/main/res/values/colors.xml`
-- Foreground `ic_launcher_foreground.xml` wraps the bitmap in an `inset` and uses `android:gravity="fill"` so the source scales into the layer (not `center`, which hard-clips). Inset is **small** (see `ic_launcher_foreground_inset`): large insets shrink a round mark in the launcher.
+- Foreground `ic_launcher_foreground.xml` wraps the Android-padded bitmap in an `inset` and uses `android:gravity="fill"` so the source scales into the layer (not `center`, which hard-clips). Inset is **small** (see `ic_launcher_foreground_inset`): the PNG already carries the safe-area padding needed for round adaptive masks.
 
 ## Project icon usage (core set)
 

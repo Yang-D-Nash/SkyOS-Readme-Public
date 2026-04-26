@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Optionally scale app-icon artwork inside a 1024 canvas.
+"""Scale Android launcher artwork inside a 1024 canvas.
 
-The current SkyOS master already includes transparent breathing room, so Android
-uses it directly with a small dimen inset. Keep this helper for future artwork
-that needs extra safe-area padding before becoming `ic_launcher_foreground_src`.
+Android adaptive launcher masks crop more aggressively than the Apple icon grid.
+SkyOS therefore uses the full master for iOS and a padded mirror for Android
+before becoming `ic_launcher_foreground_src`.
 """
 from __future__ import annotations
 
@@ -21,8 +21,8 @@ def main() -> int:
     p.add_argument(
         "--scale",
         type=float,
-        default=0.86,
-        help="content scale relative to 1024 side (0..1); default 0.86 leaves ~7%% margin per side",
+        default=0.78,
+        help="content scale relative to 1024 side (0..1); default 0.78 keeps the round mark inside Android's safe area",
     )
     args = p.parse_args()
     if not 0.3 <= args.scale <= 1.0:

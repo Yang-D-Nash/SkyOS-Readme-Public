@@ -111,13 +111,12 @@ Adaptive foreground lives in `drawable/ic_launcher_foreground.xml` (bitmap `ic_l
 `android:gravity="fill"` so the PNG scales into the layer instead of being center-clipped).
 
 Inset margin: `@dimen/ic_launcher_foreground_inset` in `values/dimens.xml`. Keep this **small**
-(a few dp): together with `fill`, a **large** inset shrinks the artwork and a round mark looks
-tiny on the home screen. Raise the inset only if OEM masks still clip edges.
+(a few dp): the Android-specific PNG already carries launcher safe-area padding, so a large XML
+inset would make the round mark look tiny on the home screen.
 
-**Note:** The current SkyOS master already contains transparent breathing room, so Android uses
-the 1024×1024 master directly with only the small XML inset. The
-`docs/assets/skyos-app-icon-1024-android-padded.png` mirror is retained for the
-Android source-of-truth path, but it is not additionally shrunk.
+**Note:** iOS uses the full 1024×1024 SkyOS master. Android uses
+`docs/assets/skyos-app-icon-1024-android-padded.png`, a 78% scaled mirror of that master, as
+`ic_launcher_foreground_src.png` so OEM adaptive masks do not clip the circle or bottom badge.
 
 ## 9. Instrumentation Expectations
 

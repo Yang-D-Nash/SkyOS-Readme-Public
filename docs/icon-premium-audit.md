@@ -74,7 +74,7 @@ Result:
 
 - All density outputs are correctly sized (`mdpi` to `xxxhdpi`).
 - Adaptive icon foreground/background mapping is correct.
-- Foreground uses scaled bitmap (`gravity=fill`) with a **small** dp inset; overly large insets make a round mark look tiny in the launcher.
+- Foreground uses the Android-padded bitmap (`gravity=fill`) with a **small** dp inset; the source is scaled to 78% so round launcher masks do not crop the circle or bottom badge.
 - Visual brand continuity with Apple icon family is preserved.
 
 ## Premium Design Assessment

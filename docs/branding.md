@@ -69,7 +69,7 @@ Primary documentation assets:
 - `docs/assets/skyos-logo.png`
 - `docs/assets/skyos-app-icon.png` (Galerie-Vorschau, skaliert, entspricht iOS-Master)
 - `docs/assets/skyos-app-icon-1024.png` (1024×1024 **voll** — Quelle / Spiegel für **iOS** `AppIcon.appiconset`)
-- `docs/assets/skyos-app-icon-1024-android-padded.png` (1024×1024 Android-Spiegel des transparenten Masters; aktuell **ohne** zusätzliche Verkleinerung, weil das Motiv bereits eigenen Rand hat; liegende Datei: `ic_launcher_foreground_src.png`)
+- `docs/assets/skyos-app-icon-1024-android-padded.png` (1024×1024 Android-Spiegel des transparenten Masters; auf 78% skaliert, damit Adaptive-Icon-Masken nichts abschneiden; liegende Datei: `ic_launcher_foreground_src.png`)
 - `docs/assets/skyos-22-mark.png`
 
 Project icon assets (the three core logos):
