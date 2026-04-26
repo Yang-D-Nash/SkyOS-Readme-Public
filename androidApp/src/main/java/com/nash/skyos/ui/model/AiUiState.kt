@@ -1,6 +1,7 @@
 package com.nash.skyos.ui.model
 
 import com.nash.skyos.data.AiBotDecision
+import com.nash.skyos.data.AiConversationHistorySessionSnapshot
 import com.nash.skyos.data.AiUsageSnapshot
 
 enum class AiComposerMode {
@@ -65,6 +66,9 @@ data class AiUiState(
     val usageSnapshot: AiUsageSnapshot? = null,
     val planLabel: String = "Free",
     val lastDecision: AiBotDecision? = null,
+    val sessions: List<AiConversationHistorySessionSnapshot> = emptyList(),
+    val activeSessionId: String? = null,
+    val activeSessionTitle: String = "Neuer Chat",
 )
 
 fun aiQuickPromptsFor(mode: AiTextMode): List<String> = when (mode) {

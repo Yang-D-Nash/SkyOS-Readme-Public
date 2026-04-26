@@ -156,6 +156,9 @@ final class AgentChatViewModel: ObservableObject {
     /// Latest `users/{uid}/agentRuns/{id}` id returned by `skydownAgent` (empty if not recorded).
     @Published private(set) var lastAgentRunId: String = ""
     @Published private(set) var revenueUsage: RevenueUsageState?
+    @Published private(set) var sessions: [AIScriptHistorySessionSummary] = []
+    @Published private(set) var activeSessionID: UUID?
+    @Published private(set) var activeSessionTitle: String = AIScriptHistoryStore.defaultSessionTitle
 
     var quickPrompts: [String] {
         selectedMode.quickPrompts
@@ -165,6 +168,7 @@ final class AgentChatViewModel: ObservableObject {
     private let historyStore: AIScriptHistoryStore
     private let pendingQueueStore: AgentPendingQueueStore
     private var currentUserKey: String?
+    private var currentSessionID: UUID?
     private var pendingRequests: [PendingAgentRequest] = []
     private var networkObserver: AnyCancellable?
     private var currentPlanTitle: String = "Free"
@@ -188,6 +192,7 @@ final class AgentChatViewModel: ObservableObject {
         let requestID: UUID
         let conversationRevision: Int
         let userKeyAtSend: String?
+        let sessionIDAtSend: UUID?
         let aiLevelAtSend: AIExperienceLevel
         let requiresLevelMatch: Bool
     }
@@ -240,7 +245,7 @@ final class AgentChatViewModel: ObservableObject {
         guard normalizedUserKey != currentUserKey else { return }
         invalidateConversation(cancelActiveWork: true)
         currentUserKey = normalizedUserKey
-        restoreHistory()
+        restoreConversationState()
         if NetworkStatusMonitor.shared.isOnline {
             startPendingRetryIfNeeded()
         }
@@ -257,6 +262,13 @@ final class AgentChatViewModel: ObservableObject {
             showUserToast(AIExperienceLevel.unavailableMessage, style: .info)
             return
         }
+        let session = historyStore.ensureSession(
+            userKey: currentUserKey,
+            source: .agent,
+            preferredSessionID: currentSessionID
+        )
+        currentSessionID = session.id
+        refreshConversationMetadata(preferredSessionID: session.id)
         guard NetworkStatusMonitor.shared.isOnline else {
             queuePromptForRetry(trimmedPrompt)
             return
@@ -312,9 +324,11 @@ final class AgentChatViewModel: ObservableObject {
                 historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .agent,
+                    sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
                     response: replyText
                 )
+                refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 if result.automationTriggered {
                     lastIntegrationIssue = ""
                     showUserToast(
@@ -386,9 +400,11 @@ final class AgentChatViewModel: ObservableObject {
                 historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .agent,
+                    sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
                     response: message
                 )
+                refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 showUserToast(message, style: .error)
                 phase = .idle
                 clearActiveRequestIfNeeded(requestContext)
@@ -397,13 +413,64 @@ final class AgentChatViewModel: ObservableObject {
     }
 
     func resetConversation() {
+        startNewConversation()
+    }
+
+    func startNewConversation() {
         invalidateConversation(cancelActiveWork: true)
-        historyStore.clearEntries(userKey: currentUserKey, source: .agent)
-        pendingRequests.removeAll()
-        pendingQueueStore.clearEntries(for: currentUserKey)
         messages = []
+        pendingRequests.removeAll()
+        let newSession = historyStore.createSession(
+            userKey: currentUserKey,
+            source: .agent,
+            title: AIScriptHistoryStore.defaultSessionTitle
+        )
+        currentSessionID = newSession.id
+        refreshConversationMetadata(preferredSessionID: newSession.id)
         phase = .idle
         lastAgentRunId = ""
+    }
+
+    func openConversation(_ sessionID: UUID) {
+        guard !phase.shouldBlockComposerChrome else { return }
+        invalidateConversation(cancelActiveWork: true)
+        lastAgentRunId = ""
+        restoreConversationState(preferredSessionID: sessionID)
+        if NetworkStatusMonitor.shared.isOnline {
+            startPendingRetryIfNeeded()
+        }
+    }
+
+    func renameActiveConversation(_ title: String) {
+        guard let currentSessionID else { return }
+        _ = historyStore.renameSession(
+            userKey: currentUserKey,
+            source: .agent,
+            sessionID: currentSessionID,
+            title: title
+        )
+        refreshConversationMetadata(preferredSessionID: currentSessionID)
+    }
+
+    func deleteActiveConversation() {
+        guard let currentSessionID else { return }
+        invalidateConversation(cancelActiveWork: true)
+        historyStore.deleteSession(
+            userKey: currentUserKey,
+            source: .agent,
+            sessionID: currentSessionID
+        )
+        pendingQueueStore.clearEntries(
+            for: currentUserKey,
+            sessionID: currentSessionID.uuidString
+        )
+        pendingRequests.removeAll()
+        messages = []
+        lastAgentRunId = ""
+        restoreConversationState()
+        if NetworkStatusMonitor.shared.isOnline {
+            startPendingRetryIfNeeded()
+        }
     }
 
     private func buildHistory(from messages: [AgentChatMessage]) -> [AgentHistoryTurn] {
@@ -416,8 +483,24 @@ final class AgentChatViewModel: ObservableObject {
             }
     }
 
-    private func restoreHistory() {
-        let restoredEntries = historyStore.entries(for: currentUserKey, source: .agent).reversed()
+    private func restoreConversationState(preferredSessionID: UUID? = nil) {
+        let session = historyStore.ensureSession(
+            userKey: currentUserKey,
+            source: .agent,
+            preferredSessionID: preferredSessionID
+        )
+        currentSessionID = session.id
+        refreshConversationMetadata(preferredSessionID: session.id)
+        pendingQueueStore.migrateLegacyEntries(
+            for: currentUserKey,
+            to: session.id.uuidString
+        )
+
+        let restoredEntries = historyStore.entries(
+            for: currentUserKey,
+            source: .agent,
+            sessionID: session.id
+        ).reversed()
         let restoredHistoryMessages = restoredEntries.flatMap { entry in
             [
                 AgentChatMessage(role: .user, text: entry.prompt),
@@ -425,7 +508,10 @@ final class AgentChatViewModel: ObservableObject {
             ]
         }
 
-        pendingRequests = pendingQueueStore.entries(for: currentUserKey).compactMap { entry in
+        pendingRequests = pendingQueueStore.entries(
+            for: currentUserKey,
+            sessionID: session.id.uuidString
+        ).compactMap { entry in
             guard let assistantID = UUID(uuidString: entry.assistantMessageID) else { return nil }
             return PendingAgentRequest(
                 prompt: entry.prompt,
@@ -459,6 +545,18 @@ final class AgentChatViewModel: ObservableObject {
         phase = pendingRequests.isEmpty ? .idle : .waitingReconnect
     }
 
+    private func refreshConversationMetadata(preferredSessionID: UUID? = nil) {
+        let session = historyStore.ensureSession(
+            userKey: currentUserKey,
+            source: .agent,
+            preferredSessionID: preferredSessionID ?? currentSessionID
+        )
+        currentSessionID = session.id
+        activeSessionID = session.id
+        activeSessionTitle = session.title
+        sessions = historyStore.sessionSummaries(for: currentUserKey, source: .agent)
+    }
+
     private func normalizedUserKey(for userKey: String?) -> String? {
         let trimmed = userKey?.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let trimmed, !trimmed.isEmpty else { return nil }
@@ -482,6 +580,7 @@ final class AgentChatViewModel: ObservableObject {
     private func makeRequestContext(
         conversationRevision: Int? = nil,
         userKeyAtSend: String? = nil,
+        sessionIDAtSend: UUID? = nil,
         aiLevelAtSend: AIExperienceLevel? = nil,
         requiresLevelMatch: Bool = true
     ) -> InFlightRequestContext {
@@ -489,6 +588,7 @@ final class AgentChatViewModel: ObservableObject {
             requestID: UUID(),
             conversationRevision: conversationRevision ?? self.conversationRevision,
             userKeyAtSend: userKeyAtSend ?? currentUserKey,
+            sessionIDAtSend: sessionIDAtSend ?? currentSessionID,
             aiLevelAtSend: aiLevelAtSend ?? selectedLevel,
             requiresLevelMatch: requiresLevelMatch
         )
@@ -498,12 +598,18 @@ final class AgentChatViewModel: ObservableObject {
         activeRequestContext == context &&
         context.conversationRevision == conversationRevision &&
         context.userKeyAtSend == currentUserKey &&
+        context.sessionIDAtSend == currentSessionID &&
         (!context.requiresLevelMatch || context.aiLevelAtSend == selectedLevel)
     }
 
-    private func isConversationSnapshotValid(conversationRevision: Int, userKeyAtSend: String?) -> Bool {
+    private func isConversationSnapshotValid(
+        conversationRevision: Int,
+        userKeyAtSend: String?,
+        sessionIDAtSend: UUID?
+    ) -> Bool {
         self.conversationRevision == conversationRevision &&
-        currentUserKey == userKeyAtSend
+        currentUserKey == userKeyAtSend &&
+        currentSessionID == sessionIDAtSend
     }
 
     private func clearActiveRequestIfNeeded(_ context: InFlightRequestContext) {
@@ -524,6 +630,13 @@ final class AgentChatViewModel: ObservableObject {
     }
 
     private func queuePromptForRetry(_ trimmedPrompt: String) {
+        let session = historyStore.ensureSession(
+            userKey: currentUserKey,
+            source: .agent,
+            preferredSessionID: currentSessionID
+        )
+        currentSessionID = session.id
+        refreshConversationMetadata(preferredSessionID: session.id)
         let assistantID = UUID()
         let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
         let history = buildHistory(from: messages + [userMessage])
@@ -580,21 +693,25 @@ final class AgentChatViewModel: ObservableObject {
 
         let retryConversationRevision = conversationRevision
         let retryUserKey = currentUserKey
+        let retrySessionID = currentSessionID
         pendingRetryTask = Task { @MainActor [weak self] in
             await self?.runPendingRetryLoop(
                 conversationRevision: retryConversationRevision,
-                userKeyAtSend: retryUserKey
+                userKeyAtSend: retryUserKey,
+                sessionIDAtSend: retrySessionID
             )
         }
     }
 
     private func runPendingRetryLoop(
         conversationRevision: Int,
-        userKeyAtSend: String?
+        userKeyAtSend: String?,
+        sessionIDAtSend: UUID?
     ) async {
         guard isConversationSnapshotValid(
             conversationRevision: conversationRevision,
-            userKeyAtSend: userKeyAtSend
+            userKeyAtSend: userKeyAtSend,
+            sessionIDAtSend: sessionIDAtSend
         ) else {
             pendingRetryTask = nil
             return
@@ -609,13 +726,15 @@ final class AgentChatViewModel: ObservableObject {
         while NetworkStatusMonitor.shared.isOnline, !pendingRequests.isEmpty {
             guard isConversationSnapshotValid(
                 conversationRevision: conversationRevision,
-                userKeyAtSend: userKeyAtSend
+                userKeyAtSend: userKeyAtSend,
+                sessionIDAtSend: sessionIDAtSend
             ) else { return }
 
             let request = pendingRequests.removeFirst()
             let requestContext = makeRequestContext(
                 conversationRevision: conversationRevision,
                 userKeyAtSend: userKeyAtSend,
+                sessionIDAtSend: sessionIDAtSend,
                 aiLevelAtSend: AIExperienceLevel(rawValue: request.aiLevel) ?? .standard,
                 requiresLevelMatch: false
             )
@@ -646,9 +765,11 @@ final class AgentChatViewModel: ObservableObject {
                 historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .agent,
+                    sessionID: requestContext.sessionIDAtSend,
                     prompt: request.prompt,
                     response: replyText
                 )
+                refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 if result.automationTriggered {
                     lastIntegrationIssue = ""
                     showUserToast(
@@ -710,9 +831,11 @@ final class AgentChatViewModel: ObservableObject {
                 historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .agent,
+                    sessionID: requestContext.sessionIDAtSend,
                     prompt: request.prompt,
                     response: message
                 )
+                refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 showUserToast(message, style: .error)
                 persistPendingRequests()
                 activeRequestContext = nil
@@ -721,7 +844,8 @@ final class AgentChatViewModel: ObservableObject {
 
         guard isConversationSnapshotValid(
             conversationRevision: conversationRevision,
-            userKeyAtSend: userKeyAtSend
+            userKeyAtSend: userKeyAtSend,
+            sessionIDAtSend: sessionIDAtSend
         ) else { return }
 
         if !pendingRequests.isEmpty {
@@ -734,9 +858,11 @@ final class AgentChatViewModel: ObservableObject {
     private func persistPendingRequests() {
         let normalizedUserKey = normalizedUserKey(for: currentUserKey)
         let fallbackUserKey = normalizedUserKey ?? "guest"
+        let activeSessionIdentifier = currentSessionID?.uuidString ?? ""
         let entries = pendingRequests.map { request in
             AgentPendingQueueEntry(
                 userKey: fallbackUserKey,
+                sessionID: activeSessionIdentifier,
                 prompt: request.prompt,
                 history: request.history.map { turn in
                     AgentPendingQueueTurn(role: turn.role, text: turn.text)
@@ -748,7 +874,11 @@ final class AgentChatViewModel: ObservableObject {
                 createdAt: request.createdAt
             )
         }
-        pendingQueueStore.saveEntries(entries, for: normalizedUserKey)
+        pendingQueueStore.saveEntries(
+            entries,
+            for: normalizedUserKey,
+            sessionID: activeSessionIdentifier
+        )
     }
 
     private func augmentedReplyText(from response: AgentChatResponse) -> String {

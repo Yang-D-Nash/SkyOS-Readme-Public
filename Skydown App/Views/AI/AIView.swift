@@ -8,6 +8,9 @@ struct AIView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
     @State private var showingPromptComposer = false
+    @State private var showingConversationSessions = false
+    @State private var showingDeleteConversationDialog = false
+    @State private var renameDraft = ""
     private let showsNavigation: Bool
     @State private var autoPresentedUpgradeHint = false
 
@@ -46,8 +49,8 @@ struct AIView: View {
                 textMode: $viewModel.textMode,
                 selectedLevel: $viewModel.selectedLevel,
                 interactionPhase: viewModel.phase,
-                onReset: {
-                    viewModel.resetConversation()
+                onCreateNewChat: {
+                    viewModel.startNewConversation()
                     showingPromptComposer = false
                 },
                 onSend: {
@@ -58,11 +61,58 @@ struct AIView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showingConversationSessions) {
+            AIConversationSessionsSheet(
+                title: "Chats",
+                accent: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                sessions: viewModel.sessions,
+                activeSessionID: viewModel.activeSessionID,
+                isBusy: viewModel.phase.isBusy,
+                renameDraft: $renameDraft,
+                onCreateNewChat: {
+                    viewModel.startNewConversation()
+                    showingConversationSessions = false
+                },
+                onSelectSession: { sessionID in
+                    viewModel.openConversation(sessionID)
+                    showingConversationSessions = false
+                },
+                onRenameActiveSession: {
+                    viewModel.renameActiveConversation(renameDraft)
+                },
+                onDeleteActiveSession: {
+                    showingDeleteConversationDialog = true
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .confirmationDialog(
+            "Aktiven Chat loeschen?",
+            isPresented: $showingDeleteConversationDialog,
+            titleVisibility: .visible
+        ) {
+            Button("Loeschen", role: .destructive) {
+                viewModel.deleteActiveConversation()
+                showingConversationSessions = false
+            }
+            Button("Abbrechen", role: .cancel) { }
+        }
         .task(id: sessionObservationKey) {
             viewModel.configureUser(user: authManager.userSession)
         }
         .onChange(of: viewModel.revenueUsage?.warningLevel) { _, level in
             handleCriticalUsageWarning(level)
+        }
+        .onAppear {
+            renameDraft = viewModel.activeSessionTitle
+        }
+        .onChange(of: viewModel.activeSessionID) { _, _ in
+            renameDraft = viewModel.activeSessionTitle
+        }
+        .onChange(of: viewModel.activeSessionTitle) { _, title in
+            renameDraft = title
         }
     }
 
@@ -89,12 +139,33 @@ struct AIView: View {
     }
 
     private var content: some View {
-        ZStack(alignment: .bottom) {
+        let activeSessionSummary = viewModel.sessions.first { $0.id == viewModel.activeSessionID }
+        let activeSessionSubtitle = {
+            if let activeSessionSummary {
+                if !activeSessionSummary.preview.isEmpty {
+                    return activeSessionSummary.preview
+                }
+                return activeSessionSummary.promptCount == 0 ? "Noch leer" : "\(activeSessionSummary.promptCount) Anfragen"
+            }
+            return "Noch leer"
+        }()
+
+        return ZStack(alignment: .bottom) {
             VStack(spacing: 0) {
                 if featureFlags.isAIEnabled {
                     if viewModel.messages.isEmpty {
                         ScrollView {
                             VStack(alignment: .leading, spacing: usesCompactImmersiveLayout ? 12 : 14) {
+                                AIConversationSessionStrip(
+                                    title: viewModel.activeSessionTitle,
+                                    subtitle: activeSessionSubtitle,
+                                    accent: AppColors.accent(for: colorScheme),
+                                    colorScheme: colorScheme,
+                                    isBusy: viewModel.phase.isBusy,
+                                    onOpenSessions: { showingConversationSessions = true },
+                                    onCreateNewChat: viewModel.startNewConversation
+                                )
+
                                 AIEmptyStateHeader(
                                     colorScheme: colorScheme,
                                     isCompact: usesCompactImmersiveLayout
@@ -115,6 +186,16 @@ struct AIView: View {
 
                             ScrollView {
                                 LazyVStack(alignment: .leading, spacing: 10) {
+                                    AIConversationSessionStrip(
+                                        title: viewModel.activeSessionTitle,
+                                        subtitle: activeSessionSubtitle,
+                                        accent: AppColors.accent(for: colorScheme),
+                                        colorScheme: colorScheme,
+                                        isBusy: viewModel.phase.isBusy,
+                                        onOpenSessions: { showingConversationSessions = true },
+                                        onCreateNewChat: viewModel.startNewConversation
+                                    )
+
                                     AIEmptyStateHeader(
                                         colorScheme: colorScheme,
                                         isCompact: true
@@ -884,7 +965,7 @@ private struct AIPromptComposerSheet: View {
     @Binding var textMode: AITextMode
     @Binding var selectedLevel: AIExperienceLevel
     let interactionPhase: BotInteractionPhase
-    let onReset: () -> Void
+    let onCreateNewChat: () -> Void
     let onSend: () -> Void
     @FocusState private var isFocused: Bool
 
@@ -999,7 +1080,7 @@ private struct AIPromptComposerSheet: View {
 
             HStack(spacing: 10) {
                 Spacer(minLength: 0)
-                Button("Reset", action: onReset)
+                Button("Neuer Chat", action: onCreateNewChat)
                     .font(.caption.weight(.bold))
                     .disabled(interactionPhase.isBusy)
 

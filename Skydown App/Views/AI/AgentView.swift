@@ -12,6 +12,9 @@ struct AgentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var showingAttachmentImporter = false
     @State private var showingPromptComposer = false
+    @State private var showingConversationSessions = false
+    @State private var showingDeleteConversationDialog = false
+    @State private var renameDraft = ""
     @State private var inputAttachments: [AgentInputAttachment] = []
     private let showsNavigation: Bool
     @State private var autoPresentedUpgradeHint = false
@@ -68,8 +71,8 @@ struct AgentView: View {
                 },
                 onRemoveAttachment: removeAttachment,
                 onClearAttachments: { inputAttachments.removeAll() },
-                onReset: {
-                    viewModel.resetConversation()
+                onCreateNewChat: {
+                    viewModel.startNewConversation()
                     showingPromptComposer = false
                 },
                 onSend: {
@@ -79,6 +82,44 @@ struct AgentView: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showingConversationSessions) {
+            AIConversationSessionsSheet(
+                title: "Agent Chats",
+                accent: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                sessions: viewModel.sessions,
+                activeSessionID: viewModel.activeSessionID,
+                isBusy: viewModel.phase.shouldBlockComposerChrome,
+                renameDraft: $renameDraft,
+                onCreateNewChat: {
+                    viewModel.startNewConversation()
+                    showingConversationSessions = false
+                },
+                onSelectSession: { sessionID in
+                    viewModel.openConversation(sessionID)
+                    showingConversationSessions = false
+                },
+                onRenameActiveSession: {
+                    viewModel.renameActiveConversation(renameDraft)
+                },
+                onDeleteActiveSession: {
+                    showingDeleteConversationDialog = true
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .confirmationDialog(
+            "Aktiven Chat loeschen?",
+            isPresented: $showingDeleteConversationDialog,
+            titleVisibility: .visible
+        ) {
+            Button("Loeschen", role: .destructive) {
+                viewModel.deleteActiveConversation()
+                showingConversationSessions = false
+            }
+            Button("Abbrechen", role: .cancel) { }
         }
         .task(id: sessionObservationKey) {
             viewModel.configureUser(user: authManager.userSession)
@@ -93,6 +134,15 @@ struct AgentView: View {
         }
         .onChange(of: viewModel.revenueUsage?.warningLevel) { _, level in
             handleCriticalUsageWarning(level)
+        }
+        .onAppear {
+            renameDraft = viewModel.activeSessionTitle
+        }
+        .onChange(of: viewModel.activeSessionID) { _, _ in
+            renameDraft = viewModel.activeSessionTitle
+        }
+        .onChange(of: viewModel.activeSessionTitle) { _, title in
+            renameDraft = title
         }
     }
 
@@ -123,12 +173,33 @@ struct AgentView: View {
     }
 
     private var content: some View {
-        ZStack(alignment: .bottom) {
+        let activeSessionSummary = viewModel.sessions.first { $0.id == viewModel.activeSessionID }
+        let activeSessionSubtitle = {
+            if let activeSessionSummary {
+                if !activeSessionSummary.preview.isEmpty {
+                    return activeSessionSummary.preview
+                }
+                return activeSessionSummary.promptCount == 0 ? "Noch leer" : "\(activeSessionSummary.promptCount) Anfragen"
+            }
+            return "Noch leer"
+        }()
+
+        return ZStack(alignment: .bottom) {
             VStack(spacing: 0) {
                 if featureFlags.isAIEnabled {
                     if viewModel.messages.isEmpty {
                         ScrollView {
                             VStack(alignment: .leading, spacing: usesCompactImmersiveLayout ? 12 : 14) {
+                                AIConversationSessionStrip(
+                                    title: viewModel.activeSessionTitle,
+                                    subtitle: activeSessionSubtitle,
+                                    accent: AppColors.accentMystic(for: colorScheme),
+                                    colorScheme: colorScheme,
+                                    isBusy: viewModel.phase.shouldBlockComposerChrome,
+                                    onOpenSessions: { showingConversationSessions = true },
+                                    onCreateNewChat: viewModel.startNewConversation
+                                )
+
                                 AgentEmptyStateHeader(
                                     colorScheme: colorScheme,
                                     isCompact: usesCompactImmersiveLayout
@@ -162,6 +233,16 @@ struct AgentView: View {
 
                             ScrollView {
                                 LazyVStack(alignment: .leading, spacing: 10) {
+                                    AIConversationSessionStrip(
+                                        title: viewModel.activeSessionTitle,
+                                        subtitle: activeSessionSubtitle,
+                                        accent: AppColors.accentMystic(for: colorScheme),
+                                        colorScheme: colorScheme,
+                                        isBusy: viewModel.phase.shouldBlockComposerChrome,
+                                        onOpenSessions: { showingConversationSessions = true },
+                                        onCreateNewChat: viewModel.startNewConversation
+                                    )
+
                                     AgentEmptyStateHeader(
                                         colorScheme: colorScheme,
                                         isCompact: true
@@ -661,7 +742,7 @@ private struct AgentPromptComposerSheet: View {
     let onAddFiles: () -> Void
     let onRemoveAttachment: (AgentInputAttachment) -> Void
     let onClearAttachments: () -> Void
-    let onReset: () -> Void
+    let onCreateNewChat: () -> Void
     let onSend: () -> Void
     @FocusState private var isFocused: Bool
 
@@ -781,7 +862,7 @@ private struct AgentPromptComposerSheet: View {
 
             HStack(spacing: 10) {
                 Spacer(minLength: 0)
-                Button("Reset", action: onReset)
+                Button("Neuer Chat", action: onCreateNewChat)
                     .font(.caption.weight(.bold))
                     .disabled(interactionPhase.shouldBlockComposerChrome)
 

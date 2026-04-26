@@ -106,6 +106,8 @@ import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.MembershipOpenReason
 import com.nash.skyos.R
 import com.nash.skyos.ui.component.BrandStatusChip
+import com.nash.skyos.ui.component.AiConversationSessionStrip
+import com.nash.skyos.ui.component.AiConversationSessionsSheet
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -147,7 +149,15 @@ fun AgentScreen(
     val membershipState by membershipCoordinator.uiState.collectAsStateWithLifecycle()
     var inputAttachments by remember { mutableStateOf<List<AgentInputAttachment>>(emptyList()) }
     var showPromptComposer by rememberSaveable { mutableStateOf(false) }
+    var showSessionsSheet by rememberSaveable { mutableStateOf(false) }
+    var renameDraft by rememberSaveable { mutableStateOf("") }
     val promptSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val activeSessionSummary = uiState.sessions.firstOrNull { it.sessionId == uiState.activeSessionId }
+    val activeSessionSubtitle = when (activeSessionSummary?.promptCount ?: 0) {
+        0 -> "Neu"
+        1 -> "1 Anfrage"
+        else -> "${activeSessionSummary?.promptCount ?: 0} Anfragen"
+    }
     val attachmentPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments(),
     ) { uris ->
@@ -221,6 +231,9 @@ fun AgentScreen(
             localFeedbackMessage = null
         }
     }
+    LaunchedEffect(uiState.activeSessionId, uiState.activeSessionTitle) {
+        renameDraft = uiState.activeSessionTitle
+    }
     LaunchedEffect(uiState.usageSnapshot?.warningLevel) {
         if (!hasAutoUpgradePrompted && uiState.usageSnapshot?.warningLevel == "critical") {
             hasAutoUpgradePrompted = true
@@ -291,6 +304,15 @@ fun AgentScreen(
                         .padding(safeContentPadding),
                     verticalArrangement = Arrangement.Top,
                 ) {
+                    AiConversationSessionStrip(
+                        title = uiState.activeSessionTitle,
+                        subtitle = activeSessionSubtitle,
+                        accent = MaterialTheme.colorScheme.tertiary,
+                        enabled = !uiState.agentPhase.shouldBlockComposerChrome,
+                        onOpenSessions = { showSessionsSheet = true },
+                        onCreateNewChat = viewModel::startNewConversation,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                     AgentEmptyStateHeader()
                     Spacer(modifier = Modifier.height(78.dp))
                 }
@@ -308,6 +330,17 @@ fun AgentScreen(
                             AgentDisabledCard()
                         }
                     } else {
+                        item {
+                            AiConversationSessionStrip(
+                                title = uiState.activeSessionTitle,
+                                subtitle = activeSessionSubtitle,
+                                accent = MaterialTheme.colorScheme.tertiary,
+                                enabled = !uiState.agentPhase.shouldBlockComposerChrome,
+                                onOpenSessions = { showSessionsSheet = true },
+                                onCreateNewChat = viewModel::startNewConversation,
+                            )
+                        }
+
                         item {
                             AgentEmptyStateHeader()
                         }
@@ -378,12 +411,41 @@ fun AgentScreen(
                             showPromptComposer = false
                         },
                         onReset = {
-                            viewModel.resetConversation()
+                            viewModel.startNewConversation()
                             dismissKeyboard()
                             showPromptComposer = false
                         },
                     )
                 }
+            }
+
+            if (showSessionsSheet) {
+                AiConversationSessionsSheet(
+                    title = "Agent Chats",
+                    sessions = uiState.sessions,
+                    activeSessionId = uiState.activeSessionId,
+                    renameDraft = renameDraft,
+                    accent = MaterialTheme.colorScheme.tertiary,
+                    enabled = !uiState.agentPhase.shouldBlockComposerChrome,
+                    onRenameDraftChanged = { renameDraft = it },
+                    onDismiss = { showSessionsSheet = false },
+                    onSelectSession = { sessionId ->
+                        viewModel.openConversation(sessionId)
+                        showSessionsSheet = false
+                    },
+                    onCreateNewChat = {
+                        viewModel.startNewConversation()
+                        showSessionsSheet = false
+                    },
+                    onRenameActiveSession = {
+                        viewModel.renameActiveConversation(renameDraft)
+                        showSessionsSheet = false
+                    },
+                    onDeleteActiveSession = {
+                        viewModel.deleteActiveConversation()
+                        showSessionsSheet = false
+                    },
+                )
             }
         }
         if (membershipState.isOpen) {
@@ -883,7 +945,7 @@ private fun AgentPromptComposerSheet(
                 onClick = onReset,
                 enabled = !agentPhase.shouldBlockComposerChrome,
             ) {
-                Text("Reset")
+                Text("Neuer Chat")
             }
             FilledIconButton(
                 onClick = onSend,

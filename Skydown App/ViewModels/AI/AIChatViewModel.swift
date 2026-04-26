@@ -250,6 +250,9 @@ final class AIChatViewModel: ObservableObject {
     @Published var toastStyle: ToastStyle = .info
     @Published private(set) var revenueUsage: RevenueUsageState?
     @Published private(set) var lastDecision: AIBotDecision?
+    @Published private(set) var sessions: [AIScriptHistorySessionSummary] = []
+    @Published private(set) var activeSessionID: UUID?
+    @Published private(set) var activeSessionTitle: String = AIScriptHistoryStore.defaultSessionTitle
 
     var quickPrompts: [String] {
         textMode.quickPrompts
@@ -277,6 +280,7 @@ final class AIChatViewModel: ObservableObject {
     private let service: AIChatServicing
     private let historyStore: AIScriptHistoryStore
     private var currentUserKey: String?
+    private var currentSessionID: UUID?
     private var currentPlanTitle: String = "Free"
     private var conversationRevision = 0
     private var activeRequestTask: Task<Void, Never>?
@@ -287,6 +291,7 @@ final class AIChatViewModel: ObservableObject {
         let requestID: UUID
         let conversationRevision: Int
         let userKeyAtSend: String?
+        let sessionIDAtSend: UUID?
         let aiLevelAtSend: AIExperienceLevel
     }
 
@@ -323,10 +328,7 @@ final class AIChatViewModel: ObservableObject {
         guard normalizedUserKey != currentUserKey else { return }
         invalidateConversation(cancelActiveRequest: true)
         currentUserKey = normalizedUserKey
-        restoreHistory()
-        if messages.isEmpty && draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            phase = .idle
-        }
+        restoreConversationState()
     }
 
     func sendDraft() {
@@ -345,6 +347,13 @@ final class AIChatViewModel: ObservableObject {
             showUserToast(AIExperienceLevel.unavailableMessage, style: .info)
             return
         }
+        let session = historyStore.ensureSession(
+            userKey: currentUserKey,
+            source: .bot,
+            preferredSessionID: currentSessionID
+        )
+        currentSessionID = session.id
+        refreshConversationMetadata(preferredSessionID: session.id)
         phase = .sending
         lastDecision = nil
 
@@ -380,9 +389,11 @@ final class AIChatViewModel: ObservableObject {
                 historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .bot,
+                    sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
                     response: result.text
                 )
+                refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 phase = resolvedTerminalPhase(for: result.decision)
                 clearActiveRequestIfNeeded(requestContext)
             } catch {
@@ -398,9 +409,11 @@ final class AIChatViewModel: ObservableObject {
                 historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .bot,
+                    sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
                     response: assistantText
                 )
+                refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 showUserToast(userFacingErrorMessage(for: error), style: .error)
                 clearActiveRequestIfNeeded(requestContext)
             }
@@ -414,6 +427,13 @@ final class AIChatViewModel: ObservableObject {
             showUserToast(AIExperienceLevel.unavailableMessage, style: .info)
             return
         }
+        let session = historyStore.ensureSession(
+            userKey: currentUserKey,
+            source: .bot,
+            preferredSessionID: currentSessionID
+        )
+        currentSessionID = session.id
+        refreshConversationMetadata(preferredSessionID: session.id)
         phase = .sending
         lastDecision = nil
 
@@ -447,10 +467,12 @@ final class AIChatViewModel: ObservableObject {
                 historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .bot,
+                    sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
                     response: result.text,
                     imageData: result.imageData
                 )
+                refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 phase = resolvedTerminalPhase(for: result.decision)
                 clearActiveRequestIfNeeded(requestContext)
             } catch {
@@ -466,9 +488,11 @@ final class AIChatViewModel: ObservableObject {
                 historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .bot,
+                    sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
                     response: assistantText
                 )
+                refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 showUserToast(userFacingErrorMessage(for: error), style: .error)
                 clearActiveRequestIfNeeded(requestContext)
             }
@@ -476,11 +500,52 @@ final class AIChatViewModel: ObservableObject {
     }
 
     func resetConversation() {
+        startNewConversation()
+    }
+
+    func startNewConversation() {
         invalidateConversation(cancelActiveRequest: true)
-        historyStore.clearEntries(userKey: currentUserKey, source: .bot)
         messages = []
         lastDecision = nil
+        let newSession = historyStore.createSession(
+            userKey: currentUserKey,
+            source: .bot,
+            title: AIScriptHistoryStore.defaultSessionTitle
+        )
+        currentSessionID = newSession.id
+        refreshConversationMetadata(preferredSessionID: newSession.id)
         phase = draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .idle : .typing
+    }
+
+    func openConversation(_ sessionID: UUID) {
+        guard !phase.isBusy else { return }
+        invalidateConversation(cancelActiveRequest: true)
+        lastDecision = nil
+        restoreConversationState(preferredSessionID: sessionID)
+    }
+
+    func renameActiveConversation(_ title: String) {
+        guard let currentSessionID else { return }
+        _ = historyStore.renameSession(
+            userKey: currentUserKey,
+            source: .bot,
+            sessionID: currentSessionID,
+            title: title
+        )
+        refreshConversationMetadata(preferredSessionID: currentSessionID)
+    }
+
+    func deleteActiveConversation() {
+        guard let currentSessionID else { return }
+        invalidateConversation(cancelActiveRequest: true)
+        historyStore.deleteSession(
+            userKey: currentUserKey,
+            source: .bot,
+            sessionID: currentSessionID
+        )
+        messages = []
+        lastDecision = nil
+        restoreConversationState()
     }
 
     private func updateAssistantMessage(id: UUID, text: String, isStreaming: Bool, imageData: Data? = nil) {
@@ -495,6 +560,7 @@ final class AIChatViewModel: ObservableObject {
             requestID: UUID(),
             conversationRevision: conversationRevision,
             userKeyAtSend: currentUserKey,
+            sessionIDAtSend: currentSessionID,
             aiLevelAtSend: selectedLevel
         )
     }
@@ -503,6 +569,7 @@ final class AIChatViewModel: ObservableObject {
         activeRequestContext == context &&
         context.conversationRevision == conversationRevision &&
         context.userKeyAtSend == currentUserKey &&
+        context.sessionIDAtSend == currentSessionID &&
         context.aiLevelAtSend == selectedLevel
     }
 
@@ -531,8 +598,19 @@ final class AIChatViewModel: ObservableObject {
         """
     }
 
-    private func restoreHistory() {
-        let restoredEntries = historyStore.entries(for: currentUserKey, source: .bot).reversed()
+    private func restoreConversationState(preferredSessionID: UUID? = nil) {
+        let session = historyStore.ensureSession(
+            userKey: currentUserKey,
+            source: .bot,
+            preferredSessionID: preferredSessionID
+        )
+        currentSessionID = session.id
+        refreshConversationMetadata(preferredSessionID: session.id)
+        let restoredEntries = historyStore.entries(
+            for: currentUserKey,
+            source: .bot,
+            sessionID: session.id
+        ).reversed()
         messages = restoredEntries.flatMap { entry in
             [
                 AIChatMessage(role: .user, text: entry.prompt),
@@ -543,6 +621,19 @@ final class AIChatViewModel: ObservableObject {
                 )
             ]
         }
+        phase = draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .idle : .typing
+    }
+
+    private func refreshConversationMetadata(preferredSessionID: UUID? = nil) {
+        let session = historyStore.ensureSession(
+            userKey: currentUserKey,
+            source: .bot,
+            preferredSessionID: preferredSessionID ?? currentSessionID
+        )
+        currentSessionID = session.id
+        activeSessionID = session.id
+        activeSessionTitle = session.title
+        sessions = historyStore.sessionSummaries(for: currentUserKey, source: .bot)
     }
 
     private func buildHistoryContext() -> String {

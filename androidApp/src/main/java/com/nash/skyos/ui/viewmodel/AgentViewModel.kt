@@ -2,44 +2,45 @@ package com.nash.skyos.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nash.skyos.R
 import com.google.firebase.functions.FirebaseFunctionsException
-import com.nash.skyos.data.AiRuntimeAgentProvider
+import com.nash.skyos.R
 import com.nash.skyos.data.AgentHistoryTurn
+import com.nash.skyos.data.AgentPendingQueueEntry
+import com.nash.skyos.data.AgentPendingQueueStore
 import com.nash.skyos.data.AiConversationHistorySource
 import com.nash.skyos.data.AiConversationHistoryStore
+import com.nash.skyos.data.AiRuntimeAgentProvider
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.AppFeatureFlagsStore
 import com.nash.skyos.data.AppNetworkMonitor
 import com.nash.skyos.data.AppTextResolver
-import com.nash.skyos.data.AgentPendingQueueEntry
-import com.nash.skyos.data.AgentPendingQueueStore
 import com.nash.skyos.data.ManusByosPreferences
-import com.skydown.shared.model.User
-import com.skydown.shared.model.UserRole
-import com.skydown.shared.model.resolvedAiHistoryRetentionDays
-import com.nash.skyos.ui.model.AgentInteractionPhase
 import com.nash.skyos.ui.model.AgentExecutionMode
-import com.nash.skyos.ui.model.AiExperienceLevel
+import com.nash.skyos.ui.model.AgentInteractionPhase
 import com.nash.skyos.ui.model.AgentMessage
 import com.nash.skyos.ui.model.AgentMessageRole
 import com.nash.skyos.ui.model.AgentResultType
 import com.nash.skyos.ui.model.AgentUiState
 import com.nash.skyos.ui.model.AgentWorkflowSummary
+import com.nash.skyos.ui.model.AiExperienceLevel
 import com.nash.skyos.ui.model.agentQuickPromptsFor
+import com.skydown.shared.model.User
+import com.skydown.shared.model.UserQuotaPlan
+import com.skydown.shared.model.UserRole
+import com.skydown.shared.model.resolvedAiHistoryRetentionDays
+import com.skydown.shared.model.resolvedQuotaPlan
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
-import com.skydown.shared.model.UserQuotaPlan
-import com.skydown.shared.model.resolvedQuotaPlan
 
 class AgentViewModel : ViewModel() {
     private data class PendingAgentRequest(
+        val sessionId: String,
         val prompt: String,
         val history: List<AgentHistoryTurn>,
         val mode: String,
@@ -49,24 +50,27 @@ class AgentViewModel : ViewModel() {
         val createdAtEpochMillis: Long,
     )
 
+    private data class InFlightRequestContext(
+        val requestId: String,
+        val conversationRevision: Int,
+        val userKeyAtSend: String?,
+        val sessionIdAtSend: String,
+        val aiLevelAtSend: AiExperienceLevel,
+        val requiresLevelMatch: Boolean,
+    )
+
     private val agentClient = AppContainer.agentClient
     private val _uiState = MutableStateFlow(AgentUiState())
     val uiState: StateFlow<AgentUiState> = _uiState.asStateFlow()
+
     private var currentUserKey: String? = null
     private var currentQuotaPlan: UserQuotaPlan = UserQuotaPlan.Free
+    private var currentSessionId: String? = null
     private val pendingRequests = ArrayDeque<PendingAgentRequest>()
     private var conversationRevision = 0
     private var activeRequestJob: Job? = null
     private var pendingRetryJob: Job? = null
     private var activeRequestContext: InFlightRequestContext? = null
-
-    private data class InFlightRequestContext(
-        val requestId: String,
-        val conversationRevision: Int,
-        val userKeyAtSend: String?,
-        val aiLevelAtSend: AiExperienceLevel,
-        val requiresLevelMatch: Boolean,
-    )
 
     init {
         viewModelScope.launch {
@@ -92,13 +96,10 @@ class AgentViewModel : ViewModel() {
                     val canTriggerAutomation = user != null
                     it.copy(
                         canTriggerAutomation = canTriggerAutomation,
-                        shouldTriggerAutomation = if (canTriggerAutomation) {
-                            it.shouldTriggerAutomation
-                        } else {
-                            false
-                        },
+                        shouldTriggerAutomation = if (canTriggerAutomation) it.shouldTriggerAutomation else false,
                     )
                 }
+
                 val userKey = normalizeUserKey(user)
                 val quotaPlan = user?.resolvedQuotaPlan ?: UserQuotaPlan.Free
                 currentQuotaPlan = quotaPlan
@@ -119,14 +120,18 @@ class AgentViewModel : ViewModel() {
                         },
                     )
                 }
+
                 ManusByosPreferences.setUserMode(user?.id)
                 if (userKey != currentUserKey) {
                     invalidateConversation(cancelActiveWork = true)
                     currentUserKey = userKey
+                    currentSessionId = null
                     restoreHistory()
                     if (AppNetworkMonitor.isOnline.value) {
                         retryPendingMessages()
                     }
+                } else {
+                    refreshSessionState()
                 }
             }
         }
@@ -173,19 +178,16 @@ class AgentViewModel : ViewModel() {
         val trimmedPrompt = prompt.trim()
         if (!AppFeatureFlagsStore.allowsAiAccess(AppContainer.currentUser.value)) {
             _uiState.update {
-                it.copy(
-                    errorMessage = AppFeatureFlagsStore.accessDeniedMessage(AppContainer.currentUser.value),
-                )
+                it.copy(errorMessage = AppFeatureFlagsStore.accessDeniedMessage(AppContainer.currentUser.value))
             }
             return
         }
         if (!_uiState.value.isAgentEnabled) {
-            _uiState.update {
-                it.copy(errorMessage = "Der SkyOS Agent ist gerade pausiert.")
-            }
+            _uiState.update { it.copy(errorMessage = "Der SkyOS Agent ist gerade pausiert.") }
             return
         }
         if (trimmedPrompt.isBlank() || _uiState.value.agentPhase.shouldBlockSend) return
+
         val levelAtSend = _uiState.value.selectedLevel
         if (!levelAtSend.isAvailableFor(currentQuotaPlan)) {
             _uiState.update { it.copy(errorMessage = AppTextResolver.string(R.string.ai_level_unavailable)) }
@@ -195,15 +197,12 @@ class AgentViewModel : ViewModel() {
             enqueuePromptForRetry(trimmedPrompt)
             return
         }
-        _uiState.update { it.copy(agentPhase = AgentInteractionPhase.Planning, errorMessage = null) }
 
+        val activeSessionId = ensureCurrentSessionId()
         val modeAtSend = _uiState.value.selectedMode.rawValue
         val levelRawAtSend = levelAtSend.rawValue
         val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
-        val userMessage = AgentMessage(
-            role = AgentMessageRole.User,
-            text = trimmedPrompt,
-        )
+        val userMessage = AgentMessage(role = AgentMessageRole.User, text = trimmedPrompt)
         val assistantMessage = AgentMessage(
             role = AgentMessageRole.Assistant,
             text = "",
@@ -212,7 +211,10 @@ class AgentViewModel : ViewModel() {
         )
         val assistantMessageId = assistantMessage.id
         val historyAtSend = buildHistory(_uiState.value.messages + userMessage)
-        val requestContext = makeRequestContext(aiLevelAtSend = levelAtSend)
+        val requestContext = makeRequestContext(
+            aiLevelAtSend = levelAtSend,
+            sessionIdAtSend = activeSessionId,
+        )
 
         _uiState.update {
             it.copy(
@@ -238,6 +240,14 @@ class AgentViewModel : ViewModel() {
                 if (!isRequestContextActive(requestContext)) return@launch
 
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
+                AiConversationHistoryStore.saveEntry(
+                    userKey = requestContext.userKeyAtSend,
+                    source = AiConversationHistorySource.Agent,
+                    sessionId = requestContext.sessionIdAtSend,
+                    prompt = trimmedPrompt,
+                    response = augmentedReply(result),
+                )
+                refreshSessionState(requestContext.sessionIdAtSend)
                 _uiState.update { it.copy(usageSnapshot = result.usage) }
                 val replyText = augmentedReply(result)
                 updateAssistantMessage(
@@ -250,12 +260,6 @@ class AgentViewModel : ViewModel() {
                         AgentResultType.Text
                     },
                     workflowSummary = buildWorkflowSummary(result),
-                )
-                AiConversationHistoryStore.saveEntry(
-                    userKey = requestContext.userKeyAtSend,
-                    source = AiConversationHistorySource.Agent,
-                    prompt = trimmedPrompt,
-                    response = replyText,
                 )
                 val trimmedNotice = result.providerNotice.trim()
                 val effectiveNotice = when {
@@ -285,6 +289,7 @@ class AgentViewModel : ViewModel() {
                 if (isOfflineError(error)) {
                     pendingRequests.addLast(
                         PendingAgentRequest(
+                            sessionId = requestContext.sessionIdAtSend,
                             prompt = trimmedPrompt,
                             history = historyAtSend,
                             mode = modeAtSend,
@@ -309,17 +314,19 @@ class AgentViewModel : ViewModel() {
                 }
 
                 val errorMessage = userFacingErrorMessage(error)
+                AiConversationHistoryStore.saveEntry(
+                    userKey = requestContext.userKeyAtSend,
+                    source = AiConversationHistorySource.Agent,
+                    sessionId = requestContext.sessionIdAtSend,
+                    prompt = trimmedPrompt,
+                    response = errorMessage,
+                )
+                refreshSessionState(requestContext.sessionIdAtSend)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = errorMessage,
                     isStreaming = false,
                     resultType = AgentResultType.Error,
-                )
-                AiConversationHistoryStore.saveEntry(
-                    userKey = requestContext.userKeyAtSend,
-                    source = AiConversationHistorySource.Agent,
-                    prompt = trimmedPrompt,
-                    response = errorMessage,
                 )
                 _uiState.update {
                     it.copy(
@@ -333,24 +340,61 @@ class AgentViewModel : ViewModel() {
     }
 
     fun resetConversation() {
+        startNewConversation()
+    }
+
+    fun startNewConversation() {
         invalidateConversation(cancelActiveWork = true)
         pendingRequests.clear()
-        AgentPendingQueueStore.clearEntriesForUser(currentUserKey)
-        AiConversationHistoryStore.clearEntries(
+        val newSession = AiConversationHistoryStore.createSession(
             userKey = currentUserKey,
             source = AiConversationHistorySource.Agent,
         )
+        currentSessionId = newSession.id
+        refreshSessionState(newSession.id)
         _uiState.update { currentState ->
-            AgentUiState(
-                draft = currentState.draft,
-                isAgentEnabled = currentState.isAgentEnabled,
-                selectedMode = currentState.selectedMode,
-                selectedLevel = currentState.selectedLevel,
-                canTriggerAutomation = currentState.canTriggerAutomation,
-                shouldTriggerAutomation = currentState.shouldTriggerAutomation,
-                quickPrompts = currentState.quickPrompts,
-                planLabel = currentState.planLabel,
+            currentState.copy(
+                messages = emptyList(),
+                agentPhase = AgentInteractionPhase.Idle,
+                errorMessage = null,
             )
+        }
+    }
+
+    fun openConversation(sessionId: String) {
+        if (sessionId == currentSessionId) return
+        invalidateConversation(cancelActiveWork = true)
+        currentSessionId = sessionId
+        restoreHistory()
+        if (AppNetworkMonitor.isOnline.value) {
+            retryPendingMessages()
+        }
+    }
+
+    fun renameActiveConversation(title: String) {
+        AiConversationHistoryStore.renameSession(
+            userKey = currentUserKey,
+            source = AiConversationHistorySource.Agent,
+            sessionId = currentSessionId,
+            title = title,
+        )
+        refreshSessionState()
+    }
+
+    fun deleteActiveConversation() {
+        val sessionId = currentSessionId ?: return
+        invalidateConversation(cancelActiveWork = true)
+        pendingRequests.clear()
+        AgentPendingQueueStore.clearEntriesForSession(currentUserKey, sessionId)
+        AiConversationHistoryStore.deleteSession(
+            userKey = currentUserKey,
+            source = AiConversationHistorySource.Agent,
+            sessionId = sessionId,
+        )
+        currentSessionId = null
+        restoreHistory()
+        if (AppNetworkMonitor.isOnline.value) {
+            retryPendingMessages()
         }
     }
 
@@ -360,13 +404,15 @@ class AgentViewModel : ViewModel() {
         }
     }
 
+    fun dismissError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
     private fun enqueuePromptForRetry(trimmedPrompt: String) {
+        val activeSessionId = ensureCurrentSessionId()
         val modeAtSend = _uiState.value.selectedMode.rawValue
         val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
-        val userMessage = AgentMessage(
-            role = AgentMessageRole.User,
-            text = trimmedPrompt,
-        )
+        val userMessage = AgentMessage(role = AgentMessageRole.User, text = trimmedPrompt)
         val assistantMessage = AgentMessage(
             role = AgentMessageRole.Assistant,
             text = AppTextResolver.string(R.string.agent_queue_placeholder),
@@ -378,6 +424,7 @@ class AgentViewModel : ViewModel() {
 
         pendingRequests.addLast(
             PendingAgentRequest(
+                sessionId = activeSessionId,
                 prompt = trimmedPrompt,
                 history = history,
                 mode = modeAtSend,
@@ -423,6 +470,7 @@ class AgentViewModel : ViewModel() {
                 val requestContext = makeRequestContext(
                     conversationRevision = retryConversationRevision,
                     userKeyAtSend = retryUserKey,
+                    sessionIdAtSend = request.sessionId,
                     aiLevelAtSend = AiExperienceLevel.resolve(request.aiLevel),
                     requiresLevelMatch = false,
                 )
@@ -443,6 +491,14 @@ class AgentViewModel : ViewModel() {
                     }
 
                     AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
+                    AiConversationHistoryStore.saveEntry(
+                        userKey = requestContext.userKeyAtSend,
+                        source = AiConversationHistorySource.Agent,
+                        sessionId = requestContext.sessionIdAtSend,
+                        prompt = request.prompt,
+                        response = augmentedReply(result),
+                    )
+                    refreshSessionState(requestContext.sessionIdAtSend)
                     _uiState.update { it.copy(usageSnapshot = result.usage) }
                     val replyText = augmentedReply(result)
                     updateAssistantMessage(
@@ -455,12 +511,6 @@ class AgentViewModel : ViewModel() {
                             AgentResultType.Text
                         },
                         workflowSummary = buildWorkflowSummary(result),
-                    )
-                    AiConversationHistoryStore.saveEntry(
-                        userKey = requestContext.userKeyAtSend,
-                        source = AiConversationHistorySource.Agent,
-                        prompt = request.prompt,
-                        response = replyText,
                     )
                     val trimmedNotice = result.providerNotice.trim()
                     val effectiveNotice = when {
@@ -513,17 +563,19 @@ class AgentViewModel : ViewModel() {
                     }
 
                     val message = userFacingErrorMessage(error)
+                    AiConversationHistoryStore.saveEntry(
+                        userKey = requestContext.userKeyAtSend,
+                        source = AiConversationHistorySource.Agent,
+                        sessionId = requestContext.sessionIdAtSend,
+                        prompt = request.prompt,
+                        response = message,
+                    )
+                    refreshSessionState(requestContext.sessionIdAtSend)
                     updateAssistantMessage(
                         messageId = request.assistantMessageId,
                         text = message,
                         isStreaming = false,
                         resultType = AgentResultType.Error,
-                    )
-                    AiConversationHistoryStore.saveEntry(
-                        userKey = requestContext.userKeyAtSend,
-                        source = AiConversationHistorySource.Agent,
-                        prompt = request.prompt,
-                        response = message,
                     )
                     _uiState.update { it.copy(errorMessage = message) }
                     persistPendingRequests()
@@ -552,28 +604,58 @@ class AgentViewModel : ViewModel() {
         }
     }
 
-    fun dismissError() {
-        _uiState.update { it.copy(errorMessage = null) }
+    private fun ensureCurrentSessionId(): String {
+        val session = AiConversationHistoryStore.ensureSession(
+            userKey = currentUserKey,
+            source = AiConversationHistorySource.Agent,
+            preferredSessionId = currentSessionId,
+        )
+        currentSessionId = session.id
+        refreshSessionState(session.id)
+        return session.id
+    }
+
+    private fun refreshSessionState(preferredSessionId: String? = currentSessionId) {
+        val activeSession = AiConversationHistoryStore.ensureSession(
+            userKey = currentUserKey,
+            source = AiConversationHistorySource.Agent,
+            preferredSessionId = preferredSessionId,
+        )
+        currentSessionId = activeSession.id
+        val sessions = AiConversationHistoryStore.sessionSnapshotsFor(
+            userKey = currentUserKey,
+            source = AiConversationHistorySource.Agent,
+        )
+        val activeSnapshot = sessions.firstOrNull { it.sessionId == activeSession.id }
+        _uiState.update {
+            it.copy(
+                sessions = sessions,
+                activeSessionId = activeSession.id,
+                activeSessionTitle = activeSnapshot?.title ?: activeSession.title,
+            )
+        }
     }
 
     private fun makeRequestContext(
         conversationRevision: Int = this.conversationRevision,
         userKeyAtSend: String? = currentUserKey,
+        sessionIdAtSend: String = currentSessionId.orEmpty(),
         aiLevelAtSend: AiExperienceLevel = _uiState.value.selectedLevel,
         requiresLevelMatch: Boolean = true,
-    ): InFlightRequestContext =
-        InFlightRequestContext(
-            requestId = java.util.UUID.randomUUID().toString(),
-            conversationRevision = conversationRevision,
-            userKeyAtSend = userKeyAtSend,
-            aiLevelAtSend = aiLevelAtSend,
-            requiresLevelMatch = requiresLevelMatch,
-        )
+    ): InFlightRequestContext = InFlightRequestContext(
+        requestId = java.util.UUID.randomUUID().toString(),
+        conversationRevision = conversationRevision,
+        userKeyAtSend = userKeyAtSend,
+        sessionIdAtSend = sessionIdAtSend,
+        aiLevelAtSend = aiLevelAtSend,
+        requiresLevelMatch = requiresLevelMatch,
+    )
 
     private fun isRequestContextActive(context: InFlightRequestContext): Boolean =
         activeRequestContext == context &&
             context.conversationRevision == conversationRevision &&
             context.userKeyAtSend == currentUserKey &&
+            context.sessionIdAtSend == currentSessionId &&
             (!context.requiresLevelMatch || context.aiLevelAtSend == _uiState.value.selectedLevel)
 
     private fun isConversationSnapshotValid(
@@ -634,35 +716,31 @@ class AgentViewModel : ViewModel() {
     }
 
     private fun buildHistory(messages: List<AgentMessage>): List<AgentHistoryTurn> =
-        messages
-            .map { message ->
-                AgentHistoryTurn(
-                    role = if (message.role == AgentMessageRole.User) "user" else "assistant",
-                    text = message.text,
-                )
-            }
+        messages.map { message ->
+            AgentHistoryTurn(
+                role = if (message.role == AgentMessageRole.User) "user" else "assistant",
+                text = message.text,
+            )
+        }
 
     private fun restoreHistory() {
-        val restoredHistoryMessages = AiConversationHistoryStore.entriesFor(
+        refreshSessionState()
+        val restoredHistoryMessages = AiConversationHistoryStore.entriesForSession(
             userKey = currentUserKey,
             source = AiConversationHistorySource.Agent,
-        ).asReversed().flatMap { entry ->
+            sessionId = currentSessionId,
+        ).flatMap { entry ->
             listOf(
-                AgentMessage(
-                    role = AgentMessageRole.User,
-                    text = entry.prompt,
-                ),
-                AgentMessage(
-                    role = AgentMessageRole.Assistant,
-                    text = entry.response,
-                ),
+                AgentMessage(role = AgentMessageRole.User, text = entry.prompt),
+                AgentMessage(role = AgentMessageRole.Assistant, text = entry.response),
             )
         }
 
         pendingRequests.clear()
         pendingRequests.addAll(
-            AgentPendingQueueStore.entriesFor(currentUserKey).map { entry ->
+            AgentPendingQueueStore.entriesFor(currentUserKey, currentSessionId).map { entry ->
                 PendingAgentRequest(
+                    sessionId = entry.sessionId,
                     prompt = entry.prompt,
                     history = entry.history,
                     mode = entry.mode,
@@ -675,10 +753,7 @@ class AgentViewModel : ViewModel() {
         )
         val pendingMessages = pendingRequests.flatMap { request ->
             listOf(
-                AgentMessage(
-                    role = AgentMessageRole.User,
-                    text = request.prompt,
-                ),
+                AgentMessage(role = AgentMessageRole.User, text = request.prompt),
                 AgentMessage(
                     id = request.assistantMessageId,
                     role = AgentMessageRole.Assistant,
@@ -704,6 +779,7 @@ class AgentViewModel : ViewModel() {
         val entries = pendingRequests.map { request ->
             AgentPendingQueueEntry(
                 userKey = currentUserKey.orEmpty(),
+                sessionId = request.sessionId,
                 prompt = request.prompt,
                 history = request.history,
                 mode = request.mode,
@@ -713,7 +789,7 @@ class AgentViewModel : ViewModel() {
                 createdAtEpochMillis = request.createdAtEpochMillis,
             )
         }
-        AgentPendingQueueStore.saveEntriesForUser(currentUserKey, entries)
+        AgentPendingQueueStore.saveEntriesForSession(currentUserKey, currentSessionId, entries)
     }
 
     private fun normalizeUserKey(user: User?): String? {
@@ -772,7 +848,6 @@ class AgentViewModel : ViewModel() {
             FirebaseFunctionsException.Code.UNAUTHENTICATED -> "Bitte melde dich erneut an und versuch es noch einmal."
             else -> "Der SkyOS Agent ist gerade kurz pausiert."
         }
-
         else -> error.message?.takeIf { it.isNotBlank() }
             ?: "Der SkyOS Agent ist gerade kurz pausiert."
     }

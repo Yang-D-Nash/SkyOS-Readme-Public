@@ -1,12 +1,13 @@
 import Foundation
 
-struct AgentPendingQueueTurn: Codable {
+struct AgentPendingQueueTurn: Codable, Equatable {
     let role: String
     let text: String
 }
 
-struct AgentPendingQueueEntry: Codable {
+struct AgentPendingQueueEntry: Codable, Equatable {
     let userKey: String
+    let sessionID: String
     let prompt: String
     let history: [AgentPendingQueueTurn]
     let mode: String
@@ -17,6 +18,7 @@ struct AgentPendingQueueEntry: Codable {
 
     init(
         userKey: String,
+        sessionID: String,
         prompt: String,
         history: [AgentPendingQueueTurn],
         mode: String,
@@ -26,6 +28,7 @@ struct AgentPendingQueueEntry: Codable {
         createdAt: Date
     ) {
         self.userKey = userKey
+        self.sessionID = sessionID
         self.prompt = prompt
         self.history = history
         self.mode = mode
@@ -38,6 +41,7 @@ struct AgentPendingQueueEntry: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         userKey = try container.decode(String.self, forKey: .userKey)
+        sessionID = try container.decodeIfPresent(String.self, forKey: .sessionID) ?? ""
         prompt = try container.decode(String.self, forKey: .prompt)
         history = try container.decode([AgentPendingQueueTurn].self, forKey: .history)
         mode = try container.decode(String.self, forKey: .mode)
@@ -62,18 +66,38 @@ final class AgentPendingQueueStore {
         pruneExpiredEntries()
     }
 
-    func entries(for userKey: String?) -> [AgentPendingQueueEntry] {
-        let normalized = normalizeUserKey(userKey)
+    func entries(for userKey: String?, sessionID: String?) -> [AgentPendingQueueEntry] {
+        let normalizedUserKey = normalizeUserKey(userKey)
+        let normalizedSessionID = normalizeSessionID(sessionID)
         return readEntries()
-            .filter { $0.userKey == normalized }
+            .filter {
+                $0.userKey == normalizedUserKey &&
+                normalizeSessionID($0.sessionID) == normalizedSessionID
+            }
             .sorted { $0.createdAt < $1.createdAt }
     }
 
-    func saveEntries(_ entries: [AgentPendingQueueEntry], for userKey: String?) {
-        let normalized = normalizeUserKey(userKey)
-        let others = readEntries().filter { $0.userKey != normalized }
+    func saveEntries(_ entries: [AgentPendingQueueEntry], for userKey: String?, sessionID: String?) {
+        let normalizedUserKey = normalizeUserKey(userKey)
+        let normalizedSessionID = normalizeSessionID(sessionID)
+        let others = readEntries().filter {
+            !($0.userKey == normalizedUserKey && normalizeSessionID($0.sessionID) == normalizedSessionID)
+        }
         let sanitized = entries
             .filter { !$0.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .map {
+                AgentPendingQueueEntry(
+                    userKey: normalizedUserKey,
+                    sessionID: normalizedSessionID,
+                    prompt: $0.prompt,
+                    history: $0.history,
+                    mode: $0.mode,
+                    aiLevel: $0.aiLevel,
+                    executeAutomation: $0.executeAutomation,
+                    assistantMessageID: $0.assistantMessageID,
+                    createdAt: $0.createdAt
+                )
+            }
             .sorted { $0.createdAt < $1.createdAt }
 
         var merged = others + sanitized
@@ -83,15 +107,45 @@ final class AgentPendingQueueStore {
         pruneExpiredEntries()
     }
 
-    func clearEntries(for userKey: String?) {
-        saveEntries([], for: userKey)
+    func clearEntries(for userKey: String?, sessionID: String?) {
+        saveEntries([], for: userKey, sessionID: sessionID)
+    }
+
+    func migrateLegacyEntries(for userKey: String?, to sessionID: String?) {
+        let normalizedUserKey = normalizeUserKey(userKey)
+        let normalizedSessionID = normalizeSessionID(sessionID)
+        guard !normalizedSessionID.isEmpty else { return }
+
+        let migratedEntries = readEntries().map { entry in
+            guard entry.userKey == normalizedUserKey,
+                  normalizeSessionID(entry.sessionID).isEmpty else {
+                return entry
+            }
+
+            return AgentPendingQueueEntry(
+                userKey: normalizedUserKey,
+                sessionID: normalizedSessionID,
+                prompt: entry.prompt,
+                history: entry.history,
+                mode: entry.mode,
+                aiLevel: entry.aiLevel,
+                executeAutomation: entry.executeAutomation,
+                assistantMessageID: entry.assistantMessageID,
+                createdAt: entry.createdAt
+            )
+        }
+
+        if migratedEntries != readEntries() {
+            writeEntries(migratedEntries)
+        }
     }
 
     private func pruneExpiredEntries() {
         let cutoff = Calendar.current.date(byAdding: .day, value: -maximumAgeDays, to: .now) ?? .distantPast
-        let filtered = readEntries().filter { $0.createdAt >= cutoff }
-        if filtered.count != readEntries().count {
-            writeEntries(filtered)
+        let existingEntries = readEntries()
+        let filteredEntries = existingEntries.filter { $0.createdAt >= cutoff }
+        if filteredEntries != existingEntries {
+            writeEntries(filteredEntries)
         }
     }
 
@@ -108,5 +162,11 @@ final class AgentPendingQueueStore {
     private func normalizeUserKey(_ userKey: String?) -> String {
         let trimmed = userKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? "guest" : trimmed.lowercased()
+    }
+
+    private func normalizeSessionID(_ sessionID: String?) -> String {
+        sessionID?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
     }
 }

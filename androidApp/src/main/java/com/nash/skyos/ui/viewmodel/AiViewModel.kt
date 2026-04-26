@@ -2,43 +2,45 @@ package com.nash.skyos.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nash.skyos.R
 import com.google.firebase.functions.FirebaseFunctionsException
+import com.nash.skyos.R
 import com.nash.skyos.data.AiConversationHistorySource
 import com.nash.skyos.data.AiConversationHistoryStore
+import com.nash.skyos.data.AiVisualReferenceLibraryPreferences
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.AppFeatureFlagsStore
 import com.nash.skyos.data.AppTextResolver
-import com.nash.skyos.data.AiVisualReferenceLibraryPreferences
-import com.skydown.shared.model.User
-import com.skydown.shared.model.UserRole
-import com.skydown.shared.model.resolvedAiHistoryRetentionDays
-import com.nash.skyos.ui.model.BotInteractionPhase
 import com.nash.skyos.ui.model.AiComposerMode
 import com.nash.skyos.ui.model.AiExperienceLevel
 import com.nash.skyos.ui.model.AiMessage
 import com.nash.skyos.ui.model.AiMessageRole
 import com.nash.skyos.ui.model.AiTextMode
 import com.nash.skyos.ui.model.AiUiState
+import com.nash.skyos.ui.model.BotInteractionPhase
 import com.nash.skyos.ui.model.aiQuickPromptsFor
+import com.skydown.shared.model.User
+import com.skydown.shared.model.UserQuotaPlan
+import com.skydown.shared.model.UserRole
+import com.skydown.shared.model.resolvedAiHistoryRetentionDays
+import com.skydown.shared.model.resolvedQuotaPlan
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
-import com.skydown.shared.model.UserQuotaPlan
-import com.skydown.shared.model.resolvedQuotaPlan
 
 class AiViewModel : ViewModel() {
     private val aiChatClient = AppContainer.aiChatClient
     private val aiImageClient = AppContainer.aiImageClient
     private val _uiState = MutableStateFlow(AiUiState())
     val uiState: StateFlow<AiUiState> = _uiState.asStateFlow()
+
     private var currentUserKey: String? = null
     private var currentQuotaPlan: UserQuotaPlan = UserQuotaPlan.Free
+    private var currentSessionId: String? = null
     private var conversationRevision = 0
     private var activeRequestJob: Job? = null
     private var activeRequestContext: InFlightRequestContext? = null
@@ -47,6 +49,7 @@ class AiViewModel : ViewModel() {
         val requestId: String,
         val conversationRevision: Int,
         val userKeyAtSend: String?,
+        val sessionIdAtSend: String,
         val aiLevelAtSend: AiExperienceLevel,
     )
 
@@ -85,7 +88,10 @@ class AiViewModel : ViewModel() {
                 if (userKey != currentUserKey) {
                     invalidateConversation(cancelActiveRequest = true)
                     currentUserKey = userKey
+                    currentSessionId = null
                     restoreHistory()
+                } else {
+                    refreshSessionState()
                 }
             }
         }
@@ -139,50 +145,35 @@ class AiViewModel : ViewModel() {
         val trimmedPrompt = prompt.trim()
         if (!AppFeatureFlagsStore.allowsAiAccess(AppContainer.currentUser.value)) {
             _uiState.update {
-                it.copy(
-                    errorMessage = AppFeatureFlagsStore.accessDeniedMessage(AppContainer.currentUser.value),
-                )
+                it.copy(errorMessage = AppFeatureFlagsStore.accessDeniedMessage(AppContainer.currentUser.value))
             }
             return
         }
         if (!_uiState.value.isAiEnabled) {
-            _uiState.update {
-                it.copy(errorMessage = "Der SkyOS Bot ist gerade pausiert.")
-            }
+            _uiState.update { it.copy(errorMessage = "Der SkyOS Bot ist gerade pausiert.") }
             return
         }
         if (trimmedPrompt.isBlank() || _uiState.value.botPhase.isBusy) return
+
         val levelAtSend = _uiState.value.selectedLevel
         if (!levelAtSend.isAvailableFor(currentQuotaPlan)) {
             _uiState.update { it.copy(errorMessage = AppTextResolver.string(R.string.ai_level_unavailable)) }
             return
         }
-        _uiState.update {
-            it.copy(
-                botPhase = BotInteractionPhase.Sending,
-                errorMessage = null,
-                lastDecision = null,
-            )
-        }
 
-        val userMessage = AiMessage(
-            role = AiMessageRole.User,
-            text = trimmedPrompt,
-        )
-        val assistantMessage = AiMessage(
-            role = AiMessageRole.Assistant,
-            text = "",
-            isStreaming = true,
-        )
+        val activeSessionId = ensureCurrentSessionId()
+        val userMessage = AiMessage(role = AiMessageRole.User, text = trimmedPrompt)
+        val assistantMessage = AiMessage(role = AiMessageRole.Assistant, text = "", isStreaming = true)
         val assistantMessageId = assistantMessage.id
         val history = buildHistoryContext()
-        val requestContext = makeRequestContext(levelAtSend)
+        val requestContext = makeRequestContext(levelAtSend, activeSessionId)
 
         _uiState.update {
             it.copy(
                 draft = "",
                 botPhase = BotInteractionPhase.Streaming,
                 errorMessage = null,
+                lastDecision = null,
                 messages = it.messages + userMessage + assistantMessage,
             )
         }
@@ -192,35 +183,32 @@ class AiViewModel : ViewModel() {
         activeRequestJob = viewModelScope.launch {
             try {
                 val result = aiChatClient.generateText(
-                    prompt = buildPrompt(
-                        userPrompt = trimmedPrompt,
-                        history = history,
-                    ),
+                    prompt = buildPrompt(trimmedPrompt, history),
                     mode = _uiState.value.textMode.rawValue,
                     aiLevel = levelAtSend.rawValue,
                 )
                 if (!isRequestContextActive(requestContext)) return@launch
 
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
-                _uiState.update {
-                    it.copy(
-                        usageSnapshot = result.usage,
-                        lastDecision = result.decision,
-                    )
-                }
+                AiConversationHistoryStore.saveEntry(
+                    userKey = requestContext.userKeyAtSend,
+                    source = AiConversationHistorySource.Bot,
+                    sessionId = requestContext.sessionIdAtSend,
+                    prompt = trimmedPrompt,
+                    response = result.text,
+                )
+                refreshSessionState(requestContext.sessionIdAtSend)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = result.text,
                     isStreaming = false,
                 )
-                AiConversationHistoryStore.saveEntry(
-                    userKey = requestContext.userKeyAtSend,
-                    source = AiConversationHistorySource.Bot,
-                    prompt = trimmedPrompt,
-                    response = result.text,
-                )
                 _uiState.update {
-                    it.copy(botPhase = resolveTerminalPhase(result.decision))
+                    it.copy(
+                        usageSnapshot = result.usage,
+                        lastDecision = result.decision,
+                        botPhase = resolveTerminalPhase(result.decision),
+                    )
                 }
             } catch (error: Throwable) {
                 if (error is CancellationException || !isRequestContextActive(requestContext)) {
@@ -230,21 +218,23 @@ class AiViewModel : ViewModel() {
 
                 val assistantText = userFacingErrorMessage(error)
                 val decision = decisionFor(error)
+                AiConversationHistoryStore.saveEntry(
+                    userKey = requestContext.userKeyAtSend,
+                    source = AiConversationHistorySource.Bot,
+                    sessionId = requestContext.sessionIdAtSend,
+                    prompt = trimmedPrompt,
+                    response = assistantText,
+                )
+                refreshSessionState(requestContext.sessionIdAtSend)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = assistantText,
                     isStreaming = false,
                 )
-                AiConversationHistoryStore.saveEntry(
-                    userKey = requestContext.userKeyAtSend,
-                    source = AiConversationHistorySource.Bot,
-                    prompt = trimmedPrompt,
-                    response = assistantText,
-                )
                 _uiState.update {
                     it.copy(
                         botPhase = resolveTerminalPhase(decision),
-                        errorMessage = userFacingErrorMessage(error),
+                        errorMessage = assistantText,
                         lastDecision = decision,
                     )
                 }
@@ -257,49 +247,34 @@ class AiViewModel : ViewModel() {
         val trimmedPrompt = prompt.trim()
         if (!AppFeatureFlagsStore.allowsAiAccess(AppContainer.currentUser.value)) {
             _uiState.update {
-                it.copy(
-                    errorMessage = AppFeatureFlagsStore.accessDeniedMessage(AppContainer.currentUser.value),
-                )
+                it.copy(errorMessage = AppFeatureFlagsStore.accessDeniedMessage(AppContainer.currentUser.value))
             }
             return
         }
         if (!_uiState.value.isAiEnabled) {
-            _uiState.update {
-                it.copy(errorMessage = "Der SkyOS Bot ist gerade pausiert.")
-            }
+            _uiState.update { it.copy(errorMessage = "Der SkyOS Bot ist gerade pausiert.") }
             return
         }
         if (trimmedPrompt.isBlank() || _uiState.value.botPhase.isBusy) return
+
         val levelAtSend = _uiState.value.selectedLevel
         if (!levelAtSend.isAvailableFor(currentQuotaPlan)) {
             _uiState.update { it.copy(errorMessage = AppTextResolver.string(R.string.ai_level_unavailable)) }
             return
         }
-        _uiState.update {
-            it.copy(
-                botPhase = BotInteractionPhase.Sending,
-                errorMessage = null,
-                lastDecision = null,
-            )
-        }
 
-        val userMessage = AiMessage(
-            role = AiMessageRole.User,
-            text = trimmedPrompt,
-        )
-        val assistantMessage = AiMessage(
-            role = AiMessageRole.Assistant,
-            text = "",
-            isStreaming = true,
-        )
+        val activeSessionId = ensureCurrentSessionId()
+        val userMessage = AiMessage(role = AiMessageRole.User, text = trimmedPrompt)
+        val assistantMessage = AiMessage(role = AiMessageRole.Assistant, text = "", isStreaming = true)
         val assistantMessageId = assistantMessage.id
-        val requestContext = makeRequestContext(levelAtSend)
+        val requestContext = makeRequestContext(levelAtSend, activeSessionId)
 
         _uiState.update {
             it.copy(
                 draft = "",
                 botPhase = BotInteractionPhase.ToolPending,
                 errorMessage = null,
+                lastDecision = null,
                 messages = it.messages + userMessage + assistantMessage,
             )
         }
@@ -315,12 +290,14 @@ class AiViewModel : ViewModel() {
                 if (!isRequestContextActive(requestContext)) return@launch
 
                 AiConversationHistoryStore.updateRetentionDays(result.historyRetentionDays)
-                _uiState.update {
-                    it.copy(
-                        usageSnapshot = result.usage,
-                        lastDecision = result.decision,
-                    )
-                }
+                AiConversationHistoryStore.saveEntry(
+                    userKey = requestContext.userKeyAtSend,
+                    source = AiConversationHistorySource.Bot,
+                    sessionId = requestContext.sessionIdAtSend,
+                    prompt = trimmedPrompt,
+                    response = result.text,
+                )
+                refreshSessionState(requestContext.sessionIdAtSend)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = result.text,
@@ -328,14 +305,12 @@ class AiViewModel : ViewModel() {
                     imageBytes = result.imageBytes,
                     imageMimeType = result.mimeType,
                 )
-                AiConversationHistoryStore.saveEntry(
-                    userKey = requestContext.userKeyAtSend,
-                    source = AiConversationHistorySource.Bot,
-                    prompt = trimmedPrompt,
-                    response = result.text,
-                )
                 _uiState.update {
-                    it.copy(botPhase = resolveTerminalPhase(result.decision))
+                    it.copy(
+                        usageSnapshot = result.usage,
+                        lastDecision = result.decision,
+                        botPhase = resolveTerminalPhase(result.decision),
+                    )
                 }
             } catch (error: Throwable) {
                 if (error is CancellationException || !isRequestContextActive(requestContext)) {
@@ -345,21 +320,23 @@ class AiViewModel : ViewModel() {
 
                 val assistantText = userFacingErrorMessage(error)
                 val decision = decisionFor(error)
+                AiConversationHistoryStore.saveEntry(
+                    userKey = requestContext.userKeyAtSend,
+                    source = AiConversationHistorySource.Bot,
+                    sessionId = requestContext.sessionIdAtSend,
+                    prompt = trimmedPrompt,
+                    response = assistantText,
+                )
+                refreshSessionState(requestContext.sessionIdAtSend)
                 updateAssistantMessage(
                     messageId = assistantMessageId,
                     text = assistantText,
                     isStreaming = false,
                 )
-                AiConversationHistoryStore.saveEntry(
-                    userKey = requestContext.userKeyAtSend,
-                    source = AiConversationHistorySource.Bot,
-                    prompt = trimmedPrompt,
-                    response = assistantText,
-                )
                 _uiState.update {
                     it.copy(
                         botPhase = resolveTerminalPhase(decision),
-                        errorMessage = userFacingErrorMessage(error),
+                        errorMessage = assistantText,
                         lastDecision = decision,
                     )
                 }
@@ -369,23 +346,54 @@ class AiViewModel : ViewModel() {
     }
 
     fun resetConversation() {
+        startNewConversation()
+    }
+
+    fun startNewConversation() {
         invalidateConversation(cancelActiveRequest = true)
-        AiConversationHistoryStore.clearEntries(
+        val newSession = AiConversationHistoryStore.createSession(
             userKey = currentUserKey,
             source = AiConversationHistorySource.Bot,
         )
+        currentSessionId = newSession.id
+        refreshSessionState(newSession.id)
         _uiState.update { currentState ->
-            AiUiState(
-                draft = currentState.draft,
-                isAiEnabled = currentState.isAiEnabled,
-                composerMode = currentState.composerMode,
-                textMode = currentState.textMode,
-                selectedLevel = currentState.selectedLevel,
-                quickPrompts = currentState.quickPrompts,
-                planLabel = currentState.planLabel,
+            currentState.copy(
+                messages = emptyList(),
+                botPhase = if (currentState.draft.isBlank()) BotInteractionPhase.Idle else BotInteractionPhase.Typing,
+                errorMessage = null,
                 lastDecision = null,
             )
         }
+    }
+
+    fun openConversation(sessionId: String) {
+        if (sessionId == currentSessionId) return
+        invalidateConversation(cancelActiveRequest = true)
+        currentSessionId = sessionId
+        restoreHistory(sessionId)
+    }
+
+    fun renameActiveConversation(title: String) {
+        AiConversationHistoryStore.renameSession(
+            userKey = currentUserKey,
+            source = AiConversationHistorySource.Bot,
+            sessionId = currentSessionId,
+            title = title,
+        )
+        refreshSessionState()
+    }
+
+    fun deleteActiveConversation() {
+        val sessionId = currentSessionId ?: return
+        invalidateConversation(cancelActiveRequest = true)
+        AiConversationHistoryStore.deleteSession(
+            userKey = currentUserKey,
+            source = AiConversationHistorySource.Bot,
+            sessionId = sessionId,
+        )
+        currentSessionId = null
+        restoreHistory()
     }
 
     fun refreshAvailability() {
@@ -398,18 +406,54 @@ class AiViewModel : ViewModel() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    private fun makeRequestContext(levelAtSend: AiExperienceLevel): InFlightRequestContext =
-        InFlightRequestContext(
-            requestId = java.util.UUID.randomUUID().toString(),
-            conversationRevision = conversationRevision,
-            userKeyAtSend = currentUserKey,
-            aiLevelAtSend = levelAtSend,
+    private fun ensureCurrentSessionId(): String {
+        val session = AiConversationHistoryStore.ensureSession(
+            userKey = currentUserKey,
+            source = AiConversationHistorySource.Bot,
+            preferredSessionId = currentSessionId,
         )
+        currentSessionId = session.id
+        refreshSessionState(session.id)
+        return session.id
+    }
+
+    private fun refreshSessionState(preferredSessionId: String? = currentSessionId) {
+        val activeSession = AiConversationHistoryStore.ensureSession(
+            userKey = currentUserKey,
+            source = AiConversationHistorySource.Bot,
+            preferredSessionId = preferredSessionId,
+        )
+        currentSessionId = activeSession.id
+        val sessions = AiConversationHistoryStore.sessionSnapshotsFor(
+            userKey = currentUserKey,
+            source = AiConversationHistorySource.Bot,
+        )
+        val activeSnapshot = sessions.firstOrNull { it.sessionId == activeSession.id }
+        _uiState.update {
+            it.copy(
+                sessions = sessions,
+                activeSessionId = activeSession.id,
+                activeSessionTitle = activeSnapshot?.title ?: activeSession.title,
+            )
+        }
+    }
+
+    private fun makeRequestContext(
+        levelAtSend: AiExperienceLevel,
+        sessionIdAtSend: String,
+    ): InFlightRequestContext = InFlightRequestContext(
+        requestId = java.util.UUID.randomUUID().toString(),
+        conversationRevision = conversationRevision,
+        userKeyAtSend = currentUserKey,
+        sessionIdAtSend = sessionIdAtSend,
+        aiLevelAtSend = levelAtSend,
+    )
 
     private fun isRequestContextActive(context: InFlightRequestContext): Boolean =
         activeRequestContext == context &&
             context.conversationRevision == conversationRevision &&
             context.userKeyAtSend == currentUserKey &&
+            context.sessionIdAtSend == currentSessionId &&
             context.aiLevelAtSend == _uiState.value.selectedLevel
 
     private fun clearActiveRequestIfNeeded(context: InFlightRequestContext) {
@@ -463,25 +507,30 @@ class AiViewModel : ViewModel() {
         """.trimIndent()
     }
 
-    private fun restoreHistory() {
-        val restoredMessages = AiConversationHistoryStore.entriesFor(
+    private fun restoreHistory(preferredSessionId: String? = currentSessionId) {
+        refreshSessionState(preferredSessionId)
+        val restoredMessages = AiConversationHistoryStore.entriesForSession(
             userKey = currentUserKey,
             source = AiConversationHistorySource.Bot,
-        ).asReversed().flatMap { entry ->
+            sessionId = currentSessionId,
+        ).flatMap { entry ->
             listOf(
-                AiMessage(
-                    role = AiMessageRole.User,
-                    text = entry.prompt,
-                ),
-                AiMessage(
-                    role = AiMessageRole.Assistant,
-                    text = entry.response,
-                ),
+                AiMessage(role = AiMessageRole.User, text = entry.prompt),
+                AiMessage(role = AiMessageRole.Assistant, text = entry.response),
             )
         }
 
         _uiState.update { currentState ->
-            currentState.copy(messages = restoredMessages)
+            currentState.copy(
+                messages = restoredMessages,
+                botPhase = if (restoredMessages.isEmpty() && currentState.draft.isNotBlank()) {
+                    BotInteractionPhase.Typing
+                } else {
+                    BotInteractionPhase.Idle
+                },
+                errorMessage = null,
+                lastDecision = null,
+            )
         }
     }
 

@@ -8,6 +8,7 @@ import java.util.UUID
 
 data class AgentPendingQueueEntry(
     val userKey: String,
+    val sessionId: String,
     val prompt: String,
     val history: List<AgentHistoryTurn>,
     val mode: String,
@@ -33,22 +34,25 @@ object AgentPendingQueueStore {
         pruneExpiredEntries()
     }
 
-    fun entriesFor(userKey: String?): List<AgentPendingQueueEntry> {
+    fun entriesFor(userKey: String?, sessionId: String?): List<AgentPendingQueueEntry> {
         val normalized = normalizeUserKey(userKey)
+        val normalizedSessionId = normalizeSessionId(sessionId)
         return readEntries()
-            .filter { it.userKey == normalized }
+            .filter { it.userKey == normalized && it.sessionId == normalizedSessionId }
             .sortedBy { it.createdAtEpochMillis }
     }
 
-    fun saveEntriesForUser(userKey: String?, entries: List<AgentPendingQueueEntry>) {
+    fun saveEntriesForSession(userKey: String?, sessionId: String?, entries: List<AgentPendingQueueEntry>) {
         val normalized = normalizeUserKey(userKey)
-        val others = readEntries().filterNot { it.userKey == normalized }
+        val normalizedSessionId = normalizeSessionId(sessionId)
+        val others = readEntries().filterNot { it.userKey == normalized && it.sessionId == normalizedSessionId }
         val sanitized = entries
             .filter { it.prompt.isNotBlank() && it.assistantMessageId.isNotBlank() }
             .sortedBy { it.createdAtEpochMillis }
             .map { entry ->
                 entry.copy(
                     userKey = normalized,
+                    sessionId = normalizedSessionId,
                     assistantMessageId = entry.assistantMessageId.ifBlank { UUID.randomUUID().toString() },
                 )
             }
@@ -60,8 +64,8 @@ object AgentPendingQueueStore {
         pruneExpiredEntries()
     }
 
-    fun clearEntriesForUser(userKey: String?) {
-        saveEntriesForUser(userKey, emptyList())
+    fun clearEntriesForSession(userKey: String?, sessionId: String?) {
+        saveEntriesForSession(userKey, sessionId, emptyList())
     }
 
     private fun pruneExpiredEntries() {
@@ -95,6 +99,7 @@ object AgentPendingQueueStore {
                     add(
                         AgentPendingQueueEntry(
                             userKey = normalizeUserKey(item.optString("userKey")),
+                            sessionId = normalizeSessionId(item.optString("sessionId")),
                             prompt = prompt,
                             history = history,
                             mode = item.optString("mode").trim().ifBlank { "release" },
@@ -133,6 +138,7 @@ object AgentPendingQueueStore {
             array.put(
                 JSONObject()
                     .put("userKey", normalizeUserKey(entry.userKey))
+                    .put("sessionId", normalizeSessionId(entry.sessionId))
                     .put("prompt", entry.prompt)
                     .put("mode", entry.mode)
                     .put("aiLevel", entry.aiLevel.ifBlank { "standard" })
@@ -159,5 +165,9 @@ object AgentPendingQueueStore {
     private fun normalizeUserKey(userKey: String?): String {
         val trimmed = userKey?.trim().orEmpty()
         return trimmed.ifBlank { "guest" }.lowercase()
+    }
+
+    private fun normalizeSessionId(sessionId: String?): String {
+        return sessionId?.trim().orEmpty()
     }
 }

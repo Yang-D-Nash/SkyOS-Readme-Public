@@ -102,6 +102,8 @@ import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.BrandSectionBanner
 import com.nash.skyos.ui.component.BrandStatusChip
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.AiConversationSessionStrip
+import com.nash.skyos.ui.component.AiConversationSessionsSheet
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.ToastHost
@@ -152,7 +154,15 @@ fun AiScreen(
     var localFeedbackType by remember { mutableStateOf(ToastType.Info) }
     var pendingImageSave by remember { mutableStateOf<Pair<ByteArray, String?>?>(null) }
     var showPromptComposer by rememberSaveable { mutableStateOf(false) }
+    var showSessionsSheet by rememberSaveable { mutableStateOf(false) }
+    var renameDraft by rememberSaveable { mutableStateOf("") }
     val promptSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val activeSessionSummary = uiState.sessions.firstOrNull { it.sessionId == uiState.activeSessionId }
+    val activeSessionSubtitle = when (activeSessionSummary?.promptCount ?: 0) {
+        0 -> "Neu"
+        1 -> "1 Anfrage"
+        else -> "${activeSessionSummary?.promptCount ?: 0} Anfragen"
+    }
 
     val showLocalFeedback: (String, ToastType) -> Unit = { message, type ->
         localFeedbackMessage = message
@@ -233,6 +243,10 @@ fun AiScreen(
         }
     }
 
+    LaunchedEffect(uiState.activeSessionId, uiState.activeSessionTitle) {
+        renameDraft = uiState.activeSessionTitle
+    }
+
     LaunchedEffect(uiState.usageSnapshot?.warningLevel) {
         if (!hasAutoUpgradePrompted && uiState.usageSnapshot?.warningLevel == "critical") {
             hasAutoUpgradePrompted = true
@@ -304,6 +318,15 @@ fun AiScreen(
                             ),
                         verticalArrangement = Arrangement.Top,
                     ) {
+                        AiConversationSessionStrip(
+                            title = uiState.activeSessionTitle,
+                            subtitle = activeSessionSubtitle,
+                            accent = MaterialTheme.colorScheme.primary,
+                            enabled = !uiState.botPhase.isBusy,
+                            onOpenSessions = { showSessionsSheet = true },
+                            onCreateNewChat = viewModel::startNewConversation,
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
                         AiEmptyStateHeader(compactVisualDensity = compactLayout)
                         Spacer(modifier = Modifier.height(78.dp))
                     }
@@ -332,6 +355,17 @@ fun AiScreen(
                                 AiDisabledCard()
                             }
                         } else {
+                            item {
+                                AiConversationSessionStrip(
+                                    title = uiState.activeSessionTitle,
+                                    subtitle = activeSessionSubtitle,
+                                    accent = MaterialTheme.colorScheme.primary,
+                                    enabled = !uiState.botPhase.isBusy,
+                                    onOpenSessions = { showSessionsSheet = true },
+                                    onCreateNewChat = viewModel::startNewConversation,
+                                )
+                            }
+
                             item {
                                 AiEmptyStateHeader(compactVisualDensity = true)
                             }
@@ -388,12 +422,41 @@ fun AiScreen(
                             showPromptComposer = false
                         },
                         onReset = {
-                            viewModel.resetConversation()
+                            viewModel.startNewConversation()
                             dismissKeyboard()
                             showPromptComposer = false
                         },
                     )
                 }
+            }
+
+            if (showSessionsSheet) {
+                AiConversationSessionsSheet(
+                    title = "AI Chats",
+                    sessions = uiState.sessions,
+                    activeSessionId = uiState.activeSessionId,
+                    renameDraft = renameDraft,
+                    accent = MaterialTheme.colorScheme.primary,
+                    enabled = !uiState.botPhase.isBusy,
+                    onRenameDraftChanged = { renameDraft = it },
+                    onDismiss = { showSessionsSheet = false },
+                    onSelectSession = { sessionId ->
+                        viewModel.openConversation(sessionId)
+                        showSessionsSheet = false
+                    },
+                    onCreateNewChat = {
+                        viewModel.startNewConversation()
+                        showSessionsSheet = false
+                    },
+                    onRenameActiveSession = {
+                        viewModel.renameActiveConversation(renameDraft)
+                        showSessionsSheet = false
+                    },
+                    onDeleteActiveSession = {
+                        viewModel.deleteActiveConversation()
+                        showSessionsSheet = false
+                    },
+                )
             }
         }
 
@@ -650,7 +713,7 @@ private fun AiPromptComposerSheet(
                 onClick = onReset,
                 enabled = !botPhase.isBusy,
             ) {
-                Text("Reset")
+                Text("Neuer Chat")
             }
             BrandActionButton(
                 text = if (composerMode == AiComposerMode.Text) "Senden" else "Rendern",
