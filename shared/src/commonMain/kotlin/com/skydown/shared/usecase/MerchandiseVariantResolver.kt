@@ -42,21 +42,19 @@ object MerchandiseVariantResolver {
                 variant.color.normalizedValue() == normalizedColor
         }
 
-        if (matches.size == 1) {
-            return Result.success(matches.first())
-        }
-
-        if (matches.isEmpty()) {
-            val colorPart = color?.let { " / $it" }.orEmpty()
-            return Result.failure(
-                IllegalArgumentException(SharedText.MERCH_VARIANT_NOT_FOUND.formatTemplate(size, colorPart)),
+        return when {
+            matches.size == 1 -> Result.success(matches.first())
+            matches.isEmpty() -> Result.failure(
+                IllegalArgumentException(
+                    SharedText.MERCH_VARIANT_NOT_FOUND.formatTemplate(size, color.toVariantColorPart()),
+                ),
+            )
+            else -> Result.failure(
+                IllegalStateException(
+                    SharedText.MERCH_VARIANT_MULTIPLE_FOUND.formatTemplate(size, color.toVariantColorPart()),
+                ),
             )
         }
-
-        val colorPart = color?.let { " / $it" }.orEmpty()
-        return Result.failure(
-            IllegalStateException(SharedText.MERCH_VARIANT_MULTIPLE_FOUND.formatTemplate(size, colorPart)),
-        )
     }
 }
 
@@ -66,3 +64,5 @@ private fun String?.normalizedValue(): String? {
         ?.takeIf { it.isNotEmpty() }
         ?.lowercase()
 }
+
+private fun String?.toVariantColorPart(): String = this?.let { " / $it" }.orEmpty()

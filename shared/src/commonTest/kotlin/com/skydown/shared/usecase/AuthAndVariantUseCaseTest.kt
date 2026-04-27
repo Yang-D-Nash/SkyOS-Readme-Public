@@ -15,19 +15,7 @@ import kotlin.test.assertTrue
 class AuthAndVariantUseCaseTest {
     @Test
     fun validateRegistration_returnsNull_forValidInput() {
-        val input = RegistrationInput(
-            username = "sky",
-            email = "sky@example.com",
-            whatsApp = "+491234567",
-            password = "secret123",
-            confirmPassword = "secret123",
-            consent = RegistrationConsentInput(
-                acceptedTerms = true,
-                acceptedPrivacyPolicy = true,
-                legalVersionLabel = "v1",
-                consentSource = "signup-screen",
-            ),
-        )
+        val input = registrationInput()
 
         assertNull(AuthValidation.validateRegistration(input))
     }
@@ -39,6 +27,26 @@ class AuthAndVariantUseCaseTest {
         assertEquals(
             SharedText.AUTH_LOGIN_EMAIL_PASSWORD_REQUIRED,
             AuthValidation.validateLogin(input),
+        )
+    }
+
+    @Test
+    fun validateRegistration_returnsMessage_whenPasswordsDoNotMatch() {
+        val input = registrationInput(confirmPassword = "secret321")
+
+        assertEquals(
+            SharedText.AUTH_REGISTER_PASSWORD_MISMATCH,
+            AuthValidation.validateRegistration(input),
+        )
+    }
+
+    @Test
+    fun validateRegistrationConsent_returnsMessage_whenTermsNotAccepted() {
+        val consent = registrationConsent(acceptedTerms = false)
+
+        assertEquals(
+            SharedText.AUTH_REGISTER_CONSENT_REQUIRED,
+            AuthValidation.validateRegistrationConsent(consent),
         )
     }
 
@@ -87,6 +95,31 @@ class AuthAndVariantUseCaseTest {
             imageUrls = emptyList(),
             available = true,
             variants = variants.toList(),
+        )
+    }
+
+    private fun registrationInput(confirmPassword: String = "secret123"): RegistrationInput {
+        return RegistrationInput(
+            username = "sky",
+            email = "sky@example.com",
+            whatsApp = "+491234567",
+            password = "secret123",
+            confirmPassword = confirmPassword,
+            consent = registrationConsent(),
+        )
+    }
+
+    private fun registrationConsent(
+        acceptedTerms: Boolean = true,
+        acceptedPrivacyPolicy: Boolean = true,
+        legalVersionLabel: String = "v1",
+        consentSource: String = "signup-screen",
+    ): RegistrationConsentInput {
+        return RegistrationConsentInput(
+            acceptedTerms = acceptedTerms,
+            acceptedPrivacyPolicy = acceptedPrivacyPolicy,
+            legalVersionLabel = legalVersionLabel,
+            consentSource = consentSource,
         )
     }
 }

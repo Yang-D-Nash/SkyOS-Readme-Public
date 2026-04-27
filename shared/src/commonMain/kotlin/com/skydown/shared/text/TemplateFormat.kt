@@ -4,7 +4,11 @@ private val indexedPlaceholderRegex = Regex("%(\\d+)\\$[sd]")
 
 fun String.formatTemplate(vararg args: Any?): String {
     return indexedPlaceholderRegex.replace(this) { match ->
-        val oneBasedIndex = match.groupValues[1].toIntOrNull() ?: return@replace match.value
-        args.getOrNull(oneBasedIndex - 1)?.toString() ?: ""
+        val oneBasedIndex = match.toPlaceholderIndex() ?: return@replace match.value
+        args.getOrNull(oneBasedIndex - 1).orEmptyString()
     }
 }
+
+private fun MatchResult.toPlaceholderIndex(): Int? = groupValues[1].toIntOrNull()
+
+private fun Any?.orEmptyString(): String = this?.toString() ?: ""

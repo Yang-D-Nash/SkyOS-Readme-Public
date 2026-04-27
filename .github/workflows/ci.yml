@@ -10,6 +10,8 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Centralized path groups used by change detection.
+# Keep these broad enough to avoid accidental false negatives.
 jobs:
   changes:
     name: Detect changed areas
@@ -53,6 +55,7 @@ jobs:
             echo "- functions: \`${{ steps.filter.outputs.functions }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  # Shared KMP tests are expensive and run only when shared-relevant paths change.
   shared-tests:
     name: Shared allTests
     needs: changes
@@ -75,6 +78,7 @@ jobs:
       - name: Run shared tests (KMP)
         run: ./gradlew :shared:allTests --no-daemon
 
+  # Android lint gate runs when Android or shared sources may be affected.
   android-lint:
     name: Android quality gate
     needs: changes
@@ -129,6 +133,7 @@ jobs:
       - name: Run tests
         run: npm test
 
+  # Final gate summary always runs to provide a single PR-facing status view.
   ci-summary:
     name: CI gate summary
     runs-on: ubuntu-latest

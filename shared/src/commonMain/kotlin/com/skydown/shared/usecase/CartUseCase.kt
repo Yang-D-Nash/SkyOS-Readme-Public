@@ -18,11 +18,9 @@ object CartUseCase {
         unitPrice: Double? = null,
     ): List<CartItem> {
         val mutableItems = currentItems.toMutableList()
-        val normalizedColor = color?.trim()?.takeIf { it.isNotEmpty() }
+        val normalizedColor = color.normalizedOptionalValue()
         val existingIndex = mutableItems.indexOfFirst {
-            it.item.id == item.id &&
-                it.size == size &&
-                it.color.equals(normalizedColor, ignoreCase = true)
+            it.matches(itemId = item.id, size = size, color = normalizedColor)
         }
 
         if (existingIndex >= 0) {
@@ -44,10 +42,9 @@ object CartUseCase {
     }
 
     fun removeItem(currentItems: List<CartItem>, itemId: String, size: String, color: String? = null): List<CartItem> {
+        val normalizedColor = color.normalizedOptionalValue()
         return currentItems.filterNot {
-            it.item.id == itemId &&
-                it.size == size &&
-                it.color.equals(color?.trim()?.takeIf { value -> value.isNotEmpty() }, ignoreCase = true)
+            it.matches(itemId = itemId, size = size, color = normalizedColor)
         }
     }
 
@@ -62,4 +59,14 @@ object CartUseCase {
         }
         return null
     }
+}
+
+private fun CartItem.matches(itemId: String?, size: String, color: String?): Boolean {
+    return item.id == itemId &&
+        this.size == size &&
+        this.color.equals(color, ignoreCase = true)
+}
+
+private fun String?.normalizedOptionalValue(): String? {
+    return this?.trim()?.takeIf(String::isNotEmpty)
 }

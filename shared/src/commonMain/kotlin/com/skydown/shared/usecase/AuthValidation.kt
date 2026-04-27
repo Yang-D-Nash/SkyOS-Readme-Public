@@ -7,24 +7,20 @@ import com.skydown.shared.text.SharedText
 
 object AuthValidation {
     fun validateLogin(input: LoginInput): String? {
-        if (input.email.isBlank() || input.password.isBlank()) {
+        if (input.email.isBlankOrAny(input.password)) {
             return SharedText.AUTH_LOGIN_EMAIL_PASSWORD_REQUIRED
         }
         return null
     }
 
     fun validateRegistration(input: RegistrationInput): String? {
-        if (input.email.isBlank() || input.password.isBlank() || input.confirmPassword.isBlank()) {
+        if (input.email.isBlankOrAny(input.password, input.confirmPassword)) {
             return SharedText.AUTH_REGISTER_REQUIRED_FIELDS
         }
         if (input.password != input.confirmPassword) {
             return SharedText.AUTH_REGISTER_PASSWORD_MISMATCH
         }
-        val consentError = validateRegistrationConsent(input.consent)
-        if (consentError != null) {
-            return consentError
-        }
-        return null
+        return validateRegistrationConsent(input.consent)
     }
 
     fun validateRegistrationConsent(consent: RegistrationConsentInput): String? {
@@ -42,4 +38,8 @@ object AuthValidation {
 
         return null
     }
+}
+
+private fun String.isBlankOrAny(vararg others: String): Boolean {
+    return isBlank() || others.any(String::isBlank)
 }
