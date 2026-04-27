@@ -4,6 +4,8 @@
 
 - Verified local release gates for the current candidate: shared tests, Android lint/metadata compile, Functions tests, Firestore/Storage rules tests, Detekt, Android artifact verification, and iOS Release simulator build.
 - Documented current build identity: iOS `1.0.0` build `10007`, Android `1.0.0` versionCode `10015`.
+- Prepared the next iOS upload by bumping `CURRENT_PROJECT_VERSION` from `10007` to `10008` after App Store Connect rejected a redundant re-upload of build `10007`.
+- Gated Android UI-test launch extras to debuggable builds so release builds cannot be started into mock data or a local fixture user through exported Activity extras.
 - Exported Google Play-ready Android phone screenshots at `1242x2424` and Play listing graphics (`512x512` icon, `1024x500` feature graphic).
 - Exported iPad App Store screenshots at `2064x2752` after making the screenshot test iPad top-tab aware.
 - Removed the launch-time push permission prompt; notification permission now refreshes silently until the user explicitly requests it.

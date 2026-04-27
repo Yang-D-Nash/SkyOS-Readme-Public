@@ -74,6 +74,7 @@ const shopifyAdminAccessToken = defineSecret("SHOPIFY_ADMIN_ACCESS_TOKEN");
 const manusApiKey = defineSecret("MANUS_API_KEY");
 const xaiApiKey = defineSecret("XAI_API_KEY");
 const agentRunCallbackSecret = defineSecret("AGENT_RUN_CALLBACK_SECRET");
+const workflowApiSecret = defineSecret("SKYOS_WORKFLOW_SECRET");
 const OWNER_EMAIL = normalizeEmail(process.env.SKYOS_OWNER_EMAIL || process.env.SKYDOWN_OWNER_EMAIL) || "nash.lioncorna@gmail.com";
 const IOS_APP_BUNDLE_ID = nonEmptyString(process.env.SKYOS_IOS_APP_BUNDLE_ID) || "com.skydown.ios";
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
@@ -2564,6 +2565,84 @@ function buildSkyosWorkflowResponse({
       ...(Array.isArray(extraResults) ? extraResults : []),
     ],
   };
+}
+
+function loadWorkflowApiSecret() {
+  try {
+    return nonEmptyString(workflowApiSecret.value()) || nonEmptyString(process.env.SKYOS_WORKFLOW_SECRET) || "";
+  } catch (error) {
+    return nonEmptyString(process.env.SKYOS_WORKFLOW_SECRET) || "";
+  }
+}
+
+function parseOptionalIsoTimestamp(value, fieldName, {required = false} = {}) {
+  const raw = nonEmptyString(value);
+  if (!raw) {
+    if (required) {
+      throw new HttpsError("invalid-argument", `${fieldName} fehlt.`);
+    }
+    return null;
+  }
+  const parsedMs = Date.parse(raw);
+  if (!Number.isFinite(parsedMs)) {
+    throw new HttpsError("invalid-argument", `${fieldName} ist ungueltig.`);
+  }
+  return admin.firestore.Timestamp.fromDate(new Date(parsedMs));
+}
+
+function trimOptionalText(value, maxChars) {
+  return trimTextMax(nonEmptyString(value) || "", maxChars);
+}
+
+function isSecretMatch(provided, expected) {
+  if (!provided || !expected) {
+    return false;
+  }
+  const expectedBuffer = Buffer.from(expected, "utf8");
+  const providedBuffer = Buffer.from(provided, "utf8");
+  if (expectedBuffer.length !== providedBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(expectedBuffer, providedBuffer);
+}
+
+function getWorkflowRequestBase(payload) {
+  const uid = nonEmptyString(payload?.uid);
+  if (!uid) {
+    throw new HttpsError("invalid-argument", "uid fehlt.");
+  }
+  const source = nonEmptyString(payload?.source) || "activepieces";
+  if (source !== "activepieces") {
+    throw new HttpsError("invalid-argument", "source ist ungueltig.");
+  }
+  return {
+    uid,
+    source,
+    requestId: trimOptionalText(payload?.requestId, 120) || null,
+  };
+}
+
+function assertWorkflowHttpRequest(request, response) {
+  if (request.method !== "POST") {
+    response.status(405).json({ok: false, error: "method_not_allowed"});
+    return null;
+  }
+  const expectedSecret = loadWorkflowApiSecret();
+  if (!expectedSecret) {
+    logger.error("Workflow API secret missing.");
+    response.status(500).json({ok: false, error: "workflow_secret_missing"});
+    return null;
+  }
+  const providedSecret = nonEmptyString(request.headers["x-skyos-workflow-secret"]) || "";
+  if (!isSecretMatch(providedSecret, expectedSecret)) {
+    response.status(401).json({ok: false, error: "unauthorized"});
+    return null;
+  }
+  if (!request.body || typeof request.body !== "object" || Array.isArray(request.body)) {
+    response.status(400).json({ok: false, error: "invalid_json_body"});
+    return null;
+  }
+  return request.body;
 }
 
 function assertRecentAccountDeletionAuth(auth) {
@@ -5780,6 +5859,181 @@ exports.agentRunStatusCallback = onRequest({
       uid,
       runId,
       state,
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+    response.status(500).json({ok: false, error: "internal_error"});
+  }
+});
+
+exports.createReminderFromWorkflow = onRequest({
+  region: "us-central1",
+  timeoutSeconds: 30,
+  secrets: [workflowApiSecret],
+}, async (request, response) => {
+  const payload = assertWorkflowHttpRequest(request, response);
+  if (!payload) {
+    return;
+  }
+  try {
+    const {uid, source, requestId} = getWorkflowRequestBase(payload);
+    const title = nonEmptyString(payload.title);
+    if (!title) {
+      response.status(400).json({ok: false, error: "title_required"});
+      return;
+    }
+    if (title.length > 180) {
+      response.status(400).json({ok: false, error: "title_too_long"});
+      return;
+    }
+    const bodyRaw = nonEmptyString(payload.body) || "";
+    if (bodyRaw.length > 2000) {
+      response.status(400).json({ok: false, error: "body_too_long"});
+      return;
+    }
+    const body = trimOptionalText(payload.body, 2000);
+    const scheduledAt = parseOptionalIsoTimestamp(payload.scheduledAt, "scheduledAt", {required: true});
+    const timezone = nonEmptyString(payload.timezone);
+    if (!timezone) {
+      response.status(400).json({ok: false, error: "timezone_required"});
+      return;
+    }
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const reminderRef = admin.firestore()
+        .collection("users")
+        .doc(uid)
+        .collection("reminders")
+        .doc();
+    await reminderRef.set({
+      title: trimTextMax(title, 180),
+      body,
+      scheduledAt,
+      timezone: trimTextMax(timezone, 80),
+      status: REMINDER_STATUSES.scheduled,
+      source,
+      requestId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    response.status(200).json({ok: true, uid, reminderId: reminderRef.id});
+  } catch (error) {
+    if (error instanceof HttpsError && error.code === "invalid-argument") {
+      response.status(400).json({ok: false, error: "invalid_argument", message: error.message});
+      return;
+    }
+    logger.error("createReminderFromWorkflow failed.", {
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+    response.status(500).json({ok: false, error: "internal_error"});
+  }
+});
+
+exports.createTaskFromWorkflow = onRequest({
+  region: "us-central1",
+  timeoutSeconds: 30,
+  secrets: [workflowApiSecret],
+}, async (request, response) => {
+  const payload = assertWorkflowHttpRequest(request, response);
+  if (!payload) {
+    return;
+  }
+  try {
+    const {uid, source, requestId} = getWorkflowRequestBase(payload);
+    const title = nonEmptyString(payload.title);
+    if (!title) {
+      response.status(400).json({ok: false, error: "title_required"});
+      return;
+    }
+    if (title.length > 180) {
+      response.status(400).json({ok: false, error: "title_too_long"});
+      return;
+    }
+    const descriptionRaw = nonEmptyString(payload.description) || "";
+    if (descriptionRaw.length > 5000) {
+      response.status(400).json({ok: false, error: "description_too_long"});
+      return;
+    }
+    const description = trimOptionalText(payload.description, 5000);
+    const priorityRaw = nonEmptyString(payload.priority)?.toLowerCase() || "normal";
+    const priority = ["low", "normal", "high"].includes(priorityRaw) ? priorityRaw : "normal";
+    const dueAt = parseOptionalIsoTimestamp(payload.dueAt, "dueAt");
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const taskRef = admin.firestore()
+        .collection("users")
+        .doc(uid)
+        .collection("tasks")
+        .doc();
+    await taskRef.set({
+      title: trimTextMax(title, 180),
+      description,
+      dueAt: dueAt || null,
+      priority,
+      status: "open",
+      source,
+      requestId,
+      createdAt: now,
+      updatedAt: now,
+      completedAt: null,
+    });
+    response.status(200).json({ok: true, uid, taskId: taskRef.id});
+  } catch (error) {
+    if (error instanceof HttpsError && error.code === "invalid-argument") {
+      response.status(400).json({ok: false, error: "invalid_argument", message: error.message});
+      return;
+    }
+    logger.error("createTaskFromWorkflow failed.", {
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+    response.status(500).json({ok: false, error: "internal_error"});
+  }
+});
+
+exports.createNoteFromWorkflow = onRequest({
+  region: "us-central1",
+  timeoutSeconds: 30,
+  secrets: [workflowApiSecret],
+}, async (request, response) => {
+  const payload = assertWorkflowHttpRequest(request, response);
+  if (!payload) {
+    return;
+  }
+  try {
+    const {uid, source, requestId} = getWorkflowRequestBase(payload);
+    const title = nonEmptyString(payload.title);
+    if (!title) {
+      response.status(400).json({ok: false, error: "title_required"});
+      return;
+    }
+    if (title.length > 180) {
+      response.status(400).json({ok: false, error: "title_too_long"});
+      return;
+    }
+    const contentRaw = nonEmptyString(payload.content) || "";
+    if (contentRaw.length > 5000) {
+      response.status(400).json({ok: false, error: "content_too_long"});
+      return;
+    }
+    const content = trimOptionalText(payload.content, 5000);
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const noteRef = admin.firestore()
+        .collection("users")
+        .doc(uid)
+        .collection("notes")
+        .doc();
+    await noteRef.set({
+      title: trimTextMax(title, 180),
+      content,
+      source,
+      requestId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    response.status(200).json({ok: true, uid, noteId: noteRef.id});
+  } catch (error) {
+    if (error instanceof HttpsError && error.code === "invalid-argument") {
+      response.status(400).json({ok: false, error: "invalid_argument", message: error.message});
+      return;
+    }
+    logger.error("createNoteFromWorkflow failed.", {
       error: error instanceof Error ? error.message : `${error}`,
     });
     response.status(500).json({ok: false, error: "internal_error"});

@@ -11,7 +11,7 @@ store rollout is still `no-go` until the open items in
 
 Known open release gates:
 
-- App Store Connect: confirm existing iOS build `10007` in TestFlight or increment to `10008` before another upload.
+- App Store Connect: confirm existing iOS build `10007` in TestFlight or upload a freshly archived build `10008`.
 - Google Play: enable/propagate `androidpublisher.googleapis.com` for project `1069068117600`, then rerun Fastlane validate-only.
 - Store assets: upload/map the generated iPhone, iPad, Play-compliant Android screenshots, and Play listing graphics.
 - Store URLs and legal: replace placeholder console URLs with final hosted pages and confirm final legal approval.
@@ -22,6 +22,7 @@ Known open release gates:
 - [ ] `git status` is clean or intentionally scoped
 - [ ] no generated dumps, screenshots, logs, or temp exports are staged
 - [ ] no secrets, tokens, service accounts, or private keys are staged
+- [ ] test-only launch flags, mock repositories, and fixture users are unavailable in release builds
 - [ ] version, build number, and release notes are aligned
 
 ## 2. Build and Test

@@ -1,6 +1,7 @@
 package com.nash.skyos
 
 import android.Manifest
+import android.content.pm.ApplicationInfo
 import android.media.AudioManager
 import android.graphics.Color as AndroidColor
 import android.os.Build
@@ -60,13 +61,25 @@ class MainActivity : ComponentActivity() {
     @UnstableApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val skipIntroForUiTest = intent?.getBooleanExtra(EXTRA_UI_TEST_SKIP_INTRO, false) == true
-        val startRouteForUiTest = intent?.getStringExtra(EXTRA_UI_TEST_START_ROUTE)
-        val useMockMerchForUiTest = intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_MERCH, false) == true
-        val useMockMusicForUiTest = intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_MUSIC, false) == true
-        val useMockVideoHubForUiTest = intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_VIDEO_HUB, false) == true
-        val useMockAiVisualForUiTest = intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_AI_VISUAL, false) == true
-        val useSignedInUserForUiTest = intent?.getBooleanExtra(EXTRA_UI_TEST_SIGNED_IN_USER, false) == true
+        val uiTestLaunchOptionsEnabled =
+            (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val skipIntroForUiTest = uiTestLaunchOptionsEnabled &&
+            intent?.getBooleanExtra(EXTRA_UI_TEST_SKIP_INTRO, false) == true
+        val startRouteForUiTest = if (uiTestLaunchOptionsEnabled) {
+            intent?.getStringExtra(EXTRA_UI_TEST_START_ROUTE)
+        } else {
+            null
+        }
+        val useMockMerchForUiTest = uiTestLaunchOptionsEnabled &&
+            intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_MERCH, false) == true
+        val useMockMusicForUiTest = uiTestLaunchOptionsEnabled &&
+            intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_MUSIC, false) == true
+        val useMockVideoHubForUiTest = uiTestLaunchOptionsEnabled &&
+            intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_VIDEO_HUB, false) == true
+        val useMockAiVisualForUiTest = uiTestLaunchOptionsEnabled &&
+            intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_AI_VISUAL, false) == true
+        val useSignedInUserForUiTest = uiTestLaunchOptionsEnabled &&
+            intent?.getBooleanExtra(EXTRA_UI_TEST_SIGNED_IN_USER, false) == true
         val uiTestUser = if (useSignedInUserForUiTest) {
             createUiTestSignedInUser()
         } else {

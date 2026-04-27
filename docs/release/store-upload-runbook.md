@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-04-27 (release readiness check: iOS 10007, Android 10015)
+Last updated: 2026-04-27 (release readiness check: iOS 10008 prepared, Android 10015)
 Owner: Release Engineering
 
 ## Build Identity
@@ -9,7 +9,7 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10007`
+- Build: `10008` (next upload; last archived build: `10007`)
 - Team ID: `F3BNLG6L7P`
 
 ### Android
@@ -23,8 +23,8 @@ Owner: Release Engineering
 
 - iOS archive: `build/ios/SkyOS-1.0.0-10007-20260427.xcarchive` (rebuilt 2026-04-27 Europe/Berlin)
 - iOS upload status: App Store Connect rejected a repeat upload for build `10007` as redundant, which indicates build `10007` already exists for version `1.0` / `1.0.0`.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-27 Europe/Berlin, versionCode `10015`)
-- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-04-27 Europe/Berlin, versionCode `10015`)
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-27 14:48 Europe/Berlin, versionCode `10015`)
+- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-04-27 14:48 Europe/Berlin, versionCode `10015`)
 
 ## Upload Status
 
@@ -33,7 +33,7 @@ Owner: Release Engineering
 - App Store Connect upload: NOT rerun successfully during this check; the server reported redundant binary for build `10007`.
 - Processing status: verify existing build `10007` in App Store Connect and attach it to internal TestFlight testers if available.
 - Notes:
-  - If a new binary is required, increment `CURRENT_PROJECT_VERSION` to `10008` before uploading again.
+  - `CURRENT_PROJECT_VERSION` is now set to `10008`; generate a fresh archive before uploading again.
   - Build `10007` was archived successfully on 2026-04-27.
   - The redundant-upload response for build `10007` means reusing the same build number will not work.
   - Build `10006` uploaded successfully on 2026-04-26 via `xcodebuild -exportArchive` with `destination=upload`.
@@ -54,9 +54,9 @@ Owner: Release Engineering
 
 ## 2026-04-27 Verification Log
 
-1. Android clean release gate passed for version `1.0.0` / versionCode `10015`.
-2. Android AAB SHA-256: `ca67068303962c127c3cf69e83153b206f8b4fa8da38a39536685d7a4ef49d05`.
-3. Android APK SHA-256: `05d086c85dbece9c60ee214eb907a07ae2d5513cc624d53b2dc158a94a75e4ff`.
+1. Android clean release gate passed for version `1.0.0` / versionCode `10015` after gating UI-test launch extras to debuggable builds only.
+2. Android AAB SHA-256: `5e03e53452aa1ae29ce5d13bc551bc641924a8d19cb1fe8ae2be5b2b98e05e97`.
+3. Android APK SHA-256: `6aa428722645f0af697080fcb3c16443005dd7649426442969fc0d89e20c359d`.
 4. iOS Release build passed with code signing disabled for compile validation.
 5. iOS archive passed for `com.skydown.ios`, version `1.0.0`, build `10007`.
 6. Local CI gate passed: shared tests, Android lint, Functions tests, Firestore rules tests, and Storage rules tests.
@@ -81,6 +81,7 @@ Historical 2026-04-26 upload notes retained for traceability; current upload tar
 - Android native Play Billing purchase flow now waits for the Play Billing purchase callback before treating the subscription as complete or cancelled.
 - Android Play Billing Library upgraded from `7.1.1` to `8.3.0`; `queryProductDetailsAsync` migrated to the PBL 8 `QueryProductDetailsResult.productDetailsList` API.
 - Android custom-scheme entry points are limited to Spotify auth and checkout return hosts.
+- Android UI-test launch extras are ignored in non-debuggable builds, so release builds cannot be started into mock data or a local fixture user through exported Activity extras.
 - Android release manifest explicitly removes SDK-injected advertising ID / AdServices permissions.
 - Public privacy/terms pages no longer expose beta placeholders or "not final before release" wording.
 - iOS and Android in-app legal defaults now use the same operator/contact baseline as the public legal pages.
@@ -176,7 +177,7 @@ Suggested review note text:
 
 ## Go/No-Go Checklist
 
-- [ ] Existing iOS build `10007` visible in App Store Connect TestFlight, or new build number prepared before another upload
+- [ ] Existing iOS build `10007` visible in App Store Connect TestFlight, or upload a newly archived build `10008`
 - [ ] Android release visible in Play Console internal/closed track
 - [ ] Privacy, terms, support URLs point to final public domain
 - [ ] Legal text approved for store/public use

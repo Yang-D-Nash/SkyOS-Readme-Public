@@ -751,7 +751,7 @@ service cloud.firestore {
     }
 
     function validReminderSource(value) {
-      return value in ["agent", "workflow", "manual"];
+      return value in ["agent", "workflow", "manual", "activepieces"];
     }
 
     function validReminderPayload() {
@@ -762,6 +762,7 @@ service cloud.firestore {
         "timezone",
         "status",
         "source",
+        "requestId",
         "createdAt",
         "updatedAt"
       ])
@@ -771,6 +772,65 @@ service cloud.firestore {
       && requiredString(request.resource.data.timezone, 1, 80)
       && validReminderStatus(request.resource.data.status)
       && validReminderSource(request.resource.data.source)
+      && optionalMapString(request.resource.data, "requestId", 120)
+      && request.resource.data.createdAt is timestamp
+      && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validTaskPriority(value) {
+      return value in ["low", "normal", "high"];
+    }
+
+    function validTaskStatus(value) {
+      return value in ["open", "completed", "cancelled"];
+    }
+
+    function validTaskSource(value) {
+      return value in ["manual", "workflow", "activepieces", "agent"];
+    }
+
+    function validTaskPayload() {
+      return request.resource.data.keys().hasOnly([
+        "title",
+        "description",
+        "dueAt",
+        "priority",
+        "status",
+        "source",
+        "requestId",
+        "createdAt",
+        "updatedAt",
+        "completedAt"
+      ])
+      && requiredString(request.resource.data.title, 1, 180)
+      && optionalMapString(request.resource.data, "description", 5000)
+      && optionalMapTimestamp(request.resource.data, "dueAt")
+      && validTaskPriority(request.resource.data.priority)
+      && validTaskStatus(request.resource.data.status)
+      && validTaskSource(request.resource.data.source)
+      && optionalMapString(request.resource.data, "requestId", 120)
+      && request.resource.data.createdAt is timestamp
+      && request.resource.data.updatedAt is timestamp
+      && optionalMapTimestamp(request.resource.data, "completedAt");
+    }
+
+    function validNoteSource(value) {
+      return value in ["manual", "workflow", "activepieces", "agent"];
+    }
+
+    function validNotePayload() {
+      return request.resource.data.keys().hasOnly([
+        "title",
+        "content",
+        "source",
+        "requestId",
+        "createdAt",
+        "updatedAt"
+      ])
+      && requiredString(request.resource.data.title, 1, 180)
+      && optionalMapString(request.resource.data, "content", 5000)
+      && validNoteSource(request.resource.data.source)
+      && optionalMapString(request.resource.data, "requestId", 120)
       && request.resource.data.createdAt is timestamp
       && request.resource.data.updatedAt is timestamp;
     }
@@ -970,6 +1030,24 @@ service cloud.firestore {
         (isSelf(uid) && regularUserWriteAllowed())
         || isOwner()
       ) && validReminderPayload();
+      allow delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+    }
+
+    match /users/{uid}/tasks/{taskId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update: if (
+        (isSelf(uid) && regularUserWriteAllowed())
+        || isOwner()
+      ) && validTaskPayload();
+      allow delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+    }
+
+    match /users/{uid}/notes/{noteId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update: if (
+        (isSelf(uid) && regularUserWriteAllowed())
+        || isOwner()
+      ) && validNotePayload();
       allow delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
     }
 
