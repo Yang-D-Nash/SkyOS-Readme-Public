@@ -16,6 +16,7 @@ struct AgentPendingQueueEntry: Codable, Equatable {
     let automationScope: String
     let assistantMessageID: String
     let createdAt: Date
+    let attachments: [AgentOutboundAttachment]
 
     init(
         userKey: String,
@@ -27,7 +28,8 @@ struct AgentPendingQueueEntry: Codable, Equatable {
         executeAutomation: Bool,
         automationScope: String = "owner",
         assistantMessageID: String,
-        createdAt: Date
+        createdAt: Date,
+        attachments: [AgentOutboundAttachment] = []
     ) {
         self.userKey = userKey
         self.sessionID = sessionID
@@ -39,6 +41,7 @@ struct AgentPendingQueueEntry: Codable, Equatable {
         self.automationScope = automationScope
         self.assistantMessageID = assistantMessageID
         self.createdAt = createdAt
+        self.attachments = attachments
     }
 
     init(from decoder: Decoder) throws {
@@ -53,6 +56,21 @@ struct AgentPendingQueueEntry: Codable, Equatable {
         automationScope = try container.decodeIfPresent(String.self, forKey: .automationScope) ?? "owner"
         assistantMessageID = try container.decode(String.self, forKey: .assistantMessageID)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
+        attachments = try container.decodeIfPresent([AgentOutboundAttachment].self, forKey: .attachments) ?? []
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case userKey
+        case sessionID
+        case prompt
+        case history
+        case mode
+        case aiLevel
+        case executeAutomation
+        case automationScope
+        case assistantMessageID
+        case createdAt
+        case attachments
     }
 }
 
@@ -100,7 +118,8 @@ final class AgentPendingQueueStore {
                     executeAutomation: $0.executeAutomation,
                     automationScope: $0.automationScope,
                     assistantMessageID: $0.assistantMessageID,
-                    createdAt: $0.createdAt
+                    createdAt: $0.createdAt,
+                    attachments: $0.attachments
                 )
             }
             .sorted { $0.createdAt < $1.createdAt }
@@ -137,7 +156,8 @@ final class AgentPendingQueueStore {
                 executeAutomation: entry.executeAutomation,
                 automationScope: entry.automationScope,
                 assistantMessageID: entry.assistantMessageID,
-                createdAt: entry.createdAt
+                createdAt: entry.createdAt,
+                attachments: entry.attachments
             )
         }
 

@@ -211,6 +211,7 @@ final class AgentChatViewModel: ObservableObject {
         let automationScope: String
         let assistantMessageID: UUID
         let createdAt: Date
+        let attachments: [AgentOutboundAttachment]
     }
 
     private struct InFlightRequestContext: Equatable {
@@ -291,11 +292,11 @@ final class AgentChatViewModel: ObservableObject {
         }
     }
 
-    func sendDraft() {
-        sendPrompt(draft)
+    func sendDraft(attachmentURLs: [URL] = []) {
+        sendPrompt(draft, attachmentURLs: attachmentURLs)
     }
 
-    func sendPrompt(_ prompt: String) {
+    func sendPrompt(_ prompt: String, attachmentURLs: [URL] = []) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty, !phase.shouldBlockSend else { return }
         guard selectedLevel.isAvailable(for: currentQuotaPlan) else {
@@ -309,8 +310,9 @@ final class AgentChatViewModel: ObservableObject {
         )
         currentSessionID = session.id
         refreshConversationMetadata(preferredSessionID: session.id)
+        let preparedAttachments = AgentOutboundAttachment.batchInline(fileURLs: attachmentURLs)
         guard NetworkStatusMonitor.shared.isOnline else {
-            queuePromptForRetry(trimmedPrompt)
+            queuePromptForRetry(trimmedPrompt, attachments: preparedAttachments)
             return
         }
 
@@ -349,7 +351,8 @@ final class AgentChatViewModel: ObservableObject {
                     aiLevel: levelAtSend.rawValue,
                     executeAutomation: executeAutomationAtSend,
                     automationScope: automationScopeAtSend,
-                    manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
+                    manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil(),
+                    attachments: preparedAttachments
                 )
                 guard isRequestContextValid(requestContext) else { return }
                 updateProviderDiagnostics(from: result)
@@ -416,7 +419,8 @@ final class AgentChatViewModel: ObservableObject {
                             executeAutomation: executeAutomationAtSend,
                             automationScope: automationScopeAtSend,
                             assistantMessageID: assistantID,
-                            createdAt: .now
+                            createdAt: .now,
+                            attachments: preparedAttachments
                         )
                     )
                     persistPendingRequests()
@@ -597,7 +601,8 @@ final class AgentChatViewModel: ObservableObject {
                 executeAutomation: entry.executeAutomation,
                 automationScope: entry.automationScope,
                 assistantMessageID: assistantID,
-                createdAt: entry.createdAt
+                createdAt: entry.createdAt,
+                attachments: entry.attachments
             )
         }
 
@@ -710,7 +715,7 @@ final class AgentChatViewModel: ObservableObject {
         conversationRevision += 1
     }
 
-    private func queuePromptForRetry(_ trimmedPrompt: String) {
+    private func queuePromptForRetry(_ trimmedPrompt: String, attachments: [AgentOutboundAttachment] = []) {
         let session = historyStore.ensureSession(
             userKey: currentUserKey,
             source: .agent,
@@ -750,16 +755,18 @@ final class AgentChatViewModel: ObservableObject {
                 executeAutomation: executeAutomationAtSend,
                 automationScope: automationScopeAtSend,
                 assistantMessageID: assistantID,
-                createdAt: .now
+                createdAt: .now,
+                attachments: attachments
             )
         )
         persistPendingRequests()
 
+        let toastKey = attachments.isEmpty ? "agent.queue.toast.queued" : "agent.queue.toast.queued.with_attachments"
+        let toastFallback = attachments.isEmpty ?
+            "Offline gespeichert. Wird automatisch gesendet, sobald du wieder online bist." :
+            "Offline gespeichert inkl. Dateien. Wird automatisch gesendet, sobald du wieder online bist."
         showUserToast(
-            AppLocalized.text(
-                "agent.queue.toast.queued",
-                fallback: "Offline gespeichert. Wird automatisch gesendet, sobald du wieder online bist."
-            ),
+            AppLocalized.text(toastKey, fallback: toastFallback),
             style: .info
         )
         lastIntegrationIssue = AppLocalized.text(
@@ -831,7 +838,8 @@ final class AgentChatViewModel: ObservableObject {
                     aiLevel: request.aiLevel,
                     executeAutomation: request.executeAutomation,
                     automationScope: request.automationScope,
-                    manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil()
+                    manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil(),
+                    attachments: request.attachments
                 )
                 guard isRequestContextValid(requestContext) else { return }
 
@@ -971,7 +979,8 @@ final class AgentChatViewModel: ObservableObject {
                 executeAutomation: request.executeAutomation,
                 automationScope: request.automationScope,
                 assistantMessageID: request.assistantMessageID.uuidString,
-                createdAt: request.createdAt
+                createdAt: request.createdAt,
+                attachments: request.attachments
             )
         }
         pendingQueueStore.saveEntries(

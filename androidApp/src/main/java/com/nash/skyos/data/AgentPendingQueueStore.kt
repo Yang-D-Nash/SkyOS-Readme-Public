@@ -17,6 +17,7 @@ data class AgentPendingQueueEntry(
     val automationScope: String = "owner",
     val assistantMessageId: String,
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
+    val attachments: List<AgentOutboundAttachment> = emptyList(),
 )
 
 object AgentPendingQueueStore {
@@ -109,11 +110,35 @@ object AgentPendingQueueStore {
                             automationScope = item.optString("automationScope").trim().ifBlank { "owner" },
                             assistantMessageId = assistantMessageId,
                             createdAtEpochMillis = item.optLong("createdAtEpochMillis", System.currentTimeMillis()),
+                            attachments = parseAttachments(item.optJSONArray("attachments")),
                         ),
                     )
                 }
             }
         }.getOrDefault(emptyList())
+    }
+
+    private fun parseAttachments(array: JSONArray?): List<AgentOutboundAttachment> {
+        if (array == null) return emptyList()
+        return buildList {
+            for (index in 0 until array.length()) {
+                val o = array.optJSONObject(index) ?: continue
+                val name = o.optString("name").trim()
+                if (name.isBlank()) continue
+                val b64 = o.optString("inlineBase64").trim()
+                if (b64.isBlank()) continue
+                add(
+                    AgentOutboundAttachment(
+                        id = o.optString("id").trim().ifBlank { "att_${size + 1}" },
+                        name = name,
+                        kind = o.optString("kind").trim().ifBlank { "file" },
+                        mimeType = o.optString("mimeType").trim().ifBlank { "application/octet-stream" },
+                        source = o.optString("source").trim().ifBlank { "inline" },
+                        inlineBase64 = b64,
+                    ),
+                )
+            }
+        }
     }
 
     private fun parseHistory(array: JSONArray?): List<AgentHistoryTurn> {
@@ -156,6 +181,22 @@ object AgentPendingQueueStore {
                                     JSONObject()
                                         .put("role", turn.role)
                                         .put("text", turn.text),
+                                )
+                            }
+                        },
+                    )
+                    .put(
+                        "attachments",
+                        JSONArray().apply {
+                            entry.attachments.forEach { att ->
+                                put(
+                                    JSONObject()
+                                        .put("id", att.id)
+                                        .put("name", att.name)
+                                        .put("kind", att.kind)
+                                        .put("mimeType", att.mimeType)
+                                        .put("source", att.source)
+                                        .put("inlineBase64", att.inlineBase64),
                                 )
                             }
                         },

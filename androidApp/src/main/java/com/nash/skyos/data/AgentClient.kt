@@ -84,6 +84,7 @@ class AgentClient {
         executeAutomation: Boolean,
         automationScope: String,
         manusApiKeyOverride: String? = null,
+        attachments: List<AgentOutboundAttachment> = emptyList(),
     ): AgentResponse {
         if (!AppNetworkMonitor.isOnline.value) {
             error(AppTextResolver.string(R.string.agent_error_offline))
@@ -106,6 +107,9 @@ class AgentClient {
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
             ?.let { payload["manusApiKeyOverride"] = it }
+        if (attachments.isNotEmpty()) {
+            payload["attachments"] = attachments.map { it.toPayloadMap() }
+        }
 
         val result = functions
             .callWithAppCheckRetry(

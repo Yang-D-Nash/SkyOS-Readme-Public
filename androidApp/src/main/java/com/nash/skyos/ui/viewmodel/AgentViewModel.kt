@@ -6,6 +6,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.nash.skyos.R
 import com.nash.skyos.data.AgentHistoryTurn
+import com.nash.skyos.data.AgentOutboundAttachment
 import com.nash.skyos.data.AgentPendingQueueEntry
 import com.nash.skyos.data.AgentPendingQueueStore
 import com.nash.skyos.data.AgentResultEntry
@@ -56,6 +57,7 @@ class AgentViewModel : ViewModel() {
         val automationScope: String,
         val assistantMessageId: String,
         val createdAtEpochMillis: Long,
+        val attachments: List<AgentOutboundAttachment> = emptyList(),
     )
 
     private data class InFlightRequestContext(
@@ -202,11 +204,11 @@ class AgentViewModel : ViewModel() {
         }
     }
 
-    fun sendDraft() {
-        sendPrompt(_uiState.value.draft)
+    fun sendDraft(attachments: List<AgentOutboundAttachment> = emptyList()) {
+        sendPrompt(_uiState.value.draft, attachments)
     }
 
-    fun sendPrompt(prompt: String) {
+    fun sendPrompt(prompt: String, attachments: List<AgentOutboundAttachment> = emptyList()) {
         val trimmedPrompt = prompt.trim()
         if (!isAgentRequestAllowed()) return
         if (trimmedPrompt.isBlank() || _uiState.value.agentPhase.shouldBlockSend) return
@@ -216,8 +218,9 @@ class AgentViewModel : ViewModel() {
             _uiState.update { it.copy(errorMessage = AppTextResolver.string(R.string.ai_level_unavailable)) }
             return
         }
+        val attachmentsAtSend = attachments
         if (!AppNetworkMonitor.isOnline.value) {
-            enqueuePromptForRetry(trimmedPrompt)
+            enqueuePromptForRetry(trimmedPrompt, attachmentsAtSend)
             return
         }
 
@@ -261,6 +264,7 @@ class AgentViewModel : ViewModel() {
                     executeAutomation = executeAutomationAtSend,
                     automationScope = automationScopeAtSend,
                     manusApiKeyOverride = ManusByosPreferences.currentManusApiKeyOrNull(),
+                    attachments = attachmentsAtSend,
                 )
                 if (!isRequestContextActive(requestContext)) return@launch
 
@@ -335,6 +339,7 @@ class AgentViewModel : ViewModel() {
                             automationScope = automationScopeAtSend,
                             assistantMessageId = assistantMessageId,
                             createdAtEpochMillis = System.currentTimeMillis(),
+                            attachments = attachmentsAtSend,
                         ),
                     )
                     persistPendingRequests()
@@ -464,7 +469,7 @@ class AgentViewModel : ViewModel() {
         super.onCleared()
     }
 
-    private fun enqueuePromptForRetry(trimmedPrompt: String) {
+    private fun enqueuePromptForRetry(trimmedPrompt: String, attachments: List<AgentOutboundAttachment> = emptyList()) {
         val activeSessionId = ensureCurrentSessionId()
         val modeAtSend = _uiState.value.selectedMode.rawValue
         val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
@@ -490,6 +495,7 @@ class AgentViewModel : ViewModel() {
                 automationScope = automationScopeAtSend,
                 assistantMessageId = assistantMessage.id,
                 createdAtEpochMillis = System.currentTimeMillis(),
+                attachments = attachments,
             ),
         )
         persistPendingRequests()
@@ -543,6 +549,7 @@ class AgentViewModel : ViewModel() {
                         executeAutomation = request.executeAutomation,
                         automationScope = request.automationScope,
                         manusApiKeyOverride = ManusByosPreferences.currentManusApiKeyOrNull(),
+                        attachments = request.attachments,
                     )
                     if (!isRequestContextActive(requestContext)) {
                         pendingRetryJob = null
@@ -891,6 +898,7 @@ class AgentViewModel : ViewModel() {
                     automationScope = entry.automationScope,
                     assistantMessageId = entry.assistantMessageId,
                     createdAtEpochMillis = entry.createdAtEpochMillis,
+                    attachments = entry.attachments,
                 )
             },
         )
@@ -931,6 +939,7 @@ class AgentViewModel : ViewModel() {
                 automationScope = request.automationScope,
                 assistantMessageId = request.assistantMessageId,
                 createdAtEpochMillis = request.createdAtEpochMillis,
+                attachments = request.attachments,
             )
         }
         AgentPendingQueueStore.saveEntriesForSession(currentUserKey, currentSessionId, entries)

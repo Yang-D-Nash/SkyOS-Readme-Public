@@ -80,7 +80,9 @@ struct AgentView: View {
                     showingPromptComposer = false
                 },
                 onSend: {
-                    viewModel.sendDraft()
+                    let urls = inputAttachments.compactMap { URL(string: $0.id) }
+                    viewModel.sendDraft(attachmentURLs: urls)
+                    inputAttachments.removeAll()
                     showingPromptComposer = false
                 }
             )

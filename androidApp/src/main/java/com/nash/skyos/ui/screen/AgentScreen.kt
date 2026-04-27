@@ -87,6 +87,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -116,6 +117,7 @@ import androidx.media3.ui.PlayerView
 import androidx.core.text.HtmlCompat
 import com.nash.skyos.data.AiMembershipCoordinator
 import com.nash.skyos.data.AiMembershipUiState
+import com.nash.skyos.data.AgentOutboundAttachment
 import com.nash.skyos.data.AgentResultEntry
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.MembershipOpenReason
@@ -145,6 +147,7 @@ import com.nash.skyos.ui.model.AgentResultType
 import com.nash.skyos.ui.viewmodel.AgentViewModel
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,6 +169,7 @@ fun AgentScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
+    val composeScope = rememberCoroutineScope()
     val membershipCoordinator = remember(context) { AiMembershipCoordinator(context.applicationContext) }
     val membershipState by membershipCoordinator.uiState.collectAsStateWithLifecycle()
     var inputAttachments by remember { mutableStateOf<List<AgentInputAttachment>>(emptyList()) }
@@ -461,9 +465,16 @@ fun AgentScreen(
                         },
                         onClearAttachments = { inputAttachments = emptyList() },
                         onSend = {
-                            viewModel.sendDraft()
-                            dismissKeyboard()
-                            showPromptComposer = false
+                            val pairs = inputAttachments.map { att ->
+                                Uri.parse(att.id) to (att.name to att.kind.toWireKind())
+                            }
+                            composeScope.launch {
+                                val encoded = AgentOutboundAttachment.batchFromUris(context, pairs)
+                                viewModel.sendDraft(encoded)
+                                inputAttachments = emptyList()
+                                dismissKeyboard()
+                                showPromptComposer = false
+                            }
                         },
                         onReset = {
                             viewModel.startNewConversation()
@@ -1334,6 +1345,16 @@ private enum class AgentInputAttachmentKind(
     Document(Icons.Default.Refresh),
     File(Icons.Default.Refresh),
 }
+
+private fun AgentInputAttachmentKind.toWireKind(): String =
+    when (this) {
+        AgentInputAttachmentKind.Text -> "text"
+        AgentInputAttachmentKind.Video -> "video"
+        AgentInputAttachmentKind.Audio -> "audio"
+        AgentInputAttachmentKind.Image -> "image"
+        AgentInputAttachmentKind.Document -> "document"
+        AgentInputAttachmentKind.File -> "file"
+    }
 
 private data class AgentInputAttachment(
     val id: String,

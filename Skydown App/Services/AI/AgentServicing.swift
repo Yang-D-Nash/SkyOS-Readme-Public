@@ -2,10 +2,110 @@ import Foundation
 import Combine
 import FirebaseFunctions
 import Security
+import UniformTypeIdentifiers
 
 struct AgentHistoryTurn {
     let role: String
     let text: String
+}
+
+/// Inline file payload for `skydownAgent` (base64). Max 5 items × 256 KiB each, enforced client-side.
+struct AgentOutboundAttachment: Codable, Equatable, Identifiable {
+    var id: String
+    let name: String
+    let kind: String
+    let mimeType: String
+    let source: String
+    let inlineBase64: String
+
+    init(
+        id: String = UUID().uuidString,
+        name: String,
+        kind: String,
+        mimeType: String,
+        source: String = "inline",
+        inlineBase64: String
+    ) {
+        self.id = id
+        self.name = name
+        self.kind = kind
+        self.mimeType = mimeType
+        self.source = source
+        self.inlineBase64 = inlineBase64
+    }
+
+    func asDictionary() -> [String: Any] {
+        [
+            "id": id,
+            "name": name,
+            "kind": kind,
+            "mimeType": mimeType,
+            "source": source,
+            "inlineBase64": inlineBase64
+        ]
+    }
+
+    private static let maxBytes = 256 * 1024
+
+    static func loadInline(fileURL: URL) throws -> AgentOutboundAttachment {
+        let accessing = fileURL.startAccessingSecurityScopedResource()
+        defer {
+            if accessing {
+                fileURL.stopAccessingSecurityScopedResource()
+            }
+        }
+        let data = try Data(contentsOf: fileURL)
+        guard !data.isEmpty else {
+            throw AgentServiceError.attachmentUnreadable
+        }
+        guard data.count <= maxBytes else {
+            throw AgentServiceError.attachmentTooLarge
+        }
+        let displayName = fileURL.lastPathComponent.isEmpty ? "attachment" : fileURL.lastPathComponent
+        return AgentOutboundAttachment(
+            id: String(fileURL.absoluteString.prefix(200)),
+            name: String(displayName.prefix(255)),
+            kind: wireKind(forFileURL: fileURL),
+            mimeType: mimeTypeForFileURL(fileURL),
+            inlineBase64: data.base64EncodedString()
+        )
+    }
+
+    static func batchInline(fileURLs: [URL], limit: Int = 5) -> [AgentOutboundAttachment] {
+        fileURLs.prefix(limit).compactMap { url in
+            try? loadInline(fileURL: url)
+        }
+    }
+
+    private static func mimeTypeForFileURL(_ url: URL) -> String {
+        let ext = url.pathExtension.lowercased()
+        guard !ext.isEmpty,
+              let type = UTType(filenameExtension: ext),
+              let mime = type.preferredMIMEType else {
+            return "application/octet-stream"
+        }
+        return mime
+    }
+
+    private static func wireKind(forFileURL url: URL) -> String {
+        let ext = url.pathExtension.lowercased()
+        if ["txt", "md", "rtf", "json", "csv", "xml", "html"].contains(ext) {
+            return "text"
+        }
+        if ["mp4", "mov", "m4v", "avi", "mkv", "webm"].contains(ext) {
+            return "video"
+        }
+        if ["mp3", "wav", "m4a", "aac", "flac", "aiff"].contains(ext) {
+            return "audio"
+        }
+        if ["png", "jpg", "jpeg", "webp", "heic", "gif"].contains(ext) {
+            return "image"
+        }
+        if ["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx"].contains(ext) {
+            return "document"
+        }
+        return "file"
+    }
 }
 
 struct AgentChatResponse {
@@ -115,18 +215,25 @@ protocol AgentChatServicing {
         aiLevel: String,
         executeAutomation: Bool,
         automationScope: String,
-        manusApiKeyOverride: String?
+        manusApiKeyOverride: String?,
+        attachments: [AgentOutboundAttachment]
     ) async throws -> AgentChatResponse
     func fetchRunStatus(runId: String) async throws -> AgentRunStatus
 }
 
 enum AgentServiceError: LocalizedError {
     case invalidResponse
+    case attachmentTooLarge
+    case attachmentUnreadable
 
     var errorDescription: String? {
         switch self {
         case .invalidResponse:
             return "Der SkyOS Agent hat keine Antwort geliefert."
+        case .attachmentTooLarge:
+            return "Eine angehaengte Datei ist zu gross (max. 256 KB pro Datei, max. 5 Dateien)."
+        case .attachmentUnreadable:
+            return "Eine angehaengte Datei konnte nicht gelesen werden."
         }
     }
 }
@@ -169,7 +276,8 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
         aiLevel: String,
         executeAutomation: Bool,
         automationScope: String,
-        manusApiKeyOverride: String?
+        manusApiKeyOverride: String?,
+        attachments: [AgentOutboundAttachment] = []
     ) async throws -> AgentChatResponse {
         try await ensureConnectivity()
         var payload: [String: Any] = [
@@ -188,6 +296,9 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
         if let manusApiKeyOverride,
            !manusApiKeyOverride.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             payload["manusApiKeyOverride"] = manusApiKeyOverride
+        }
+        if !attachments.isEmpty {
+            payload["attachments"] = attachments.map(\.asDictionary)
         }
 
         let result = try await functions.invokeCallable("skydownAgent", payload: payload)

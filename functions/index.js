@@ -200,6 +200,15 @@ const agentTurnSchema = z.object({
   text: z.string().trim().min(1).max(4000),
 });
 
+const agentAttachmentSchema = z.object({
+  id: z.string().trim().max(200).optional(),
+  name: z.string().trim().min(1).max(255),
+  kind: z.enum(["image", "video", "audio", "text", "document", "file"]).default("file"),
+  mimeType: z.string().trim().max(120).optional(),
+  source: z.enum(["inline"]).default("inline"),
+  inlineBase64: z.string().min(1).max(400_000),
+});
+
 const agentRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(4000),
   history: z.array(agentTurnSchema).max(24).default([]),
@@ -209,6 +218,7 @@ const agentRequestSchema = z.object({
   automationScope: z.enum(["owner", "personal"]).default("owner"),
   confirmedByUser: z.boolean().default(false),
   manusApiKeyOverride: z.string().trim().min(16).max(1024).optional(),
+  attachments: z.array(agentAttachmentSchema).max(5).optional().default([]),
 });
 
 const agentFlowRequestSchema = agentRequestSchema.omit({
@@ -216,6 +226,7 @@ const agentFlowRequestSchema = agentRequestSchema.omit({
 }).extend({
   systemInstruction: z.string().trim().min(1).max(12000),
   workspaceContext: z.string().trim().max(12000).default(""),
+  attachmentSummary: z.string().trim().max(4000).optional().default(""),
 });
 
 const aiTextRequestSchema = z.object({
@@ -12137,7 +12148,75 @@ function formatHistory(history) {
       .join("\n\n");
 }
 
-function composeAgentExecutionPrompt({workspaceContext, history, prompt, mode}) {
+const AGENT_ATTACHMENT_MAX_COUNT = 5;
+const AGENT_ATTACHMENT_MAX_BYTES = 256 * 1024;
+
+function normalizeAgentInboundAttachments(rawAttachments) {
+  if (!Array.isArray(rawAttachments) || !rawAttachments.length) {
+    return {sanitized: [], summary: ""};
+  }
+
+  const sanitized = [];
+  const lines = [];
+
+  for (const item of rawAttachments.slice(0, AGENT_ATTACHMENT_MAX_COUNT)) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const name = trimTextMax(nonEmptyString(item.name) || "attachment", 255);
+    const kind = nonEmptyString(item.kind)?.toLowerCase() || "file";
+    const normalizedKind = ["image", "video", "audio", "text", "document", "file"].includes(kind) ?
+      kind :
+      "file";
+    const mimeType = trimTextMax(
+        nonEmptyString(item.mimeType) || "application/octet-stream",
+        120,
+    );
+    const source = nonEmptyString(item.source)?.toLowerCase() || "inline";
+    if (source !== "inline") {
+      continue;
+    }
+
+    const inlineBase64 = nonEmptyString(item.inlineBase64) || "";
+    if (!inlineBase64) {
+      continue;
+    }
+
+    let buffer;
+    try {
+      buffer = Buffer.from(inlineBase64, "base64");
+    } catch (error) {
+      continue;
+    }
+
+    if (!buffer.length || buffer.length > AGENT_ATTACHMENT_MAX_BYTES) {
+      continue;
+    }
+
+    const id = nonEmptyString(item.id) || `att_${sanitized.length + 1}`;
+    sanitized.push({
+      id,
+      name,
+      kind: normalizedKind,
+      mimeType,
+      source: "inline",
+      inlineBase64,
+    });
+    lines.push(`- ${name} (${normalizedKind}, ${mimeType}, ${buffer.length} Bytes)`);
+  }
+
+  const summary = lines.length ?
+    `Angehaengte Dateien (nur Metadaten; Binaerinhalt wird separat an Automation uebergeben):\n${lines.join("\n")}` :
+    "";
+
+  return {sanitized, summary};
+}
+
+function composeAgentExecutionPrompt({workspaceContext, history, prompt, mode, attachmentSummary = ""}) {
+  const attachmentBlock = nonEmptyString(attachmentSummary) ?
+    `\n\n${attachmentSummary.trim()}` :
+    "";
   return `
 ${workspaceContext}
 
@@ -12145,7 +12224,7 @@ Bisherige Unterhaltung:
 ${formatHistory(history)}
 
 Aktuelle Nutzeranfrage:
-${prompt}
+${prompt}${attachmentBlock}
 
 ${responseFrameworkHint(mode, prompt)}
   `.trim();
@@ -12356,7 +12435,16 @@ async function loadAgentWorkspaceContext(auth, promptSettings, personalAgentProf
   return context.slice(0, 12000);
 }
 
-async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history, runtimeSettings, automationScope = "owner"}) {
+async function maybeTriggerAgentAutomation({
+  auth,
+  mode,
+  prompt,
+  reply,
+  history,
+  runtimeSettings,
+  automationScope = "owner",
+  attachments = [],
+}) {
   if (!auth?.uid) {
     return {attempted: false, triggered: false};
   }
@@ -12374,6 +12462,7 @@ async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history, 
         reply,
         history: history.slice(-8),
         automationScope,
+        attachments: Array.isArray(attachments) ? attachments : [],
       },
     });
 
@@ -12514,6 +12603,7 @@ function normalizeManusAgentPrompt({
     history: safeHistory,
     prompt: safePrompt,
     mode: input.mode,
+    attachmentSummary: trimTextMax(nonEmptyString(input.attachmentSummary) || "", 4000),
   });
 
   return `
@@ -12645,7 +12735,7 @@ async function runManusAgent({
   };
 }
 
-function buildGrokChatMessages({systemInstruction, workspaceContext, history, prompt, mode}) {
+function buildGrokChatMessages({systemInstruction, workspaceContext, history, prompt, mode, attachmentSummary = ""}) {
   const framework = responseFrameworkHint(mode, prompt);
   const systemParts = [
     nonEmptyString(systemInstruction) || "",
@@ -12672,9 +12762,16 @@ function buildGrokChatMessages({systemInstruction, workspaceContext, history, pr
     }
   }
 
+  let userContent = nonEmptyString(prompt)?.trim()?.slice(0, 4000) || "";
+  const attachmentTail = nonEmptyString(attachmentSummary)?.trim();
+  if (attachmentTail) {
+    const merged = `${userContent}\n\n${attachmentTail}`.trim();
+    userContent = merged.slice(0, 4000);
+  }
+
   messages.push({
     role: "user",
-    content: nonEmptyString(prompt)?.trim()?.slice(0, 4000) || "",
+    content: userContent,
   });
 
   return {
@@ -12695,6 +12792,7 @@ async function runGrokAgent({
     history: input.history,
     prompt: input.prompt,
     mode: input.mode,
+    attachmentSummary: nonEmptyString(input.attachmentSummary) || "",
   });
 
   const payloadMessages = [];
@@ -12759,6 +12857,7 @@ const skydownAgentFlow = ai.defineFlow({
     history: input.history,
     prompt: input.prompt,
     mode: input.mode,
+    attachmentSummary: nonEmptyString(input.attachmentSummary) || "",
   });
 
   const {stream, response} = ai.generateStream({
@@ -12835,8 +12934,14 @@ exports.skydownAgent = onCall({
       request.data,
       "Die Agent-Anfrage konnte so nicht verarbeitet werden.",
   );
+  const attachmentPayload = normalizeAgentInboundAttachments(input.attachments || []);
+  const agentInput = {
+    ...input,
+    attachments: attachmentPayload.sanitized,
+    attachmentSummary: attachmentPayload.summary,
+  };
   const runtimeSettings = await loadAiRuntimeSettings();
-  const aiLevel = normalizeAiExperienceLevel(input.aiLevel);
+  const aiLevel = normalizeAiExperienceLevel(agentInput.aiLevel);
   const authorizationProvider = runtimeSettings.agentProvider;
   const authorizationModel = resolveAiAgentModelForProvider(authorizationProvider, runtimeSettings);
   const usage = await authorizeAiUsage({
@@ -12847,11 +12952,11 @@ exports.skydownAgent = onCall({
     eventType: "agent_generation",
     sourceRoute: "callable.skydownAgent",
     functionName: "skydownAgent",
-    featureClass: input.executeAutomation ? AI_FEATURE_CLASSES.workflow : AI_FEATURE_CLASSES.agent,
-    resultType: input.executeAutomation ? "workflow" : "text",
-    requestWeight: (input.executeAutomation ? 3 : 2) * aiLevelRequestWeightMultiplier(aiLevel),
+    featureClass: agentInput.executeAutomation ? AI_FEATURE_CLASSES.workflow : AI_FEATURE_CLASSES.agent,
+    resultType: agentInput.executeAutomation ? "workflow" : "text",
+    requestWeight: (agentInput.executeAutomation ? 3 : 2) * aiLevelRequestWeightMultiplier(aiLevel),
     aiLevel,
-    estimatedCostMicros: input.executeAutomation ? 260_000 : 110_000,
+    estimatedCostMicros: agentInput.executeAutomation ? 260_000 : 110_000,
     requestId: nonEmptyString(request.data?.requestId) || "",
   });
   const promptSettings = await loadAiPromptSettings();
@@ -12865,9 +12970,9 @@ exports.skydownAgent = onCall({
     agentSystemInstruction: effectiveAgentSystemInstruction,
   };
   const agentCore = runtimeSettings.bot.agentCore || resolveAiBotAgentCore({});
-  const requestedTask = input.mode === "merch" ?
+  const requestedTask = agentInput.mode === "merch" ?
     "commerce_order" :
-    (input.mode === "briefing" ? "owner_ops" : "support_recovery");
+    (agentInput.mode === "briefing" ? "owner_ops" : "support_recovery");
   const stateByFallback = agentCore.fallbackPolicy || {};
   const blockedState = nonEmptyString(stateByFallback.blockedState) || "blocked";
   const retryableState = nonEmptyString(stateByFallback.retryableState) || "retryable";
@@ -12884,7 +12989,7 @@ exports.skydownAgent = onCall({
     (agentCore.diagnosticsMode === "owner_only" && resolveRoleFromAuthClaims(request.auth) === USER_ROLES.owner)
   );
   const allowedExternalTaskTypes = agentCore.externalPolicy?.allowedExternalTaskTypes || [];
-  const selectedAutomationScope = input.automationScope === "personal" ? "personal" : "owner";
+  const selectedAutomationScope = agentInput.automationScope === "personal" ? "personal" : "owner";
   const canUseActivepieces = agentCore.externalPolicy?.activepiecesEnabled !== false &&
     allowedExternalTaskTypes.includes(requestedTask);
   const canUseN8n = selectedAutomationScope === "personal" &&
@@ -12893,7 +12998,7 @@ exports.skydownAgent = onCall({
   const canUseAnyExternalWorkflow = canUseActivepieces || canUseN8n;
   const canUseManus = agentCore.externalPolicy?.manusEnabled !== false &&
     allowedExternalTaskTypes.includes(requestedTask);
-  const manusKeyAvailable = nonEmptyString(input.manusApiKeyOverride) || nonEmptyString(manusApiKey.value());
+  const manusKeyAvailable = nonEmptyString(agentInput.manusApiKeyOverride) || nonEmptyString(manusApiKey.value());
 
   const buildAgentDecision = ({
     state = "completed",
@@ -12933,7 +13038,7 @@ exports.skydownAgent = onCall({
     agentCore.safetyPolicy?.blockWhenKillSwitchEnabled !== false) {
     return {
       reply: "Agent ist aktuell per Kill Switch pausiert.",
-      mode: input.mode,
+      mode: agentInput.mode,
       automationTriggered: false,
       automationAttempted: false,
       automationMessage: "",
@@ -12967,7 +13072,7 @@ exports.skydownAgent = onCall({
   if (!isTaskAllowed && agentCore.safetyPolicy?.blockUnknownTasks !== false) {
     return {
       reply: "Diese Agent-Aufgabe ist aktuell nicht freigeschaltet.",
-      mode: input.mode,
+      mode: agentInput.mode,
       automationTriggered: false,
       automationAttempted: false,
       automationMessage: "",
@@ -12998,10 +13103,10 @@ exports.skydownAgent = onCall({
     };
   }
 
-  if (input.executeAutomation && !agentCore.toolPolicy?.allowWorkflowAutomation) {
+  if (agentInput.executeAutomation && !agentCore.toolPolicy?.allowWorkflowAutomation) {
     return {
       reply: "Workflow-Automation ist fuer den Agent aktuell deaktiviert.",
-      mode: input.mode,
+      mode: agentInput.mode,
       automationTriggered: false,
       automationAttempted: false,
       automationMessage: "",
@@ -13032,10 +13137,10 @@ exports.skydownAgent = onCall({
     };
   }
 
-  if (input.executeAutomation && !canUseAnyExternalWorkflow) {
+  if (agentInput.executeAutomation && !canUseAnyExternalWorkflow) {
     return {
       reply: "Externe Workflow-Ausfuehrung ist fuer diesen Task aktuell nicht erlaubt.",
-      mode: input.mode,
+      mode: agentInput.mode,
       automationTriggered: false,
       automationAttempted: false,
       automationMessage: "",
@@ -13068,10 +13173,10 @@ exports.skydownAgent = onCall({
     };
   }
 
-  if (input.executeAutomation && requiresConfirmation && input.confirmedByUser !== true) {
+  if (agentInput.executeAutomation && requiresConfirmation && agentInput.confirmedByUser !== true) {
     return {
       reply: "Bitte bestaetige diese Aktion explizit, bevor der Agent Automation ausfuehrt.",
-      mode: input.mode,
+      mode: agentInput.mode,
       automationTriggered: false,
       automationAttempted: false,
       automationMessage: "",
@@ -13119,7 +13224,7 @@ exports.skydownAgent = onCall({
       if (runtimeSettings.fallbackAgentProvider !== AI_AGENT_PROVIDERS.gemini) {
         return {
           reply: "Manus benoetigt einen API Key. Bitte verbinde deinen Manus-Key oder nutze den internen Agent.",
-          mode: input.mode,
+          mode: agentInput.mode,
           automationTriggered: false,
           automationAttempted: false,
           automationMessage: "",
@@ -13159,11 +13264,11 @@ exports.skydownAgent = onCall({
   if (runtimeSettings.agentProvider === AI_AGENT_PROVIDERS.manus && !providerFallbackUsed) {
     try {
       const manusResult = await runManusAgent({
-        input,
+        input: agentInput,
         runtimeSettings,
         promptSettings: effectivePromptSettings,
         workspaceContext,
-        manusApiKeyOverride: input.manusApiKeyOverride,
+        manusApiKeyOverride: agentInput.manusApiKeyOverride,
       });
       reply = manusResult.reply;
       agentProvider = manusResult.provider;
@@ -13186,7 +13291,7 @@ exports.skydownAgent = onCall({
     if (apiKey) {
       try {
         reply = await runGrokAgent({
-          input,
+          input: agentInput,
           systemInstruction: effectiveAgentSystemInstruction,
           workspaceContext,
           apiKey,
@@ -13217,25 +13322,27 @@ exports.skydownAgent = onCall({
 
   if (!reply) {
     reply = await skydownAgentFlow({
-      prompt: input.prompt,
-      history: input.history,
-      mode: input.mode,
-      executeAutomation: input.executeAutomation,
+      prompt: agentInput.prompt,
+      history: agentInput.history,
+      mode: agentInput.mode,
+      executeAutomation: agentInput.executeAutomation,
       systemInstruction: effectiveAgentSystemInstruction,
       workspaceContext,
+      attachmentSummary: nonEmptyString(agentInput.attachmentSummary) || "",
     });
     agentProvider = AI_AGENT_PROVIDERS.gemini;
   }
 
-  const automation = input.executeAutomation ?
+  const automation = agentInput.executeAutomation ?
     await maybeTriggerAgentAutomation({
       auth: request.auth,
-      mode: input.mode,
-      prompt: input.prompt,
+      mode: agentInput.mode,
+      prompt: agentInput.prompt,
       reply,
-      history: input.history,
+      history: agentInput.history,
       runtimeSettings,
       automationScope: selectedAutomationScope,
+      attachments: agentInput.attachments || [],
     }) :
     {attempted: false, triggered: false};
   const resolvedWorkflowStatus = automation.attempted === true ?
@@ -13247,17 +13354,17 @@ exports.skydownAgent = onCall({
 
   const agentRunId = await persistAgentRunSummary({
     uid: request.auth.uid,
-    mode: input.mode,
+    mode: agentInput.mode,
     agentProvider,
     providerFallbackUsed,
     automation,
-    promptText: input.prompt,
+    promptText: agentInput.prompt,
     replyText: reply,
   });
 
   return {
     reply,
-    mode: input.mode,
+    mode: agentInput.mode,
     automationTriggered: automation.triggered === true,
     automationAttempted: automation.attempted === true,
     automationMessage: nonEmptyString(automation.message) || "",
@@ -13305,18 +13412,18 @@ exports.skydownAgent = onCall({
       decision: usage.decision || null,
     },
     agentDecision: buildAgentDecision({
-      state: input.executeAutomation ?
+      state: agentInput.executeAutomation ?
         (resolvedWorkflowStatus === "queued" ?
           "webhook_pending" :
           (resolvedWorkflowStatus === "running" ?
             "external_running" :
             (automation.triggered === true ? "external_completed" : "external_failed"))) :
         (providerFallbackUsed ? "fallback_internal" : "completed"),
-      route: input.executeAutomation ? (automation.route || "external") : (providerFallbackUsed ? "hybrid" : "internal"),
-      selectedExternal: input.executeAutomation ? (automation.route || "activepieces") : "",
+      route: agentInput.executeAutomation ? (automation.route || "external") : (providerFallbackUsed ? "hybrid" : "internal"),
+      selectedExternal: agentInput.executeAutomation ? (automation.route || "activepieces") : "",
       retryable: providerFallbackUsed,
       retryReason: providerFallbackUsed ? "provider_fallback_used" : "",
-      summary: input.executeAutomation ?
+      summary: agentInput.executeAutomation ?
         (resolvedWorkflowStatus === "queued" ?
           "Externer Workflow wurde in die Warteschlange gestellt." :
           (resolvedWorkflowStatus === "running" ?
