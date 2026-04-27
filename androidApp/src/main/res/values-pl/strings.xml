@@ -98,7 +98,7 @@
     <string name="settings_legal_imprint">Imprint / company info</string>
     <string name="settings_legal_support_cta">Send support request</string>
     <string name="settings_legal_availability_note">All help and legal documents are available here in the app.</string>
-    <string name="settings_legal_support_email_placeholder">Use your organization\'s real public support address (not a sample domain).</string>
+    <string name="settings_legal_support_email_placeholder">Use the real public support address of your organization (not a sample domain).</string>
     <string name="legal_ui_transparency_note">This information is provided for transparency and is updated on an ongoing basis.</string>
     <string name="legal_ui_last_updated">Last updated: %1$s</string>
     <string name="legal_ui_contact">Contact</string>
@@ -453,6 +453,8 @@
     <string name="order_state_canceled">Anulowane</string>
     <plurals name="order_pill_order_count">
         <item quantity="one">%d zamowienie</item>
+        <item quantity="few">%d zamowienia</item>
+        <item quantity="many">%d zamowien</item>
         <item quantity="other">%d zamowien</item>
     </plurals>
     <string name="common_close">Close</string>

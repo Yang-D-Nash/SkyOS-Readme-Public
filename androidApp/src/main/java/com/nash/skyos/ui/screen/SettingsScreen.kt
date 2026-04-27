@@ -90,6 +90,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -271,6 +272,7 @@ fun SettingsScreen(
     val artistPages by ArtistPagesStore.pages.collectAsStateWithLifecycle()
     val artistPagesError by ArtistPagesStore.lastErrorMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
     val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
@@ -516,9 +518,9 @@ fun SettingsScreen(
     ) { granted ->
         viewModel.updateNotifications(granted && NotificationPermissionCoordinator.areNotificationsEnabled(context))
         feedbackMessage = if (granted) {
-            context.getString(R.string.settings_notifications_toast_enabled)
+            resources.getString(R.string.settings_notifications_toast_enabled)
         } else {
-            context.getString(R.string.settings_notifications_toast_enable_in_settings)
+            resources.getString(R.string.settings_notifications_toast_enable_in_settings)
         }
         feedbackType = if (granted) ToastType.Success else ToastType.Warning
     }
@@ -790,7 +792,7 @@ fun SettingsScreen(
             selectedRecommendationId = bundle.recommendations.firstOrNull()?.id.orEmpty()
         }.onFailure { error ->
             membershipOpsError = error.localizedMessage
-                ?: context.getString(R.string.settings_membership_ops_load_failed)
+                ?: resources.getString(R.string.settings_membership_ops_load_failed)
         }
         membershipOpsLoading = false
     }
@@ -812,7 +814,7 @@ fun SettingsScreen(
             aiFaqReviewLoop = review
         }.onFailure { error ->
             aiFaqReviewLoopError = error.localizedMessage
-                ?: context.getString(R.string.settings_admin_faq_review_load_failed)
+                ?: resources.getString(R.string.settings_admin_faq_review_load_failed)
         }
         aiFaqReviewLoopLoading = false
     }
@@ -854,11 +856,11 @@ fun SettingsScreen(
                             editableImageAssetRepository.deleteImageAsset(previousImageUrl)
                         }
                     }
-                    feedbackMessage = context.getString(R.string.settings_feedback_image_uploaded)
+                    feedbackMessage = resources.getString(R.string.settings_feedback_image_uploaded)
                     feedbackType = ToastType.Success
                 } else {
                     feedbackMessage = result.exceptionOrNull()?.message
-                        ?: context.getString(R.string.settings_feedback_image_upload_failed)
+                        ?: resources.getString(R.string.settings_feedback_image_upload_failed)
                     feedbackType = ToastType.Error
                 }
                 activeHeaderImageUploadTarget = null
@@ -984,13 +986,13 @@ fun SettingsScreen(
                                 coroutineScope.launch {
                                     val result = ArtistPagesStore.save(updatedPage)
                                     feedbackMessage = if (result.isSuccess) {
-                                        context.getString(
+                                        resources.getString(
                                             R.string.settings_admin_artist_page_saved,
                                             updatedPage.artistName,
                                         )
                                     } else {
                                         result.exceptionOrNull()?.message
-                                            ?: context.getString(R.string.settings_admin_artist_page_save_failed)
+                                            ?: resources.getString(R.string.settings_admin_artist_page_save_failed)
                                     }
                                     feedbackType = if (result.isSuccess) ToastType.Success else ToastType.Error
                                 }
@@ -1057,7 +1059,7 @@ fun SettingsScreen(
                         homeHeaderImageUrlDraft = ""
                         coroutineScope.launch {
                             editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                            feedbackMessage = context.getString(R.string.settings_feedback_image_removed)
+                            feedbackMessage = resources.getString(R.string.settings_feedback_image_removed)
                             feedbackType = ToastType.Success
                         }
                     },
@@ -1124,7 +1126,7 @@ fun SettingsScreen(
                         musicHubHeaderImageUrlDraft = ""
                         coroutineScope.launch {
                             editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                            feedbackMessage = context.getString(R.string.settings_feedback_image_removed)
+                            feedbackMessage = resources.getString(R.string.settings_feedback_image_removed)
                             feedbackType = ToastType.Success
                         }
                     },
@@ -1188,7 +1190,7 @@ fun SettingsScreen(
                         shopHeaderImageUrlDraft = ""
                         coroutineScope.launch {
                             editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                            feedbackMessage = context.getString(R.string.settings_feedback_image_removed)
+                            feedbackMessage = resources.getString(R.string.settings_feedback_image_removed)
                             feedbackType = ToastType.Success
                         }
                     },
@@ -1252,7 +1254,7 @@ fun SettingsScreen(
                         videoHeaderImageUrlDraft = ""
                         coroutineScope.launch {
                             editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                            feedbackMessage = context.getString(R.string.settings_feedback_image_removed)
+                            feedbackMessage = resources.getString(R.string.settings_feedback_image_removed)
                             feedbackType = ToastType.Success
                         }
                     },
@@ -1349,10 +1351,10 @@ fun SettingsScreen(
                                     ),
                                 )
                                 feedbackMessage = if (result.isSuccess) {
-                                    context.getString(R.string.settings_admin_headers_saved)
+                                    resources.getString(R.string.settings_admin_headers_saved)
                                 } else {
                                     result.exceptionOrNull()?.message
-                                        ?: context.getString(R.string.settings_admin_headers_save_failed)
+                                        ?: resources.getString(R.string.settings_admin_headers_save_failed)
                                 }
                                 feedbackType = if (result.isSuccess) ToastType.Success else ToastType.Error
                             }
@@ -1872,7 +1874,7 @@ fun SettingsScreen(
                                     supportEmail = invoiceSupportEmailDraft.trim(),
                                 ),
                             ),
-                            successMessage = context.getString(R.string.settings_admin_commerce_save_success),
+                            successMessage = resources.getString(R.string.settings_admin_commerce_save_success),
                         )
                     },
                     modifier = Modifier
@@ -4077,7 +4079,7 @@ fun SettingsScreen(
                                                     onClick = {
                                                         selectedRecommendationId = recommendationId
                                                         experimentLifecycleIdDraft = "lifecycle_${recommendationId}_${System.currentTimeMillis()}"
-                                                        experimentLearningsDraft = context.getString(
+                                                        experimentLearningsDraft = resources.getString(
                                                             R.string.settings_membership_timeline_rerun_learnings,
                                                             title,
                                                         )

@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
@@ -117,6 +118,7 @@ fun ArtistPageScreen(
     val currentUser = LocalSessionUser.current
     val pages by ArtistPagesStore.pages.collectAsState()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
     val mediaContext = remember(context) { context.mediaAttributionContext() }
     val coroutineScope = rememberCoroutineScope()
@@ -285,7 +287,7 @@ fun ArtistPageScreen(
                 }
             }
         }
-        feedbackMessage = context.getString(R.string.artist_feedback_changes_discarded)
+        feedbackMessage = resources.getString(R.string.artist_feedback_changes_discarded)
         feedbackType = ToastType.Info
     }
 
@@ -315,11 +317,11 @@ fun ArtistPageScreen(
                             temporaryUploadedAssetUrls.add(uploadedImage.downloadUrl)
                         }
                     }
-                    feedbackMessage = context.getString(R.string.artist_feedback_image_uploaded)
+                    feedbackMessage = resources.getString(R.string.artist_feedback_image_uploaded)
                     feedbackType = ToastType.Success
                 } else {
                     feedbackMessage = result.exceptionOrNull()?.message
-                        ?: context.getString(R.string.artist_feedback_image_upload_failed)
+                        ?: resources.getString(R.string.artist_feedback_image_upload_failed)
                     feedbackType = ToastType.Error
                 }
                 activeImageUploadTarget = null
@@ -356,11 +358,11 @@ fun ArtistPageScreen(
                             temporaryUploadedAssetUrls.add(uploadedVideo.downloadUrl)
                         }
                     }
-                    feedbackMessage = context.getString(R.string.artist_feedback_hero_video_uploaded)
+                    feedbackMessage = resources.getString(R.string.artist_feedback_hero_video_uploaded)
                     feedbackType = ToastType.Success
                 } else {
                     feedbackMessage = result.exceptionOrNull()?.message
-                        ?: context.getString(R.string.artist_feedback_hero_video_upload_failed)
+                        ?: resources.getString(R.string.artist_feedback_hero_video_upload_failed)
                     feedbackType = ToastType.Error
                 }
                 isUploadingHeroVideo = false
@@ -538,11 +540,11 @@ fun ArtistPageScreen(
                                             activeImageUploadTarget = null
                                             isUploadingHeroVideo = false
                                             isEditing = false
-                                            feedbackMessage = context.getString(R.string.artist_feedback_page_saved)
+                                            feedbackMessage = resources.getString(R.string.artist_feedback_page_saved)
                                             feedbackType = ToastType.Success
                                         } else {
                                             feedbackMessage = result.exceptionOrNull()?.message
-                                                ?: context.getString(R.string.artist_feedback_page_save_failed)
+                                                ?: resources.getString(R.string.artist_feedback_page_save_failed)
                                             feedbackType = ToastType.Error
                                         }
                                     }
@@ -794,7 +796,7 @@ fun ArtistPageScreen(
                                                     editableImageAssetRepository.deleteAsset(previousImageUrl)
                                                 }
                                             }
-                                            feedbackMessage = context.getString(R.string.artist_feedback_image_removed_pending_save)
+                                            feedbackMessage = resources.getString(R.string.artist_feedback_image_removed_pending_save)
                                             feedbackType = ToastType.Info
                                         },
                                     )
@@ -834,7 +836,7 @@ fun ArtistPageScreen(
                                                     editableImageAssetRepository.deleteAsset(previousImageUrl)
                                                 }
                                             }
-                                            feedbackMessage = context.getString(R.string.artist_feedback_image_removed_pending_save)
+                                            feedbackMessage = resources.getString(R.string.artist_feedback_image_removed_pending_save)
                                             feedbackType = ToastType.Info
                                         },
                                     )
@@ -859,7 +861,7 @@ fun ArtistPageScreen(
                                                     editableImageAssetRepository.deleteAsset(previousImageUrl)
                                                 }
                                             }
-                                            feedbackMessage = context.getString(R.string.artist_feedback_image_removed_pending_save)
+                                            feedbackMessage = resources.getString(R.string.artist_feedback_image_removed_pending_save)
                                             feedbackType = ToastType.Info
                                         },
                                     )
@@ -882,7 +884,7 @@ fun ArtistPageScreen(
                                                     editableImageAssetRepository.deleteAsset(previousVideoUrl)
                                                 }
                                             }
-                                            feedbackMessage = context.getString(R.string.artist_feedback_hero_video_removed_pending_save)
+                                            feedbackMessage = resources.getString(R.string.artist_feedback_hero_video_removed_pending_save)
                                             feedbackType = ToastType.Info
                                         },
                                     )

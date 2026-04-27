@@ -98,7 +98,7 @@
     <string name="settings_legal_imprint">Imprint / company info</string>
     <string name="settings_legal_support_cta">Send support request</string>
     <string name="settings_legal_availability_note">All help and legal documents are available here in the app.</string>
-    <string name="settings_legal_support_email_placeholder">Use your organization\'s real public support address (not a sample domain).</string>
+    <string name="settings_legal_support_email_placeholder">Use the real public support address of your organization (not a sample domain).</string>
     <string name="legal_ui_transparency_note">This information is provided for transparency and is updated on an ongoing basis.</string>
     <string name="legal_ui_last_updated">Last updated: %1$s</string>
     <string name="legal_ui_contact">Contact</string>
@@ -106,7 +106,7 @@
     <string name="agent_queue_placeholder">Kuyrukta: bu istek baglanti geldiginde otomatik gonderilecek.</string>
     <string name="auth_close">Kapat</string>
     <string name="auth_login_title">Giris yap</string>
-    <string name="auth_login_welcome">SkyOS\'a hos geldin</string>
+    <string name="auth_login_welcome">SkyOSa hos geldin</string>
     <string name="auth_login_subtitle">Hesabina ve uretici araclarina erismek icin giris yap.</string>
     <string name="auth_entry_subtitle_ai">Save workflows and pick up exactly where you left off.</string>
     <string name="auth_entry_subtitle_merch">Track orders and delivery in one place when you are ready.</string>
@@ -136,7 +136,7 @@
     <string name="auth_login_loading">Giris yapiliyor…</string>
     <string name="auth_google_loading">Google baslatiliyor…</string>
     <string name="auth_sign_in_google">Google ile giris yap</string>
-    <string name="auth_login_google_hint">Google, daha hizli giris icin Android\'in yerel hesap penceresini acar.</string>
+    <string name="auth_login_google_hint">Google, daha hizli giris icin Android yerel hesap penceresini acar.</string>
     <string name="auth_no_account_register">Henuz hesabin yok mu? Kaydol</string>
     <string name="auth_google_signin_missing_token">Google girisi gecerli bir token donmedi.</string>
     <string name="auth_google_signin_failed">Google girisi tamamlanamadi.</string>

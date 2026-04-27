@@ -86,6 +86,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -172,6 +173,7 @@ fun VideoHubScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val defaultOriginalTitle = stringResource(R.string.video_label_original)
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
@@ -201,7 +203,7 @@ fun VideoHubScreen(
     var localFeedbackIsError by remember { mutableStateOf(false) }
     var inAppOriginalUrl by rememberSaveable { mutableStateOf<String?>(null) }
     var inAppOriginalTitle by rememberSaveable {
-        mutableStateOf(context.getString(R.string.video_label_original))
+        mutableStateOf(resources.getString(R.string.video_label_original))
     }
     var inAppImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
     var shouldAutoplaySelection by rememberSaveable {
@@ -256,11 +258,11 @@ fun VideoHubScreen(
                             editableImageAssetRepository.deleteImageAsset(previousImageUrl)
                         }
                     }
-                    localFeedbackMessage = context.getString(R.string.video_feedback_image_uploaded)
+                    localFeedbackMessage = resources.getString(R.string.video_feedback_image_uploaded)
                     localFeedbackIsError = false
                 } else {
                     localFeedbackMessage = result.exceptionOrNull()?.message
-                        ?: context.getString(R.string.video_feedback_image_failed)
+                        ?: resources.getString(R.string.video_feedback_image_failed)
                     localFeedbackIsError = true
                 }
                 activeConfigImageUploadTarget = null
@@ -659,7 +661,7 @@ fun VideoHubScreen(
                                     viewModel.updateEquipmentItem(itemId, imageUrl = "")
                                     coroutineScope.launch {
                                         editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                                        localFeedbackMessage = context.getString(R.string.video_feedback_image_removed)
+                                        localFeedbackMessage = resources.getString(R.string.video_feedback_image_removed)
                                         localFeedbackIsError = false
                                     }
                                 },
@@ -694,7 +696,7 @@ fun VideoHubScreen(
                                     viewModel.updateCollaborationItem(itemId, imageUrl = "")
                                     coroutineScope.launch {
                                         editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                                        localFeedbackMessage = context.getString(R.string.video_feedback_image_removed)
+                                        localFeedbackMessage = resources.getString(R.string.video_feedback_image_removed)
                                         localFeedbackIsError = false
                                     }
                                 },
