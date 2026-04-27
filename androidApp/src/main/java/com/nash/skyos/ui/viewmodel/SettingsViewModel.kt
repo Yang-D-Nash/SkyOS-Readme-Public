@@ -931,18 +931,11 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             val trimmedUsername = username.trim()
             if (trimmedUsername.isEmpty()) {
-                _uiState.update {
-                    it.copy(accountErrorMessage = "Bitte gib einen Benutzernamen ein.")
-                }
+                failAccountAction("Bitte gib einen Benutzernamen ein.")
                 return@launch
             }
 
-            _uiState.update {
-                it.copy(
-                    isSavingProfile = true,
-                    accountErrorMessage = null,
-                )
-            }
+            setAccountSaving()
 
             val result = authService.updateCurrentProfile(
                 ProfileUpdateInput(
@@ -971,25 +964,14 @@ class SettingsViewModel : ViewModel() {
                 AppContainer.refreshCurrentUser()
                 showPaymentFeedback(message = "Profil gespeichert.", isError = false)
             } else {
-                _uiState.update {
-                    it.copy(
-                        isSavingProfile = false,
-                        accountErrorMessage = result.exceptionOrNull()?.message
-                            ?: "Profil konnte nicht gespeichert werden.",
-                    )
-                }
+                failAccountAction(result.exceptionOrNull()?.message ?: "Profil konnte nicht gespeichert werden.")
             }
         }
     }
 
     fun saveAiAccessConsent(enabled: Boolean) {
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isSavingProfile = true,
-                    accountErrorMessage = null,
-                )
-            }
+            setAccountSaving()
 
             val result = authService.updateCurrentAiAccessEnabled(enabled)
             if (result.isSuccess) {
@@ -1011,13 +993,7 @@ class SettingsViewModel : ViewModel() {
                     isError = false,
                 )
             } else {
-                _uiState.update {
-                    it.copy(
-                        isSavingProfile = false,
-                        accountErrorMessage = result.exceptionOrNull()?.message
-                            ?: "KI-Einwilligung konnte nicht gespeichert werden.",
-                    )
-                }
+                failAccountAction(result.exceptionOrNull()?.message ?: "KI-Einwilligung konnte nicht gespeichert werden.")
             }
         }
     }
@@ -1038,13 +1014,7 @@ class SettingsViewModel : ViewModel() {
                 _uiState.update { it.copy(isSigningOut = false) }
                 onSuccess?.invoke()
             } else {
-                _uiState.update {
-                    it.copy(
-                        isSigningOut = false,
-                        accountErrorMessage = result.exceptionOrNull()?.message
-                            ?: "Abmelden fehlgeschlagen.",
-                    )
-                }
+                failSignOut(result.exceptionOrNull()?.message ?: "Abmelden fehlgeschlagen.")
             }
         }
     }
@@ -1252,6 +1222,33 @@ class SettingsViewModel : ViewModel() {
             it.copy(
                 paymentFeedbackMessage = message,
                 isPaymentFeedbackError = isError,
+            )
+        }
+    }
+
+    private fun setAccountSaving() {
+        _uiState.update {
+            it.copy(
+                isSavingProfile = true,
+                accountErrorMessage = null,
+            )
+        }
+    }
+
+    private fun failAccountAction(message: String) {
+        _uiState.update {
+            it.copy(
+                isSavingProfile = false,
+                accountErrorMessage = message,
+            )
+        }
+    }
+
+    private fun failSignOut(message: String) {
+        _uiState.update {
+            it.copy(
+                isSigningOut = false,
+                accountErrorMessage = message,
             )
         }
     }

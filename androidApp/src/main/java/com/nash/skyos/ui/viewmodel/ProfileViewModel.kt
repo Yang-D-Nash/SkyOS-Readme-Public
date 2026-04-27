@@ -116,7 +116,7 @@ class ProfileViewModel : ViewModel() {
             val current = _uiState.value
             val trimmedUsername = current.username.trim()
             if (trimmedUsername.isEmpty()) {
-                _uiState.update { it.copy(errorMessage = "Bitte gib einen Benutzernamen ein.") }
+                postError("Bitte gib einen Benutzernamen ein.")
                 return@launch
             }
 
@@ -133,20 +133,10 @@ class ProfileViewModel : ViewModel() {
 
             if (result.isSuccess) {
                 AppContainer.refreshCurrentUser()
-                _uiState.update {
-                    it.copy(
-                        isSavingProfile = false,
-                        isEditing = false,
-                        toastMessage = "Profil gespeichert.",
-                    )
-                }
+                _uiState.update { it.copy(isSavingProfile = false, isEditing = false) }
+                postSuccess("Profil gespeichert.")
             } else {
-                _uiState.update {
-                    it.copy(
-                        isSavingProfile = false,
-                        errorMessage = result.exceptionOrNull()?.message ?: "Profil konnte nicht gespeichert werden.",
-                    )
-                }
+                failProfileSave(result.exceptionOrNull()?.message ?: "Profil konnte nicht gespeichert werden.")
             }
         }
     }
@@ -154,7 +144,7 @@ class ProfileViewModel : ViewModel() {
     fun uploadAvatar(uri: Uri, contentResolver: ContentResolver) {
         val userId = _uiState.value.currentUser?.id ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(isUploadingAvatar = true, errorMessage = null) }
+            setAvatarUploadLoading()
             val result = repository.uploadAvatar(
                 userId = userId,
                 uri = uri,
@@ -162,19 +152,10 @@ class ProfileViewModel : ViewModel() {
             )
             if (result.isSuccess) {
                 AppContainer.refreshCurrentUser()
-                _uiState.update {
-                    it.copy(
-                        isUploadingAvatar = false,
-                        toastMessage = "Profilbild aktualisiert.",
-                    )
-                }
+                finalizeAvatarUpload()
+                postSuccess("Profilbild aktualisiert.")
             } else {
-                _uiState.update {
-                    it.copy(
-                        isUploadingAvatar = false,
-                        errorMessage = result.exceptionOrNull()?.message ?: "Profilbild konnte nicht geladen werden.",
-                    )
-                }
+                failAvatarUpload(result.exceptionOrNull()?.message ?: "Profilbild konnte nicht geladen werden.")
             }
         }
     }
@@ -182,7 +163,7 @@ class ProfileViewModel : ViewModel() {
     fun uploadMedia(type: ProfileMediaType, uri: Uri, contentResolver: ContentResolver) {
         val userId = _uiState.value.currentUser?.id ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(isUploadingMedia = true, errorMessage = null) }
+            setMediaUploadLoading()
             val result = repository.uploadGallery(
                 userId = userId,
                 uri = uri,
@@ -191,19 +172,10 @@ class ProfileViewModel : ViewModel() {
             )
 
             if (result.isSuccess) {
-                _uiState.update {
-                    it.copy(
-                        isUploadingMedia = false,
-                        toastMessage = "Bild hochgeladen.",
-                    )
-                }
+                finalizeMediaUpload()
+                postSuccess("Bild hochgeladen.")
             } else {
-                _uiState.update {
-                    it.copy(
-                        isUploadingMedia = false,
-                        errorMessage = result.exceptionOrNull()?.message ?: "Upload fehlgeschlagen.",
-                    )
-                }
+                failMediaUpload(result.exceptionOrNull()?.message ?: "Upload fehlgeschlagen.")
             }
         }
     }
@@ -211,23 +183,14 @@ class ProfileViewModel : ViewModel() {
     fun deleteAvatar() {
         val userId = _uiState.value.currentUser?.id ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(isUploadingAvatar = true, errorMessage = null) }
+            setAvatarUploadLoading()
             val result = repository.deleteAvatar(userId)
             if (result.isSuccess) {
                 AppContainer.refreshCurrentUser()
-                _uiState.update {
-                    it.copy(
-                        isUploadingAvatar = false,
-                        toastMessage = "Profilbild entfernt.",
-                    )
-                }
+                finalizeAvatarUpload()
+                postSuccess("Profilbild entfernt.")
             } else {
-                _uiState.update {
-                    it.copy(
-                        isUploadingAvatar = false,
-                        errorMessage = result.exceptionOrNull()?.message ?: "Profilbild konnte nicht entfernt werden.",
-                    )
-                }
+                failAvatarUpload(result.exceptionOrNull()?.message ?: "Profilbild konnte nicht entfernt werden.")
             }
         }
     }
@@ -235,23 +198,18 @@ class ProfileViewModel : ViewModel() {
     fun deleteGalleryItem(item: ProfileGalleryItem) {
         val userId = _uiState.value.currentUser?.id ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(isUploadingMedia = true, errorMessage = null) }
+            setMediaUploadLoading()
             val result = repository.deleteGalleryItem(userId, item)
             if (result.isSuccess) {
                 _uiState.update {
                     it.copy(
                         isUploadingMedia = false,
                         galleryItems = it.galleryItems.filterNot { galleryItem -> galleryItem.id == item.id },
-                        toastMessage = "Bild entfernt.",
                     )
                 }
+                postSuccess("Bild entfernt.")
             } else {
-                _uiState.update {
-                    it.copy(
-                        isUploadingMedia = false,
-                        errorMessage = result.exceptionOrNull()?.message ?: "Bild konnte nicht entfernt werden.",
-                    )
-                }
+                failMediaUpload(result.exceptionOrNull()?.message ?: "Bild konnte nicht entfernt werden.")
             }
         }
     }
@@ -275,10 +233,59 @@ class ProfileViewModel : ViewModel() {
             result.onSuccess { items ->
                 _uiState.update { it.copy(galleryItems = items) }
             }.onFailure { error ->
-                _uiState.update {
-                    it.copy(errorMessage = error.message ?: "Profilgalerie konnte nicht geladen werden.")
-                }
+                postError(error.message ?: "Profilgalerie konnte nicht geladen werden.")
             }
+        }
+    }
+
+    private fun postSuccess(message: String) {
+        _uiState.update { it.copy(toastMessage = message, errorMessage = null) }
+    }
+
+    private fun postError(message: String) {
+        _uiState.update { it.copy(errorMessage = message, toastMessage = null) }
+    }
+
+    private fun failProfileSave(message: String) {
+        _uiState.update {
+            it.copy(
+                isSavingProfile = false,
+                errorMessage = message,
+            )
+        }
+    }
+
+    private fun setAvatarUploadLoading() {
+        _uiState.update { it.copy(isUploadingAvatar = true, errorMessage = null) }
+    }
+
+    private fun finalizeAvatarUpload() {
+        _uiState.update { it.copy(isUploadingAvatar = false) }
+    }
+
+    private fun failAvatarUpload(message: String) {
+        _uiState.update {
+            it.copy(
+                isUploadingAvatar = false,
+                errorMessage = message,
+            )
+        }
+    }
+
+    private fun setMediaUploadLoading() {
+        _uiState.update { it.copy(isUploadingMedia = true, errorMessage = null) }
+    }
+
+    private fun finalizeMediaUpload() {
+        _uiState.update { it.copy(isUploadingMedia = false) }
+    }
+
+    private fun failMediaUpload(message: String) {
+        _uiState.update {
+            it.copy(
+                isUploadingMedia = false,
+                errorMessage = message,
+            )
         }
     }
 }
