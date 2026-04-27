@@ -33,15 +33,16 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.nash.skyos.R
 import com.skydown.shared.model.MerchandiseItem
 import com.skydown.shared.model.hasCuratedMerchCategory
 import com.skydown.shared.model.merchCategorySubtitle
 import com.skydown.shared.model.merchCategoryTitle
-import java.util.Locale
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -181,7 +182,11 @@ fun MerchandiseCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     MerchStatePill(
-                        text = if (item.available) "Drop live" else "Sold out",
+                        text = if (item.available) {
+                            stringResource(R.string.merch_badge_drop_live)
+                        } else {
+                            stringResource(R.string.merch_badge_sold_out)
+                        },
                         isAccent = item.available,
                         accentColor = accentColor,
                         accentContainer = accentContainer,
@@ -196,7 +201,7 @@ fun MerchandiseCard(
                     }
                     if (safeImageUrls.size > 1) {
                         MerchStatePill(
-                            text = "${safeImageUrls.size} Bilder",
+                            text = stringResource(R.string.merch_badge_images_count, safeImageUrls.size),
                             isAccent = false,
                             accentColor = accentColor,
                             accentContainer = accentContainer,
@@ -221,7 +226,11 @@ fun MerchandiseCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "${item.currency} ${String.format(Locale.US, "%.2f", item.price)}",
+                    text = stringResource(
+                        R.string.shop_currency_price,
+                        item.currency,
+                        String.format(java.util.Locale.US, "%.2f", item.price),
+                    ),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
@@ -243,7 +252,11 @@ fun MerchandiseCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = if (item.hasCuratedMerchCategory) item.merchCategorySubtitle else "House line",
+                        text = if (item.hasCuratedMerchCategory) {
+                            item.merchCategorySubtitle
+                        } else {
+                            stringResource(R.string.merch_house_line)
+                        },
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
                         maxLines = 1,
@@ -252,7 +265,11 @@ fun MerchandiseCard(
                     )
                     Spacer(modifier = Modifier.size(8.dp))
                     Text(
-                        text = if (item.available) "Details >" else "Produkt >",
+                        text = if (item.available) {
+                            stringResource(R.string.merch_action_details)
+                        } else {
+                            stringResource(R.string.merch_action_product)
+                        },
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = accentColor,

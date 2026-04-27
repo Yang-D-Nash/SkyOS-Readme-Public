@@ -66,6 +66,37 @@ Android Studio's green Run button normally installs the `debug` variant. The pub
 validated from `release` artifacts built by `./scripts/android_release_clean_build.sh`, because
 debug and release differ in signing, minification, and Firebase App Check behavior.
 
+### Statische Analyse (Detekt)
+
+Das Projekt nutzt **Detekt 2** (`dev.detekt` Gradle-Plugin) für Kotlin in `:androidApp` und
+`:shared` (nur `commonMain`). Standardbefehl:
+
+```bash
+./gradlew detektAll
+```
+
+- Konfiguration: `config/detekt.yml` (u. a. leise gemacht: Länge, Magic Numbers, viele
+  Komplexitätsregeln; Fokus auf u. a. unbenutzte Parameter).
+- `ignoreFailures` ist derzeit `false` — `detektAll` schlägt fehl, sobald die Analyse Befunde meldet.
+  HTML-Reports: `androidApp/build/reports/detekt/`, `shared/build/reports/detekt/`.
+- Groessere Altlasten: optional Baseline mit `./gradlew :androidApp:detektBaseline` (und analog
+  `:shared`) statt harter Fehler, oder `config/detekt.yml` enger stellen.
+
+### Play uploads (AAB and APK)
+
+Store-facing **versionCode** and **versionName** are defined only in `androidApp/build.gradle.kts`.
+Before any Google Play upload (manual drag-and-drop or Fastlane), use this sequence so you never
+ship the wrong file or an outdated build number:
+
+1. Produce a clean release: `./scripts/android_release_clean_build.sh` (fails if metadata or
+   signing do not match Gradle).
+2. Immediately before upload: `./scripts/verify_android_release_artifacts.sh` (re-checks metadata,
+   optional `aapt2` on the APK when `ANDROID_HOME` is set, prints paths and SHA-256).
+
+Fastlane lanes `validate_android_internal` and `upload_android_internal` run the same verify step
+first. Do not upload an AAB from Downloads, another checkout, or an old `androidApp/build/`
+directory from a previous run.
+
 ## 5. Fold and Large-Screen Testing
 
 SkyOS supports large screens, but foldables need intentional QA. Validate:

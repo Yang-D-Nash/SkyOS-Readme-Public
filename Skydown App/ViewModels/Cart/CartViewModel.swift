@@ -17,7 +17,7 @@ class CartViewModel: ObservableObject {
     @Published var items: [CartItem] = []
     @Published var userEmail: String = ""
     @Published var handoverContext: CartHandoverContext?
-    
+
     @Published var toastMessage = ""
     @Published var showToast = false
     @Published var toastStyle: ToastStyle = .success

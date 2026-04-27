@@ -2,6 +2,7 @@ plugins {
     kotlin("multiplatform")
     id("com.android.kotlin.multiplatform.library")
     kotlin("plugin.serialization")
+    id("dev.detekt")
 }
 
 kotlin {
@@ -37,4 +38,12 @@ kotlin {
             }
         }
     }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    parallel = true
+    config.setFrom(rootProject.file("config/detekt.yml"))
+    source.setFrom("src/commonMain/kotlin")
+    ignoreFailures = false
 }

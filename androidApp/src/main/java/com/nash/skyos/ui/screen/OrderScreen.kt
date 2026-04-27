@@ -36,6 +36,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,9 +44,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.nash.skyos.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nash.skyos.ui.component.SkydownCard
@@ -87,11 +91,11 @@ fun OrderScreen(
                 title = {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "Bestellungen",
+                            text = stringResource(R.string.order_topbar_title),
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "Status, Mengen und Rueckstand klar im Blick.",
+                            text = stringResource(R.string.order_topbar_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             maxLines = 1,
@@ -101,7 +105,7 @@ fun OrderScreen(
                 },
                 actions = {
                     TextButton(onClick = onClose) {
-                        Text("Schliessen")
+                        Text(stringResource(R.string.order_action_close))
                     }
                 },
                 colors = skydownTopBarColors(),
@@ -139,15 +143,15 @@ fun OrderScreen(
                     item {
                         OrdersInlineStatusStrip(
                             icon = Icons.Default.Sync,
-                            title = "Synchronisierung laeuft",
+                            title = stringResource(R.string.order_syncing_title),
                         ) {
                             Text(
-                                text = "Bestellungen werden aktualisiert...",
+                                text = stringResource(R.string.order_syncing_line1),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = "Die Uebersicht wird sicher aktualisiert.",
+                                text = stringResource(R.string.order_syncing_line2),
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -157,15 +161,16 @@ fun OrderScreen(
                     item {
                         OrdersInlineStatusStrip(
                             icon = Icons.Default.Sync,
-                            title = "Bestellungen gerade nicht verfuegbar",
+                            title = stringResource(R.string.order_unavailable_title),
                         ) {
                             Text(
-                                text = uiState.errorMessage ?: "Bestellungen konnten nicht geladen werden.",
+                                text = uiState.errorMessage
+                                    ?: stringResource(R.string.order_error_generic),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
                             )
                             Text(
-                                text = "Bitte kurz erneut laden.",
+                                text = stringResource(R.string.order_error_retry),
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             )
@@ -174,7 +179,7 @@ fun OrderScreen(
                                 modifier = Modifier.padding(top = 12.dp),
                                 shape = RoundedCornerShape(16.dp),
                             ) {
-                                Text("Erneut laden")
+                                Text(stringResource(R.string.order_action_reload))
                             }
                         }
                     }
@@ -182,15 +187,15 @@ fun OrderScreen(
                     item {
                         OrdersInlineStatusStrip(
                             icon = Icons.Default.ShoppingBag,
-                            title = "Noch keine Bestellung",
+                            title = stringResource(R.string.order_empty_title),
                         ) {
                             Text(
-                                text = "Noch keine Bestellung",
+                                text = stringResource(R.string.order_empty_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = "Neue Bestellungen erscheinen hier automatisch mit aktuellem Status.",
+                                text = stringResource(R.string.order_empty_subtitle),
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
@@ -235,7 +240,7 @@ fun OrderScreen(
 }
 
 private fun formatOrderDate(timestampEpochMillis: Long): String {
-    return SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).format(Date(timestampEpochMillis))
+    return SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(timestampEpochMillis))
 }
 
 private fun formatCurrency(value: Double, decimals: Int = 2): String {
@@ -247,6 +252,12 @@ private fun OrdersOverviewCard(
     orderCount: Int,
     completedOrders: Int,
 ) {
+    val countLabel = pluralStringResource(
+        R.plurals.order_pill_order_count,
+        orderCount,
+        orderCount,
+    )
+    val openCount = (orderCount - completedOrders).coerceAtLeast(0)
     val shape = RoundedCornerShape(16.dp)
     Column(
         modifier = Modifier
@@ -272,20 +283,24 @@ private fun OrdersOverviewCard(
                 modifier = Modifier.size(14.dp),
             )
             Text(
-                text = "Bestelluebersicht",
+                text = stringResource(R.string.order_overview_title),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
             )
         }
         Text(
-            text = "Status und Rueckstand liegen kompakt bereit, damit du Auftraege schneller pruefst.",
+            text = stringResource(R.string.order_overview_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OrderStatusPill(text = if (orderCount == 1) "1 Bestellung" else "$orderCount Bestellungen")
-            OrderStatusPill(text = "$completedOrders erledigt")
-            OrderStatusPill(text = "${(orderCount - completedOrders).coerceAtLeast(0)} offen")
+            OrderStatusPill(text = countLabel)
+            OrderStatusPill(
+                text = stringResource(R.string.order_pill_done, completedOrders),
+            )
+            OrderStatusPill(
+                text = stringResource(R.string.order_pill_open, openCount),
+            )
         }
     }
 }
@@ -342,15 +357,19 @@ private fun OrderCard(
     val shippingAddress = order.shippingAddress?.takeIf { it.isNotBlank() }
     val paymentMethod = order.paymentMethod?.takeIf { it.isNotBlank() }
     val paymentProvider = order.paymentProvider?.takeIf { it.isNotBlank() }
-    val paymentStatus = order.paymentStatus?.takeIf { it.isNotBlank() }?.asUserFacingOrderStatus()
+    val paymentStatusRaw = order.paymentStatus?.takeIf { it.isNotBlank() }
+    val paymentStatus = paymentStatusRaw?.let { localOrderStatusLabel(it) }
     val paymentReference = order.paymentReference?.takeIf { it.isNotBlank() }
     val shippingZone = order.shippingZone?.takeIf { it.isNotBlank() }
     val fulfillmentProvider = order.fulfillmentProvider?.takeIf { it.isNotBlank() }
-    val fulfillmentStatus = order.fulfillmentStatus?.takeIf { it.isNotBlank() }?.asUserFacingOrderStatus()
+    val fulfillmentStatus =
+        order.fulfillmentStatus?.takeIf { it.isNotBlank() }?.let { localOrderStatusLabel(it) }
     val shopifyOrderId = order.shopifyOrderId?.takeIf { it.isNotBlank() }
     val shopifyOrderName = order.shopifyOrderName?.takeIf { it.isNotBlank() }
-    val shopifySyncStatus = order.shopifySyncStatus?.takeIf { it.isNotBlank() }?.asUserFacingOrderStatus()
-    val stripeCheckoutStatus = order.stripeCheckoutStatus?.takeIf { it.isNotBlank() }?.asUserFacingOrderStatus()
+    val shopifySyncStatus =
+        order.shopifySyncStatus?.takeIf { it.isNotBlank() }?.let { localOrderStatusLabel(it) }
+    val stripeCheckoutStatus =
+        order.stripeCheckoutStatus?.takeIf { it.isNotBlank() }?.let { localOrderStatusLabel(it) }
     val stripeCheckoutSessionId = order.stripeCheckoutSessionId?.takeIf { it.isNotBlank() }
     val stripePaymentIntentId = order.stripePaymentIntentId?.takeIf { it.isNotBlank() }
     val message = order.message?.takeIf { it.isNotBlank() }
@@ -388,11 +407,15 @@ private fun OrderCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             OrderStatusPill(
-                text = if (order.isCompleted) "Erledigt" else "Offen",
+                text = if (order.isCompleted) {
+                    stringResource(R.string.order_status_done)
+                } else {
+                    stringResource(R.string.order_status_open)
+                },
                 isAccent = order.isCompleted,
             )
             OrderStatusPill(
-                text = "$totalItems Teile",
+                text = stringResource(R.string.order_pieces, totalItems),
                 isAccent = false,
             )
             paymentStatus?.let { status ->
@@ -408,118 +431,118 @@ private fun OrderCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             OrderMetaRow(
-                label = "Kontakt",
+                label = stringResource(R.string.order_label_contact),
                 value = contactEmail,
             )
 
             whatsApp?.let { value ->
                 OrderMetaRow(
-                    label = "WhatsApp",
+                    label = stringResource(R.string.order_label_whatsapp),
                     value = value,
                 )
             }
 
             shippingAddress?.let { value ->
                 OrderMetaRow(
-                    label = "Adresse",
+                    label = stringResource(R.string.order_label_address),
                     value = value,
                 )
             }
 
             paymentMethod?.let { value ->
                 OrderMetaRow(
-                    label = "Zahlart",
+                    label = stringResource(R.string.order_label_payment_method),
                     value = value,
                 )
             }
 
             paymentProvider?.let { value ->
                 OrderMetaRow(
-                    label = "Zahlanbieter",
+                    label = stringResource(R.string.order_label_payment_provider),
                     value = value,
                 )
             }
 
             paymentStatus?.let { value ->
                 OrderMetaRow(
-                    label = "Zahlstatus",
+                    label = stringResource(R.string.order_label_payment_status),
                     value = value,
                 )
             }
 
             paymentReference?.let { value ->
                 OrderMetaRow(
-                    label = "Zahlreferenz",
+                    label = stringResource(R.string.order_label_payment_reference),
                     value = value,
                 )
             }
 
             shippingZone?.let { value ->
                 OrderMetaRow(
-                    label = "Versandzone",
+                    label = stringResource(R.string.order_label_shipping_zone),
                     value = value,
                 )
             }
 
             fulfillmentProvider?.let { value ->
                 OrderMetaRow(
-                    label = "Versanddienst",
+                    label = stringResource(R.string.order_label_fulfillment),
                     value = value,
                 )
             }
 
             fulfillmentStatus?.let { value ->
                 OrderMetaRow(
-                    label = "Versandstatus",
+                    label = stringResource(R.string.order_label_fulfillment_status),
                     value = value,
                 )
             }
 
             shopifyOrderName?.let { value ->
                 OrderMetaRow(
-                    label = "Shop-Bestellnummer",
+                    label = stringResource(R.string.order_label_shopify_order),
                     value = value,
                 )
             }
 
             shopifyOrderId?.let { value ->
                 OrderMetaRow(
-                    label = "Shop-Referenz",
+                    label = stringResource(R.string.order_label_shopify_id),
                     value = value,
                 )
             }
 
             shopifySyncStatus?.let { value ->
                 OrderMetaRow(
-                    label = "Shop-Synchronisierung",
+                    label = stringResource(R.string.order_label_shopify_sync),
                     value = value,
                 )
             }
 
             stripeCheckoutStatus?.let { value ->
                 OrderMetaRow(
-                    label = "Checkout-Status",
+                    label = stringResource(R.string.order_label_stripe_checkout),
                     value = value,
                 )
             }
 
             stripeCheckoutSessionId?.let { value ->
                 OrderMetaRow(
-                    label = "Checkout-Referenz",
+                    label = stringResource(R.string.order_label_checkout_ref),
                     value = value,
                 )
             }
 
             stripePaymentIntentId?.let { value ->
                 OrderMetaRow(
-                    label = "Zahlungsreferenz",
+                    label = stringResource(R.string.order_label_stripe_pi),
                     value = value,
                 )
             }
 
             if (order.userEmail != contactEmail) {
                 OrderMetaRow(
-                    label = "Kontomail",
+                    label = stringResource(R.string.order_label_account_email),
                     value = order.userEmail,
                 )
             }
@@ -536,7 +559,7 @@ private fun OrderCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "Nachricht",
+                        text = stringResource(R.string.order_message),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     )
@@ -565,21 +588,49 @@ private fun OrderCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "Bestellsumme",
+                        text = stringResource(R.string.order_sum_title),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     )
-                    order.subtotalAmount?.let { OrderMetaRow(label = "Zwischensumme", value = "EUR ${formatCurrency(it)}") }
-                    order.shippingAmount?.let { OrderMetaRow(label = "Versand", value = "EUR ${formatCurrency(it)}") }
+                    order.subtotalAmount?.let {
+                        OrderMetaRow(
+                            label = stringResource(R.string.order_subtotal),
+                            value = stringResource(
+                                R.string.order_price_eur,
+                                formatCurrency(it),
+                            ),
+                        )
+                    }
+                    order.shippingAmount?.let {
+                        OrderMetaRow(
+                            label = stringResource(R.string.order_shipping),
+                            value = stringResource(
+                                R.string.order_price_eur,
+                                formatCurrency(it),
+                            ),
+                        )
+                    }
                     val taxAmount = order.taxAmount
                     val taxRate = order.taxRate
                     if (taxAmount != null && taxRate != null) {
                         OrderMetaRow(
-                            label = "inkl. MwSt.",
-                            value = "EUR ${formatCurrency(taxAmount)} bei ${formatCurrency(taxRate, decimals = 1)}%",
+                            label = stringResource(R.string.order_tax_included),
+                            value = stringResource(
+                                R.string.order_line_tax,
+                                formatCurrency(taxAmount),
+                                formatCurrency(taxRate, decimals = 1),
+                            ),
                         )
                     }
-                    order.totalAmount?.let { OrderMetaRow(label = "Gesamt", value = "EUR ${formatCurrency(it)}") }
+                    order.totalAmount?.let {
+                        OrderMetaRow(
+                            label = stringResource(R.string.order_total),
+                            value = stringResource(
+                                R.string.order_price_eur,
+                                formatCurrency(it),
+                            ),
+                        )
+                    }
                 }
             }
         }
@@ -605,13 +656,13 @@ private fun OrderCard(
                         )
                         item.size?.takeIf { it.isNotBlank() }?.let { size ->
                             Text(
-                                text = "Groesse $size",
+                                text = stringResource(R.string.order_size, size),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                             )
                         }
                         item.color?.takeIf { it.isNotBlank() }?.let { color ->
                             Text(
-                                text = "Farbe $color",
+                                text = stringResource(R.string.order_color, color),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                             )
                         }
@@ -621,12 +672,15 @@ private fun OrderCard(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text = "x${item.quantity}",
+                            text = stringResource(R.string.order_item_qty, item.quantity),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         )
                         item.unitPrice?.let { unitPrice ->
                             Text(
-                                text = "EUR ${formatCurrency(unitPrice)}",
+                                text = stringResource(
+                                    R.string.order_price_eur,
+                                    formatCurrency(unitPrice),
+                                ),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                                 style = MaterialTheme.typography.bodySmall,
                             )
@@ -657,7 +711,11 @@ private fun OrderCard(
                                 shape = RoundedCornerShape(20.dp),
                             ) {
                                 Text(
-                                    text = if (isConfirmingPayment) "Wird bestaetigt..." else "Zahlung als eingegangen markieren",
+                                    text = if (isConfirmingPayment) {
+                                        stringResource(R.string.order_action_confirming)
+                                    } else {
+                                        stringResource(R.string.order_action_mark_paid)
+                                    },
                                 )
                             }
                         }
@@ -673,7 +731,11 @@ private fun OrderCard(
                                 contentDescription = null,
                             )
                             Text(
-                                text = if (order.isCompleted) "Bestellung wieder oeffnen" else "Bestellung als erledigt markieren",
+                                text = if (order.isCompleted) {
+                                    stringResource(R.string.order_action_reopen)
+                                } else {
+                                    stringResource(R.string.order_action_complete)
+                                },
                                 modifier = Modifier.padding(start = 8.dp),
                             )
                         }
@@ -683,7 +745,7 @@ private fun OrderCard(
                             modifier = Modifier.fillMaxWidth(),
                             enabled = hasActionableId,
                         ) {
-                            Text("Entfernen")
+                            Text(stringResource(R.string.order_action_remove))
                         }
                     }
                 } else {
@@ -699,7 +761,11 @@ private fun OrderCard(
                                 shape = RoundedCornerShape(20.dp),
                             ) {
                                 Text(
-                                    text = if (isConfirmingPayment) "Wird bestaetigt..." else "Zahlung als eingegangen markieren",
+                                    text = if (isConfirmingPayment) {
+                                        stringResource(R.string.order_action_confirming)
+                                    } else {
+                                        stringResource(R.string.order_action_mark_paid)
+                                    },
                                 )
                             }
                         }
@@ -715,7 +781,11 @@ private fun OrderCard(
                                 contentDescription = null,
                             )
                             Text(
-                                text = if (order.isCompleted) "Bestellung wieder oeffnen" else "Bestellung als erledigt markieren",
+                                text = if (order.isCompleted) {
+                                    stringResource(R.string.order_action_reopen)
+                                } else {
+                                    stringResource(R.string.order_action_complete)
+                                },
                                 modifier = Modifier.padding(start = 8.dp),
                             )
                         }
@@ -724,7 +794,7 @@ private fun OrderCard(
                             modifier = Modifier.weight(1f),
                             enabled = hasActionableId,
                         ) {
-                            Text("Entfernen")
+                            Text(stringResource(R.string.order_action_remove))
                         }
                     }
                 }
@@ -793,20 +863,23 @@ private fun OrderStatusPill(
     }
 }
 
-private fun String.asUserFacingOrderStatus(): String {
-    return when (trim().lowercase()) {
-        "pending" -> "In Klaerung"
-        "open" -> "Offen"
-        "confirmed" -> "Bestaetigt"
-        "paid" -> "Bezahlt"
-        "processing" -> "In Bearbeitung"
-        "fulfilled" -> "Versendet"
-        "unfulfilled" -> "Nicht versendet"
-        "success", "succeeded" -> "Abgeschlossen"
-        "failed" -> "Nicht erfolgreich"
-        "expired" -> "Abgelaufen"
-        "canceled", "cancelled" -> "Storniert"
-        else -> replace("_", " ").replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+@Composable
+@ReadOnlyComposable
+private fun localOrderStatusLabel(raw: String): String {
+    return when (raw.trim().lowercase()) {
+        "pending" -> stringResource(R.string.order_state_pending)
+        "open" -> stringResource(R.string.order_state_open)
+        "confirmed" -> stringResource(R.string.order_state_confirmed)
+        "paid" -> stringResource(R.string.order_state_paid)
+        "processing" -> stringResource(R.string.order_state_processing)
+        "fulfilled" -> stringResource(R.string.order_state_fulfilled)
+        "unfulfilled" -> stringResource(R.string.order_state_unfulfilled)
+        "success", "succeeded" -> stringResource(R.string.order_state_succeeded)
+        "failed" -> stringResource(R.string.order_state_failed)
+        "expired" -> stringResource(R.string.order_state_expired)
+        "canceled", "cancelled" -> stringResource(R.string.order_state_canceled)
+        else -> raw.replace("_", " ")
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
     }
 }
 

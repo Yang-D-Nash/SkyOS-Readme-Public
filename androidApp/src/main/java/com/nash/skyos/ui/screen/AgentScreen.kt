@@ -153,6 +153,9 @@ fun AgentScreen(
     showTopBar: Boolean = true,
     immersiveInTools: Boolean = false,
 ) {
+    DisposableEffect(immersiveInTools) {
+        onDispose { }
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val compactLayout = rememberIsCompactAppLayout()
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
@@ -172,9 +175,9 @@ fun AgentScreen(
     val promptSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val activeSessionSummary = uiState.sessions.firstOrNull { it.sessionId == uiState.activeSessionId }
     val activeSessionSubtitle = when (activeSessionSummary?.promptCount ?: 0) {
-        0 -> "Neu"
-        1 -> "1 Anfrage"
-        else -> "${activeSessionSummary?.promptCount ?: 0} Anfragen"
+        0 -> stringResource(R.string.ai_session_count_new)
+        1 -> stringResource(R.string.ai_session_count_one)
+        else -> stringResource(R.string.ai_session_count_many, activeSessionSummary?.promptCount ?: 0)
     }
     val attachmentPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments(),
@@ -473,7 +476,7 @@ fun AgentScreen(
 
             if (showSessionsSheet) {
                 AiConversationSessionsSheet(
-                    title = "Agent Chats",
+                    title = stringResource(R.string.agent_sessions_title),
                     sessions = uiState.sessions,
                     activeSessionId = uiState.activeSessionId,
                     renameDraft = renameDraft,
@@ -575,7 +578,12 @@ private fun AgentRevenueUsageCard(
                 .padding(top = 8.dp),
         )
         Text(
-            text = "${usage.remainingForKind}/${usage.limitForKind} ${stringResource(R.string.ai_open)}",
+            text = stringResource(
+                R.string.ai_usage_remaining_of_limit,
+                usage.remainingForKind,
+                usage.limitForKind,
+                stringResource(R.string.ai_open),
+            ),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
             modifier = Modifier.padding(top = 4.dp),
@@ -614,7 +622,7 @@ private fun AgentRevenueUsageCard(
         }
         if (usage.retryAfterSeconds > 0) {
             Text(
-                text = "${stringResource(R.string.ai_retry_in)} ${usage.retryAfterSeconds}s.",
+                text = stringResource(R.string.ai_retry_in_seconds, usage.retryAfterSeconds),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                 modifier = Modifier
@@ -626,7 +634,7 @@ private fun AgentRevenueUsageCard(
         }
         if (usage.suggestedUpgrade.isNotBlank()) {
             Text(
-                text = "${stringResource(R.string.ai_upgrade_hint)}: ${usage.suggestedUpgrade.uppercase()}",
+                text = stringResource(R.string.ai_upgrade_hint_value, usage.suggestedUpgrade.uppercase()),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.padding(top = 4.dp),
@@ -690,7 +698,7 @@ private fun AiMembershipSheet(
             Text(stringResource(R.string.ai_membership_sheet_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
             Text(stringResource(R.string.ai_membership_sheet_subtitle), style = MaterialTheme.typography.bodyMedium)
             Text(
-                "Ausloeser: ${state.reason.name.lowercase()}",
+                stringResource(R.string.agent_membership_trigger, state.reason.name.lowercase()),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             )
@@ -721,7 +729,7 @@ private fun AiMembershipSheet(
             }
             if (!state.isLoading && state.products.isEmpty() && state.errorMessage.isBlank()) {
                 Text(
-                    text = "Play Billing ist fuer dieses Build noch nicht live konfiguriert.",
+                    text = stringResource(R.string.agent_membership_billing_unavailable),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -743,12 +751,12 @@ private fun AgentEmptyStateHeader() {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = "Hey, ich bin SkyOS AI.",
+            text = stringResource(R.string.agent_empty_header_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Tippe auf +, waehle deine Optionen und starte dann den Prompt.",
+            text = stringResource(R.string.agent_empty_header_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -830,12 +838,16 @@ private fun AgentPromptFab(
             } else {
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = "Prompt oeffnen",
+                    contentDescription = stringResource(R.string.agent_prompt_open),
                     modifier = Modifier.size(20.dp),
                 )
             }
             Text(
-                text = if (isWorking) "Arbeitet" else "Agent",
+                text = if (isWorking) {
+                    stringResource(R.string.agent_fab_working)
+                } else {
+                    stringResource(R.string.agent_topbar_title)
+                },
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Black,
             )
@@ -907,7 +919,7 @@ private fun AgentPromptComposerSheet(
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 Text(
-                    text = "Neue Agent-Anfrage",
+                    text = stringResource(R.string.agent_prompt_sheet_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -915,7 +927,7 @@ private fun AgentPromptComposerSheet(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "Modus, Workflow und Prompt in einem ruhigen Flow.",
+                    text = stringResource(R.string.agent_prompt_sheet_subtitle),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
                     maxLines = 2,
@@ -934,7 +946,7 @@ private fun AgentPromptComposerSheet(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Prompt schliessen",
+                    contentDescription = stringResource(R.string.agent_prompt_close),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -949,7 +961,7 @@ private fun AgentPromptComposerSheet(
         }
 
         Text(
-            text = "Optionen",
+            text = stringResource(R.string.agent_prompt_options),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Black,
             color = MaterialTheme.colorScheme.tertiary,
@@ -983,7 +995,7 @@ private fun AgentPromptComposerSheet(
         )
 
         Text(
-            text = "Prompt",
+            text = stringResource(R.string.agent_prompt_label),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Black,
             color = MaterialTheme.colorScheme.tertiary,
@@ -1017,12 +1029,16 @@ private fun AgentPromptComposerSheet(
             IconButton(onClick = onAddFiles) {
                 Icon(
                     imageVector = Icons.Default.AttachFile,
-                    contentDescription = "Dateien hinzufuegen",
+                    contentDescription = stringResource(R.string.agent_files_add),
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
             Text(
-                text = if (attachments.isEmpty()) "Keine Dateien" else "${attachments.size} Datei(en)",
+                text = if (attachments.isEmpty()) {
+                    stringResource(R.string.agent_files_none)
+                } else {
+                    stringResource(R.string.agent_files_count, attachments.size)
+                },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
             )
@@ -1060,14 +1076,14 @@ private fun AgentPromptComposerSheet(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Datei entfernen",
+                                contentDescription = stringResource(R.string.common_remove),
                                 modifier = Modifier.size(16.dp),
                             )
                         }
                     }
                 }
                 TextButton(onClick = onClearAttachments) {
-                    Text("Alle entfernen")
+                    Text(stringResource(R.string.agent_files_remove_all))
                 }
             }
         }
@@ -1081,10 +1097,10 @@ private fun AgentPromptComposerSheet(
                 onClick = onReset,
                 enabled = !agentPhase.shouldBlockComposerChrome,
             ) {
-                Text("Neuer Chat")
+                Text(stringResource(R.string.agent_action_new_chat))
             }
             BrandActionButton(
-                text = "Senden",
+                text = stringResource(R.string.agent_action_send),
                 onClick = onSend,
                 accent = MaterialTheme.colorScheme.tertiary,
                 icon = Icons.AutoMirrored.Filled.Send,
@@ -1113,12 +1129,12 @@ private fun AgentQuickPromptCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BrandStatusChip(
-                text = "Prompts",
+                text = stringResource(R.string.agent_prompts_chip),
                 accent = MaterialTheme.colorScheme.tertiary,
                 isActive = true,
             )
             Text(
-                text = "Schnelle Starts",
+                text = stringResource(R.string.agent_prompts_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -1153,7 +1169,7 @@ private fun AgentQuickPromptCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     BrandStatusChip(
-                        text = "Einsetzen",
+                        text = stringResource(R.string.agent_prompts_apply),
                         accent = MaterialTheme.colorScheme.tertiary,
                         isActive = false,
                     )
@@ -1284,14 +1300,22 @@ private fun AgentAutomationTriggerButton(
         Spacer(modifier = Modifier.width(7.dp))
         Column(verticalArrangement = Arrangement.Center) {
             Text(
-                text = if (isEnabled) "Workflow aktiv" else "Workflow starten",
+                text = if (isEnabled) {
+                    stringResource(R.string.agent_workflow_active)
+                } else {
+                    stringResource(R.string.agent_workflow_start)
+                },
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = accent,
                 maxLines = 1,
             )
             Text(
-                text = if (isEnabled) "wird mitgesendet" else "Activepieces",
+                text = if (isEnabled) {
+                    stringResource(R.string.agent_workflow_attached)
+                } else {
+                    stringResource(R.string.agent_workflow_provider)
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
                 maxLines = 1,
@@ -1307,9 +1331,9 @@ private enum class AgentInputAttachmentKind(
     Text("Text", Icons.Default.Bolt),
     Video("Video", Icons.Default.Movie),
     Audio("Audio", Icons.Default.MusicNote),
-    Image("Bild", Icons.Default.Photo),
-    Document("Dokument", Icons.Default.Refresh),
-    File("Datei", Icons.Default.Refresh),
+    Image("Image", Icons.Default.Photo),
+    Document("Document", Icons.Default.Refresh),
+    File("File", Icons.Default.Refresh),
 }
 
 private data class AgentInputAttachment(
@@ -1331,7 +1355,7 @@ private fun resolveAgentInputAttachment(
     )?.use { cursor ->
         val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
         if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
-    }?.takeIf { it.isNotBlank() } ?: uri.lastPathSegment.orEmpty().ifBlank { "Datei" }
+    }?.takeIf { it.isNotBlank() } ?: uri.lastPathSegment.orEmpty().ifBlank { "file" }
     val mimeType = context.contentResolver.getType(uri).orEmpty()
     val extension = displayName.substringAfterLast('.', missingDelimiterValue = "").lowercase()
     val kind = when {
@@ -1373,6 +1397,7 @@ private fun AgentMessageBubble(
     } else {
         Color.Transparent
     }
+    val copiedFeedback = stringResource(R.string.agent_feedback_copied)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1394,7 +1419,11 @@ private fun AgentMessageBubble(
                 ),
         ) {
             Text(
-                text = if (isUser) "Du" else "SkyOS Agent",
+                text = if (isUser) {
+                    stringResource(R.string.ai_user_label_you)
+                } else {
+                    stringResource(R.string.agent_workspace_hero_title)
+                },
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
@@ -1411,7 +1440,7 @@ private fun AgentMessageBubble(
                         strokeWidth = 2.dp,
                     )
                     Text(
-                        text = "SkyOS Agent strukturiert gerade die Antwort...",
+                        text = stringResource(R.string.agent_streaming_status),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -1449,11 +1478,11 @@ private fun AgentMessageBubble(
                         Button(
                             onClick = {
                                 copyAiText(context, "SkyOS Agent", message.text)
-                                onFeedback("Antwort kopiert.", ToastType.Success)
+                                onFeedback(copiedFeedback, ToastType.Success)
                             },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         ) {
-                            Text("Kopieren")
+                            Text(stringResource(R.string.agent_action_copy))
                         }
 
                         OutlinedButton(
@@ -1462,7 +1491,7 @@ private fun AgentMessageBubble(
                             },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         ) {
-                            Text("Teilen")
+                            Text(stringResource(R.string.agent_action_share))
                         }
                     }
                 }
@@ -1569,14 +1598,14 @@ private fun AgentResultShell(
 private fun AgentImageResultCard(result: AgentResultEntry) {
     AgentResultShell(
         result = result,
-        fallbackTitle = "Bild",
+        fallbackTitle = stringResource(R.string.agent_result_image),
         icon = Icons.Default.Photo,
     ) {
         val url = result.url.trim()
         if (url.isNotBlank()) {
             AsyncImage(
                 model = url,
-                contentDescription = result.agentDisplayTitle("Bild"),
+                contentDescription = result.agentDisplayTitle(stringResource(R.string.agent_result_image)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(190.dp)
@@ -1594,7 +1623,7 @@ private fun AgentImageResultCard(result: AgentResultEntry) {
 private fun AgentVideoResultCard(result: AgentResultEntry) {
     AgentResultShell(
         result = result,
-        fallbackTitle = "Video",
+        fallbackTitle = stringResource(R.string.agent_result_video),
         icon = Icons.Default.Movie,
     ) {
         val url = result.url.trim()
@@ -1616,7 +1645,7 @@ private fun AgentVideoResultCard(result: AgentResultEntry) {
 private fun AgentAudioResultCard(result: AgentResultEntry) {
     AgentResultShell(
         result = result,
-        fallbackTitle = "Audio",
+        fallbackTitle = stringResource(R.string.agent_result_audio),
         icon = Icons.Default.MusicNote,
     ) {
         val url = result.url.trim()
@@ -1670,10 +1699,10 @@ private fun AgentInlineMediaPlayer(
 private fun AgentFileResultCard(result: AgentResultEntry) {
     AgentResultShell(
         result = result,
-        fallbackTitle = "Datei",
+        fallbackTitle = stringResource(R.string.agent_result_file),
         icon = Icons.Default.AttachFile,
     ) {
-        AgentOpenResultButton(result = result, label = "Oeffnen")
+        AgentOpenResultButton(result = result, label = stringResource(R.string.agent_action_open))
     }
 }
 
@@ -1681,12 +1710,12 @@ private fun AgentFileResultCard(result: AgentResultEntry) {
 private fun AgentLinkResultCard(result: AgentResultEntry) {
     AgentResultShell(
         result = result,
-        fallbackTitle = "Link",
+        fallbackTitle = stringResource(R.string.agent_result_link),
         icon = Icons.Default.Link,
     ) {
         AgentOpenResultButton(
             result = result,
-            label = result.text.trim().ifBlank { "Link oeffnen" },
+            label = result.text.trim().ifBlank { stringResource(R.string.agent_action_open_link) },
         )
     }
 }
@@ -1726,12 +1755,14 @@ private fun AgentTableResultCard(result: AgentResultEntry) {
         1,
     )
     val columns = result.columns.ifEmpty {
-        List(columnCount.coerceAtMost(8)) { index -> "Spalte ${index + 1}" }
+        List(columnCount.coerceAtMost(8)) { index ->
+            stringResource(R.string.agent_table_column_fallback, index + 1)
+        }
     }
 
     AgentResultShell(
         result = result,
-        fallbackTitle = "Tabelle",
+        fallbackTitle = stringResource(R.string.agent_result_table),
         icon = Icons.Default.TableChart,
     ) {
         if (result.rows.isNotEmpty()) {
@@ -1789,7 +1820,7 @@ private fun AgentTableResultRow(
 private fun AgentHtmlResultCard(result: AgentResultEntry) {
     AgentResultShell(
         result = result,
-        fallbackTitle = "HTML",
+        fallbackTitle = stringResource(R.string.agent_result_html),
         icon = Icons.Default.Code,
     ) {
         val html = result.html.trim()
@@ -1825,7 +1856,7 @@ private fun AgentHtmlResultCard(result: AgentResultEntry) {
 private fun AgentFallbackResultCard(result: AgentResultEntry) {
     AgentResultShell(
         result = result,
-        fallbackTitle = "Output",
+        fallbackTitle = stringResource(R.string.agent_result_output),
         icon = Icons.Default.Bolt,
     ) {
         AgentFallbackResultText(result)
@@ -1882,7 +1913,7 @@ private fun AgentResultEntry.agentFallbackText(): String {
     return listOf(text, summary, url)
         .firstOrNull { it.isNotBlank() }
         ?.trim()
-        ?: agentDisplayTitle("Output bereit.")
+        ?: agentDisplayTitle("Output ready.")
 }
 
 @Composable
@@ -1926,7 +1957,7 @@ private fun AgentWorkflowResultCard(
         )
         summary.runId?.takeIf { it.isNotBlank() }?.let { runId ->
             Text(
-                text = "Run: $runId",
+                text = stringResource(R.string.agent_workflow_run_id, runId),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             )

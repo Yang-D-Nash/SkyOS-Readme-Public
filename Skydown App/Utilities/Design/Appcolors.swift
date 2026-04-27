@@ -18,7 +18,7 @@ struct AppColors {
             return Color(red: 81/255, green: 104/255, blue: 132/255)
         }
     }
-    
+
     static func accentMystic(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
@@ -40,7 +40,7 @@ struct AppColors {
             return Color(red: 181/255, green: 159/255, blue: 125/255)
         }
     }
-    
+
     static func primaryBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
@@ -52,7 +52,7 @@ struct AppColors {
             return Color(red: 246/255, green: 245/255, blue: 242/255)
         }
     }
-    
+
     static func secondaryBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
@@ -63,7 +63,7 @@ struct AppColors {
             return Color(red: 237/255, green: 239/255, blue: 242/255)
         }
     }
-    
+
     static func cardBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
@@ -74,7 +74,7 @@ struct AppColors {
             return Color(red: 255/255, green: 252/255, blue: 247/255)
         }
     }
-    
+
     static func text(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
@@ -85,7 +85,7 @@ struct AppColors {
             return Color(red: 15/255, green: 22/255, blue: 31/255)
         }
     }
-    
+
     static func secondaryText(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:

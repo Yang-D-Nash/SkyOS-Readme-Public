@@ -14,9 +14,11 @@ trust paths, backend authority, and support readiness all line up at the same ti
 
 - [ ] iOS debug build passes
 - [ ] Android debug build passes
+- [ ] optional: `./gradlew detektAll` (fails the build on findings; see `config/detekt.yml`)
 - [ ] Android public artifacts were produced with `./scripts/android_release_clean_build.sh`
+- [ ] immediately before any Play upload, `./scripts/verify_android_release_artifacts.sh` passed (or Fastlane ran it via `validate_android_internal` / `upload_android_internal`)
 - [ ] release build validation completed for the platform(s) being shipped
-- [ ] distributed Android APK/AAB `versionCode` and `versionName` match `androidApp/build.gradle.kts`
+- [ ] distributed Android APK/AAB `versionCode` and `versionName` match `androidApp/build.gradle.kts` (verify script and `aapt2` re-check the APK when `ANDROID_HOME` is set)
 - [ ] Functions tests pass
 - [ ] Firestore and Storage rules tests pass
 - [ ] localization audit has been reviewed for user-facing copy changes

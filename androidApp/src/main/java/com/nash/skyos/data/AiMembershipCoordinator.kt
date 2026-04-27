@@ -3,10 +3,10 @@ package com.nash.skyos.data
 import android.app.Activity
 import android.content.Context
 import android.content.pm.ApplicationInfo
-import com.android.billingclient.api.ProductDetails
-import com.skydown.shared.model.User
 import android.util.Log
+import com.android.billingclient.api.ProductDetails
 import com.google.firebase.firestore.ListenerRegistration
+import com.skydown.shared.model.User
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

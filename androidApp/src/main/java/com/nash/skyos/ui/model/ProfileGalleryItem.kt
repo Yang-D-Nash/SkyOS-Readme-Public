@@ -20,6 +20,9 @@ enum class ProfileMediaType(
     Image("image", "Bilder", "jpg");
 
     companion object {
-        fun fromRawValue(rawValue: String?): ProfileMediaType = Image
+        fun fromRawValue(rawValue: String?): ProfileMediaType = when (rawValue?.lowercase()) {
+            "image" -> Image
+            else -> Image
+        }
     }
 }

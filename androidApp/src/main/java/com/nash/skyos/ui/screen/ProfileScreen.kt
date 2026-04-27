@@ -149,13 +149,13 @@ fun ProfileScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        title = "Profil",
-                        subtitle = "Account, Bilder und Links.",
+                        title = stringResource(R.string.profile_title),
+                        subtitle = stringResource(R.string.profile_subtitle),
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurueck")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 colors = skydownTopBarColors(),
@@ -274,7 +274,7 @@ fun ProfileScreen(
                     SkydownCard {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(
-                                text = "Profil bearbeiten",
+                                text = stringResource(R.string.profile_edit_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -282,31 +282,31 @@ fun ProfileScreen(
                             OutlinedTextField(
                                 value = uiState.username,
                                 onValueChange = viewModel::updateUsername,
-                                label = { Text("Benutzername") },
+                                label = { Text(stringResource(R.string.settings_profile_username)) },
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             OutlinedTextField(
                                 value = uiState.profileTagline,
                                 onValueChange = viewModel::updateProfileTagline,
-                                label = { Text("Kurzinfo") },
+                                label = { Text(stringResource(R.string.settings_profile_tagline)) },
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             OutlinedTextField(
                                 value = uiState.instagramHandle,
                                 onValueChange = viewModel::updateInstagramHandle,
-                                label = { Text("Instagram") },
+                                label = { Text(stringResource(R.string.settings_profile_instagram)) },
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             OutlinedTextField(
                                 value = uiState.whatsApp,
                                 onValueChange = viewModel::updateWhatsApp,
-                                label = { Text("WhatsApp") },
+                                label = { Text(stringResource(R.string.settings_profile_whatsapp)) },
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             OutlinedTextField(
                                 value = uiState.profileBio,
                                 onValueChange = viewModel::updateProfileBio,
-                                label = { Text("Bio") },
+                                label = { Text(stringResource(R.string.settings_profile_bio)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 4,
                             )
@@ -317,7 +317,7 @@ fun ProfileScreen(
                                     modifier = Modifier.weight(1f),
                                     enabled = !uiState.isSavingProfile,
                                 ) {
-                                    Text("Abbrechen")
+                                    Text(stringResource(R.string.common_cancel))
                                 }
                                 Button(
                                     onClick = viewModel::saveProfile,
@@ -326,7 +326,13 @@ fun ProfileScreen(
                                 ) {
                                     Icon(Icons.Default.Save, contentDescription = null)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(if (uiState.isSavingProfile) "Speichert..." else "Speichern")
+                                    Text(
+                                        if (uiState.isSavingProfile) {
+                                            stringResource(R.string.profile_saving)
+                                        } else {
+                                            stringResource(R.string.common_save)
+                                        },
+                                    )
                                 }
                             }
                         }
@@ -379,7 +385,7 @@ private fun ProfileHeroCard(
             if (!heroImage.isNullOrBlank()) {
                 AsyncImage(
                     model = heroImage,
-                    contentDescription = "Profil Header",
+                    contentDescription = stringResource(R.string.profile_header_cd),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -420,8 +426,8 @@ private fun ProfileHeroCard(
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ProfileHeroInfoPill(title = "Rolle", value = profileRoleTitle(uiState.currentUser))
-                    ProfileHeroInfoPill(title = "Plan", value = profilePlanTitle(uiState.currentUser))
+                    ProfileHeroInfoPill(title = stringResource(R.string.profile_role), value = profileRoleTitle(uiState.currentUser))
+                    ProfileHeroInfoPill(title = stringResource(R.string.membership_current_plan), value = profilePlanTitle(uiState.currentUser))
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -466,7 +472,7 @@ private fun ProfileHeroCard(
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 if (normalizedInstagramUri(uiState.instagramHandle) != null) {
                                     ProfileSocialButton(
-                                        title = "Instagram",
+                                    title = stringResource(R.string.settings_profile_instagram),
                                         icon = Icons.Default.CameraAlt,
                                         colors = listOf(InstagramPurple, InstagramPink, InstagramOrange),
                                         onClick = onOpenInstagram,
@@ -475,7 +481,7 @@ private fun ProfileHeroCard(
 
                                 if (normalizedWhatsAppUri(uiState.whatsApp) != null) {
                                     ProfileSocialButton(
-                                        title = "WhatsApp",
+                                    title = stringResource(R.string.settings_profile_whatsapp),
                                         icon = Icons.AutoMirrored.Filled.Message,
                                         colors = listOf(
                                             MaterialTheme.colorScheme.primary,
@@ -489,9 +495,9 @@ private fun ProfileHeroCard(
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ProfileHeroInfoPill(title = "Bilder", value = uiState.imageCount.toString(), modifier = Modifier.weight(1f))
+                        ProfileHeroInfoPill(title = stringResource(R.string.profile_images), value = uiState.imageCount.toString(), modifier = Modifier.weight(1f))
                         ProfileHeroInfoPill(
-                            title = "Links",
+                            title = stringResource(R.string.profile_links),
                             value = listOfNotNull(
                                 normalizedInstagramUri(uiState.instagramHandle),
                                 normalizedWhatsAppUri(uiState.whatsApp),
@@ -499,8 +505,8 @@ private fun ProfileHeroCard(
                             modifier = Modifier.weight(1f),
                         )
                         ProfileHeroInfoPill(
-                            title = "Status",
-                            value = if (uiState.canEditCurrentProfile) "Live" else "Public",
+                            title = stringResource(R.string.cart_pulse_status),
+                            value = if (uiState.canEditCurrentProfile) stringResource(R.string.ai_chip_live) else stringResource(R.string.profile_public),
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -517,27 +523,27 @@ private fun ProfileHeroCard(
                 ) {
                     ProfileHeroFab(
                         icon = Icons.Default.Edit,
-                        contentDescription = if (uiState.isEditing) "Bearbeitung beenden" else "Profil bearbeiten",
+                        contentDescription = if (uiState.isEditing) stringResource(R.string.profile_finish_editing) else stringResource(R.string.profile_edit),
                         onClick = onEditToggle,
                         enabled = canToggleEditing,
                     )
                     ProfileHeroFab(
                         icon = Icons.Default.CameraAlt,
-                        contentDescription = "Avatar aendern",
+                        contentDescription = stringResource(R.string.profile_change_avatar),
                         onClick = onPickAvatar,
                         enabled = !isUploadingImageFlow,
                     )
                     if (onDeleteAvatar != null) {
                         ProfileHeroFab(
                             icon = Icons.Default.Delete,
-                            contentDescription = "Avatar entfernen",
+                            contentDescription = stringResource(R.string.profile_remove_avatar),
                             onClick = onDeleteAvatar,
                             enabled = !isUploadingImageFlow,
                         )
                     }
                     ProfileHeroFab(
                         icon = Icons.Default.PermMedia,
-                        contentDescription = "Bild hochladen",
+                        contentDescription = stringResource(R.string.profile_upload_image),
                         onClick = onPickGalleryImage,
                         enabled = !isUploadingImageFlow,
                     )
@@ -563,12 +569,12 @@ private fun ProfileGalleryCard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Galerie",
+                        text = stringResource(R.string.profile_gallery),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = "Persoenliche Bilder direkt aus dem Profil.",
+                        text = stringResource(R.string.profile_gallery_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -576,7 +582,7 @@ private fun ProfileGalleryCard(
 
                 if (uiState.canEditCurrentProfile) {
                     ProfileGalleryActionButton(
-                        title = if (uiState.isUploadingMedia) "Laedt..." else "Bild",
+                        title = if (uiState.isUploadingMedia) stringResource(R.string.profile_loading) else stringResource(R.string.profile_image_short),
                         icon = Icons.Default.PermMedia,
                         onClick = onPickImage,
                         enabled = !uiState.isUploadingAvatar && !uiState.isUploadingMedia,
@@ -789,7 +795,7 @@ private fun ProfileAvatar(
         if (!imageUrl.isNullOrBlank()) {
             AsyncImage(
                 model = imageUrl,
-                contentDescription = "Profilbild",
+                contentDescription = stringResource(R.string.profile_avatar_cd),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -952,12 +958,12 @@ private fun ProfileGalleryEmptyState(
             tint = MaterialTheme.colorScheme.primary,
         )
         Text(
-            text = if (canEdit) "Mach dein Profil mit den ersten Bildern lebendig." else "Hier erscheinen die Bilder dieses Profils.",
+            text = if (canEdit) stringResource(R.string.profile_gallery_empty_editable_title) else stringResource(R.string.profile_gallery_empty_readonly_title),
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
         )
         Text(
-            text = if (canEdit) "Ueber den Button oben kannst du direkt vom Handy hochladen." else "Sobald Bilder hinterlegt sind, wird die Galerie hier sichtbar.",
+                text = if (canEdit) stringResource(R.string.profile_gallery_empty_editable_subtitle) else stringResource(R.string.profile_gallery_empty_readonly_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -1040,7 +1046,7 @@ private fun GalleryTile(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Bild entfernen",
+                    contentDescription = stringResource(R.string.common_remove),
                     tint = androidx.compose.ui.graphics.Color.White,
                 )
             }
@@ -1097,7 +1103,7 @@ private fun ProfileImageViewerDialog(
                 }
 
                 BrandActionButton(
-                    text = "Schliessen",
+                    text = stringResource(R.string.common_close),
                     onClick = onDismiss,
                     accent = MaterialTheme.colorScheme.onPrimary,
                     icon = Icons.Default.Close,

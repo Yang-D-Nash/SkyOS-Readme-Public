@@ -22,7 +22,7 @@ struct LoginView: View {
     init(entryContext: AuthEntryContext = .standard) {
         self.entryContext = entryContext
     }
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
@@ -51,7 +51,7 @@ struct LoginView: View {
                         .textInputAutocapitalization(.never)
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .accessibilityIdentifier("login.email")
-                    
+
                     SecureField(localized("auth.password", "Password"), text: $viewModel.password)
                         .padding()
                         .background(AppColors.secondaryBackground(for: colorScheme))
@@ -60,7 +60,7 @@ struct LoginView: View {
                         .accessibilityIdentifier("login.password")
                 }
                 .padding(.horizontal)
-                
+
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
@@ -68,7 +68,7 @@ struct LoginView: View {
                         .multilineTextAlignment(.center)
                         .accessibilityIdentifier("login.error")
                 }
-                
+
                 Button {
                     Task { await signInAndHydrateSession() }
                 } label: {
@@ -105,7 +105,7 @@ struct LoginView: View {
                 .disabled(viewModel.isLoading)
                 .padding(.horizontal)
                 .accessibilityIdentifier("login.google")
-                
+
                 Button {
                     showingRegistrationSheet = true
                 } label: {

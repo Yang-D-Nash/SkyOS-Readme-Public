@@ -16,17 +16,20 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.unit.dp
+import com.nash.skyos.R
 import com.nash.skyos.data.resolveYouTubeEmbedUrl
 import com.nash.skyos.data.resolveYouTubeExternalUrl
 import com.nash.skyos.ui.model.VideoYouTubeItem
 
-@androidx.compose.runtime.Composable
+@Composable
 fun YouTubePlayerDialog(
     item: VideoYouTubeItem,
     onDismiss: () -> Unit,
@@ -77,7 +80,7 @@ fun YouTubePlayerDialog(
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Dialog schliessen",
+                        contentDescription = stringResource(R.string.common_close),
                     )
                 }
             }
@@ -93,7 +96,7 @@ fun YouTubePlayerDialog(
                 )
             } else {
                 Text(
-                    text = "Der YouTube Player konnte fuer dieses Video nicht aufgebaut werden.",
+                    text = stringResource(R.string.youtube_player_unavailable),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     modifier = Modifier.padding(top = 12.dp),
@@ -110,14 +113,14 @@ fun YouTubePlayerDialog(
                     onClick = { onOpenExternal(externalUrl) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("YouTube ansehen")
+                    Text(stringResource(R.string.youtube_watch))
                 }
 
                 OutlinedButton(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Schliessen")
+                    Text(stringResource(R.string.common_close))
                 }
             }
         }

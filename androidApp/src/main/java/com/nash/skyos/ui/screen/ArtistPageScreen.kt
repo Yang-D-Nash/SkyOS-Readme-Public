@@ -63,7 +63,9 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import coil3.compose.AsyncImage
+import com.nash.skyos.R
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.ArtistPageBrand
 import com.nash.skyos.data.ArtistPageUi
@@ -227,11 +229,6 @@ fun ArtistPageScreen(
         tracks.firstOrNull { it.trackId == selectedTrackId } ?: tracks.firstOrNull()
     }
 
-    val latestReleaseText = remember(tracks) {
-        tracks.mapNotNull { it.releaseDate?.take(10) }
-            .maxOrNull()
-    }
-
     val currentEditableImageUrl: (ArtistPageImageTarget) -> String = { target ->
         when (target) {
             ArtistPageImageTarget.Profile -> profileImageDraft
@@ -288,7 +285,7 @@ fun ArtistPageScreen(
                 }
             }
         }
-        feedbackMessage = "Aenderungen verworfen."
+        feedbackMessage = context.getString(R.string.artist_feedback_changes_discarded)
         feedbackType = ToastType.Info
     }
 
@@ -318,10 +315,11 @@ fun ArtistPageScreen(
                             temporaryUploadedAssetUrls.add(uploadedImage.downloadUrl)
                         }
                     }
-                    feedbackMessage = "Bild hochgeladen und uebernommen."
+                    feedbackMessage = context.getString(R.string.artist_feedback_image_uploaded)
                     feedbackType = ToastType.Success
                 } else {
-                    feedbackMessage = result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden."
+                    feedbackMessage = result.exceptionOrNull()?.message
+                        ?: context.getString(R.string.artist_feedback_image_upload_failed)
                     feedbackType = ToastType.Error
                 }
                 activeImageUploadTarget = null
@@ -358,10 +356,11 @@ fun ArtistPageScreen(
                             temporaryUploadedAssetUrls.add(uploadedVideo.downloadUrl)
                         }
                     }
-                    feedbackMessage = "Hero-Video hochgeladen und als Motion-Stage gesetzt."
+                    feedbackMessage = context.getString(R.string.artist_feedback_hero_video_uploaded)
                     feedbackType = ToastType.Success
                 } else {
-                    feedbackMessage = result.exceptionOrNull()?.message ?: "Hero-Video konnte nicht hochgeladen werden."
+                    feedbackMessage = result.exceptionOrNull()?.message
+                        ?: context.getString(R.string.artist_feedback_hero_video_upload_failed)
                     feedbackType = ToastType.Error
                 }
                 isUploadingHeroVideo = false
@@ -469,9 +468,9 @@ fun ArtistPageScreen(
                         } else {
                             if (brand == ArtistPageBrand.Nicma) {
                                 page.tagline?.takeIf { it.isNotBlank() }
-                                    ?: "Songs · Links"
+                                    ?: stringResource(R.string.artist_topbar_subtitle_songs_links)
                             } else {
-                                "${brand.displayTitle} Artist Page"
+                                stringResource(R.string.artist_topbar_subtitle_brand_page, brand.displayTitle)
                             }
                         },
                         accent = if (isNicmaStudioPage) {
@@ -483,7 +482,10 @@ fun ArtistPageScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurueck")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back),
+                        )
                     }
                 },
                 actions = {
@@ -493,7 +495,7 @@ fun ArtistPageScreen(
                                 onClick = ::discardEditing,
                                 enabled = !isSaving && !isUploadingAsset,
                             ) {
-                                Text("Abbrechen")
+                                Text(stringResource(R.string.common_cancel))
                             }
                             Button(
                                 onClick = {
@@ -536,11 +538,11 @@ fun ArtistPageScreen(
                                             activeImageUploadTarget = null
                                             isUploadingHeroVideo = false
                                             isEditing = false
-                                            feedbackMessage = "Artist-Seite gespeichert."
+                                            feedbackMessage = context.getString(R.string.artist_feedback_page_saved)
                                             feedbackType = ToastType.Success
                                         } else {
                                             feedbackMessage = result.exceptionOrNull()?.message
-                                                ?: "Artist-Seite konnte nicht gespeichert werden."
+                                                ?: context.getString(R.string.artist_feedback_page_save_failed)
                                             feedbackType = ToastType.Error
                                         }
                                     }
@@ -552,7 +554,13 @@ fun ArtistPageScreen(
                                 ),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                             ) {
-                                Text(if (isSaving) "Speichert..." else "Speichern")
+                                Text(
+                                    if (isSaving) {
+                                        stringResource(R.string.artist_action_saving)
+                                    } else {
+                                        stringResource(R.string.common_save)
+                                    }
+                                )
                             }
                         } else {
                             IconButton(
@@ -561,7 +569,7 @@ fun ArtistPageScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Edit,
-                                    contentDescription = "Bearbeiten",
+                                    contentDescription = stringResource(R.string.artist_action_edit),
                                 )
                             }
                         }
@@ -649,7 +657,7 @@ fun ArtistPageScreen(
                         item {
                             Column(modifier = Modifier.padding(top = 4.dp)) {
                                 Text(
-                                    text = "Kontakt",
+                                    text = stringResource(R.string.artist_contact_title),
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
@@ -679,8 +687,6 @@ fun ArtistPageScreen(
                             page = pageForConnect,
                             brand = brand,
                             trackCount = tracks.size,
-                            latestReleaseText = latestReleaseText,
-                            onOpenYouTube = { item -> selectedYouTubeItem = item },
                             visualStyle = visualStyle,
                             compactVisualDensity = compactVisualDensity,
                             heroVideoPlayer = heroVideoPlayer,
@@ -750,20 +756,29 @@ fun ArtistPageScreen(
                             if (isNicmaStudioPage) {
                                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                     BrandSectionBanner(
-                                        title = "STUDIO-Texte & Karte",
-                                        subtitle = "Kurztext, Hero, Netzwerke. Preisliste oben.",
+                                        title = stringResource(R.string.artist_studio_editor_title),
+                                        subtitle = stringResource(R.string.artist_studio_editor_subtitle),
                                         accent = MaterialTheme.colorScheme.tertiary,
                                         icon = Icons.Default.AutoAwesome,
-                                        tag = "STUDIO",
+                                        tag = stringResource(R.string.artist_studio_tag),
                                     )
-                                    ArtistPageInput(title = "Kurzzeile", value = taglineDraft, onValueChange = { taglineDraft = it })
-                                    ArtistPageInput(title = "Text / Bio", value = bioDraft, onValueChange = { bioDraft = it }, singleLine = false)
+                                    ArtistPageInput(
+                                        title = stringResource(R.string.artist_field_tagline),
+                                        value = taglineDraft,
+                                        onValueChange = { taglineDraft = it },
+                                    )
+                                    ArtistPageInput(
+                                        title = stringResource(R.string.artist_field_bio_long),
+                                        value = bioDraft,
+                                        onValueChange = { bioDraft = it },
+                                        singleLine = false,
+                                    )
                                     EditableImageFieldCard(
-                                        title = "Hero-Bild (Kachel oben)",
+                                        title = stringResource(R.string.artist_field_hero_image_tile),
                                         imageUrl = heroImageDraft,
                                         isUploading = activeImageUploadTarget == ArtistPageImageTarget.Hero,
                                         enabled = !isSaving && !isUploadingAsset,
-                                        uploadStatusText = "Wird in der STUDIO-Kachel angezeigt.",
+                                        uploadStatusText = stringResource(R.string.artist_upload_status_studio_tile),
                                         onPickImage = {
                                             pendingImageTarget = ArtistPageImageTarget.Hero
                                             imagePicker.launch(
@@ -779,31 +794,31 @@ fun ArtistPageScreen(
                                                     editableImageAssetRepository.deleteAsset(previousImageUrl)
                                                 }
                                             }
-                                            feedbackMessage = "Bild entfernt. Live wird es erst nach dem Speichern uebernommen."
+                                            feedbackMessage = context.getString(R.string.artist_feedback_image_removed_pending_save)
                                             feedbackType = ToastType.Info
                                         },
                                     )
-                                    ArtistPageInput(title = "Instagram", value = instagramDraft, onValueChange = { instagramDraft = it })
-                                    ArtistPageInput(title = "Spotify", value = spotifyDraft, onValueChange = { spotifyDraft = it })
-                                    ArtistPageInput(title = "YouTube", value = youtubeDraft, onValueChange = { youtubeDraft = it })
+                                    ArtistPageInput(title = stringResource(R.string.social_instagram), value = instagramDraft, onValueChange = { instagramDraft = it })
+                                    ArtistPageInput(title = stringResource(R.string.social_spotify), value = spotifyDraft, onValueChange = { spotifyDraft = it })
+                                    ArtistPageInput(title = stringResource(R.string.social_youtube), value = youtubeDraft, onValueChange = { youtubeDraft = it })
                                 }
                             } else {
                                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                     BrandSectionBanner(
-                                        title = "Artist Page bearbeiten",
-                                        subtitle = "Speichern macht’s live.",
+                                        title = stringResource(R.string.artist_editor_title),
+                                        subtitle = stringResource(R.string.artist_editor_subtitle),
                                         accent = visualStyle.secondaryAccent,
                                         icon = Icons.Default.AutoAwesome,
-                                        tag = "ADMIN",
+                                        tag = stringResource(R.string.artist_admin_tag),
                                     )
-                                    ArtistPageInput(title = "Kurzzeile", value = taglineDraft, onValueChange = { taglineDraft = it })
-                                    ArtistPageInput(title = "Bio", value = bioDraft, onValueChange = { bioDraft = it }, singleLine = false)
+                                    ArtistPageInput(title = stringResource(R.string.artist_field_tagline), value = taglineDraft, onValueChange = { taglineDraft = it })
+                                    ArtistPageInput(title = stringResource(R.string.artist_field_bio), value = bioDraft, onValueChange = { bioDraft = it }, singleLine = false)
                                     EditableImageFieldCard(
-                                        title = "Profilbild",
+                                        title = stringResource(R.string.artist_field_profile_image),
                                         imageUrl = profileImageDraft,
                                         isUploading = activeImageUploadTarget == ArtistPageImageTarget.Profile,
                                         enabled = !isSaving && !isUploadingAsset,
-                                        uploadStatusText = "Profilbild wird fuer die Artist-Seite uebernommen.",
+                                        uploadStatusText = stringResource(R.string.artist_upload_status_profile_image),
                                         onPickImage = {
                                             pendingImageTarget = ArtistPageImageTarget.Profile
                                             imagePicker.launch(
@@ -819,16 +834,16 @@ fun ArtistPageScreen(
                                                     editableImageAssetRepository.deleteAsset(previousImageUrl)
                                                 }
                                             }
-                                            feedbackMessage = "Bild entfernt. Live wird es erst nach dem Speichern uebernommen."
+                                            feedbackMessage = context.getString(R.string.artist_feedback_image_removed_pending_save)
                                             feedbackType = ToastType.Info
                                         },
                                     )
                                     EditableImageFieldCard(
-                                        title = "Hero-Bild",
+                                        title = stringResource(R.string.artist_field_hero_image),
                                         imageUrl = heroImageDraft,
                                         isUploading = activeImageUploadTarget == ArtistPageImageTarget.Hero,
                                         enabled = !isSaving && !isUploadingAsset,
-                                        uploadStatusText = "Hero-Bild wird fuer die Artist-Seite uebernommen.",
+                                        uploadStatusText = stringResource(R.string.artist_upload_status_hero_image),
                                         onPickImage = {
                                             pendingImageTarget = ArtistPageImageTarget.Hero
                                             imagePicker.launch(
@@ -844,16 +859,16 @@ fun ArtistPageScreen(
                                                     editableImageAssetRepository.deleteAsset(previousImageUrl)
                                                 }
                                             }
-                                            feedbackMessage = "Bild entfernt. Live wird es erst nach dem Speichern uebernommen."
+                                            feedbackMessage = context.getString(R.string.artist_feedback_image_removed_pending_save)
                                             feedbackType = ToastType.Info
                                         },
                                     )
                                     EditableVideoFieldCard(
-                                        title = "Hero-Video",
+                                        title = stringResource(R.string.artist_field_hero_video),
                                         videoUrl = heroVideoDraft,
                                         isUploading = isUploadingHeroVideo,
                                         enabled = !isSaving && !isUploadingAsset,
-                                        uploadStatusText = "Hero-Video wird als Motion-Stage vorbereitet.",
+                                        uploadStatusText = stringResource(R.string.artist_upload_status_hero_video),
                                         onPickVideo = {
                                             videoPicker.launch(
                                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly),
@@ -867,13 +882,13 @@ fun ArtistPageScreen(
                                                     editableImageAssetRepository.deleteAsset(previousVideoUrl)
                                                 }
                                             }
-                                            feedbackMessage = "Hero-Video entfernt. Live wird es erst nach dem Speichern uebernommen."
+                                            feedbackMessage = context.getString(R.string.artist_feedback_hero_video_removed_pending_save)
                                             feedbackType = ToastType.Info
                                         },
                                     )
-                                    ArtistPageInput(title = "Instagram", value = instagramDraft, onValueChange = { instagramDraft = it })
-                                    ArtistPageInput(title = "Spotify", value = spotifyDraft, onValueChange = { spotifyDraft = it })
-                                    ArtistPageInput(title = "YouTube", value = youtubeDraft, onValueChange = { youtubeDraft = it })
+                                    ArtistPageInput(title = stringResource(R.string.social_instagram), value = instagramDraft, onValueChange = { instagramDraft = it })
+                                    ArtistPageInput(title = stringResource(R.string.social_spotify), value = spotifyDraft, onValueChange = { spotifyDraft = it })
+                                    ArtistPageInput(title = stringResource(R.string.social_youtube), value = youtubeDraft, onValueChange = { youtubeDraft = it })
                                 }
                             }
                         }
@@ -952,8 +967,6 @@ private fun ArtistPageHeroCard(
     page: ArtistPageUi,
     brand: ArtistPageBrand,
     trackCount: Int,
-    latestReleaseText: String?,
-    onOpenYouTube: (VideoYouTubeItem) -> Unit,
     visualStyle: ArtistPageVisualStyle,
     compactVisualDensity: Boolean,
     heroVideoPlayer: ExoPlayer,
@@ -999,16 +1012,20 @@ private fun ArtistPageLinksCard(
     SkydownCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             BrandSectionBanner(
-                title = "Connect",
-                subtitle = "Instagram, Spotify, YouTube",
+                title = stringResource(R.string.artist_connect_title),
+                subtitle = stringResource(R.string.artist_connect_subtitle),
                 accent = visualStyle.secondaryAccent,
                 icon = Icons.AutoMirrored.Filled.OpenInNew,
-                tag = if (links.isEmpty()) "OFFLINE" else "${links.size} LIVE",
+                tag = if (links.isEmpty()) {
+                    stringResource(R.string.artist_connect_tag_offline)
+                } else {
+                    stringResource(R.string.artist_connect_tag_live_count, links.size)
+                },
             )
 
             if (links.isEmpty()) {
                 ArtistPageSupportMessage(
-                    message = "Noch keine Links im Profil.",
+                    message = stringResource(R.string.artist_connect_empty),
                     accent = visualStyle.secondaryAccent,
                 )
             } else {
@@ -1071,18 +1088,22 @@ private fun ArtistPageSpotlightCard(
     SkydownCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             BrandSectionBanner(
-                title = "Spotlight",
+                title = stringResource(R.string.artist_spotlight_title),
                 subtitle = if (spotlightTrack != null) {
-                    "Tippen startet die Preview"
+                    stringResource(R.string.artist_spotlight_subtitle_tap_preview)
                 } else {
-                    "Folgt dem Feed"
+                    stringResource(R.string.artist_spotlight_subtitle_feed)
                 },
                 accent = visualStyle.accent,
                 icon = Icons.Default.AutoAwesome,
-                tag = if (spotlightTrack != null) "LIVE" else "PROFILE",
+                tag = if (spotlightTrack != null) {
+                    stringResource(R.string.artist_spotlight_tag_live)
+                } else {
+                    stringResource(R.string.artist_spotlight_tag_profile)
+                },
             )
             Text(
-                text = page.tagline ?: "${page.artistName} entdecken.",
+                text = page.tagline ?: stringResource(R.string.artist_spotlight_fallback_tagline, page.artistName),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Black,
             )
@@ -1124,7 +1145,7 @@ private fun ArtistPageSpotlightCard(
                     }
                 }
             } ?: Text(
-                text = page.bio ?: "Kein Track im Feed.",
+                text = page.bio ?: stringResource(R.string.artist_spotlight_no_track),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
@@ -1146,27 +1167,27 @@ private fun ArtistPageTracksCard(
     SkydownCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             BrandSectionBanner(
-                title = "Top Songs",
+                title = stringResource(R.string.artist_top_songs_title),
                 subtitle = when {
-                    isLoading -> "Lade …"
-                    !errorMessage.isNullOrBlank() -> "Kurz warten, dann erneut"
-                    tracks.isEmpty() -> "Folgt dem Feed"
-                    else -> null
+                    isLoading -> stringResource(R.string.artist_top_songs_subtitle_loading)
+                    !errorMessage.isNullOrBlank() -> stringResource(R.string.artist_top_songs_subtitle_retry)
+                    tracks.isEmpty() -> stringResource(R.string.artist_top_songs_subtitle_feed)
+                    else -> stringResource(R.string.artist_top_songs_subtitle_named, artistName)
                 },
                 accent = SpotifyGreen,
                 icon = Icons.Default.GraphicEq,
                 tag = when {
-                    isLoading -> "SYNC"
-                    !errorMessage.isNullOrBlank() -> "CHECK"
-                    tracks.isEmpty() -> "EMPTY"
-                    else -> "${tracks.size} LIVE"
+                    isLoading -> stringResource(R.string.artist_top_songs_tag_sync)
+                    !errorMessage.isNullOrBlank() -> stringResource(R.string.artist_top_songs_tag_check)
+                    tracks.isEmpty() -> stringResource(R.string.artist_top_songs_tag_empty)
+                    else -> stringResource(R.string.artist_top_songs_tag_live_count, tracks.size)
                 },
             )
 
             when {
                 isLoading -> {
                     ArtistPageSupportMessage(
-                        message = "Lade …",
+                        message = stringResource(R.string.artist_top_songs_loading),
                         accent = SpotifyGreen,
                     )
                 }
@@ -1180,7 +1201,7 @@ private fun ArtistPageTracksCard(
 
                 tracks.isEmpty() -> {
                     ArtistPageSupportMessage(
-                        message = "Noch keine Songs.",
+                        message = stringResource(R.string.artist_top_songs_empty),
                         accent = MaterialTheme.colorScheme.secondary,
                     )
                 }
@@ -1404,8 +1425,8 @@ private fun artistConnectLinks(page: ArtistPageUi): List<ArtistPageLinkUi> {
         page.instagramURL?.trimmedOrNull()?.let {
             add(
                 ArtistPageLinkUi(
-                    title = "Instagram",
-                    subtitle = "${page.artistName} direkt verfolgen",
+                    title = stringResource(R.string.social_instagram),
+                    subtitle = stringResource(R.string.artist_connect_instagram_subtitle, page.artistName),
                     url = it,
                     kind = ArtistPageLinkKind.Instagram,
                     icon = Icons.Default.CameraAlt,
@@ -1418,8 +1439,8 @@ private fun artistConnectLinks(page: ArtistPageUi): List<ArtistPageLinkUi> {
         page.spotifyURL?.trimmedOrNull()?.let {
             add(
                 ArtistPageLinkUi(
-                    title = "Spotify",
-                    subtitle = "Artist Profil und ganze Releases",
+                    title = stringResource(R.string.social_spotify),
+                    subtitle = stringResource(R.string.artist_connect_spotify_subtitle),
                     url = it,
                     kind = ArtistPageLinkKind.Spotify,
                     icon = Icons.Default.MusicNote,
@@ -1432,8 +1453,8 @@ private fun artistConnectLinks(page: ArtistPageUi): List<ArtistPageLinkUi> {
         page.youtubeURL?.trimmedOrNull()?.let {
             add(
                 ArtistPageLinkUi(
-                    title = "YouTube",
-                    subtitle = "Videos und Releases",
+                    title = stringResource(R.string.social_youtube),
+                    subtitle = stringResource(R.string.artist_connect_youtube_subtitle),
                     url = it,
                     kind = ArtistPageLinkKind.YouTube,
                     icon = Icons.Default.PlayCircleFilled,
@@ -1449,7 +1470,11 @@ private fun artistConnectLinks(page: ArtistPageUi): List<ArtistPageLinkUi> {
 @Composable
 private fun ArtistEditorBadge(count: Int) {
     Text(
-        text = "$count Editor${if (count == 1) "" else "en"}",
+        text = if (count == 1) {
+            stringResource(R.string.artist_editor_count_one, count)
+        } else {
+            stringResource(R.string.artist_editor_count_other, count)
+        },
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
         style = MaterialTheme.typography.bodySmall,
     )

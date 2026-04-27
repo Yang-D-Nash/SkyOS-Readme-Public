@@ -101,8 +101,8 @@ fun AiHubScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        title = "AI",
-                        subtitle = "Bot, Agent und Visuals.",
+                        title = stringResource(R.string.tabs_tools),
+                        subtitle = stringResource(R.string.ai_hub_topbar_subtitle),
                         accent = MaterialTheme.colorScheme.tertiary,
                     )
                 },
@@ -111,7 +111,7 @@ fun AiHubScreen(
                         IconButton(onClick = onExitImmersive) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Zurueck",
+                                contentDescription = stringResource(R.string.common_back),
                             )
                         }
                     }
@@ -294,7 +294,7 @@ private fun AiHubRestrictedCard(
         contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
     ) {
         Text(
-            text = "AI aktuell gesperrt",
+            text = stringResource(R.string.ai_hub_restricted_title),
             style = SkydownPanelTitleTextStyle,
         )
         Text(
@@ -303,7 +303,7 @@ private fun AiHubRestrictedCard(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
         BrandActionButton(
-            text = "Einstellungen",
+            text = stringResource(R.string.app_topbar_settings_label),
             onClick = onOpenSettings,
             accent = accent,
             modifier = Modifier
@@ -407,11 +407,11 @@ private fun WorkflowWorkspaceCard(
         contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
     ) {
         Text(
-            text = "Automation",
+            text = stringResource(R.string.ai_hub_workflow_title),
             style = SkydownPanelTitleTextStyle,
         )
         Text(
-            text = "Planen, uebergeben, weiterarbeiten.",
+            text = stringResource(R.string.ai_hub_workflow_subtitle),
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -422,18 +422,18 @@ private fun WorkflowWorkspaceCard(
         ) {
             WorkflowSignalRow(
                 index = "01",
-                title = "Briefing",
-                body = "Der Agent macht aus einer Idee einen klaren Plan.",
+                title = stringResource(R.string.ai_hub_workflow_step_briefing_title),
+                body = stringResource(R.string.ai_hub_workflow_step_briefing_body),
             )
             WorkflowSignalRow(
                 index = "02",
-                title = "Aktion",
-                body = "Automationsservice starten.",
+                title = stringResource(R.string.ai_hub_workflow_step_action_title),
+                body = stringResource(R.string.ai_hub_workflow_step_action_body),
             )
             WorkflowSignalRow(
                 index = "03",
-                title = "Weiter",
-                body = "Zurueck in die AI.",
+                title = stringResource(R.string.ai_hub_workflow_step_continue_title),
+                body = stringResource(R.string.ai_hub_workflow_step_continue_body),
             )
         }
 
@@ -441,13 +441,13 @@ private fun WorkflowWorkspaceCard(
             modifier = Modifier.padding(top = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            AiHubBadge(text = "n8n", accent = MaterialTheme.colorScheme.secondary)
-            AiHubBadge(text = "Agent", accent = MaterialTheme.colorScheme.primary)
-            AiHubBadge(text = "Kontext", accent = MaterialTheme.colorScheme.tertiary)
+            AiHubBadge(text = stringResource(R.string.ai_hub_badge_n8n), accent = MaterialTheme.colorScheme.secondary)
+            AiHubBadge(text = stringResource(R.string.ai_hub_badge_agent), accent = MaterialTheme.colorScheme.primary)
+            AiHubBadge(text = stringResource(R.string.ai_hub_badge_context), accent = MaterialTheme.colorScheme.tertiary)
         }
 
         BrandActionButton(
-            text = "Automation einrichten",
+            text = stringResource(R.string.ai_hub_workflow_setup),
             onClick = onOpenSettings,
             accent = accent,
             modifier = Modifier
@@ -455,7 +455,7 @@ private fun WorkflowWorkspaceCard(
                 .padding(top = 12.dp),
         )
         BrandActionButton(
-            text = "Zur KI zurueck",
+            text = stringResource(R.string.ai_hub_back_to_ai),
             onClick = onClose,
             accent = MaterialTheme.colorScheme.primary,
             filled = false,

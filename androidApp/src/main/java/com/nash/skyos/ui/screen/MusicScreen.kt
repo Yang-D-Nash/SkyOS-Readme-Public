@@ -60,10 +60,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.nash.skyos.R
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.ui.component.AppTopBarSessionActions
 import com.nash.skyos.ui.component.BrandArtwork
@@ -135,7 +137,7 @@ fun MusicScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        title = "Music",
+                        title = stringResource(R.string.tabs_music),
                         subtitle = null,
                         accent = SpotifyGreen,
                     )
@@ -155,7 +157,7 @@ fun MusicScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Logout,
-                                        contentDescription = "Spotify trennen",
+                                        contentDescription = stringResource(R.string.music_disconnect_spotify_cd),
                                     )
                                 }
                             }
@@ -166,7 +168,7 @@ fun MusicScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Logout,
-                                contentDescription = "Spotify trennen",
+                                contentDescription = stringResource(R.string.music_disconnect_spotify_cd),
                             )
                         }
                     }
@@ -176,7 +178,7 @@ fun MusicScreen(
                         IconButton(onClick = onBack) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Zurueck",
+                                contentDescription = stringResource(R.string.common_back),
                             )
                         }
                     }
@@ -378,7 +380,7 @@ private fun ArtistButtonHub(
     )
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Direkter Einstieg",
+            text = stringResource(R.string.music_hub_quick_access_title),
             style = MaterialTheme.typography.labelMedium,
             color = colorScheme.onSurface.copy(alpha = 0.72f),
             fontWeight = FontWeight.SemiBold,

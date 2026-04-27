@@ -111,7 +111,7 @@ flowchart TB
 | Plattform | Modul | Build-Referenz |
 | --- | --- | --- |
 | iOS / iPadOS / macOS | `Skydown App.xcodeproj` | `xcodebuild` mit passender Destination |
-| Android | `androidApp/` | `./scripts/android_release_clean_build.sh` fuer oeffentliche Artefakte |
+| Android | `androidApp/` | `./scripts/android_release_clean_build.sh` fuer oeffentliche Artefakte; vor Play-Upload `./scripts/verify_android_release_artifacts.sh`; Kotlin-Static-Analysis `./gradlew detektAll` |
 | Shared | `shared/` | Wird in Apple- und Android-Builds eingebunden |
 | Functions | `functions/` | `npm ci --prefix functions`, `npm run build --prefix functions`, `npm test --prefix functions` |
 
@@ -123,6 +123,8 @@ npm test --prefix functions
 
 # Android: saubere oeffentliche Release-Artefakte
 ./scripts/android_release_clean_build.sh
+# Vor manuellem Play-Upload: Version/Metadaten pruefen (Fastlane laeuft das automatisch)
+./scripts/verify_android_release_artifacts.sh
 
 # Apple-Beispiel
 xcodebuild -project "Skydown App.xcodeproj" -scheme "Skydown App" -configuration Debug -destination "generic/platform=iOS Simulator" build

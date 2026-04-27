@@ -1,6 +1,7 @@
 package com.nash.skyos.ui.screen
 
 import android.content.Intent
+import android.content.res.Resources
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -67,6 +68,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -86,8 +88,10 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import com.nash.skyos.R
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -168,6 +172,7 @@ fun VideoHubScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val defaultOriginalTitle = stringResource(R.string.video_label_original)
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val editableImageAssetRepository = remember { AppContainer.editableImageAssetRepository }
     val mediaContext = remember(context) { context.mediaAttributionContext() }
@@ -195,7 +200,9 @@ fun VideoHubScreen(
     var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
     var localFeedbackIsError by remember { mutableStateOf(false) }
     var inAppOriginalUrl by rememberSaveable { mutableStateOf<String?>(null) }
-    var inAppOriginalTitle by rememberSaveable { mutableStateOf("Original") }
+    var inAppOriginalTitle by rememberSaveable {
+        mutableStateOf(context.getString(R.string.video_label_original))
+    }
     var inAppImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
     var shouldAutoplaySelection by rememberSaveable {
         mutableStateOf(autoplayInitialSelection && !initialSelectedVideoId.isNullOrBlank())
@@ -249,10 +256,11 @@ fun VideoHubScreen(
                             editableImageAssetRepository.deleteImageAsset(previousImageUrl)
                         }
                     }
-                    localFeedbackMessage = "Bild hochgeladen und uebernommen."
+                    localFeedbackMessage = context.getString(R.string.video_feedback_image_uploaded)
                     localFeedbackIsError = false
                 } else {
-                    localFeedbackMessage = result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden."
+                    localFeedbackMessage = result.exceptionOrNull()?.message
+                        ?: context.getString(R.string.video_feedback_image_failed)
                     localFeedbackIsError = true
                 }
                 activeConfigImageUploadTarget = null
@@ -328,8 +336,8 @@ fun VideoHubScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        title = "Video",
-                        subtitle = "Clips, Videos, Kollabos.",
+                        title = stringResource(R.string.video_topbar_title),
+                        subtitle = stringResource(R.string.video_topbar_subtitle),
                         accent = videoMysticAccent,
                     )
                 },
@@ -347,7 +355,7 @@ fun VideoHubScreen(
                         IconButton(onClick = { showUploadSheet = true }) {
                             Icon(
                                 imageVector = Icons.Default.Movie,
-                                contentDescription = "Upload oeffnen",
+                                contentDescription = stringResource(R.string.video_cd_open_upload),
                             )
                         }
                     }
@@ -367,7 +375,7 @@ fun VideoHubScreen(
                         IconButton(onClick = onBack) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Zurueck",
+                                contentDescription = stringResource(R.string.video_cd_back),
                             )
                         }
                     }
@@ -392,7 +400,7 @@ fun VideoHubScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Movie,
-                            contentDescription = "Zum Upload",
+                            contentDescription = stringResource(R.string.video_cd_fab_upload),
                         )
                     }
                 }
@@ -450,7 +458,7 @@ fun VideoHubScreen(
                         onOpenOriginal = { video ->
                             val originalUrl = video.inAppOriginalUrl.trim()
                             if (originalUrl.isBlank()) return@VideoPlayerCard
-                            inAppOriginalTitle = video.title.ifBlank { "Original" }
+                            inAppOriginalTitle = video.title.ifBlank { defaultOriginalTitle }
                             inAppOriginalUrl = originalUrl
                         },
                         onOpenReel = if (selectedVideo != null) {
@@ -506,7 +514,7 @@ fun VideoHubScreen(
                     onOpenOriginal = { video ->
                         val originalUrl = video.inAppOriginalUrl.trim()
                         if (originalUrl.isNotBlank()) {
-                            inAppOriginalTitle = video.title.ifBlank { "Original" }
+                            inAppOriginalTitle = video.title.ifBlank { defaultOriginalTitle }
                             inAppOriginalUrl = originalUrl
                         }
                     },
@@ -610,7 +618,7 @@ fun VideoHubScreen(
                                     val originalUrl = video.inAppOriginalUrl.trim()
                                     if (originalUrl.isBlank()) return@VideoLibraryCard
                                     showAdminSheet = false
-                                    inAppOriginalTitle = video.title.ifBlank { "Original" }
+                                    inAppOriginalTitle = video.title.ifBlank { defaultOriginalTitle }
                                     inAppOriginalUrl = originalUrl
                                 },
                                 onToggleHomeFeatured = viewModel::toggleHomeFeatured,
@@ -651,7 +659,7 @@ fun VideoHubScreen(
                                     viewModel.updateEquipmentItem(itemId, imageUrl = "")
                                     coroutineScope.launch {
                                         editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                                        localFeedbackMessage = "Bild entfernt."
+                                        localFeedbackMessage = context.getString(R.string.video_feedback_image_removed)
                                         localFeedbackIsError = false
                                     }
                                 },
@@ -686,7 +694,7 @@ fun VideoHubScreen(
                                     viewModel.updateCollaborationItem(itemId, imageUrl = "")
                                     coroutineScope.launch {
                                         editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                                        localFeedbackMessage = "Bild entfernt."
+                                        localFeedbackMessage = context.getString(R.string.video_feedback_image_removed)
                                         localFeedbackIsError = false
                                     }
                                 },
@@ -725,33 +733,42 @@ private fun VideoHubHeroCard(
     val coreAccent = colorScheme.skydownAccent()
     val mysticAccent = colorScheme.skydownAccentMystic()
     val highlightAccent = colorScheme.skydownAccentHighlight()
+    val defaultVideoTitle = stringResource(R.string.video_topbar_title)
+    val defaultEyebrow = stringResource(R.string.video_eyebrow_default)
+    val defaultHeroSubtitle = stringResource(R.string.video_hero_subtitle_default)
+    val heroDetailAdmin = stringResource(
+        R.string.video_hero_detail_admin,
+        videoCount,
+        collabCount,
+    )
+    val heroDetailUser = stringResource(
+        R.string.video_hero_detail_user,
+        videoCount,
+        collabCount,
+    )
+    val clipsPill = stringResource(R.string.video_hero_pill_clips, videoCount)
+    val collabsPill = stringResource(R.string.video_hero_pill_collabs, collabCount)
     val onHeroHeaderClick: () -> Unit = {
         val heroVideoUrl = screenHeaderSettings.videoHubHeroVideoUrl.trim()
         val headerImageUrl = screenHeaderSettings.videoHubImageUrl.trim()
         when {
             heroVideoUrl.isNotEmpty() -> onOpenInAppOriginal(
                 heroVideoUrl,
-                screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
+                screenHeaderSettings.videoHubTitle.ifBlank { defaultVideoTitle },
             )
             headerImageUrl.isNotEmpty() && isLikelyDirectVideoUrl(headerImageUrl) -> onOpenInAppOriginal(
                 headerImageUrl,
-                screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
+                screenHeaderSettings.videoHubTitle.ifBlank { defaultVideoTitle },
             )
             else -> onOpenVideos()
         }
     }
     BrandHeroCard(
-        eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { "SKY OS" },
-        title = screenHeaderSettings.videoHubTitle.ifBlank { "Video" },
-        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank {
-            "Einstieg – der eigentliche Blick fokussiert sich auf den Player und deine Clips unten."
-        },
+        eyebrow = screenHeaderSettings.videoHubEyebrow.ifBlank { defaultEyebrow },
+        title = screenHeaderSettings.videoHubTitle.ifBlank { defaultVideoTitle },
+        subtitle = screenHeaderSettings.videoHubSubtitle.ifBlank { defaultHeroSubtitle },
         detail = screenHeaderSettings.videoHubDetail.ifBlank {
-            if (isAdmin) {
-                "$videoCount Clips, $collabCount Collabs – alles, was im Hub live ist, landet geordnet in der Library."
-            } else {
-                "$videoCount Clips, $collabCount Collabs – waehlen, schauen, in Ruhe vertiefen."
-            }
+            if (isAdmin) heroDetailAdmin else heroDetailUser
         },
         backgroundImageUrl = screenHeaderSettings.videoHubImageUrl.ifBlank { null },
         accent = mysticAccent,
@@ -765,17 +782,17 @@ private fun VideoHubHeroCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             BrandPill(
-                text = "$videoCount Clips",
+                text = clipsPill,
                 tint = mysticAccent,
                 onClick = onOpenVideos,
             )
             BrandPill(
-                text = "Equipment",
+                text = stringResource(R.string.video_hero_pill_equipment),
                 tint = coreAccent,
                 onClick = onOpenEquipment,
             )
             BrandPill(
-                text = "$collabCount Collabs",
+                text = collabsPill,
                 tint = highlightAccent,
                 onClick = onOpenCollaborations,
             )
@@ -785,7 +802,7 @@ private fun VideoHubHeroCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             VideoHubHeroStatCard(
-                label = "Reels",
+                label = stringResource(R.string.video_stat_reels),
                 value = videoCount.toString(),
                 icon = Icons.Default.Movie,
                 accent = coreAccent,
@@ -793,7 +810,7 @@ private fun VideoHubHeroCard(
                 modifier = Modifier.weight(1f),
             )
             VideoHubHeroStatCard(
-                label = "Collabs",
+                label = stringResource(R.string.video_stat_collabs),
                 value = collabCount.toString(),
                 icon = Icons.Default.Sync,
                 accent = mysticAccent,
@@ -801,8 +818,16 @@ private fun VideoHubHeroCard(
                 modifier = Modifier.weight(1f),
             )
             VideoHubHeroStatCard(
-                label = if (isAdmin) "Mode" else "Access",
-                value = if (isAdmin) "Admin" else "Public",
+                label = if (isAdmin) {
+                    stringResource(R.string.video_stat_mode)
+                } else {
+                    stringResource(R.string.video_stat_access)
+                },
+                value = if (isAdmin) {
+                    stringResource(R.string.video_stat_admin)
+                } else {
+                    stringResource(R.string.video_stat_public)
+                },
                 icon = Icons.Default.Sync,
                 accent = highlightAccent,
                 isActive = isAdmin || collabCount > 0 || videoCount > 0,
@@ -819,15 +844,15 @@ private fun VideoAdminToolsCard(
     val accent = MaterialTheme.colorScheme.skydownAccentMystic()
     SkydownCard {
         BrandSectionBanner(
-            title = "Video Admin",
-            subtitle = "Equipment, Featured Collabs und Format-Hinweise in einem Editor.",
+            title = stringResource(R.string.video_admin_title),
+            subtitle = stringResource(R.string.video_admin_subtitle),
             accent = accent,
             icon = Icons.Default.Home,
-            tag = "ADMIN",
+            tag = stringResource(R.string.video_tag_admin),
         )
 
         BrandActionButton(
-            text = "Editor oeffnen",
+            text = stringResource(R.string.video_admin_open_editor),
             onClick = onOpenEditor,
             accent = accent,
             modifier = Modifier
@@ -923,14 +948,14 @@ private fun VideoFormatCard() {
     val accent = MaterialTheme.colorScheme.skydownAccent()
     SkydownCard {
         VideoHubSectionBanner(
-            title = "Format Check",
-            subtitle = "Saubere Uploads halten den Hub schnell und klar.",
+            title = stringResource(R.string.video_format_title),
+            subtitle = stringResource(R.string.video_format_subtitle),
             icon = Icons.Default.CheckCircle,
             accent = accent,
-            tag = "FORMAT",
+            tag = stringResource(R.string.video_tag_format),
         )
         Text(
-            text = "MP4, MOV oder M4V bleiben die stabilsten Formate fuer den Player und den Video-Flow.",
+            text = stringResource(R.string.video_format_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -939,12 +964,12 @@ private fun VideoFormatCard() {
             modifier = Modifier.padding(top = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            VideoPill(text = "MP4", isActive = true)
-            VideoPill(text = "9:16 ready", isActive = false)
-            VideoPill(text = "Compressed", isActive = false)
+            VideoPill(text = stringResource(R.string.video_pill_mp4), isActive = true)
+            VideoPill(text = stringResource(R.string.video_pill_916), isActive = false)
+            VideoPill(text = stringResource(R.string.video_pill_compressed), isActive = false)
         }
         Text(
-            text = "Komprimierte Cuts laden schneller, wirken im Feed ruhiger und bleiben direkt abrufbar.",
+            text = stringResource(R.string.video_format_body2),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             modifier = Modifier.padding(top = 10.dp),
@@ -960,14 +985,14 @@ private fun VideoCollaborationsCard(
     val accent = MaterialTheme.colorScheme.skydownAccentMystic()
     SkydownCard {
         VideoHubSectionBanner(
-            title = "Featured Collabs",
-            subtitle = "Artists und Creatives hinter dem visuellen Vibe.",
+            title = stringResource(R.string.video_collab_featured_title),
+            subtitle = stringResource(R.string.video_collab_featured_subtitle),
             icon = Icons.Default.Sync,
             accent = accent,
-            tag = "CREW",
+            tag = stringResource(R.string.video_tag_crew),
         )
         Text(
-            text = "Diese Collabs bilden das aktuelle Netzwerk rund um Reels, Looks und gemeinsame Releases.",
+            text = stringResource(R.string.video_collab_featured_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -975,7 +1000,7 @@ private fun VideoCollaborationsCard(
 
         if (items.isEmpty()) {
             Text(
-                text = "Featured Collabs folgen. Der Bereich bleibt bereit und wird laufend ergaenzt.",
+                text = stringResource(R.string.video_collab_featured_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 14.dp),
@@ -1004,14 +1029,14 @@ private fun VideoEquipmentCard(
     val accent = MaterialTheme.colorScheme.skydownAccent()
     SkydownCard {
         VideoHubSectionBanner(
-            title = "Equipment & Software",
-            subtitle = "Visual Stack fuer Shoot, Edit und Finish.",
+            title = stringResource(R.string.video_equipment_title),
+            subtitle = stringResource(R.string.video_equipment_subtitle),
             icon = Icons.Default.CameraAlt,
             accent = accent,
-            tag = "STACK",
+            tag = stringResource(R.string.video_tag_stack),
         )
         Text(
-            text = "Das aktuelle Equipment zeigt, womit die Visuals gebaut und veredelt werden.",
+            text = stringResource(R.string.video_equipment_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1019,7 +1044,7 @@ private fun VideoEquipmentCard(
 
         if (items.isEmpty()) {
             Text(
-                text = "Equipment wird aktuell vorbereitet und erscheint hier in Kuerze.",
+                text = stringResource(R.string.video_equipment_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 14.dp),
@@ -1119,7 +1144,7 @@ private fun VideoEquipmentRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            VideoPill(text = "Visual Stack", isActive = true)
+            VideoPill(text = stringResource(R.string.video_pill_visual_stack), isActive = true)
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleSmall,
@@ -1153,7 +1178,7 @@ private fun VideoEquipmentDetailSheet(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            VideoPill(text = "Visual Stack", isActive = true)
+            VideoPill(text = stringResource(R.string.video_pill_visual_stack), isActive = true)
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.headlineSmall,
@@ -1185,7 +1210,7 @@ private fun VideoEquipmentDetailSheet(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                 ) {
-                    Text("Bild im Vollbild ansehen")
+                    Text(stringResource(R.string.video_image_fullscreen))
                 }
             }
 
@@ -1194,7 +1219,7 @@ private fun VideoEquipmentDetailSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
             ) {
-                Text("Schliessen")
+                Text(stringResource(R.string.common_close))
             }
         }
     }
@@ -1229,22 +1254,23 @@ private fun VideoPublicConfigEditorCard(
     val adminAccent = colorScheme.skydownAccentHighlight()
     val equipmentAccent = colorScheme.skydownAccent()
     val collabAccent = colorScheme.skydownAccentMystic()
+    val collabRoleDefault = stringResource(R.string.video_label_collab_default)
     SkydownCard {
         VideoHubSectionBanner(
-            title = "Admin Control",
-            subtitle = "Owner und Video-Admins steuern hier Equipment, Links und Featured Collabs.",
+            title = stringResource(R.string.video_control_title),
+            subtitle = stringResource(R.string.video_control_subtitle),
             icon = Icons.Default.Sync,
             accent = adminAccent,
-            tag = "ADMIN",
+            tag = stringResource(R.string.video_tag_admin),
         )
         Text(
-            text = "Bilder laufen picker-first mit Vorschau, externe Links werden sauber mit den oeffentlichen Hub-Daten verbunden.",
+            text = stringResource(R.string.video_control_body1),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
         )
         Text(
-            text = "Eintraege kannst du neu anlegen, ersetzen oder entfernen. Oeffentliche Daten werden erst nach `Speichern` live.",
+            text = stringResource(R.string.video_control_body2),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1254,17 +1280,17 @@ private fun VideoPublicConfigEditorCard(
             modifier = Modifier.padding(top = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            VideoPill(text = "Picker-first", isActive = true)
-            VideoPill(text = "Public save", isActive = false)
-            VideoPill(text = "Admin only", isActive = false)
+            VideoPill(text = stringResource(R.string.video_pill_picker_first), isActive = true)
+            VideoPill(text = stringResource(R.string.video_pill_public_save), isActive = false)
+            VideoPill(text = stringResource(R.string.video_pill_admin_only), isActive = false)
         }
 
         VideoControlDeckCard(
-            title = "Equipment Library",
-            subtitle = "Kameras, Tools und Software fuer den visuellen Workflow.",
+            title = stringResource(R.string.video_equip_library_title),
+            subtitle = stringResource(R.string.video_equip_library_subtitle),
             icon = Icons.Default.CameraAlt,
             accent = equipmentAccent,
-            tag = "STACK",
+            tag = stringResource(R.string.video_tag_stack),
             modifier = Modifier.padding(top = 18.dp),
         ) {
             Column(
@@ -1293,27 +1319,34 @@ private fun VideoPublicConfigEditorCard(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            VideoPill(text = "Gear", isActive = true)
-                            VideoPill(text = if (item.imageUrl.isNullOrBlank()) "No image" else "Image ready", isActive = false)
+                            VideoPill(text = stringResource(R.string.video_pill_gear), isActive = true)
+                            VideoPill(
+                                text = if (item.imageUrl.isNullOrBlank()) {
+                                    stringResource(R.string.video_pill_no_image)
+                                } else {
+                                    stringResource(R.string.video_pill_image_ready)
+                                },
+                                isActive = false,
+                            )
                         }
                         OutlinedTextField(
                             value = item.title,
                             onValueChange = { onUpdateEquipmentTitle(item.id, it) },
-                            label = { Text("Titel") },
+                            label = { Text(stringResource(R.string.video_field_title)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         OutlinedTextField(
                             value = item.detail,
                             onValueChange = { onUpdateEquipmentDetail(item.id, it) },
-                            label = { Text("Detail") },
+                            label = { Text(stringResource(R.string.video_field_detail)) },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 2,
                         )
                         EditableImageFieldCard(
-                            title = "Equipment-Bild",
+                            title = stringResource(R.string.video_equipment_image_title),
                             imageUrl = item.imageUrl.orEmpty(),
                             isUploading = activeImageUploadTarget == VideoConfigImageTarget.Equipment(item.id),
-                            uploadStatusText = "Equipment-Bild wird uebernommen.",
+                            uploadStatusText = stringResource(R.string.video_equipment_image_uploading),
                             onPickImage = { onPickEquipmentImage(item.id) },
                             onImageUrlChange = { onUpdateEquipmentImageUrl(item.id, it) },
                             onRemoveImage = { onRemoveEquipmentImage(item.id) },
@@ -1322,7 +1355,7 @@ private fun VideoPublicConfigEditorCard(
                             onClick = { onRemoveEquipment(item.id) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("Eintrag entfernen")
+                            Text(stringResource(R.string.video_remove_entry))
                         }
                     }
                 }
@@ -1334,16 +1367,16 @@ private fun VideoPublicConfigEditorCard(
                     .fillMaxWidth()
                     .padding(top = 4.dp),
             ) {
-                Text("Equipment hinzufuegen")
+                Text(stringResource(R.string.video_add_equipment))
             }
         }
 
         VideoControlDeckCard(
-            title = "Collab Profiles",
-            subtitle = "Rollen, Highlights, Vibes und Links fuer das Featured-Netzwerk.",
+            title = stringResource(R.string.video_collab_profiles_title),
+            subtitle = stringResource(R.string.video_collab_profiles_subtitle),
             icon = Icons.Default.CheckCircle,
             accent = collabAccent,
-            tag = "CREW",
+            tag = stringResource(R.string.video_tag_crew),
             modifier = Modifier.padding(top = 18.dp),
         ) {
             Column(
@@ -1372,7 +1405,10 @@ private fun VideoPublicConfigEditorCard(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            VideoPill(text = item.role.ifBlank { "Collab" }, isActive = true)
+                            VideoPill(
+                                text = item.role.ifBlank { collabRoleDefault },
+                                isActive = true,
+                            )
                             if (item.vibe.isNotBlank()) {
                                 VideoPill(text = item.vibe, isActive = false)
                             }
@@ -1380,33 +1416,33 @@ private fun VideoPublicConfigEditorCard(
                         OutlinedTextField(
                             value = item.name,
                             onValueChange = { onUpdateCollaborationName(item.id, it) },
-                            label = { Text("Name") },
+                            label = { Text(stringResource(R.string.video_field_name)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         OutlinedTextField(
                             value = item.role,
                             onValueChange = { onUpdateCollaborationRole(item.id, it) },
-                            label = { Text("Rolle") },
+                            label = { Text(stringResource(R.string.video_field_role)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         OutlinedTextField(
                             value = item.highlight,
                             onValueChange = { onUpdateCollaborationHighlight(item.id, it) },
-                            label = { Text("Highlight") },
+                            label = { Text(stringResource(R.string.video_field_highlight)) },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 2,
                         )
                         OutlinedTextField(
                             value = item.vibe,
                             onValueChange = { onUpdateCollaborationVibe(item.id, it) },
-                            label = { Text("Vibe") },
+                            label = { Text(stringResource(R.string.video_field_vibe)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         EditableImageFieldCard(
-                            title = "Collab-Bild",
+                            title = stringResource(R.string.video_collab_image_title),
                             imageUrl = item.imageUrl.orEmpty(),
                             isUploading = activeImageUploadTarget == VideoConfigImageTarget.Collaboration(item.id),
-                            uploadStatusText = "Collab-Bild wird uebernommen.",
+                            uploadStatusText = stringResource(R.string.video_collab_image_uploading),
                             onPickImage = { onPickCollaborationImage(item.id) },
                             onImageUrlChange = { onUpdateCollaborationImageUrl(item.id, it) },
                             onRemoveImage = { onRemoveCollaborationImage(item.id) },
@@ -1414,26 +1450,26 @@ private fun VideoPublicConfigEditorCard(
                         OutlinedTextField(
                             value = item.spotifyArtistId.orEmpty(),
                             onValueChange = { onUpdateCollaborationSpotifyArtistId(item.id, it) },
-                            label = { Text("Spotify Artist ID") },
+                            label = { Text(stringResource(R.string.video_field_spotify_artist_id)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         OutlinedTextField(
                             value = item.instagramUrl.orEmpty(),
                             onValueChange = { onUpdateCollaborationInstagramUrl(item.id, it) },
-                            label = { Text("Instagram URL") },
+                            label = { Text(stringResource(R.string.video_field_instagram_url)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         OutlinedTextField(
                             value = item.youtubeUrl.orEmpty(),
                             onValueChange = { onUpdateCollaborationYoutubeUrl(item.id, it) },
-                            label = { Text("YouTube URL") },
+                            label = { Text(stringResource(R.string.video_field_youtube_url)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         OutlinedButton(
                             onClick = { onRemoveCollaboration(item.id) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("Collab entfernen")
+                            Text(stringResource(R.string.video_remove_collab))
                         }
                     }
                 }
@@ -1445,7 +1481,7 @@ private fun VideoPublicConfigEditorCard(
                     .fillMaxWidth()
                     .padding(top = 4.dp),
             ) {
-                Text("Collab hinzufuegen")
+                Text(stringResource(R.string.video_add_collab))
             }
         }
 
@@ -1463,7 +1499,7 @@ private fun VideoPublicConfigEditorCard(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             } else {
-                Text("Aenderungen speichern")
+                Text(stringResource(R.string.video_save_changes))
             }
         }
     }
@@ -1477,6 +1513,11 @@ private fun ProducedWithArtistRow(
     val colorScheme = MaterialTheme.colorScheme
     val collabAccent = colorScheme.skydownAccentMystic()
     val highlightAccent = colorScheme.skydownAccentHighlight()
+    val collabRoleDefault = stringResource(R.string.video_label_collab_default)
+    val spotifyTitle = stringResource(R.string.video_artist_social_spotify)
+    val instagramTitle = stringResource(R.string.video_artist_social_instagram)
+    val youtubeTitle = stringResource(R.string.video_artist_social_youtube)
+    val collabBadge = stringResource(R.string.video_badge_collab)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -1574,7 +1615,7 @@ private fun ProducedWithArtistRow(
                         .padding(horizontal = 8.dp, vertical = 5.dp),
                 ) {
                     Text(
-                        text = "COLLAB",
+                        text = collabBadge,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White.copy(alpha = 0.94f),
@@ -1624,7 +1665,7 @@ private fun ProducedWithArtistRow(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                VideoPill(text = artist.role.ifBlank { "Collab" }, isActive = true)
+                VideoPill(text = artist.role.ifBlank { collabRoleDefault }, isActive = true)
                 if (artist.vibe.isNotBlank()) {
                     VideoPill(text = artist.vibe, isActive = false)
                 }
@@ -1633,7 +1674,7 @@ private fun ProducedWithArtistRow(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 artist.spotifyArtistId?.takeIf { it.isNotBlank() }?.let { spotifyArtistId ->
                     SocialActionChip(
-                        title = "Spotify",
+                        title = spotifyTitle,
                         icon = Icons.Default.PlayArrow,
                         gradient = Brush.linearGradient(
                             colors = listOf(
@@ -1646,7 +1687,7 @@ private fun ProducedWithArtistRow(
                 }
                 artist.instagramUrl?.takeIf { it.isNotBlank() }?.let { instagramUrl ->
                     SocialActionChip(
-                        title = "Instagram",
+                        title = instagramTitle,
                         icon = Icons.Default.CameraAlt,
                         gradient = Brush.linearGradient(
                             colors = listOf(
@@ -1660,7 +1701,7 @@ private fun ProducedWithArtistRow(
                 }
                 artist.youtubeUrl?.takeIf { it.isNotBlank() }?.let { youtubeUrl ->
                     SocialActionChip(
-                        title = "YouTube",
+                        title = youtubeTitle,
                         icon = Icons.Default.PlayArrow,
                         gradient = Brush.linearGradient(
                             colors = listOf(
@@ -1722,18 +1763,19 @@ private fun VideoUploadCard(
     onAddExternalVideo: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val res = LocalContext.current.resources
     val uploadAccent = colorScheme.skydownAccentHighlight()
     val pickerAccent = colorScheme.skydownAccent()
     SkydownCard {
         VideoHubSectionBanner(
-            title = "Video Upload",
-            subtitle = "Admin-only Bereich fuer neue Clips und externe Videoquellen.",
+            title = stringResource(R.string.video_upload_title),
+            subtitle = stringResource(R.string.video_upload_subtitle),
             icon = Icons.Default.Movie,
             accent = uploadAccent,
-            tag = "UPLOAD",
+            tag = stringResource(R.string.video_tag_upload),
         )
         Text(
-            text = "Hier steuerst du direkte Uploads nach Firebase Storage oder externe Video-Links fuer den Hub.",
+            text = stringResource(R.string.video_upload_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1743,15 +1785,15 @@ private fun VideoUploadCard(
             modifier = Modifier.padding(top = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            VideoPill(text = "Storage", isActive = true)
-            VideoPill(text = "Video-Link", isActive = false)
-            VideoPill(text = "External", isActive = false)
+            VideoPill(text = stringResource(R.string.video_pill_storage), isActive = true)
+            VideoPill(text = stringResource(R.string.video_pill_video_link), isActive = false)
+            VideoPill(text = stringResource(R.string.video_pill_external), isActive = false)
         }
 
         OutlinedTextField(
             value = uiState.videoTitle,
             onValueChange = onUpdateTitle,
-            label = { Text("Titel") },
+            label = { Text(stringResource(R.string.video_field_title)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
@@ -1759,7 +1801,7 @@ private fun VideoUploadCard(
         OutlinedTextField(
             value = uiState.projectName,
             onValueChange = onUpdateProjectName,
-            label = { Text("Projekt / Artist") },
+            label = { Text(stringResource(R.string.video_field_project_artist)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
@@ -1767,7 +1809,7 @@ private fun VideoUploadCard(
         OutlinedTextField(
             value = uiState.email,
             onValueChange = onUpdateEmail,
-            label = { Text("Kontakt-Mail") },
+            label = { Text(stringResource(R.string.video_field_contact_email)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
@@ -1775,7 +1817,7 @@ private fun VideoUploadCard(
         OutlinedTextField(
             value = uiState.notes,
             onValueChange = onUpdateNotes,
-            label = { Text("Notiz") },
+            label = { Text(stringResource(R.string.video_field_note)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
@@ -1783,7 +1825,7 @@ private fun VideoUploadCard(
         )
 
         BrandActionButton(
-            text = "Videos auswaehlen",
+            text = stringResource(R.string.video_select_videos),
             onClick = onPickFiles,
             accent = pickerAccent,
             modifier = Modifier
@@ -1794,7 +1836,7 @@ private fun VideoUploadCard(
         )
 
         Text(
-            text = "Oder als externer Video-Link freigeben.",
+            text = stringResource(R.string.video_upload_or_external),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
             modifier = Modifier.padding(top = 14.dp),
@@ -1803,7 +1845,7 @@ private fun VideoUploadCard(
         OutlinedTextField(
             value = uiState.externalVideoUrl,
             onValueChange = onUpdateExternalVideoUrl,
-            label = { Text("Google Drive / MEGA / anderer Video-Link") },
+            label = { Text(stringResource(R.string.video_field_external_url_label)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
@@ -1850,13 +1892,13 @@ private fun VideoUploadCard(
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = readableFileSize(file.fileSizeBytes),
+                                text = readableFileSize(file.fileSizeBytes, res),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                             )
                         }
                         TextButton(onClick = { onRemoveFile(file) }) {
-                            Text("Entfernen")
+                            Text(stringResource(R.string.video_action_remove))
                         }
                     }
                 }
@@ -1872,7 +1914,11 @@ private fun VideoUploadCard(
         }
 
         BrandActionButton(
-            text = if (uiState.isUploading) "Upload laeuft ..." else "Videos hochladen",
+            text = if (uiState.isUploading) {
+                stringResource(R.string.video_upload_in_progress)
+            } else {
+                stringResource(R.string.video_upload_cta)
+            },
             onClick = onUpload,
             accent = uploadAccent,
             modifier = Modifier
@@ -1884,7 +1930,7 @@ private fun VideoUploadCard(
         )
 
         BrandActionButton(
-            text = "Externes Video freigeben",
+            text = stringResource(R.string.video_add_external),
             onClick = onAddExternalVideo,
             accent = colorScheme.skydownAccent(),
             modifier = Modifier
@@ -1906,17 +1952,18 @@ private fun VideoPlayerCard(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val playerAccent = colorScheme.skydownAccentMystic()
+    val homeBadge = stringResource(R.string.common_home_badge)
     SkydownCard {
         VideoHubSectionBanner(
-            title = "Now Playing",
-            subtitle = "Das aktive Video bleibt gross, fokussiert und direkt abspielbar.",
+            title = stringResource(R.string.video_player_section_title),
+            subtitle = stringResource(R.string.video_player_subtitle),
             icon = Icons.Default.Movie,
             accent = playerAccent,
-            tag = "LIVE",
+            tag = stringResource(R.string.video_tag_live),
         )
 
         Text(
-            text = "Der aktive Clip sitzt jetzt direkt im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Vollbild-Modus springen.",
+            text = stringResource(R.string.video_player_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             modifier = Modifier.padding(top = 8.dp),
@@ -1924,7 +1971,7 @@ private fun VideoPlayerCard(
 
         if (video == null) {
             Text(
-                text = "Noch kein Fokus-Video aktiv. Sobald ein Clip freigegeben ist, erscheint er hier.",
+                text = stringResource(R.string.video_player_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                 modifier = Modifier.padding(top = 12.dp),
@@ -2015,7 +2062,8 @@ private fun VideoPlayerCard(
                             append(" · ")
                             append(formatVideoDate(video.createdAtMillis))
                             if (video.isHomeFeatured) {
-                                append(" · Home")
+                                append(" · ")
+                                append(homeBadge)
                             }
                         },
                         style = MaterialTheme.typography.labelMedium,
@@ -2039,7 +2087,7 @@ private fun VideoPlayerCard(
         if (video.supportsInlinePlayback) {
             onOpenReel?.let { openReel ->
                 BrandActionButton(
-                    text = "Player oeffnen",
+                    text = stringResource(R.string.video_player_open),
                     onClick = openReel,
                     accent = playerAccent,
                     modifier = Modifier
@@ -2088,27 +2136,32 @@ private fun videoHubPreviewImageUrl(video: VideoHubItem): String? {
     return null
 }
 
-private fun videoHubLibraryMetaLine(
+@Composable
+@ReadOnlyComposable
+private fun videoHubLibraryMetaLineText(
     video: VideoHubItem,
     isAdmin: Boolean,
     presentation: VideoLibraryRowPresentation,
 ): String {
     val date = formatVideoDate(video.createdAtMillis)
+    val public = stringResource(R.string.common_public)
+    val private = stringResource(R.string.common_private)
+    val home = stringResource(R.string.common_home_badge)
     return when (presentation) {
         VideoLibraryRowPresentation.Catalog -> {
             "${video.projectName} · $date"
         }
         VideoLibraryRowPresentation.Featured -> {
-            // Immersion: Bühne trägt den Titel; Meta bleibt eine dezente Zeile ohne Provider-Noise.
             buildString {
                 append(video.projectName)
                 append(" · ")
                 append(date)
                 if (isAdmin) {
                     append(" · ")
-                    append(if (video.isPublic) "Public" else "Private")
+                    append(if (video.isPublic) public else private)
                     if (video.isHomeFeatured) {
-                        append(" · Home")
+                        append(" · ")
+                        append(home)
                     }
                 }
             }
@@ -2122,9 +2175,10 @@ private fun videoHubLibraryMetaLine(
                 append(video.providerBadge)
                 if (isAdmin) {
                     append(" · ")
-                    append(if (video.isPublic) "Public" else "Private")
+                    append(if (video.isPublic) public else private)
                     if (video.isHomeFeatured) {
-                        append(" · Home")
+                        append(" · ")
+                        append(home)
                     }
                 }
             }
@@ -2153,9 +2207,12 @@ private fun VideoLibraryCard(
         ) {
             Text(
                 text = if (uiState.isAdmin) {
-                    "Owner Video Control"
+                    stringResource(R.string.video_lib_header_owner)
                 } else {
-                    "${uiState.videos.size} zum Schauen bereit"
+                    stringResource(
+                        R.string.video_lib_header_guest,
+                        uiState.videos.size,
+                    )
                 },
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
@@ -2163,9 +2220,15 @@ private fun VideoLibraryCard(
             )
             Text(
                 text = if (uiState.isAdmin) {
-                    "${uiState.videos.size} Videos hinterlegt. Liste, Home-Fokus, Bearbeiten und Loeschen bleiben nur fuer Owner sichtbar."
+                    stringResource(
+                        R.string.video_lib_subtitle_admin,
+                        uiState.videos.size,
+                    )
                 } else {
-                    "${uiState.videos.size} Videos sind freigegeben."
+                    stringResource(
+                        R.string.video_lib_subtitle_guest,
+                        uiState.videos.size,
+                    )
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = colorScheme.onSurface.copy(alpha = 0.64f),
@@ -2183,7 +2246,7 @@ private fun VideoLibraryCard(
                         contentDescription = null,
                     )
                     Text(
-                        text = "Neues Video anlegen",
+                        text = stringResource(R.string.video_lib_new_video),
                         modifier = Modifier.padding(start = 8.dp),
                     )
                 }
@@ -2201,13 +2264,13 @@ private fun VideoLibraryCard(
                         modifier = Modifier.size(22.dp),
                         strokeWidth = 2.5.dp,
                     )
-                    Text("Videos werden ruhig vorbereitet ...")
+                    Text(stringResource(R.string.video_lib_loading))
                 }
             }
 
             uiState.videos.isEmpty() -> {
                 Text(
-                    text = "Aktuell sind noch keine Videos sichtbar. Bitte spaeter erneut pruefen.",
+                    text = stringResource(R.string.video_lib_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 16.dp),
@@ -2296,13 +2359,17 @@ private fun VideoOwnerEditPanel(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            text = "Video bearbeiten",
+            text = stringResource(R.string.video_edit_heading),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
             color = colorScheme.onSurface,
         )
         Text(
-            text = "${video.providerBadge} · ${formatVideoDate(video.createdAtMillis)}",
+            text = stringResource(
+                R.string.video_edit_provider_date,
+                video.providerBadge,
+                formatVideoDate(video.createdAtMillis),
+            ),
             style = MaterialTheme.typography.labelSmall,
             color = colorScheme.onSurface.copy(alpha = 0.58f),
             maxLines = 1,
@@ -2311,21 +2378,21 @@ private fun VideoOwnerEditPanel(
         OutlinedTextField(
             value = title,
             onValueChange = { title = it.take(120) },
-            label = { Text("Titel") },
+            label = { Text(stringResource(R.string.video_field_title)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
         OutlinedTextField(
             value = projectName,
             onValueChange = { projectName = it.take(120) },
-            label = { Text("Projekt / Artist") },
+            label = { Text(stringResource(R.string.video_field_project_artist)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
         OutlinedTextField(
             value = notes,
             onValueChange = { notes = it.take(800) },
-            label = { Text("Notizen") },
+            label = { Text(stringResource(R.string.video_field_notes)) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
             maxLines = 4,
@@ -2342,7 +2409,11 @@ private fun VideoOwnerEditPanel(
                     contentDescription = null,
                 )
                 Text(
-                    text = if (isPublic) "Public" else "Privat",
+                    text = if (isPublic) {
+                        stringResource(R.string.common_public)
+                    } else {
+                        stringResource(R.string.common_private)
+                    },
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
@@ -2351,14 +2422,14 @@ private fun VideoOwnerEditPanel(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(18.dp),
             ) {
-                Text("Speichern")
+                Text(stringResource(R.string.video_action_save))
             }
         }
         TextButton(
             onClick = onCancel,
             modifier = Modifier.align(Alignment.End),
         ) {
-            Text("Abbrechen")
+            Text(stringResource(R.string.video_action_cancel))
         }
     }
 }
@@ -2624,7 +2695,7 @@ private fun VideoLibraryRow(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = videoHubLibraryMetaLine(
+                            text = videoHubLibraryMetaLineText(
                                 video = video,
                                 isAdmin = isAdmin,
                                 presentation = presentation,
@@ -2661,7 +2732,7 @@ private fun VideoLibraryRow(
                 }
             } else {
                 Text(
-                    text = videoHubLibraryMetaLine(
+                    text = videoHubLibraryMetaLineText(
                         video = video,
                         isAdmin = isAdmin,
                         presentation = presentation,
@@ -2692,9 +2763,9 @@ private fun VideoLibraryRow(
 
             if (!catalog && !isFeatured) {
                 val hintText = when {
-                    isSecondary && isAdmin -> "Auswahl sitzt sofort im Player."
-                    isSecondary -> "Tippen, um den Fokus zu waehlen – der Player oben folgt."
-                    else -> videoLibraryInteractionHint(
+                    isSecondary && isAdmin -> stringResource(R.string.video_row_hint_secondary_admin)
+                    isSecondary -> stringResource(R.string.video_row_hint_secondary_user)
+                    else -> videoLibraryInteractionHintText(
                         video = video,
                         isAdmin = isAdmin,
                         isSelected = isSelected,
@@ -2718,10 +2789,10 @@ private fun VideoLibraryRow(
                     ) {
                         Text(
                             when {
-                                isSelected && video.usesEmbeddedPreview -> "Aktiv in Preview"
-                                isSelected -> "Aktiv im Player"
-                                video.usesEmbeddedPreview -> "In Preview laden"
-                                else -> "Im Player laden"
+                                isSelected && video.usesEmbeddedPreview -> stringResource(R.string.video_btn_active_in_preview)
+                                isSelected -> stringResource(R.string.video_btn_active_in_player)
+                                video.usesEmbeddedPreview -> stringResource(R.string.video_btn_load_in_preview)
+                                else -> stringResource(R.string.video_btn_load_in_player)
                             },
                         )
                     }
@@ -2746,7 +2817,11 @@ private fun VideoLibraryRow(
                             contentDescription = null,
                         )
                         Text(
-                            text = if (video.isHomeFeatured) "Home aktiv" else "Im Home zeigen",
+                            text = if (video.isHomeFeatured) {
+                                stringResource(R.string.video_btn_home_on)
+                            } else {
+                                stringResource(R.string.video_btn_home_add)
+                            },
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
@@ -2761,7 +2836,7 @@ private fun VideoLibraryRow(
                             contentDescription = null,
                         )
                         Text(
-                            text = "Bearbeiten",
+                            text = stringResource(R.string.video_action_edit),
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
@@ -2778,7 +2853,7 @@ private fun VideoLibraryRow(
                             contentDescription = null,
                         )
                         Text(
-                            text = "Loeschen",
+                            text = stringResource(R.string.video_action_delete),
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
@@ -2790,7 +2865,7 @@ private fun VideoLibraryRow(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp),
                     ) {
-                        Text(videoHubInlineCompactActionLabel(video))
+                        Text(videoHubInlineCompactActionLabelText(video))
                     }
                 } else if (video.opensOriginalInApp) {
                     OutlinedButton(
@@ -2806,7 +2881,9 @@ private fun VideoLibraryRow(
     }
 }
 
-private fun videoLibraryInteractionHint(
+@Composable
+@ReadOnlyComposable
+private fun videoLibraryInteractionHintText(
     video: VideoHubItem,
     isAdmin: Boolean,
     isSelected: Boolean,
@@ -2814,27 +2891,27 @@ private fun videoLibraryInteractionHint(
     if (isAdmin) {
         if (video.isPlayable) {
             return if (isSelected) {
-                "Der Clip sitzt gerade im Player und bleibt als Fokus-Video oben sichtbar."
+                stringResource(R.string.video_row_hint_admin_selected)
             } else {
-                "Ein Tap laedt den Clip in den Player und macht ihn zum aktuellen Fokus."
+                stringResource(R.string.video_row_hint_admin_tap)
             }
         }
         if (video.supportsInlinePlayback) {
-            return "Dieser Clip laeuft direkt im In-App-Reel ohne Browser-Zwischenweg."
+            return stringResource(R.string.video_row_hint_inline_reel)
         }
         if (video.opensOriginalInApp) {
-            return "Das Original bleibt in der App und fuehrt mit Schliessen sicher zurueck."
+            return stringResource(R.string.video_row_hint_original_in_app)
         }
-        return "Aktuell steht hier nur der externe Aufruf zur Verfuegung."
+        return stringResource(R.string.video_row_hint_external_only)
     }
 
     if (video.supportsInlinePlayback) {
-        return "Ein Tap startet die direkte Videoansicht sofort im Feed-Flow."
+        return stringResource(R.string.video_row_hint_user_inline)
     }
     if (video.opensOriginalInApp) {
-        return "Ein Tap bringt dich in die In-App-Originalansicht mit sicherem Rueckweg."
+        return stringResource(R.string.video_row_hint_user_original_in_app)
     }
-    return "Dieses Video wird derzeit ueber einen externen Link geoeffnet."
+    return stringResource(R.string.video_row_hint_user_external)
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -2853,6 +2930,9 @@ private fun VideoReelViewerDialog(
             playWhenReady = true
         }
     }
+    val reelTitlePreview = stringResource(R.string.video_reel_title_preview)
+    val reelTitleReel = stringResource(R.string.video_reel_title_reel)
+    val reelTitleVideo = stringResource(R.string.video_reel_title_video)
     val initialPage = remember(videos, selectedVideoId) {
         videos.indexOfFirst { it.id == selectedVideoId }.takeIf { it >= 0 } ?: 0
     }
@@ -3081,21 +3161,25 @@ private fun VideoReelViewerDialog(
                         text = videos
                             .getOrNull(pagerState.currentPage)
                             ?.let { video ->
-                                if (video.usesEmbeddedPreview) "SkyOS Preview" else "SkyOS Reel"
+                                if (video.usesEmbeddedPreview) reelTitlePreview else reelTitleReel
                             }
-                            ?: "SkyOS Video",
+                            ?: reelTitleVideo,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f),
                     )
                     Text(
-                        text = "${pagerState.currentPage + 1} von ${videos.size}",
+                        text = stringResource(
+                            R.string.video_reel_page_of,
+                            pagerState.currentPage + 1,
+                            videos.size,
+                        ),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.70f),
                     )
                     if (videos.size > 1) {
                         Text(
-                            text = "Wische vertikal durch alle Clips",
+                            text = stringResource(R.string.video_reel_swipe_hint),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.58f),
                         )
@@ -3104,7 +3188,7 @@ private fun VideoReelViewerDialog(
 
                 SkydownFullscreenChromeIconButton(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Video schliessen",
+                    contentDescription = stringResource(R.string.video_cd_close_video),
                     onClick = onDismiss,
                 )
             }
@@ -3169,7 +3253,7 @@ private fun VideoReelViewerDialog(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                     Text(
-                        text = "Clip wird vorbereitet ...",
+                        text = stringResource(R.string.video_reel_preparing),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.90f),
                     )
@@ -3189,11 +3273,13 @@ private fun videoHubProviderAccent(video: VideoHubItem): Color {
     }
 }
 
-private fun videoHubInlineCompactActionLabel(video: VideoHubItem): String {
+@Composable
+@ReadOnlyComposable
+private fun videoHubInlineCompactActionLabelText(video: VideoHubItem): String {
     return if (video.usesEmbeddedPreview) {
-        "In Preview"
+        stringResource(R.string.video_inline_in_preview)
     } else {
-        "Direkt im Video"
+        stringResource(R.string.video_inline_in_video)
     }
 }
 
@@ -3230,7 +3316,7 @@ private fun VideoHubImageViewerDialog(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
-                    text = "Bildvorschau",
+                    text = stringResource(R.string.video_image_preview_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimary,
@@ -3238,7 +3324,7 @@ private fun VideoHubImageViewerDialog(
                 )
 
                 BrandActionButton(
-                    text = "Schliessen",
+                    text = stringResource(R.string.common_close),
                     onClick = onDismiss,
                     accent = MaterialTheme.colorScheme.onPrimary,
                     icon = Icons.Default.Close,
@@ -3264,18 +3350,18 @@ private fun VideoPill(
     )
 }
 
-private fun readableFileSize(bytes: Long): String {
-    if (bytes <= 0L) return "Unbekannte Dateigroesse"
+private fun readableFileSize(bytes: Long, res: Resources): String {
+    if (bytes <= 0L) return res.getString(R.string.common_unknown_file_size)
     val megabytes = bytes / 1024f / 1024f
     return if (megabytes >= 1024f) {
-        String.format(Locale.GERMANY, "%.2f GB", megabytes / 1024f)
+        res.getString(R.string.video_size_gb, megabytes / 1024f)
     } else {
-        String.format(Locale.GERMANY, "%.1f MB", megabytes)
+        res.getString(R.string.video_size_mb, megabytes)
     }
 }
 
 private fun formatVideoDate(timestamp: Long): String {
-    return SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).format(Date(timestamp))
+    return SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(timestamp))
 }
 
 private sealed interface VideoConfigImageTarget {

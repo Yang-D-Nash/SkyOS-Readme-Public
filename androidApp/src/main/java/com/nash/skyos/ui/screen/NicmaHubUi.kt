@@ -37,8 +37,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.nash.skyos.R
 import com.nash.skyos.data.StudioPriceItemUi
 import com.nash.skyos.ui.component.BrandHeroCard
 import com.nash.skyos.ui.component.BrandPill
@@ -155,7 +157,7 @@ fun NicmaProfileSelectorRow(
                                     .background(SpotifyGreen, CircleShape),
                             )
                             Text(
-                                text = "aktiv",
+                                text = stringResource(R.string.nicma_status_active),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = SpotifyGreen,
                             )
@@ -188,13 +190,13 @@ fun NicmaHubHeroCard(
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (isStudioProfile) {
-                BrandPill(text = "Mix", tint = MaterialTheme.colorScheme.tertiary)
-                BrandPill(text = "Master", tint = MaterialTheme.colorScheme.primary)
-                BrandPill(text = "Rec", tint = MaterialTheme.colorScheme.secondary)
+                BrandPill(text = stringResource(R.string.nicma_pill_mix), tint = MaterialTheme.colorScheme.tertiary)
+                BrandPill(text = stringResource(R.string.nicma_pill_master), tint = MaterialTheme.colorScheme.primary)
+                BrandPill(text = stringResource(R.string.nicma_pill_rec), tint = MaterialTheme.colorScheme.secondary)
             } else {
-                BrandPill(text = "Artist", tint = MaterialTheme.colorScheme.tertiary)
-                BrandPill(text = "Katalog", tint = MaterialTheme.colorScheme.primary)
-                BrandPill(text = "Links", tint = MaterialTheme.colorScheme.secondary)
+                BrandPill(text = stringResource(R.string.nicma_pill_artist), tint = MaterialTheme.colorScheme.tertiary)
+                BrandPill(text = stringResource(R.string.nicma_pill_catalog), tint = MaterialTheme.colorScheme.primary)
+                BrandPill(text = stringResource(R.string.nicma_pill_links), tint = MaterialTheme.colorScheme.secondary)
             }
         }
     }
@@ -229,7 +231,7 @@ fun NicmaPriceListEditorCard(
         SectionHeader("Preisliste")
         if (items.isEmpty()) {
             Text(
-                text = "Noch keine Preispositionen.",
+                text = stringResource(R.string.nicma_price_list_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier
@@ -279,7 +281,7 @@ fun NicmaPriceListEditorCard(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Edit,
-                                    contentDescription = "Bearbeiten",
+                                    contentDescription = stringResource(R.string.artist_action_edit),
                                 )
                             }
                             IconButton(
@@ -288,7 +290,7 @@ fun NicmaPriceListEditorCard(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Delete,
-                                    contentDescription = "Entfernen",
+                                    contentDescription = stringResource(R.string.common_remove),
                                 )
                             }
                         }
@@ -477,7 +479,7 @@ fun NicmaContactCard(
     SkydownCard {
         SectionHeader("Links")
         Text(
-            text = "Kontakt & Plattformen",
+            text = stringResource(R.string.nicma_contact_platforms),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             modifier = Modifier.padding(top = 8.dp),

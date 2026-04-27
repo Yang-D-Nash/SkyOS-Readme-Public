@@ -99,8 +99,9 @@ fun RowScope.AppTopBarSessionActions(
         compactLayout = compactLayout,
         miniModeOnCompact = miniModeOnCompact,
     )
-    val displayName = currentUser?.username?.trim().takeUnless { it.isNullOrBlank() } ?: "Gast"
-    val initials = displayName.firstOrNull()?.uppercase() ?: "G"
+    val guestName = stringResource(R.string.app_topbar_guest_name)
+    val displayName = currentUser?.username?.trim().takeUnless { it.isNullOrBlank() } ?: guestName
+    val initials = displayName.firstOrNull()?.uppercase() ?: guestName.firstOrNull()?.uppercase().orEmpty()
     val sessionAccent = if (currentUser == null) {
         MaterialTheme.colorScheme.tertiary
     } else {
@@ -154,7 +155,7 @@ fun RowScope.AppTopBarSessionActions(
                 if (!currentUser?.profileImageURL.isNullOrBlank()) {
                     AsyncImage(
                         model = currentUser.profileImageURL,
-                        contentDescription = "Profil",
+                        contentDescription = stringResource(R.string.profile_avatar_cd),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -230,7 +231,7 @@ fun RowScope.AppTopBarSessionActions(
         SessionIconAction(
             onClick = { menuExpanded = true },
             imageVector = Icons.Default.MoreHoriz,
-            contentDescription = "Mehr",
+            contentDescription = stringResource(R.string.app_topbar_more_cd),
             testTag = "app.topbar.more",
             compactLayout = compactLayout,
             dense = balancedDense,
@@ -242,7 +243,7 @@ fun RowScope.AppTopBarSessionActions(
         ) {
             if (onOpenCart != null) {
                 DropdownMenuItem(
-                    text = { Text("Warenkorb") },
+                    text = { Text(stringResource(R.string.cart_title)) },
                     onClick = {
                         menuExpanded = false
                         onOpenCart()
@@ -251,7 +252,7 @@ fun RowScope.AppTopBarSessionActions(
             }
             if (currentUser != null) {
                 DropdownMenuItem(
-                    text = { Text("Profil") },
+                    text = { Text(stringResource(R.string.profile_title)) },
                     onClick = {
                         menuExpanded = false
                         (onOpenProfile ?: onOpenSettings).invoke()
@@ -268,7 +269,7 @@ fun RowScope.AppTopBarSessionActions(
                 )
             }
             DropdownMenuItem(
-                text = { Text("Einstellungen") },
+                text = { Text(stringResource(R.string.app_topbar_settings_label)) },
                 onClick = {
                     menuExpanded = false
                     onOpenSettings()
@@ -282,7 +283,7 @@ fun RowScope.AppTopBarSessionActions(
         SessionIconAction(
             onClick = onOpenCart,
             imageVector = Icons.Default.ShoppingCart,
-            contentDescription = "Warenkorb",
+            contentDescription = stringResource(R.string.cart_title),
             testTag = "app.topbar.cart",
             compactLayout = compactLayout,
             dense = balancedDense,
@@ -293,7 +294,7 @@ fun RowScope.AppTopBarSessionActions(
     SessionIconAction(
         onClick = onOpenSettings,
         imageVector = Icons.Default.Settings,
-        contentDescription = "Einstellungen",
+        contentDescription = stringResource(R.string.app_topbar_settings_label),
         testTag = "app.topbar.settings",
         compactLayout = compactLayout,
         dense = balancedDense,

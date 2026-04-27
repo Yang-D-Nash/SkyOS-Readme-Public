@@ -32,7 +32,7 @@ struct SettingsMembershipCommandCenterView: View {
     @State private var freshnessFloorDraft = "0.20"
     @State private var duplicateMergeWindowDaysDraft = "14"
     @State private var hygieneProfileLabel = "balanced"
-    
+
     private func t(_ key: String, _ fallback: String) -> String {
         AppLocalized.text(key, fallback: fallback)
     }

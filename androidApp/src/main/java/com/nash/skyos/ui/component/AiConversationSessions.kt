@@ -30,9 +30,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.nash.skyos.R
 import com.nash.skyos.data.AiConversationHistorySessionSnapshot
 
 @Composable
@@ -83,7 +85,7 @@ fun AiConversationSessionStrip(
             Spacer(modifier = Modifier.width(8.dp))
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = "Chats oeffnen",
+                contentDescription = stringResource(R.string.ai_sessions_open),
                 tint = accent,
             )
         }
@@ -95,7 +97,7 @@ fun AiConversationSessionStrip(
             ) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
-                    contentDescription = "Chat aktualisieren",
+                    contentDescription = stringResource(R.string.ai_session_refresh),
                 )
             }
         }
@@ -106,7 +108,7 @@ fun AiConversationSessionStrip(
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "Neuer Chat",
+                contentDescription = stringResource(R.string.ai_action_new_chat),
             )
         }
         if (showsManagementActions) {
@@ -117,7 +119,7 @@ fun AiConversationSessionStrip(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Chat loeschen",
+                    contentDescription = stringResource(R.string.ai_session_delete),
                 )
             }
         }
@@ -156,7 +158,7 @@ fun AiConversationSessionsSheet(
                     fontWeight = FontWeight.Black,
                 )
                 Text(
-                    text = "Weiter im Verlauf oder einen frischen Chat starten.",
+                    text = stringResource(R.string.ai_sessions_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 )
@@ -168,13 +170,13 @@ fun AiConversationSessionsSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(26.dp),
             ) {
-                Text("Neuer Chat")
+                Text(stringResource(R.string.ai_action_new_chat))
             }
 
             if (activeSession != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Aktiver Chat",
+                        text = stringResource(R.string.ai_active_chat),
                         style = MaterialTheme.typography.labelMedium,
                         color = accent,
                         fontWeight = FontWeight.Bold,
@@ -205,20 +207,20 @@ fun AiConversationSessionsSheet(
                                 modifier = Modifier.size(16.dp),
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Loeschen")
+                            Text(stringResource(R.string.ai_action_delete))
                         }
                         OutlinedButton(
                             onClick = onRenameActiveSession,
                             enabled = enabled && renameDraft.trim().isNotBlank(),
                         ) {
-                            Text("Umbenennen")
+                            Text(stringResource(R.string.ai_action_rename))
                         }
                     }
                 }
             }
 
             Text(
-                text = "Chats",
+                text = stringResource(R.string.ai_sessions_label),
                 style = MaterialTheme.typography.labelMedium,
                 color = accent,
                 fontWeight = FontWeight.Bold,
@@ -226,7 +228,7 @@ fun AiConversationSessionsSheet(
 
             if (sessions.isEmpty()) {
                 Text(
-                    text = "Noch kein Verlauf.",
+                    text = stringResource(R.string.ai_sessions_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 )
@@ -235,9 +237,9 @@ fun AiConversationSessionsSheet(
                     sessions.forEach { session ->
                         val selected = session.sessionId == activeSessionId
                         val countLabel = when (session.promptCount) {
-                            0 -> "Neu"
-                            1 -> "1 Anfrage"
-                            else -> "${session.promptCount} Anfragen"
+                            0 -> stringResource(R.string.ai_session_count_new)
+                            1 -> stringResource(R.string.ai_session_count_one)
+                            else -> stringResource(R.string.ai_session_count_many, session.promptCount)
                         }
                         Column(
                             modifier = Modifier
@@ -264,7 +266,7 @@ fun AiConversationSessionsSheet(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                text = session.preview.ifBlank { "Noch keine Antwort in diesem Chat." },
+                                text = session.preview.ifBlank { stringResource(R.string.ai_session_preview_empty) },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                                 maxLines = 2,

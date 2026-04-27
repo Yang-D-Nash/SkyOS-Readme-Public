@@ -6,6 +6,7 @@ plugins {
     id("com.google.gms.google-services")
     id("org.jetbrains.kotlin.plugin.compose")
     kotlin("plugin.serialization")
+    id("dev.detekt")
 }
 
 val releaseKeystoreProperties = Properties()
@@ -49,6 +50,7 @@ android {
         applicationId = "com.nash.skyos"
         minSdk = 26
         targetSdk = 36
+        // Source of truth for Play versionName/versionCode; release scripts and verify_android_release_artifacts.sh read these.
         versionCode = 10015
         versionName = "1.0.0"
 
@@ -173,4 +175,11 @@ dependencies {
     debugImplementation("com.google.firebase:firebase-appcheck-debug")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    parallel = true
+    config.setFrom(rootProject.file("config/detekt.yml"))
+    ignoreFailures = false
 }

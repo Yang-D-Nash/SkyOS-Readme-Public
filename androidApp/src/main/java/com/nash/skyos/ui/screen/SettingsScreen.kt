@@ -1,6 +1,7 @@
 package com.nash.skyos.ui.screen
 
 import android.Manifest
+import androidx.annotation.StringRes
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -283,6 +284,12 @@ fun SettingsScreen(
     val membershipOpsHygieneSaveFailedMessage = stringResource(R.string.settings_membership_ops_hygiene_save_failed)
     val membershipOpsHygieneDefaultsRestoredMessage = stringResource(R.string.settings_membership_ops_hygiene_defaults_restored)
     val membershipOpsTimelineLoadFailedMessage = stringResource(R.string.settings_membership_ops_timeline_load_failed)
+    val membershipOpsExperimentCompleteFailedMessage =
+        stringResource(R.string.settings_membership_ops_experiment_complete_failed)
+    val membershipOpsResetDefaultsFailedMessage =
+        stringResource(R.string.settings_membership_ops_reset_defaults_failed)
+    val membershipOpsExperimentStartNotes = stringResource(R.string.settings_membership_ops_notes_started)
+    val membershipOpsRejectNotes = stringResource(R.string.settings_membership_ops_notes_rejected)
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var feedbackType by remember { mutableStateOf(ToastType.Info) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -509,9 +516,9 @@ fun SettingsScreen(
     ) { granted ->
         viewModel.updateNotifications(granted && NotificationPermissionCoordinator.areNotificationsEnabled(context))
         feedbackMessage = if (granted) {
-            "Benachrichtigungen sind aktiv."
+            context.getString(R.string.settings_notifications_toast_enabled)
         } else {
-            "Benachrichtigungen sind aktuell aus. Du kannst sie in den Systemeinstellungen aktivieren."
+            context.getString(R.string.settings_notifications_toast_enable_in_settings)
         }
         feedbackType = if (granted) ToastType.Success else ToastType.Warning
     }
@@ -782,7 +789,8 @@ fun SettingsScreen(
             hygieneProfileLabel = (bundle.hygiene["profile"] as? String ?: "balanced")
             selectedRecommendationId = bundle.recommendations.firstOrNull()?.id.orEmpty()
         }.onFailure { error ->
-            membershipOpsError = error.localizedMessage ?: "Membership Command Center konnte nicht geladen werden."
+            membershipOpsError = error.localizedMessage
+                ?: context.getString(R.string.settings_membership_ops_load_failed)
         }
         membershipOpsLoading = false
     }
@@ -803,7 +811,8 @@ fun SettingsScreen(
         }.onSuccess { review ->
             aiFaqReviewLoop = review
         }.onFailure { error ->
-            aiFaqReviewLoopError = error.localizedMessage ?: "FAQ Review Loop konnte nicht geladen werden."
+            aiFaqReviewLoopError = error.localizedMessage
+                ?: context.getString(R.string.settings_admin_faq_review_load_failed)
         }
         aiFaqReviewLoopLoading = false
     }
@@ -845,10 +854,11 @@ fun SettingsScreen(
                             editableImageAssetRepository.deleteImageAsset(previousImageUrl)
                         }
                     }
-                    feedbackMessage = "Bild hochgeladen und uebernommen."
+                    feedbackMessage = context.getString(R.string.settings_feedback_image_uploaded)
                     feedbackType = ToastType.Success
                 } else {
-                    feedbackMessage = result.exceptionOrNull()?.message ?: "Bild konnte nicht hochgeladen werden."
+                    feedbackMessage = result.exceptionOrNull()?.message
+                        ?: context.getString(R.string.settings_feedback_image_upload_failed)
                     feedbackType = ToastType.Error
                 }
                 activeHeaderImageUploadTarget = null
@@ -866,7 +876,7 @@ fun SettingsScreen(
         when (section) {
             AdminWorkspaceSection.Users -> {
                 Text(
-                    text = "Hier steuerst du, welche Konten normaler User, Subadmin, Admin oder Owner sind. Gleichzeitig legst du fest, ob KI fuer ein Konto aktiv ist und wie hoch die Tageslimits fuer Bot, Visuals und Agent liegen.",
+                    text = stringResource(R.string.settings_admin_users_intro),
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -877,14 +887,14 @@ fun SettingsScreen(
                 ) {
                     item {
                         SettingsBadge(
-                            text = "4 Rollen",
+                            text = stringResource(R.string.settings_admin_users_roles_badge),
                             icon = Icons.Default.Person,
                             isActive = true,
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = "${uiState.managedUsers.size} Konten",
+                            text = stringResource(R.string.settings_admin_users_account_count, uiState.managedUsers.size),
                             icon = Icons.Default.Person,
                             isActive = uiState.managedUsers.isNotEmpty(),
                         )
@@ -906,7 +916,7 @@ fun SettingsScreen(
 
                 if (uiState.managedUsers.isEmpty()) {
                     Text(
-                        text = "Sobald weitere Konten in der App registriert sind, erscheinen sie hier direkt zur Rollen- und KI-Verwaltung.",
+                        text = stringResource(R.string.settings_admin_users_empty_hint),
                         modifier = Modifier.padding(top = 12.dp),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -928,7 +938,7 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Artists -> {
                 Text(
-                    text = "Hier bekommen 22-Artists und NICMA ihre eigene repraesentative Seite. Du als Owner verteilst Editor-Rechte; nur diese Konten oder du selbst duerfen den Inhalt spaeter anpassen.",
+                    text = stringResource(R.string.settings_admin_artists_intro),
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -939,14 +949,14 @@ fun SettingsScreen(
                 ) {
                     item {
                         SettingsBadge(
-                            text = "$publishedArtistPageCount Seiten mit Inhalt",
+                            text = stringResource(R.string.settings_admin_artists_pages_with_content, publishedArtistPageCount),
                             icon = Icons.Default.LibraryMusic,
                             isActive = publishedArtistPageCount > 0,
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = "$assignedArtistPageCount mit Editoren",
+                            text = stringResource(R.string.settings_admin_artists_with_editors, assignedArtistPageCount),
                             icon = Icons.Default.Person,
                             isActive = assignedArtistPageCount > 0,
                         )
@@ -974,9 +984,13 @@ fun SettingsScreen(
                                 coroutineScope.launch {
                                     val result = ArtistPagesStore.save(updatedPage)
                                     feedbackMessage = if (result.isSuccess) {
-                                        "${updatedPage.artistName} gespeichert."
+                                        context.getString(
+                                            R.string.settings_admin_artist_page_saved,
+                                            updatedPage.artistName,
+                                        )
                                     } else {
-                                        result.exceptionOrNull()?.message ?: "Artist-Seite konnte nicht gespeichert werden."
+                                        result.exceptionOrNull()?.message
+                                            ?: context.getString(R.string.settings_admin_artist_page_save_failed)
                                     }
                                     feedbackType = if (result.isSuccess) ToastType.Success else ToastType.Error
                                 }
@@ -988,7 +1002,7 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Headers -> {
                 Text(
-                    text = "Diese Hero-Bereiche laufen direkt unter den Header-Karten von Home, Music, Shop und Video. Die App dunkelt Bilder automatisch ab, damit Schrift und Badges lesbar bleiben. Fuer alle vier Bereiche kannst du Bild, Titel und kurze Positionierung pflegen.",
+                    text = stringResource(R.string.settings_admin_headers_intro),
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -999,21 +1013,21 @@ fun SettingsScreen(
                 ) {
                     item {
                         SettingsBadge(
-                            text = "${screenHeaderSettings.configuredCount} angepasst",
+                            text = stringResource(R.string.settings_admin_headers_configured_badge, screenHeaderSettings.configuredCount),
                             icon = Icons.Default.Palette,
                             isActive = screenHeaderSettings.configuredCount > 0,
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = "Overlay aktiv",
+                            text = stringResource(R.string.settings_admin_headers_overlay_active),
                             icon = Icons.Default.CheckCircle,
                             isActive = true,
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = "CRUD bereit",
+                            text = stringResource(R.string.settings_admin_headers_crud_ready),
                             icon = Icons.Default.CheckCircle,
                             isActive = true,
                         )
@@ -1021,13 +1035,13 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "Bilder und Texte kannst du neu setzen, ersetzen oder entfernen. Live gehen die Aenderungen erst nach `Header speichern`.",
+                    text = stringResource(R.string.settings_admin_headers_save_hint),
                     modifier = Modifier.padding(top = 10.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
 
                 EditableImageFieldCard(
-                    title = "Home Header",
+                    title = stringResource(R.string.settings_card_header_home),
                     imageUrl = homeHeaderImageUrlDraft,
                     isUploading = activeHeaderImageUploadTarget == SettingsHeaderImageTarget.Home,
                     uploadStatusText = stringResource(R.string.settings_admin_headers_home_header_uploading),
@@ -1043,7 +1057,7 @@ fun SettingsScreen(
                         homeHeaderImageUrlDraft = ""
                         coroutineScope.launch {
                             editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                            feedbackMessage = "Bild entfernt."
+                            feedbackMessage = context.getString(R.string.settings_feedback_image_removed)
                             feedbackType = ToastType.Success
                         }
                     },
@@ -1094,7 +1108,7 @@ fun SettingsScreen(
                     minLines = 3,
                 )
                 EditableImageFieldCard(
-                    title = "Music Hub Header",
+                    title = stringResource(R.string.settings_card_header_music),
                     imageUrl = musicHubHeaderImageUrlDraft,
                     isUploading = activeHeaderImageUploadTarget == SettingsHeaderImageTarget.MusicHub,
                     uploadStatusText = stringResource(R.string.settings_admin_headers_music_header_uploading),
@@ -1110,7 +1124,7 @@ fun SettingsScreen(
                         musicHubHeaderImageUrlDraft = ""
                         coroutineScope.launch {
                             editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                            feedbackMessage = "Bild entfernt."
+                            feedbackMessage = context.getString(R.string.settings_feedback_image_removed)
                             feedbackType = ToastType.Success
                         }
                     },
@@ -1158,7 +1172,7 @@ fun SettingsScreen(
                     minLines = 3,
                 )
                 EditableImageFieldCard(
-                    title = "Shop Header",
+                    title = stringResource(R.string.settings_card_header_shop),
                     imageUrl = shopHeaderImageUrlDraft,
                     isUploading = activeHeaderImageUploadTarget == SettingsHeaderImageTarget.Shop,
                     uploadStatusText = stringResource(R.string.settings_admin_headers_shop_header_uploading),
@@ -1174,7 +1188,7 @@ fun SettingsScreen(
                         shopHeaderImageUrlDraft = ""
                         coroutineScope.launch {
                             editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                            feedbackMessage = "Bild entfernt."
+                            feedbackMessage = context.getString(R.string.settings_feedback_image_removed)
                             feedbackType = ToastType.Success
                         }
                     },
@@ -1222,7 +1236,7 @@ fun SettingsScreen(
                     minLines = 3,
                 )
                 EditableImageFieldCard(
-                    title = "Video Header",
+                    title = stringResource(R.string.settings_card_header_video),
                     imageUrl = videoHeaderImageUrlDraft,
                     isUploading = activeHeaderImageUploadTarget == SettingsHeaderImageTarget.VideoHub,
                     uploadStatusText = stringResource(R.string.settings_admin_headers_video_header_uploading),
@@ -1238,7 +1252,7 @@ fun SettingsScreen(
                         videoHeaderImageUrlDraft = ""
                         coroutineScope.launch {
                             editableImageAssetRepository.deleteImageAsset(previousImageUrl)
-                            feedbackMessage = "Bild entfernt."
+                            feedbackMessage = context.getString(R.string.settings_feedback_image_removed)
                             feedbackType = ToastType.Success
                         }
                     },
@@ -1335,9 +1349,10 @@ fun SettingsScreen(
                                     ),
                                 )
                                 feedbackMessage = if (result.isSuccess) {
-                                    "Header gespeichert."
+                                    context.getString(R.string.settings_admin_headers_saved)
                                 } else {
-                                    result.exceptionOrNull()?.message ?: "Header konnten nicht gespeichert werden."
+                                    result.exceptionOrNull()?.message
+                                        ?: context.getString(R.string.settings_admin_headers_save_failed)
                                 }
                                 feedbackType = if (result.isSuccess) ToastType.Success else ToastType.Error
                             }
@@ -1348,19 +1363,19 @@ fun SettingsScreen(
                         .padding(top = 14.dp),
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text("Header speichern")
+                    Text(stringResource(R.string.settings_save_header))
                 }
             }
 
             AdminWorkspaceSection.Shopify -> {
                 Text(
-                    text = "Fuer den Merch-Katalog pflegt der Owner hier die Store-Domain, optional den Storefront Access Token und die aktivierten Collections. Danach laedt der Shop direkt aus Shopify.",
+                    text = stringResource(R.string.settings_admin_shopify_intro),
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
 
                 Text(
-                    text = "Shopify Quelle",
+                    text = stringResource(R.string.settings_admin_shopify_source_label),
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
@@ -1372,8 +1387,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
-                    label = { Text("Store-Domain") },
-                    placeholder = { Text("k5t1sc-ps.myshopify.com") },
+                    label = { Text(stringResource(R.string.settings_shopify_store_domain)) },
+                    placeholder = { Text(stringResource(R.string.settings_shopify_store_domain_sample)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -1382,8 +1397,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Storefront Access Token") },
-                    placeholder = { Text("shpat_... oder storefront token") },
+                    label = { Text(stringResource(R.string.settings_shopify_storefront_token)) },
+                    placeholder = { Text(stringResource(R.string.settings_shopify_token_placeholder)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -1392,8 +1407,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Collection-Handles") },
-                    placeholder = { Text("z. B. spring-drop-2026, hoodies, accessories") },
+                    label = { Text(stringResource(R.string.settings_shopify_collection_handles)) },
+                    placeholder = { Text(stringResource(R.string.settings_shopify_collection_handles_placeholder)) },
                     singleLine = false,
                 )
 
@@ -1407,16 +1422,16 @@ fun SettingsScreen(
                 ) {
                     Text(
                         if (uiState.isLoadingShopifyCollections) {
-                            "Collections werden geladen..."
+                            stringResource(R.string.settings_shopify_collections_loading)
                         } else {
-                            "Collections aus Shopify laden"
+                            stringResource(R.string.settings_shopify_collections_load_from_shopify)
                         },
                     )
                 }
 
                 if (uiState.availableShopifyCollections.isNotEmpty()) {
                     Text(
-                        text = "Verfuegbare Collections",
+                        text = stringResource(R.string.settings_admin_shopify_collections_available),
                         modifier = Modifier.padding(top = 12.dp),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
@@ -1428,8 +1443,8 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 10.dp),
-                        label = { Text("Collections suchen") },
-                        placeholder = { Text("Nach Titel oder Handle filtern") },
+                        label = { Text(stringResource(R.string.settings_shopify_search_collections)) },
+                        placeholder = { Text(stringResource(R.string.settings_shopify_filter_placeholder)) },
                         singleLine = true,
                     )
 
@@ -1454,7 +1469,7 @@ fun SettingsScreen(
 
                         if (selectedHandles.isNotEmpty()) {
                             Text(
-                                text = "${selectedHandles.size} ausgewaehlt",
+                                text = stringResource(R.string.settings_admin_shopify_selected_count, selectedHandles.size),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                             )
@@ -1509,7 +1524,7 @@ fun SettingsScreen(
                                     ) {
                                         collection.productCount?.let { count ->
                                             Text(
-                                                text = "$count",
+                                                text = stringResource(R.string.settings_admin_shopify_collection_count, count),
                                                 style = MaterialTheme.typography.labelMedium,
                                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                                             )
@@ -1528,25 +1543,33 @@ fun SettingsScreen(
                             }
                         }
                     }
-                } else if (uiState.shopifyCollectionsErrorMessage != null) {
-                    Text(
-                        text = "Collections konnten nicht geladen werden: ${uiState.shopifyCollectionsErrorMessage}",
-                        modifier = Modifier.padding(top = 10.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    )
+                } else {
+                    uiState.shopifyCollectionsErrorMessage?.let { collectionsError ->
+                        Text(
+                            text = stringResource(
+                                R.string.settings_admin_shopify_load_error,
+                                collectionsError,
+                            ),
+                            modifier = Modifier.padding(top = 10.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                    }
                 }
 
                 Text(
-                    text = "Mehrere Collections kannst du oben antippen oder hier manuell per Komma oder Zeilenumbruch pflegen. Leer bedeutet: gesamter veroeffentlichter Store.",
+                    text = stringResource(R.string.settings_admin_shopify_handles_hint),
                     modifier = Modifier.padding(top = 10.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
 
                 Text(
                     text = if (uiState.shopifyAdminSettings.hasCollectionFilter) {
-                        "Aktuell aktiv: ${uiState.shopifyAdminSettings.activeCollectionLabel}"
+                        stringResource(
+                            R.string.settings_admin_shopify_active_collection,
+                            uiState.shopifyAdminSettings.activeCollectionLabel,
+                        )
                     } else {
-                        "Aktuell aktiv: gesamter Shopify-Store"
+                        stringResource(R.string.settings_admin_shopify_active_full_store)
                     },
                     modifier = Modifier.padding(top = 12.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -1570,25 +1593,26 @@ fun SettingsScreen(
                         .padding(top = 14.dp),
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text("Shopify speichern")
+                    Text(stringResource(R.string.settings_save_shopify))
                 }
             }
 
             AdminWorkspaceSection.Payments -> {
                 Text(
-                    text = "PayPal und Bankueberweisung laufen als manueller Owner-Handoff. Stripe ist als sicherer Live-Checkout aktiv, und Klarna laeuft live ueber Stripe, sobald es im Stripe-Dashboard freigeschaltet und serverseitig konfiguriert ist.",
+                    text = stringResource(R.string.settings_admin_payments_intro),
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
 
                 PaymentProviderAdminCard(
-                    title = "Stripe",
+                    title = stringResource(R.string.settings_payment_method_stripe),
+                    providerKind = PaymentProviderKind.Stripe,
                     connected = uiState.paymentMethods.stripe.connected,
                     enabledInCheckout = uiState.paymentMethods.stripe.connected &&
                         uiState.paymentMethods.stripe.enabled,
                     accountHint = stripeAccountHintDraft,
-                    accountHintLabel = "Stripe Konto / Workspace",
-                    accountHintPlaceholder = "z. B. SkyOS Merch Workspace",
+                    accountHintLabel = stringResource(R.string.settings_payments_stripe_account_hint_label),
+                    accountHintPlaceholder = stringResource(R.string.settings_payments_stripe_account_hint_placeholder),
                     onAccountHintChange = { stripeAccountHintDraft = it },
                     onSaveConnection = { viewModel.connectStripe(stripeAccountHintDraft) },
                     onDisconnect = if (uiState.paymentMethods.stripe.connected) {
@@ -1616,13 +1640,14 @@ fun SettingsScreen(
                 )
 
                 PaymentProviderAdminCard(
-                    title = "PayPal",
+                    title = stringResource(R.string.settings_payment_method_paypal),
+                    providerKind = PaymentProviderKind.PayPal,
                     connected = uiState.paymentMethods.paypal.connected,
                     enabledInCheckout = uiState.paymentMethods.paypal.connected &&
                         uiState.paymentMethods.paypal.enabled,
                     accountHint = paypalAccountHintDraft,
-                    accountHintLabel = "PayPal.Me Link oder Business-Mail",
-                    accountHintPlaceholder = "z. B. https://paypal.me/deinname",
+                    accountHintLabel = stringResource(R.string.settings_payments_paypal_account_hint_label),
+                    accountHintPlaceholder = stringResource(R.string.settings_payments_paypal_account_hint_placeholder),
                     onAccountHintChange = { paypalAccountHintDraft = it },
                     onSaveConnection = { viewModel.connectPayPal(paypalAccountHintDraft) },
                     onDisconnect = if (uiState.paymentMethods.paypal.connected) {
@@ -1635,13 +1660,14 @@ fun SettingsScreen(
                 )
 
                 PaymentProviderAdminCard(
-                    title = "Klarna",
+                    title = stringResource(R.string.settings_payment_method_klarna),
+                    providerKind = PaymentProviderKind.Klarna,
                     connected = uiState.paymentMethods.klarna.connected,
                     enabledInCheckout = uiState.paymentMethods.klarna.connected &&
                         uiState.paymentMethods.klarna.enabled,
                     accountHint = klarnaAccountHintDraft,
-                    accountHintLabel = "Klarna Merchant / Store ID",
-                    accountHintPlaceholder = "z. B. Klarna Merchant EU",
+                    accountHintLabel = stringResource(R.string.settings_payments_klarna_account_hint_label),
+                    accountHintPlaceholder = stringResource(R.string.settings_payments_klarna_account_hint_placeholder),
                     onAccountHintChange = { klarnaAccountHintDraft = it },
                     onSaveConnection = { viewModel.connectKlarna(klarnaAccountHintDraft) },
                     onDisconnect = if (uiState.paymentMethods.klarna.connected) {
@@ -1683,13 +1709,13 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Commerce -> {
                 Text(
-                    text = "Der Checkout nutzt diese Werte direkt fuer Versand, MwSt.-Ausweisung und vorbereitete Bestellsummen. Der Store-Schalter aus Merchandise bleibt dabei die harte Freigabe fuer Kunden.",
+                    text = stringResource(R.string.settings_admin_commerce_intro),
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
 
                 Text(
-                    text = "Versand",
+                    text = stringResource(R.string.settings_admin_commerce_shipping_heading),
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
@@ -1701,7 +1727,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
-                    label = { Text("Versand Deutschland (EUR)") },
+                    label = { Text(stringResource(R.string.settings_shipping_de)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -1710,7 +1736,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Versand EU (EUR)") },
+                    label = { Text(stringResource(R.string.settings_shipping_eu)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -1719,7 +1745,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Versand International (EUR)") },
+                    label = { Text(stringResource(R.string.settings_shipping_intl)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -1728,7 +1754,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Versand frei ab (EUR)") },
+                    label = { Text(stringResource(R.string.settings_shipping_free_from)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -1737,13 +1763,13 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Versandhinweis") },
+                    label = { Text(stringResource(R.string.settings_shipping_note)) },
                     minLines = 2,
                     maxLines = 3,
                 )
 
                 Text(
-                    text = "Rechnung",
+                    text = stringResource(R.string.settings_admin_commerce_invoice_heading),
                     modifier = Modifier.padding(top = 18.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
@@ -1755,7 +1781,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
-                    label = { Text("Firmenname") },
+                    label = { Text(stringResource(R.string.settings_invoice_company_name)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -1764,7 +1790,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Firmenadresse") },
+                    label = { Text(stringResource(R.string.settings_invoice_company_address)) },
                     minLines = 2,
                     maxLines = 3,
                 )
@@ -1774,7 +1800,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Steuernummer") },
+                    label = { Text(stringResource(R.string.settings_invoice_tax_number)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -1783,7 +1809,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("USt-IdNr.") },
+                    label = { Text(stringResource(R.string.settings_invoice_vat_id)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -1792,7 +1818,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("MwSt. Satz (%)") },
+                    label = { Text(stringResource(R.string.settings_invoice_vat_rate)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -1801,7 +1827,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Rechnungs-Praefix") },
+                    label = { Text(stringResource(R.string.settings_invoice_prefix)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -1810,7 +1836,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Support / Rechnungs-Mail") },
+                    label = { Text(stringResource(R.string.settings_invoice_support_email)) },
                     singleLine = true,
                 )
 
@@ -1846,7 +1872,7 @@ fun SettingsScreen(
                                     supportEmail = invoiceSupportEmailDraft.trim(),
                                 ),
                             ),
-                            successMessage = "Versand- und Rechnungsdaten gespeichert.",
+                            successMessage = context.getString(R.string.settings_admin_commerce_save_success),
                         )
                     },
                     modifier = Modifier
@@ -1854,20 +1880,20 @@ fun SettingsScreen(
                         .padding(top = 14.dp),
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text("Versand & Rechnung speichern")
+                    Text(stringResource(R.string.settings_save_shipping_invoice))
                 }
             }
 
             AdminWorkspaceSection.Visuals -> {
                 Text(
-                    text = "Visual Reference Pack",
+                    text = stringResource(R.string.settings_admin_visuals_title),
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 SettingsToggleRow(
-                    title = "Referenzbibliothek aktiv",
-                    body = "Drive-Link, Benennungs-Praefix und bis zu 5 Referenzhinweise fuer Visual-Prompts auf diesem Admin-Geraet.",
+                    title = stringResource(R.string.settings_toggle_ref_library_title),
+                    body = stringResource(R.string.settings_toggle_ref_library_body),
                     checked = uiState.aiVisualReferenceLibrary.isEnabled,
                     onCheckedChange = viewModel::updateAiVisualReferenceEnabled,
                     modifier = Modifier.padding(top = 10.dp),
@@ -1878,8 +1904,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
-                    label = { Text("Drive- oder Asset-Link") },
-                    placeholder = { Text("https://drive.google.com/...") },
+                    label = { Text(stringResource(R.string.settings_ref_drive_or_asset)) },
+                    placeholder = { Text(stringResource(R.string.settings_ref_drive_link_placeholder)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -1888,8 +1914,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Benennungs-Praefix") },
-                    placeholder = { Text("z. B. skydown_drop_") },
+                    label = { Text(stringResource(R.string.settings_ref_naming_prefix)) },
+                    placeholder = { Text(stringResource(R.string.settings_ref_naming_prefix_placeholder)) },
                     singleLine = true,
                 )
                 uiState.aiVisualReferenceLibrary.referenceHints.forEachIndexed { index, referenceHint ->
@@ -1901,9 +1927,9 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 10.dp),
-                        label = { Text("Referenz ${index + 1}") },
+                        label = { Text(stringResource(R.string.settings_ref_label, index + 1)) },
                         placeholder = {
-                            Text("z. B. Charakter, Outfit, Shot, Element oder Mood")
+                            Text(stringResource(R.string.settings_ref_description_placeholder))
                         },
                         minLines = 2,
                         maxLines = 3,
@@ -1913,25 +1939,33 @@ fun SettingsScreen(
 
             AdminWorkspaceSection.Automation -> {
                 Text(
-                    text = if (uiState.isOwner) "Globaler Activepieces Owner-Flow" else "Eigener Workflow",
+                    text = if (uiState.isOwner) {
+                        stringResource(R.string.settings_admin_automation_title_owner)
+                    } else {
+                        stringResource(R.string.settings_admin_automation_title_user)
+                    },
                     modifier = Modifier.padding(top = 16.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 SettingsToggleRow(
-                    title = if (uiState.isOwner) "Owner-Flow aktivieren" else "Eigenen Workflow aktivieren",
-                    body = if (uiState.isOwner) {
-                        "User triggern nie direkt Activepieces. Das Backend prueft Rolle, Abo, Limits und Kontext vor jedem Lauf."
+                    title = if (uiState.isOwner) {
+                        stringResource(R.string.settings_admin_automation_toggle_owner_title)
                     } else {
-                        "Optionaler eigener Flow fuer den Agent. Du kannst Activepieces oder n8n verwenden und ihn bewusst triggern."
+                        stringResource(R.string.settings_admin_automation_toggle_user_title)
+                    },
+                    body = if (uiState.isOwner) {
+                        stringResource(R.string.settings_admin_automation_toggle_owner_body)
+                    } else {
+                        stringResource(R.string.settings_admin_automation_toggle_user_body)
                     },
                     checked = automationEnabledDraft,
                     onCheckedChange = { automationEnabledDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
                 )
                 SettingsToggleRow(
-                    title = "App-User-Kontext mitsenden",
-                    body = "UID, E-Mail und Username werden serverseitig geprueft und an den externen Workflow uebergeben.",
+                    title = stringResource(R.string.settings_toggle_app_user_context_title),
+                    body = stringResource(R.string.settings_toggle_app_user_context_body),
                     checked = automationSendsUserContextDraft,
                     onCheckedChange = { automationSendsUserContextDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
@@ -1956,7 +1990,7 @@ fun SettingsScreen(
                                 },
                             ),
                         ) {
-                            Text("Activepieces")
+                            Text(stringResource(R.string.settings_automation_activepieces))
                         }
                         OutlinedButton(
                             onClick = { automationProviderDraft = "n8n" },
@@ -1971,7 +2005,7 @@ fun SettingsScreen(
                                 },
                             ),
                         ) {
-                            Text("n8n")
+                            Text(stringResource(R.string.settings_automation_n8n))
                         }
                     }
                 }
@@ -1981,8 +2015,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
-                    label = { Text("Workflow Name") },
-                    placeholder = { Text("z. B. SkyOS Owner Flow") },
+                    label = { Text(stringResource(R.string.settings_automation_workflow_name)) },
+                    placeholder = { Text(stringResource(R.string.settings_automation_workflow_name_placeholder)) },
                     singleLine = true,
                     shape = RoundedCornerShape(18.dp),
                 )
@@ -1992,8 +2026,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Activepieces Base URL") },
-                    placeholder = { Text("https://cloud.activepieces.com") },
+                    label = { Text(stringResource(R.string.settings_automation_activepieces_base_url)) },
+                    placeholder = { Text(stringResource(R.string.settings_automation_activepieces_base_url_placeholder)) },
                     singleLine = true,
                     shape = RoundedCornerShape(18.dp),
                 )
@@ -2003,8 +2037,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Webhook Path") },
-                    placeholder = { Text("webhook/skydown-app") },
+                    label = { Text(stringResource(R.string.settings_automation_webhook_path)) },
+                    placeholder = { Text(stringResource(R.string.settings_automation_webhook_path_placeholder)) },
                     singleLine = true,
                     shape = RoundedCornerShape(18.dp),
                 )
@@ -2014,8 +2048,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Auth Header Name") },
-                    placeholder = { Text("z. B. X-SkyOS-Automation-Key") },
+                    label = { Text(stringResource(R.string.settings_automation_auth_header_name)) },
+                    placeholder = { Text(stringResource(R.string.settings_automation_auth_header_name_placeholder)) },
                     singleLine = true,
                     shape = RoundedCornerShape(18.dp),
                 )
@@ -2025,8 +2059,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Auth Header Value") },
-                    placeholder = { Text("optional") },
+                    label = { Text(stringResource(R.string.settings_automation_auth_header_value)) },
+                    placeholder = { Text(stringResource(R.string.settings_automation_optional)) },
                     singleLine = true,
                     shape = RoundedCornerShape(18.dp),
                 )
@@ -2036,9 +2070,9 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Knowledge-Kontext (optional)") },
+                    label = { Text(stringResource(R.string.settings_automation_knowledge_context)) },
                     placeholder = {
-                        Text("z. B. Drive-Ordner, Brand-Guidelines, SOPs oder Projektregeln fuer den Owner-Flow")
+                        Text(stringResource(R.string.settings_automation_knowledge_context_placeholder))
                     },
                     minLines = 3,
                     shape = RoundedCornerShape(18.dp),
@@ -2050,7 +2084,14 @@ fun SettingsScreen(
                 )
 
                 Text(
-                    text = resolvedWebhookUrl?.let { "Owner-Webhook: $it" } ?: "Owner-Webhook noch nicht vollstaendig",
+                    text = if (resolvedWebhookUrl != null) {
+                        stringResource(
+                            R.string.settings_automation_owner_webhook_url,
+                            resolvedWebhookUrl,
+                        )
+                    } else {
+                        stringResource(R.string.settings_automation_owner_webhook_incomplete)
+                    },
                     modifier = Modifier.padding(top = 12.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -2081,7 +2122,7 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(18.dp),
                     ) {
-                        Text("Flow speichern")
+                        Text(stringResource(R.string.settings_automation_save_flow))
                     }
 
                     OutlinedButton(
@@ -2090,20 +2131,20 @@ fun SettingsScreen(
                         enabled = automationEnabledDraft && resolvedWebhookUrl != null,
                         shape = RoundedCornerShape(18.dp),
                     ) {
-                        Text("Test senden")
+                        Text(stringResource(R.string.settings_automation_send_test))
                     }
                 }
 
                 Text(
-                    text = "Mein Manus-Account (optional)",
+                    text = stringResource(R.string.settings_admin_manus_optional_title),
                     modifier = Modifier.padding(top = 18.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
 
                 SettingsToggleRow(
-                    title = "Eigenen Manus-Account verwenden",
-                    body = "Wenn aktiv, sendet der Agent deinen lokalen Manus API Key pro Anfrage. Der Key wird nur auf diesem Geraet gespeichert.",
+                    title = stringResource(R.string.settings_toggle_manus_own_title),
+                    body = stringResource(R.string.settings_toggle_manus_own_body),
                     checked = manusByosEnabledDraft,
                     onCheckedChange = { manusByosEnabledDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
@@ -2114,15 +2155,19 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     SettingsBadge(
-                        text = if (uiState.manusByosSettings.hasApiKey) "Key lokal gespeichert" else "Key fehlt",
+                        text = if (uiState.manusByosSettings.hasApiKey) {
+                            stringResource(R.string.settings_manus_key_stored_locally)
+                        } else {
+                            stringResource(R.string.settings_manus_key_missing)
+                        },
                         icon = Icons.Default.CheckCircle,
                         isActive = uiState.manusByosSettings.hasApiKey,
                     )
                     SettingsBadge(
                         text = if (uiState.manusByosSettings.isEnabled && uiState.manusByosSettings.hasApiKey) {
-                            "BYOS aktiv"
+                            stringResource(R.string.settings_manus_byos_active)
                         } else {
-                            "BYOS aus"
+                            stringResource(R.string.settings_manus_byos_inactive)
                         },
                         icon = Icons.Default.Bolt,
                         isActive = uiState.manusByosSettings.isEnabled && uiState.manusByosSettings.hasApiKey,
@@ -2135,20 +2180,23 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Manus API Key") },
-                    placeholder = { Text("sk-...") },
+                    label = { Text(stringResource(R.string.settings_manus_api_key)) },
+                    placeholder = { Text(stringResource(R.string.settings_manus_api_key_placeholder)) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                 )
 
                 Text(
-                    text = "Du kannst den Key jederzeit ersetzen oder entfernen. Ohne lokalen Key nutzt der Agent wieder das Backend-Setup.",
+                    text = stringResource(R.string.settings_admin_manus_key_hint),
                     modifier = Modifier.padding(top = 10.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
 
                 SettingsBadge(
-                    text = "Validate: ${resolveManusValidationLabel(uiState.manusValidationStatus)}",
+                    text = stringResource(
+                        R.string.settings_admin_manus_validate_status,
+                        resolveManusValidationLabel(uiState.manusValidationStatus),
+                    ),
                     icon = Icons.Default.Security,
                     isActive = uiState.manusValidationStatus == "key_valid",
                     modifier = Modifier.padding(top = 8.dp),
@@ -2176,7 +2224,7 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(18.dp),
                     ) {
-                        Text("Manus speichern")
+                        Text(stringResource(R.string.settings_manus_save))
                     }
 
                     OutlinedButton(
@@ -2188,7 +2236,7 @@ fun SettingsScreen(
                         enabled = uiState.manusByosSettings.hasApiKey || manusByosApiKeyDraft.isNotBlank(),
                         shape = RoundedCornerShape(18.dp),
                     ) {
-                        Text("Key entfernen")
+                        Text(stringResource(R.string.settings_manus_remove_key))
                     }
                 }
 
@@ -2200,19 +2248,19 @@ fun SettingsScreen(
                     shape = RoundedCornerShape(18.dp),
                     enabled = manusByosApiKeyDraft.isNotBlank() || uiState.manusByosSettings.hasApiKey,
                 ) {
-                    Text("Validate Manus Key")
+                    Text(stringResource(R.string.settings_manus_validate))
                 }
 
                 Text(
-                    text = "Mein Agent-Profil (Skills & Arbeitsweise)",
+                    text = stringResource(R.string.settings_admin_agent_profile_title),
                     modifier = Modifier.padding(top = 18.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
 
                 SettingsToggleRow(
-                    title = "Persoenliches Agent-Profil aktiv",
-                    body = "Wenn aktiv, nutzt der Agent deine Skills, Output-Vorgaben und Guardrails fuer dieses Konto.",
+                    title = stringResource(R.string.settings_toggle_agent_profile_title),
+                    body = stringResource(R.string.settings_toggle_agent_profile_body),
                     checked = agentProfileEnabledDraft,
                     onCheckedChange = { agentProfileEnabledDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
@@ -2224,8 +2272,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Rolle / Fokus") },
-                    placeholder = { Text("z. B. Artist Brand Strategist, Rap Release Lead") },
+                    label = { Text(stringResource(R.string.settings_agent_role_focus)) },
+                    placeholder = { Text(stringResource(R.string.settings_agent_role_focus_placeholder)) },
                     minLines = 2,
                     maxLines = 4,
                 )
@@ -2235,9 +2283,9 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Skills & Spezialisierungen") },
+                    label = { Text(stringResource(R.string.settings_agent_skills)) },
                     placeholder = {
-                        Text("z. B. TikTok Hooks, Storyboard, Shotlist, Reels, Scriptwriting, Content-Repurposing")
+                        Text(stringResource(R.string.settings_agent_skills_placeholder))
                     },
                     minLines = 4,
                     maxLines = 12,
@@ -2248,8 +2296,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Antwort- / Deliverable-Format") },
-                    placeholder = { Text("z. B. Erst Plan, dann Shotlist, dann CTA-Varianten in Tabellenform") },
+                    label = { Text(stringResource(R.string.settings_agent_deliverable_format)) },
+                    placeholder = { Text(stringResource(R.string.settings_agent_deliverable_format_placeholder)) },
                     minLines = 3,
                     maxLines = 8,
                 )
@@ -2259,8 +2307,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Guardrails / No-Gos") },
-                    placeholder = { Text("z. B. keine generischen Phrasen, keine Jugend-Slang-Simulation, kein Clickbait") },
+                    label = { Text(stringResource(R.string.settings_agent_guardrails)) },
+                    placeholder = { Text(stringResource(R.string.settings_agent_guardrails_placeholder)) },
                     minLines = 3,
                     maxLines = 8,
                 )
@@ -2270,8 +2318,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Persoenlicher Knowledge-Kontext") },
-                    placeholder = { Text("z. B. Zielgruppe, Projekt-DNA, Sound-Referenzen, Release-KPIs") },
+                    label = { Text(stringResource(R.string.settings_agent_knowledge)) },
+                    placeholder = { Text(stringResource(R.string.settings_agent_knowledge_placeholder)) },
                     minLines = 3,
                     maxLines = 8,
                 )
@@ -2294,13 +2342,13 @@ fun SettingsScreen(
                         .padding(top = 14.dp),
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text("Agent-Profil speichern")
+                    Text(stringResource(R.string.settings_agent_save_profile))
                 }
             }
 
             AdminWorkspaceSection.AiPrompts -> {
                 Text(
-                    text = "Hier definierst du zentrale KI-Anweisungen fuer Bot, Visuals und Agent. Die Werte liegen in Firestore (`adminConfig/aiPromptSettings`) und gelten serverseitig sofort. Ueber die Asset-Bibliothek kannst du z. B. einen MEGA-, Drive- oder Moodboard-Link global mitgeben.",
+                    text = stringResource(R.string.settings_admin_ai_prompts_intro),
                     modifier = Modifier.padding(top = 16.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -2311,35 +2359,39 @@ fun SettingsScreen(
                 ) {
                     item {
                         SettingsBadge(
-                            text = "Text ${aiTextInstructionDraft.trim().length}",
+                            text = stringResource(R.string.settings_admin_ai_char_count_text, aiTextInstructionDraft.trim().length),
                             icon = Icons.Default.Settings,
                             isActive = aiTextInstructionDraft.isNotBlank(),
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = "Visual ${aiVisualInstructionDraft.trim().length}",
+                            text = stringResource(R.string.settings_admin_ai_char_count_visual, aiVisualInstructionDraft.trim().length),
                             icon = Icons.Default.Palette,
                             isActive = aiVisualInstructionDraft.isNotBlank(),
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = "Agent ${aiAgentSystemInstructionDraft.trim().length}",
+                            text = stringResource(R.string.settings_admin_ai_char_count_agent, aiAgentSystemInstructionDraft.trim().length),
                             icon = Icons.Default.Bolt,
                             isActive = aiAgentSystemInstructionDraft.isNotBlank(),
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = "FAQ ${aiFaqInstructionDraft.trim().length}",
+                            text = stringResource(R.string.settings_admin_ai_char_count_faq, aiFaqInstructionDraft.trim().length),
                             icon = Icons.Default.Email,
                             isActive = aiFaqInstructionDraft.isNotBlank(),
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = if (aiAssetLibraryLinkDraft.isBlank()) "Assets aus" else "Assets aktiv",
+                            text = if (aiAssetLibraryLinkDraft.isBlank()) {
+                                stringResource(R.string.settings_ai_asset_library_badge_off)
+                            } else {
+                                stringResource(R.string.settings_ai_asset_library_badge_on)
+                            },
                             icon = Icons.Default.Link,
                             isActive = aiAssetLibraryLinkDraft.isNotBlank(),
                         )
@@ -2352,7 +2404,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
-                    label = { Text("Bot Text-Anweisung") },
+                    label = { Text(stringResource(R.string.settings_ai_bot_text_instruction)) },
                     minLines = 6,
                     maxLines = 14,
                 )
@@ -2363,7 +2415,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Visual-Anweisung") },
+                    label = { Text(stringResource(R.string.settings_ai_visual_instruction)) },
                     minLines = 6,
                     maxLines = 14,
                 )
@@ -2374,7 +2426,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Agent System-Anweisung") },
+                    label = { Text(stringResource(R.string.settings_ai_agent_system_instruction)) },
                     minLines = 6,
                     maxLines = 16,
                 )
@@ -2385,7 +2437,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("FAQ System-Anweisung") },
+                    label = { Text(stringResource(R.string.settings_ai_faq_system_instruction)) },
                     minLines = 5,
                     maxLines = 12,
                 )
@@ -2396,7 +2448,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("FAQ / Owner Knowledge") },
+                    label = { Text(stringResource(R.string.settings_ai_faq_owner_knowledge)) },
                     minLines = 6,
                     maxLines = 16,
                 )
@@ -2407,8 +2459,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Asset- / Referenzbibliothek") },
-                    placeholder = { Text("z. B. https://mega.nz/folder/...") },
+                    label = { Text(stringResource(R.string.settings_ai_asset_library)) },
+                    placeholder = { Text(stringResource(R.string.settings_ai_asset_library_placeholder)) },
                     singleLine = true,
                 )
 
@@ -2418,13 +2470,13 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Asset-Hinweise fuer Bot, Visuals und Agent") },
+                    label = { Text(stringResource(R.string.settings_ai_asset_notes)) },
                     minLines = 4,
                     maxLines = 10,
                 )
 
                 Text(
-                    text = "Leer lassen stellt den jeweiligen Standard wieder her.",
+                    text = stringResource(R.string.settings_admin_ai_empty_restores_default),
                     modifier = Modifier.padding(top = 10.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     style = MaterialTheme.typography.bodySmall,
@@ -2449,25 +2501,25 @@ fun SettingsScreen(
                         .padding(top = 14.dp),
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text("KI-Anweisungen speichern")
+                    Text(stringResource(R.string.settings_ai_save_instructions))
                 }
 
                 Text(
-                    text = "Runtime & Provider (`adminConfig/aiRuntime`)",
+                    text = stringResource(R.string.settings_admin_ai_runtime_heading),
                     modifier = Modifier.padding(top = 18.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
 
                 Text(
-                    text = "Hier steuerst du Bot-Core, FAQ-Prioritaet, Diagnostics, Fallbacks sowie Agent-Provider und Limits serverseitig fuer iOS und Android gemeinsam.",
+                    text = stringResource(R.string.settings_admin_ai_runtime_intro),
                     modifier = Modifier.padding(top = 4.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     style = MaterialTheme.typography.bodySmall,
                 )
 
                 Text(
-                    text = "FAQ Review Loop (30d)",
+                    text = stringResource(R.string.settings_admin_ai_faq_review_title),
                     modifier = Modifier.padding(top = 12.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
@@ -2510,28 +2562,28 @@ fun SettingsScreen(
                     ) {
                         item {
                             SettingsBadge(
-                                text = "Strong ${aiFaqReviewLoop.strongestTriggers.size}",
+                                text = stringResource(R.string.settings_faq_review_strong_count, aiFaqReviewLoop.strongestTriggers.size),
                                 icon = Icons.Default.CheckCircle,
                                 isActive = aiFaqReviewLoop.strongestTriggers.isNotEmpty(),
                             )
                         }
                         item {
                             SettingsBadge(
-                                text = "Weak ${aiFaqReviewLoop.weakTriggers.size}",
+                                text = stringResource(R.string.settings_faq_review_weak_count, aiFaqReviewLoop.weakTriggers.size),
                                 icon = Icons.Default.Settings,
                                 isActive = aiFaqReviewLoop.weakTriggers.isNotEmpty(),
                             )
                         }
                         item {
                             SettingsBadge(
-                                text = "Useless ${aiFaqReviewLoop.likelyUselessTriggers.size}",
+                                text = stringResource(R.string.settings_faq_review_useless_count, aiFaqReviewLoop.likelyUselessTriggers.size),
                                 icon = Icons.Default.Lock,
                                 isActive = aiFaqReviewLoop.likelyUselessTriggers.isNotEmpty(),
                             )
                         }
                         item {
                             SettingsBadge(
-                                text = "Repeat ${aiFaqReviewLoop.repeatHeavyTopics.size}",
+                                text = stringResource(R.string.settings_faq_review_repeat_count, aiFaqReviewLoop.repeatHeavyTopics.size),
                                 icon = Icons.Default.Email,
                                 isActive = aiFaqReviewLoop.repeatHeavyTopics.isNotEmpty(),
                             )
@@ -2540,7 +2592,12 @@ fun SettingsScreen(
 
                     aiFaqReviewLoop.strongestTriggers.firstOrNull()?.let { entry ->
                         Text(
-                            text = "Strongest: ${entry.triggerKey} · Conv ${(entry.conversionRate * 100).toInt()}% · Repeat ${(entry.repeatRate * 100).toInt()}%",
+                            text = stringResource(
+                                R.string.settings_faq_review_strongest_line,
+                                entry.triggerKey,
+                                (entry.conversionRate * 100).toInt(),
+                                (entry.repeatRate * 100).toInt(),
+                            ),
                             modifier = Modifier.padding(top = 8.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             style = MaterialTheme.typography.bodySmall,
@@ -2548,7 +2605,12 @@ fun SettingsScreen(
                     }
                     aiFaqReviewLoop.weakTriggers.firstOrNull()?.let { entry ->
                         Text(
-                            text = "Weak: ${entry.triggerKey} · Conv ${(entry.conversionRate * 100).toInt()}% · Repeat ${(entry.repeatRate * 100).toInt()}%",
+                            text = stringResource(
+                                R.string.settings_faq_review_weak_line,
+                                entry.triggerKey,
+                                (entry.conversionRate * 100).toInt(),
+                                (entry.repeatRate * 100).toInt(),
+                            ),
                             modifier = Modifier.padding(top = 4.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             style = MaterialTheme.typography.bodySmall,
@@ -2556,7 +2618,12 @@ fun SettingsScreen(
                     }
                     aiFaqReviewLoop.repeatHeavyTopics.firstOrNull()?.let { topic ->
                         Text(
-                            text = "Repeat-Heavy Topic: ${topic.key} (${topic.value}x, ${(topic.share * 100).toInt()}%)",
+                            text = stringResource(
+                                R.string.settings_faq_review_repeat_topic,
+                                topic.key,
+                                topic.value,
+                                (topic.share * 100).toInt(),
+                            ),
                             modifier = Modifier.padding(top = 4.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             style = MaterialTheme.typography.bodySmall,
@@ -2581,7 +2648,7 @@ fun SettingsScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                                 )
                                 Text(
-                                    text = "Erwartete Wirkung: ${insight.expectedImpact}",
+                                    text = stringResource(R.string.settings_faq_review_expected_impact, insight.expectedImpact),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                                 )
@@ -2607,7 +2674,12 @@ fun SettingsScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                                 )
                                 Text(
-                                    text = "Action: ${recommendation.actionType} · Target: ${recommendation.targetField} · Suggest: ${recommendation.suggestedValueLabel}",
+                                    text = stringResource(
+                                        R.string.settings_faq_review_action_line,
+                                        recommendation.actionType,
+                                        recommendation.targetField,
+                                        recommendation.suggestedValueLabel,
+                                    ),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                                 )
@@ -2626,7 +2698,7 @@ fun SettingsScreen(
                                         },
                                         shape = RoundedCornerShape(12.dp),
                                     ) {
-                                        Text("Preview")
+                                        Text(stringResource(R.string.settings_ai_preview))
                                     }
                                     Button(
                                         onClick = {
@@ -2643,7 +2715,7 @@ fun SettingsScreen(
                                         },
                                         shape = RoundedCornerShape(12.dp),
                                     ) {
-                                        Text("Apply")
+                                        Text(stringResource(R.string.settings_ai_apply))
                                     }
                                 }
                             }
@@ -2664,7 +2736,7 @@ fun SettingsScreen(
                         modifier = Modifier.padding(top = 8.dp),
                         shape = RoundedCornerShape(12.dp),
                     ) {
-                        Text("Revert Last Change")
+                        Text(stringResource(R.string.settings_ai_revert_last))
                     }
                 }
 
@@ -2674,42 +2746,57 @@ fun SettingsScreen(
                 ) {
                     item {
                         SettingsBadge(
-                            text = if (aiBotPromptVersionDraft.isBlank()) "Prompt v?" else aiBotPromptVersionDraft,
+                            text = if (aiBotPromptVersionDraft.isBlank()) {
+                                stringResource(R.string.settings_ai_prompt_version_unset)
+                            } else {
+                                aiBotPromptVersionDraft
+                            },
                             icon = Icons.Default.Settings,
                             isActive = aiBotPromptVersionDraft.isNotBlank(),
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = "FAQ $aiBotFaqModeDraft",
+                            text = stringResource(R.string.settings_ai_runtime_chip_faq, aiBotFaqModeDraft),
                             icon = Icons.Default.Email,
                             isActive = true,
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = "Q $aiBotQualityModeDraft",
+                            text = stringResource(R.string.settings_ai_runtime_chip_quality, aiBotQualityModeDraft),
                             icon = Icons.Default.CheckCircle,
                             isActive = true,
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = "Provider ${AiRuntimeAgentProvider.resolve(aiAgentProviderDraft).displayTitle}",
+                            text = stringResource(
+                                R.string.settings_ai_runtime_chip_provider,
+                                AiRuntimeAgentProvider.resolve(aiAgentProviderDraft).displayTitle,
+                            ),
                             icon = Icons.Default.Bolt,
                             isActive = true,
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = if (aiCostGuardEnabledDraft) "Kosten-Guard an" else "Kosten-Guard aus",
+                            text = if (aiCostGuardEnabledDraft) {
+                                stringResource(R.string.settings_ai_badge_cost_guard_on)
+                            } else {
+                                stringResource(R.string.settings_ai_badge_cost_guard_off)
+                            },
                             icon = Icons.Default.CheckCircle,
                             isActive = aiCostGuardEnabledDraft,
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = if (aiManusEnabledDraft) "Manus aktiv" else "Manus aus",
+                            text = if (aiManusEnabledDraft) {
+                                stringResource(R.string.settings_ai_badge_manus_backend_on)
+                            } else {
+                                stringResource(R.string.settings_ai_badge_manus_backend_off)
+                            },
                             icon = Icons.Default.Settings,
                             isActive = aiManusEnabledDraft,
                         )
@@ -2717,7 +2804,7 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "Bot Core (`adminConfig/aiRuntime.bot`)",
+                    text = stringResource(R.string.settings_admin_ai_bot_core_heading),
                     modifier = Modifier.padding(top = 12.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
@@ -2729,7 +2816,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Prompt Version") },
+                    label = { Text(stringResource(R.string.settings_ai_prompt_version)) },
                     singleLine = true,
                 )
 
@@ -2739,7 +2826,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("AI Personality Stil") },
+                    label = { Text(stringResource(R.string.settings_ai_personality_style)) },
                     singleLine = true,
                 )
 
@@ -2749,12 +2836,12 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Logging Level") },
+                    label = { Text(stringResource(R.string.settings_ai_logging_level)) },
                     singleLine = true,
                 )
 
                 Text(
-                    text = "Quality Mode",
+                    text = stringResource(R.string.settings_admin_ai_section_quality_mode),
                     modifier = Modifier.padding(top = 12.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
@@ -2763,8 +2850,12 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    listOf("balanced" to "Balanced", "high" to "High").forEach { (value, label) ->
+                    listOf(
+                        "balanced" to R.string.settings_ai_label_quality_balanced,
+                        "high" to R.string.settings_ai_label_quality_high,
+                    ).forEach { (value, labelRes) ->
                         item {
+                            val label = stringResource(labelRes)
                             val isSelected = aiBotQualityModeDraft == value
                             OutlinedButton(
                                 onClick = { aiBotQualityModeDraft = value },
@@ -2778,7 +2869,7 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "FAQ Mode",
+                    text = stringResource(R.string.settings_admin_ai_section_faq_mode),
                     modifier = Modifier.padding(top = 12.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
@@ -2787,8 +2878,13 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    listOf("off" to "Off", "auto" to "Auto", "prefer_faq" to "Prefer").forEach { (value, label) ->
+                    listOf(
+                        "off" to R.string.settings_ai_label_faq_off,
+                        "auto" to R.string.settings_ai_label_faq_auto,
+                        "prefer_faq" to R.string.settings_ai_label_faq_prefer,
+                    ).forEach { (value, labelRes) ->
                         item {
+                            val label = stringResource(labelRes)
                             val isSelected = aiBotFaqModeDraft == value
                             OutlinedButton(
                                 onClick = { aiBotFaqModeDraft = value },
@@ -2802,7 +2898,7 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "Owner Mode",
+                    text = stringResource(R.string.settings_admin_ai_section_owner_mode),
                     modifier = Modifier.padding(top = 12.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
@@ -2811,8 +2907,12 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    listOf("standard" to "Standard", "diagnostic" to "Diagnostic").forEach { (value, label) ->
+                    listOf(
+                        "standard" to R.string.settings_ai_label_owner_standard,
+                        "diagnostic" to R.string.settings_ai_label_owner_diagnostic,
+                    ).forEach { (value, labelRes) ->
                         item {
+                            val label = stringResource(labelRes)
                             val isSelected = aiBotOwnerModeDraft == value
                             OutlinedButton(
                                 onClick = { aiBotOwnerModeDraft = value },
@@ -2826,7 +2926,7 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "Antwortlaenge",
+                    text = stringResource(R.string.settings_admin_ai_section_answer_length),
                     modifier = Modifier.padding(top = 12.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
@@ -2835,8 +2935,13 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    listOf("adaptive" to "Adaptive", "short" to "Kurz", "detailed" to "Tief").forEach { (value, label) ->
+                    listOf(
+                        "adaptive" to R.string.settings_ai_label_answer_adaptive,
+                        "short" to R.string.settings_ai_label_answer_short,
+                        "detailed" to R.string.settings_ai_label_answer_detailed,
+                    ).forEach { (value, labelRes) ->
                         item {
+                            val label = stringResource(labelRes)
                             val isSelected = aiBotAnswerLengthDraft == value
                             OutlinedButton(
                                 onClick = { aiBotAnswerLengthDraft = value },
@@ -2850,7 +2955,7 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "Diagnostics",
+                    text = stringResource(R.string.settings_admin_ai_section_diagnostics),
                     modifier = Modifier.padding(top = 12.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
@@ -2859,8 +2964,13 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    listOf("off" to "Off", "owner_only" to "Owner", "verbose" to "Verbose").forEach { (value, label) ->
+                    listOf(
+                        "off" to R.string.settings_ai_label_diag_off,
+                        "owner_only" to R.string.settings_ai_label_diag_owner_only,
+                        "verbose" to R.string.settings_ai_label_diag_verbose,
+                    ).forEach { (value, labelRes) ->
                         item {
+                            val label = stringResource(labelRes)
                             val isSelected = aiBotDiagnosticsModeDraft == value
                             OutlinedButton(
                                 onClick = { aiBotDiagnosticsModeDraft = value },
@@ -2874,144 +2984,144 @@ fun SettingsScreen(
                 }
 
                 SettingsToggleRow(
-                    title = "Kill Switch aktiv",
-                    body = "Blockiert Bot-Anfragen owner-seitig sofort.",
+                    title = stringResource(R.string.settings_toggle_kill_switch_title),
+                    body = stringResource(R.string.settings_toggle_kill_switch_body),
                     checked = aiBotKillSwitchDraft,
                     onCheckedChange = { aiBotKillSwitchDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Bot Cost Guard aktiv",
-                    body = "Kurzere Antworten und ruhigere Limits im Bot-Core.",
+                    title = stringResource(R.string.settings_toggle_bot_cost_guard_title),
+                    body = stringResource(R.string.settings_toggle_bot_cost_guard_body),
                     checked = aiBotCostGuardEnabledDraft,
                     onCheckedChange = { aiBotCostGuardEnabledDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Kurz bei Critical Guard",
-                    body = "Verkuerzt Antworten, wenn Cost Guard kritisch wird.",
+                    title = stringResource(R.string.settings_toggle_brief_critical_title),
+                    body = stringResource(R.string.settings_toggle_brief_critical_body),
                     checked = aiBotPreferBriefCriticalDraft,
                     onCheckedChange = { aiBotPreferBriefCriticalDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "FAQ priorisieren bei Topic-Match",
-                    body = "Zieht FAQ-Antworten bei passenden Help-/Guide-Fragen nach vorne.",
+                    title = stringResource(R.string.settings_toggle_faq_topic_title),
+                    body = stringResource(R.string.settings_toggle_faq_topic_body),
                     checked = aiBotPreferFaqRoutingDraft,
                     onCheckedChange = { aiBotPreferFaqRoutingDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Produkt-Guide fuer neue Nutzer bevorzugen",
-                    body = "Erklaert Einsteigerfragen eher als Produktfuehrung.",
+                    title = stringResource(R.string.settings_toggle_product_guide_title),
+                    body = stringResource(R.string.settings_toggle_product_guide_body),
                     checked = aiBotPreferProductGuideDraft,
                     onCheckedChange = { aiBotPreferProductGuideDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Visual-Generierung erlauben",
-                    body = "Schaltet die Visual-Pipeline im Bot-Core frei.",
+                    title = stringResource(R.string.settings_toggle_visual_gen_title),
+                    body = stringResource(R.string.settings_toggle_visual_gen_body),
                     checked = aiBotAllowVisualGenerationDraft,
                     onCheckedChange = { aiBotAllowVisualGenerationDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Text-Fallback erlauben",
-                    body = "Darf bei Modellproblemen einen Text-Fallback nutzen.",
+                    title = stringResource(R.string.settings_toggle_text_fallback_title),
+                    body = stringResource(R.string.settings_toggle_text_fallback_body),
                     checked = aiBotAllowTextFallbackDraft,
                     onCheckedChange = { aiBotAllowTextFallbackDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Visual-Fallback erlauben",
-                    body = "Darf bei Bildproblemen auf das Fallback-Modell gehen.",
+                    title = stringResource(R.string.settings_toggle_visual_fallback_title),
+                    body = stringResource(R.string.settings_toggle_visual_fallback_body),
                     checked = aiBotAllowVisualFallbackDraft,
                     onCheckedChange = { aiBotAllowVisualFallbackDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Fallback-Grund anzeigen",
-                    body = "Legt offen, warum ein Fallback genutzt wurde.",
+                    title = stringResource(R.string.settings_toggle_show_fallback_reason_title),
+                    body = stringResource(R.string.settings_toggle_show_fallback_reason_body),
                     checked = aiBotExposeFallbackReasonDraft,
                     onCheckedChange = { aiBotExposeFallbackReasonDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Safe Mode aktiv",
-                    body = "Reduziert riskante Behauptungen im FAQ-/Help-Modus.",
+                    title = stringResource(R.string.settings_toggle_safe_mode_title),
+                    body = stringResource(R.string.settings_toggle_safe_mode_body),
                     checked = aiBotSafeModeEnabledDraft,
                     onCheckedChange = { aiBotSafeModeEnabledDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Strict Unknown Handling",
-                    body = "Sagt offen 'weiss ich nicht sicher', statt zu erfinden.",
+                    title = stringResource(R.string.settings_toggle_strict_unknown_title),
+                    body = stringResource(R.string.settings_toggle_strict_unknown_body),
                     checked = aiBotStrictUnknownHandlingDraft,
                     onCheckedChange = { aiBotStrictUnknownHandlingDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Spekulative FAQ blocken",
-                    body = "Verhindert erfundene Membership-, Versand- oder Account-Regeln.",
+                    title = stringResource(R.string.settings_toggle_block_speculative_faq_title),
+                    body = stringResource(R.string.settings_toggle_block_speculative_faq_body),
                     checked = aiBotBlockSpeculativeFaqDraft,
                     onCheckedChange = { aiBotBlockSpeculativeFaqDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Proaktive Hinweise aktiv",
-                    body = "Aktiviert den Action Layer fuer hohe-Nutzen-Hinweise.",
+                    title = stringResource(R.string.settings_toggle_proactive_hints_title),
+                    body = stringResource(R.string.settings_toggle_proactive_hints_body),
                     checked = aiBotProactiveHintsEnabledDraft,
                     onCheckedChange = { aiBotProactiveHintsEnabledDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Trigger: AI-Limit fast erreicht",
-                    body = "Hinweis kurz vor dem Tageslimit.",
+                    title = stringResource(R.string.settings_toggle_trigger_ai_limit_title),
+                    body = stringResource(R.string.settings_toggle_trigger_ai_limit_body),
                     checked = aiBotTriggerAiLimitNearEnabledDraft,
                     onCheckedChange = { aiBotTriggerAiLimitNearEnabledDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Trigger: Restore verfuegbar",
-                    body = "Hinweis wenn Entitlement inaktiv, aber Restore moeglich.",
+                    title = stringResource(R.string.settings_toggle_trigger_restore_title),
+                    body = stringResource(R.string.settings_toggle_trigger_restore_body),
                     checked = aiBotTriggerRestoreAvailableEnabledDraft,
                     onCheckedChange = { aiBotTriggerRestoreAvailableEnabledDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Trigger: Bestellung versendet",
-                    body = "Hinweis bei shipped/in_transit Fulfillment.",
+                    title = stringResource(R.string.settings_toggle_trigger_order_shipped_title),
+                    body = stringResource(R.string.settings_toggle_trigger_order_shipped_body),
                     checked = aiBotTriggerOrderShippedEnabledDraft,
                     onCheckedChange = { aiBotTriggerOrderShippedEnabledDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Trigger: Payment-Methode geaendert",
-                    body = "Hinweis bei kuerzlich aktualisierten Payment-Settings.",
+                    title = stringResource(R.string.settings_toggle_trigger_payment_changed_title),
+                    body = stringResource(R.string.settings_toggle_trigger_payment_changed_body),
                     checked = aiBotTriggerPaymentMethodsChangedEnabledDraft,
                     onCheckedChange = { aiBotTriggerPaymentMethodsChangedEnabledDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
                 SettingsToggleRow(
-                    title = "Trigger: Upgrade nach Nutzung",
-                    body = "Hint nur bei hoher realer Nutzung.",
+                    title = stringResource(R.string.settings_toggle_trigger_upgrade_usage_title),
+                    body = stringResource(R.string.settings_toggle_trigger_upgrade_usage_body),
                     checked = aiBotTriggerUsageBasedUpgradeEnabledDraft,
                     onCheckedChange = { aiBotTriggerUsageBasedUpgradeEnabledDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
@@ -3023,7 +3133,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Warning Threshold (%)") },
+                    label = { Text(stringResource(R.string.settings_ai_warning_threshold)) },
                     singleLine = true,
                 )
 
@@ -3033,7 +3143,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Critical Threshold (%)") },
+                    label = { Text(stringResource(R.string.settings_ai_critical_threshold)) },
                     singleLine = true,
                 )
 
@@ -3043,7 +3153,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Upgrade Hint Free -> Pro") },
+                    label = { Text(stringResource(R.string.settings_ai_upgrade_hint_free_pro)) },
                     singleLine = false,
                     minLines = 2,
                     maxLines = 3,
@@ -3055,7 +3165,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Upgrade Hint Pro -> Creator") },
+                    label = { Text(stringResource(R.string.settings_ai_upgrade_hint_pro_creator)) },
                     singleLine = false,
                     minLines = 2,
                     maxLines = 3,
@@ -3067,12 +3177,12 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Prompt Version Alias") },
+                    label = { Text(stringResource(R.string.settings_ai_prompt_version_alias)) },
                     singleLine = true,
                 )
 
                 Text(
-                    text = "FAQ Prioritaet",
+                    text = stringResource(R.string.settings_admin_ai_section_faq_priority),
                     modifier = Modifier.padding(top = 12.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
@@ -3082,11 +3192,12 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     listOf(
-                        "live_owner_generic" to "Live->Owner",
-                        "owner_live_generic" to "Owner->Live",
-                        "balanced" to "Balanced",
-                    ).forEach { (value, label) ->
+                        "live_owner_generic" to R.string.settings_ai_label_faq_priority_live_owner,
+                        "owner_live_generic" to R.string.settings_ai_label_faq_priority_owner_live,
+                        "balanced" to R.string.settings_ai_label_faq_priority_balanced,
+                    ).forEach { (value, labelRes) ->
                         item {
+                            val label = stringResource(labelRes)
                             val isSelected = aiBotFaqPriorityModeDraft == value
                             OutlinedButton(
                                 onClick = { aiBotFaqPriorityModeDraft = value },
@@ -3105,7 +3216,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Text Primary Model") },
+                    label = { Text(stringResource(R.string.settings_ai_text_primary_model)) },
                     singleLine = true,
                 )
 
@@ -3115,7 +3226,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Text Fallback Model") },
+                    label = { Text(stringResource(R.string.settings_ai_text_fallback_model)) },
                     singleLine = true,
                 )
 
@@ -3125,7 +3236,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Visual Primary Model") },
+                    label = { Text(stringResource(R.string.settings_ai_visual_primary_model)) },
                     singleLine = true,
                 )
 
@@ -3135,7 +3246,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Visual Fallback Model") },
+                    label = { Text(stringResource(R.string.settings_ai_visual_fallback_model)) },
                     singleLine = true,
                 )
 
@@ -3145,7 +3256,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Short Answer Max Tokens") },
+                    label = { Text(stringResource(R.string.settings_ai_short_answer_max_tokens)) },
                     singleLine = true,
                 )
 
@@ -3155,20 +3266,20 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Standard Answer Max Tokens") },
+                    label = { Text(stringResource(R.string.settings_ai_standard_answer_max_tokens)) },
                     singleLine = true,
                 )
 
                 SettingsToggleRow(
-                    title = "Kosten-Guard aktiv",
-                    body = "Harte User- und Global-Limits greifen serverseitig als Kostenbremse.",
+                    title = stringResource(R.string.settings_toggle_cost_guard_title),
+                    body = stringResource(R.string.settings_toggle_cost_guard_body),
                     checked = aiCostGuardEnabledDraft,
                     onCheckedChange = { aiCostGuardEnabledDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
                 )
 
                 Text(
-                    text = "Agent Provider",
+                    text = stringResource(R.string.settings_admin_ai_section_agent_provider),
                     modifier = Modifier.padding(top = 12.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
@@ -3197,7 +3308,7 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "Fallback Provider",
+                    text = stringResource(R.string.settings_admin_ai_section_fallback_provider),
                     modifier = Modifier.padding(top = 12.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
@@ -3226,22 +3337,22 @@ fun SettingsScreen(
                 }
 
                 SettingsToggleRow(
-                    title = "Manus freigeben",
-                    body = "Schaltet Manus im Backend frei. Ohne aktiviertes Secret oder bei Fehlern greift der Fallback.",
+                    title = stringResource(R.string.settings_toggle_manus_enable_title),
+                    body = stringResource(R.string.settings_toggle_manus_enable_body),
                     checked = aiManusEnabledDraft,
                     onCheckedChange = { aiManusEnabledDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
                 )
 
                 Text(
-                    text = "Manus Runtime (`adminConfig/aiRuntime.manus`)",
+                    text = stringResource(R.string.settings_admin_ai_manus_runtime_heading),
                     modifier = Modifier.padding(top = 10.dp),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
                 )
 
                 Text(
-                    text = "Der API-Key bleibt aus Sicherheitsgruenden im Firebase Functions Secret `MANUS_API_KEY` und wird nicht in der App gespeichert.",
+                    text = stringResource(R.string.settings_admin_ai_manus_secret_hint),
                     modifier = Modifier.padding(top = 4.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     style = MaterialTheme.typography.bodySmall,
@@ -3253,7 +3364,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Request Timeout (ms)") },
+                    label = { Text(stringResource(R.string.settings_ai_request_timeout_ms)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -3262,7 +3373,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Poll Interval (ms)") },
+                    label = { Text(stringResource(R.string.settings_ai_poll_interval_ms)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -3271,7 +3382,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Max Poll Attempts") },
+                    label = { Text(stringResource(R.string.settings_ai_max_poll_attempts)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -3280,7 +3391,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("List Messages Limit") },
+                    label = { Text(stringResource(R.string.settings_ai_list_messages_limit)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -3289,7 +3400,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Max Prompt Chars") },
+                    label = { Text(stringResource(R.string.settings_ai_max_prompt_chars)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -3298,27 +3409,27 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Max History Turns") },
+                    label = { Text(stringResource(R.string.settings_ai_max_history_turns)) },
                     singleLine = true,
                 )
 
                 SettingsToggleRow(
-                    title = "Auto Stop bei Waiting-Event",
-                    body = "Stoppt den Manus-Run automatisch bei Waiting-Status.",
+                    title = stringResource(R.string.settings_toggle_manus_autostop_title),
+                    body = stringResource(R.string.settings_toggle_manus_autostop_body),
                     checked = aiManusAutoStopOnWaitingDraft,
                     onCheckedChange = { aiManusAutoStopOnWaitingDraft = it },
                     modifier = Modifier.padding(top = 10.dp),
                 )
                 SettingsToggleRow(
-                    title = "High-Credit Events blocken",
-                    body = "Bricht Runs bei kostenintensiven Events sofort ab.",
+                    title = stringResource(R.string.settings_toggle_manus_block_high_credit_title),
+                    body = stringResource(R.string.settings_toggle_manus_block_high_credit_body),
                     checked = aiManusBlockHighCreditEventsDraft,
                     onCheckedChange = { aiManusBlockHighCreditEventsDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
                 SettingsToggleRow(
-                    title = "Verbose Events einblenden",
-                    body = "Aktiviert detailliertere Event-Ausgaben fuer Debugging.",
+                    title = stringResource(R.string.settings_toggle_manus_verbose_title),
+                    body = stringResource(R.string.settings_toggle_manus_verbose_body),
                     checked = aiManusIncludeVerboseEventsDraft,
                     onCheckedChange = { aiManusIncludeVerboseEventsDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
@@ -3330,7 +3441,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Hard Cap Text / Tag") },
+                    label = { Text(stringResource(R.string.settings_ai_hard_cap_text)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -3339,7 +3450,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Hard Cap Visual / Tag") },
+                    label = { Text(stringResource(R.string.settings_ai_hard_cap_visual)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -3348,7 +3459,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Hard Cap Agent / Tag") },
+                    label = { Text(stringResource(R.string.settings_ai_hard_cap_agent)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -3357,7 +3468,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Global Cap Text / Tag") },
+                    label = { Text(stringResource(R.string.settings_ai_global_cap_text)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -3366,7 +3477,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Global Cap Visual / Tag") },
+                    label = { Text(stringResource(R.string.settings_ai_global_cap_visual)) },
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -3375,7 +3486,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Global Cap Agent / Tag") },
+                    label = { Text(stringResource(R.string.settings_ai_global_cap_agent)) },
                     singleLine = true,
                 )
 
@@ -3568,12 +3679,21 @@ fun SettingsScreen(
                             val alerts = membershipDashboard["alerts"] as? List<*> ?: emptyList<Any>()
                             val costOverlay = membershipDashboard["costOverlay"] as? Map<*, *> ?: emptyMap<Any, Any>()
                             Text(
-                                text = "7d Opens: ${(d7["membershipOpens"] as? Number)?.toInt() ?: 0} · Purchases: ${(d7["purchaseSuccess"] as? Number)?.toInt() ?: 0} · CVR: ${(d7["cvr"] as? Number)?.toDouble() ?: 0.0}",
+                                text = stringResource(
+                                    R.string.settings_membership_dashboard_7d,
+                                    (d7["membershipOpens"] as? Number)?.toInt() ?: 0,
+                                    (d7["purchaseSuccess"] as? Number)?.toInt() ?: 0,
+                                    (d7["cvr"] as? Number)?.toDouble() ?: 0.0,
+                                ),
                                 modifier = Modifier.padding(top = 14.dp),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Text(
-                                text = "Alerts: ${alerts.size} · Free Load Ratio: ${(costOverlay["freePlanLoadRatio"] as? Number)?.toDouble() ?: 0.0}",
+                                text = stringResource(
+                                    R.string.settings_membership_dashboard_alerts,
+                                    alerts.size,
+                                    (costOverlay["freePlanLoadRatio"] as? Number)?.toDouble() ?: 0.0,
+                                ),
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                                 style = MaterialTheme.typography.bodySmall,
@@ -3602,7 +3722,12 @@ fun SettingsScreen(
                                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                                             )
                                             Text(
-                                                "Type: ${recommendation.recommendationType} · Confidence ${(recommendation.confidenceScore * 100).toInt()}% · ${recommendation.severity}",
+                                                stringResource(
+                                                    R.string.settings_membership_recommendation_meta,
+                                                    recommendation.recommendationType,
+                                                    (recommendation.confidenceScore * 100).toInt(),
+                                                    recommendation.severity,
+                                                ),
                                                 modifier = Modifier.padding(top = 6.dp),
                                                 style = MaterialTheme.typography.labelSmall,
                                             )
@@ -3619,7 +3744,7 @@ fun SettingsScreen(
                                                                     lifecycleId = lifecycleId,
                                                                     recommendationId = recommendation.id,
                                                                     recommendationType = recommendation.recommendationType,
-                                                                    notes = "Started from Android Membership Command Center",
+                                                                    notes = membershipOpsExperimentStartNotes,
                                                                 ),
                                                             )
                                                             experimentLifecycleIdDraft = lifecycleId
@@ -3636,7 +3761,7 @@ fun SettingsScreen(
                                                             membershipOpsRepository.rejectRecommendation(
                                                                 recommendationId = recommendation.id,
                                                                 recommendationType = recommendation.recommendationType,
-                                                                notes = "Rejected from Android Membership Command Center",
+                                                                notes = membershipOpsRejectNotes,
                                                             )
                                                             feedbackMessage = membershipOpsRecommendationRejectedMessage
                                                             feedbackType = ToastType.Warning
@@ -3663,7 +3788,7 @@ fun SettingsScreen(
                                 value = experimentLifecycleIdDraft,
                                 onValueChange = { experimentLifecycleIdDraft = it },
                                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-                                label = { Text("Lifecycle ID") },
+                                label = { Text(stringResource(R.string.settings_experiment_lifecycle_id)) },
                                 singleLine = true,
                             )
                             OutlinedTextField(
@@ -3675,18 +3800,18 @@ fun SettingsScreen(
                                 maxLines = 5,
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
-                                OutlinedTextField(value = experimentCvrDeltaDraft, onValueChange = { experimentCvrDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text("CVR Δ") }, singleLine = true)
-                                OutlinedTextField(value = experimentAnnualDeltaDraft, onValueChange = { experimentAnnualDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text("Annual Δ") }, singleLine = true)
+                                OutlinedTextField(value = experimentCvrDeltaDraft, onValueChange = { experimentCvrDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_cvr_delta)) }, singleLine = true)
+                                OutlinedTextField(value = experimentAnnualDeltaDraft, onValueChange = { experimentAnnualDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_annual_delta)) }, singleLine = true)
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
-                                OutlinedTextField(value = experimentCreatorDeltaDraft, onValueChange = { experimentCreatorDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text("Creator Δ") }, singleLine = true)
-                                OutlinedTextField(value = experimentCancelDeltaDraft, onValueChange = { experimentCancelDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text("Cancel Δ") }, singleLine = true)
+                                OutlinedTextField(value = experimentCreatorDeltaDraft, onValueChange = { experimentCreatorDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_creator_delta)) }, singleLine = true)
+                                OutlinedTextField(value = experimentCancelDeltaDraft, onValueChange = { experimentCancelDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_cancel_delta)) }, singleLine = true)
                             }
                             OutlinedTextField(
                                 value = experimentObservedDaysDraft,
                                 onValueChange = { experimentObservedDaysDraft = it },
                                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-                                label = { Text("Observed Window Days") },
+                                label = { Text(stringResource(R.string.settings_experiment_observed_window_days)) },
                                 singleLine = true,
                             )
                             Button(
@@ -3707,7 +3832,8 @@ fun SettingsScreen(
                                             feedbackMessage = membershipOpsExperimentCompletedMessage
                                             feedbackType = ToastType.Success
                                         }.onFailure { error ->
-                                            feedbackMessage = error.localizedMessage ?: "Experiment konnte nicht abgeschlossen werden."
+                                            feedbackMessage = error.localizedMessage
+                                                ?: membershipOpsExperimentCompleteFailedMessage
                                             feedbackType = ToastType.Error
                                         }
                                     }
@@ -3723,19 +3849,26 @@ fun SettingsScreen(
                             val insights = membershipLearnings["insights"] as? Map<*, *> ?: emptyMap<Any, Any>()
                             val dataStrength = membershipLearnings["dataStrength"] as? String ?: "unknown"
                             Text(
-                                text = "Data strength: $dataStrength",
+                                text = stringResource(R.string.settings_membership_data_strength, dataStrength),
                                 modifier = Modifier.padding(top = 14.dp),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Text(
-                                text = "Calibration: ${(insights["confidenceCalibrationScore"] as? Number)?.toDouble() ?: 0.0} · Simulation Accuracy: ${(insights["simulationAccuracyTrend"] as? Number)?.toDouble() ?: 0.0}",
+                                text = stringResource(
+                                    R.string.settings_membership_calibration_line,
+                                    (insights["confidenceCalibrationScore"] as? Number)?.toDouble() ?: 0.0,
+                                    (insights["simulationAccuracyTrend"] as? Number)?.toDouble() ?: 0.0,
+                                ),
                                 modifier = Modifier.padding(top = 8.dp),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
                             val topSurfaces = insights["bestConvertingSurfaces"] as? List<*> ?: emptyList<Any>()
                             Text(
-                                text = "Top Surfaces: ${topSurfaces.take(3).joinToString { ((it as? Map<*, *>)?.get("surface") as? String).orEmpty() }}",
+                                text = stringResource(
+                                    R.string.settings_membership_top_surfaces,
+                                    topSurfaces.take(3).joinToString { ((it as? Map<*, *>)?.get("surface") as? String).orEmpty() },
+                                ),
                                 modifier = Modifier.padding(top = 8.dp),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -3744,7 +3877,11 @@ fun SettingsScreen(
                             SkydownCard(modifier = Modifier.padding(top = 14.dp)) {
                                 Text(stringResource(R.string.settings_membership_ops_hygiene_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                                 Text(
-                                    text = "${stringResource(R.string.settings_membership_ops_hygiene_profile)}: $hygieneProfileLabel",
+                                    text = stringResource(
+                                        R.string.settings_membership_hygiene_profile_value,
+                                        stringResource(R.string.settings_membership_ops_hygiene_profile),
+                                        hygieneProfileLabel,
+                                    ),
                                     modifier = Modifier.padding(top = 6.dp),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
@@ -3753,56 +3890,56 @@ fun SettingsScreen(
                                     value = hygieneCooldownCompletedDraft,
                                     onValueChange = { hygieneCooldownCompletedDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-                                    label = { Text("cooldownDaysCompleted") },
-                                    supportingText = { Text("Laenger = weniger Recommendation-Rotation nach completed.") },
+                                    label = { Text(stringResource(R.string.settings_hygiene_cooldown_days_completed)) },
+                                    supportingText = { Text(stringResource(R.string.settings_hygiene_cooldown_days_completed_help)) },
                                     singleLine = true,
                                 )
                                 OutlinedTextField(
                                     value = hygieneCooldownRejectedDraft,
                                     onValueChange = { hygieneCooldownRejectedDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    label = { Text("cooldownDaysRejected") },
-                                    supportingText = { Text("Erhoehen bei wiederholten No-Fit-Recommendations.") },
+                                    label = { Text(stringResource(R.string.settings_hygiene_cooldown_days_rejected)) },
+                                    supportingText = { Text(stringResource(R.string.settings_hygiene_cooldown_days_rejected_help)) },
                                     singleLine = true,
                                 )
                                 OutlinedTextField(
                                     value = hygieneCooldownProposedDraft,
                                     onValueChange = { hygieneCooldownProposedDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    label = { Text("cooldownDaysProposed") },
-                                    supportingText = { Text("Verhindert Spam bei frisch vorgeschlagenen Ideen.") },
+                                    label = { Text(stringResource(R.string.settings_hygiene_cooldown_days_proposed)) },
+                                    supportingText = { Text(stringResource(R.string.settings_hygiene_cooldown_days_proposed_help)) },
                                     singleLine = true,
                                 )
                                 OutlinedTextField(
                                     value = hygieneSimilarityStrictnessDraft,
                                     onValueChange = { hygieneSimilarityStrictnessDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    label = { Text("similarityStrictness") },
-                                    supportingText = { Text("strict | balanced | loose.") },
+                                    label = { Text(stringResource(R.string.settings_hygiene_similarity_strictness)) },
+                                    supportingText = { Text(stringResource(R.string.settings_hygiene_similarity_strictness_help)) },
                                     singleLine = true,
                                 )
                                 OutlinedTextField(
                                     value = hygieneRecurringPenaltyDraft,
                                     onValueChange = { hygieneRecurringPenaltyDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    label = { Text("recurringPenalty") },
-                                    supportingText = { Text("Hoeher = staerkerer Prioritaetsabzug fuer Wiederholungen.") },
+                                    label = { Text(stringResource(R.string.settings_hygiene_recurring_penalty)) },
+                                    supportingText = { Text(stringResource(R.string.settings_hygiene_recurring_penalty_help)) },
                                     singleLine = true,
                                 )
                                 OutlinedTextField(
                                     value = hygieneFreshnessFloorDraft,
                                     onValueChange = { hygieneFreshnessFloorDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    label = { Text("freshnessFloor") },
-                                    supportingText = { Text("Mindest-Freshness, darunter wird suppress/downgrade wahrscheinlicher.") },
+                                    label = { Text(stringResource(R.string.settings_hygiene_freshness_floor)) },
+                                    supportingText = { Text(stringResource(R.string.settings_hygiene_freshness_floor_help)) },
                                     singleLine = true,
                                 )
                                 OutlinedTextField(
                                     value = hygieneDuplicateMergeWindowDraft,
                                     onValueChange = { hygieneDuplicateMergeWindowDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                    label = { Text("duplicateMergeWindowDays") },
-                                    supportingText = { Text("Fenster fuer Duplicate-Kompression.") },
+                                    label = { Text(stringResource(R.string.settings_hygiene_duplicate_merge_window)) },
+                                    supportingText = { Text(stringResource(R.string.settings_hygiene_duplicate_merge_window_help)) },
                                     singleLine = true,
                                 )
                                 Row(
@@ -3858,7 +3995,8 @@ fun SettingsScreen(
                                                     feedbackMessage = membershipOpsHygieneDefaultsRestoredMessage
                                                     feedbackType = ToastType.Success
                                                 }.onFailure { error ->
-                                                    feedbackMessage = error.localizedMessage ?: "Reset auf Defaults fehlgeschlagen."
+                                                    feedbackMessage = error.localizedMessage
+                                                        ?: membershipOpsResetDefaultsFailedMessage
                                                     feedbackType = ToastType.Error
                                                 }
                                             }
@@ -3923,23 +4061,26 @@ fun SettingsScreen(
                                         val recommendationId = item["recommendationId"] as? String ?: ""
                                         val learnings = item["learnings"] as? String ?: ""
                                         SkydownCard {
-                                            Text("$dateKey · $type", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+                                            Text(stringResource(R.string.settings_membership_ops_timeline_row, dateKey, type), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
                                             Text(title, modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                                             if (summary.isNotBlank()) {
                                                 Text(summary, modifier = Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f))
                                             }
                                             if (ownerAction.isNotBlank()) {
-                                                Text("${stringResource(R.string.settings_membership_ops_owner_action)}: $ownerAction", modifier = Modifier.padding(top = 6.dp), style = MaterialTheme.typography.labelSmall)
+                                                Text(stringResource(R.string.settings_membership_ops_owner_action_line, stringResource(R.string.settings_membership_ops_owner_action), ownerAction), modifier = Modifier.padding(top = 6.dp), style = MaterialTheme.typography.labelSmall)
                                             }
                                             if (learnings.isNotBlank()) {
-                                                Text("${stringResource(R.string.settings_membership_ops_learnings)}: $learnings", modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f))
+                                                Text(stringResource(R.string.settings_membership_ops_learnings_line, stringResource(R.string.settings_membership_ops_learnings), learnings), modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f))
                                             }
                                             if (recommendationId.isNotBlank()) {
                                                 OutlinedButton(
                                                     onClick = {
                                                         selectedRecommendationId = recommendationId
                                                         experimentLifecycleIdDraft = "lifecycle_${recommendationId}_${System.currentTimeMillis()}"
-                                                        experimentLearningsDraft = "Re-run based on timeline learnings: $title"
+                                                        experimentLearningsDraft = context.getString(
+                                                            R.string.settings_membership_timeline_rerun_learnings,
+                                                            title,
+                                                        )
                                                         membershipOpsTab = MembershipOpsTab.Experiments.name
                                                     },
                                                     modifier = Modifier.padding(top = 10.dp),
@@ -3967,8 +4108,8 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        title = "Einstellungen",
-                        subtitle = "Konto, Rechtliches, Anzeige und Support sauber sortiert.",
+                        title = stringResource(R.string.settings_screen_title),
+                        subtitle = stringResource(R.string.settings_screen_subtitle),
                     )
                 },
                 navigationIcon = {
@@ -3976,7 +4117,7 @@ fun SettingsScreen(
                         IconButton(onClick = close) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Schliessen",
+                                contentDescription = stringResource(R.string.common_close),
                             )
                         }
                     }
@@ -4039,10 +4180,10 @@ fun SettingsScreen(
 
                 item {
                     SkydownCard {
-                        SectionHeader("Profile / Account")
+                        SectionHeader(stringResource(R.string.settings_section_profile))
                         if (uiState.isLoggedIn) {
                             Text(
-                                text = "Angemeldet als ${uiState.username}",
+                                text = stringResource(R.string.settings_signed_in_as, uiState.username),
                                 modifier = Modifier.padding(top = 8.dp),
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -4060,11 +4201,11 @@ fun SettingsScreen(
                                     .padding(top = 12.dp),
                                 shape = RoundedCornerShape(18.dp),
                             ) {
-                                Text("Profil bearbeiten")
+                                Text(stringResource(R.string.settings_open_edit_profile))
                             }
                             SettingsToggleRow(
-                                title = "KI fuer mein Konto aktiv",
-                                body = "Wenn deaktiviert, sind Bot, Visuals und Agent fuer dein Konto serverseitig gesperrt.",
+                                title = stringResource(R.string.settings_ai_my_account_toggle_title),
+                                body = stringResource(R.string.settings_ai_my_account_toggle_body),
                                 checked = profileAiAccessEnabledDraft,
                                 onCheckedChange = { profileAiAccessEnabledDraft = it },
                                 enabled = !uiState.isSavingProfile && !uiState.isSigningOut && !uiState.isDeletingAccount,
@@ -4081,7 +4222,7 @@ fun SettingsScreen(
                                     profileAiAccessEnabledDraft != uiState.aiAccessEnabled,
                                 shape = RoundedCornerShape(18.dp),
                             ) {
-                                Text("KI-Einwilligung speichern")
+                                Text(stringResource(R.string.settings_save_ai_consent))
                             }
                             Column(
                                 modifier = Modifier
@@ -4095,7 +4236,13 @@ fun SettingsScreen(
                                     enabled = !uiState.isSigningOut && !uiState.isDeletingAccount,
                                     shape = RoundedCornerShape(18.dp),
                                 ) {
-                                    Text(if (uiState.isSigningOut) "Abmelden..." else "Abmelden")
+                                    Text(
+                                        if (uiState.isSigningOut) {
+                                            stringResource(R.string.settings_sign_out_progress)
+                                        } else {
+                                            stringResource(R.string.settings_sign_out)
+                                        },
+                                    )
                                 }
                                 OutlinedButton(
                                     onClick = { viewModel.signOut(onOpenLogin) },
@@ -4103,7 +4250,7 @@ fun SettingsScreen(
                                     enabled = !uiState.isSigningOut && !uiState.isDeletingAccount,
                                     shape = RoundedCornerShape(18.dp),
                                 ) {
-                                    Text("Anderes Konto")
+                                    Text(stringResource(R.string.settings_use_other_account))
                                 }
                                 OutlinedButton(
                                     onClick = { showDeleteAccountDialog.value = true },
@@ -4116,9 +4263,9 @@ fun SettingsScreen(
                                 ) {
                                     Text(
                                         if (uiState.isDeletingAccount) {
-                                            "Konto wird geloescht..."
+                                            stringResource(R.string.settings_account_deleting)
                                         } else {
-                                            "Konto loeschen"
+                                            stringResource(R.string.settings_account_delete)
                                         },
                                     )
                                 }
@@ -4149,7 +4296,7 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(18.dp),
                                 ) {
-                                    Text("Registrieren")
+                                    Text(stringResource(R.string.settings_register))
                                 }
                             }
                         }
@@ -4160,14 +4307,20 @@ fun SettingsScreen(
                     SkydownCard(
                         modifier = Modifier.testTag("settings.membership.section"),
                     ) {
-                        SectionHeader("Membership")
+                        SectionHeader(stringResource(R.string.settings_section_membership))
                         Text(
-                            text = "Aktueller Plan, Billing-Klarheit und Restore an einem Ort.",
+                            text = stringResource(R.string.settings_membership_section_summary),
                             modifier = Modifier.padding(top = 8.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
                         if (uiState.isLoggedIn) {
-                            val membershipState = if (uiState.aiAccessEnabled) "Aktiv" else "Eingeschraenkt"
+                            val membershipState = stringResource(
+                                if (uiState.aiAccessEnabled) {
+                                    R.string.settings_membership_state_active
+                                } else {
+                                    R.string.settings_membership_state_limited
+                                },
+                            )
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -4191,7 +4344,13 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(18.dp),
                                 ) {
-                                    Text(if (uiState.isOwner) "Plan verwalten ($membershipState)" else "Billing-Hilfe ($membershipState)")
+                                    Text(
+                                        if (uiState.isOwner) {
+                                            stringResource(R.string.settings_membership_plan_manage, membershipState)
+                                        } else {
+                                            stringResource(R.string.settings_membership_billing_help, membershipState)
+                                        },
+                                    )
                                 }
                                 OutlinedButton(
                                     onClick = {
@@ -4205,7 +4364,7 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(18.dp),
                                 ) {
-                                    Text("Restore pruefen")
+                                    Text(stringResource(R.string.settings_check_restore))
                                 }
                             }
                         } else {
@@ -4225,18 +4384,22 @@ fun SettingsScreen(
                 if (uiState.isOwner) {
                     item {
                         SkydownCard {
-                            SectionHeader("Owner-Bereich")
+                            SectionHeader(stringResource(R.string.settings_section_owner))
                             Text(
-                                text = "Geschuetzte Steuerung fuer Revenue, Nutzer und Runtime.",
+                                text = stringResource(R.string.settings_owner_section_summary),
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
                             OwnerCommandCenterCard(
                                 isOwner = uiState.isOwner,
-                                paymentStatus = "$visiblePaymentMethodCount Zahlungsrouten",
-                                userStatus = "${uiState.managedUsers.size} Konten",
-                                headerStatus = "${screenHeaderSettings.configuredCount} Header",
-                                aiStatus = if (uiState.aiRuntimeSettings.costGuardEnabled) "AI Guard aktiv" else "AI Guard pruefen",
+                                paymentStatus = stringResource(R.string.settings_owner_payment_routes, visiblePaymentMethodCount),
+                                userStatus = stringResource(R.string.settings_owner_user_accounts, uiState.managedUsers.size),
+                                headerStatus = stringResource(R.string.settings_owner_headers_live, screenHeaderSettings.configuredCount),
+                                aiStatus = if (uiState.aiRuntimeSettings.costGuardEnabled) {
+                                    stringResource(R.string.settings_owner_ai_guard_on)
+                                } else {
+                                    stringResource(R.string.settings_owner_ai_guard_check)
+                                },
                                 onOpenUsers = {
                                     activeAdminWorkspaceKey = AdminWorkspaceSection.Users.name
                                     showAdminWorkspaceSheet = true
@@ -4265,7 +4428,7 @@ fun SettingsScreen(
                                     .padding(top = 12.dp),
                                 shape = RoundedCornerShape(18.dp),
                             ) {
-                                Text("Alle Admin-Bereiche")
+                                Text(stringResource(R.string.settings_all_admin_sections))
                             }
                             OutlinedButton(
                                 onClick = onOpenOrders,
@@ -4274,7 +4437,7 @@ fun SettingsScreen(
                                     .padding(top = 12.dp),
                                 shape = RoundedCornerShape(18.dp),
                             ) {
-                                Text("Bestellungen oeffnen")
+                                Text(stringResource(R.string.settings_open_orders))
                             }
                         }
                     }
@@ -4283,13 +4446,17 @@ fun SettingsScreen(
                 if (uiState.isLoggedIn) {
                     item {
                         SkydownCard {
-                            SectionHeader("AI & Agent")
+                            SectionHeader(stringResource(R.string.settings_section_ai_agent))
                             Row(
                                 modifier = Modifier.padding(top = 12.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 SettingsBadge(
-                                    text = if (uiState.workflowAutomationSettings.isPrepared) "Automation bereit" else "Automation offen",
+                                    text = if (uiState.workflowAutomationSettings.isPrepared) {
+                                        stringResource(R.string.settings_dashboard_automation_ready)
+                                    } else {
+                                        stringResource(R.string.settings_dashboard_automation_open)
+                                    },
                                     icon = Icons.Default.Bolt,
                                     isActive = uiState.workflowAutomationSettings.isPrepared,
                                     onClick = {
@@ -4298,7 +4465,11 @@ fun SettingsScreen(
                                     },
                                 )
                                 SettingsBadge(
-                                    text = if (uiState.agentProfileSettings.isConfigured) "Skills aktiv" else "Skills offen",
+                                    text = if (uiState.agentProfileSettings.isConfigured) {
+                                        stringResource(R.string.settings_dashboard_skills_ready)
+                                    } else {
+                                        stringResource(R.string.settings_dashboard_skills_open)
+                                    },
                                     icon = Icons.Default.Settings,
                                     isActive = uiState.agentProfileSettings.isConfigured,
                                     onClick = {
@@ -4308,9 +4479,9 @@ fun SettingsScreen(
                                 )
                                 SettingsBadge(
                                     text = if (uiState.manusByosSettings.isEnabled && uiState.manusByosSettings.hasApiKey) {
-                                        "Manus BYOS aktiv"
+                                        stringResource(R.string.settings_dashboard_manus_byos_ready)
                                     } else {
-                                        "Manus BYOS aus"
+                                        stringResource(R.string.settings_dashboard_manus_byos_open)
                                     },
                                     icon = Icons.Default.Bolt,
                                     isActive = uiState.manusByosSettings.isEnabled && uiState.manusByosSettings.hasApiKey,
@@ -4343,7 +4514,7 @@ fun SettingsScreen(
                                     .padding(top = 12.dp),
                                 shape = RoundedCornerShape(18.dp),
                             ) {
-                                Text("Agent-Service verwalten")
+                                Text(stringResource(R.string.settings_manage_agent_service))
                             }
                         }
                     }
@@ -4355,7 +4526,7 @@ fun SettingsScreen(
                         val notificationsEnableInSettingsToast = stringResource(R.string.settings_notifications_toast_enable_in_settings)
                         val notificationsManageInSettingsToast = stringResource(R.string.settings_notifications_toast_manage_in_settings)
 
-                        SectionHeader("System")
+                        SectionHeader(stringResource(R.string.settings_section_system))
                         SettingsToggleRow(
                             title = stringResource(R.string.settings_notifications_title),
                             body = stringResource(R.string.settings_notifications_subtitle),
@@ -4386,10 +4557,15 @@ fun SettingsScreen(
 
                 item {
                     SkydownCard {
-                        SectionHeader("Theme")
+                        SectionHeader(stringResource(R.string.settings_section_theme))
                         AppearanceMode.entries.forEach { scheme ->
+                            val schemeTitle = when (scheme) {
+                                AppearanceMode.Light -> stringResource(R.string.settings_theme_light)
+                                AppearanceMode.Dark -> stringResource(R.string.settings_theme_dark)
+                                AppearanceMode.System -> stringResource(R.string.settings_theme_system)
+                            }
                             AppearanceChoiceRow(
-                                title = scheme.label,
+                                title = schemeTitle,
                                 selected = uiState.colorScheme == scheme,
                                 onClick = { viewModel.updateColorScheme(scheme) },
                                 modifier = Modifier.padding(top = 10.dp),
@@ -4516,13 +4692,13 @@ fun SettingsScreen(
 
                         if (uiState.isOwner) {
                             Text(
-                                text = "Rechtliches (Owner)",
+                                text = stringResource(R.string.settings_admin_legal_owner_heading),
                                 modifier = Modifier.padding(top = 14.dp),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = "Diese Module steuern AGB, Datenschutz und Nutzungsbedingungen appweit und koennen ohne App-Release gepflegt werden.",
+                                text = stringResource(R.string.settings_admin_legal_owner_intro),
                                 modifier = Modifier.padding(top = 6.dp),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -4534,8 +4710,8 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
-                                label = { Text("Brandname") },
-                                placeholder = { Text("z. B. SkyOS") },
+                                label = { Text(stringResource(R.string.settings_legal_brand_name)) },
+                                placeholder = { Text(stringResource(R.string.settings_legal_brand_name_placeholder)) },
                                 singleLine = true,
                             )
 
@@ -4545,8 +4721,8 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
-                                label = { Text("Betreiber / Vertragspartner") },
-                                placeholder = { Text("z. B. Yang D. Nash - Skydown") },
+                                label = { Text(stringResource(R.string.settings_legal_operator)) },
+                                placeholder = { Text(stringResource(R.string.settings_legal_operator_placeholder)) },
                                 singleLine = true,
                             )
 
@@ -4556,8 +4732,8 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
-                                label = { Text("Rechteinhaber") },
-                                placeholder = { Text("z. B. Yang D. Nash - Skydown") },
+                                label = { Text(stringResource(R.string.settings_legal_rights_holder)) },
+                                placeholder = { Text(stringResource(R.string.settings_legal_operator_placeholder)) },
                                 singleLine = true,
                             )
 
@@ -4567,7 +4743,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
-                                label = { Text("Support E-Mail") },
+                                label = { Text(stringResource(R.string.settings_legal_support_email_field)) },
                                 placeholder = { Text(stringResource(R.string.settings_legal_support_email_placeholder)) },
                                 singleLine = true,
                             )
@@ -4578,8 +4754,8 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
-                                label = { Text("Zuletzt aktualisiert") },
-                                placeholder = { Text("z. B. 12. April 2026") },
+                                label = { Text(stringResource(R.string.settings_legal_last_updated)) },
+                                placeholder = { Text(stringResource(R.string.settings_legal_last_updated_placeholder)) },
                                 singleLine = true,
                             )
 
@@ -4589,7 +4765,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
-                                label = { Text("Impressum-Hinweis") },
+                                label = { Text(stringResource(R.string.settings_legal_imprint_note)) },
                                 minLines = 3,
                             )
 
@@ -4599,7 +4775,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
-                                label = { Text("Meisterzahl 22 - Bedeutung") },
+                                label = { Text(stringResource(R.string.settings_legal_master22_meaning)) },
                                 minLines = 3,
                             )
 
@@ -4609,7 +4785,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
-                                label = { Text("Wer wir sind (Manifest)") },
+                                label = { Text(stringResource(R.string.settings_legal_manifesto)) },
                                 minLines = 6,
                             )
 
@@ -4619,8 +4795,8 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
-                                label = { Text("Symbolcode (numerisch)") },
-                                placeholder = { Text("z. B. 1337-514-731") },
+                                label = { Text(stringResource(R.string.settings_legal_symbol_code)) },
+                                placeholder = { Text(stringResource(R.string.settings_legal_symbol_code_placeholder)) },
                                 singleLine = true,
                             )
 
@@ -4630,8 +4806,8 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
-                                label = { Text("Leet-Code") },
-                                placeholder = { Text("z. B. 7H3_F4LL_0F_H34/3N") },
+                                label = { Text(stringResource(R.string.settings_legal_leet_code)) },
+                                placeholder = { Text(stringResource(R.string.settings_legal_leet_code_placeholder)) },
                                 singleLine = true,
                             )
 
@@ -4641,7 +4817,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 10.dp),
-                                label = { Text("Code-Erklaerung") },
+                                label = { Text(stringResource(R.string.settings_legal_code_explanation)) },
                                 minLines = 4,
                             )
 
@@ -4668,7 +4844,7 @@ fun SettingsScreen(
                                     .padding(top = 12.dp),
                                 shape = RoundedCornerShape(18.dp),
                             ) {
-                                Text("Rechtliches speichern")
+                                Text(stringResource(R.string.settings_legal_save))
                             }
                         }
                     }
@@ -4705,7 +4881,7 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Text(
-                        text = activeAdminWorkspace.label,
+                        text = stringResource(activeAdminWorkspace.titleRes),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                     )
@@ -4735,10 +4911,10 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showDeleteAccountDialog.value = false },
             title = {
-                Text("Konto loeschen")
+                Text(stringResource(R.string.settings_account_delete))
             },
             text = {
-                Text("Moechtest du dein Konto unwiderruflich loeschen?")
+                Text(stringResource(R.string.settings_account_delete_confirm))
             },
             confirmButton = {
                 TextButton(
@@ -4748,23 +4924,30 @@ fun SettingsScreen(
                     },
                     enabled = !uiState.isDeletingAccount,
                 ) {
-                    Text("Konto loeschen", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.settings_account_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showDeleteAccountDialog.value = false },
                 ) {
-                    Text("Abbrechen")
+                    Text(stringResource(R.string.common_cancel))
                 }
             },
         )
     }
 }
 
+private enum class PaymentProviderKind {
+    Stripe,
+    PayPal,
+    Klarna,
+}
+
 @Composable
 private fun PaymentProviderAdminCard(
     title: String,
+    providerKind: PaymentProviderKind,
     connected: Boolean,
     enabledInCheckout: Boolean,
     accountHint: String,
@@ -4794,9 +4977,17 @@ private fun PaymentProviderAdminCard(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = when (title) {
-                        "PayPal" -> if (connected) "Hinterlegt" else "Noch nicht hinterlegt"
-                        else -> if (connected) "Verbunden" else "Nicht verbunden"
+                    text = when (providerKind) {
+                        PaymentProviderKind.PayPal -> if (connected) {
+                            stringResource(R.string.settings_payments_status_paypal_saved)
+                        } else {
+                            stringResource(R.string.settings_payments_status_paypal_missing)
+                        }
+                        else -> if (connected) {
+                            stringResource(R.string.settings_payments_status_connected)
+                        } else {
+                            stringResource(R.string.settings_payments_status_disconnected)
+                        }
                     },
                     color = if (connected) {
                         MaterialTheme.colorScheme.primary
@@ -4806,7 +4997,11 @@ private fun PaymentProviderAdminCard(
                 )
             }
             SettingsBadge(
-                text = if (enabledInCheckout) "Im Checkout sichtbar" else "Ausgeblendet",
+                text = if (enabledInCheckout) {
+                    stringResource(R.string.settings_payments_checkout_visible_badge)
+                } else {
+                    stringResource(R.string.settings_payments_checkout_hidden_badge)
+                },
                 icon = Icons.Default.CheckCircle,
                 isActive = enabledInCheckout,
             )
@@ -4824,8 +5019,8 @@ private fun PaymentProviderAdminCard(
         )
 
         SettingsToggleRow(
-            title = "Fuer Kunden im Checkout anzeigen",
-            body = "Erst nach der Verbindung sichtbar schalten.",
+            title = stringResource(R.string.settings_payments_show_in_checkout),
+            body = stringResource(R.string.settings_payments_show_in_checkout_stripe_body),
             checked = enabledInCheckout,
             onCheckedChange = onToggleEnabled,
             modifier = Modifier.padding(top = 12.dp),
@@ -4841,9 +5036,17 @@ private fun PaymentProviderAdminCard(
                 shape = RoundedCornerShape(18.dp),
             ) {
                 Text(
-                    when (title) {
-                        "PayPal" -> if (connected) "PayPal aktualisieren" else "PayPal hinterlegen"
-                        else -> if (connected) "Verbindung aktualisieren" else "Verbinden"
+                    when (providerKind) {
+                        PaymentProviderKind.PayPal -> if (connected) {
+                            stringResource(R.string.settings_payments_action_update_paypal)
+                        } else {
+                            stringResource(R.string.settings_payments_action_save_paypal)
+                        }
+                        else -> if (connected) {
+                            stringResource(R.string.settings_payments_action_update_connection)
+                        } else {
+                            stringResource(R.string.settings_payments_action_connect)
+                        }
                     },
                 )
             }
@@ -4852,7 +5055,13 @@ private fun PaymentProviderAdminCard(
                     onClick = disconnect,
                     shape = RoundedCornerShape(18.dp),
                 ) {
-                    Text(if (title == "PayPal") "Entfernen" else "Trennen")
+                    Text(
+                        if (providerKind == PaymentProviderKind.PayPal) {
+                            stringResource(R.string.settings_payments_action_remove_paypal)
+                        } else {
+                            stringResource(R.string.settings_payments_action_disconnect)
+                        },
+                    )
                 }
             }
         }
@@ -4882,12 +5091,16 @@ private fun StripeBackendSecretsAdminCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "Sicheres Stripe-Backend",
+                    text = stringResource(R.string.settings_payments_stripe_heading),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = if (status.isReady) "Backend bereit" else "Backend noch unvollstaendig",
+                    text = if (status.isReady) {
+                        stringResource(R.string.settings_payments_stripe_backend_status_ready)
+                    } else {
+                        stringResource(R.string.settings_payments_stripe_backend_status_incomplete)
+                    },
                     color = if (status.isReady) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -4896,7 +5109,11 @@ private fun StripeBackendSecretsAdminCard(
                 )
             }
             SettingsBadge(
-                text = if (status.isReady) "Backend bereit" else "Setup fehlt",
+                text = if (status.isReady) {
+                    stringResource(R.string.settings_payments_stripe_backend_badge_ready)
+                } else {
+                    stringResource(R.string.settings_payments_stripe_backend_badge_incomplete)
+                },
                 icon = Icons.Default.CheckCircle,
                 isActive = status.isReady,
             )
@@ -4907,19 +5124,27 @@ private fun StripeBackendSecretsAdminCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             SettingsBadge(
-                text = if (status.hasSecretKey) "Secret Key gesetzt" else "Secret Key fehlt",
+                text = if (status.hasSecretKey) {
+                    stringResource(R.string.settings_payments_stripe_secret_configured)
+                } else {
+                    stringResource(R.string.settings_payments_stripe_secret_missing)
+                },
                 icon = Icons.Default.CheckCircle,
                 isActive = status.hasSecretKey,
             )
             SettingsBadge(
-                text = if (status.hasWebhookSecret) "Webhook Secret gesetzt" else "Webhook Secret fehlt",
+                text = if (status.hasWebhookSecret) {
+                    stringResource(R.string.settings_payments_stripe_webhook_configured)
+                } else {
+                    stringResource(R.string.settings_payments_stripe_webhook_missing)
+                },
                 icon = Icons.Default.CheckCircle,
                 isActive = status.hasWebhookSecret,
             )
         }
 
         Text(
-            text = "Die Werte werden nur serverseitig gespeichert. Live- oder Test-Keys sind moeglich, leere Felder lassen bestehende Secrets unveraendert.",
+            text = stringResource(R.string.settings_payments_stripe_secret_hint),
             modifier = Modifier.padding(top = 12.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -4930,8 +5155,8 @@ private fun StripeBackendSecretsAdminCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
-            label = { Text("Stripe Secret Key") },
-            placeholder = { Text("sk_live_..., rk_live_..., sk_test_... oder rk_test_...") },
+            label = { Text(stringResource(R.string.settings_payments_stripe_secret)) },
+            placeholder = { Text(stringResource(R.string.settings_payments_stripe_secret_placeholder)) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
         )
@@ -4942,8 +5167,8 @@ private fun StripeBackendSecretsAdminCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
-            label = { Text("Stripe Webhook Secret") },
-            placeholder = { Text("whsec_...") },
+            label = { Text(stringResource(R.string.settings_payments_stripe_webhook)) },
+            placeholder = { Text(stringResource(R.string.settings_payments_stripe_webhook_placeholder)) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
         )
@@ -4953,7 +5178,7 @@ private fun StripeBackendSecretsAdminCard(
             modifier = Modifier.padding(top = 12.dp),
             shape = RoundedCornerShape(18.dp),
         ) {
-            Text("Sicher speichern")
+            Text(stringResource(R.string.settings_payments_save_securely))
         }
     }
 }
@@ -4989,12 +5214,16 @@ private fun BankTransferAdminCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "Bankueberweisung",
+                    text = stringResource(R.string.settings_payments_bank_transfer_heading),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = if (configured) "Bankdaten hinterlegt" else "Noch nicht hinterlegt",
+                    text = if (configured) {
+                        stringResource(R.string.settings_payments_bank_details_saved)
+                    } else {
+                        stringResource(R.string.settings_payments_bank_details_missing)
+                    },
                     color = if (configured) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -5003,7 +5232,11 @@ private fun BankTransferAdminCard(
                 )
             }
             SettingsBadge(
-                text = if (enabledInCheckout) "Im Checkout sichtbar" else "Ausgeblendet",
+                text = if (enabledInCheckout) {
+                    stringResource(R.string.settings_payments_checkout_visible_badge)
+                } else {
+                    stringResource(R.string.settings_payments_checkout_hidden_badge)
+                },
                 icon = Icons.Default.CheckCircle,
                 isActive = enabledInCheckout,
             )
@@ -5015,7 +5248,7 @@ private fun BankTransferAdminCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
-            label = { Text("Kontoinhaber") },
+            label = { Text(stringResource(R.string.settings_payments_account_holder)) },
             singleLine = true,
         )
         OutlinedTextField(
@@ -5024,7 +5257,7 @@ private fun BankTransferAdminCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
-            label = { Text("IBAN") },
+            label = { Text(stringResource(R.string.settings_payments_iban)) },
             singleLine = true,
         )
         OutlinedTextField(
@@ -5033,7 +5266,7 @@ private fun BankTransferAdminCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
-            label = { Text("BIC") },
+            label = { Text(stringResource(R.string.settings_payments_bic)) },
             singleLine = true,
         )
         OutlinedTextField(
@@ -5042,7 +5275,7 @@ private fun BankTransferAdminCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
-            label = { Text("Bankname") },
+            label = { Text(stringResource(R.string.settings_payments_bank_name)) },
             singleLine = true,
         )
         OutlinedTextField(
@@ -5051,14 +5284,14 @@ private fun BankTransferAdminCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
-            label = { Text("Zahlungsanweisung") },
+            label = { Text(stringResource(R.string.settings_payments_payment_note)) },
             minLines = 2,
             maxLines = 3,
         )
 
         SettingsToggleRow(
-            title = "Fuer Kunden im Checkout anzeigen",
-            body = "Erst aktivieren, wenn die Bankdaten vollstaendig sind.",
+            title = stringResource(R.string.settings_payments_show_in_checkout),
+            body = stringResource(R.string.settings_payments_show_in_checkout_bank_body),
             checked = enabledInCheckout,
             onCheckedChange = onToggleEnabled,
             modifier = Modifier.padding(top = 12.dp),
@@ -5070,7 +5303,13 @@ private fun BankTransferAdminCard(
             modifier = Modifier.padding(top = 12.dp),
             shape = RoundedCornerShape(18.dp),
         ) {
-            Text(if (configured) "Bankdaten aktualisieren" else "Bankdaten hinterlegen")
+            Text(
+                if (configured) {
+                    stringResource(R.string.settings_payments_bank_action_update)
+                } else {
+                    stringResource(R.string.settings_payments_bank_action_save)
+                },
+            )
         }
     }
 }
@@ -5111,12 +5350,12 @@ private fun ProfileEditorCard(
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Profil",
+                    text = stringResource(R.string.settings_profile_inline_heading),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "Username, Kurzinfo und Links.",
+                    text = stringResource(R.string.settings_profile_inline_subtitle),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
             }
@@ -5126,21 +5365,21 @@ private fun ProfileEditorCard(
             value = username,
             onValueChange = onUsernameChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Benutzername") },
+            label = { Text(stringResource(R.string.settings_profile_username)) },
             singleLine = true,
         )
         OutlinedTextField(
             value = profileTagline,
             onValueChange = onProfileTaglineChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Kurzinfo") },
+            label = { Text(stringResource(R.string.settings_profile_tagline)) },
             singleLine = true,
         )
         OutlinedTextField(
             value = profileBio,
             onValueChange = onProfileBioChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Bio") },
+            label = { Text(stringResource(R.string.settings_profile_bio)) },
             minLines = 3,
             maxLines = 5,
         )
@@ -5148,14 +5387,14 @@ private fun ProfileEditorCard(
             value = instagramHandle,
             onValueChange = onInstagramHandleChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Instagram") },
+            label = { Text(stringResource(R.string.settings_profile_instagram)) },
             singleLine = true,
         )
         OutlinedTextField(
             value = whatsApp,
             onValueChange = onWhatsAppChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("WhatsApp") },
+            label = { Text(stringResource(R.string.settings_profile_whatsapp)) },
             singleLine = true,
         )
 
@@ -5182,14 +5421,14 @@ private fun SettingsUtilityRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         SettingsUtilityChip(
-            label = if (isOwner) "Zahlungen" else "Support",
+            label = if (isOwner) stringResource(R.string.settings_utility_payments) else stringResource(R.string.settings_utility_support),
             icon = if (isOwner) Icons.Default.CreditCard else Icons.Default.Email,
             accent = MaterialTheme.colorScheme.primary,
             onClick = onOpenPayments,
             modifier = Modifier.weight(1f),
         )
         SettingsUtilityChip(
-            label = "Datenschutz",
+            label = stringResource(R.string.settings_utility_privacy),
             icon = Icons.Default.Lock,
             accent = MaterialTheme.colorScheme.secondary,
             onClick = onOpenPrivacy,
@@ -5278,15 +5517,19 @@ private fun OwnerCommandCenterCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = if (isOwner) "Owner-Steuerung" else "Owner-Steuerung gesperrt",
+                        text = if (isOwner) {
+                            stringResource(R.string.settings_owner_command_title)
+                        } else {
+                            stringResource(R.string.settings_owner_command_title_locked)
+                        },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
                         text = if (isOwner) {
-                            "Direkte Kontrollpunkte fuer Release, Commerce und KI-Kosten."
+                            stringResource(R.string.settings_owner_command_subtitle)
                         } else {
-                            "Nur das feste Owner-Konto kann diese Live-Systeme veraendern."
+                            stringResource(R.string.settings_owner_command_subtitle_locked)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
@@ -5294,7 +5537,11 @@ private fun OwnerCommandCenterCard(
                 }
 
                 SettingsBadge(
-                    text = if (isOwner) "Aktiv" else "Gesperrt",
+                    text = if (isOwner) {
+                        stringResource(R.string.settings_owner_command_badge_active)
+                    } else {
+                        stringResource(R.string.settings_owner_command_badge_locked)
+                    },
                     icon = if (isOwner) Icons.Default.CheckCircle else Icons.Default.Lock,
                     isActive = isOwner,
                 )
@@ -5305,7 +5552,7 @@ private fun OwnerCommandCenterCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 OwnerCommandSignalButton(
-                    title = "Rollen",
+                    title = stringResource(R.string.settings_owner_signal_roles),
                     detail = userStatus,
                     icon = Icons.Default.Person,
                     enabled = isOwner,
@@ -5313,7 +5560,7 @@ private fun OwnerCommandCenterCard(
                     modifier = Modifier.weight(1f),
                 )
                 OwnerCommandSignalButton(
-                    title = "Zahlungen",
+                    title = stringResource(R.string.settings_owner_signal_payments),
                     detail = paymentStatus,
                     icon = Icons.Default.CreditCard,
                     enabled = isOwner,
@@ -5326,7 +5573,7 @@ private fun OwnerCommandCenterCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 OwnerCommandSignalButton(
-                    title = "Header",
+                    title = stringResource(R.string.settings_owner_signal_headers),
                     detail = headerStatus,
                     icon = Icons.Default.Palette,
                     enabled = isOwner,
@@ -5334,7 +5581,7 @@ private fun OwnerCommandCenterCard(
                     modifier = Modifier.weight(1f),
                 )
                 OwnerCommandSignalButton(
-                    title = "KI Schutz",
+                    title = stringResource(R.string.settings_owner_signal_ai_safety),
                     detail = aiStatus,
                     icon = Icons.Default.Bolt,
                     enabled = isOwner,
@@ -5655,58 +5902,58 @@ private fun SettingsLockedHint(
 }
 
 private enum class AdminWorkspaceSection(
-    val label: String,
-    val subtitle: String,
+    @param:StringRes val titleRes: Int,
+    @param:StringRes val subtitleRes: Int,
     val icon: ImageVector,
 ) {
     Payments(
-        label = "Zahlungen",
-        subtitle = "Provider verbinden und fuer den Checkout sichtbar schalten.",
+        titleRes = R.string.settings_admin_ws_payments_title,
+        subtitleRes = R.string.settings_admin_ws_payments_subtitle,
         icon = Icons.Default.CreditCard,
     ),
     Users(
-        label = "User",
-        subtitle = "Rollen, KI-Zugriff, Tageslimits und History pro Konto steuern.",
+        titleRes = R.string.settings_admin_ws_users_title,
+        subtitleRes = R.string.settings_admin_ws_users_subtitle,
         icon = Icons.Default.Person,
     ),
     Artists(
-        label = "Artists",
-        subtitle = "Artist-Seiten pflegen und Editor-Rechte pro Artist zuteilen.",
+        titleRes = R.string.settings_admin_ws_artists_title,
+        subtitleRes = R.string.settings_admin_ws_artists_subtitle,
         icon = Icons.Default.LibraryMusic,
     ),
     Headers(
-        label = "Header",
-        subtitle = "Hero-Bilder und Texte fuer Home, Music, Shop und Video pflegen.",
+        titleRes = R.string.settings_admin_ws_headers_title,
+        subtitleRes = R.string.settings_admin_ws_headers_subtitle,
         icon = Icons.Default.Palette,
     ),
     Shopify(
-        label = "Shopify",
-        subtitle = "Owner-Quelle fuer Store-Domain, Token und Merch-Sync pflegen.",
+        titleRes = R.string.settings_admin_ws_shopify_title,
+        subtitleRes = R.string.settings_admin_ws_shopify_subtitle,
         icon = Icons.Default.ShoppingBag,
     ),
     Commerce(
-        label = "Versand",
-        subtitle = "Versandkosten, MwSt. und Rechnungsdaten gesammelt pflegen.",
+        titleRes = R.string.settings_admin_ws_commerce_title,
+        subtitleRes = R.string.settings_admin_ws_commerce_subtitle,
         icon = Icons.Default.LocalShipping,
     ),
     Visuals(
-        label = "Visuals",
-        subtitle = "Drive-Link, Referenzhinweise und Namensschema pflegen.",
+        titleRes = R.string.settings_admin_ws_visuals_title,
+        subtitleRes = R.string.settings_admin_ws_visuals_subtitle,
         icon = Icons.Default.Palette,
     ),
     Automation(
-        label = "Agent-Service",
-        subtitle = "Owner-Flow global oder eigenen Activepieces/n8n-Flow pro Konto pflegen.",
+        titleRes = R.string.settings_admin_ws_automation_title,
+        subtitleRes = R.string.settings_admin_ws_automation_subtitle,
         icon = Icons.Default.Bolt,
     ),
     AiPrompts(
-        label = "KI Prompts",
-        subtitle = "Serverseitige Anweisungen fuer Bot, Visuals und Agent zentral pflegen.",
+        titleRes = R.string.settings_admin_ws_ai_prompts_title,
+        subtitleRes = R.string.settings_admin_ws_ai_prompts_subtitle,
         icon = Icons.Default.Settings,
     ),
     MembershipOps(
-        label = "Membership-Steuerung",
-        subtitle = "KPIs, Trends, Experimente und Learnings fuer Revenue.",
+        titleRes = R.string.settings_admin_ws_membership_title,
+        subtitleRes = R.string.settings_admin_ws_membership_subtitle,
         icon = Icons.Default.Bolt,
     ),
 
@@ -5832,12 +6079,12 @@ private fun AdminWorkspaceListRow(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = section.label,
+                    text = stringResource(section.titleRes),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = section.subtitle,
+                    text = stringResource(section.subtitleRes),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -5853,7 +6100,7 @@ private fun AdminWorkspaceListRow(
                     color = MaterialTheme.colorScheme.tertiary,
                 )
                 Text(
-                    text = "Oeffnen",
+                    text = stringResource(R.string.common_open),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 )
@@ -5891,7 +6138,7 @@ private fun AdminWorkspaceChip(
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = section.label,
+            text = stringResource(section.titleRes),
             fontWeight = FontWeight.SemiBold,
         )
     }
@@ -5938,7 +6185,7 @@ private fun AdminWorkspaceRailButton(
                 modifier = Modifier.size(18.dp),
             )
             Text(
-                text = section.label,
+                text = stringResource(section.titleRes),
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -5967,12 +6214,12 @@ private fun AdminWorkspaceSummaryCard(
         )
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = section.label,
+                text = stringResource(section.titleRes),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = section.subtitle,
+                text = stringResource(section.subtitleRes),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
@@ -5988,7 +6235,7 @@ private fun AdminUserRoleGuideCard(
         modifier = modifier,
     ) {
         Text(
-            text = "Rollen im System",
+            text = stringResource(R.string.settings_admin_roles_guide_title),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
         )
@@ -6082,7 +6329,7 @@ private fun ArtistPageAdminCard(
 
             if (users.isEmpty()) {
                 Text(
-                    text = "Sobald weitere Konten registriert sind, kannst du hier Editoren fuer diese Artist-Seite zuweisen.",
+                    text = stringResource(R.string.settings_admin_artists_editors_hint),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -6151,7 +6398,7 @@ private fun ArtistPageAdminCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
             ) {
-                Text("Editoren speichern")
+                Text(stringResource(R.string.settings_save_editors))
             }
         }
     }
@@ -6301,7 +6548,7 @@ private fun AdminManagedUserCard(
                 )
                 if (isCurrentUser) {
                     SettingsBadge(
-                        text = "Du",
+                        text = stringResource(R.string.settings_managed_user_you),
                         icon = Icons.Default.CheckCircle,
                         isActive = true,
                     )
@@ -6316,20 +6563,20 @@ private fun AdminManagedUserCard(
                             strokeWidth = 2.dp,
                         )
                         Text(
-                            text = "Speichert...",
+                            text = stringResource(R.string.settings_managed_user_saving),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
                     }
                 } else if (hasPendingChanges) {
                     SettingsBadge(
-                        text = "Entwurf",
+                        text = stringResource(R.string.settings_managed_user_draft),
                         icon = Icons.Default.Bolt,
                         isActive = false,
                     )
                 } else if (successfulSaveCount > 0) {
                     SettingsBadge(
-                        text = "Gespeichert",
+                        text = stringResource(R.string.settings_managed_user_saved),
                         icon = Icons.Default.CheckCircle,
                         isActive = true,
                     )
@@ -6338,7 +6585,7 @@ private fun AdminManagedUserCard(
         }
 
         Text(
-            text = "Rolle",
+            text = stringResource(R.string.settings_managed_user_role_label),
             modifier = Modifier.padding(top = 14.dp),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
@@ -6388,21 +6635,21 @@ private fun AdminManagedUserCard(
 
         if (user.isPlatformOwner) {
             Text(
-                text = "Das Owner-Konto ist fest an nash.lioncorna@gmail.com gebunden und bleibt immer Owner.",
+                text = stringResource(R.string.settings_managed_user_owner_bound, "nash.lioncorna@gmail.com"),
                 modifier = Modifier.padding(top = 10.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
         } else if (isCurrentUser) {
             Text(
-                text = "Dein eigenes Konto bleibt vor versehentlichen Rollenwechseln geschuetzt. Limits kannst du hier trotzdem anpassen.",
+                text = stringResource(R.string.settings_managed_user_self_protected),
                 modifier = Modifier.padding(top = 10.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
         } else if (!canAssignOwnerRoleToUser) {
             Text(
-                text = "Owner ist nur fuer das feste Hauptkonto moeglich. Fuer KI-Zugang nutze bitte Admin und aktiviere die KI-Freigabe.",
+                text = stringResource(R.string.settings_managed_user_owner_only),
                 modifier = Modifier.padding(top = 10.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -6412,7 +6659,7 @@ private fun AdminManagedUserCard(
         when (resolvedRole) {
             UserRole.Owner -> {
                 Text(
-                    text = "Owner-Kontrolle: Shopify, Zahlungen, Rollen, KI-Defaults und Recovery laufen nur ueber dieses Konto.",
+                    text = stringResource(R.string.settings_managed_user_owner_control_blurb),
                     modifier = Modifier.padding(top = 10.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -6421,29 +6668,29 @@ private fun AdminManagedUserCard(
 
             UserRole.Admin -> {
                 Text(
-                    text = "Zugewiesene Funktionen",
+                    text = stringResource(R.string.settings_managed_user_assigned_features),
                     modifier = Modifier.padding(top = 14.dp),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
 
                 SettingsToggleRow(
-                    title = "Music verwalten",
-                    body = "Beats, Releases und Upload-Freigaben pflegen.",
+                    title = stringResource(R.string.settings_subadmin_music_title),
+                    body = stringResource(R.string.settings_subadmin_music_body),
                     checked = canManageMusicCatalog,
                     onCheckedChange = { canManageMusicCatalog = it },
                     modifier = Modifier.padding(top = 10.dp),
                 )
                 SettingsToggleRow(
-                    title = "Video verwalten",
-                    body = "Video Hub, Uploads und Home-Highlights steuern.",
+                    title = stringResource(R.string.settings_subadmin_video_title),
+                    body = stringResource(R.string.settings_subadmin_video_body),
                     checked = canManageVideoCatalog,
                     onCheckedChange = { canManageVideoCatalog = it },
                     modifier = Modifier.padding(top = 10.dp),
                 )
                 SettingsToggleRow(
-                    title = "Profile moderieren",
-                    body = "Profile und Galerie-Inhalte fuer Support und Moderation einsehen.",
+                    title = stringResource(R.string.settings_subadmin_profile_title),
+                    body = stringResource(R.string.settings_subadmin_profile_body),
                     checked = canModerateProfiles,
                     onCheckedChange = { canModerateProfiles = it },
                     modifier = Modifier.padding(top = 10.dp),
@@ -6452,7 +6699,11 @@ private fun AdminManagedUserCard(
 
             UserRole.Subadmin, UserRole.User -> {
                 Text(
-                    text = if (resolvedRole == UserRole.Subadmin) "Kontingentmodell" else "Kontingent",
+                    text = if (resolvedRole == UserRole.Subadmin) {
+                        stringResource(R.string.settings_managed_user_quota_heading_subadmin)
+                    } else {
+                        stringResource(R.string.settings_managed_user_quota_heading_user)
+                    },
                     modifier = Modifier.padding(top = 14.dp),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
@@ -6503,15 +6754,15 @@ private fun AdminManagedUserCard(
         }
 
         SettingsToggleRow(
-            title = "KI fuer dieses Konto aktiv",
-            body = "Wenn aus, sind Bot, Visuals und Agent fuer dieses Konto gesperrt.",
+            title = stringResource(R.string.settings_ai_account_toggle_title),
+            body = stringResource(R.string.settings_ai_account_toggle_body),
             checked = aiAccessEnabled,
             onCheckedChange = { aiAccessEnabled = it },
             modifier = Modifier.padding(top = 14.dp),
         )
 
         Text(
-            text = "Tageslimits",
+            text = stringResource(R.string.settings_managed_user_daily_limits),
             modifier = Modifier.padding(top = 14.dp),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
@@ -6523,7 +6774,7 @@ private fun AdminManagedUserCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
-            label = { Text("Bot pro Tag") },
+            label = { Text(stringResource(R.string.settings_admin_limit_bot)) },
             singleLine = true,
         )
         OutlinedTextField(
@@ -6532,7 +6783,7 @@ private fun AdminManagedUserCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
-            label = { Text("Visuals pro Tag") },
+            label = { Text(stringResource(R.string.settings_admin_limit_visuals)) },
             singleLine = true,
         )
         OutlinedTextField(
@@ -6541,12 +6792,12 @@ private fun AdminManagedUserCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
-            label = { Text("Agent pro Tag") },
+            label = { Text(stringResource(R.string.settings_admin_limit_agent)) },
             singleLine = true,
         )
 
         Text(
-            text = "History-Aufbewahrung",
+            text = stringResource(R.string.settings_managed_user_history_retention),
             modifier = Modifier.padding(top = 14.dp),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
@@ -6629,7 +6880,7 @@ private fun AdminManagedUserCard(
 
             isSaving -> {
                 Text(
-                    text = "Rolle, Rechte und KI-Limits werden gerade serverseitig synchronisiert.",
+                    text = stringResource(R.string.settings_managed_user_sync_pending),
                     modifier = Modifier.padding(top = 10.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -6638,7 +6889,7 @@ private fun AdminManagedUserCard(
 
             hasPendingChanges -> {
                 Text(
-                    text = "Ungespeicherte Aenderungen. Erst nach dem Speichern werden Claims und Limits live uebernommen.",
+                    text = stringResource(R.string.settings_managed_user_unsaved),
                     modifier = Modifier.padding(top = 10.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -6647,7 +6898,7 @@ private fun AdminManagedUserCard(
 
             successfulSaveCount > 0 -> {
                 Text(
-                    text = "Gespeichert. Die letzte Aenderung wurde serverseitig bestaetigt.",
+                    text = stringResource(R.string.settings_managed_user_saved_confirmed),
                     modifier = Modifier.padding(top = 10.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,

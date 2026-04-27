@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
@@ -63,6 +64,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import com.nash.skyos.R
 import com.nash.skyos.data.mediaAttributionContext
 import com.nash.skyos.ui.screen.openExternalLink
 
@@ -224,7 +226,7 @@ fun OriginalVideoViewerDialog(
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
                     Text(
-                        text = title.ifBlank { "Original" },
+                        text = title.ifBlank { stringResource(R.string.video_original_title) },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.94f),
@@ -232,7 +234,11 @@ fun OriginalVideoViewerDialog(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = if (directVideoUrl) "SkyOS Video" else "SkyOS Web",
+                        text = if (directVideoUrl) {
+                            stringResource(R.string.video_original_mode_video)
+                        } else {
+                            stringResource(R.string.video_original_mode_web)
+                        },
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.68f),
                         maxLines = 1,
@@ -241,7 +247,7 @@ fun OriginalVideoViewerDialog(
 
                 SkydownFullscreenChromeIconButton(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Video schliessen",
+                    contentDescription = stringResource(R.string.video_cd_close_video),
                     onClick = onDismiss,
                     modifier = Modifier.testTag("video.original.viewer.close"),
                 )
@@ -290,7 +296,7 @@ fun OriginalVideoViewerDialog(
                 ) {
                     SkydownFullscreenChromeIconButton(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Zurueck",
+                        contentDescription = stringResource(R.string.common_back),
                         isEnabled = canGoBack,
                         onClick = {
                             browserView?.goBack()
@@ -299,7 +305,7 @@ fun OriginalVideoViewerDialog(
                     )
                     SkydownFullscreenChromeIconButton(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Weiter",
+                        contentDescription = stringResource(R.string.video_nav_forward),
                         isEnabled = canGoForward,
                         onClick = {
                             browserView?.goForward()
@@ -314,12 +320,12 @@ fun OriginalVideoViewerDialog(
                     )
                     SkydownFullscreenChromeIconButton(
                         imageVector = Icons.Default.Language,
-                        contentDescription = "Extern oeffnen",
+                        contentDescription = stringResource(R.string.video_action_open_external),
                         onClick = { openExternalLink(context, browserView?.url ?: url) },
                     )
                     SkydownFullscreenChromeIconButton(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Video schliessen",
+                        contentDescription = stringResource(R.string.video_cd_close_video),
                         isProminent = true,
                         onClick = onDismiss,
                         modifier = Modifier.testTag("video.original.viewer.close.bottom"),
@@ -360,7 +366,7 @@ internal fun SkydownFullscreenVideoControlBar(
         if (showsClipNavigation) {
             SkydownFullscreenChromeIconButton(
                 imageVector = Icons.Default.SkipPrevious,
-                contentDescription = "Vorheriger Clip",
+                contentDescription = stringResource(R.string.video_nav_previous_clip),
                 isEnabled = canGoToPreviousClip,
                 onClick = onPreviousClip,
             )
@@ -368,7 +374,7 @@ internal fun SkydownFullscreenVideoControlBar(
 
         SkydownFullscreenChromeIconButton(
             imageVector = Icons.Default.Replay10,
-            contentDescription = "10 Sekunden zurueck",
+            contentDescription = stringResource(R.string.video_nav_rewind_10),
             isEnabled = playbackControlsEnabled,
             onClick = onRewind,
         )
@@ -381,7 +387,7 @@ internal fun SkydownFullscreenVideoControlBar(
         )
         SkydownFullscreenChromeIconButton(
             imageVector = Icons.Default.Forward10,
-            contentDescription = "10 Sekunden vor",
+            contentDescription = stringResource(R.string.video_nav_forward_10),
             isEnabled = playbackControlsEnabled,
             onClick = onForward,
         )
@@ -389,7 +395,7 @@ internal fun SkydownFullscreenVideoControlBar(
         if (showsClipNavigation) {
             SkydownFullscreenChromeIconButton(
                 imageVector = Icons.Default.SkipNext,
-                contentDescription = "Naechster Clip",
+                contentDescription = stringResource(R.string.video_nav_next_clip),
                 isEnabled = canGoToNextClip,
                 onClick = onNextClip,
             )
@@ -403,7 +409,7 @@ internal fun SkydownFullscreenVideoControlBar(
         )
         SkydownFullscreenChromeIconButton(
             imageVector = Icons.Default.Close,
-            contentDescription = "Video schliessen",
+            contentDescription = stringResource(R.string.video_cd_close_video),
             isProminent = true,
             onClick = onClose,
         )

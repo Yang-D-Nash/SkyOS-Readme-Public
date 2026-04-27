@@ -1,5 +1,7 @@
 package com.nash.skyos.ui.model
 
+import com.nash.skyos.R
+import com.nash.skyos.data.AppTextResolver
 import com.skydown.shared.model.Track
 
 data class ArtistSocialProfile(
@@ -35,8 +37,8 @@ data class MusicUiState(
         get() = buildList {
             add(
                 MusicInstagramDestination(
-                    title = "22 Music",
-                    subtitle = "@zweizwei_music • Label und Releases",
+                    title = AppTextResolver.string(R.string.music_instagram_hub_title),
+                    subtitle = AppTextResolver.string(R.string.music_instagram_hub_subtitle),
                     instagramUrl = "https://www.instagram.com/zweizwei_music/",
                 ),
             )
@@ -45,7 +47,10 @@ data class MusicUiState(
                     artistSocialProfiles[artist]?.let { profile ->
                         MusicInstagramDestination(
                             title = profile.artist,
-                            subtitle = "${profile.handle} • Artist",
+                            subtitle = AppTextResolver.string(
+                                R.string.music_instagram_artist_subtitle,
+                                profile.handle,
+                            ),
                             instagramUrl = profile.instagramUrl,
                         )
                     }

@@ -1266,7 +1266,7 @@ private fun LaunchLandingScreen(
                 Spacer(modifier = Modifier.height(heroSpacer))
 
                 BrandHeroCard(
-                    eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { "Willkommen" },
+                    eyebrow = screenHeaderSettings.homeEyebrow.ifBlank { stringResource(R.string.skydown_home_fallback_eyebrow) },
                     title = screenHeaderSettings.homeTitle.ifBlank { "SkyOS" },
                     subtitle = screenHeaderSettings.homeSubtitle.ifBlank { stringResource(R.string.landing_home_subtitle) },
                     detail = screenHeaderSettings.homeDetail.ifBlank {
@@ -1572,13 +1572,13 @@ private fun MusicHubQuickActions(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Direkter Einstieg",
+            text = stringResource(R.string.music_hub_quick_access_title),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             fontWeight = FontWeight.SemiBold,
         )
         LaunchLandingActionButton(
-            title = "Katalog",
+            title = stringResource(R.string.music_hub_catalog_title),
             icon = Icons.Default.GraphicEq,
             primary = true,
             modifier = Modifier.testTag("music.hub.songs.open"),
@@ -1586,7 +1586,7 @@ private fun MusicHubQuickActions(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             LaunchLandingActionButton(
-                title = "Studio",
+                title = stringResource(R.string.music_hub_studio_title),
                 icon = Icons.Default.AutoAwesome,
                 primary = false,
                 modifier = Modifier.fillMaxWidth(),
@@ -1595,7 +1595,7 @@ private fun MusicHubQuickActions(
         }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = "Artist Links",
+                text = stringResource(R.string.music_hub_artist_links_title),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
                 fontWeight = FontWeight.SemiBold,
@@ -1738,7 +1738,7 @@ private fun MusicHubSocialLinkButton(
         }
         if (isActive) {
             Text(
-                text = "Aktiv",
+                text = stringResource(R.string.music_hub_status_active),
                 style = MaterialTheme.typography.labelSmall,
                 color = accent.copy(alpha = 0.96f),
                 fontWeight = FontWeight.Bold,
@@ -1796,8 +1796,8 @@ private fun ZweizweiMusicLaneScreen(
                 TopAppBar(
                     title = {
                         SkydownTopBarTitle(
-                            title = "Music",
-                            subtitle = if (compactLayout) null else "Releases, Artists, Beats.",
+                            title = stringResource(R.string.tabs_music),
+                            subtitle = if (compactLayout) null else stringResource(R.string.music_hub_subtitle),
                         )
                     },
                     navigationIcon = if (onBackToLanding != null) {
@@ -1805,7 +1805,7 @@ private fun ZweizweiMusicLaneScreen(
                             IconButton(onClick = onBackToLanding) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Zurück",
+                                    contentDescription = stringResource(R.string.common_back),
                                 )
                             }
                         }
@@ -1847,19 +1847,19 @@ private fun ZweizweiMusicLaneScreen(
                 val resolvedHubBottomPadding = if (isShortHubHeight) 14.dp else hubBottomPadding
                 val resolvedHubSectionSpacing = if (isShortHubHeight) 7.dp else hubSectionSpacing
                 val songDetailText = if (isShortHubHeight) {
-                    "Katalog, Spotify und Artist-Pages bleiben direkt auf derselben Stage."
+                    stringResource(R.string.music_hub_song_detail_short)
                 } else {
-                    "Katalog, Spotify und Artist-Pages liegen direkt auf derselben Stage."
+                    stringResource(R.string.music_hub_song_detail_long)
                 }
                 val beatDetailText = if (isShortHubHeight) {
-                    "Schnell neue Sounds greifen und im Vibe bleiben."
+                    stringResource(R.string.music_hub_beat_detail_short)
                 } else {
-                    "Schnell in neue Sounds springen und den richtigen Vibe greifen."
+                    stringResource(R.string.music_hub_beat_detail_long)
                 }
                 val studioDetailText = if (isShortHubHeight) {
-                    "Services bleiben direkt aus dem Music-Hub erreichbar."
+                    stringResource(R.string.music_hub_studio_detail_short)
                 } else {
-                    "Die Services bleiben ohne Umweg direkt aus dem Music-Hub erreichbar."
+                    stringResource(R.string.music_hub_studio_detail_long)
                 }
                 val useAnchoredHubLayout = !isWideLayout && maxHeight >= 900.dp && maxWidth < 560.dp
                 val hubBottomScrollReserve = when {
@@ -1890,10 +1890,10 @@ private fun ZweizweiMusicLaneScreen(
                     ) {
                         item {
                             BrandHeroCard(
-                                eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { "SkyOS" },
-                                title = screenHeaderSettings.musicHubTitle.ifBlank { "Music" },
-                                subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { "Releases, Artists, Beats." },
-                                detail = screenHeaderSettings.musicHubDetail.ifBlank { "Direkt zu Songs, Beats und Studio." },
+                                eyebrow = screenHeaderSettings.musicHubEyebrow.ifBlank { stringResource(R.string.brand_system_name) },
+                                title = screenHeaderSettings.musicHubTitle.ifBlank { stringResource(R.string.tabs_music) },
+                                subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { stringResource(R.string.music_hub_subtitle) },
+                                detail = screenHeaderSettings.musicHubDetail.ifBlank { stringResource(R.string.music_hub_detail) },
                                 backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
                                 accent = MaterialTheme.colorScheme.primary,
                                 secondaryAccent = MaterialTheme.colorScheme.secondary,
@@ -1908,7 +1908,7 @@ private fun ZweizweiMusicLaneScreen(
                             ) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     BrandPill(
-                                        text = "Katalog",
+                                        text = stringResource(R.string.music_hub_catalog_title),
                                         tint = MaterialTheme.colorScheme.primary,
                                         onClick = {
                                             catalogInitialArtist = "JANNO"
@@ -1916,7 +1916,7 @@ private fun ZweizweiMusicLaneScreen(
                                         },
                                     )
                                     BrandPill(
-                                        text = "Studio",
+                                        text = stringResource(R.string.music_hub_studio_title),
                                         tint = MaterialTheme.colorScheme.tertiary,
                                         onClick = { destination = ZweizweiMusicDestination.NicmaProducer },
                                     )
@@ -2416,7 +2416,7 @@ private fun HubEntryCard(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Direkt in $title",
+                            text = stringResource(R.string.skydown_launch_direct_in, title),
                             style = SkydownBodyCaptionTextStyle,
                             color = primaryContentColor,
                             fontWeight = FontWeight.SemiBold,
@@ -2428,7 +2428,7 @@ private fun HubEntryCard(
                         )
                         {
                             Text(
-                                text = "Start",
+                                text = stringResource(R.string.skydown_launch_start),
                                 style = SkydownBodyCaptionTextStyle,
                                 color = primaryContentColor.copy(alpha = 0.78f),
                                 fontWeight = FontWeight.SemiBold,

@@ -53,11 +53,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
+import com.nash.skyos.R
 import com.nash.skyos.ui.screen.openExternalLink
 import com.skydown.shared.model.Track
 import com.nash.skyos.ui.theme.SpotifyGreen
@@ -99,6 +101,7 @@ fun TrackRow(
     val isCatalog = presentation == TrackRowPresentation.Catalog
     val hasCtaOrExternalOptions =
         hasPreviewCta || hasDirectSpotifyTrack || hasSpotifyArtistLink || hasSpotifySearch
+    val openSpotifyPlayerContentDescription = stringResource(R.string.track_cd_open_spotify_player)
     val hideStatusPillDuplicates = isFeatured && hasCtaOrExternalOptions
     val artSize = when (presentation) {
         TrackRowPresentation.Catalog -> 52.dp
@@ -313,26 +316,26 @@ fun TrackRow(
                         if (hasPreviewCta) {
                             if (playingSurface) {
                                 TrackPill(
-                                    text = "Laeuft",
+                                    text = stringResource(R.string.track_pill_playing),
                                     isHighlighted = true,
                                 )
                             } else if (!hideStatusPillDuplicates) {
                                 TrackPill(
-                                    text = "Preview",
+                                    text = stringResource(R.string.track_pill_preview),
                                     isHighlighted = false,
                                 )
                             }
                         }
                         if (isSelected && !playingSurface) {
                             TrackPill(
-                                text = "Im Player",
+                                text = stringResource(R.string.track_pill_in_player),
                                 isHighlighted = false,
                             )
                         }
                         if (hasDirectSpotifyTrack) {
                             if (!hideStatusPillDuplicates) {
                                 TrackPill(
-                                    text = "Spotify Player",
+                                    text = stringResource(R.string.track_pill_spotify_player),
                                     isHighlighted = false,
                                     accentColor = SpotifyGreen,
                                 )
@@ -340,7 +343,7 @@ fun TrackRow(
                         } else if (hasSpotifyArtistLink) {
                             if (!hideStatusPillDuplicates) {
                                 TrackPill(
-                                    text = "Spotify Artist",
+                                    text = stringResource(R.string.track_pill_spotify_artist),
                                     isHighlighted = false,
                                     accentColor = SpotifyGreen,
                                 )
@@ -348,7 +351,7 @@ fun TrackRow(
                         } else if (hasSpotifySearch) {
                             if (!hideStatusPillDuplicates) {
                                 TrackPill(
-                                    text = "Spotify Suche",
+                                    text = stringResource(R.string.track_pill_spotify_search),
                                     isHighlighted = false,
                                     accentColor = SpotifyGreen,
                                 )
@@ -363,12 +366,12 @@ fun TrackRow(
                         ) {
                             if (playingSurface) {
                                 TrackPill(
-                                    text = "Laeuft",
+                                    text = stringResource(R.string.track_pill_playing),
                                     isHighlighted = true,
                                 )
                             } else if (isSelected) {
                                 TrackPill(
-                                    text = "Im Set",
+                                    text = stringResource(R.string.track_pill_in_set),
                                     isHighlighted = false,
                                 )
                             }
@@ -413,12 +416,12 @@ fun TrackRow(
                                     Modifier
                                         .weight(1f)
                                         .testTag("music.track.spotify.open")
-                                        .semantics { contentDescription = "Spotify Player oeffnen" }
+                                        .semantics { contentDescription = openSpotifyPlayerContentDescription }
                                 } else {
                                     Modifier
                                         .fillMaxWidth()
                                         .testTag("music.track.spotify.open")
-                                        .semantics { contentDescription = "Spotify Player oeffnen" }
+                                        .semantics { contentDescription = openSpotifyPlayerContentDescription }
                                 },
                                 border = BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.48f)),
                                 colors = ButtonDefaults.outlinedButtonColors(
@@ -426,7 +429,7 @@ fun TrackRow(
                                 ),
                             ) {
                                 Text(
-                                    text = "In Spotify weiter",
+                                    text = stringResource(R.string.track_action_open_spotify),
                                     style = MaterialTheme.typography.labelLarge,
                                 )
                             }
@@ -448,7 +451,11 @@ fun TrackRow(
                                 ),
                             ) {
                                 Text(
-                                    text = if (hasSpotifyArtistLink) "Spotify Artist" else "Spotify Suche",
+                                    text = if (hasSpotifyArtistLink) {
+                                        stringResource(R.string.track_pill_spotify_artist)
+                                    } else {
+                                        stringResource(R.string.track_pill_spotify_search)
+                                    },
                                     style = MaterialTheme.typography.labelLarge,
                                 )
                             }
@@ -470,7 +477,7 @@ fun TrackRow(
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             )
                             Text(
-                                text = "Gerade kein Spotify-Link verfuegbar",
+                                text = stringResource(R.string.track_no_spotify_link),
                                 color = contentColor.copy(alpha = 0.75f),
                                 style = MaterialTheme.typography.labelLarge,
                             )
@@ -562,12 +569,13 @@ private fun SpotifyEmbedDialog(
     val embedUrl = remember(track.spotifyTrackId, track.externalUrl) {
         spotifyEmbedUri(track.spotifyTrackId, track.externalUrl)
     }
+    val spotifyDialogContentDescription = stringResource(R.string.track_spotify_dialog_cd)
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
                 .testTag("music.track.spotify.dialog")
-                .semantics { contentDescription = "Spotify Player Dialog" },
+                .semantics { contentDescription = spotifyDialogContentDescription },
             shape = RoundedCornerShape(28.dp),
             tonalElevation = 8.dp,
             shadowElevation = 10.dp,
@@ -610,7 +618,7 @@ private fun SpotifyEmbedDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Dialog schliessen",
+                            contentDescription = stringResource(R.string.common_close),
                         )
                     }
                 }
@@ -636,7 +644,7 @@ private fun SpotifyEmbedDialog(
                     )
                 } else {
                     Text(
-                        text = "Der Spotify Player konnte fuer diesen Track nicht aufgebaut werden.",
+                        text = stringResource(R.string.track_spotify_player_unavailable),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -662,7 +670,7 @@ private fun SpotifyEmbedDialog(
                             contentDescription = null,
                         )
                         Text(
-                            text = "Spotify App",
+                            text = stringResource(R.string.track_action_spotify_app),
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
@@ -671,7 +679,7 @@ private fun SpotifyEmbedDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Schliessen")
+                        Text(stringResource(R.string.common_close))
                     }
                 }
             }

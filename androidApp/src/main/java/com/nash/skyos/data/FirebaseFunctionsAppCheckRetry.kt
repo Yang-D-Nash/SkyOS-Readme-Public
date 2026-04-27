@@ -1,8 +1,8 @@
 package com.nash.skyos.data
 
 import android.content.pm.ApplicationInfo
-import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.FirebaseApp
+import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.functions.HttpsCallableResult

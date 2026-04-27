@@ -64,6 +64,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -133,6 +134,9 @@ fun AiScreen(
     showTopBar: Boolean = true,
     immersiveInTools: Boolean = false,
 ) {
+    DisposableEffect(immersiveInTools) {
+        onDispose { }
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val baseCompactLayout = rememberIsCompactAppLayout()
     val compactVisualDensity = rememberUsesCompactVisualDensity()
@@ -151,6 +155,9 @@ fun AiScreen(
     val membershipState by membershipCoordinator.uiState.collectAsStateWithLifecycle()
     var localFeedbackMessage by remember { mutableStateOf<String?>(null) }
     var localFeedbackType by remember { mutableStateOf(ToastType.Info) }
+    val imageSavedFeedback = stringResource(R.string.ai_feedback_image_saved)
+    val imageSaveFailedFeedback = stringResource(R.string.ai_feedback_image_save_failed)
+    val storageDeniedFeedback = stringResource(R.string.ai_feedback_storage_permission_denied)
     var pendingImageSave by remember { mutableStateOf<Pair<ByteArray, String?>?>(null) }
     var showPromptComposer by rememberSaveable { mutableStateOf(false) }
     var showSessionsSheet by rememberSaveable { mutableStateOf(false) }
@@ -158,9 +165,9 @@ fun AiScreen(
     val promptSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val activeSessionSummary = uiState.sessions.firstOrNull { it.sessionId == uiState.activeSessionId }
     val activeSessionSubtitle = when (activeSessionSummary?.promptCount ?: 0) {
-        0 -> "Neu"
-        1 -> "1 Anfrage"
-        else -> "${activeSessionSummary?.promptCount ?: 0} Anfragen"
+        0 -> stringResource(R.string.ai_session_count_new)
+        1 -> stringResource(R.string.ai_session_count_one)
+        else -> stringResource(R.string.ai_session_count_many, activeSessionSummary?.promptCount ?: 0)
     }
 
     val showLocalFeedback: (String, ToastType) -> Unit = { message, type ->
@@ -170,10 +177,10 @@ fun AiScreen(
     val saveGeneratedImage: (ByteArray, String?) -> Unit = { imageBytes, mimeType ->
         saveAiImage(context, imageBytes, mimeType)
             .onSuccess {
-                showLocalFeedback("Bild gespeichert.", ToastType.Success)
+                showLocalFeedback(imageSavedFeedback, ToastType.Success)
             }
             .onFailure {
-                showLocalFeedback("Bild konnte nicht gespeichert werden.", ToastType.Error)
+                showLocalFeedback(imageSaveFailedFeedback, ToastType.Error)
             }
     }
     val legacyImageWritePermissionLauncher = rememberLauncherForActivityResult(
@@ -184,7 +191,7 @@ fun AiScreen(
         if (isGranted && pending != null) {
             saveGeneratedImage(pending.first, pending.second)
         } else {
-            showLocalFeedback("Speicherzugriff wurde nicht freigegeben.", ToastType.Error)
+            showLocalFeedback(storageDeniedFeedback, ToastType.Error)
         }
     }
     val requestGeneratedImageSave: (ByteArray, String?) -> Unit = { imageBytes, mimeType ->
@@ -446,7 +453,7 @@ fun AiScreen(
 
             if (showSessionsSheet) {
                 AiConversationSessionsSheet(
-                    title = "AI Chats",
+                    title = stringResource(R.string.ai_sessions_title),
                     sessions = uiState.sessions,
                     activeSessionId = uiState.activeSessionId,
                     renameDraft = renameDraft,
@@ -568,7 +575,7 @@ private fun AiEmptyStateHeader(
                 verticalArrangement = Arrangement.spacedBy(5.dp),
             ) {
                 Text(
-                    text = "SkyOS AI",
+                    text = stringResource(R.string.ai_brand_title),
                     style = if (compactVisualDensity) {
                         MaterialTheme.typography.headlineSmall
                     } else {
@@ -580,7 +587,7 @@ private fun AiEmptyStateHeader(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "Copy, Release-Ideen und Visual-Prompts in einem ruhigen Flow.",
+                    text = stringResource(R.string.ai_brand_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                     maxLines = 2,
@@ -589,16 +596,16 @@ private fun AiEmptyStateHeader(
             }
 
             BrandStatusChip(
-                text = "Live",
+                text = stringResource(R.string.ai_chip_live),
                 accent = MaterialTheme.colorScheme.primary,
                 isActive = true,
             )
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            BrandStatusChip(text = "Text", accent = MaterialTheme.colorScheme.primary, isActive = true)
-            BrandStatusChip(text = "Visual", accent = MaterialTheme.colorScheme.tertiary, isActive = true)
-            BrandStatusChip(text = "Memory", accent = MaterialTheme.colorScheme.secondary, isActive = true)
+            BrandStatusChip(text = stringResource(R.string.ai_chip_text), accent = MaterialTheme.colorScheme.primary, isActive = true)
+            BrandStatusChip(text = stringResource(R.string.ai_chip_visual), accent = MaterialTheme.colorScheme.tertiary, isActive = true)
+            BrandStatusChip(text = stringResource(R.string.ai_chip_memory), accent = MaterialTheme.colorScheme.secondary, isActive = true)
         }
     }
 }
@@ -631,12 +638,12 @@ private fun AiPromptFab(
             } else {
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = "Prompt oeffnen",
+                    contentDescription = stringResource(R.string.ai_prompt_open),
                     modifier = Modifier.size(20.dp),
                 )
             }
             Text(
-                text = if (isWorking) "Arbeitet" else "Prompt",
+                text = if (isWorking) stringResource(R.string.ai_fab_working) else stringResource(R.string.ai_composer_prompt),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Black,
             )
@@ -709,7 +716,7 @@ private fun AiPromptComposerSheet(
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 Text(
-                    text = "Neue AI-Anfrage",
+                    text = stringResource(R.string.ai_composer_new_request_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -717,7 +724,7 @@ private fun AiPromptComposerSheet(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "Optionen waehlen, Prompt schaerfen, senden.",
+                    text = stringResource(R.string.ai_composer_new_request_subtitle),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
                     maxLines = 2,
@@ -726,7 +733,7 @@ private fun AiPromptComposerSheet(
             }
 
             BrandStatusChip(
-                text = if (composerMode == AiComposerMode.Visual) "Visual" else "Text",
+                text = if (composerMode == AiComposerMode.Visual) stringResource(R.string.ai_chip_visual) else stringResource(R.string.ai_chip_text),
                 accent = composerAccent,
                 isActive = true,
             )
@@ -736,7 +743,7 @@ private fun AiPromptComposerSheet(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Prompt schliessen",
+                    contentDescription = stringResource(R.string.ai_prompt_close),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -751,7 +758,7 @@ private fun AiPromptComposerSheet(
         }
 
         Text(
-            text = "Optionen",
+            text = stringResource(R.string.ai_composer_options),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Black,
             color = composerAccent,
@@ -762,7 +769,7 @@ private fun AiPromptComposerSheet(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             BrandActionButton(
-                text = "Text",
+                text = stringResource(R.string.ai_chip_text),
                 onClick = { onComposerModeChange(AiComposerMode.Text) },
                 accent = MaterialTheme.colorScheme.primary,
                 filled = composerMode == AiComposerMode.Text,
@@ -770,7 +777,7 @@ private fun AiPromptComposerSheet(
                 modifier = Modifier.weight(1f),
             )
             BrandActionButton(
-                text = "Visual",
+                text = stringResource(R.string.ai_chip_visual),
                 onClick = { onComposerModeChange(AiComposerMode.Visual) },
                 accent = MaterialTheme.colorScheme.tertiary,
                 filled = composerMode == AiComposerMode.Visual,
@@ -841,7 +848,7 @@ private fun AiPromptComposerSheet(
         }
 
         Text(
-            text = "Prompt",
+            text = stringResource(R.string.ai_composer_prompt),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Black,
             color = composerAccent,
@@ -856,7 +863,7 @@ private fun AiPromptComposerSheet(
                     if (composerMode == AiComposerMode.Text) {
                         textMode.placeholder
                     } else {
-                        "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release."
+                        stringResource(R.string.ai_composer_visual_placeholder)
                     },
                 )
             },
@@ -883,10 +890,10 @@ private fun AiPromptComposerSheet(
                 onClick = onReset,
                 enabled = !botPhase.isBusy,
             ) {
-                Text("Neuer Chat")
+                Text(stringResource(R.string.ai_action_new_chat))
             }
             BrandActionButton(
-                text = if (composerMode == AiComposerMode.Text) "Senden" else "Rendern",
+                text = if (composerMode == AiComposerMode.Text) stringResource(R.string.ai_action_send) else stringResource(R.string.ai_action_render),
                 onClick = onSend,
                 accent = composerAccent,
                 icon = Icons.AutoMirrored.Filled.Send,
@@ -946,7 +953,12 @@ private fun AiRevenueUsageCard(
                 .padding(top = 8.dp),
         )
         Text(
-            text = "${usage.remainingForKind}/${usage.limitForKind} ${stringResource(R.string.ai_available)}",
+            text = stringResource(
+                R.string.ai_usage_remaining_of_limit,
+                usage.remainingForKind,
+                usage.limitForKind,
+                stringResource(R.string.ai_available),
+            ),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
             modifier = Modifier.padding(top = 4.dp),
@@ -985,7 +997,7 @@ private fun AiRevenueUsageCard(
         }
         if (usage.retryAfterSeconds > 0) {
             Text(
-                text = "${stringResource(R.string.ai_retry_in)} ${usage.retryAfterSeconds}s.",
+                text = stringResource(R.string.ai_retry_in_seconds, usage.retryAfterSeconds),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                 modifier = Modifier
@@ -997,7 +1009,7 @@ private fun AiRevenueUsageCard(
         }
         if (usage.suggestedUpgrade.isNotBlank()) {
             Text(
-                text = "${stringResource(R.string.ai_next_step)}: ${usage.suggestedUpgrade.uppercase()}",
+                text = stringResource(R.string.ai_next_step_value, usage.suggestedUpgrade.uppercase()),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.padding(top = 4.dp),
@@ -1020,21 +1032,21 @@ private fun AiDecisionCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            BrandStatusChip(text = "Route", accent = MaterialTheme.colorScheme.tertiary, isActive = true)
+            BrandStatusChip(text = stringResource(R.string.ai_decision_route), accent = MaterialTheme.colorScheme.tertiary, isActive = true)
             BrandStatusChip(
                 text = when (decision.state) {
-                    "faq_answer" -> "FAQ"
-                    "degraded" -> "Fallback"
-                    "blocked" -> "Blockiert"
-                    "retryable" -> "Erneut"
-                    else -> "Live"
+                    "faq_answer" -> stringResource(R.string.ai_decision_state_faq)
+                    "degraded" -> stringResource(R.string.ai_decision_state_fallback)
+                    "blocked" -> stringResource(R.string.ai_decision_state_blocked)
+                    "retryable" -> stringResource(R.string.ai_decision_state_retry)
+                    else -> stringResource(R.string.ai_chip_live)
                 },
                 accent = MaterialTheme.colorScheme.primary,
                 isActive = true,
             )
         }
         Text(
-            text = decision.summary.ifBlank { "Antwortpfad dokumentiert." },
+            text = decision.summary.ifBlank { stringResource(R.string.ai_decision_summary_default) },
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -1042,7 +1054,7 @@ private fun AiDecisionCard(
         )
         if (decision.topic.isNotBlank()) {
             Text(
-                text = "Thema: ${decision.topic}",
+                text = stringResource(R.string.ai_decision_topic, decision.topic),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 modifier = Modifier.padding(top = 2.dp),
@@ -1050,7 +1062,7 @@ private fun AiDecisionCard(
         }
         if (decision.fallbackActivated && decision.fallbackReason.isNotBlank()) {
             Text(
-                text = "Fallback: ${decision.fallbackReason}",
+                text = stringResource(R.string.ai_decision_fallback, decision.fallbackReason),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 modifier = Modifier.padding(top = 2.dp),
@@ -1058,7 +1070,7 @@ private fun AiDecisionCard(
         }
         if (decision.responseLimited && decision.responseLimitReason.isNotBlank()) {
             Text(
-                text = "Limit: ${decision.responseLimitReason}",
+                text = stringResource(R.string.ai_decision_limit, decision.responseLimitReason),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 modifier = Modifier.padding(top = 2.dp),
@@ -1066,7 +1078,7 @@ private fun AiDecisionCard(
         }
         if (decision.blocked && decision.blockReason.isNotBlank()) {
             Text(
-                text = "Blockiert: ${decision.blockReason}",
+                text = stringResource(R.string.ai_decision_blocked, decision.blockReason),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(top = 2.dp),
@@ -1074,7 +1086,7 @@ private fun AiDecisionCard(
         }
         if (decision.retryable && decision.retryReason.isNotBlank()) {
             Text(
-                text = "Erneut: ${decision.retryReason}",
+                text = stringResource(R.string.ai_decision_retry, decision.retryReason),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 modifier = Modifier.padding(top = 2.dp),
@@ -1116,7 +1128,7 @@ private fun AiMembershipSheet(
             Text(stringResource(R.string.ai_membership_sheet_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
             Text(stringResource(R.string.ai_membership_sheet_subtitle), style = MaterialTheme.typography.bodyMedium)
             Text(
-                "Ausloeser: ${state.reason.name.lowercase()}",
+                stringResource(R.string.agent_membership_trigger, state.reason.name.lowercase()),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             )
@@ -1157,7 +1169,7 @@ private fun AiMembershipSheet(
             }
             if (!state.isLoading && state.products.isEmpty() && state.errorMessage.isBlank()) {
                 Text(
-                    text = "Play Billing ist fuer dieses Build noch nicht live konfiguriert.",
+                    text = stringResource(R.string.ai_billing_not_configured),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -1224,7 +1236,7 @@ private fun AiCommandHeroCard(
                 modifier = Modifier.size(14.dp),
             )
             Text(
-                text = "SkyOS AI",
+                text = stringResource(R.string.ai_brand_title),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -1232,14 +1244,14 @@ private fun AiCommandHeroCard(
             Spacer(modifier = Modifier.weight(1f))
         }
         Text(
-            text = "Text. Visuals. Ideen. Ein klarer kreativer Flow.",
+            text = stringResource(R.string.ai_command_hero_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            BrandStatusChip(text = "Private", accent = MaterialTheme.colorScheme.primary, isActive = true)
-            BrandStatusChip(text = "Visual", accent = MaterialTheme.colorScheme.tertiary, isActive = true)
-            BrandStatusChip(text = "Memory", accent = MaterialTheme.colorScheme.secondary, isActive = true)
+            BrandStatusChip(text = stringResource(R.string.ai_chip_private), accent = MaterialTheme.colorScheme.primary, isActive = true)
+            BrandStatusChip(text = stringResource(R.string.ai_chip_visual), accent = MaterialTheme.colorScheme.tertiary, isActive = true)
+            BrandStatusChip(text = stringResource(R.string.ai_chip_memory), accent = MaterialTheme.colorScheme.secondary, isActive = true)
         }
     }
 }
@@ -1250,26 +1262,26 @@ private fun AiOverviewCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(14.dp)) {
         BrandSectionBanner(
-            title = if (isEnabled) "AI live" else "AI pausiert",
-            subtitle = "Text, Visuals und Stilentscheidungen laufen in einer privaten Session.",
+            title = if (isEnabled) stringResource(R.string.ai_overview_live_title) else stringResource(R.string.ai_overview_paused_title),
+            subtitle = stringResource(R.string.ai_overview_subtitle),
             accent = MaterialTheme.colorScheme.primary,
             icon = Icons.Default.AutoAwesome,
-            tag = if (isEnabled) "Private Session" else "Ruhend",
+            tag = if (isEnabled) stringResource(R.string.ai_overview_tag_private_session) else stringResource(R.string.ai_overview_tag_idle),
         )
         Row(
             modifier = Modifier.padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             BrandHeroMetricCard(
-                label = "OUTPUT",
-                value = "Text + Visual",
+                label = stringResource(R.string.ai_overview_metric_output),
+                value = stringResource(R.string.ai_overview_metric_output_value),
                 accent = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f),
                 isActive = isEnabled,
             )
             BrandHeroMetricCard(
-                label = "STATUS",
-                value = if (isEnabled) "Aktiv" else "Pausiert",
+                label = stringResource(R.string.ai_overview_metric_status),
+                value = if (isEnabled) stringResource(R.string.ai_overview_metric_status_active) else stringResource(R.string.ai_overview_metric_status_paused),
                 accent = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.weight(1f),
                 isActive = isEnabled,
@@ -1280,12 +1292,12 @@ private fun AiOverviewCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             BrandStatusChip(
-                text = "Privat",
+                text = stringResource(R.string.ai_chip_private),
                 accent = MaterialTheme.colorScheme.primary,
                 isActive = isEnabled,
             )
             BrandStatusChip(
-                text = "Visuals",
+                text = stringResource(R.string.ai_chip_visuals),
                 accent = MaterialTheme.colorScheme.tertiary,
                 isActive = isEnabled,
             )
@@ -1318,7 +1330,7 @@ private fun AiOverviewCard(
                 .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             Text(
-                text = "Direkter Zugriff auf Caption-, Konzept- und Bildarbeit ohne Toolbruch oder Kontextverlust.",
+                text = stringResource(R.string.ai_overview_direct_access),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
             )
@@ -1335,10 +1347,14 @@ private fun AiSessionStrip(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 8.dp else 10.dp)) {
         BrandSectionBanner(
-            title = "Session",
-            subtitle = "Private Kontextlage mit direktem Fokus fuer Copy und Visuals.",
+            title = stringResource(R.string.ai_session_title),
+            subtitle = stringResource(R.string.ai_session_subtitle),
             accent = MaterialTheme.colorScheme.primary,
-            tag = if (messageCount == 0) "Fresh" else "$messageCount Steps",
+            tag = if (messageCount == 0) {
+                stringResource(R.string.ai_session_tag_fresh)
+            } else {
+                stringResource(R.string.ai_session_tag_steps, messageCount)
+            },
         )
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1346,27 +1362,31 @@ private fun AiSessionStrip(
         ) {
             item {
                 AiSessionSignalCard(
-                    title = "Mode",
-                    value = if (composerMode == AiComposerMode.Visual) "Visual" else "Text",
-                    detail = if (composerMode == AiComposerMode.Visual) "Bild-Generierung" else "Text-Produktion",
+                    title = stringResource(R.string.ai_session_signal_mode),
+                    value = if (composerMode == AiComposerMode.Visual) stringResource(R.string.ai_session_value_visual) else stringResource(R.string.ai_session_value_text),
+                    detail = if (composerMode == AiComposerMode.Visual) stringResource(R.string.ai_session_detail_visual_generation) else stringResource(R.string.ai_session_detail_text_production),
                     accent = MaterialTheme.colorScheme.primary,
                     compactVisualDensity = compactVisualDensity,
                 )
             }
             item {
                 AiSessionSignalCard(
-                    title = "Focus",
-                    value = if (composerMode == AiComposerMode.Visual) "Cinematic" else textMode.title,
-                    detail = if (composerMode == AiComposerMode.Visual) "Prompt -> Visual" else "Textmodus direkt steuerbar",
+                    title = stringResource(R.string.ai_session_signal_focus),
+                    value = if (composerMode == AiComposerMode.Visual) stringResource(R.string.ai_session_value_cinematic) else textMode.title,
+                    detail = if (composerMode == AiComposerMode.Visual) stringResource(R.string.ai_session_detail_prompt_to_visual) else stringResource(R.string.ai_session_detail_text_mode_direct),
                     accent = MaterialTheme.colorScheme.tertiary,
                     compactVisualDensity = compactVisualDensity,
                 )
             }
             item {
                 AiSessionSignalCard(
-                    title = "Memory",
-                    value = if (messageCount == 0) "Neu" else "$messageCount Steps",
-                    detail = "Verlauf bleibt pro Konto aktiv",
+                    title = stringResource(R.string.ai_session_signal_memory),
+                    value = if (messageCount == 0) {
+                        stringResource(R.string.ai_session_count_new)
+                    } else {
+                        stringResource(R.string.ai_session_tag_steps, messageCount)
+                    },
+                    detail = stringResource(R.string.ai_session_memory_detail),
                     accent = MaterialTheme.colorScheme.secondary,
                     compactVisualDensity = compactVisualDensity,
                 )
@@ -1383,13 +1403,23 @@ private fun AiSessionSignalCard(
     accent: Color,
     compactVisualDensity: Boolean,
 ) {
-    BrandHeroMetricCard(
-        label = title.uppercase(),
-        value = value,
-        accent = accent,
+    Column(
         modifier = Modifier.widthIn(min = if (compactVisualDensity) 148.dp else 164.dp),
-        isActive = true,
-    )
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        BrandHeroMetricCard(
+            label = title.uppercase(),
+            value = value,
+            accent = accent,
+            modifier = Modifier.fillMaxWidth(),
+            isActive = true,
+        )
+        Text(
+            text = detail,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+        )
+    }
 }
 
 @Composable
@@ -1419,20 +1449,20 @@ private fun AiDisabledCard() {
                 modifier = Modifier.size(14.dp),
             )
             Text(
-                text = "SkyOS Bot pausiert",
+                text = stringResource(R.string.ai_disabled_title),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(modifier = Modifier.weight(1f))
             BrandStatusChip(
-                text = "Ruhend",
+                text = stringResource(R.string.ai_overview_tag_idle),
                 accent = MaterialTheme.colorScheme.primary,
                 isActive = true,
             )
         }
         Text(
-            text = "Rest der App bleibt nutzbar — der Bot folgt, sobald er wieder verfuegbar ist.",
+            text = stringResource(R.string.ai_disabled_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -1451,18 +1481,18 @@ private fun QuickPromptCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BrandStatusChip(
-                text = "Text",
+                text = stringResource(R.string.ai_chip_text),
                 accent = MaterialTheme.colorScheme.primary,
                 isActive = true,
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "Prompt Library",
+                    text = stringResource(R.string.ai_prompt_library_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Schnelle Starts.",
+                    text = stringResource(R.string.ai_prompt_library_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -1474,7 +1504,7 @@ private fun QuickPromptCard(
         ) {
             items(prompts) { prompt ->
                 AiPromptActionCard(
-                    eyebrow = "CURATED",
+                    eyebrow = stringResource(R.string.ai_prompt_eyebrow_curated),
                     text = prompt,
                     accent = MaterialTheme.colorScheme.primary,
                     compactLayout = compactLayout,
@@ -1500,18 +1530,18 @@ private fun VisualPromptCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BrandStatusChip(
-                text = "Visual",
+                text = stringResource(R.string.ai_chip_visual),
                 accent = MaterialTheme.colorScheme.tertiary,
                 isActive = true,
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "Visual Deck",
+                    text = stringResource(R.string.ai_visual_deck_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Visual Starts.",
+                    text = stringResource(R.string.ai_visual_deck_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -1523,9 +1553,9 @@ private fun VisualPromptCard(
         ) {
             items(prompts, key = { it.label }) { prompt ->
                 AiPromptActionCard(
-                    eyebrow = "SHOT",
+                    eyebrow = stringResource(R.string.ai_prompt_eyebrow_shot),
                     text = prompt.label,
-                    detail = "Direkt starten",
+                    detail = stringResource(R.string.ai_prompt_detail_start_now),
                     accent = MaterialTheme.colorScheme.tertiary,
                     compactLayout = compactLayout,
                     modifier = Modifier.testTag("ai.visual.prompt.button"),
@@ -1606,7 +1636,7 @@ private fun AiPromptActionCard(
                 )
             }
             BrandActionButton(
-                text = if (detail == null) "Starten" else "Rendern",
+                text = if (detail == null) stringResource(R.string.ai_action_start) else stringResource(R.string.ai_action_render),
                 onClick = onClick,
                 accent = accent,
                 filled = false,
@@ -1626,6 +1656,9 @@ fun AiMessageBubble(
     onFeedback: (String, ToastType) -> Unit,
 ) {
     val context = LocalContext.current
+    val generatedVisualContentDescription = stringResource(R.string.ai_generated_visual_cd)
+    val feedbackCopiedText = stringResource(R.string.ai_feedback_copied)
+    val feedbackShareOpenedText = stringResource(R.string.ai_feedback_share_opened)
     val isUser = message.role == AiMessageRole.User
     val bubbleShape = RoundedCornerShape(
         topStart = SkydownUiTokens.cardCornerRadius,
@@ -1671,7 +1704,7 @@ fun AiMessageBubble(
                 ),
         ) {
             Text(
-                text = if (isUser) "Du" else "SkyOS AI",
+                text = if (isUser) stringResource(R.string.ai_user_label_you) else stringResource(R.string.ai_brand_title),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -1688,7 +1721,7 @@ fun AiMessageBubble(
                         strokeWidth = 2.dp,
                     )
                     Text(
-                        text = "SkyOS AI antwortet...",
+                        text = stringResource(R.string.ai_streaming_reply),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -1715,7 +1748,7 @@ fun AiMessageBubble(
                             .height(220.dp)
                             .testTag("ai.message.visual")
                             .semantics(mergeDescendants = true) {
-                                contentDescription = "Generiertes Visual"
+                                contentDescription = generatedVisualContentDescription
                             }
                             .clip(RoundedCornerShape(22.dp)),
                     ) {
@@ -1737,26 +1770,26 @@ fun AiMessageBubble(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         BrandStatusChip(
-                            text = "Kopieren",
+                                text = stringResource(R.string.ai_action_copy),
                             accent = MaterialTheme.colorScheme.primary,
                             onClick = {
                                 copyAiText(context, "SkyOS Bot", message.text)
-                                onFeedback("Antwort kopiert.", ToastType.Success)
+                                onFeedback(feedbackCopiedText, ToastType.Success)
                             },
                         )
 
                         BrandStatusChip(
-                            text = "Teilen",
+                                text = stringResource(R.string.ai_action_share),
                             accent = MaterialTheme.colorScheme.secondary,
                             onClick = {
                                 shareAiText(context, "SkyOS Bot", message.text)
-                                onFeedback("Share-Sheet geoeffnet.", ToastType.Info)
+                                onFeedback(feedbackShareOpenedText, ToastType.Info)
                             },
                         )
 
                         if (message.imageBytes != null) {
                             BrandStatusChip(
-                                text = "Speichern",
+                                text = stringResource(R.string.ai_action_save),
                                 accent = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.testTag("ai.message.save"),
                                 onClick = {

@@ -50,9 +50,25 @@ if ! grep -q "\"versionName\": \"${expected_version_name}\"" "$APK_METADATA"; th
   exit 1
 fi
 
+BUNDLE_METADATA="androidApp/build/outputs/bundle/release/output-metadata.json"
+if [[ -f "$BUNDLE_METADATA" ]]; then
+  if ! grep -q "\"versionCode\": ${expected_version_code}" "$BUNDLE_METADATA"; then
+    echo "Release bundle output-metadata does not match versionCode ${expected_version_code}." >&2
+    cat "$BUNDLE_METADATA" >&2
+    exit 1
+  fi
+  if ! grep -q "\"versionName\": \"${expected_version_name}\"" "$BUNDLE_METADATA"; then
+    echo "Release bundle output-metadata does not match versionName ${expected_version_name}." >&2
+    cat "$BUNDLE_METADATA" >&2
+    exit 1
+  fi
+fi
+
 echo
 echo "Fresh Android release artifacts:"
 ls -lh "$APK_FILE" "$BUNDLE_FILE"
 echo
-echo "Release metadata:"
+echo "Release metadata (APK):"
 cat "$APK_METADATA"
+
+./scripts/verify_android_release_artifacts.sh

@@ -7,9 +7,16 @@ ANDROID_PACKAGE = "com.nash.skyos"
 PLAY_TRACK = "internal"
 RELEASE_STATUS = "draft"
 
+def run_android_release_artifact_verify!
+  verify = File.expand_path(File.join("..", "scripts", "verify_android_release_artifacts.sh"), __dir__)
+  UI.user_error!("Missing verify script: #{verify}") unless File.exist?(verify)
+  sh("bash", verify)
+end
+
 platform :android do
   desc "Validate SkyOS Android AAB upload for Google Play internal testing"
   lane :validate_android_internal do
+    run_android_release_artifact_verify!
     ensure_env_vars(env_vars: ["SUPPLY_JSON_KEY"])
     UI.user_error!("AAB not found at #{AAB_PATH}") unless File.exist?(AAB_PATH)
 
@@ -29,6 +36,7 @@ platform :android do
 
   desc "Upload SkyOS Android AAB to Google Play internal testing"
   lane :upload_android_internal do
+    run_android_release_artifact_verify!
     ensure_env_vars(env_vars: ["SUPPLY_JSON_KEY"])
     UI.user_error!("AAB not found at #{AAB_PATH}") unless File.exist?(AAB_PATH)
 

@@ -21,9 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.nash.skyos.R
 
 @Composable
 fun EditableImageFieldCard(
@@ -33,11 +35,13 @@ fun EditableImageFieldCard(
     onImageUrlChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     onRemoveImage: (() -> Unit)? = null,
-    buttonLabel: String = "Vom Handy waehlen",
+    buttonLabel: String = "",
     isUploading: Boolean = false,
     enabled: Boolean = true,
-    uploadStatusText: String = "Bild wird vorbereitet und hochgeladen.",
+    uploadStatusText: String = "",
 ) {
+    val resolvedButtonLabel = buttonLabel.ifBlank { stringResource(R.string.editable_image_pick_from_device) }
+    val resolvedUploadStatusText = uploadStatusText.ifBlank { stringResource(R.string.editable_image_uploading) }
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -85,7 +89,7 @@ fun EditableImageFieldCard(
                         contentDescription = null,
                     )
                     Text(
-                        text = "Noch kein Bild",
+                        text = stringResource(R.string.editable_image_none),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                     )
@@ -99,18 +103,24 @@ fun EditableImageFieldCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = if (isUploading) "Upload laeuft" else if (imageUrl.isBlank()) "Noch kein Bild" else "Bild aktiv",
+                    text = if (isUploading) {
+                        stringResource(R.string.editable_image_upload_in_progress)
+                    } else if (imageUrl.isBlank()) {
+                        stringResource(R.string.editable_image_none)
+                    } else {
+                        stringResource(R.string.editable_image_active)
+                    },
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimary,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
                     text = if (isUploading) {
-                        uploadStatusText
+                        resolvedUploadStatusText
                     } else if (imageUrl.isBlank()) {
-                        "Wird nach dem Upload direkt gesetzt."
+                        stringResource(R.string.editable_image_pending_apply)
                     } else {
-                        "Die App dunkelt es automatisch fuer Text ab."
+                        stringResource(R.string.editable_image_auto_dimmed)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f),
@@ -133,7 +143,7 @@ fun EditableImageFieldCard(
                 ) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     Text(
-                        text = uploadStatusText,
+                        text = resolvedUploadStatusText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
@@ -146,7 +156,7 @@ fun EditableImageFieldCard(
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled && !isUploading,
         ) {
-            Text(buttonLabel)
+            Text(resolvedButtonLabel)
         }
 
         if (imageUrl.isNotBlank()) {
@@ -161,7 +171,7 @@ fun EditableImageFieldCard(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = enabled && !isUploading,
             ) {
-                Text("Bild entfernen")
+                Text(stringResource(R.string.editable_image_remove))
             }
         }
     }

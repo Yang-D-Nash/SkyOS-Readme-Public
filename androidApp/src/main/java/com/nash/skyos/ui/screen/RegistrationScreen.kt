@@ -384,7 +384,7 @@ private fun RegistrationLegalDocumentSheet(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Zuletzt aktualisiert: ${document.updatedAt}",
+                        text = stringResource(R.string.legal_ui_last_updated, document.updatedAt),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                     )

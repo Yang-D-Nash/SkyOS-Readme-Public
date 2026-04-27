@@ -87,32 +87,43 @@ fun CartScreen(
     val hasOrderItems = uiState.items.isNotEmpty()
     val isZeroCostOrder = hasOrderItems && pricing.total <= 0.01
     val checkoutReadinessTitle = when {
-        uiState.isSubmitting -> "Wird vorbereitet"
-        viewModel.isFormValid() && (uiState.isStoreOpen || uiState.isAdmin) -> "Alles bereit"
-        !uiState.isLoggedIn -> "Anmeldung fehlt"
-        !(uiState.isStoreOpen || uiState.isAdmin) -> "Kurz pausiert"
-        uiState.paymentMethods.checkoutMethodLabels.isNotEmpty() && uiState.selectedPaymentMethod.isBlank() -> "Zahlart offen"
-        !viewModel.isFormValid() -> "Angaben offen"
-        else -> "Kurz pruefen"
+        uiState.isSubmitting -> stringResource(R.string.cart_readiness_preparing)
+        viewModel.isFormValid() && (uiState.isStoreOpen || uiState.isAdmin) -> stringResource(R.string.cart_readiness_ready)
+        !uiState.isLoggedIn -> stringResource(R.string.cart_readiness_sign_in_missing)
+        !(uiState.isStoreOpen || uiState.isAdmin) -> stringResource(R.string.cart_readiness_paused)
+        uiState.paymentMethods.checkoutMethodLabels.isNotEmpty() && uiState.selectedPaymentMethod.isBlank() -> stringResource(R.string.cart_readiness_payment_open)
+        !viewModel.isFormValid() -> stringResource(R.string.cart_readiness_fields_open)
+        else -> stringResource(R.string.cart_readiness_check)
     }
     val checkoutReadinessDetail = when {
-        uiState.isSubmitting -> "Wir pruefen jetzt sicher alle Angaben."
-        viewModel.isFormValid() && (uiState.isStoreOpen || uiState.isAdmin) -> "Du kannst jetzt sicher fortfahren."
-        !uiState.isLoggedIn -> "Bitte zuerst anmelden."
-        !(uiState.isStoreOpen || uiState.isAdmin) -> "Der Checkout startet wieder nach der Oeffnung."
-        uiState.paymentMethods.checkoutMethodLabels.isNotEmpty() && uiState.selectedPaymentMethod.isBlank() -> "Bitte eine Zahlart waehlen."
-        !viewModel.isFormValid() -> "Bitte fehlende Pflichtfelder ergaenzen."
-        else -> "Ein kurzer Check, dann weiter."
+        uiState.isSubmitting -> stringResource(R.string.cart_readiness_detail_preparing)
+        viewModel.isFormValid() && (uiState.isStoreOpen || uiState.isAdmin) -> stringResource(R.string.cart_readiness_detail_ready)
+        !uiState.isLoggedIn -> stringResource(R.string.cart_readiness_detail_sign_in)
+        !(uiState.isStoreOpen || uiState.isAdmin) -> stringResource(R.string.cart_readiness_detail_paused)
+        uiState.paymentMethods.checkoutMethodLabels.isNotEmpty() && uiState.selectedPaymentMethod.isBlank() -> stringResource(R.string.cart_readiness_detail_payment)
+        !viewModel.isFormValid() -> stringResource(R.string.cart_readiness_detail_fields)
+        else -> stringResource(R.string.cart_readiness_detail_check)
     }
     val checkoutPaymentTitle = uiState.selectedPaymentMethod.ifBlank {
-        if (uiState.paymentMethods.checkoutMethodLabels.isEmpty()) "Rueckkontakt" else "Waehlen"
+        if (uiState.paymentMethods.checkoutMethodLabels.isEmpty()) stringResource(R.string.cart_payment_callback) else stringResource(R.string.cart_payment_choose)
     }
-    val checkoutPaymentDetail = paymentRouteDetail(uiState.selectedPaymentMethod.ifBlank { "Rueckkontakt" })
-    val checkoutTotalTitle = if (hasOrderItems) "EUR ${formatCurrency(pricing.total)}" else "Leer"
+    val checkoutPaymentDetail = paymentRouteDetail(
+        uiState.selectedPaymentMethod.ifBlank { stringResource(R.string.cart_payment_callback) },
+    )
+    val shippingZoneLabel = when (pricing.zoneLabel) {
+        "pending" -> stringResource(R.string.cart_shipping_zone_pending)
+        "check-country" -> stringResource(R.string.cart_shipping_zone_check_country)
+        else -> pricing.zoneLabel
+    }
+    val checkoutTotalTitle = if (hasOrderItems) {
+        stringResource(R.string.order_price_eur, formatCurrency(pricing.total))
+    } else {
+        stringResource(R.string.cart_total_empty)
+    }
     val checkoutTotalDetail = when {
-        !hasOrderItems -> "Warenkorb aktuell leer"
-        isZeroCostOrder -> "${pricing.zoneLabel} · kein Zahlbetrag"
-        else -> "${pricing.zoneLabel} inkl. Versand"
+        !hasOrderItems -> stringResource(R.string.cart_total_detail_empty)
+        isZeroCostOrder -> stringResource(R.string.cart_total_detail_zero_payment, shippingZoneLabel)
+        else -> stringResource(R.string.cart_total_detail_shipping_included, shippingZoneLabel)
     }
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
 
@@ -136,8 +147,8 @@ fun CartScreen(
             TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        title = "Warenkorb",
-                        subtitle = "Ruhig pruefen, sicher abschliessen.",
+                        title = stringResource(R.string.cart_title),
+                        subtitle = stringResource(R.string.cart_subtitle),
                     )
                 },
                 navigationIcon = if (onBack != null) {
@@ -145,7 +156,7 @@ fun CartScreen(
                         IconButton(onClick = onBack) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Zurueck",
+                                contentDescription = stringResource(R.string.common_back),
                             )
                         }
                     }
@@ -265,14 +276,14 @@ fun CartScreen(
                         item {
                             CartInlineStatusStrip(
                                 icon = Icons.Default.PauseCircle,
-                                title = "Checkout pausiert",
+                                title = stringResource(R.string.cart_checkout_paused_title),
                             ) {
                                 Text(
-                                    text = "Der Merchandise-Store ist gerade pausiert. Deine Auswahl bleibt sichtbar, aber neue Bestellungen werden erst wieder freigeschaltet, sobald der Store geoeffnet ist.",
+                                    text = stringResource(R.string.cart_checkout_paused_body),
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                                 )
                                 Text(
-                                    text = "Versuche es spaeter erneut oder kontaktiere den Support in den Einstellungen.",
+                                    text = stringResource(R.string.cart_checkout_paused_hint),
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                                 )
                             }
@@ -281,12 +292,12 @@ fun CartScreen(
 
                     item {
                         SkydownCard {
-                            SectionHeader("Deine Auswahl")
+                            SectionHeader(stringResource(R.string.cart_selection_title))
                             Text(
                                 text = if (uiState.items.isEmpty()) {
-                                    "Noch keine Artikel im Warenkorb. Sobald du etwas hinzufuegst, erscheint hier direkt deine Auswahl."
+                                    stringResource(R.string.cart_selection_empty)
                                 } else {
-                                    "Pruefe Mengen, Groessen und Preise, bevor du die Bestellung abschickst."
+                                    stringResource(R.string.cart_selection_review)
                                 },
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -307,16 +318,16 @@ fun CartScreen(
 
                     item {
                         SkydownCard {
-                            SectionHeader("Kontaktdaten")
+                            SectionHeader(stringResource(R.string.cart_contact_title))
                             Text(
-                                text = "Damit wir dich schnell zu deiner Bestellung erreichen.",
+                                text = stringResource(R.string.cart_contact_subtitle),
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
                             OutlinedTextField(
                                 value = uiState.name,
                                 onValueChange = viewModel::updateName,
-                                label = { Text("Name*") },
+                                label = { Text(stringResource(R.string.cart_field_name_required)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
@@ -326,7 +337,7 @@ fun CartScreen(
                             OutlinedTextField(
                                 value = uiState.email,
                                 onValueChange = viewModel::updateEmail,
-                                label = { Text("E-Mail*") },
+                                label = { Text(stringResource(R.string.cart_field_email_required)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
@@ -336,7 +347,7 @@ fun CartScreen(
                             OutlinedTextField(
                                 value = uiState.whatsApp,
                                 onValueChange = viewModel::updateWhatsApp,
-                                label = { Text("WhatsApp (optional)") },
+                                label = { Text(stringResource(R.string.cart_field_whatsapp_optional)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
@@ -348,16 +359,16 @@ fun CartScreen(
 
                     item {
                         SkydownCard {
-                            SectionHeader("Lieferadresse")
+                            SectionHeader(stringResource(R.string.cart_shipping_title))
                             Text(
-                                text = "Die Versandadresse wird fuer Rueckmeldung, Versand und Bestellabwicklung benoetigt.",
+                                text = stringResource(R.string.cart_shipping_subtitle),
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
                             OutlinedTextField(
                                 value = uiState.shippingStreet,
                                 onValueChange = viewModel::updateShippingStreet,
-                                label = { Text("Strasse und Hausnummer*") },
+                                label = { Text(stringResource(R.string.cart_field_street_required)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
@@ -367,7 +378,7 @@ fun CartScreen(
                             OutlinedTextField(
                                 value = uiState.shippingAddressExtra,
                                 onValueChange = viewModel::updateShippingAddressExtra,
-                                label = { Text("Adresszusatz (optional)") },
+                                label = { Text(stringResource(R.string.cart_field_address_extra_optional)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
@@ -377,7 +388,7 @@ fun CartScreen(
                             OutlinedTextField(
                                 value = uiState.shippingPostalCode,
                                 onValueChange = viewModel::updateShippingPostalCode,
-                                label = { Text("PLZ*") },
+                                label = { Text(stringResource(R.string.cart_field_postal_required)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
@@ -387,7 +398,7 @@ fun CartScreen(
                             OutlinedTextField(
                                 value = uiState.shippingCity,
                                 onValueChange = viewModel::updateShippingCity,
-                                label = { Text("Ort*") },
+                                label = { Text(stringResource(R.string.cart_field_city_required)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
@@ -397,7 +408,7 @@ fun CartScreen(
                             OutlinedTextField(
                                 value = uiState.shippingCountry,
                                 onValueChange = viewModel::updateShippingCountry,
-                                label = { Text("Land") },
+                                label = { Text(stringResource(R.string.cart_field_country)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
@@ -409,16 +420,16 @@ fun CartScreen(
 
                     item {
                         SkydownCard {
-                            SectionHeader("Nachricht")
+                            SectionHeader(stringResource(R.string.cart_message_title))
                             Text(
-                                text = "Optional: Hinweise zu Lieferung, Erreichbarkeit oder Sonderwuenschen helfen dem Team bei der schnellen Zuordnung.",
+                                text = stringResource(R.string.cart_message_subtitle),
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
                             OutlinedTextField(
                                 value = uiState.message,
                                 onValueChange = viewModel::updateMessage,
-                                label = { Text("Nachricht") },
+                                label = { Text(stringResource(R.string.cart_field_message)) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
@@ -431,6 +442,7 @@ fun CartScreen(
                     item {
                         PricingSummaryCard(
                             summary = pricing,
+                            shippingZoneLabel = shippingZoneLabel,
                             shippingNote = uiState.commerceSettings.shipping.shippingNotes,
                             companyName = uiState.commerceSettings.invoice.companyName,
                         )
@@ -445,22 +457,22 @@ fun CartScreen(
                             ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(
-                                        text = "Checkout",
+                                        text = stringResource(R.string.cart_checkout_title),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
                                         text = if (isZeroCostOrder && uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
-                                            "Fuer diesen 0-EUR-Testartikel ist keine Zahlung noetig."
+                                            stringResource(R.string.cart_checkout_zero_eur_hint)
                                         } else if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
-                                            "Stripe oeffnet danach den sicheren Live-Checkout."
+                                            stringResource(R.string.cart_checkout_stripe_live_hint)
                                         } else {
-                                            "Wir melden uns danach per E-Mail oder WhatsApp."
+                                            stringResource(R.string.cart_checkout_followup_hint)
                                         },
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                     )
                                 }
-                                CartInfoPill(text = "${uiState.items.size} Artikel")
+                                CartInfoPill(text = stringResource(R.string.cart_items_count, uiState.items.size))
                             }
 
                             Button(
@@ -488,13 +500,13 @@ fun CartScreen(
                             ) {
                                 Text(
                                     if (uiState.isSubmitting) {
-                                        "Wird vorbereitet..."
+                                        stringResource(R.string.cart_action_preparing)
                                     } else if (isZeroCostOrder && uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
-                                        "Bestellung bestaetigen"
+                                        stringResource(R.string.cart_action_confirm_order)
                                     } else if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
-                                        "Sicher fortfahren"
+                                        stringResource(R.string.cart_action_continue_securely)
                                     } else {
-                                        "Bestellung pruefen"
+                                        stringResource(R.string.cart_action_review_order)
                                     },
                                 )
                             }
@@ -508,7 +520,7 @@ fun CartScreen(
                                         .padding(top = 10.dp),
                                     shape = RoundedCornerShape(20.dp),
                                 ) {
-                                    Text("Fuege zuerst Artikel hinzu")
+                                    Text(stringResource(R.string.cart_action_add_items_first))
                                 }
                             }
                         }
@@ -548,19 +560,21 @@ private fun CartOverviewCard(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    text = "Warenkorb",
+                    text = stringResource(R.string.cart_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Ruhig pruefen, sicher abschliessen.",
+                    text = stringResource(R.string.cart_subtitle),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CartInfoPill(text = "$itemCount Artikel")
-                    CartInfoPill(text = if (isLoggedIn) "Konto aktiv" else "Gast")
+                    CartInfoPill(text = stringResource(R.string.cart_items_count, itemCount))
+                    CartInfoPill(text = if (isLoggedIn) stringResource(R.string.cart_account_active) else stringResource(R.string.cart_guest))
                     if (itemCount > 0) {
-                        CartInfoPill(text = "EUR ${formatCurrency(totalPrice)}")
+                        CartInfoPill(
+                            text = stringResource(R.string.order_price_eur, formatCurrency(totalPrice)),
+                        )
                     }
                 }
             }
@@ -588,42 +602,42 @@ private fun PaymentMethodAvailabilityCard(
     isCheckoutAvailable: Boolean,
 ) {
     SkydownCard {
-        SectionHeader("Zahlungsarten")
+        SectionHeader(stringResource(R.string.cart_payment_methods_title))
         if (!isCheckoutAvailable) {
             Text(
-                text = "Der Merchandise-Store ist aktuell pausiert. Zahlarten und Checkout werden erst wieder aktiv, sobald der Store geoeffnet ist.",
+                text = stringResource(R.string.cart_payment_methods_paused),
                 modifier = Modifier.padding(top = 8.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
         } else if (methods.isEmpty()) {
             Text(
-                text = "Aktuell ist noch keine Zahlart fuer Kunden sichtbar. Der Merch-Checkout bleibt bis dahin auf Anfrage und Rueckkontakt ausgelegt.",
+                text = stringResource(R.string.cart_payment_methods_none_visible),
                 modifier = Modifier.padding(top = 8.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
         } else {
             val checkoutTrustCopy = when {
                 bankTransferEnabled -> {
-                    "Bankdaten und genaue Anweisung folgen nach der Bestellbestaetigung direkt durch das Team."
+                    stringResource(R.string.cart_methods_trust_bank_transfer)
                 }
                 methods.contains("Stripe") && methods.contains("Klarna") -> {
-                    "Stripe und Klarna laufen als sicherer Live-Checkout. Je nach Geraet und Stripe-Setup koennen in Stripe zusaetzlich Wallets wie Apple Pay oder Google Pay erscheinen."
+                    stringResource(R.string.cart_methods_trust_stripe_klarna)
                 }
                 methods.contains("Stripe") -> {
-                    "Stripe laeuft als sicherer Live-Checkout. Je nach Geraet und Stripe-Setup koennen dort Karte und Wallets wie Apple Pay oder Google Pay erscheinen."
+                    stringResource(R.string.cart_methods_trust_stripe)
                 }
                 methods.contains("Klarna") -> {
-                    "Klarna laeuft aktuell als sicherer Live-Checkout ueber Stripe."
+                    stringResource(R.string.cart_methods_trust_klarna)
                 }
                 methods.contains("PayPal") -> {
-                    "PayPal ist aktuell nur fuer Rueckkontakt und bestaetigten Handoff sichtbar."
+                    stringResource(R.string.cart_methods_trust_paypal)
                 }
                 else -> {
-                    "Diese Zahlarten sind aktuell aktiv."
+                    stringResource(R.string.cart_payment_methods_active_now)
                 }
             }
             Text(
-                text = "Diese Zahlarten sind aktuell aktiv:",
+                text = stringResource(R.string.cart_payment_methods_active_now),
                 modifier = Modifier.padding(top = 8.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
@@ -647,19 +661,29 @@ private fun PaymentMethodAvailabilityCard(
 @Composable
 private fun PricingSummaryCard(
     summary: CartPricingSummaryUi,
+    shippingZoneLabel: String,
     shippingNote: String,
     companyName: String,
 ) {
     SkydownCard {
-        SectionHeader("Bestellsumme")
-        PaymentInfoLine("Zwischensumme", "EUR ${formatCurrency(summary.subtotal)}")
-        PaymentInfoLine("Versandzone", summary.zoneLabel)
-        PaymentInfoLine("Versand", "EUR ${formatCurrency(summary.shipping)}")
+        SectionHeader(stringResource(R.string.cart_summary_title))
         PaymentInfoLine(
-            "inkl. MwSt. (${formatCurrency(summary.taxRate, decimals = 1)}%)",
-            "EUR ${formatCurrency(summary.includedTax)}",
+            stringResource(R.string.cart_summary_subtotal),
+            stringResource(R.string.order_price_eur, formatCurrency(summary.subtotal)),
         )
-        PaymentInfoLine("Gesamt", "EUR ${formatCurrency(summary.total)}")
+        PaymentInfoLine(stringResource(R.string.cart_summary_shipping_zone), shippingZoneLabel)
+        PaymentInfoLine(
+            stringResource(R.string.cart_summary_shipping),
+            stringResource(R.string.order_price_eur, formatCurrency(summary.shipping)),
+        )
+        PaymentInfoLine(
+            stringResource(R.string.cart_summary_tax_included, formatCurrency(summary.taxRate, decimals = 1)),
+            stringResource(R.string.order_price_eur, formatCurrency(summary.includedTax)),
+        )
+        PaymentInfoLine(
+            stringResource(R.string.cart_summary_total),
+            stringResource(R.string.order_price_eur, formatCurrency(summary.total)),
+        )
         summary.shippingError?.let { error ->
             Text(
                 text = error,
@@ -675,7 +699,10 @@ private fun PricingSummaryCard(
             )
         }
         Text(
-            text = "Rechnung und Rueckmeldung laufen ueber ${companyName.ifBlank { "Ngoc Anh Nguyen (Yang D. Nash - Skydown)" }}.",
+            text = stringResource(
+                R.string.cart_invoice_contact_line,
+                companyName.ifBlank { stringResource(R.string.cart_invoice_contact_fallback_company) },
+            ),
             modifier = Modifier.padding(top = 10.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -690,9 +717,9 @@ private fun PaymentMethodSelectionCard(
     onSelect: (String) -> Unit,
 ) {
     SkydownCard {
-        SectionHeader("Zahlart waehlen")
+        SectionHeader(stringResource(R.string.cart_select_payment_title))
         Text(
-            text = "Waehle die Zahlart fuer diese Bestellung.",
+            text = stringResource(R.string.cart_select_payment_subtitle),
             modifier = Modifier.padding(top = 8.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
@@ -719,7 +746,7 @@ private fun PaymentMethodSelectionCard(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
                             Text(
-                                text = if (isSelected) "Ausgewaehlt" else "Verfuegbar",
+                                text = if (isSelected) stringResource(R.string.cart_selected) else stringResource(R.string.cart_available),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                             )
@@ -748,19 +775,19 @@ private fun PaymentMethodSelectionCard(
 
         if (isZeroCostOrder && selectedMethod in listOf("Stripe", "Klarna")) {
             Text(
-                text = "Fuer diesen 0-EUR-Testartikel wird keine Zahlung geoeffnet.",
+                text = stringResource(R.string.cart_zero_eur_no_payment),
                 modifier = Modifier.padding(top = 12.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
         } else if (selectedMethod == "Klarna") {
             Text(
-                text = "Klarna oeffnet nach dem Absenden einen sicheren Live-Checkout ueber Stripe.",
+                text = stringResource(R.string.cart_klarna_checkout_hint),
                 modifier = Modifier.padding(top = 12.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
         } else if (selectedMethod == "Stripe") {
             Text(
-                text = "Stripe zeigt auf kompatiblen Geraeten automatisch die sichersten verfuegbaren Optionen wie Karte oder Wallets.",
+                text = stringResource(R.string.cart_stripe_checkout_hint),
                 modifier = Modifier.padding(top = 12.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
@@ -773,23 +800,23 @@ private fun CheckoutSafetyZone() {
     SkydownCard {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = "Sicherheit vor dem Checkout",
+                text = stringResource(R.string.cart_safety_title),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
             Text(
-                text = "Sichere Zahlwege und klare Weiterleitung im naechsten Schritt.",
+                text = stringResource(R.string.cart_safety_line_one),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
             Text(
-                text = "Daten und Gesamtpreis werden vor dem Senden noch einmal geprueft.",
+                text = stringResource(R.string.cart_safety_line_two),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
             Text(
-                text = "Support ist jederzeit in den Einstellungen erreichbar.",
+                text = stringResource(R.string.cart_safety_line_three),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
@@ -807,7 +834,7 @@ private fun CheckoutPulseCard(
     totalDetail: String,
 ) {
     SkydownCard {
-        SectionHeader("Checkout Pulse")
+        SectionHeader(stringResource(R.string.cart_checkout_pulse_title))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -815,19 +842,19 @@ private fun CheckoutPulseCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             CheckoutSignalCard(
-                title = "Status",
+                title = stringResource(R.string.cart_pulse_status),
                 value = readinessTitle,
                 detail = readinessDetail,
                 modifier = Modifier.weight(1f),
             )
             CheckoutSignalCard(
-                title = "Zahlung",
+                title = stringResource(R.string.cart_pulse_payment),
                 value = paymentTitle,
                 detail = paymentDetail,
                 modifier = Modifier.weight(1f),
             )
             CheckoutSignalCard(
-                title = "Total",
+                title = stringResource(R.string.cart_pulse_total),
                 value = totalTitle,
                 detail = totalDetail,
                 modifier = Modifier.weight(1f),
@@ -914,18 +941,18 @@ private fun PaymentMethodDetailCard(
     isZeroCostOrder: Boolean,
 ) {
     SkydownCard {
-        SectionHeader("Zahlungsinfo")
+        SectionHeader(stringResource(R.string.cart_payment_info_title))
 
         when (selectedMethod) {
             "PayPal" -> {
                 Text(
-                    text = "PayPal wird hier als sicherer manueller Handoff genutzt. Fuer einen direkten Flow hinterlege am besten einen PayPal.Me-Link.",
+                    text = stringResource(R.string.cart_payment_info_paypal_body),
                     modifier = Modifier.padding(top = 8.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
                 if (settings.paypal.accountHint.isBlank()) {
                     Text(
-                        text = "Im Admin-Bereich ist noch kein PayPal.Me-Link oder keine Business-Mail hinterlegt.",
+                        text = stringResource(R.string.cart_payment_info_paypal_missing),
                         modifier = Modifier.padding(top = 12.dp),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -938,7 +965,7 @@ private fun PaymentMethodDetailCard(
 
             "Bankueberweisung" -> {
                 Text(
-                    text = "Die Bankueberweisung laeuft direkt und ohne Gateway-Kosten. Die hinterlegten Daten gelten fuer diese Bestellung.",
+                    text = stringResource(R.string.cart_payment_info_bank_body),
                     modifier = Modifier.padding(top = 8.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
@@ -947,19 +974,19 @@ private fun PaymentMethodDetailCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (settings.bankTransfer.accountHolder.isNotBlank()) {
-                        PaymentInfoLine("Kontoinhaber", settings.bankTransfer.accountHolder)
+                        PaymentInfoLine(stringResource(R.string.cart_bank_account_holder), settings.bankTransfer.accountHolder)
                     }
                     if (settings.bankTransfer.bankName.isNotBlank()) {
-                        PaymentInfoLine("Bank", settings.bankTransfer.bankName)
+                        PaymentInfoLine(stringResource(R.string.cart_bank_name), settings.bankTransfer.bankName)
                     }
                     if (settings.bankTransfer.iban.isNotBlank()) {
-                        PaymentInfoLine("IBAN", settings.bankTransfer.iban)
+                        PaymentInfoLine(stringResource(R.string.settings_payments_iban), settings.bankTransfer.iban)
                     }
                     if (settings.bankTransfer.bic.isNotBlank()) {
-                        PaymentInfoLine("BIC", settings.bankTransfer.bic)
+                        PaymentInfoLine(stringResource(R.string.settings_payments_bic), settings.bankTransfer.bic)
                     }
                     if (settings.bankTransfer.paymentInstructions.isNotBlank()) {
-                        PaymentInfoLine("Hinweis", settings.bankTransfer.paymentInstructions)
+                        PaymentInfoLine(stringResource(R.string.cart_bank_note), settings.bankTransfer.paymentInstructions)
                     }
                 }
             }
@@ -967,11 +994,11 @@ private fun PaymentMethodDetailCard(
             "Stripe", "Klarna" -> {
                 Text(
                     text = if (isZeroCostOrder) {
-                        "Fuer diesen 0-EUR-Testartikel ist keine Zahlung noetig. Die Bestellung wird direkt bestaetigt."
+                        stringResource(R.string.cart_payment_info_stripe_zero_eur)
                     } else if (selectedMethod == "Klarna") {
-                        "Klarna startet nach dem Absenden einen sicheren Live-Checkout ueber Stripe und bestaetigt die Zahlung automatisch im Backend."
+                        stringResource(R.string.cart_payment_info_klarna_body)
                     } else {
-                        "Stripe startet nach dem Absenden einen sicheren Live-Checkout. Auf kompatiblen Geraeten koennen Karte und Wallets wie Apple Pay oder Google Pay erscheinen."
+                        stringResource(R.string.cart_payment_info_stripe_body)
                     },
                     modifier = Modifier.padding(top = 8.dp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -1027,15 +1054,15 @@ private fun CartItemCard(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CartInfoPill(text = "Groesse $size")
+                    CartInfoPill(text = stringResource(R.string.cart_size_value, size))
                     color?.takeIf { it.isNotBlank() }?.let {
                         CartInfoPill(text = it)
                     }
-                    CartInfoPill(text = "x$quantity")
+                    CartInfoPill(text = stringResource(R.string.cart_quantity_value, quantity))
                 }
             }
             Text(
-                text = "EUR ${formatCurrency(price)}",
+                text = stringResource(R.string.order_price_eur, formatCurrency(price)),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -1054,7 +1081,7 @@ private fun CartItemCard(
                 modifier = Modifier.size(18.dp),
             )
             Text(
-                text = "Entfernen",
+                text = stringResource(R.string.common_remove),
                 modifier = Modifier.padding(start = 8.dp),
             )
         }
@@ -1086,14 +1113,15 @@ private fun formatCurrency(value: Double, decimals: Int): String {
     return String.format(Locale.US, "%.${decimals}f", value)
 }
 
+@Composable
 private fun paymentRouteDetail(method: String): String {
     return when (method) {
-        "Stripe" -> "Sicherer Live-Checkout fuer Karte und kompatible Wallets."
-        "Klarna" -> "Klarna startet ueber den Stripe-Flow."
-        "PayPal" -> "Manueller PayPal-Handoff mit Rueckkontakt."
-        "Bankueberweisung" -> "Direkt und ohne Gateway-Kosten."
-        "Rueckkontakt" -> "Zahlart folgt per Rueckkontakt."
-        else -> "Zahlungsroute fuer diese Bestellung."
+        "Stripe" -> stringResource(R.string.cart_route_stripe)
+        "Klarna" -> stringResource(R.string.cart_route_klarna)
+        "PayPal" -> stringResource(R.string.cart_route_paypal)
+        "Bankueberweisung" -> stringResource(R.string.cart_route_bank_transfer)
+        stringResource(R.string.cart_payment_callback) -> stringResource(R.string.cart_route_callback)
+        else -> stringResource(R.string.cart_route_default)
     }
 }
 
@@ -1118,7 +1146,7 @@ private fun cartPricingSummary(
             taxRate = state.commerceSettings.invoice.taxRate,
             includedTax = 0.0,
             total = 0.0,
-            zoneLabel = "Noch offen",
+            zoneLabel = "pending",
         )
     }
     val countryCodeResult = ShippingService.resolveCountryCode(state.shippingCountry)
@@ -1142,7 +1170,7 @@ private fun cartPricingSummary(
         taxRate = taxRate,
         includedTax = includedTax,
         total = total,
-        zoneLabel = shippingQuote?.zone?.name ?: "Land pruefen",
+        zoneLabel = shippingQuote?.zone?.name ?: "check-country",
         shippingError = quoteResult.exceptionOrNull()?.message,
     )
 }
@@ -1151,18 +1179,30 @@ private fun openOrderEmail(
     context: Context,
     state: com.nash.skyos.ui.model.CartUiState,
 ) {
+    val notProvided = context.getString(R.string.cart_email_not_provided)
+    val paymentPending = context.getString(R.string.cart_email_payment_pending)
+    val noAdditionalMessage = context.getString(R.string.cart_email_no_additional_message)
     val subject = if (state.email.isNotBlank()) {
-        "Neue Bestellung - ${state.email}"
+        context.getString(R.string.cart_email_subject_with_email, state.email)
     } else {
-        "Neue Bestellung"
+        context.getString(R.string.cart_email_subject)
     }
     val itemSummary = if (state.items.isEmpty()) {
-        "- Keine Artikel"
+        context.getString(R.string.cart_email_no_items)
     } else {
         state.items.joinToString(separator = "\n") { cartItem ->
             val price = (cartItem.unitPrice ?: cartItem.item.price) * cartItem.quantity
-            val colorPart = cartItem.color?.takeIf { it.isNotBlank() }?.let { " | Farbe: $it" }.orEmpty()
-            "- ${cartItem.item.name} | Groesse: ${cartItem.size}$colorPart | Menge: ${cartItem.quantity} | Preis: EUR ${formatCurrency(price)}"
+            val colorPart = cartItem.color?.takeIf { it.isNotBlank() }?.let { color ->
+                context.getString(R.string.cart_email_item_color_part, color)
+            }.orEmpty()
+            context.getString(
+                R.string.cart_email_item_line,
+                cartItem.item.name,
+                cartItem.size,
+                colorPart,
+                cartItem.quantity,
+                formatCurrency(price),
+            )
         }
     }
     val pricing = cartPricingSummary(state)
@@ -1172,33 +1212,23 @@ private fun openOrderEmail(
         listOf(state.shippingPostalCode.trim(), state.shippingCity.trim())
             .filter { it.isNotBlank() }
             .joinToString(" "),
-        state.shippingCountry.trim().ifBlank { "Deutschland" },
+        state.shippingCountry.trim().ifBlank { context.getString(R.string.cart_email_country_default) },
     ).filter { it.isNotBlank() }.joinToString("\n")
-    val body = """
-        Hallo SkyOS-Team,
-
-        es wurde eine neue Bestellung in SkyOS vorbereitet.
-
-        Name: ${state.name.ifBlank { "Nicht angegeben" }}
-        E-Mail: ${state.email.ifBlank { "Nicht angegeben" }}
-        WhatsApp: ${state.whatsApp.ifBlank { "Nicht angegeben" }}
-        Adresse:
-        ${shippingAddress.ifBlank { "Nicht angegeben" }}
-
-        Warenkorb:
-        $itemSummary
-
-        Zwischensumme: EUR ${formatCurrency(pricing.subtotal)}
-        Versand: EUR ${formatCurrency(pricing.shipping)}
-        Enthaltene MwSt. (${formatCurrency(pricing.taxRate, decimals = 1)}%): EUR ${formatCurrency(pricing.includedTax)}
-        Gesamt: EUR ${formatCurrency(pricing.total)}
-
-        Zahlart:
-        ${state.selectedPaymentMethod.ifBlank { "Noch offen / per Rueckkontakt" }}
-
-        Nachricht:
-        ${state.message.ifBlank { "Keine zusaetzliche Nachricht." }}
-    """.trimIndent()
+    val body = context.getString(
+        R.string.cart_email_body_template,
+        state.name.ifBlank { notProvided },
+        state.email.ifBlank { notProvided },
+        state.whatsApp.ifBlank { notProvided },
+        shippingAddress.ifBlank { notProvided },
+        itemSummary,
+        formatCurrency(pricing.subtotal),
+        formatCurrency(pricing.shipping),
+        formatCurrency(pricing.taxRate, decimals = 1),
+        formatCurrency(pricing.includedTax),
+        formatCurrency(pricing.total),
+        state.selectedPaymentMethod.ifBlank { paymentPending },
+        state.message.ifBlank { noAdditionalMessage },
+    )
     openEmailDraft(
         context = context,
         recipients = listOf("skydownent@gmail.com"),
@@ -1214,6 +1244,6 @@ private fun openExternalUrl(
     openExternalLink(
         context = context,
         url = url,
-        browserMissingMessage = "Checkout-Link konnte nicht geoeffnet werden.",
+        browserMissingMessage = context.getString(R.string.cart_checkout_link_open_failed),
     )
 }

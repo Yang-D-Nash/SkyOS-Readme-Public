@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.annotation.StringRes
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -46,9 +47,11 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.nash.skyos.R
 
 @Composable
 fun ToastHost(
@@ -186,7 +189,7 @@ fun ToastHost(
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 Text(
-                    text = type.title,
+                    text = stringResource(type.titleRes),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
@@ -208,31 +211,31 @@ fun ToastHost(
 enum class ToastType(
     val accent: Color,
     val icon: ImageVector,
-    val title: String,
+    @StringRes val titleRes: Int,
     val hapticKind: SkydownHapticKind,
 ) {
     Success(
         accent = Color(0xFF47C873),
         icon = Icons.Default.CheckCircle,
-        title = "Erfolgreich",
+        titleRes = R.string.toast_title_success,
         hapticKind = SkydownHapticKind.Success,
     ),
     Error(
         accent = Color(0xFFFF6B6B),
         icon = Icons.Default.Error,
-        title = "Aktion fehlgeschlagen",
+        titleRes = R.string.toast_title_error,
         hapticKind = SkydownHapticKind.Error,
     ),
     Warning(
         accent = Color(0xFFFFB347),
         icon = Icons.Default.Warning,
-        title = "Kurz pruefen",
+        titleRes = R.string.toast_title_warning,
         hapticKind = SkydownHapticKind.Warning,
     ),
     Info(
         accent = Color(0xFF6BB7FF),
         icon = Icons.Default.Info,
-        title = "Info",
+        titleRes = R.string.toast_title_info,
         hapticKind = SkydownHapticKind.Info,
     ),
 }

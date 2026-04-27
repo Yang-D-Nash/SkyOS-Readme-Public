@@ -140,8 +140,8 @@ fun ShopScreen(
             ?: collabLanes.firstOrNull()
             ?: ShopCollabLane(
                 id = ShopCollabLane.ALL_ID,
-                title = "All Drops",
-                subtitle = "Alle Collabs und Core Pieces.",
+                title = "",
+                subtitle = "",
                 itemCount = uiState.items.size,
                 isCoreLane = false,
             )
@@ -201,7 +201,7 @@ fun ShopScreen(
                 TopAppBar(
                 title = {
                     SkydownTopBarTitle(
-                        "Shop",
+                        stringResource(R.string.tabs_merch),
                         stringResource(R.string.shop_topbar_subtitle),
                         accent = MaterialTheme.colorScheme.tertiary,
                     )
@@ -219,7 +219,7 @@ fun ShopScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
-                                contentDescription = "Shop aktualisieren",
+                                contentDescription = stringResource(R.string.shop_cd_refresh),
                             )
                         }
                     }
@@ -277,7 +277,7 @@ fun ShopScreen(
                     item {
                         SkydownCard(contentPadding = PaddingValues(14.dp)) {
                             BrandActionButton(
-                                text = "Owner Settings oeffnen",
+                                text = stringResource(R.string.shop_owner_settings_open),
                                 onClick = onOpenSettings,
                                 accent = MaterialTheme.colorScheme.tertiary,
                                 icon = Icons.Default.Person,
@@ -398,9 +398,9 @@ private fun ShopOverviewCard(
         else -> stringResource(R.string.shop_hero_pill_product_other, uiState.items.size)
     }
     BrandHeroCard(
-        eyebrow = screenHeaderSettings.shopEyebrow.ifBlank { "SKY OS" },
-        title = screenHeaderSettings.shopTitle.ifBlank { "Merch" },
-        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { "Drops und Pieces." },
+        eyebrow = screenHeaderSettings.shopEyebrow.ifBlank { stringResource(R.string.brand_system_name) },
+        title = screenHeaderSettings.shopTitle.ifBlank { stringResource(R.string.tabs_merch) },
+        subtitle = screenHeaderSettings.shopSubtitle.ifBlank { stringResource(R.string.shop_hero_subtitle_default) },
         detail = screenHeaderSettings.shopDetail.ifBlank {
             if (uiState.isCatalogLoading || uiState.isSyncingCatalog) {
                 stringResource(R.string.shop_hero_detail_updating)
@@ -705,7 +705,11 @@ private fun ShopLandingCuratedModule(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "${item.currency} ${"%.2f".format(item.price)}",
+                        text = stringResource(
+                            R.string.shop_currency_price,
+                            item.currency,
+                            "%.2f".format(item.price),
+                        ),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                     )
@@ -741,7 +745,11 @@ private fun ShopLandingCuratedModule(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                         )
                         Text(
-                            text = "${item.currency} ${"%.2f".format(item.price)}",
+                            text = stringResource(
+                                R.string.shop_currency_price,
+                                item.currency,
+                                "%.2f".format(item.price),
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                         )
@@ -779,11 +787,11 @@ private fun ShopAdminControlsCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(14.dp)) {
         BrandSectionBanner(
-            title = "Store Control",
-            subtitle = "Store Status und Refresh.",
+            title = stringResource(R.string.shop_admin_store_control_title),
+            subtitle = stringResource(R.string.shop_admin_store_control_subtitle),
             accent = MaterialTheme.colorScheme.primary,
             icon = Icons.Default.Sync,
-            tag = "ADMIN",
+            tag = stringResource(R.string.shop_admin_tag),
         )
         Row(
             modifier = Modifier
@@ -793,11 +801,11 @@ private fun ShopAdminControlsCard(
         ) {
             BrandActionButton(
                 text = if (uiState.isUpdatingStoreState) {
-                    "Store wird aktualisiert..."
+                    stringResource(R.string.shop_admin_store_updating)
                 } else if (uiState.isStoreOpen) {
-                    "Store schliessen"
+                    stringResource(R.string.shop_admin_store_close)
                 } else {
-                    "Store oeffnen"
+                    stringResource(R.string.shop_admin_store_open)
                 },
                 onClick = onToggleStore,
                 accent = MaterialTheme.colorScheme.primary,
@@ -807,7 +815,11 @@ private fun ShopAdminControlsCard(
             )
 
             BrandActionButton(
-                text = if (uiState.isSyncingCatalog) "Store laedt..." else "Store aktualisieren",
+                text = if (uiState.isSyncingCatalog) {
+                    stringResource(R.string.shop_admin_store_loading)
+                } else {
+                    stringResource(R.string.shop_admin_store_refresh)
+                },
                 onClick = onSyncShopify,
                 accent = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.weight(1f),
@@ -839,9 +851,12 @@ private fun ShopWelcomeQuickEntryCard(
     }
     SkydownCard(contentPadding = PaddingValues(16.dp)) {
         BrandActionButton(
-            text = "Willkommen im Store · Alle Drops",
+            text = stringResource(R.string.shop_welcome_all_drops),
             onClick = {
-                lanes.firstOrNull { it.id == ShopCollabLane.ALL_ID }?.let(onOpenLane)
+                lanes.firstOrNull { it.id == ShopCollabLane.ALL_ID }?.let { lane ->
+                    onSelect(lane)
+                    onOpenLane(lane)
+                }
             },
             accent = colorScheme.primary,
             icon = Icons.Default.ShoppingBag,
@@ -873,8 +888,15 @@ private fun ShopWelcomeQuickEntryCard(
                     label = "shopLaneAlpha",
                 )
                 BrandActionButton(
-                    text = if (isActive) "Aktiv · ${shopLaneTitle(lane)}" else shopLaneTitle(lane),
-                    onClick = { onOpenLane(lane) },
+                    text = if (isActive) {
+                        stringResource(R.string.shop_lane_active_label, shopLaneTitle(lane))
+                    } else {
+                        shopLaneTitle(lane)
+                    },
+                    onClick = {
+                        onSelect(lane)
+                        onOpenLane(lane)
+                    },
                     accent = colorScheme.primary,
                     icon = Icons.Default.ShoppingBag,
                     filled = isActive,
@@ -938,7 +960,7 @@ private fun ShopCollectionDialog(
                         IconButton(onClick = onBack) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Zurueck",
+                                contentDescription = stringResource(R.string.common_back),
                             )
                         }
                     },
@@ -998,12 +1020,12 @@ private fun ShopCollectionDialog(
                                 ),
                                 icon = Icons.Default.Person,
                                 accent = MaterialTheme.colorScheme.primary,
-                                tag = "FILTER",
+                                tag = stringResource(R.string.shop_filter_tag),
                             )
                         }
                     }
                 } else {
-                    itemsIndexed(items, key = { _, it -> it.id.orEmpty() }) { index, item ->
+                    itemsIndexed(items, key = { _, item -> item.id.orEmpty() }) { index, item ->
                         MerchandiseCard(
                             item = item,
                             onTap = onOpenItem,
@@ -1151,8 +1173,8 @@ private fun buildShopCollabLanes(items: List<MerchandiseItem>): List<ShopCollabL
         return listOf(
             ShopCollabLane(
                 id = ShopCollabLane.ALL_ID,
-                title = "All Drops",
-                subtitle = "Alle Collabs und Core Pieces.",
+                title = "",
+                subtitle = "",
                 itemCount = 0,
                 isCoreLane = false,
             ),
@@ -1195,8 +1217,8 @@ private fun buildShopCollabLanes(items: List<MerchandiseItem>): List<ShopCollabL
     return listOf(
         ShopCollabLane(
             id = ShopCollabLane.ALL_ID,
-            title = "All Drops",
-            subtitle = "Alle Collabs und Core Pieces.",
+            title = "",
+            subtitle = "",
             itemCount = items.size,
             isCoreLane = false,
         ),
@@ -1230,7 +1252,9 @@ private fun MerchandiseItem.subtitleForLane(laneId: String, laneType: String): S
     if (laneType == "collection") {
         return "Shopify Collection"
     }
-    return merchCategorySubtitle
+    return when (laneId) {
+        else -> merchCategorySubtitle
+    }
 }
 
 private fun MerchandiseItem.isCoreLane(laneType: String): Boolean {
@@ -1352,8 +1376,8 @@ private fun ShopCollabCarousel(
         listOf(
             ShopCollabLane(
                 id = ShopCollabLane.ALL_ID,
-                title = "All Drops",
-                subtitle = "Alle Collabs und Core Pieces.",
+                title = "",
+                subtitle = "",
                 itemCount = totalItemCount,
                 isCoreLane = false,
             ),
@@ -1698,27 +1722,28 @@ private fun MerchandiseDetailSheet(
         }
     }
     val readinessTitle = when {
-        item.available && canCheckout && selectedSize.isNotBlank() -> "Bereit"
-        !isStoreOpen -> "Store pausiert"
-        !item.available -> "Nicht live"
-        else -> "Auswahl pruefen"
+        item.available && canCheckout && selectedSize.isNotBlank() -> stringResource(R.string.shop_detail_readiness_ready)
+        !isStoreOpen -> stringResource(R.string.shop_detail_readiness_store_paused)
+        !item.available -> stringResource(R.string.shop_detail_readiness_not_live)
+        else -> stringResource(R.string.shop_detail_readiness_check_selection)
     }
     val readinessDetail = when {
-        item.available && canCheckout && selectedSize.isNotBlank() -> "Direkt in den Warenkorb"
-        !isStoreOpen -> "Produkte bleiben sichtbar, neue Kaeufe sind pausiert"
-        !item.available -> "Dieses Produkt ist aktuell offline"
-        else -> "Bitte Variante vervollstaendigen"
+        item.available && canCheckout && selectedSize.isNotBlank() -> stringResource(R.string.shop_detail_readiness_detail_ready)
+        !isStoreOpen -> stringResource(R.string.shop_detail_readiness_detail_store_paused)
+        !item.available -> stringResource(R.string.shop_detail_readiness_detail_not_live)
+        else -> stringResource(R.string.shop_detail_readiness_detail_check_selection)
     }
-    val addToCartLabel = remember(item.price) {
-        "Jetzt sichern • EUR ${String.format(java.util.Locale.US, "%.2f", item.price)}"
-    }
+    val addToCartLabel = stringResource(
+        R.string.shop_detail_add_to_cart_label,
+        String.format(java.util.Locale.US, "%.2f", item.price),
+    )
     val availabilityTrustLine = when {
-        item.available && isStoreOpen -> "Drop aktuell verfuegbar."
-        !isStoreOpen -> "Drop sichtbar, Checkout pausiert."
-        else -> "Drop aktuell nicht verfuegbar."
+        item.available && isStoreOpen -> stringResource(R.string.shop_detail_trust_availability_on)
+        !isStoreOpen -> stringResource(R.string.shop_detail_trust_availability_store_paused)
+        else -> stringResource(R.string.shop_detail_trust_availability_off)
     }
-    val shippingTrustLine = "Versandstatus und finale Kosten siehst du vor dem Absenden im Checkout."
-    val supportTrustLine = "Support ist jederzeit in den Einstellungen erreichbar."
+    val shippingTrustLine = stringResource(R.string.shop_detail_trust_shipping)
+    val supportTrustLine = stringResource(R.string.shop_detail_trust_support)
 
     LaunchedEffect(item.id, colorOptions) {
         if (selectedColor.isNotBlank() && colorOptions.any { it.equals(selectedColor, ignoreCase = true) }) {
@@ -1786,7 +1811,11 @@ private fun MerchandiseDetailSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     ShopBadge(
-                        text = if (item.available) "Drop live" else "Nicht verfuegbar",
+                        text = if (item.available) {
+                            stringResource(R.string.shop_detail_badge_drop_live)
+                        } else {
+                            stringResource(R.string.shop_detail_badge_not_available)
+                        },
                         icon = if (item.available) Icons.Default.CheckCircle else Icons.Default.Sync,
                         isActive = item.available,
                     )
@@ -1798,13 +1827,17 @@ private fun MerchandiseDetailSheet(
                         )
                     }
                     ShopBadge(
-                        text = if (isStoreOpen) "Store offen" else "Store pausiert",
+                        text = if (isStoreOpen) {
+                            stringResource(R.string.shop_detail_badge_store_open)
+                        } else {
+                            stringResource(R.string.shop_detail_badge_store_paused)
+                        },
                         icon = if (isStoreOpen) Icons.Default.CheckCircle else Icons.Default.Sync,
                         isActive = isStoreOpen,
                     )
                     if (item.imageUrls.size > 1) {
                         ShopBadge(
-                            text = "${item.imageUrls.size} Bilder",
+                            text = stringResource(R.string.shop_detail_badge_images_count, item.imageUrls.size),
                             icon = Icons.Default.ShoppingBag,
                             isActive = false,
                         )
@@ -1822,7 +1855,7 @@ private fun MerchandiseDetailSheet(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Schliessen",
+                        contentDescription = stringResource(R.string.common_close),
                     )
                 }
 
@@ -1835,7 +1868,7 @@ private fun MerchandiseDetailSheet(
                         .clip(RoundedCornerShape(999.dp))
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.76f)),
                 ) {
-                    Text("Vollbild")
+                    Text(stringResource(R.string.shop_detail_fullscreen))
                 }
 
                 Column(
@@ -1851,7 +1884,10 @@ private fun MerchandiseDetailSheet(
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                     Text(
-                        text = "EUR ${String.format(java.util.Locale.US, "%.2f", item.price)}",
+                        text = stringResource(
+                            R.string.shop_detail_price_eur,
+                            String.format(java.util.Locale.US, "%.2f", item.price),
+                        ),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.94f),
@@ -1889,7 +1925,7 @@ private fun MerchandiseDetailSheet(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Drop Story",
+                        text = stringResource(R.string.shop_detail_story_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -1917,8 +1953,16 @@ private fun MerchandiseDetailSheet(
                                 modifier = Modifier.weight(1f),
                             )
                             MerchDetailSignalCard(
-                                title = if (isStoreOpen) "Checkout in der App" else "Store-Ablauf",
-                                detail = if (isStoreOpen) "Schliessen, weiterstoebern und spaeter direkt bestellen" else "Der Produktablauf bleibt sichtbar und klar lesbar",
+                                title = if (isStoreOpen) {
+                                    stringResource(R.string.shop_detail_signal_checkout_in_app)
+                                } else {
+                                    stringResource(R.string.shop_detail_signal_store_flow)
+                                },
+                                detail = if (isStoreOpen) {
+                                    stringResource(R.string.shop_detail_signal_checkout_detail_open)
+                                } else {
+                                    stringResource(R.string.shop_detail_signal_checkout_detail_paused)
+                                },
                                 accent = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.weight(1f),
                             )
@@ -1938,8 +1982,16 @@ private fun MerchandiseDetailSheet(
                                 modifier = Modifier.fillMaxWidth(),
                             )
                             MerchDetailSignalCard(
-                                title = if (isStoreOpen) "Checkout in der App" else "Store-Ablauf",
-                                detail = if (isStoreOpen) "Schliessen, weiterstoebern und spaeter direkt bestellen" else "Der Produktablauf bleibt sichtbar und klar lesbar",
+                                title = if (isStoreOpen) {
+                                    stringResource(R.string.shop_detail_signal_checkout_in_app)
+                                } else {
+                                    stringResource(R.string.shop_detail_signal_store_flow)
+                                },
+                                detail = if (isStoreOpen) {
+                                    stringResource(R.string.shop_detail_signal_checkout_detail_open)
+                                } else {
+                                    stringResource(R.string.shop_detail_signal_checkout_detail_paused)
+                                },
                                 accent = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.fillMaxWidth(),
                             )
@@ -1966,12 +2018,16 @@ private fun MerchandiseDetailSheet(
                         )
                     }
                     ShopBadge(
-                        text = if (item.available) "Verfuegbar" else "Pause",
+                        text = if (item.available) {
+                            stringResource(R.string.shop_detail_badge_available)
+                        } else {
+                            stringResource(R.string.shop_detail_badge_pause)
+                        },
                         icon = if (item.available) Icons.Default.CheckCircle else Icons.Default.Sync,
                         isActive = item.available,
                     )
                     ShopBadge(
-                        text = "Produktansicht",
+                        text = stringResource(R.string.shop_detail_badge_product_view),
                         icon = Icons.Default.ShoppingBag,
                         isActive = false,
                     )
@@ -1985,7 +2041,7 @@ private fun MerchandiseDetailSheet(
 
                 if (!canCheckout) {
                     Text(
-                        text = "Der Merch Store ist aktuell geschlossen. Produkte bleiben sichtbar, neue Kaeufe sind aber pausiert.",
+                        text = stringResource(R.string.shop_detail_store_closed_body),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
@@ -1995,7 +2051,7 @@ private fun MerchandiseDetailSheet(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
-                        text = "Variante waehlen",
+                        text = stringResource(R.string.shop_detail_variant_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -2028,7 +2084,7 @@ private fun MerchandiseDetailSheet(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Menge",
+                            text = stringResource(R.string.shop_detail_quantity),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
@@ -2057,7 +2113,7 @@ private fun MerchandiseDetailSheet(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Schliessen")
+                    Text(stringResource(R.string.common_close))
                 }
                 BrandActionButton(
                     text = addToCartLabel,
@@ -2070,9 +2126,9 @@ private fun MerchandiseDetailSheet(
             }
             Text(
                 text = if (item.available && canCheckout && selectedSize.isNotBlank()) {
-                    "Sicher kaufen · $selectionSummary"
+                    stringResource(R.string.shop_detail_secure_buy, selectionSummary)
                 } else {
-                    "Vor dem Kauf: Auswahl und Status pruefen"
+                    stringResource(R.string.shop_detail_prebuy_check)
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -2159,12 +2215,12 @@ private fun MerchDetailTrustModule(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ShopBadge(
-                text = "Trust",
+                text = stringResource(R.string.shop_detail_trust_badge),
                 icon = Icons.Default.CheckCircle,
                 isActive = true,
             )
             Text(
-                text = "Kaufklarheit",
+                text = stringResource(R.string.shop_detail_trust_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -2295,14 +2351,18 @@ private fun MerchandiseImageViewerDialog(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                     Text(
-                        text = "${pagerState.currentPage + 1} von ${imageUrls.size.coerceAtLeast(1)}",
+                        text = stringResource(
+                            R.string.shop_detail_image_position,
+                            pagerState.currentPage + 1,
+                            imageUrls.size.coerceAtLeast(1),
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
                     )
                 }
 
                 BrandActionButton(
-                    text = "Schliessen",
+                    text = stringResource(R.string.common_close),
                     onClick = onDismiss,
                     accent = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.testTag("shop.merch.fullscreen.close"),

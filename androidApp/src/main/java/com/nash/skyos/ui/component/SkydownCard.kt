@@ -104,7 +104,10 @@ fun Modifier.skydownPanelSurface(
                     resolvedAccent.copy(alpha = if (isDarkPalette) 0.022f else 0.028f),
                     Color.Transparent,
                 ),
-                center = Offset(size.width * 0.16f, size.height * 0.12f),
+                center = Offset(
+                    size.width * 0.16f,
+                    size.height * 0.12f + shadowYOffset.toPx() * 0.08f,
+                ),
                 radius = size.width * 0.92f,
             )
             val lowerMist = Brush.radialGradient(

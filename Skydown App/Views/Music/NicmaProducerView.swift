@@ -28,11 +28,11 @@ struct NicmaProducerView: View {
     private var canEdit: Bool {
         artistPagesStore.canEdit(page, user: authManager.userSession)
     }
-    
+
     private var isStudioProfile: Bool {
         selectedProfile == "NICMA STUDIO"
     }
-    
+
     private var profileFallbackBio: String {
         isStudioProfile
             ? "Preise, Production, Recording."

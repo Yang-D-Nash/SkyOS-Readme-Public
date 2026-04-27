@@ -326,9 +326,9 @@ private struct TrackTag: View {
         wrapperType: "track",
         releaseDate: nil
     )
-    
+
     let audioManager = AudioPlayerManager()
-    
+
     TrackView(
         track: sampleTrack,
         audioManager: audioManager,
