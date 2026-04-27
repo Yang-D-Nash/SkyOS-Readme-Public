@@ -64,6 +64,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDialog
 import androidx.compose.material3.rememberDatePickerState
@@ -176,6 +177,7 @@ fun HomeScreen(
         factory = remember(app) { HomeViewModel.provideFactory(app) },
     )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     var activeDestination by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedVideoHubId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -298,15 +300,20 @@ fun HomeScreen(
     var reminderTitleDraft by rememberSaveable { mutableStateOf("") }
     var taskTitleDraft by rememberSaveable { mutableStateOf("") }
     var taskDetailDraft by rememberSaveable { mutableStateOf("") }
+    var taskUseDue by remember { mutableStateOf(false) }
+    var taskDueMillis by remember { mutableLongStateOf(System.currentTimeMillis() + 2 * 3_600_000L) }
+    var taskShowDatePicker by remember { mutableStateOf(false) }
+    var taskShowTimePicker by remember { mutableStateOf(false) }
     var noteTitleDraft by rememberSaveable { mutableStateOf("") }
     var noteContentDraft by rememberSaveable { mutableStateOf("") }
     fun openHomeProductivityCapture(sheet: String) {
         if (isQuickActionCoolingDown) return
         isQuickActionCoolingDown = true
+        // Productivity capture is for signed-in users (direct Firestore). Do not gate on AI / workflow
+        // — onGuestSignIn is always non-null in SkydownApp, so the old logic sent everyone to login.
         when {
-            onOpenWorkflowWithPrompt != null -> activeProductivitySheet = sheet
-            onGuestSignIn != null -> onGuestSignIn.invoke()
-            else -> onOpenSettings()
+            currentUser == null && onGuestSignIn != null -> onGuestSignIn.invoke()
+            else -> activeProductivitySheet = sheet
         }
         coroutineScope.launch {
             delay(700)
@@ -685,6 +692,9 @@ fun HomeScreen(
                                 }
                             }
                             "task" -> {
+                                val taskWhenFormatter = remember {
+                                    DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault())
+                                }
                                 Text(stringResource(R.string.home_quick_create_task), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                 Text(stringResource(R.string.home_sheet_task_hint), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
                                 OutlinedTextField(
@@ -701,19 +711,125 @@ fun HomeScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                 )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text(
+                                        stringResource(R.string.home_task_due_sublabel),
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                    androidx.compose.material3.Switch(
+                                        checked = taskUseDue,
+                                        onCheckedChange = { taskUseDue = it },
+                                    )
+                                }
+                                if (taskUseDue) {
+                                    Text(
+                                        text = taskWhenFormatter.format(java.util.Date(taskDueMillis)),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
+                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+                                    ) {
+                                        TextButton(
+                                            onClick = { taskShowDatePicker = true },
+                                            modifier = Modifier.weight(1f),
+                                        ) {
+                                            Text(stringResource(R.string.home_sheet_reminder_pick_date))
+                                        }
+                                        TextButton(
+                                            onClick = { taskShowTimePicker = true },
+                                            modifier = Modifier.weight(1f),
+                                        ) {
+                                            Text(stringResource(R.string.home_sheet_reminder_pick_time))
+                                        }
+                                    }
+                                }
                                 BrandActionButton(
                                     text = stringResource(R.string.tasks_input_add),
                                     onClick = {
                                         val title = taskTitleDraft.trim()
                                         if (title.isBlank()) return@BrandActionButton
-                                        viewModel.createTask(title, taskDetailDraft)
+                                        val due = if (taskUseDue) java.util.Date(taskDueMillis) else null
+                                        viewModel.createTask(title, taskDetailDraft, due)
                                         taskTitleDraft = ""
                                         taskDetailDraft = ""
+                                        taskUseDue = false
                                         activeProductivitySheet = null
                                     },
                                     accent = MaterialTheme.colorScheme.tertiary,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
+                                if (taskShowDatePicker) {
+                                    val datePickerState = rememberDatePickerState(
+                                        initialSelectedDateMillis = taskDueMillis,
+                                    )
+                                    DatePickerDialog(
+                                        onDismissRequest = { taskShowDatePicker = false },
+                                        confirmButton = {
+                                            TextButton(
+                                                onClick = {
+                                                    datePickerState.selectedDateMillis?.let { selectedDay ->
+                                                        val cur = java.util.Calendar.getInstance().apply { timeInMillis = taskDueMillis }
+                                                        val pick = java.util.Calendar.getInstance().apply { timeInMillis = selectedDay }
+                                                        cur.set(java.util.Calendar.YEAR, pick.get(java.util.Calendar.YEAR))
+                                                        cur.set(java.util.Calendar.MONTH, pick.get(java.util.Calendar.MONTH))
+                                                        cur.set(java.util.Calendar.DAY_OF_MONTH, pick.get(java.util.Calendar.DAY_OF_MONTH))
+                                                        taskDueMillis = cur.timeInMillis
+                                                    }
+                                                    taskShowDatePicker = false
+                                                },
+                                            ) { Text(stringResource(android.R.string.ok)) }
+                                        },
+                                        dismissButton = {
+                                            TextButton(onClick = { taskShowDatePicker = false }) {
+                                                Text(stringResource(R.string.common_cancel))
+                                            }
+                                        },
+                                    ) {
+                                        DatePicker(state = datePickerState)
+                                    }
+                                }
+                                if (taskShowTimePicker) {
+                                    key(taskDueMillis) {
+                                        val cal = java.util.Calendar.getInstance().apply { timeInMillis = taskDueMillis }
+                                        val timeState = rememberTimePickerState(
+                                            initialHour = cal.get(java.util.Calendar.HOUR_OF_DAY),
+                                            initialMinute = cal.get(java.util.Calendar.MINUTE),
+                                            is24Hour = true,
+                                        )
+                                        TimePickerDialog(
+                                            onDismissRequest = { taskShowTimePicker = false },
+                                            confirmButton = {
+                                                TextButton(
+                                                    onClick = {
+                                                        val c = java.util.Calendar.getInstance().apply { timeInMillis = taskDueMillis }
+                                                        c.set(java.util.Calendar.HOUR_OF_DAY, timeState.hour)
+                                                        c.set(java.util.Calendar.MINUTE, timeState.minute)
+                                                        c.set(java.util.Calendar.SECOND, 0)
+                                                        c.set(java.util.Calendar.MILLISECOND, 0)
+                                                        taskDueMillis = c.timeInMillis
+                                                        taskShowTimePicker = false
+                                                    },
+                                                ) { Text(stringResource(android.R.string.ok)) }
+                                            },
+                                            dismissButton = {
+                                                TextButton(onClick = { taskShowTimePicker = false }) {
+                                                    Text(stringResource(R.string.common_cancel))
+                                                }
+                                            },
+                                            title = {
+                                                Text(stringResource(R.string.home_sheet_reminder_pick_time))
+                                            },
+                                        ) {
+                                            TimePicker(state = timeState)
+                                        }
+                                    }
+                                }
                             }
                             "task_manage" -> {
                                 Column(
@@ -1299,12 +1415,12 @@ private fun HomeProductivityOverviewCard(
                 count = remindersUpcoming.size,
                 items = remindersUpcoming.map { it.title },
             )
-            HomeProductivityListRow(
+            HomeProductivityTaskListRow(
                 title = stringResource(R.string.home_productivity_open_tasks),
                 emptyText = stringResource(R.string.home_productivity_empty_tasks),
                 onOpen = onOpenTasks,
                 count = openTasks.size,
-                items = openTasks.map { it.title },
+                tasks = openTasks,
             )
             HomeProductivityListRow(
                 title = stringResource(R.string.home_productivity_recent_notes),
@@ -1314,13 +1430,19 @@ private fun HomeProductivityOverviewCard(
                 items = recentNotes.map { it.title },
             )
         } else {
+            val rCount = remindersToday.size + remindersUpcoming.size
             TextButton(onClick = { showsExtendedSignals = true }, contentPadding = PaddingValues(0.dp)) {
-                Text(
-                    text = stringResource(R.string.home_productivity_more_sections_count, 3),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.home_productivity_collapse_summary, 3, rCount, openTasks.size, recentNotes.size),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                    )
+                }
             }
         }
         if (showsExtendedSignals) {
@@ -1413,6 +1535,79 @@ private fun HomeOwnerWorkflowRow(
                 },
                 modifier = Modifier.weight(1f),
             )
+        }
+    }
+}
+
+@Composable
+private fun HomeProductivityTaskListRow(
+    title: String,
+    emptyText: String,
+    onOpen: () -> Unit,
+    count: Int,
+    tasks: List<com.nash.skyos.ui.model.ProductivityTaskItem>,
+) {
+    val now = remember { Date() }
+    val dayFormatter = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault()) }
+    val maxVisibleItems = 2
+    var isExpanded by rememberSaveable(tasks.size, title) { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick)) {
+        TextButton(onClick = onOpen, contentPadding = PaddingValues(0.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense), verticalAlignment = Alignment.CenterVertically) {
+                Text(text = title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                HomeCountBadge(count = count)
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+        }
+        if (tasks.isEmpty()) {
+            Text(emptyText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.56f))
+        } else {
+            val visible = if (isExpanded) tasks else tasks.take(maxVisibleItems)
+            visible.forEach { task ->
+                val showDueBanner = task.dueAt?.after(now) == true
+                val line = buildString {
+                    append(task.title)
+                    task.dueAt?.let { append(" • ").append(dayFormatter.format(it)) }
+                }
+                val bg = if (showDueBanner) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                } else {
+                    Color.Transparent
+                }
+                Surface(
+                    color = bg,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = "• $line",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                    )
+                }
+            }
+            if (tasks.size > maxVisibleItems) {
+                TextButton(onClick = { isExpanded = !isExpanded }, contentPadding = PaddingValues(0.dp)) {
+                    Text(
+                        text = if (isExpanded) {
+                            stringResource(R.string.home_productivity_show_less)
+                        } else {
+                            stringResource(R.string.home_productivity_more_count, tasks.size - maxVisibleItems)
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                    )
+                }
+            }
         }
     }
 }

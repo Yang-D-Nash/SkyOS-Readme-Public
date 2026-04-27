@@ -1986,4 +1986,10 @@ Message:
     <!-- Final strict coverage additions -->
     <string name="spotify_error_api_with_code_payload">Spotify API error %1$d: %2$s</string>
     <string name="home_error_unknown_viewmodel_class">Unknown ViewModel class: %1$s</string>
+    <string name="notification_channel_productivity_name" translatable="true">Reminders &amp; productivity</string>
+    <string name="notification_channel_productivity_description" translatable="true">Time-based reminders you create in SkyOS Home.</string>
+    <string name="notification_productivity_reminder_title" translatable="true">Reminder</string>
+    <string name="home_task_due_sublabel" translatable="true">Due (optional)</string>
+    <string name="home_task_clear_due" translatable="true">Clear</string>
+    <string name="home_productivity_collapse_summary" translatable="true">%1$d more · R %2$d · T %3$d · N %4$d</string>
 </resources>

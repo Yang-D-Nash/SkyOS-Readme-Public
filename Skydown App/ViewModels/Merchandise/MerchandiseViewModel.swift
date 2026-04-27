@@ -6,8 +6,10 @@
 //
 
 import Foundation
+import UserNotifications
 import FirebaseFirestore
 import FirebaseAuth
+import UserNotifications
 
 @MainActor
 final class MerchandiseViewModel: ObservableObject {
@@ -390,6 +392,7 @@ final class HomeViewModel: ObservableObject {
     private let firestore = Firestore.firestore()
     private let featuredArtists = ["JANNO", "Yang D. Nash", "ThaDude", "MAVE", "TANGAJOE007"]
     private var refreshGeneration: UInt = 0
+    private let noteRetentionTimeInterval: TimeInterval = 7 * 24 * 60 * 60
 
     init(musicService: MusicServicing = SpotifyMusicService()) {
         self.musicService = musicService
@@ -451,40 +454,46 @@ final class HomeViewModel: ObservableObject {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedTitle.isEmpty else { return }
-        try await firestore
+        let ref = firestore
             .collection("users")
             .document(uid)
             .collection("reminders")
-            .addDocument(data: [
-                "title": normalizedTitle,
-                "scheduledAt": Timestamp(date: dueAt),
-                "timezone": TimeZone.current.identifier,
-                "status": "scheduled",
-                "source": "manual",
-                "createdAt": FieldValue.serverTimestamp(),
-                "updatedAt": FieldValue.serverTimestamp()
-            ])
+            .document()
+        try await ref.setData([
+            "title": normalizedTitle,
+            "scheduledAt": Timestamp(date: dueAt),
+            "timezone": TimeZone.current.identifier,
+            "status": "scheduled",
+            "source": "manual",
+            "createdAt": FieldValue.serverTimestamp(),
+            "updatedAt": FieldValue.serverTimestamp()
+        ])
+        scheduleReminderLocalNotification(id: ref.documentID, title: normalizedTitle, at: dueAt)
         refresh()
     }
 
-    func createTask(title: String, details: String) async throws {
+    func createTask(title: String, details: String, dueAt: Date? = nil) async throws {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedDetails = details.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedTitle.isEmpty else { return }
+        var payload: [String: Any] = [
+            "title": normalizedTitle,
+            "description": normalizedDetails,
+            "status": "open",
+            "priority": "normal",
+            "source": "manual",
+            "createdAt": FieldValue.serverTimestamp(),
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+        if let dueAt {
+            payload["dueAt"] = Timestamp(date: dueAt)
+        }
         try await firestore
             .collection("users")
             .document(uid)
             .collection("tasks")
-            .addDocument(data: [
-                "title": normalizedTitle,
-                "description": normalizedDetails,
-                "status": "open",
-                "priority": "normal",
-                "source": "manual",
-                "createdAt": FieldValue.serverTimestamp(),
-                "updatedAt": FieldValue.serverTimestamp()
-            ])
+            .addDocument(data: payload)
         refresh()
     }
 
@@ -494,6 +503,7 @@ final class HomeViewModel: ObservableObject {
         let normalizedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedTitle.isEmpty || !normalizedContent.isEmpty else { return }
         let safeTitle = normalizedTitle.isEmpty ? "Untitled" : normalizedTitle
+        let expiresAt = Date().addingTimeInterval(noteRetentionTimeInterval)
         try await firestore
             .collection("users")
             .document(uid)
@@ -502,6 +512,7 @@ final class HomeViewModel: ObservableObject {
                 "title": safeTitle,
                 "content": normalizedContent,
                 "source": "manual",
+                "expiresAt": Timestamp(date: expiresAt),
                 "createdAt": FieldValue.serverTimestamp(),
                 "updatedAt": FieldValue.serverTimestamp()
             ])
@@ -526,6 +537,7 @@ final class HomeViewModel: ObservableObject {
 
     func deleteReminder(reminderID: String) async throws {
         guard let uid = Auth.auth().currentUser?.uid else { return }
+        cancelReminderLocalNotification(id: reminderID)
         try await firestore
             .collection("users")
             .document(uid)
@@ -587,6 +599,29 @@ final class HomeViewModel: ObservableObject {
             .document(noteID)
             .delete()
         refresh()
+    }
+
+    private func scheduleReminderLocalNotification(id: String, title: String, at date: Date) {
+        guard date.timeIntervalSinceNow > 2 else { return }
+        let content = UNMutableNotificationContent()
+        content.title = AppLocalized.text("notification.productivity_reminder.title", fallback: "Reminder")
+        content.body = title
+        content.sound = .default
+        var cal = Calendar.current
+        cal.timeZone = .current
+        let parts = cal.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "skyos_reminder_\(id)",
+            content: content,
+            trigger: trigger
+        )
+        UNUserNotificationCenter.current().add(request) { _ in }
+    }
+
+    private func cancelReminderLocalNotification(id: String) {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["skyos_reminder_\(id)"])
     }
 
     private func loadProductivitySnapshot() async -> HomeProductivitySnapshot {
@@ -659,11 +694,21 @@ final class HomeViewModel: ObservableObject {
                 guard status != "completed" else { continue }
                 let title = (data["title"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !title.isEmpty else { continue }
+                let dueAt = Self.resolveDate(candidates: [data["dueAt"], data["scheduledAt"]])
+                if let dueAt, dueAt < now {
+                    try? await firestore
+                        .collection("users")
+                        .document(uid)
+                        .collection("tasks")
+                        .document(document.documentID)
+                        .delete()
+                    continue
+                }
                 tasks.append(
                     ProductivityTask(
                         id: document.documentID,
                         title: title,
-                        dueAt: Self.resolveDate(candidates: [data["dueAt"], data["scheduledAt"]])
+                        dueAt: dueAt
                     )
                 )
             }
@@ -672,6 +717,19 @@ final class HomeViewModel: ObservableObject {
         if let noteDocs = try? await notesSnapshot {
             for document in noteDocs.documents {
                 let data = document.data()
+                let createdAt = Self.resolveDate(candidates: [data["createdAt"]])
+                let expiresAt = Self.resolveDate(candidates: [data["expiresAt"]])
+                let effectiveExpiry: Date? = expiresAt
+                    ?? createdAt.map { $0.addingTimeInterval(noteRetentionTimeInterval) }
+                if let cut = effectiveExpiry, now >= cut {
+                    try? await firestore
+                        .collection("users")
+                        .document(uid)
+                        .collection("notes")
+                        .document(document.documentID)
+                        .delete()
+                    continue
+                }
                 let rawTitle = (data["title"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                 let content = (data["content"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                 let title = rawTitle.isEmpty ? (content.isEmpty ? "" : String(content.prefix(48))) : rawTitle

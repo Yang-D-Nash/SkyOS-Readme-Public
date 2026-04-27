@@ -825,14 +825,16 @@ service cloud.firestore {
         "source",
         "requestId",
         "createdAt",
-        "updatedAt"
+        "updatedAt",
+        "expiresAt"
       ])
       && requiredString(request.resource.data.title, 1, 180)
       && optionalMapString(request.resource.data, "content", 5000)
       && validNoteSource(request.resource.data.source)
       && optionalMapString(request.resource.data, "requestId", 120)
       && request.resource.data.createdAt is timestamp
-      && request.resource.data.updatedAt is timestamp;
+      && request.resource.data.updatedAt is timestamp
+      && optionalMapTimestamp(request.resource.data, "expiresAt");
     }
 
     function validPushTokenPlatform(value) {

@@ -547,7 +547,8 @@ fun SkydownApp(
                                 onOpenWorkflowWithPrompt = if (hasAiAccess) {
                                     { prompt ->
                                         pendingAgentPrefillPrompt = prompt
-                                        showsWorkflowWorkspace = false
+                                        // Keep the workflow / automation side panel open next to the Agent; owners need the same context as other AI users.
+                                        showsWorkflowWorkspace = true
                                         navigateToTopLevel("ai")
                                     }
                                 } else {

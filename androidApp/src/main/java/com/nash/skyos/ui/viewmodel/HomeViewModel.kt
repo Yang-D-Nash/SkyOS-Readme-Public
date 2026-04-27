@@ -18,6 +18,7 @@ import com.nash.skyos.ui.model.HomeUiState
 import com.nash.skyos.ui.model.ProductivityNoteItem
 import com.nash.skyos.ui.model.ProductivityReminderItem
 import com.nash.skyos.ui.model.ProductivityTaskItem
+import com.nash.skyos.productivity.ProductivityReminderNotificationCenter
 import com.skydown.shared.model.Track
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,6 +42,9 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
     private var refreshGeneration: Long = 0
+
+    /** SkyOS Home notes auto-expire (align with creator-tier AI note retention messaging). */
+    private val noteRetentionMillis: Long = 7L * 24L * 60L * 60L * 1000L
 
     private fun resString(resId: Int) = getApplication<Application>().getString(resId)
 
@@ -107,43 +111,48 @@ class HomeViewModel(
         val uid = auth.currentUser?.uid ?: return
         val normalizedTitle = title.trim()
         if (normalizedTitle.isBlank()) return
+        val app = getApplication<Application>()
         viewModelScope.launch {
             runCatching {
-                firestore.collection("users").document(uid).collection("reminders")
-                    .add(
-                        mapOf(
-                            "title" to normalizedTitle,
-                            "scheduledAt" to Timestamp(dueAt),
-                            "timezone" to TimeZone.getDefault().id,
-                            "status" to "scheduled",
-                            "source" to "manual",
-                            "createdAt" to FieldValue.serverTimestamp(),
-                            "updatedAt" to FieldValue.serverTimestamp(),
-                        ),
-                    ).await()
+                val ref = firestore.collection("users").document(uid).collection("reminders").document()
+                ref.set(
+                    mapOf(
+                        "title" to normalizedTitle,
+                        "scheduledAt" to Timestamp(dueAt),
+                        "timezone" to TimeZone.getDefault().id,
+                        "status" to "scheduled",
+                        "source" to "manual",
+                        "createdAt" to FieldValue.serverTimestamp(),
+                        "updatedAt" to FieldValue.serverTimestamp(),
+                    ),
+                ).await()
+                ProductivityReminderNotificationCenter.schedule(app, ref.id, normalizedTitle, dueAt)
             }
             refresh()
         }
     }
 
-    fun createTask(title: String, description: String) {
+    fun createTask(title: String, description: String, dueAt: Date? = null) {
         val uid = auth.currentUser?.uid ?: return
         val normalizedTitle = title.trim()
         if (normalizedTitle.isBlank()) return
         viewModelScope.launch {
             runCatching {
+                val payload = buildMap {
+                    put("title", normalizedTitle)
+                    put("description", description.trim())
+                    put("status", "open")
+                    put("priority", "normal")
+                    put("source", "manual")
+                    put("createdAt", FieldValue.serverTimestamp())
+                    put("updatedAt", FieldValue.serverTimestamp())
+                    if (dueAt != null) {
+                        put("dueAt", Timestamp(dueAt))
+                    }
+                }
                 firestore.collection("users").document(uid).collection("tasks")
-                    .add(
-                        mapOf(
-                            "title" to normalizedTitle,
-                            "description" to description.trim(),
-                            "status" to "open",
-                            "priority" to "normal",
-                            "source" to "manual",
-                            "createdAt" to FieldValue.serverTimestamp(),
-                            "updatedAt" to FieldValue.serverTimestamp(),
-                        ),
-                    ).await()
+                    .add(payload)
+                    .await()
             }
             refresh()
         }
@@ -155,6 +164,7 @@ class HomeViewModel(
         val normalizedContent = content.trim()
         if (normalizedTitle.isBlank() && normalizedContent.isBlank()) return
         val safeTitle = normalizedTitle.ifBlank { "Untitled" }
+        val expiresAt = Date(System.currentTimeMillis() + noteRetentionMillis)
         viewModelScope.launch {
             runCatching {
                 firestore.collection("users").document(uid).collection("notes")
@@ -163,6 +173,7 @@ class HomeViewModel(
                             "title" to safeTitle,
                             "content" to normalizedContent,
                             "source" to "manual",
+                            "expiresAt" to Timestamp(expiresAt),
                             "createdAt" to FieldValue.serverTimestamp(),
                             "updatedAt" to FieldValue.serverTimestamp(),
                         ),
@@ -194,8 +205,10 @@ class HomeViewModel(
 
     fun deleteReminder(reminderId: String) {
         val uid = auth.currentUser?.uid ?: return
+        val app = getApplication<Application>()
         viewModelScope.launch {
             runCatching {
+                ProductivityReminderNotificationCenter.cancel(app, reminderId)
                 firestore.collection("users").document(uid).collection("reminders")
                     .document(reminderId)
                     .delete()
@@ -326,29 +339,73 @@ class HomeViewModel(
             dueMs >= endOfDay
         }.take(5)
 
-        val tasks = runCatching {
+        val taskDocs = runCatching {
             firestore.collection("users").document(uid).collection("tasks").limit(40).get().await()
-        }.getOrNull()?.documents.orEmpty().mapNotNull { document ->
+        }.getOrNull()?.documents.orEmpty()
+
+        for (document in taskDocs) {
+            val dueAt = resolveDate(document.get("dueAt"), document.get("scheduledAt"))
+            if (dueAt != null && dueAt.before(now)) {
+                runCatching {
+                    firestore.collection("users").document(uid).collection("tasks").document(document.id)
+                        .delete()
+                        .await()
+                }
+            }
+        }
+
+        val tasks = taskDocs.mapNotNull { document ->
             val title = document.getString("title")?.trim().orEmpty()
             if (title.isBlank()) return@mapNotNull null
             val status = document.getString("status")?.trim()?.lowercase().orEmpty()
             if (status == "completed") return@mapNotNull null
+            val dueAt = resolveDate(document.get("dueAt"), document.get("scheduledAt"))
+            if (dueAt != null && dueAt.before(now)) return@mapNotNull null
             ProductivityTaskItem(
                 id = document.id,
                 title = title,
-                dueAt = resolveDate(document.get("dueAt"), document.get("scheduledAt")),
+                dueAt = dueAt,
             )
         }.sortedWith(
             compareBy<ProductivityTaskItem>({ it.dueAt ?: Date(Long.MAX_VALUE) }, { it.title.lowercase() }),
         ).take(6)
 
-        val notes = runCatching {
+        val noteDocs = runCatching {
             firestore.collection("users").document(uid).collection("notes").limit(40).get().await()
-        }.getOrNull()?.documents.orEmpty().mapNotNull { document ->
+        }.getOrNull()?.documents.orEmpty()
+
+        for (document in noteDocs) {
+            val data = document.data ?: emptyMap()
+            val expiresAt = resolveDate(data["expiresAt"])
+            val createdAt = resolveDate(data["createdAt"])
+            val effectiveCutoff = when {
+                expiresAt != null -> expiresAt
+                createdAt != null -> Date(createdAt.time + noteRetentionMillis)
+                else -> null
+            }
+            if (effectiveCutoff != null && !effectiveCutoff.after(now)) {
+                runCatching {
+                    firestore.collection("users").document(uid).collection("notes").document(document.id)
+                        .delete()
+                        .await()
+                }
+            }
+        }
+
+        val notes = noteDocs.mapNotNull { document ->
+            val data = document.data ?: return@mapNotNull null
             val title = document.getString("title")?.trim().orEmpty()
             val content = document.getString("content")?.trim().orEmpty()
             val display = if (title.isNotBlank()) title else content.take(48).trim()
             if (display.isBlank()) return@mapNotNull null
+            val expiresAt = resolveDate(data["expiresAt"])
+            val createdAt = resolveDate(data["createdAt"])
+            val effectiveCutoff = when {
+                expiresAt != null -> expiresAt
+                createdAt != null -> Date(createdAt.time + noteRetentionMillis)
+                else -> null
+            }
+            if (effectiveCutoff != null && !effectiveCutoff.after(now)) return@mapNotNull null
             ProductivityNoteItem(
                 id = document.id,
                 title = display,

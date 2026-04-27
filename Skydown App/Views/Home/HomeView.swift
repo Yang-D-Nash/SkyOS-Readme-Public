@@ -52,6 +52,7 @@ struct HomeViewContent: View {
     @State private var originalVideoViewerTarget: HomeOriginalVideoViewerTarget?
     @State private var hasLoadedInitialHomeContent = false
     @State private var isQuickActionCoolingDown = false
+    @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
     let onOpenCart: () -> Void
     let onOpenProfile: () -> Void
@@ -130,8 +131,8 @@ struct HomeViewContent: View {
                                     onOpenWorkflowWithPrompt: onOpenWorkflowWithPrompt,
                                     onOpenToday: {
                                         triggerQuickAction {
-                                            if onGuestSignIn != nil && onOpenWorkflowWithPrompt == nil {
-                                                onGuestSignIn?()
+                                            if authManager.userSession == nil, let onGuestSignIn {
+                                                onGuestSignIn()
                                             } else {
                                                 presentSheet(.reminderManager)
                                             }
@@ -139,8 +140,8 @@ struct HomeViewContent: View {
                                     },
                                     onOpenUpcoming: {
                                         triggerQuickAction {
-                                            if onGuestSignIn != nil && onOpenWorkflowWithPrompt == nil {
-                                                onGuestSignIn?()
+                                            if authManager.userSession == nil, let onGuestSignIn {
+                                                onGuestSignIn()
                                             } else {
                                                 presentSheet(.reminderManager)
                                             }
@@ -148,8 +149,8 @@ struct HomeViewContent: View {
                                     },
                                     onOpenTasks: {
                                         triggerQuickAction {
-                                            if onGuestSignIn != nil && onOpenWorkflowWithPrompt == nil {
-                                                onGuestSignIn?()
+                                            if authManager.userSession == nil, let onGuestSignIn {
+                                                onGuestSignIn()
                                             } else {
                                                 presentSheet(.taskManager)
                                             }
@@ -157,8 +158,8 @@ struct HomeViewContent: View {
                                     },
                                     onOpenNotes: {
                                         triggerQuickAction {
-                                            if onGuestSignIn != nil && onOpenWorkflowWithPrompt == nil {
-                                                onGuestSignIn?()
+                                            if authManager.userSession == nil, let onGuestSignIn {
+                                                onGuestSignIn()
                                             } else {
                                                 presentSheet(.noteManager)
                                             }
@@ -166,8 +167,8 @@ struct HomeViewContent: View {
                                     },
                                     onCreateReminder: {
                                         triggerQuickAction {
-                                            if onGuestSignIn != nil && onOpenWorkflowWithPrompt == nil {
-                                                onGuestSignIn?()
+                                            if authManager.userSession == nil, let onGuestSignIn {
+                                                onGuestSignIn()
                                             } else {
                                                 presentSheet(.reminderComposer)
                                             }
@@ -175,8 +176,8 @@ struct HomeViewContent: View {
                                     },
                                     onCreateTask: {
                                         triggerQuickAction {
-                                            if onGuestSignIn != nil && onOpenWorkflowWithPrompt == nil {
-                                                onGuestSignIn?()
+                                            if authManager.userSession == nil, let onGuestSignIn {
+                                                onGuestSignIn()
                                             } else {
                                                 presentSheet(.taskComposer)
                                             }
@@ -184,8 +185,8 @@ struct HomeViewContent: View {
                                     },
                                     onCreateNote: {
                                         triggerQuickAction {
-                                            if onGuestSignIn != nil && onOpenWorkflowWithPrompt == nil {
-                                                onGuestSignIn?()
+                                            if authManager.userSession == nil, let onGuestSignIn {
+                                                onGuestSignIn()
                                             } else {
                                                 presentSheet(.noteComposer)
                                             }
@@ -304,8 +305,8 @@ struct HomeViewContent: View {
                 case .taskComposer:
                     HomeTaskComposerSheet(
                         colorScheme: colorScheme,
-                        onCreate: { title, details in
-                            try await viewModel.createTask(title: title, details: details)
+                        onCreate: { title, details, dueAt in
+                            try await viewModel.createTask(title: title, details: details, dueAt: dueAt)
                         }
                     )
                 case .noteComposer:
@@ -745,9 +746,11 @@ private struct HomeReminderComposerSheet: View {
 
 private struct HomeTaskComposerSheet: View {
     let colorScheme: ColorScheme
-    let onCreate: (_ title: String, _ details: String) async throws -> Void
+    let onCreate: (_ title: String, _ details: String, _ dueAt: Date?) async throws -> Void
     @State private var titleText = ""
     @State private var detailText = ""
+    @State private var useDueAt = false
+    @State private var dueAt = Date().addingTimeInterval(2 * 60 * 60)
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -764,11 +767,25 @@ private struct HomeTaskComposerSheet: View {
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
+                Toggle(
+                    AppLocalized.text("home.task.due_sublabel", fallback: "Due (optional)"),
+                    isOn: $useDueAt
+                )
+                .tint(AppColors.accentMystic(for: colorScheme))
+                if useDueAt {
+                    DatePicker(
+                        AppLocalized.text("home.task.due_sublabel", fallback: "Due (optional)"),
+                        selection: $dueAt,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .tint(AppColors.accentMystic(for: colorScheme))
+                }
                 Button(AppLocalized.text("tasks.input.add", fallback: "Add task")) {
                     let title = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !title.isEmpty else { return }
                     Task {
-                        try? await onCreate(title, detailText)
+                        let due: Date? = useDueAt ? dueAt : nil
+                        try? await onCreate(title, detailText, due)
                         dismiss()
                     }
                 }
@@ -1036,12 +1053,13 @@ private struct HomeProductivityOverviewSection: View {
                         count: remindersUpcoming.count,
                         items: remindersUpcoming.map { $0.title }
                     )
-                    HomeProductivityRow(
+                    HomeTaskProductivityRow(
                         title: AppLocalized.text("home.productivity.open_tasks", fallback: "Open Tasks"),
                         emptyText: AppLocalized.text("home.productivity.empty_tasks", fallback: "No open tasks"),
                         onOpen: onOpenTasks,
                         count: openTasks.count,
-                        items: openTasks.map { $0.title }
+                        tasks: openTasks,
+                        colorScheme: colorScheme
                     )
                     HomeProductivityRow(
                         title: AppLocalized.text("home.productivity.recent_notes", fallback: "Recent Notes"),
@@ -1056,8 +1074,14 @@ private struct HomeProductivityOverviewSection: View {
                     } label: {
                         Text(
                             String(
-                                format: AppLocalized.text("home.productivity.more_sections_count", fallback: "Show %d more sections"),
-                                3
+                                format: AppLocalized.text(
+                                    "home.productivity.collapse_summary",
+                                    fallback: "%d more · R%02d · T%02d · N%02d"
+                                ),
+                                3,
+                                reminderCount,
+                                taskCount,
+                                noteCount
                             )
                         )
                         .font(.caption2.weight(.semibold))
@@ -1168,6 +1192,91 @@ private struct HomeOwnerWorkflowSection: View {
                 )
             }
         }
+    }
+}
+
+private struct HomeTaskProductivityRow: View {
+    let title: String
+    let emptyText: String
+    let onOpen: () -> Void
+    let count: Int
+    let tasks: [HomeViewModel.ProductivityTask]
+    let colorScheme: ColorScheme
+    private let maxVisibleItems = 2
+    @State private var isExpanded = false
+    private static let dueFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
+
+    var body: some View {
+        let now = Date()
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
+            Button(action: onOpen) {
+                HStack(spacing: SkydownLayout.stackSpacingDense) {
+                    Text(title)
+                        .font(.caption.weight(.semibold))
+                    HomeCountBadge(count: count)
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .buttonStyle(.plain)
+            if tasks.isEmpty {
+                Text(emptyText)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            } else {
+                let visible = isExpanded ? tasks : Array(tasks.prefix(maxVisibleItems))
+                ForEach(visible) { task in
+                    let highlight = task.dueAt.map { $0 > now } == true
+                    HStack(alignment: .top, spacing: 6) {
+                        Text("•")
+                            .font(.caption2)
+                        Text(taskLineText(task))
+                        .font(.caption2)
+                        .lineLimit(1)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(
+                                highlight
+                                ? AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.2 : 0.14)
+                                : Color.clear
+                            )
+                    )
+                }
+                if tasks.count > maxVisibleItems {
+                    Button {
+                        isExpanded.toggle()
+                    } label: {
+                        let moreText = isExpanded
+                            ? AppLocalized.text("home.productivity.show_less", fallback: "Show less")
+                            : String(
+                                format: AppLocalized.text("home.productivity.more_count", fallback: "+%d more"),
+                                tasks.count - maxVisibleItems
+                            )
+                        Text(moreText)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func taskLineText(_ task: HomeViewModel.ProductivityTask) -> String {
+        if let d = task.dueAt {
+            return "\(task.title) · \(Self.dueFormatter.string(from: d))"
+        }
+        return task.title
     }
 }
 

@@ -210,7 +210,7 @@ struct MainTabView: View {
                         onOpenWorkflowWithPrompt: hasAIAccess ? { prompt in
                             pendingAgentPrefillPrompt = prompt
                             withAnimation(SkydownMotion.screenTransition) {
-                                showsWorkflowWorkspace = false
+                                showsWorkflowWorkspace = true
                                 selectedTab = .tools
                             }
                         } : nil
@@ -311,7 +311,7 @@ struct MainTabView: View {
                 onOpenAgentWithPrompt: { prompt in
                     pendingAgentPrefillPrompt = prompt
                     withAnimation(SkydownMotion.screenTransition) {
-                        showsWorkflowWorkspace = false
+                        showsWorkflowWorkspace = true
                         modalPresentation.updatePresentedItem(nil)
                         selectedTab = .tools
                     }
