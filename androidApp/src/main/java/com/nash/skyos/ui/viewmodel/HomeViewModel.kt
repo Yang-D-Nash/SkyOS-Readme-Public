@@ -75,35 +75,13 @@ class HomeViewModel(
                 launch {
                     val latestTrack = loadLatestTrack()
                     if (!isCurrentRefresh(generation)) return@launch
-                    _uiState.update {
-                        if (!isCurrentRefresh(generation)) return@update it
-                        val updatedState = it.copy(
-                            featuredTrack = latestTrack,
-                            homeTrackMessage = if (latestTrack == null) {
-                                resString(R.string.home_track_placeholder)
-                            } else {
-                                null
-                            },
-                        )
-                        updatedState.copy(contentSignal = buildContentSignal(updatedState))
-                    }
+                    applyFeaturedTrackUpdate(generation, latestTrack)
                 }
 
                 launch {
                     val latestVideo = loadLatestVideo()
                     if (!isCurrentRefresh(generation)) return@launch
-                    _uiState.update {
-                        if (!isCurrentRefresh(generation)) return@update it
-                        val updatedState = it.copy(
-                            featuredVideo = latestVideo,
-                            homeVideoMessage = if (latestVideo == null) {
-                                resString(R.string.home_video_placeholder)
-                            } else {
-                                null
-                            },
-                        )
-                        updatedState.copy(contentSignal = buildContentSignal(updatedState))
-                    }
+                    applyFeaturedVideoUpdate(generation, latestVideo)
                 }
 
                 launch {
@@ -224,6 +202,36 @@ class HomeViewModel(
     }
 
     private fun isCurrentRefresh(generation: Long): Boolean = generation == refreshGeneration
+
+    private fun applyFeaturedTrackUpdate(generation: Long, track: Track?) {
+        _uiState.update {
+            if (!isCurrentRefresh(generation)) return@update it
+            val updatedState = it.copy(
+                featuredTrack = track,
+                homeTrackMessage = if (track == null) {
+                    resString(R.string.home_track_placeholder)
+                } else {
+                    null
+                },
+            )
+            updatedState.copy(contentSignal = buildContentSignal(updatedState))
+        }
+    }
+
+    private fun applyFeaturedVideoUpdate(generation: Long, video: FeaturedVideoHighlight?) {
+        _uiState.update {
+            if (!isCurrentRefresh(generation)) return@update it
+            val updatedState = it.copy(
+                featuredVideo = video,
+                homeVideoMessage = if (video == null) {
+                    resString(R.string.home_video_placeholder)
+                } else {
+                    null
+                },
+            )
+            updatedState.copy(contentSignal = buildContentSignal(updatedState))
+        }
+    }
 
     private fun buildContentSignal(state: HomeUiState): String? {
         val track = state.featuredTrack
