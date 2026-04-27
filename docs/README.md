@@ -15,6 +15,7 @@ how it is operated without reverse-engineering the repository.
 - [commerce.md](commerce.md) - merch, orders, checkout, shipping, payment rails, and memberships
 - [owner-admin.md](owner-admin.md) - owner workflows, controls, kill switches, and release governance
 - [deployment.md](deployment.md) - deploy flow, selective deploys, rollback basics, and post-deploy checks
+- [ci.md](ci.md) - CI jobs, path filters, quality gates, and trigger behavior
 - [release-checklist.md](release-checklist.md) - release readiness gate across product, legal, analytics, and trust
 - [branding.md](branding.md) - product naming, voice, assets, and copy rules
 - [faq.md](faq.md) - user-facing operational answers and support guidance

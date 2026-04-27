@@ -180,6 +180,7 @@ fuer einen konkreten Release, Markt, Provider-Setup oder eine konkrete Datenvera
 | Commerce | [docs/commerce.md](docs/commerce.md) |
 | Owner/Admin-Betrieb | [docs/owner-admin.md](docs/owner-admin.md) |
 | Deployment | [docs/deployment.md](docs/deployment.md) |
+| CI / Quality Gates | [docs/ci.md](docs/ci.md) |
 | Release-Checkliste | [docs/release-checklist.md](docs/release-checklist.md) |
 | Branding | [docs/branding.md](docs/branding.md) |
 | FAQ | [docs/faq.md](docs/faq.md) |
