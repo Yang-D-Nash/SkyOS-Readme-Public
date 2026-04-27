@@ -94,20 +94,16 @@ class HomeViewModel(
     private suspend fun loadRuntimeSignals(generation: Long) {
         val uid = auth.currentUser?.uid
         if (uid.isNullOrBlank()) {
-            _uiState.update { state ->
-                if (!isCurrentRefresh(generation)) return@update state
-                val updatedState = state.copy(
-                    aiUsageWarning = null,
-                    creatorLimitZone = false,
-                    agentRunning = false,
-                    workflowWaiting = false,
-                    commerceSignal = null,
-                    syncPaused = false,
-                    recoverableError = null,
-                    newDataAvailable = false,
-                )
-                updatedState.copy(contentSignal = buildContentSignal(updatedState))
-            }
+            applyRuntimeSignals(
+                generation = generation,
+                aiUsageWarning = null,
+                creatorLimitZone = false,
+                agentRunning = false,
+                workflowWaiting = false,
+                commerceSignal = null,
+                recoverableError = null,
+                newDataAvailable = false,
+            )
             return
         }
 
@@ -185,6 +181,30 @@ class HomeViewModel(
             }
         }
 
+        applyRuntimeSignals(
+            generation = generation,
+            aiUsageWarning = aiUsageWarning,
+            creatorLimitZone = creatorLimitZone,
+            agentRunning = agentRunning,
+            workflowWaiting = workflowWaiting,
+            commerceSignal = commerceSignal,
+            recoverableError = recoverableError,
+            newDataAvailable = newDataAvailable,
+        )
+    }
+
+    private fun isCurrentRefresh(generation: Long): Boolean = generation == refreshGeneration
+
+    private fun applyRuntimeSignals(
+        generation: Long,
+        aiUsageWarning: String?,
+        creatorLimitZone: Boolean,
+        agentRunning: Boolean,
+        workflowWaiting: Boolean,
+        commerceSignal: String?,
+        recoverableError: String?,
+        newDataAvailable: Boolean,
+    ) {
         _uiState.update { state ->
             if (!isCurrentRefresh(generation)) return@update state
             val updatedState = state.copy(
@@ -200,8 +220,6 @@ class HomeViewModel(
             updatedState.copy(contentSignal = buildContentSignal(updatedState))
         }
     }
-
-    private fun isCurrentRefresh(generation: Long): Boolean = generation == refreshGeneration
 
     private fun applyFeaturedTrackUpdate(generation: Long, track: Track?) {
         _uiState.update {
