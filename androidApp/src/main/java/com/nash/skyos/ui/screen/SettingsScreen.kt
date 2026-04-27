@@ -264,6 +264,7 @@ fun SettingsScreen(
     onOpenRegistration: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
     onOpenOrders: () -> Unit = {},
+    onOpenOwnerHub: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -4392,6 +4393,16 @@ fun SettingsScreen(
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
+                            OutlinedButton(
+                                onClick = onOpenOwnerHub,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp)
+                                    .testTag("settings.open_owner_hub"),
+                                shape = RoundedCornerShape(18.dp),
+                            ) {
+                                Text(stringResource(R.string.settings_open_owner_hub))
+                            }
                             OwnerCommandCenterCard(
                                 isOwner = uiState.isOwner,
                                 paymentStatus = stringResource(R.string.settings_owner_payment_routes, visiblePaymentMethodCount),
@@ -4553,6 +4564,26 @@ fun SettingsScreen(
                                 }
                             },
                             modifier = Modifier.padding(top = 12.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_workflow_status_title),
+                            modifier = Modifier.padding(top = 14.dp),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_workflow_status_reminder),
+                            modifier = Modifier.padding(top = 8.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_workflow_status_tasks),
+                            modifier = Modifier.padding(top = 4.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_workflow_status_notes),
+                            modifier = Modifier.padding(top = 4.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
                     }
                 }

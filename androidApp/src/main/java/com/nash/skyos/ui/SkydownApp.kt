@@ -55,6 +55,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PlayCircleFilled
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -71,6 +73,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -113,6 +116,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nash.skyos.data.AppContainer
+import com.nash.skyos.data.AppCartStore
 import com.nash.skyos.data.AppFeatureFlagsStore
 import com.nash.skyos.data.AppNetworkMonitor
 import com.nash.skyos.data.AppSessionStore
@@ -144,6 +148,7 @@ import com.nash.skyos.ui.screen.IntroScreen
 import com.nash.skyos.ui.screen.LoginScreen
 import com.nash.skyos.ui.screen.MusicScreen
 import com.nash.skyos.ui.screen.NicmaProducerScreen
+import com.nash.skyos.ui.screen.OwnerHubScreen
 import com.nash.skyos.ui.screen.OrderScreen
 import com.nash.skyos.ui.screen.ProfileScreen
 import com.nash.skyos.ui.screen.RegistrationScreen
@@ -202,6 +207,7 @@ fun SkydownApp(
     var showIntro by rememberSaveable(skipIntro) { mutableStateOf(!skipIntro) }
     var selectedEntryRoute by rememberSaveable(startRouteOverride) { mutableStateOf(startRouteOverride) }
     var showsWorkflowWorkspace by rememberSaveable { mutableStateOf(false) }
+    var pendingAgentPrefillPrompt by rememberSaveable { mutableStateOf<String?>(null) }
     var authSheet by rememberSaveable { mutableStateOf<AuthSheet?>(null) }
     var authSheetLocked by rememberSaveable { mutableStateOf(false) }
     var showOrders by rememberSaveable { mutableStateOf(false) }
@@ -330,9 +336,19 @@ fun SkydownApp(
     }
 
     CompositionLocalProvider(LocalSessionUser provides currentUser) {
+        val cartItems by AppCartStore.items.collectAsState()
+        val cartCount = cartItems.size
         val destinations = buildList {
             add(BottomDestination("shop", stringResource(R.string.tabs_merch), MaterialTheme.colorScheme.skydownAccentHighlight()) { _ ->
-                Icon(Icons.Default.ShoppingBag, contentDescription = null)
+                BadgedBox(
+                    badge = {
+                        if (cartCount > 0) {
+                            Badge { Text(cartCount.toString()) }
+                        }
+                    },
+                ) {
+                    Icon(Icons.Default.ShoppingBag, contentDescription = null)
+                }
             })
             add(BottomDestination("music", stringResource(R.string.tabs_music), SpotifyGreen) { _ ->
                 Icon(Icons.Default.GraphicEq, contentDescription = null)
@@ -489,6 +505,15 @@ fun SkydownApp(
                                 } else {
                                     null
                                 },
+                                onOpenWorkflowWithPrompt = if (hasAiAccess) {
+                                    { prompt ->
+                                        pendingAgentPrefillPrompt = prompt
+                                        showsWorkflowWorkspace = false
+                                        navigateToTopLevel("ai")
+                                    }
+                                } else {
+                                    null
+                                },
                             )
                         }
                         composable("shop") {
@@ -529,6 +554,8 @@ fun SkydownApp(
                             AiHubScreen(
                                 immersiveMode = true,
                                 showsWorkflowWorkspace = showsWorkflowWorkspace,
+                                pendingAgentPrefillPrompt = pendingAgentPrefillPrompt,
+                                onConsumePendingAgentPrefillPrompt = { pendingAgentPrefillPrompt = null },
                                 onToggleWorkflow = { showsWorkflowWorkspace = !showsWorkflowWorkspace },
                                 onHideWorkflow = { showsWorkflowWorkspace = false },
                                 onExitImmersive = {
@@ -555,6 +582,24 @@ fun SkydownApp(
                                 onOpenRegistration = { authSheet = AuthSheet.Registration },
                                 onOpenProfile = openProfile,
                                 onOpenOrders = { showOrders = true },
+                                onOpenOwnerHub = {
+                                    navController.navigate("ownerHub") {
+                                        launchSingleTop = true
+                                    }
+                                },
+                            )
+                        }
+                        composable("ownerHub") {
+                            OwnerHubScreen(
+                                onBack = { navController.popBackStack() },
+                                hasAiAccess = hasAiAccess,
+                                onOpenAgentWithPrompt = { prompt ->
+                                    if (hasAiAccess) {
+                                        pendingAgentPrefillPrompt = prompt
+                                        showsWorkflowWorkspace = false
+                                        navigateToTopLevel("ai")
+                                    }
+                                },
                             )
                         }
                         composable("profile") {
@@ -582,7 +627,9 @@ fun SkydownApp(
                                 currentDestination?.hierarchy?.any { it.route == destination.route } == true
                             },
                             onDestinationClick = { destination ->
-                                if (currentDestination?.route == "settings") {
+                                if (currentDestination?.route == "settings" ||
+                                    currentDestination?.route == "ownerHub"
+                                ) {
                                     navController.popBackStack()
                                 }
 
@@ -991,7 +1038,7 @@ private data class BottomDestination(
 )
 
 private val skydownPrimaryRoutes = listOf("shop", "music", "home", "video", "ai")
-private val skydownOverlayRoutes = setOf("cart", "settings", "profile")
+private val skydownOverlayRoutes = setOf("cart", "settings", "profile", "ownerHub")
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

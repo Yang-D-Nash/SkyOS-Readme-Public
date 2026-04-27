@@ -4,9 +4,12 @@ import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,6 +39,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Movie
@@ -47,6 +51,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Button
@@ -55,15 +61,26 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDialog
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -93,7 +110,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.text.DateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import com.nash.skyos.R
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.ExternalMediaProvider
@@ -102,6 +122,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import com.nash.skyos.ui.component.skydownPanelSurface
 import com.nash.skyos.ui.component.openTrackInSpotify
 import coil3.compose.AsyncImage
 import com.nash.skyos.ui.component.AppTopBarSessionActions
@@ -148,6 +169,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit = {},
     onGuestSignIn: (() -> Unit)? = null,
     onOpenWorkflow: (() -> Unit)? = null,
+    onOpenWorkflowWithPrompt: ((String) -> Unit)? = null,
 ) {
     val app = LocalContext.current.applicationContext as Application
     val viewModel: HomeViewModel = viewModel(
@@ -271,6 +293,26 @@ fun HomeScreen(
         else -> listOf("video", "track")
     }
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
+    var isQuickActionCoolingDown by rememberSaveable { mutableStateOf(false) }
+    var activeProductivitySheet by rememberSaveable { mutableStateOf<String?>(null) }
+    var reminderTitleDraft by rememberSaveable { mutableStateOf("") }
+    var taskTitleDraft by rememberSaveable { mutableStateOf("") }
+    var taskDetailDraft by rememberSaveable { mutableStateOf("") }
+    var noteTitleDraft by rememberSaveable { mutableStateOf("") }
+    var noteContentDraft by rememberSaveable { mutableStateOf("") }
+    fun openHomeProductivityCapture(sheet: String) {
+        if (isQuickActionCoolingDown) return
+        isQuickActionCoolingDown = true
+        when {
+            onOpenWorkflowWithPrompt != null -> activeProductivitySheet = sheet
+            onGuestSignIn != null -> onGuestSignIn.invoke()
+            else -> onOpenSettings()
+        }
+        coroutineScope.launch {
+            delay(700)
+            isQuickActionCoolingDown = false
+        }
+    }
     val topBarActionDescription = stringResource(
         if (onOpenWorkflow != null) {
             R.string.home_topbar_workflow_a11y
@@ -451,12 +493,42 @@ fun HomeScreen(
                                 onOpenSettings = onOpenSettings,
                             )
                         }
+                        HomeAnimatedItem(order = 2) {
+                            HomeProductivityOverviewCard(
+                                remindersToday = uiState.dueTodayReminders,
+                                remindersUpcoming = uiState.upcomingReminders,
+                                openTasks = uiState.openTasks,
+                                recentNotes = uiState.recentNotes,
+                                onOpenWorkflowWithPrompt = onOpenWorkflowWithPrompt,
+                                onOpenToday = {
+                                    openHomeProductivityCapture("reminder_manage")
+                                },
+                                onOpenUpcoming = {
+                                    openHomeProductivityCapture("reminder_manage")
+                                },
+                                onOpenTasks = {
+                                    openHomeProductivityCapture("task_manage")
+                                },
+                                onOpenNotes = {
+                                    openHomeProductivityCapture("note_manage")
+                                },
+                                onCreateReminder = {
+                                    openHomeProductivityCapture("reminder")
+                                },
+                                onCreateTask = {
+                                    openHomeProductivityCapture("task")
+                                },
+                                onCreateNote = {
+                                    openHomeProductivityCapture("note")
+                                },
+                            )
+                        }
                         Spacer(Modifier.height(10.dp))
                     }
                 }
 
                 item {
-                    HomeAnimatedItem(order = 2) {
+                    HomeAnimatedItem(order = 3) {
                         val homeMediaColorScheme = MaterialTheme.colorScheme
                         Column(
                             modifier = Modifier
@@ -543,7 +615,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    HomeAnimatedItem(order = 3) {
+                    HomeAnimatedItem(order = 4) {
                         Text(
                             text = stringResource(R.string.home_hero_tagline),
                             style = MaterialTheme.typography.bodySmall,
@@ -563,6 +635,535 @@ fun HomeScreen(
                     title = inAppOriginalVideoTitle,
                     onDismiss = { inAppOriginalVideoUrl = null },
                 )
+            }
+
+            if (activeProductivitySheet != null) {
+                val sheetType = activeProductivitySheet
+                ModalBottomSheet(
+                    onDismissRequest = { activeProductivitySheet = null },
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        when (sheetType) {
+                            "reminder" -> {
+                                HomeReminderCaptureSheet(
+                                    titleDraft = reminderTitleDraft,
+                                    onTitleChange = { reminderTitleDraft = it },
+                                    viewModel = viewModel,
+                                    onDone = {
+                                        reminderTitleDraft = ""
+                                        activeProductivitySheet = null
+                                    },
+                                )
+                            }
+                            "reminder_manage" -> {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.home_manager_reminders_title),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    HomeReminderManagerSheet(
+                                        reminders = (uiState.dueTodayReminders + uiState.upcomingReminders)
+                                            .distinctBy { it.id }
+                                            .take(16),
+                                        onUpdate = { id, title ->
+                                            viewModel.updateReminderTitle(id, title)
+                                        },
+                                        onDelete = { id ->
+                                            viewModel.deleteReminder(id)
+                                        },
+                                    )
+                                }
+                            }
+                            "task" -> {
+                                Text(stringResource(R.string.home_quick_create_task), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.home_sheet_task_hint), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+                                OutlinedTextField(
+                                    value = taskTitleDraft,
+                                    onValueChange = { taskTitleDraft = it },
+                                    label = { Text(stringResource(R.string.tasks_input_title_hint)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                )
+                                OutlinedTextField(
+                                    value = taskDetailDraft,
+                                    onValueChange = { taskDetailDraft = it },
+                                    label = { Text(stringResource(R.string.tasks_input_details_hint)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                )
+                                BrandActionButton(
+                                    text = stringResource(R.string.tasks_input_add),
+                                    onClick = {
+                                        val title = taskTitleDraft.trim()
+                                        if (title.isBlank()) return@BrandActionButton
+                                        viewModel.createTask(title, taskDetailDraft)
+                                        taskTitleDraft = ""
+                                        taskDetailDraft = ""
+                                        activeProductivitySheet = null
+                                    },
+                                    accent = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                            "task_manage" -> {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.tasks_title),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    HomeTaskManagerSheet(
+                                        tasks = uiState.openTasks.take(16),
+                                        onUpdate = { id, title ->
+                                            viewModel.updateTaskTitle(id, title)
+                                        },
+                                        onDelete = { id ->
+                                            viewModel.deleteTask(id)
+                                        },
+                                    )
+                                }
+                            }
+                            "note_manage" -> {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.notes_title),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    HomeNoteManagerSheet(
+                                        notes = uiState.recentNotes.take(16),
+                                        onUpdate = { id, title ->
+                                            viewModel.updateNoteTitle(id, title)
+                                        },
+                                        onDelete = { id ->
+                                            viewModel.deleteNote(id)
+                                        },
+                                    )
+                                }
+                            }
+                            else -> {
+                                Text(stringResource(R.string.home_quick_create_note), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.home_sheet_note_hint), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+                                OutlinedTextField(
+                                    value = noteTitleDraft,
+                                    onValueChange = { noteTitleDraft = it },
+                                    label = { Text(stringResource(R.string.notes_input_title_hint)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                )
+                                OutlinedTextField(
+                                    value = noteContentDraft,
+                                    onValueChange = { noteContentDraft = it },
+                                    label = { Text(stringResource(R.string.notes_input_content_hint)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    minLines = 3,
+                                    maxLines = 5,
+                                )
+                                BrandActionButton(
+                                    text = stringResource(R.string.notes_input_add),
+                                    onClick = {
+                                        val title = noteTitleDraft.trim()
+                                        val content = noteContentDraft.trim()
+                                        if (title.isBlank() && content.isBlank()) return@BrandActionButton
+                                        viewModel.createNote(title, content)
+                                        noteTitleDraft = ""
+                                        noteContentDraft = ""
+                                        activeProductivitySheet = null
+                                    },
+                                    accent = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeManageableItemCard(
+    title: String,
+    subtitle: String?,
+    isEditing: Boolean,
+    draftTitle: String,
+    onDraftTitleChange: (String) -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onSave: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .skydownPanelSurface(
+                cornerRadius = SkydownUiTokens.cardCornerRadius,
+                shadowRadius = 8.dp,
+                shadowYOffset = 4.dp,
+            )
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                subtitle?.takeIf { it.isNotBlank() }?.let { line ->
+                    Text(
+                        text = line,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                    )
+                }
+            }
+            Row {
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = stringResource(R.string.common_edit),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.92f),
+                    )
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Outlined.Delete,
+                        contentDescription = stringResource(R.string.common_delete),
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.72f),
+                    )
+                }
+            }
+        }
+        AnimatedVisibility(
+            visible = isEditing,
+            enter = fadeIn(tween(220, easing = FastOutSlowInEasing)) + expandVertically(),
+            exit = fadeOut(tween(140)) + shrinkVertically(),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = draftTitle,
+                    onValueChange = onDraftTitleChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.home_manager_rename_placeholder)) },
+                )
+                Button(
+                    onClick = onSave,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.common_save))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeReminderManagerSheet(
+    reminders: List<com.nash.skyos.ui.model.ProductivityReminderItem>,
+    onUpdate: (String, String) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var draftTitle by rememberSaveable { mutableStateOf("") }
+    val whenFormatter = remember {
+        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault())
+    }
+
+    if (reminders.isEmpty()) {
+        Text(
+            text = stringResource(R.string.home_manager_empty),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+            modifier = Modifier.padding(vertical = 6.dp),
+        )
+        return
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        reminders.forEach { reminder ->
+            HomeManageableItemCard(
+                title = reminder.title,
+                subtitle = reminder.dueAt?.let { whenFormatter.format(it) },
+                isEditing = editingId == reminder.id,
+                draftTitle = draftTitle,
+                onDraftTitleChange = { draftTitle = it },
+                onEdit = {
+                    editingId = reminder.id
+                    draftTitle = reminder.title
+                },
+                onDelete = { onDelete(reminder.id) },
+                onSave = {
+                    val normalized = draftTitle.trim()
+                    if (normalized.isNotBlank()) {
+                        onUpdate(reminder.id, normalized)
+                        editingId = null
+                    }
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeTaskManagerSheet(
+    tasks: List<com.nash.skyos.ui.model.ProductivityTaskItem>,
+    onUpdate: (String, String) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var draftTitle by rememberSaveable { mutableStateOf("") }
+
+    if (tasks.isEmpty()) {
+        Text(
+            text = stringResource(R.string.home_manager_empty),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+            modifier = Modifier.padding(vertical = 6.dp),
+        )
+        return
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        tasks.forEach { task ->
+            HomeManageableItemCard(
+                title = task.title,
+                subtitle = null,
+                isEditing = editingId == task.id,
+                draftTitle = draftTitle,
+                onDraftTitleChange = { draftTitle = it },
+                onEdit = {
+                    editingId = task.id
+                    draftTitle = task.title
+                },
+                onDelete = { onDelete(task.id) },
+                onSave = {
+                    val normalized = draftTitle.trim()
+                    if (normalized.isNotBlank()) {
+                        onUpdate(task.id, normalized)
+                        editingId = null
+                    }
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeNoteManagerSheet(
+    notes: List<com.nash.skyos.ui.model.ProductivityNoteItem>,
+    onUpdate: (String, String) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var draftTitle by rememberSaveable { mutableStateOf("") }
+    val whenFormatter = remember {
+        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault())
+    }
+
+    if (notes.isEmpty()) {
+        Text(
+            text = stringResource(R.string.home_manager_empty),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+            modifier = Modifier.padding(vertical = 6.dp),
+        )
+        return
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        notes.forEach { note ->
+            HomeManageableItemCard(
+                title = note.title,
+                subtitle = note.updatedAt?.let { whenFormatter.format(it) },
+                isEditing = editingId == note.id,
+                draftTitle = draftTitle,
+                onDraftTitleChange = { draftTitle = it },
+                onEdit = {
+                    editingId = note.id
+                    draftTitle = note.title
+                },
+                onDelete = { onDelete(note.id) },
+                onSave = {
+                    val normalized = draftTitle.trim()
+                    if (normalized.isNotBlank()) {
+                        onUpdate(note.id, normalized)
+                        editingId = null
+                    }
+                },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeReminderCaptureSheet(
+    titleDraft: String,
+    onTitleChange: (String) -> Unit,
+    viewModel: HomeViewModel,
+    onDone: () -> Unit,
+) {
+    var dueMillis by remember { mutableLongStateOf(System.currentTimeMillis() + 3_600_000L) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    val whenFormatter = remember {
+        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault())
+    }
+
+    Text(stringResource(R.string.home_quick_create_reminder), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    Text(
+        stringResource(R.string.home_sheet_reminder_hint),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+    )
+    OutlinedTextField(
+        value = titleDraft,
+        onValueChange = onTitleChange,
+        label = { Text(stringResource(R.string.home_sheet_reminder_title_hint)) },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+    )
+    Text(
+        text = stringResource(R.string.home_sheet_reminder_when),
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+    Text(
+        text = whenFormatter.format(Date(dueMillis)),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        TextButton(
+            onClick = { showDatePicker = true },
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(stringResource(R.string.home_sheet_reminder_pick_date))
+        }
+        TextButton(
+            onClick = { showTimePicker = true },
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(stringResource(R.string.home_sheet_reminder_pick_time))
+        }
+    }
+    BrandActionButton(
+        text = stringResource(R.string.home_sheet_add),
+        onClick = {
+            val title = titleDraft.trim()
+            if (title.isBlank()) return@BrandActionButton
+            viewModel.createReminder(title, Date(dueMillis))
+            onDone()
+        },
+        accent = MaterialTheme.colorScheme.tertiary,
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dueMillis)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { selectedDay ->
+                            val cur = Calendar.getInstance().apply { timeInMillis = dueMillis }
+                            val pick = Calendar.getInstance().apply { timeInMillis = selectedDay }
+                            cur.set(Calendar.YEAR, pick.get(Calendar.YEAR))
+                            cur.set(Calendar.MONTH, pick.get(Calendar.MONTH))
+                            cur.set(Calendar.DAY_OF_MONTH, pick.get(Calendar.DAY_OF_MONTH))
+                            dueMillis = cur.timeInMillis
+                        }
+                        showDatePicker = false
+                    },
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        key(dueMillis) {
+            val cal = Calendar.getInstance().apply { timeInMillis = dueMillis }
+            val timeState = rememberTimePickerState(
+                initialHour = cal.get(Calendar.HOUR_OF_DAY),
+                initialMinute = cal.get(Calendar.MINUTE),
+                is24Hour = true,
+            )
+            TimePickerDialog(
+                onDismissRequest = { showTimePicker = false },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val c = Calendar.getInstance().apply { timeInMillis = dueMillis }
+                            c.set(Calendar.HOUR_OF_DAY, timeState.hour)
+                            c.set(Calendar.MINUTE, timeState.minute)
+                            dueMillis = c.timeInMillis
+                            showTimePicker = false
+                        },
+                    ) {
+                        Text(stringResource(android.R.string.ok))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showTimePicker = false }) {
+                        Text(stringResource(R.string.common_cancel))
+                    }
+                },
+                title = {
+                    Text(stringResource(R.string.home_sheet_reminder_pick_time))
+                },
+            ) {
+                TimePicker(state = timeState)
             }
         }
     }
@@ -650,6 +1251,277 @@ private fun HomeUtilityRow(
                             style = MaterialTheme.typography.labelMedium,
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeProductivityOverviewCard(
+    remindersToday: List<com.nash.skyos.ui.model.ProductivityReminderItem>,
+    remindersUpcoming: List<com.nash.skyos.ui.model.ProductivityReminderItem>,
+    openTasks: List<com.nash.skyos.ui.model.ProductivityTaskItem>,
+    recentNotes: List<com.nash.skyos.ui.model.ProductivityNoteItem>,
+    onOpenWorkflowWithPrompt: ((String) -> Unit)?,
+    onOpenToday: () -> Unit,
+    onOpenUpcoming: () -> Unit,
+    onOpenTasks: () -> Unit,
+    onOpenNotes: () -> Unit,
+    onCreateReminder: () -> Unit,
+    onCreateTask: () -> Unit,
+    onCreateNote: () -> Unit,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    var showsExtendedSignals by rememberSaveable { mutableStateOf(false) }
+    SkydownCard(contentPadding = PaddingValues(12.dp)) {
+        Text(
+            text = stringResource(R.string.home_productivity_ask_anything),
+            style = MaterialTheme.typography.labelSmall,
+            color = colorScheme.onSurface.copy(alpha = 0.56f),
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        HomeProductivityListRow(
+            title = stringResource(R.string.home_productivity_today),
+            emptyText = stringResource(R.string.home_productivity_empty_today),
+            onOpen = onOpenToday,
+            count = remindersToday.size,
+            items = remindersToday.map { item ->
+                item.dueAt?.let { "${item.title} • ${java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(it)}" }
+                    ?: item.title
+            },
+        )
+        if (showsExtendedSignals) {
+            HomeProductivityListRow(
+                title = stringResource(R.string.home_productivity_upcoming),
+                emptyText = stringResource(R.string.home_productivity_empty_upcoming),
+                onOpen = onOpenUpcoming,
+                count = remindersUpcoming.size,
+                items = remindersUpcoming.map { it.title },
+            )
+            HomeProductivityListRow(
+                title = stringResource(R.string.home_productivity_open_tasks),
+                emptyText = stringResource(R.string.home_productivity_empty_tasks),
+                onOpen = onOpenTasks,
+                count = openTasks.size,
+                items = openTasks.map { it.title },
+            )
+            HomeProductivityListRow(
+                title = stringResource(R.string.home_productivity_recent_notes),
+                emptyText = stringResource(R.string.home_productivity_empty_notes),
+                onOpen = onOpenNotes,
+                count = recentNotes.size,
+                items = recentNotes.map { it.title },
+            )
+        } else {
+            TextButton(onClick = { showsExtendedSignals = true }, contentPadding = PaddingValues(0.dp)) {
+                Text(
+                    text = stringResource(R.string.home_productivity_more_sections_count, 3),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                )
+            }
+        }
+        if (showsExtendedSignals) {
+            TextButton(onClick = { showsExtendedSignals = false }, contentPadding = PaddingValues(0.dp)) {
+                Text(
+                    text = stringResource(R.string.home_productivity_show_less_sections),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = stringResource(R.string.home_productivity_quick_hint),
+            style = MaterialTheme.typography.labelSmall,
+            color = colorScheme.onSurface.copy(alpha = 0.52f),
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HomeQuickActionChip(
+                text = stringResource(R.string.home_quick_create_reminder),
+                onClick = onCreateReminder,
+                modifier = Modifier.weight(1f),
+            )
+            HomeQuickActionChip(
+                text = stringResource(R.string.home_quick_create_task),
+                onClick = onCreateTask,
+                modifier = Modifier.weight(1f),
+            )
+            HomeQuickActionChip(
+                text = stringResource(R.string.home_quick_create_note),
+                onClick = onCreateNote,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (onOpenWorkflowWithPrompt != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            HomeOwnerWorkflowRow(
+                reminderCount = remindersToday.size + remindersUpcoming.size,
+                taskCount = openTasks.size,
+                noteCount = recentNotes.size,
+                onOpenWorkflowWithPrompt = onOpenWorkflowWithPrompt,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeOwnerWorkflowRow(
+    reminderCount: Int,
+    taskCount: Int,
+    noteCount: Int,
+    onOpenWorkflowWithPrompt: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Owner workflows",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HomeQuickActionChip(
+                text = "Plan",
+                countBadge = taskCount,
+                onClick = {
+                    onOpenWorkflowWithPrompt("Review open tasks ($taskCount) and return a concise execution plan with priorities.")
+                },
+                modifier = Modifier.weight(1f),
+            )
+            HomeQuickActionChip(
+                text = "Follow-up",
+                countBadge = reminderCount,
+                onClick = {
+                    onOpenWorkflowWithPrompt("Create follow-up actions from reminders ($reminderCount) and suggest what to do today first.")
+                },
+                modifier = Modifier.weight(1f),
+            )
+            HomeQuickActionChip(
+                text = "Summarize",
+                countBadge = noteCount,
+                onClick = {
+                    onOpenWorkflowWithPrompt("Summarize notes ($noteCount) into next actions and a short owner update.")
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeProductivityListRow(
+    title: String,
+    emptyText: String,
+    onOpen: () -> Unit,
+    count: Int,
+    items: List<String>,
+) {
+    val maxVisibleItems = 2
+    var isExpanded by rememberSaveable(title, items.size) { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        TextButton(onClick = onOpen, contentPadding = PaddingValues(0.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(text = title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                HomeCountBadge(count = count)
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+        }
+        if (items.isEmpty()) {
+            Text(emptyText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.56f))
+        } else {
+            val visibleItems = if (isExpanded) items else items.take(maxVisibleItems)
+            visibleItems.forEach { item ->
+                Text(
+                    text = "• $item",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (items.size > maxVisibleItems) {
+                TextButton(onClick = { isExpanded = !isExpanded }, contentPadding = PaddingValues(0.dp)) {
+                    Text(
+                        text = if (isExpanded) {
+                            stringResource(R.string.home_productivity_show_less)
+                        } else {
+                            stringResource(R.string.home_productivity_more_count, items.size - maxVisibleItems)
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeCountBadge(count: Int) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f),
+    ) {
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+        )
+    }
+}
+
+@Composable
+private fun HomeQuickActionChip(
+    text: String,
+    countBadge: Int? = null,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
+        onClick = onClick,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        if ((countBadge ?: 0) > 0) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 2.dp, end = 2.dp),
+                contentAlignment = Alignment.TopEnd,
+            ) {
+                Box(
+                    modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
+                    .padding(horizontal = 5.dp, vertical = 1.dp),
+                ) {
+                    Text(
+                        text = countBadge.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
         }

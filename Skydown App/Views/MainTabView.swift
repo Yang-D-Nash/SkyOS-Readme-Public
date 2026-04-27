@@ -81,6 +81,7 @@ struct MainTabView: View {
     @State private var lastNonToolsTab: MainTab = .hub
     @State private var modalPresentation = SkydownQueuedPresentation<MainTabModal>()
     @State private var showsWorkflowWorkspace = false
+    @State private var pendingAgentPrefillPrompt: String?
     @State private var settingsInitialAdminWorkspaceRawValue: String?
 
     private var preferredScheme: ColorScheme? {
@@ -179,6 +180,7 @@ struct MainTabView: View {
                     .skydownSceneActivation(isActive: selectedTab == .merch, axis: .horizontal, travel: 22)
                 }
                 .tabItem { Label(localized("tabs.merch", "Merch"), systemImage: "bag.fill") }
+                .skydownTabBadge(count: services.cartViewModel.items.count)
                 .tag(MainTab.merch)
 
                 DeferredView {
@@ -202,6 +204,13 @@ struct MainTabView: View {
                         onOpenWorkflow: hasAIAccess ? {
                             withAnimation(SkydownMotion.screenTransition) {
                                 showsWorkflowWorkspace = true
+                                selectedTab = .tools
+                            }
+                        } : nil,
+                        onOpenWorkflowWithPrompt: hasAIAccess ? { prompt in
+                            pendingAgentPrefillPrompt = prompt
+                            withAnimation(SkydownMotion.screenTransition) {
+                                showsWorkflowWorkspace = false
                                 selectedTab = .tools
                             }
                         } : nil
@@ -229,6 +238,7 @@ struct MainTabView: View {
                         agentChatService: services.agentChatService,
                         featureFlags: services.featureFlags,
                         showsWorkflowWorkspace: $showsWorkflowWorkspace,
+                        pendingAgentPrefillPrompt: $pendingAgentPrefillPrompt,
                         onExitImmersive: exitAITools,
                         onOpenCart: { presentModal(.cart) },
                         onOpenLogin: { presentLogin(.ai) },
@@ -297,7 +307,15 @@ struct MainTabView: View {
         case .settings:
             DeferredSettingsPresentation(
                 colorScheme: $colorScheme,
-                initialAdminWorkspaceRawValue: settingsInitialAdminWorkspaceRawValue
+                initialAdminWorkspaceRawValue: settingsInitialAdminWorkspaceRawValue,
+                onOpenAgentWithPrompt: { prompt in
+                    pendingAgentPrefillPrompt = prompt
+                    withAnimation(SkydownMotion.screenTransition) {
+                        showsWorkflowWorkspace = false
+                        modalPresentation.updatePresentedItem(nil)
+                        selectedTab = .tools
+                    }
+                }
             )
         case .profile:
             ProfileView(
@@ -332,6 +350,7 @@ struct MainTabView: View {
 private struct DeferredSettingsPresentation: View {
     @Binding var colorScheme: String
     let initialAdminWorkspaceRawValue: String?
+    let onOpenAgentWithPrompt: ((String) -> Void)?
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var isReady = false
 
@@ -351,7 +370,8 @@ private struct DeferredSettingsPresentation: View {
             if isReady {
                 SettingsView(
                     colorScheme: $colorScheme,
-                    initialAdminWorkspaceRawValue: initialAdminWorkspaceRawValue
+                    initialAdminWorkspaceRawValue: initialAdminWorkspaceRawValue,
+                    onOpenAgentWithPrompt: onOpenAgentWithPrompt
                 )
                 .transition(.opacity)
             } else {
@@ -391,6 +411,7 @@ struct AppSessionToolbarActions: View {
     let onOpenSettings: () -> Void
     let onGuestSignIn: (() -> Void)?
     @EnvironmentObject private var authManager: AuthManager
+    @EnvironmentObject private var cartViewModel: CartViewModel
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -545,6 +566,7 @@ struct AppSessionToolbarActions: View {
                     accessibilityID: "app.open_cart",
                     accent: AppColors.accentHighlight(for: colorScheme),
                     colorScheme: colorScheme,
+                    badgeCount: cartViewModel.items.count,
                     action: onOpenCart
                 )
             }
@@ -579,11 +601,28 @@ private struct SessionToolbarIconButton: View {
     let accessibilityID: String
     let accent: Color
     let colorScheme: ColorScheme
+    let badgeCount: Int?
     let action: () -> Void
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var iconPadding: CGFloat {
         TopBarPreset.actionIconPadding(horizontalSizeClass: horizontalSizeClass)
+    }
+
+    init(
+        systemName: String,
+        accessibilityID: String,
+        accent: Color,
+        colorScheme: ColorScheme,
+        badgeCount: Int? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.systemName = systemName
+        self.accessibilityID = accessibilityID
+        self.accent = accent
+        self.colorScheme = colorScheme
+        self.badgeCount = badgeCount
+        self.action = action
     }
 
     var body: some View {
@@ -596,6 +635,20 @@ private struct SessionToolbarIconButton: View {
                     colorScheme: colorScheme,
                     accent: accent
                 )
+                .overlay(alignment: .topTrailing) {
+                    if let badgeCount, badgeCount > 0 {
+                        Text("\(badgeCount)")
+                            .font(.caption2.weight(.bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(accent.opacity(0.95))
+                            )
+                            .offset(x: 3, y: -3)
+                    }
+                }
         }
         .frame(minWidth: 40, minHeight: 40)
         .contentShape(Rectangle())
@@ -1105,6 +1158,7 @@ private struct AIHubView: View {
     let agentChatService: AgentChatServicing
     @ObservedObject private var featureFlags: FeatureFlagsService
     @Binding var showsWorkflowWorkspace: Bool
+    @Binding var pendingAgentPrefillPrompt: String?
     let onExitImmersive: () -> Void
     let onOpenCart: () -> Void
     let onOpenLogin: () -> Void
@@ -1126,6 +1180,7 @@ private struct AIHubView: View {
         agentChatService: AgentChatServicing,
         featureFlags: FeatureFlagsService,
         showsWorkflowWorkspace: Binding<Bool>,
+        pendingAgentPrefillPrompt: Binding<String?>,
         onExitImmersive: @escaping () -> Void,
         onOpenCart: @escaping () -> Void,
         onOpenLogin: @escaping () -> Void,
@@ -1145,6 +1200,7 @@ private struct AIHubView: View {
         self.onOpenAutomationSettings = onOpenAutomationSettings
         _featureFlags = ObservedObject(wrappedValue: featureFlags)
         _showsWorkflowWorkspace = showsWorkflowWorkspace
+        _pendingAgentPrefillPrompt = pendingAgentPrefillPrompt
     }
 
     private var motionState: String {
@@ -1271,6 +1327,8 @@ private struct AIHubView: View {
                                     agentChatService: agentChatService,
                                     featureFlags: featureFlags,
                                     membershipCoordinator: membershipCoordinator,
+                                    prefilledPrompt: pendingAgentPrefillPrompt,
+                                    onConsumePrefilledPrompt: { pendingAgentPrefillPrompt = nil },
                                     showsNavigation: false
                                 )
                             }
@@ -1324,6 +1382,17 @@ private struct AIHubView: View {
             .onChange(of: featureFlags.allowsAIAccess(for: authManager.userSession)) { _, allowed in
                 if !allowed {
                     membershipCoordinator.closeMembership()
+                }
+            }
+            .onChange(of: pendingAgentPrefillPrompt) { _, newValue in
+                let trimmed = newValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !trimmed.isEmpty else { return }
+                guard authManager.userSession != nil,
+                      featureFlags.allowsAIAccess(for: authManager.userSession) else { return }
+                withAnimation(SkydownMotion.screenTransition) {
+                    membershipCoordinator.closeMembership()
+                    showsWorkflowWorkspace = false
+                    mode = .agent
                 }
             }
             .toolbar {
@@ -1818,6 +1887,17 @@ private struct DeferredView<Content: View>: View {
 
     var body: some View {
         content()
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func skydownTabBadge(count: Int) -> some View {
+        if count > 0 {
+            badge(count)
+        } else {
+            self
+        }
     }
 }
 

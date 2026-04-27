@@ -60,6 +60,8 @@ object AppContainer {
     val merchStoreStatusRepository: MerchStoreStatusRepository by lazy { MerchStoreStatusRepository() }
     val membershipOpsAdminRepository: MembershipOpsAdminRepository by lazy { MembershipOpsAdminRepository() }
     val aiFaqOwnerReviewRepository: AiFaqOwnerReviewRepository by lazy { AiFaqOwnerReviewRepository() }
+    val taskRepository: TaskRepository by lazy { TaskRepository() }
+    val noteRepository: NoteRepository by lazy { NoteRepository() }
 
     private val defaultAuthRepository: AuthRepository by lazy { AndroidAuthRepository() }
     private val defaultMerchandiseRepository: MerchandiseRepository by lazy { AndroidMerchandiseRepository() }

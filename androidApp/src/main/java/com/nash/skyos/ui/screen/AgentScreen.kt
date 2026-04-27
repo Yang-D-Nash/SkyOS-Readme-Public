@@ -63,6 +63,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -155,6 +156,8 @@ fun AgentScreen(
     viewModel: AgentViewModel = viewModel(),
     showTopBar: Boolean = true,
     immersiveInTools: Boolean = false,
+    prefilledPrompt: String? = null,
+    onConsumePrefilledPrompt: () -> Unit = {},
 ) {
     DisposableEffect(immersiveInTools) {
         onDispose { }
@@ -173,7 +176,10 @@ fun AgentScreen(
     val membershipCoordinator = remember(context) { AiMembershipCoordinator(context.applicationContext) }
     val membershipState by membershipCoordinator.uiState.collectAsStateWithLifecycle()
     var inputAttachments by remember { mutableStateOf<List<AgentInputAttachment>>(emptyList()) }
+    var selectedNote by remember { mutableStateOf<com.nash.skyos.data.NoteItem?>(null) }
     var showPromptComposer by rememberSaveable { mutableStateOf(false) }
+    var showTasksSheet by rememberSaveable { mutableStateOf(false) }
+    var showNotesSheet by rememberSaveable { mutableStateOf(false) }
     var showSessionsSheet by rememberSaveable { mutableStateOf(false) }
     var renameDraft by rememberSaveable { mutableStateOf("") }
     val promptSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -242,6 +248,15 @@ fun AgentScreen(
         viewModel.refreshAvailability()
     }
 
+    LaunchedEffect(prefilledPrompt) {
+        val prompt = prefilledPrompt?.trim()
+        if (!prompt.isNullOrEmpty()) {
+            viewModel.updateDraft(prefilledPrompt)
+            showPromptComposer = true
+            onConsumePrefilledPrompt()
+        }
+    }
+
     LaunchedEffect(uiState.errorMessage) {
         val message = uiState.errorMessage
         if (!message.isNullOrBlank()) {
@@ -262,6 +277,12 @@ fun AgentScreen(
         if (!localFeedbackMessage.isNullOrBlank()) {
             delay(3000)
             localFeedbackMessage = null
+        }
+    }
+    LaunchedEffect(uiState.successMessage) {
+        if (!uiState.successMessage.isNullOrBlank()) {
+            delay(2500)
+            viewModel.dismissSuccess()
         }
     }
     LaunchedEffect(uiState.activeSessionId, uiState.activeSessionTitle) {
@@ -343,7 +364,17 @@ fun AgentScreen(
                             end = safeContentPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
                             bottom = safeContentPadding.calculateBottomPadding() + 78.dp,
                         ),
-                )
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        AgentProductivityDockCard(
+                            openTaskCount = uiState.tasks.count { it.status != com.nash.skyos.data.TaskStatus.Completed },
+                            noteCount = uiState.notes.size,
+                            onOpenTasks = { showTasksSheet = true },
+                            onOpenNotes = { showNotesSheet = true },
+                        )
+                        AgentEmptyStateHeader()
+                    }
+                }
             } else {
                 LazyColumn(
                     state = listState,
@@ -364,6 +395,14 @@ fun AgentScreen(
                             AgentDisabledCard()
                         }
                     } else {
+                        item {
+                            AgentProductivityDockCard(
+                                openTaskCount = uiState.tasks.count { it.status != com.nash.skyos.data.TaskStatus.Completed },
+                                noteCount = uiState.notes.size,
+                                onOpenTasks = { showTasksSheet = true },
+                                onOpenNotes = { showNotesSheet = true },
+                            )
+                        }
                         items(uiState.messages, key = { it.id }) { message ->
                             Box(
                                 modifier = Modifier
@@ -426,8 +465,12 @@ fun AgentScreen(
             }
 
             ToastHost(
-                message = localFeedbackMessage ?: uiState.errorMessage,
-                type = if (localFeedbackMessage != null) localFeedbackType else ToastType.Error,
+                message = localFeedbackMessage ?: uiState.successMessage ?: uiState.errorMessage,
+                type = when {
+                    localFeedbackMessage != null -> localFeedbackType
+                    !uiState.successMessage.isNullOrBlank() -> ToastType.Success
+                    else -> ToastType.Error
+                },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = if (uiState.isAgentEnabled) {
@@ -482,6 +525,162 @@ fun AgentScreen(
                             showPromptComposer = false
                         },
                     )
+                }
+            }
+
+            val taskPrefillPrompt = stringResource(R.string.agent_prefill_create_task)
+            val notePrefillPrompt = stringResource(R.string.agent_prefill_create_note)
+
+            if (showTasksSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showTasksSheet = false },
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.tasks_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.home_quick_hint),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                            )
+                        }
+                        BrandActionButton(
+                            text = stringResource(R.string.home_quick_create_task),
+                            onClick = {
+                                showTasksSheet = false
+                                viewModel.updateDraft(taskPrefillPrompt)
+                                showPromptComposer = true
+                            },
+                            accent = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        AgentTasksSection(
+                            tasks = uiState.tasks,
+                            onRefresh = viewModel::refreshTasks,
+                            onCreateTask = viewModel::createTask,
+                            onToggleTask = viewModel::toggleTaskStatus,
+                            onDeleteTask = viewModel::deleteTask,
+                        )
+                    }
+                }
+            }
+
+            if (showNotesSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showNotesSheet = false },
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.notes_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.home_quick_hint),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                            )
+                        }
+                        BrandActionButton(
+                            text = stringResource(R.string.home_quick_create_note),
+                            onClick = {
+                                showNotesSheet = false
+                                viewModel.updateDraft(notePrefillPrompt)
+                                showPromptComposer = true
+                            },
+                            accent = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        AgentNotesSection(
+                            notes = uiState.notes,
+                            onRefresh = viewModel::refreshNotes,
+                            onCreateNote = viewModel::createNote,
+                            onOpenNote = { note -> selectedNote = note },
+                            onDeleteNote = viewModel::deleteNote,
+                        )
+                    }
+                }
+            }
+
+            selectedNote?.let { note ->
+                ModalBottomSheet(
+                    onDismissRequest = { selectedNote = null },
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                ) {
+                    var titleDraft by rememberSaveable(note.id) { mutableStateOf(note.title) }
+                    var contentDraft by rememberSaveable(note.id) { mutableStateOf(note.content) }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(stringResource(R.string.notes_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        OutlinedTextField(
+                            value = titleDraft,
+                            onValueChange = { titleDraft = it },
+                            label = { Text(stringResource(R.string.notes_field_title)) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        OutlinedTextField(
+                            value = contentDraft,
+                            onValueChange = { contentDraft = it },
+                            label = { Text(stringResource(R.string.notes_field_content)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 5,
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    viewModel.deleteNote(note.id)
+                                    selectedNote = null
+                                },
+                            ) {
+                                Text(stringResource(R.string.common_delete))
+                            }
+                            Button(
+                                onClick = {
+                                    viewModel.saveNote(note.id, titleDraft, contentDraft)
+                                    selectedNote = null
+                                },
+                            ) {
+                                Text(stringResource(R.string.common_save))
+                            }
+                        }
+                    }
                 }
             }
 
@@ -775,6 +974,349 @@ private fun AgentEmptyStateHeader() {
 }
 
 @Composable
+private fun AgentProductivityDockCard(
+    openTaskCount: Int,
+    noteCount: Int,
+    onOpenTasks: () -> Unit,
+    onOpenNotes: () -> Unit,
+) {
+    SkydownCard(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
+        Text(
+            text = stringResource(R.string.agent_productivity_header),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            BrandActionButton(
+                text = stringResource(R.string.agent_productivity_tasks_count, openTaskCount),
+                onClick = onOpenTasks,
+                accent = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.weight(1f),
+            )
+            BrandActionButton(
+                text = stringResource(R.string.agent_productivity_notes_count, noteCount),
+                onClick = onOpenNotes,
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AgentTasksSection(
+    tasks: List<com.nash.skyos.data.TaskItem>,
+    onRefresh: () -> Unit,
+    onCreateTask: (String, String) -> Unit,
+    onToggleTask: (String, com.nash.skyos.data.TaskStatus) -> Unit,
+    onDeleteTask: (String) -> Unit,
+) {
+    var createTitle by rememberSaveable { mutableStateOf("") }
+    var createDescription by rememberSaveable { mutableStateOf("") }
+    SkydownCard(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.tasks_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            IconButton(onClick = onRefresh, modifier = Modifier.size(28.dp)) {
+                Icon(imageVector = Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh), modifier = Modifier.size(16.dp))
+            }
+        }
+
+        OutlinedTextField(
+            value = createTitle,
+            onValueChange = { createTitle = it },
+            label = { Text(stringResource(R.string.tasks_input_title_hint)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = createDescription,
+            onValueChange = { createDescription = it },
+            label = { Text(stringResource(R.string.tasks_input_details_hint)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            singleLine = true,
+        )
+        BrandActionButton(
+            text = stringResource(R.string.tasks_input_add),
+            onClick = {
+                val title = createTitle.trim()
+                if (title.isBlank()) return@BrandActionButton
+                onCreateTask(title, createDescription.trim())
+                createTitle = ""
+                createDescription = ""
+            },
+            accent = MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        )
+        Text(
+            text = stringResource(R.string.tasks_create_with_ai),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+            modifier = Modifier.padding(top = 2.dp),
+        )
+
+        if (tasks.isEmpty()) {
+            Text(
+                text = stringResource(R.string.tasks_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                modifier = Modifier.padding(top = 6.dp),
+            )
+            Text(
+                text = stringResource(R.string.tasks_create_with_ai),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            return@SkydownCard
+        }
+
+        Column(modifier = Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            tasks.take(10).forEach { task ->
+                val priorityLabel = when (task.priority) {
+                    com.nash.skyos.data.TaskPriority.Low -> "LOW"
+                    com.nash.skyos.data.TaskPriority.Medium -> "MEDIUM"
+                    com.nash.skyos.data.TaskPriority.High -> "HIGH"
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(
+                        checked = task.status == com.nash.skyos.data.TaskStatus.Completed,
+                        onCheckedChange = { onToggleTask(task.id, task.status) },
+                    )
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(task.title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        if (task.description.isNotBlank()) {
+                            Text(
+                                text = task.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(priorityLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
+                            task.dueAt?.let {
+                                Text(
+                                    java.text.DateFormat.getDateTimeInstance().format(it),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                                )
+                            }
+                        }
+                    }
+                    TextButton(onClick = { onDeleteTask(task.id) }) {
+                        Text(stringResource(R.string.common_delete))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgentNotesSection(
+    notes: List<com.nash.skyos.data.NoteItem>,
+    onRefresh: () -> Unit,
+    onCreateNote: (String, String) -> Unit,
+    onOpenNote: (com.nash.skyos.data.NoteItem) -> Unit,
+    onDeleteNote: (String) -> Unit,
+) {
+    var searchText by rememberSaveable { mutableStateOf("") }
+    var createTitle by rememberSaveable { mutableStateOf("") }
+    var createContent by rememberSaveable { mutableStateOf("") }
+    val filteredNotes = remember(notes, searchText) {
+        val query = searchText.trim().lowercase()
+        if (query.isBlank()) {
+            notes
+        } else {
+            notes.filter { note ->
+                note.title.lowercase().contains(query) || note.content.lowercase().contains(query)
+            }
+        }
+    }
+    SkydownCard(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.notes_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            IconButton(onClick = onRefresh, modifier = Modifier.size(28.dp)) {
+                Icon(imageVector = Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh), modifier = Modifier.size(16.dp))
+            }
+        }
+        OutlinedTextField(
+            value = createTitle,
+            onValueChange = { createTitle = it },
+            label = { Text(stringResource(R.string.notes_input_title_hint)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            singleLine = true,
+        )
+        OutlinedTextField(
+            value = createContent,
+            onValueChange = { createContent = it },
+            label = { Text(stringResource(R.string.notes_input_content_hint)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            minLines = 2,
+            maxLines = 4,
+        )
+        BrandActionButton(
+            text = stringResource(R.string.notes_input_add),
+            onClick = {
+                val title = createTitle.trim()
+                val content = createContent.trim()
+                if (title.isBlank() && content.isBlank()) return@BrandActionButton
+                onCreateNote(title, content)
+                createTitle = ""
+                createContent = ""
+            },
+            accent = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        )
+        Text(
+            text = stringResource(R.string.notes_create_with_ai),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+            modifier = Modifier.padding(top = 2.dp),
+        )
+        OutlinedTextField(
+            value = searchText,
+            onValueChange = { searchText = it },
+            label = { Text(stringResource(R.string.common_search)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            singleLine = true,
+        )
+        if (filteredNotes.isEmpty()) {
+            Text(
+                text = stringResource(R.string.notes_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            Text(
+                text = stringResource(R.string.notes_create_with_ai),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            return@SkydownCard
+        }
+        Column(
+            modifier = Modifier.padding(top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            filteredNotes.take(10).forEach { note ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .clickable { onOpenNote(note) }
+                        .padding(horizontal = 10.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(note.title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        if (note.content.isNotBlank()) {
+                            Text(
+                                note.content,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        note.updatedAt?.let {
+                            Text(
+                                java.text.DateFormat.getDateTimeInstance().format(it),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                            )
+                        }
+                    }
+                    TextButton(onClick = { onDeleteNote(note.id) }) {
+                        Text(stringResource(R.string.common_delete))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgentFeatureStatusCard() {
+    SkydownCard(
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.agent_feature_status_live_title),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.tertiary,
+        )
+        Text(
+            text = stringResource(R.string.agent_feature_status_live_body),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        Text(
+            text = stringResource(R.string.agent_feature_status_next_title),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        Text(
+            text = stringResource(R.string.agent_feature_status_next_body),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+            modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+}
+
+@Composable
 private fun AgentDisabledCard() {
     val shape = RoundedCornerShape(24.dp)
     Column(
@@ -897,6 +1439,7 @@ private fun AgentPromptComposerSheet(
 ) {
     Column(
         modifier = Modifier
+            .testTag("agent.prompt.sheet")
             .fillMaxWidth()
             .fillMaxHeight(0.92f)
             .verticalScroll(rememberScrollState())
@@ -1015,7 +1558,9 @@ private fun AgentPromptComposerSheet(
         OutlinedTextField(
             value = draft,
             onValueChange = onDraftChanged,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("agent.prompt.draft"),
             placeholder = {
                 Text(selectedMode.placeholder)
             },

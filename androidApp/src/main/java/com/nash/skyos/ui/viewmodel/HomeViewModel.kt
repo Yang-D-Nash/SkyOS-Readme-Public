@@ -8,11 +8,15 @@ import androidx.lifecycle.viewModelScope
 import com.nash.skyos.R
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.nash.skyos.data.ExternalMediaProvider
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.ui.model.FeaturedVideoHighlight
 import com.nash.skyos.ui.model.HomeUiState
+import com.nash.skyos.ui.model.ProductivityNoteItem
+import com.nash.skyos.ui.model.ProductivityReminderItem
+import com.nash.skyos.ui.model.ProductivityTaskItem
 import com.skydown.shared.model.Track
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +27,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.tasks.await
+import java.util.Calendar
+import java.util.Date
 
 class HomeViewModel(
     application: Application
@@ -87,7 +93,267 @@ class HomeViewModel(
                 launch {
                     loadRuntimeSignals(generation)
                 }
+
+                launch {
+                    loadProductivitySnapshot(generation)
+                }
             }
+        }
+    }
+
+    fun createReminder(title: String, dueAt: Date) {
+        val uid = auth.currentUser?.uid ?: return
+        val normalizedTitle = title.trim()
+        if (normalizedTitle.isBlank()) return
+        viewModelScope.launch {
+            runCatching {
+                firestore.collection("users").document(uid).collection("reminders")
+                    .add(
+                        mapOf(
+                            "title" to normalizedTitle,
+                            "dueAt" to Timestamp(dueAt),
+                            "createdAt" to FieldValue.serverTimestamp(),
+                            "updatedAt" to FieldValue.serverTimestamp(),
+                        ),
+                    ).await()
+            }
+            refresh()
+        }
+    }
+
+    fun createTask(title: String, description: String) {
+        val uid = auth.currentUser?.uid ?: return
+        val normalizedTitle = title.trim()
+        if (normalizedTitle.isBlank()) return
+        viewModelScope.launch {
+            runCatching {
+                firestore.collection("users").document(uid).collection("tasks")
+                    .add(
+                        mapOf(
+                            "title" to normalizedTitle,
+                            "description" to description.trim(),
+                            "status" to "open",
+                            "priority" to "medium",
+                            "createdAt" to FieldValue.serverTimestamp(),
+                            "updatedAt" to FieldValue.serverTimestamp(),
+                        ),
+                    ).await()
+            }
+            refresh()
+        }
+    }
+
+    fun createNote(title: String, content: String) {
+        val uid = auth.currentUser?.uid ?: return
+        val normalizedTitle = title.trim()
+        val normalizedContent = content.trim()
+        if (normalizedTitle.isBlank() && normalizedContent.isBlank()) return
+        viewModelScope.launch {
+            runCatching {
+                firestore.collection("users").document(uid).collection("notes")
+                    .add(
+                        mapOf(
+                            "title" to normalizedTitle,
+                            "content" to normalizedContent,
+                            "createdAt" to FieldValue.serverTimestamp(),
+                            "updatedAt" to FieldValue.serverTimestamp(),
+                        ),
+                    ).await()
+            }
+            refresh()
+        }
+    }
+
+    fun updateReminderTitle(reminderId: String, title: String) {
+        val uid = auth.currentUser?.uid ?: return
+        val normalizedTitle = title.trim()
+        if (normalizedTitle.isBlank()) return
+        viewModelScope.launch {
+            runCatching {
+                firestore.collection("users").document(uid).collection("reminders")
+                    .document(reminderId)
+                    .set(
+                        mapOf(
+                            "title" to normalizedTitle,
+                            "updatedAt" to FieldValue.serverTimestamp(),
+                        ),
+                    ).await()
+            }
+            refresh()
+        }
+    }
+
+    fun deleteReminder(reminderId: String) {
+        val uid = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            runCatching {
+                firestore.collection("users").document(uid).collection("reminders")
+                    .document(reminderId)
+                    .delete()
+                    .await()
+            }
+            refresh()
+        }
+    }
+
+    fun updateTaskTitle(taskId: String, title: String) {
+        val uid = auth.currentUser?.uid ?: return
+        val normalizedTitle = title.trim()
+        if (normalizedTitle.isBlank()) return
+        viewModelScope.launch {
+            runCatching {
+                firestore.collection("users").document(uid).collection("tasks")
+                    .document(taskId)
+                    .set(
+                        mapOf(
+                            "title" to normalizedTitle,
+                            "updatedAt" to FieldValue.serverTimestamp(),
+                        ),
+                    ).await()
+            }
+            refresh()
+        }
+    }
+
+    fun deleteTask(taskId: String) {
+        val uid = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            runCatching {
+                firestore.collection("users").document(uid).collection("tasks")
+                    .document(taskId)
+                    .delete()
+                    .await()
+            }
+            refresh()
+        }
+    }
+
+    fun updateNoteTitle(noteId: String, title: String) {
+        val uid = auth.currentUser?.uid ?: return
+        val normalizedTitle = title.trim()
+        if (normalizedTitle.isBlank()) return
+        viewModelScope.launch {
+            runCatching {
+                firestore.collection("users").document(uid).collection("notes")
+                    .document(noteId)
+                    .set(
+                        mapOf(
+                            "title" to normalizedTitle,
+                            "updatedAt" to FieldValue.serverTimestamp(),
+                        ),
+                    ).await()
+            }
+            refresh()
+        }
+    }
+
+    fun deleteNote(noteId: String) {
+        val uid = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            runCatching {
+                firestore.collection("users").document(uid).collection("notes")
+                    .document(noteId)
+                    .delete()
+                    .await()
+            }
+            refresh()
+        }
+    }
+
+    private suspend fun loadProductivitySnapshot(generation: Long) {
+        val uid = auth.currentUser?.uid
+        if (uid.isNullOrBlank()) {
+            _uiState.update {
+                if (!isCurrentRefresh(generation)) return@update it
+                it.copy(
+                    dueTodayReminders = emptyList(),
+                    upcomingReminders = emptyList(),
+                    openTasks = emptyList(),
+                    recentNotes = emptyList(),
+                )
+            }
+            return
+        }
+
+        val now = Date()
+        val dayStart = Calendar.getInstance().apply {
+            time = now
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        val endOfDay = dayStart + 24 * 60 * 60 * 1000
+
+        val reminders = runCatching {
+            firestore.collection("users").document(uid).collection("reminders").limit(80).get().await()
+        }.getOrNull()?.documents.orEmpty().mapNotNull { document ->
+            val title = listOf("title", "text", "message")
+                .asSequence()
+                .mapNotNull { key -> document.getString(key)?.trim()?.takeIf { it.isNotEmpty() } }
+                .firstOrNull()
+                ?: return@mapNotNull null
+            val dueAt = resolveDate(
+                document.get("dueAt"),
+                document.get("scheduledAt"),
+                document.get("scheduledFor"),
+                document.get("remindAt"),
+                document.get("triggerAt"),
+                document.get("date"),
+            )
+            ProductivityReminderItem(document.id, title, dueAt)
+        }.filter { it.dueAt == null || !it.dueAt.before(now) }
+            .sortedBy { it.dueAt ?: Date(Long.MAX_VALUE) }
+
+        val dueToday = reminders.filter { item ->
+            val dueMs = item.dueAt?.time ?: return@filter false
+            dueMs in dayStart until endOfDay
+        }.take(5)
+
+        val upcoming = reminders.filter { item ->
+            val dueMs = item.dueAt?.time ?: return@filter false
+            dueMs >= endOfDay
+        }.take(5)
+
+        val tasks = runCatching {
+            firestore.collection("users").document(uid).collection("tasks").limit(40).get().await()
+        }.getOrNull()?.documents.orEmpty().mapNotNull { document ->
+            val title = document.getString("title")?.trim().orEmpty()
+            if (title.isBlank()) return@mapNotNull null
+            val status = document.getString("status")?.trim()?.lowercase().orEmpty()
+            if (status == "completed") return@mapNotNull null
+            ProductivityTaskItem(
+                id = document.id,
+                title = title,
+                dueAt = resolveDate(document.get("dueAt"), document.get("scheduledAt")),
+            )
+        }.sortedWith(
+            compareBy<ProductivityTaskItem>({ it.dueAt ?: Date(Long.MAX_VALUE) }, { it.title.lowercase() }),
+        ).take(6)
+
+        val notes = runCatching {
+            firestore.collection("users").document(uid).collection("notes").limit(40).get().await()
+        }.getOrNull()?.documents.orEmpty().mapNotNull { document ->
+            val title = document.getString("title")?.trim().orEmpty()
+            val content = document.getString("content")?.trim().orEmpty()
+            val display = if (title.isNotBlank()) title else content.take(48).trim()
+            if (display.isBlank()) return@mapNotNull null
+            ProductivityNoteItem(
+                id = document.id,
+                title = display,
+                updatedAt = resolveDate(document.get("updatedAt"), document.get("createdAt")),
+            )
+        }.sortedByDescending { it.updatedAt ?: Date(0) }
+            .take(6)
+
+        _uiState.update {
+            if (!isCurrentRefresh(generation)) return@update it
+            it.copy(
+                dueTodayReminders = dueToday,
+                upcomingReminders = upcoming,
+                openTasks = tasks,
+                recentNotes = notes,
+            )
         }
     }
 
@@ -375,5 +641,19 @@ class HomeViewModel(
             is Number -> createdAt.toLong()
             else -> 0L
         }
+    }
+
+    private fun resolveDate(vararg candidates: Any?): Date? {
+        candidates.forEach { candidate ->
+            when (candidate) {
+                is Timestamp -> return candidate.toDate()
+                is Date -> return candidate
+                is Number -> {
+                    val value = candidate.toLong()
+                    return Date(if (value > 10_000_000_000L) value else value * 1000)
+                }
+            }
+        }
+        return null
     }
 }

@@ -27,6 +27,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.nash.skyos.R
+import com.nash.skyos.data.AppCartStore
 
 private object TopBarPreset {
     fun useDense(compactLayout: Boolean, dense: Boolean): Boolean = dense && compactLayout
@@ -111,6 +113,8 @@ fun RowScope.AppTopBarSessionActions(
     val showIdentityLabel = !balancedDense && !(collapseIdentityOnCompact && compactLayout)
     val useMiniMode = balancedMiniMode
     val showGuestSignIn = currentUser == null && onGuestSignIn != null && showIdentityLabel
+    val cartItems by AppCartStore.items.collectAsState()
+    val cartCount = cartItems.size
     var menuExpanded by remember { mutableStateOf(false) }
 
     Row(
@@ -288,6 +292,7 @@ fun RowScope.AppTopBarSessionActions(
             compactLayout = compactLayout,
             dense = balancedDense,
             accentColor = MaterialTheme.colorScheme.secondary,
+            badgeCount = cartCount,
         )
     }
 
@@ -311,6 +316,7 @@ private fun SessionIconAction(
     compactLayout: Boolean,
     dense: Boolean,
     accentColor: androidx.compose.ui.graphics.Color,
+    badgeCount: Int = 0,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -332,6 +338,24 @@ private fun SessionIconAction(
                 contentDescription = contentDescription,
                 tint = accentColor.copy(alpha = 0.94f),
             )
+        }
+        if (badgeCount > 0) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 2.dp, end = 2.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(accentColor.copy(alpha = 0.96f))
+                    .padding(horizontal = 5.dp, vertical = 1.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = badgeCount.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.surface,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
     }
 }

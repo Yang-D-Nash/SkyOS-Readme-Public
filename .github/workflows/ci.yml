@@ -19,6 +19,7 @@ jobs:
     outputs:
       shared: ${{ steps.filter.outputs.shared }}
       android: ${{ steps.filter.outputs.android }}
+      ios: ${{ steps.filter.outputs.ios }}
       functions: ${{ steps.filter.outputs.functions }}
     steps:
       - name: Checkout repository
@@ -42,6 +43,10 @@ jobs:
               - 'settings.gradle.kts'
               - 'gradle/**'
               - 'gradle.properties'
+            ios:
+              - 'Skydown App/**'
+              - 'Skydown App.xcodeproj/**'
+              - 'Skydown AppUITests/**'
             functions:
               - 'functions/**'
 
@@ -52,6 +57,7 @@ jobs:
             echo ""
             echo "- shared: \`${{ steps.filter.outputs.shared }}\`"
             echo "- android: \`${{ steps.filter.outputs.android }}\`"
+            echo "- ios: \`${{ steps.filter.outputs.ios }}\`"
             echo "- functions: \`${{ steps.filter.outputs.functions }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -98,8 +104,13 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Run Android lint and shared metadata compile
-        run: ./gradlew :androidApp:lintDebug :shared:compileKotlinMetadata --no-daemon
+      - name: Run Android lint, compile checks, and shared metadata compile
+        run: |
+          ./gradlew :androidApp:lintDebug \
+            :androidApp:compileDebugKotlin \
+            :androidApp:compileDebugAndroidTestKotlin \
+            :shared:compileKotlinMetadata \
+            --no-daemon
 
       - name: Upload Android lint report
         if: always()
@@ -107,6 +118,38 @@ jobs:
         with:
           name: android-lint-report
           path: androidApp/build/reports/lint-results-debug.*
+
+  # Compiles the iOS app + SPM deps when Swift / Xcode project paths change (no simulator runtime required).
+  ios-build:
+    name: iOS compile (Xcode)
+    needs: changes
+    if: needs.changes.outputs.ios == 'true'
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile for iOS Simulator (generic destination)
+        run: |
+          set -eo pipefail
+          xcodebuild \
+            -project "Skydown App.xcodeproj" \
+            -scheme "Skydown App" \
+            -destination "generic/platform=iOS Simulator" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: iOS build summary
+        if: always()
+        run: |
+          {
+            echo "## iOS build"
+            echo ""
+            echo "- result: \`${{ job.status }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   functions-tests:
     name: Firebase Functions tests
@@ -152,6 +195,7 @@ jobs:
             echo "### Areas changed"
             echo "- shared: \`${{ needs.changes.outputs.shared }}\`"
             echo "- android: \`${{ needs.changes.outputs.android }}\`"
+            echo "- ios: \`${{ needs.changes.outputs.ios }}\`"
             echo "- functions: \`${{ needs.changes.outputs.functions }}\`"
             echo ""
             echo "### Job outcomes"

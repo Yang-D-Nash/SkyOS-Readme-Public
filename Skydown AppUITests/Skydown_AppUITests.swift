@@ -41,6 +41,99 @@ final class Skydown_AppUITests: XCTestCase {
     }
 
     @MainActor
+    func testOwnerHubOpensFromSettingsWhenUiTestPlatformOwner() throws {
+        let app = XCUIApplication()
+        app.launchArguments += [
+            "-AppleLanguages",
+            "(en)",
+            "-AppleLocale",
+            "en_US",
+            "-ui_test_start_main_shell",
+            "-ui_test_signed_in",
+            "-ui_test_platform_owner",
+        ]
+        app.launch()
+
+        enterMainShellIfNeeded(app: app)
+
+        let settingsButton = app.buttons["app.open_settings"].firstMatch
+        XCTAssertTrue(
+            settingsButton.waitForExistence(timeout: 45),
+            "Der Settings-Button sollte in der Main-Shell sichtbar sein."
+        )
+        settingsButton.tap()
+
+        let settingsRoot = app.descendants(matching: .any)["settings.root"].firstMatch
+        XCTAssertTrue(
+            settingsRoot.waitForExistence(timeout: 45),
+            "Die Settings-Ansicht sollte erscheinen."
+        )
+
+        let ownerHubEntry = app.descendants(matching: .any)["settings.open_owner_hub"].firstMatch
+        XCTAssertTrue(
+            ownerHubEntry.waitForExistence(timeout: 20),
+            "Der Owner-Hub-Einstieg sollte fuer die Platform-Owner-UITest-Session sichtbar sein."
+        )
+        ownerHubEntry.tap()
+
+        let ownerHubRoot = app.descendants(matching: .any)["owner.hub.root"].firstMatch
+        XCTAssertTrue(
+            ownerHubRoot.waitForExistence(timeout: 20),
+            "Der Owner-Hub sollte ohne Crash erscheinen."
+        )
+
+        let briefingTitle = app.descendants(matching: .any)["owner.hub.briefing.title"].firstMatch
+        XCTAssertTrue(
+            briefingTitle.waitForExistence(timeout: 10),
+            "Der Daily-Briefing-Bereich sollte sichtbar sein."
+        )
+
+        let briefingCta = app.descendants(matching: .any)["owner.hub.briefing.cta"].firstMatch
+        XCTAssertTrue(
+            briefingCta.waitForExistence(timeout: 10),
+            "Der Briefing-CTA sollte sichtbar und aktiviert sein."
+        )
+
+        briefingCta.tap()
+
+        let agentScreenRoot = app.descendants(matching: .any)["agent.screen.root"].firstMatch
+        XCTAssertTrue(
+            agentScreenRoot.waitForExistence(timeout: 25),
+            "Der Agent-Screen sollte nach dem Briefing-Handoff sichtbar sein."
+        )
+
+        let agentPromptSheet = app.descendants(matching: .any)["agent.prompt.sheet"].firstMatch
+        XCTAssertTrue(
+            agentPromptSheet.waitForExistence(timeout: 25),
+            "Der Agent-Prompt-Sheet sollte nach dem Briefing-CTA erscheinen."
+        )
+
+        let agentDraft = app.descendants(matching: .any)["agent.prompt.draft"].firstMatch
+        XCTAssertTrue(
+            agentDraft.waitForExistence(timeout: 15),
+            "Der Prompt-Composer sollte mit vorgefuelltem Text erscheinen."
+        )
+
+        guard let rawDraftValue = agentDraft.value else {
+            XCTFail("Prefill-Wert fehlt.")
+            return
+        }
+        let draftString: String
+        if let stringValue = rawDraftValue as? String {
+            draftString = stringValue
+        } else if let nsValue = rawDraftValue as? NSString {
+            draftString = nsValue as String
+        } else {
+            XCTFail("Prefill-Wert nicht als String lesbar: \(rawDraftValue)")
+            return
+        }
+        XCTAssertTrue(
+            draftString.contains("SkyOS Daily Briefing"),
+            "Der Prefill-Text sollte das Daily-Briefing-Template enthalten."
+        )
+    }
+
+    @MainActor
     func testSettingsCanOpenFromMainShell() throws {
         let app = XCUIApplication()
         app.launch()

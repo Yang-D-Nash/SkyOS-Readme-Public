@@ -42,6 +42,26 @@ struct LoginView: View {
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
 
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(localized("feature.status.live.title", "Live now:"))
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                    Text(localized("feature.status.live.body", "Smart reminders with push notifications."))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    Text(localized("feature.status.next.title", "Coming next:"))
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                    Text(localized("feature.status.next.body", "Tasks, Notes and Memory Automations."))
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(AppColors.secondaryBackground(for: colorScheme))
+                .cornerRadius(14)
+                .padding(.horizontal)
+
                 VStack(spacing: 15) {
                     TextField(localized("auth.email", "Email"), text: $viewModel.email)
                         .padding()

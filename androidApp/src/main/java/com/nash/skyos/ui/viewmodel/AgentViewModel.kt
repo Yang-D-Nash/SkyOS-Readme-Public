@@ -3,6 +3,7 @@ package com.nash.skyos.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.nash.skyos.R
 import com.nash.skyos.data.AgentHistoryTurn
@@ -45,6 +46,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import java.util.Date
 
 class AgentViewModel : ViewModel() {
     private data class PendingAgentRequest(
@@ -70,6 +73,8 @@ class AgentViewModel : ViewModel() {
     )
 
     private val agentClient = AppContainer.agentClient
+    private val taskRepository = AppContainer.taskRepository
+    private val noteRepository = AppContainer.noteRepository
     private val syncRepository = AiConversationSyncRepository()
     private val _uiState = MutableStateFlow(AgentUiState())
     val uiState: StateFlow<AgentUiState> = _uiState.asStateFlow()
@@ -86,7 +91,10 @@ class AgentViewModel : ViewModel() {
     private var workflowStatusJob: Job? = null
     private var remoteHydrationJob: Job? = null
     private var remoteHistoryListener: ListenerRegistration? = null
+    private var taskListener: ListenerRegistration? = null
+    private var noteListener: ListenerRegistration? = null
     private var activeRequestContext: InFlightRequestContext? = null
+    private val firestore by lazy { FirebaseFirestore.getInstance() }
 
     init {
         viewModelScope.launch {
@@ -143,9 +151,42 @@ class AgentViewModel : ViewModel() {
                     invalidateConversation(cancelActiveWork = true)
                     remoteHistoryListener?.remove()
                     remoteHistoryListener = null
+                    taskListener?.remove()
+                    taskListener = null
+                    noteListener?.remove()
+                    noteListener = null
                     currentUserId = userId
                     currentUserKey = userKey
                     currentSessionId = null
+                    if (!userId.isNullOrBlank()) {
+                        taskListener = taskRepository.observeTasks(userId) { result ->
+                            result.onSuccess { tasks ->
+                                _uiState.update { it.copy(tasks = tasks, tasksErrorMessage = null) }
+                            }.onFailure { error ->
+                                _uiState.update {
+                                    it.copy(tasksErrorMessage = error.localizedMessage ?: "Tasks unavailable")
+                                }
+                            }
+                        }
+                        noteListener = noteRepository.observeNotes(userId) { result ->
+                            result.onSuccess { notes ->
+                                _uiState.update { it.copy(notes = notes, notesErrorMessage = null) }
+                            }.onFailure { error ->
+                                _uiState.update {
+                                    it.copy(notesErrorMessage = error.localizedMessage ?: "Notes unavailable")
+                                }
+                            }
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                tasks = emptyList(),
+                                tasksErrorMessage = null,
+                                notes = emptyList(),
+                                notesErrorMessage = null,
+                            )
+                        }
+                    }
                     restoreHistory()
                     hydrateRemoteHistoryIfNeeded(currentSessionId)
                     startRemoteHistoryObservation()
@@ -257,7 +298,7 @@ class AgentViewModel : ViewModel() {
         activeRequestJob = viewModelScope.launch {
             try {
                 val result = agentClient.sendMessage(
-                    prompt = trimmedPrompt,
+                    prompt = buildMemoryEnrichedPrompt(trimmedPrompt),
                     history = historyAtSend,
                     mode = modeAtSend,
                     aiLevel = levelRawAtSend,
@@ -317,6 +358,13 @@ class AgentViewModel : ViewModel() {
                     state.copy(
                         agentPhase = resolveTerminalPhase(result.decision, pendingRequests.isNotEmpty()),
                         errorMessage = nextError,
+                        successMessage = if (result.automationTriggered && resultLooksLikeTaskCreation(result)) {
+                            AppTextResolver.string(R.string.tasks_created)
+                        } else if (result.automationTriggered && resultLooksLikeNoteCreation(result)) {
+                            AppTextResolver.string(R.string.notes_saved)
+                        } else {
+                            state.successMessage
+                        },
                         lastAgentProvider = AiRuntimeAgentProvider.resolve(result.agentProvider),
                         lastProviderNotice = effectiveNotice,
                     )
@@ -463,9 +511,120 @@ class AgentViewModel : ViewModel() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
+    fun dismissSuccess() {
+        _uiState.update { it.copy(successMessage = null) }
+    }
+
+    fun toggleTaskStatus(taskId: String, status: com.nash.skyos.data.TaskStatus) {
+        val uid = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                if (status == com.nash.skyos.data.TaskStatus.Completed) {
+                    taskRepository.markOpen(uid, taskId)
+                } else {
+                    taskRepository.markCompleted(uid, taskId)
+                    _uiState.update { it.copy(successMessage = AppTextResolver.string(R.string.tasks_completed)) }
+                }
+            }.onFailure { error ->
+                _uiState.update { it.copy(tasksErrorMessage = error.localizedMessage ?: "Task update failed") }
+            }
+        }
+    }
+
+    fun deleteTask(taskId: String) {
+        val uid = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                taskRepository.delete(uid, taskId)
+            }.onFailure { error ->
+                _uiState.update { it.copy(tasksErrorMessage = error.localizedMessage ?: "Task delete failed") }
+            }
+        }
+    }
+
+    fun createTask(title: String, description: String) {
+        val uid = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                taskRepository.create(uid, title, description)
+            }.onSuccess {
+                _uiState.update { it.copy(successMessage = AppTextResolver.string(R.string.tasks_created)) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(tasksErrorMessage = error.localizedMessage ?: "Task create failed") }
+            }
+        }
+    }
+
+    fun refreshTasks() {
+        val uid = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                taskRepository.refreshTasks(uid)
+            }.onSuccess { tasks ->
+                _uiState.update { it.copy(tasks = tasks, tasksErrorMessage = null) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(tasksErrorMessage = error.localizedMessage ?: "Task refresh failed") }
+            }
+        }
+    }
+
+    fun saveNote(noteId: String, title: String, content: String) {
+        val uid = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                noteRepository.updateNote(uid, noteId, title, content)
+            }.onSuccess {
+                _uiState.update { it.copy(successMessage = AppTextResolver.string(R.string.notes_saved)) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(notesErrorMessage = error.localizedMessage ?: "Note update failed") }
+            }
+        }
+    }
+
+    fun deleteNote(noteId: String) {
+        val uid = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                noteRepository.delete(uid, noteId)
+            }.onFailure { error ->
+                _uiState.update { it.copy(notesErrorMessage = error.localizedMessage ?: "Note delete failed") }
+            }
+        }
+    }
+
+    fun createNote(title: String, content: String) {
+        val uid = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                noteRepository.createNote(uid, title, content)
+            }.onSuccess {
+                _uiState.update { it.copy(successMessage = AppTextResolver.string(R.string.notes_saved)) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(notesErrorMessage = error.localizedMessage ?: "Note create failed") }
+            }
+        }
+    }
+
+    fun refreshNotes() {
+        val uid = currentUserId ?: return
+        viewModelScope.launch {
+            runCatching {
+                noteRepository.refreshNotes(uid)
+            }.onSuccess { notes ->
+                _uiState.update { it.copy(notes = notes, notesErrorMessage = null) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(notesErrorMessage = error.localizedMessage ?: "Note refresh failed") }
+            }
+        }
+    }
+
     override fun onCleared() {
         remoteHistoryListener?.remove()
         remoteHistoryListener = null
+        taskListener?.remove()
+        taskListener = null
+        noteListener?.remove()
+        noteListener = null
         super.onCleared()
     }
 
@@ -542,7 +701,7 @@ class AgentViewModel : ViewModel() {
 
                 try {
                     val result = agentClient.sendMessage(
-                        prompt = request.prompt,
+                        prompt = buildMemoryEnrichedPrompt(request.prompt),
                         history = request.history,
                         mode = request.mode,
                         aiLevel = request.aiLevel,
@@ -610,6 +769,13 @@ class AgentViewModel : ViewModel() {
                                 resolveTerminalPhase(result.decision, hasPendingQueue = false)
                             },
                             errorMessage = nextError,
+                            successMessage = if (result.automationTriggered && resultLooksLikeTaskCreation(result)) {
+                                AppTextResolver.string(R.string.tasks_created)
+                            } else if (result.automationTriggered && resultLooksLikeNoteCreation(result)) {
+                                AppTextResolver.string(R.string.notes_saved)
+                            } else {
+                                state.successMessage
+                            },
                             lastAgentProvider = AiRuntimeAgentProvider.resolve(result.agentProvider),
                             lastProviderNotice = effectiveNotice,
                         )
@@ -1112,6 +1278,16 @@ class AgentViewModel : ViewModel() {
         return "${result.reply}\n\nWorkflow:\n$automationMessage"
     }
 
+    private fun resultLooksLikeTaskCreation(result: com.nash.skyos.data.AgentResponse): Boolean {
+        if (result.results.any { it.type.trim().lowercase() == "task" }) return true
+        return result.workflowName.lowercase().contains("task") || result.automationMessage.lowercase().contains("task")
+    }
+
+    private fun resultLooksLikeNoteCreation(result: com.nash.skyos.data.AgentResponse): Boolean {
+        if (result.results.any { it.type.trim().lowercase() == "note" }) return true
+        return result.workflowName.lowercase().contains("note") || result.automationMessage.lowercase().contains("note")
+    }
+
     private fun buildWorkflowSummary(result: com.nash.skyos.data.AgentResponse): AgentWorkflowSummary? {
         val structuredWorkflow = result.results.firstOrNull { it.type == "workflow" }
         if (!result.automationTriggered && !result.automationAttempted && structuredWorkflow == null) {
@@ -1170,6 +1346,88 @@ class AgentViewModel : ViewModel() {
             return false
         }
         return true
+    }
+
+    private suspend fun buildMemoryEnrichedPrompt(userPrompt: String): String {
+        val normalizedPrompt = userPrompt.trim()
+        if (normalizedPrompt.isBlank()) return userPrompt
+
+        val taskLines = _uiState.value.tasks
+            .filter { it.status != com.nash.skyos.data.TaskStatus.Completed }
+            .take(5)
+            .map { task ->
+                task.dueAt?.let { "- ${task.title} (due ${java.time.Instant.ofEpochMilli(it.time)})" } ?: "- ${task.title}"
+            }
+
+        val noteLines = _uiState.value.notes
+            .take(5)
+            .map { note ->
+                val title = note.title.ifBlank { note.content.take(40) }.ifBlank { "Untitled note" }
+                "- $title"
+            }
+
+        val reminderLines = loadUpcomingReminderLines(limit = 5)
+        if (taskLines.isEmpty() && noteLines.isEmpty() && reminderLines.isEmpty()) return userPrompt
+
+        val memoryBlock = buildString {
+            appendLine("[SkyOS Memory Context]")
+            appendLine("Open tasks:")
+            appendLine(if (taskLines.isEmpty()) "- none" else taskLines.joinToString("\n"))
+            appendLine("Recent notes:")
+            appendLine(if (noteLines.isEmpty()) "- none" else noteLines.joinToString("\n"))
+            appendLine("Upcoming reminders:")
+            appendLine(if (reminderLines.isEmpty()) "- none" else reminderLines.joinToString("\n"))
+            appendLine("[/SkyOS Memory Context]")
+        }
+        return "$memoryBlock\nUser request:\n$userPrompt"
+    }
+
+    private suspend fun loadUpcomingReminderLines(limit: Int): List<String> {
+        val uid = currentUserId ?: return emptyList()
+        val now = Date()
+        val snapshots = runCatching {
+            firestore.collection("users")
+                .document(uid)
+                .collection("reminders")
+                .limit(80)
+                .get()
+                .await()
+        }.getOrNull() ?: return emptyList()
+
+        val formatter = java.time.format.DateTimeFormatter.ISO_INSTANT
+        return snapshots.documents.mapNotNull { doc ->
+            val title = listOf("title", "text", "message")
+                .asSequence()
+                .mapNotNull { key -> doc.getString(key)?.trim()?.takeIf { it.isNotEmpty() } }
+                .firstOrNull()
+                ?: return@mapNotNull null
+            val dueAt = resolveDate(
+                doc.get("dueAt"),
+                doc.get("scheduledAt"),
+                doc.get("scheduledFor"),
+                doc.get("remindAt"),
+                doc.get("triggerAt"),
+                doc.get("date"),
+            ) ?: return@mapNotNull null
+            if (dueAt.before(now)) return@mapNotNull null
+            title to dueAt
+        }.sortedBy { it.second.time }
+            .take(limit)
+            .map { (title, dueAt) -> "- $title (${formatter.format(java.time.Instant.ofEpochMilli(dueAt.time))})" }
+    }
+
+    private fun resolveDate(vararg candidates: Any?): Date? {
+        candidates.forEach { candidate ->
+            when (candidate) {
+                is com.google.firebase.Timestamp -> return candidate.toDate()
+                is Date -> return candidate
+                is Number -> {
+                    val raw = candidate.toLong()
+                    return Date(if (raw > 10_000_000_000L) raw else raw * 1000)
+                }
+            }
+        }
+        return null
     }
 }
 

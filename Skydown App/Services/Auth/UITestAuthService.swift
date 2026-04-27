@@ -99,7 +99,45 @@ final class UITestAuthService: @preconcurrency AuthServicing {
         username: String? = nil,
         whatsApp: String? = nil
     ) -> User {
-        User(
+        let platformOwnerSession = ProcessInfo.processInfo.arguments.contains("-ui_test_platform_owner")
+            && email == nil
+            && username == nil
+            && whatsApp == nil
+        if platformOwnerSession {
+            let resolvedUsername = "SkyOS Owner (UI test)"
+            return User(
+                id: "ui-test-owner",
+                email: UserRole.ownerEmail,
+                username: resolvedUsername,
+                profileImageURL: nil,
+                whatsApp: whatsApp,
+                profileTagline: "Owner UI test session.",
+                profileBio: "UITest session for owner hub.",
+                instagramHandle: "@skyos",
+                registrationDate: Date(timeIntervalSince1970: 1_756_000_000),
+                isAdmin: true,
+                role: UserRole.owner.rawValue,
+                quotaPlan: UserQuotaPlan.ownerUnlimited.rawValue,
+                aiAccessEnabled: true,
+                aiTextRequestsPerDay: UserRole.owner.defaultAITextRequestsPerDay,
+                aiVisualRequestsPerDay: UserRole.owner.defaultAIVisualRequestsPerDay,
+                aiAgentRequestsPerDay: UserRole.owner.defaultAIAgentRequestsPerDay,
+                aiHistoryRetentionDays: UserRole.owner.defaultAIHistoryRetentionDays,
+                aiSubscriptionStatus: "active",
+                aiSubscriptionPlan: UserQuotaPlan.ownerUnlimited.rawValue,
+                aiSubscriptionCurrentPeriodEndEpochSeconds: 1_786_204_800,
+                aiSubscriptionCheckoutExpiresAtEpochSeconds: nil,
+                aiSubscriptionCancelAtPeriodEnd: false,
+                aiSubscriptionProvider: "app_store",
+                aiSubscriptionSourcePlatform: "ios",
+                aiSubscriptionProductID: "skyos.owner.unlimited",
+                canManageMusicCatalog: false,
+                canManageVideoCatalog: false,
+                canModerateProfiles: false
+            )
+        }
+
+        return User(
             id: "ui-test-user",
             email: (email?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()).flatMap { $0.isEmpty ? nil : $0 } ?? "creator@skydown.app",
             username: (username?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 } ?? "SkyOS Creator",

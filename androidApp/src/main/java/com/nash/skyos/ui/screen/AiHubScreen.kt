@@ -30,6 +30,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -73,6 +74,8 @@ private enum class AiHubMode {
 fun AiHubScreen(
     immersiveMode: Boolean = false,
     showsWorkflowWorkspace: Boolean,
+    pendingAgentPrefillPrompt: String? = null,
+    onConsumePendingAgentPrefillPrompt: () -> Unit = {},
     onToggleWorkflow: () -> Unit,
     onHideWorkflow: () -> Unit,
     onExitImmersive: (() -> Unit)? = null,
@@ -93,6 +96,14 @@ fun AiHubScreen(
         accessMode = aiAccessMode,
     )
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
+
+    LaunchedEffect(pendingAgentPrefillPrompt, currentUser?.id, hasAiAccess) {
+        val trimmed = pendingAgentPrefillPrompt?.trim().orEmpty()
+        if (trimmed.isNotEmpty() && currentUser != null && hasAiAccess) {
+            onHideWorkflow()
+            mode = AiHubMode.Agent
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -238,6 +249,8 @@ fun AiHubScreen(
                                     AiHubMode.Agent -> AgentScreen(
                                         showTopBar = false,
                                         immersiveInTools = immersiveMode,
+                                        prefilledPrompt = pendingAgentPrefillPrompt,
+                                        onConsumePrefilledPrompt = onConsumePendingAgentPrefillPrompt,
                                     )
                                 }
                             }

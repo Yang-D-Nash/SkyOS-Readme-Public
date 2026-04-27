@@ -349,6 +349,25 @@ private func isDirectFeaturedHomeVideoURL(_ value: String) -> Bool {
 
 @MainActor
 final class HomeViewModel: ObservableObject {
+    struct ProductivityReminder: Identifiable {
+        let id: String
+        let title: String
+        let dueAt: Date?
+        let isUpcoming: Bool
+    }
+
+    struct ProductivityTask: Identifiable {
+        let id: String
+        let title: String
+        let dueAt: Date?
+    }
+
+    struct ProductivityNote: Identifiable {
+        let id: String
+        let title: String
+        let updatedAt: Date?
+    }
+
     @Published var featuredTrack: Track?
     @Published var featuredVideo: FeaturedHomeVideo?
     @Published var homeTrackMessage: String?
@@ -362,6 +381,10 @@ final class HomeViewModel: ObservableObject {
     @Published var recoverableError: String?
     @Published var newDataAvailable = false
     @Published var contentSignal: String?
+    @Published var dueTodayReminders: [ProductivityReminder] = []
+    @Published var upcomingReminders: [ProductivityReminder] = []
+    @Published var openTasks: [ProductivityTask] = []
+    @Published var recentNotes: [ProductivityNote] = []
 
     private let musicService: MusicServicing
     private let firestore = Firestore.firestore()
@@ -380,6 +403,7 @@ final class HomeViewModel: ObservableObject {
                 group.addTask { .track(await self.loadLatestTrack()) }
                 group.addTask { .video(await self.loadLatestVideo()) }
                 group.addTask { .signals(await self.loadRuntimeSignals()) }
+                group.addTask { .productivity(await self.loadProductivitySnapshot()) }
 
                 for await result in group {
                     guard generation == refreshGeneration else { continue }
@@ -412,10 +436,285 @@ final class HomeViewModel: ObservableObject {
                         recoverableError = signals.recoverableError
                         newDataAvailable = signals.newDataAvailable
                         contentSignal = buildContentSignal()
+                    case .productivity(let productivity):
+                        dueTodayReminders = productivity.dueTodayReminders
+                        upcomingReminders = productivity.upcomingReminders
+                        openTasks = productivity.openTasks
+                        recentNotes = productivity.recentNotes
                     }
                 }
             }
         }
+    }
+
+    func createReminder(title: String, dueAt: Date) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedTitle.isEmpty else { return }
+        try await firestore
+            .collection("users")
+            .document(uid)
+            .collection("reminders")
+            .addDocument(data: [
+                "title": normalizedTitle,
+                "dueAt": Timestamp(date: dueAt),
+                "createdAt": FieldValue.serverTimestamp(),
+                "updatedAt": FieldValue.serverTimestamp()
+            ])
+        refresh()
+    }
+
+    func createTask(title: String, details: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedDetails = details.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedTitle.isEmpty else { return }
+        try await firestore
+            .collection("users")
+            .document(uid)
+            .collection("tasks")
+            .addDocument(data: [
+                "title": normalizedTitle,
+                "description": normalizedDetails,
+                "status": "open",
+                "priority": "medium",
+                "createdAt": FieldValue.serverTimestamp(),
+                "updatedAt": FieldValue.serverTimestamp()
+            ])
+        refresh()
+    }
+
+    func createNote(title: String, content: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedTitle.isEmpty || !normalizedContent.isEmpty else { return }
+        try await firestore
+            .collection("users")
+            .document(uid)
+            .collection("notes")
+            .addDocument(data: [
+                "title": normalizedTitle,
+                "content": normalizedContent,
+                "createdAt": FieldValue.serverTimestamp(),
+                "updatedAt": FieldValue.serverTimestamp()
+            ])
+        refresh()
+    }
+
+    func updateReminderTitle(reminderID: String, title: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedTitle.isEmpty else { return }
+        try await firestore
+            .collection("users")
+            .document(uid)
+            .collection("reminders")
+            .document(reminderID)
+            .setData([
+                "title": normalizedTitle,
+                "updatedAt": FieldValue.serverTimestamp()
+            ], merge: true)
+        refresh()
+    }
+
+    func deleteReminder(reminderID: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        try await firestore
+            .collection("users")
+            .document(uid)
+            .collection("reminders")
+            .document(reminderID)
+            .delete()
+        refresh()
+    }
+
+    func updateTaskTitle(taskID: String, title: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedTitle.isEmpty else { return }
+        try await firestore
+            .collection("users")
+            .document(uid)
+            .collection("tasks")
+            .document(taskID)
+            .setData([
+                "title": normalizedTitle,
+                "updatedAt": FieldValue.serverTimestamp()
+            ], merge: true)
+        refresh()
+    }
+
+    func deleteTask(taskID: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        try await firestore
+            .collection("users")
+            .document(uid)
+            .collection("tasks")
+            .document(taskID)
+            .delete()
+        refresh()
+    }
+
+    func updateNoteTitle(noteID: String, title: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedTitle.isEmpty else { return }
+        try await firestore
+            .collection("users")
+            .document(uid)
+            .collection("notes")
+            .document(noteID)
+            .setData([
+                "title": normalizedTitle,
+                "updatedAt": FieldValue.serverTimestamp()
+            ], merge: true)
+        refresh()
+    }
+
+    func deleteNote(noteID: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        try await firestore
+            .collection("users")
+            .document(uid)
+            .collection("notes")
+            .document(noteID)
+            .delete()
+        refresh()
+    }
+
+    private func loadProductivitySnapshot() async -> HomeProductivitySnapshot {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return HomeProductivitySnapshot()
+        }
+
+        async let remindersSnapshot = firestore.collection("users")
+            .document(uid)
+            .collection("reminders")
+            .limit(to: 60)
+            .getDocuments()
+
+        async let tasksSnapshot = firestore.collection("users")
+            .document(uid)
+            .collection("tasks")
+            .limit(to: 40)
+            .getDocuments()
+
+        async let notesSnapshot = firestore.collection("users")
+            .document(uid)
+            .collection("notes")
+            .limit(to: 40)
+            .getDocuments()
+
+        var dueToday: [ProductivityReminder] = []
+        var upcoming: [ProductivityReminder] = []
+        var tasks: [ProductivityTask] = []
+        var notes: [ProductivityNote] = []
+        let now = Date()
+        let endOfDay = Calendar.current.startOfDay(for: now).addingTimeInterval(24 * 60 * 60)
+
+        if let reminderDocs = try? await remindersSnapshot {
+            for document in reminderDocs.documents {
+                let data = document.data()
+                let title = (data["title"] as? String)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .isEmpty == false
+                    ? (data["title"] as? String ?? "")
+                    : ((data["text"] as? String ?? data["message"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines))
+                guard !title.isEmpty else { continue }
+                let dueAt = Self.resolveDate(
+                    candidates: [
+                        data["dueAt"],
+                        data["scheduledAt"],
+                        data["scheduledFor"],
+                        data["remindAt"],
+                        data["triggerAt"],
+                        data["date"]
+                    ]
+                )
+                let item = ProductivityReminder(
+                    id: document.documentID,
+                    title: title,
+                    dueAt: dueAt,
+                    isUpcoming: (dueAt ?? .distantPast) >= now
+                )
+                if let dueAt, dueAt >= now, dueAt < endOfDay {
+                    dueToday.append(item)
+                } else if let dueAt, dueAt >= now {
+                    upcoming.append(item)
+                }
+            }
+        }
+
+        if let taskDocs = try? await tasksSnapshot {
+            for document in taskDocs.documents {
+                let data = document.data()
+                let status = (data["status"] as? String ?? "open").lowercased()
+                guard status != "completed" else { continue }
+                let title = (data["title"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !title.isEmpty else { continue }
+                tasks.append(
+                    ProductivityTask(
+                        id: document.documentID,
+                        title: title,
+                        dueAt: Self.resolveDate(candidates: [data["dueAt"], data["scheduledAt"]])
+                    )
+                )
+            }
+        }
+
+        if let noteDocs = try? await notesSnapshot {
+            for document in noteDocs.documents {
+                let data = document.data()
+                let rawTitle = (data["title"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let content = (data["content"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let title = rawTitle.isEmpty ? (content.isEmpty ? "" : String(content.prefix(48))) : rawTitle
+                guard !title.isEmpty else { continue }
+                notes.append(
+                    ProductivityNote(
+                        id: document.documentID,
+                        title: title,
+                        updatedAt: Self.resolveDate(candidates: [data["updatedAt"], data["createdAt"]])
+                    )
+                )
+            }
+        }
+
+        dueToday.sort { ($0.dueAt ?? .distantFuture) < ($1.dueAt ?? .distantFuture) }
+        upcoming.sort { ($0.dueAt ?? .distantFuture) < ($1.dueAt ?? .distantFuture) }
+        tasks.sort {
+            let lhsDue = $0.dueAt ?? .distantFuture
+            let rhsDue = $1.dueAt ?? .distantFuture
+            if lhsDue != rhsDue { return lhsDue < rhsDue }
+            return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+        }
+        notes.sort { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+
+        return HomeProductivitySnapshot(
+            dueTodayReminders: Array(dueToday.prefix(5)),
+            upcomingReminders: Array(upcoming.prefix(5)),
+            openTasks: Array(tasks.prefix(6)),
+            recentNotes: Array(notes.prefix(6))
+        )
+    }
+
+    private static func resolveDate(candidates: [Any?]) -> Date? {
+        for candidate in candidates {
+            switch candidate {
+            case let timestamp as Timestamp:
+                return timestamp.dateValue()
+            case let date as Date:
+                return date
+            case let seconds as TimeInterval:
+                return Date(timeIntervalSince1970: seconds > 10_000_000_000 ? seconds / 1000 : seconds)
+            case let number as NSNumber:
+                let value = number.doubleValue
+                return Date(timeIntervalSince1970: value > 10_000_000_000 ? value / 1000 : value)
+            default:
+                continue
+            }
+        }
+        return nil
     }
 
     private func loadRuntimeSignals() async -> HomeRuntimeSignals {
@@ -673,6 +972,7 @@ private enum HomeRefreshResult {
     case track(Track?)
     case video(FeaturedHomeVideo?)
     case signals(HomeRuntimeSignals)
+    case productivity(HomeProductivitySnapshot)
 }
 
 private struct HomeRuntimeSignals {
@@ -685,4 +985,11 @@ private struct HomeRuntimeSignals {
     var recoverableError: String? = nil
     var newDataAvailable: Bool = false
     var contentSignal: String? = nil
+}
+
+private struct HomeProductivitySnapshot {
+    var dueTodayReminders: [HomeViewModel.ProductivityReminder] = []
+    var upcomingReminders: [HomeViewModel.ProductivityReminder] = []
+    var openTasks: [HomeViewModel.ProductivityTask] = []
+    var recentNotes: [HomeViewModel.ProductivityNote] = []
 }

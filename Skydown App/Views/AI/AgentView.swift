@@ -10,12 +10,19 @@ struct AgentView: View {
     @ObservedObject private var aiRuntimeSettingsStore = AIRuntimeSettingsStore.shared
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
+    @ObservedObject private var taskStore = TaskStore.shared
+    @ObservedObject private var noteStore = NoteStore.shared
     @State private var showingAttachmentImporter = false
     @State private var showingPromptComposer = false
     @State private var showingConversationSessions = false
     @State private var showingDeleteConversationDialog = false
+    @State private var showingTaskSurface = false
+    @State private var showingNoteSurface = false
     @State private var renameDraft = ""
     @State private var inputAttachments: [AgentInputAttachment] = []
+    @State private var selectedNote: NoteItem?
+    let prefilledPrompt: String?
+    let onConsumePrefilledPrompt: (() -> Void)?
     private let showsNavigation: Bool
     @State private var autoPresentedUpgradeHint = false
 
@@ -23,9 +30,13 @@ struct AgentView: View {
         agentChatService: AgentChatServicing = FirebaseFunctionsAgentService(),
         featureFlags: FeatureFlagsService,
         membershipCoordinator: AIMembershipCoordinator,
+        prefilledPrompt: String? = nil,
+        onConsumePrefilledPrompt: (() -> Void)? = nil,
         showsNavigation: Bool = true
     ) {
         self.showsNavigation = showsNavigation
+        self.prefilledPrompt = prefilledPrompt
+        self.onConsumePrefilledPrompt = onConsumePrefilledPrompt
         _viewModel = StateObject(
             wrappedValue: AgentChatViewModel(service: agentChatService)
         )
@@ -116,6 +127,185 @@ struct AgentView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showingTaskSurface) {
+            NavigationStack {
+                ScrollView {
+                    Button {
+                        showingTaskSurface = false
+                        viewModel.draft = AppLocalized.text(
+                            "agent.prefill.create_task",
+                            fallback: "Create a task for "
+                        )
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                            showingPromptComposer = true
+                        }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "wand.and.stars.inverse")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(AppLocalized.text("home.quick.create_task", fallback: "Create Task"))
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundColor(AppColors.text(for: colorScheme))
+                                Text(AppLocalized.text("home.quick.hint", fallback: "Tap an action to start with a guided prompt in Agent."))
+                                    .font(.caption2)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                    .lineLimit(1)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(AppColors.cardBackground(for: colorScheme))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.22), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    .padding(.top, 8)
+
+                    AgentTaskSectionCard(
+                        colorScheme: colorScheme,
+                        tasks: taskStore.tasks,
+                        onRefresh: {
+                            await taskStore.refresh()
+                        },
+                        onCreate: { title, details in
+                            try await taskStore.create(title: title, details: details)
+                            viewModel.showToastMessage(
+                                AppLocalized.text("tasks.created", fallback: "Task created"),
+                                style: .success
+                            )
+                        },
+                        onToggleStatus: { task in
+                            if task.status == .completed {
+                                try await taskStore.markOpen(taskID: task.id)
+                            } else {
+                                try await taskStore.markCompleted(taskID: task.id)
+                                viewModel.showToastMessage(
+                                    AppLocalized.text("tasks.completed", fallback: "Task completed"),
+                                    style: .success
+                                )
+                            }
+                        },
+                        onDelete: { task in
+                            try await taskStore.delete(taskID: task.id)
+                        }
+                    )
+                    .padding(SkydownLayout.screenHorizontalPadding)
+                    .padding(.top, 8)
+                }
+                .background(backgroundGradient.ignoresSafeArea())
+                .navigationTitle(AppLocalized.text("tasks.title", fallback: "Tasks"))
+                .navigationBarTitleDisplayMode(.inline)
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showingNoteSurface) {
+            NavigationStack {
+                ScrollView {
+                    Button {
+                        showingNoteSurface = false
+                        viewModel.draft = AppLocalized.text(
+                            "agent.prefill.create_note",
+                            fallback: "Create a note about "
+                        )
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                            showingPromptComposer = true
+                        }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "sparkles")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(AppLocalized.text("home.quick.create_note", fallback: "Create Note"))
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundColor(AppColors.text(for: colorScheme))
+                                Text(AppLocalized.text("home.quick.hint", fallback: "Tap an action to start with a guided prompt in Agent."))
+                                    .font(.caption2)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                    .lineLimit(1)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(AppColors.cardBackground(for: colorScheme))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.22), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    .padding(.top, 8)
+
+                    AgentNoteSectionCard(
+                        colorScheme: colorScheme,
+                        notes: noteStore.notes,
+                        onRefresh: {
+                            await noteStore.refresh()
+                        },
+                        onCreate: { title, content in
+                            try await noteStore.create(title: title, content: content)
+                            viewModel.showToastMessage(
+                                AppLocalized.text("notes.saved", fallback: "Note saved"),
+                                style: .success
+                            )
+                        },
+                        onOpenNote: { note in
+                            selectedNote = note
+                        },
+                        onDelete: { note in
+                            try await noteStore.delete(noteID: note.id)
+                        }
+                    )
+                    .padding(SkydownLayout.screenHorizontalPadding)
+                    .padding(.top, 8)
+                }
+                .background(backgroundGradient.ignoresSafeArea())
+                .navigationTitle(AppLocalized.text("notes.title", fallback: "Notes"))
+                .navigationBarTitleDisplayMode(.inline)
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $selectedNote) { note in
+            AgentNoteDetailSheet(
+                colorScheme: colorScheme,
+                note: note,
+                onSave: { updatedTitle, updatedContent in
+                    try await noteStore.update(noteID: note.id, title: updatedTitle, content: updatedContent)
+                    viewModel.showToastMessage(
+                        AppLocalized.text("notes.saved", fallback: "Note saved"),
+                        style: .success
+                    )
+                },
+                onDelete: {
+                    try await noteStore.delete(noteID: note.id)
+                    viewModel.showToastMessage(
+                        AppLocalized.text("notes.saved", fallback: "Note saved"),
+                        style: .success
+                    )
+                    selectedNote = nil
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
         .confirmationDialog(
             "Aktiven Chat loeschen?",
             isPresented: $showingDeleteConversationDialog,
@@ -130,6 +320,12 @@ struct AgentView: View {
         .task(id: sessionObservationKey) {
             viewModel.configureUser(user: authManager.userSession)
             configureIntegrationObservations(for: authManager.userSession)
+            taskStore.observeTasks(for: authManager.userSession?.id)
+            noteStore.observeNotes(for: authManager.userSession?.id)
+        }
+        .onChange(of: authManager.userSession?.id) { _, userID in
+            taskStore.observeTasks(for: userID)
+            noteStore.observeNotes(for: userID)
         }
         .onChange(of: featureFlags.isAIEnabled) { _, isEnabled in
             aiRuntimeSettingsStore.setObservationEnabled(isEnabled)
@@ -146,6 +342,15 @@ struct AgentView: View {
         .onChange(of: viewModel.activeSessionTitle) { _, title in
             renameDraft = title
         }
+        .onChange(of: prefilledPrompt) { _, prompt in
+            guard let prompt else { return }
+            let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            viewModel.draft = prompt
+            showingPromptComposer = true
+            onConsumePrefilledPrompt?()
+        }
+        .accessibilityIdentifier("agent.screen.root")
     }
 
     private func handleCriticalUsageWarning(_ level: String?) {
@@ -205,9 +410,19 @@ struct AgentView: View {
                     pinnedSessionStrip
                         .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                         .padding(.top, showsNavigation ? 12 : 8)
-                        .padding(.bottom, 10)
+                        .padding(.bottom, 8)
                         .background(.ultraThinMaterial)
                         .zIndex(2)
+
+                    AgentProductivityDockCard(
+                        colorScheme: colorScheme,
+                        openTaskCount: taskStore.tasks.filter { $0.status != .completed }.count,
+                        noteCount: noteStore.notes.count,
+                        onOpenTasks: { showingTaskSurface = true },
+                        onOpenNotes: { showingNoteSurface = true }
+                    )
+                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    .padding(.bottom, 8)
 
                     if viewModel.messages.isEmpty {
                         Spacer(minLength: 0)
@@ -578,7 +793,7 @@ private struct AgentEmptyStateHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: isCompact ? 6 : 8) {
-            Text("Wobei soll ich dich strukturieren?")
+            Text(AppLocalized.text("agent.empty.header.title", fallback: "Start with reminders that already run live."))
                 .font(
                     isCompact
                         ? .system(size: 24, weight: .black, design: .rounded)
@@ -586,7 +801,7 @@ private struct AgentEmptyStateHeader: View {
                 )
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Nutze den Agent fuer Briefings, Shotlists, Release-Plaene und klare naechste Schritte. Schreib direkt unten los oder starte mit einem Prompt.")
+            Text(AppLocalized.text("agent.empty.header.subtitle", fallback: "Use the agent to create a reminder with push. Tasks, Notes and Memory Automations are coming next."))
                 .font(isCompact ? .subheadline.weight(.semibold) : .subheadline.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -624,6 +839,431 @@ private struct AgentStatusChip: View {
                 Capsule(style: .continuous)
                     .stroke(accent.opacity(0.16), lineWidth: 1)
             )
+    }
+}
+
+private struct AgentProductivityDockCard: View {
+    let colorScheme: ColorScheme
+    let openTaskCount: Int
+    let noteCount: Int
+    let onOpenTasks: () -> Void
+    let onOpenNotes: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(AppLocalized.text("agent.productivity.header", fallback: "Productivity surfaces"))
+                .font(.subheadline.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            HStack(spacing: 8) {
+                Button(action: onOpenTasks) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(AppLocalized.text("tasks.title", fallback: "Tasks"))
+                            .font(.caption.weight(.semibold))
+                        Text(String(openTaskCount))
+                            .font(.title3.weight(.black))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .background(AppColors.cardBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+
+                Button(action: onOpenNotes) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(AppLocalized.text("notes.title", fallback: "Notes"))
+                            .font(.caption.weight(.semibold))
+                        Text(String(noteCount))
+                            .font(.title3.weight(.black))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .background(AppColors.cardBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(10)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+}
+
+private struct AgentFeatureStatusCard: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(AppLocalized.text("agent.feature_status.live_title", fallback: "LIVE TODAY"))
+                .font(.caption2.weight(.black))
+                .foregroundColor(AppColors.accentMystic(for: colorScheme))
+            Text(AppLocalized.text("agent.feature_status.live_body", fallback: "Reminders + Push"))
+                .font(.subheadline.weight(.bold))
+                .foregroundColor(AppColors.text(for: colorScheme))
+            Text(AppLocalized.text("agent.feature_status.next_title", fallback: "COMING NEXT"))
+                .font(.caption2.weight(.black))
+                .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                .padding(.top, 2)
+            Text(AppLocalized.text("agent.feature_status.next_body", fallback: "Tasks / Notes / Memory Automations"))
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+}
+
+private struct AgentTaskSectionCard: View {
+    let colorScheme: ColorScheme
+    let tasks: [TaskItem]
+    let onRefresh: () async -> Void
+    let onCreate: (_ title: String, _ details: String) async throws -> Void
+    let onToggleStatus: (TaskItem) async throws -> Void
+    let onDelete: (TaskItem) async throws -> Void
+    @State private var createTitle: String = ""
+    @State private var createDetails: String = ""
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(AppLocalized.text("tasks.title", fallback: "Tasks"))
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Spacer()
+                Button {
+                    Task { await onRefresh() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption.weight(.bold))
+                }
+                .buttonStyle(.plain)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(AppLocalized.text("tasks.create_with_ai", fallback: "Create tasks with AI"))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                TextField(
+                    AppLocalized.text("tasks.input.title_hint", fallback: "Task title (e.g. Send invoice)"),
+                    text: $createTitle
+                )
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(AppColors.cardBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                TextField(
+                    AppLocalized.text("tasks.input.details_hint", fallback: "Optional details"),
+                    text: $createDetails
+                )
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(AppColors.cardBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                Button(AppLocalized.text("tasks.input.add", fallback: "Add task")) {
+                    let title = createTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let details = createDetails.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !title.isEmpty else { return }
+                    Task {
+                        try? await onCreate(title, details)
+                        createTitle = ""
+                        createDetails = ""
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(createTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+
+            if tasks.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(AppLocalized.text("tasks.empty", fallback: "No tasks yet"))
+                        .font(.footnote.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    Text(AppLocalized.text("tasks.create_with_ai", fallback: "Create tasks with AI"))
+                        .font(.caption)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+            } else {
+                List {
+                    ForEach(tasks.prefix(8)) { task in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 8) {
+                                Circle()
+                                    .fill(task.status == .completed ? AppColors.accentMystic(for: colorScheme) : AppColors.accentHighlight(for: colorScheme))
+                                    .frame(width: 8, height: 8)
+                                Text(task.title)
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundColor(AppColors.text(for: colorScheme))
+                                Spacer()
+                                Text(task.priority.localizedLabel.uppercased())
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundColor(AppColors.accent(for: colorScheme))
+                            }
+
+                            if !task.description.isEmpty {
+                                Text(task.description)
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                    .lineLimit(2)
+                            }
+
+                            HStack(spacing: 10) {
+                                if let dueAt = task.dueAt {
+                                    Text(Self.dateFormatter.string(from: dueAt))
+                                        .font(.caption2)
+                                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                }
+                                Text(task.status.rawValue.capitalized)
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundColor(task.status == .completed ? AppColors.accentMystic(for: colorScheme) : AppColors.accentHighlight(for: colorScheme))
+                            }
+                        }
+                        .listRowInsets(EdgeInsets(top: 6, leading: 2, bottom: 6, trailing: 2))
+                        .listRowBackground(Color.clear)
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button(task.status == .completed ? "Open" : "Complete") {
+                                Task { try? await onToggleStatus(task) }
+                            }
+                            .tint(.green)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(AppLocalized.text("common.delete", fallback: "Delete"), role: .destructive) {
+                                Task { try? await onDelete(task) }
+                            }
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .refreshable {
+                    await onRefresh()
+                }
+                .frame(minHeight: 120, maxHeight: 280)
+            }
+        }
+        .padding(10)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+}
+
+private struct AgentNoteSectionCard: View {
+    let colorScheme: ColorScheme
+    let notes: [NoteItem]
+    let onRefresh: () async -> Void
+    let onCreate: (_ title: String, _ content: String) async throws -> Void
+    let onOpenNote: (NoteItem) -> Void
+    let onDelete: (NoteItem) async throws -> Void
+    @State private var searchText: String = ""
+    @State private var createTitle: String = ""
+    @State private var createContent: String = ""
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    private var filteredNotes: [NoteItem] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !query.isEmpty else { return notes }
+        return notes.filter {
+            $0.title.lowercased().contains(query) || $0.content.lowercased().contains(query)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(AppLocalized.text("notes.title", fallback: "Notes"))
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Spacer()
+                Button {
+                    Task { await onRefresh() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption.weight(.bold))
+                }
+                .buttonStyle(.plain)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(AppLocalized.text("notes.create_with_ai", fallback: "Create notes with AI"))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                TextField(
+                    AppLocalized.text("notes.input.title_hint", fallback: "Note title (e.g. Project ideas)"),
+                    text: $createTitle
+                )
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(AppColors.cardBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                TextField(
+                    AppLocalized.text("notes.input.content_hint", fallback: "Write a quick note..."),
+                    text: $createContent,
+                    axis: .vertical
+                )
+                .lineLimit(2...4)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(AppColors.cardBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                Button(AppLocalized.text("notes.input.add", fallback: "Add note")) {
+                    let title = createTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let content = createContent.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !title.isEmpty || !content.isEmpty else { return }
+                    Task {
+                        try? await onCreate(title, content)
+                        createTitle = ""
+                        createContent = ""
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(
+                    createTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                    createContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                )
+            }
+
+            TextField("Search", text: $searchText)
+                .textInputAutocapitalization(.never)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(AppColors.cardBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            if filteredNotes.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(AppLocalized.text("notes.empty", fallback: "No notes yet"))
+                        .font(.footnote.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    Text(AppLocalized.text("notes.create_with_ai", fallback: "Create notes with AI"))
+                        .font(.caption)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+            } else {
+                List {
+                    ForEach(filteredNotes.prefix(10)) { note in
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(note.title)
+                                .font(.footnote.weight(.semibold))
+                                .foregroundColor(AppColors.text(for: colorScheme))
+                            if !note.content.isEmpty {
+                                Text(note.content)
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                    .lineLimit(2)
+                            }
+                            if let updatedAt = note.updatedAt ?? note.createdAt {
+                                Text(Self.dateFormatter.string(from: updatedAt))
+                                    .font(.caption2)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            onOpenNote(note)
+                        }
+                        .listRowInsets(EdgeInsets(top: 6, leading: 2, bottom: 6, trailing: 2))
+                        .listRowBackground(Color.clear)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(AppLocalized.text("common.delete", fallback: "Delete"), role: .destructive) {
+                                Task { try? await onDelete(note) }
+                            }
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .refreshable {
+                    await onRefresh()
+                }
+                .frame(minHeight: 120, maxHeight: 300)
+            }
+        }
+        .padding(10)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+}
+
+private struct AgentNoteDetailSheet: View {
+    let colorScheme: ColorScheme
+    let note: NoteItem
+    let onSave: (_ title: String, _ content: String) async throws -> Void
+    let onDelete: () async throws -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var titleText: String = ""
+    @State private var contentText: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(AppLocalized.text("notes.title", fallback: "Notes"))
+                .font(.headline.weight(.bold))
+            TextField(AppLocalized.text("notes.field.title", fallback: "Title"), text: $titleText)
+                .padding(10)
+                .background(AppColors.cardBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            TextField(AppLocalized.text("notes.field.content", fallback: "Content"), text: $contentText, axis: .vertical)
+                .lineLimit(6...12)
+                .padding(10)
+                .background(AppColors.cardBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            HStack {
+                Button(AppLocalized.text("common.delete", fallback: "Delete"), role: .destructive) {
+                    Task {
+                        try? await onDelete()
+                        dismiss()
+                    }
+                }
+                Spacer()
+                Button(AppLocalized.text("common.save", fallback: "Save")) {
+                    Task {
+                        try? await onSave(titleText, contentText)
+                        dismiss()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding()
+        .onAppear {
+            titleText = note.title
+            contentText = note.content
+        }
     }
 }
 
@@ -901,6 +1541,7 @@ private struct AgentPromptComposerSheet: View {
                 .foregroundColor(AppColors.accentMystic(for: colorScheme))
 
             TextField(selectedMode.placeholder, text: $draft, axis: .vertical)
+                .accessibilityIdentifier("agent.prompt.draft")
                 .lineLimit(4...8)
                 .focused($isFocused)
                 .submitLabel(.send)
@@ -983,6 +1624,7 @@ private struct AgentPromptComposerSheet: View {
         .padding(.bottom, 22)
         .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         }
+        .accessibilityIdentifier("agent.prompt.sheet")
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                 isFocused = true

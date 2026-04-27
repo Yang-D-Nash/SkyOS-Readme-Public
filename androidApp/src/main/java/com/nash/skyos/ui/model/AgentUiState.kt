@@ -3,6 +3,8 @@ package com.nash.skyos.ui.model
 import com.nash.skyos.data.AiRuntimeAgentProvider
 import com.nash.skyos.data.AiConversationHistorySessionSnapshot
 import com.nash.skyos.data.AiUsageSnapshot
+import com.nash.skyos.data.TaskItem
+import com.nash.skyos.data.NoteItem
 
 enum class AgentExecutionMode(val rawValue: String, val title: String, val placeholder: String) {
     Release("release", "Release", "Zum Beispiel: Release-Plan fuer Freitag."),
@@ -37,6 +39,11 @@ data class AgentUiState(
     val sessions: List<AiConversationHistorySessionSnapshot> = emptyList(),
     val activeSessionId: String? = null,
     val activeSessionTitle: String = "Neuer Chat",
+    val tasks: List<TaskItem> = emptyList(),
+    val tasksErrorMessage: String? = null,
+    val successMessage: String? = null,
+    val notes: List<NoteItem> = emptyList(),
+    val notesErrorMessage: String? = null,
 )
 
 fun agentQuickPromptsFor(mode: AgentExecutionMode): List<String> = when (mode) {

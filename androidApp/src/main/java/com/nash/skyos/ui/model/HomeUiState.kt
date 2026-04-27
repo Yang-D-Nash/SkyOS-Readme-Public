@@ -3,6 +3,7 @@ package com.nash.skyos.ui.model
 import com.nash.skyos.data.ExternalMediaProvider
 import com.nash.skyos.data.resolveYouTubeVideoId
 import com.skydown.shared.model.Track
+import java.util.Date
 
 data class FeaturedVideoHighlight(
     val id: String,
@@ -82,4 +83,26 @@ data class HomeUiState(
     val recoverableError: String? = null,
     val newDataAvailable: Boolean = false,
     val contentSignal: String? = null,
+    val dueTodayReminders: List<ProductivityReminderItem> = emptyList(),
+    val upcomingReminders: List<ProductivityReminderItem> = emptyList(),
+    val openTasks: List<ProductivityTaskItem> = emptyList(),
+    val recentNotes: List<ProductivityNoteItem> = emptyList(),
+)
+
+data class ProductivityReminderItem(
+    val id: String,
+    val title: String,
+    val dueAt: Date?,
+)
+
+data class ProductivityTaskItem(
+    val id: String,
+    val title: String,
+    val dueAt: Date?,
+)
+
+data class ProductivityNoteItem(
+    val id: String,
+    val title: String,
+    val updatedAt: Date?,
 )

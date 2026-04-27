@@ -49,6 +49,8 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_UI_TEST_USE_MOCK_VIDEO_HUB = "ui_test_use_mock_video_hub"
         const val EXTRA_UI_TEST_USE_MOCK_AI_VISUAL = "ui_test_use_mock_ai_visual"
         const val EXTRA_UI_TEST_SIGNED_IN_USER = "ui_test_signed_in_user"
+        /** When used with [EXTRA_UI_TEST_SIGNED_IN_USER], session resolves as platform owner (Owner hub). */
+        const val EXTRA_UI_TEST_PLATFORM_OWNER = "ui_test_platform_owner"
     }
 
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -80,8 +82,10 @@ class MainActivity : ComponentActivity() {
             intent?.getBooleanExtra(EXTRA_UI_TEST_USE_MOCK_AI_VISUAL, false) == true
         val useSignedInUserForUiTest = uiTestLaunchOptionsEnabled &&
             intent?.getBooleanExtra(EXTRA_UI_TEST_SIGNED_IN_USER, false) == true
+        val usePlatformOwnerForUiTest = uiTestLaunchOptionsEnabled &&
+            intent?.getBooleanExtra(EXTRA_UI_TEST_PLATFORM_OWNER, false) == true
         val uiTestUser = if (useSignedInUserForUiTest) {
-            createUiTestSignedInUser()
+            createUiTestSignedInUser(platformOwner = usePlatformOwnerForUiTest)
         } else {
             null
         }
@@ -177,15 +181,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun createUiTestSignedInUser(): User {
+    private fun createUiTestSignedInUser(platformOwner: Boolean): User {
+        val email = if (platformOwner) UserRole.OWNER_EMAIL else "creator@skydown.app"
+        val username = if (platformOwner) "SkyOS Owner (UI test)" else "SkyOS Creator"
+        val quota = if (platformOwner) UserQuotaPlan.OwnerUnlimited.rawValue else UserQuotaPlan.Free.rawValue
         return User(
-            id = "ui-test-user",
-            email = "creator@skydown.app",
-            username = "SkyOS Creator",
+            id = if (platformOwner) "ui-test-owner" else "ui-test-user",
+            email = email,
+            username = username,
             registrationDateEpochMillis = 1_710_000_000_000,
-            isAdmin = false,
-            role = UserRole.User.rawValue,
-            quotaPlan = UserQuotaPlan.Free.rawValue,
+            isAdmin = platformOwner,
+            role = if (platformOwner) UserRole.Owner.rawValue else UserRole.User.rawValue,
+            quotaPlan = quota,
             aiAccessEnabled = true,
             aiTextRequestsPerDay = 30,
             aiVisualRequestsPerDay = 4,

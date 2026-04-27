@@ -39,10 +39,17 @@ struct SettingsView: View {
     @ObservedObject private var notificationPermissionStore = NotificationPermissionStore.shared
     @Binding var colorScheme: String
     private let initialAdminWorkspaceRawValue: String?
+    /// When set, Owner Hub can hand off a prefilled Agent prompt (e.g. Daily Briefing) and dismiss Settings.
+    private let onOpenAgentWithPrompt: ((String) -> Void)?
 
-    init(colorScheme: Binding<String>, initialAdminWorkspaceRawValue: String? = nil) {
+    init(
+        colorScheme: Binding<String>,
+        initialAdminWorkspaceRawValue: String? = nil,
+        onOpenAgentWithPrompt: ((String) -> Void)? = nil
+    ) {
         _colorScheme = colorScheme
         self.initialAdminWorkspaceRawValue = initialAdminWorkspaceRawValue
+        self.onOpenAgentWithPrompt = onOpenAgentWithPrompt
     }
 
     @State private var systemLanguage = AppLanguageSupport.currentSystemLanguageDisplayName()
@@ -476,6 +483,49 @@ struct SettingsView: View {
                         notificationsEnabled: notificationPermissionStore.notificationsEnabled,
                         appearance: currentAppearanceLabel
                     )
+
+                    if authManager.userSession?.isPlatformOwner == true {
+                        NavigationLink {
+                            OwnerHubView(onOpenAgentWithPrompt: onOpenAgentWithPrompt)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "chart.bar.doc.horizontal")
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundColor(AppColors.accentMystic(for: effectiveColorScheme))
+                                    .frame(width: 40, height: 40)
+                                    .background(
+                                        Circle()
+                                            .fill(AppColors.accentMystic(for: effectiveColorScheme).opacity(0.14))
+                                    )
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(AppLocalized.text("settings.owner_hub.link_title", fallback: "Owner hub"))
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+                                    Text(AppLocalized.text("settings.owner_hub.link_subtitle", fallback: "Briefing, metrics cards, roadmap"))
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+
+                                Spacer(minLength: 0)
+
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme).opacity(0.7))
+                            }
+                            .padding(14)
+                            .skydownPanelSurface(
+                                colorScheme: effectiveColorScheme,
+                                accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                cornerRadius: 18,
+                                shadowRadius: 8,
+                                shadowYOffset: 4
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("settings.open_owner_hub")
+                    }
 
                     controlCenterSectionCard
 
@@ -1398,6 +1448,22 @@ struct SettingsView: View {
                 .buttonStyle(.borderedProminent)
                 .skydownInteractiveFeedback()
                 .tint(AppColors.accent(for: effectiveColorScheme))
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(AppLocalized.text("settings.workflow_status.title", fallback: "Workflow status"))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+                    Text(AppLocalized.text("settings.workflow_status.reminder", fallback: "Reminder + Push: fully active"))
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                    Text(AppLocalized.text("settings.workflow_status.tasks", fallback: "Tasks: in progress (stored, automation expanding)"))
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                    Text(AppLocalized.text("settings.workflow_status.notes", fallback: "Notes: in progress (stored, app UX expanding)"))
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                }
+                .padding(.top, 4)
             }
         }
     }

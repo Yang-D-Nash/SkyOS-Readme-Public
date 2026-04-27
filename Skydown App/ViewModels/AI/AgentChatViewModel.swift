@@ -1,6 +1,8 @@
 import Foundation
 import Combine
 import FirebaseFunctions
+import FirebaseFirestore
+import FirebaseAuth
 
 enum AgentChatRole {
     case user
@@ -206,6 +208,7 @@ final class AgentChatViewModel: ObservableObject {
     private var stopRemoteHistoryObservation: (() -> Void)?
     private var activeRequestContext: InFlightRequestContext?
     private var currentQuotaPlan: UserQuotaPlan = .free
+    private let firestore = Firestore.firestore()
 
     private struct PendingAgentRequest {
         let prompt: String
@@ -350,7 +353,7 @@ final class AgentChatViewModel: ObservableObject {
             guard let self else { return }
             do {
                 let result = try await service.sendMessage(
-                    prompt: trimmedPrompt,
+                    prompt: await memoryEnrichedPrompt(from: trimmedPrompt),
                     history: historyAtSend,
                     mode: modeAtSend,
                     aiLevel: levelAtSend.rawValue,
@@ -394,12 +397,16 @@ final class AgentChatViewModel: ObservableObject {
                 refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 if result.automationTriggered {
                     lastIntegrationIssue = ""
-                    showUserToast(
-                        result.automationMessage.isEmpty
+                    let successMessage = resultLooksLikeTaskCreation(result)
+                        ? AppLocalized.text("tasks.created", fallback: "Task created")
+                        : (resultLooksLikeNoteCreation(result)
+                            ? AppLocalized.text("notes.saved", fallback: "Note saved")
+                        : (
+                            result.automationMessage.isEmpty
                             ? AppLocalized.text("agent.automation.triggered", fallback: "Automation wurde gestartet.")
-                            : result.automationMessage,
-                        style: .success
-                    )
+                            : result.automationMessage
+                        ))
+                    showUserToast(successMessage, style: .success)
                 } else if result.automationAttempted && !result.automationMessage.isEmpty {
                     lastIntegrationIssue = result.automationMessage
                     showUserToast(result.automationMessage, style: .error)
@@ -837,7 +844,7 @@ final class AgentChatViewModel: ObservableObject {
 
             do {
                 let result = try await service.sendMessage(
-                    prompt: request.prompt,
+                    prompt: await memoryEnrichedPrompt(from: request.prompt),
                     history: request.history,
                     mode: request.mode,
                     aiLevel: request.aiLevel,
@@ -882,12 +889,16 @@ final class AgentChatViewModel: ObservableObject {
                 refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 if result.automationTriggered {
                     lastIntegrationIssue = ""
-                    showUserToast(
-                        result.automationMessage.isEmpty
+                    let successMessage = resultLooksLikeTaskCreation(result)
+                        ? AppLocalized.text("tasks.created", fallback: "Task created")
+                        : (resultLooksLikeNoteCreation(result)
+                            ? AppLocalized.text("notes.saved", fallback: "Note saved")
+                        : (
+                            result.automationMessage.isEmpty
                             ? AppLocalized.text("agent.automation.triggered", fallback: "Automation wurde gestartet.")
-                            : result.automationMessage,
-                        style: .success
-                    )
+                            : result.automationMessage
+                        ))
+                    showUserToast(successMessage, style: .success)
                 } else if result.automationAttempted && !result.automationMessage.isEmpty {
                     lastIntegrationIssue = result.automationMessage
                     showUserToast(result.automationMessage, style: .error)
@@ -1178,6 +1189,24 @@ final class AgentChatViewModel: ObservableObject {
         showToast = true
     }
 
+    private func resultLooksLikeTaskCreation(_ response: AgentChatResponse) -> Bool {
+        if response.results.contains(where: { $0.type.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "task" }) {
+            return true
+        }
+        let workflowName = response.workflowName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let automationMessage = response.automationMessage.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return workflowName.contains("task") || automationMessage.contains("task")
+    }
+
+    private func resultLooksLikeNoteCreation(_ response: AgentChatResponse) -> Bool {
+        if response.results.contains(where: { $0.type.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "note" }) {
+            return true
+        }
+        let workflowName = response.workflowName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let automationMessage = response.automationMessage.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return workflowName.contains("note") || automationMessage.contains("note")
+    }
+
     func showToastMessage(_ message: String, style: ToastStyle) {
         showUserToast(message, style: style)
     }
@@ -1195,6 +1224,109 @@ final class AgentChatViewModel: ObservableObject {
             retryAfterSeconds: usage.retryAfterSeconds,
             lowerCostOption: usage.lowerCostOption
         )
+    }
+
+    private func memoryEnrichedPrompt(from userPrompt: String) async -> String {
+        let prompt = userPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !prompt.isEmpty else { return userPrompt }
+
+        let taskLines = TaskStore.shared.tasks
+            .filter { $0.status == .open }
+            .prefix(5)
+            .map { task -> String in
+                if let due = task.dueAt {
+                    return "- \(task.title) (due \(ISO8601DateFormatter().string(from: due)))"
+                }
+                return "- \(task.title)"
+            }
+
+        let noteLines = NoteStore.shared.notes
+            .prefix(5)
+            .map { note in
+                let title = note.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? String(note.content.prefix(40))
+                    : note.title
+                return "- \(title)"
+            }
+
+        let reminderLines = await loadUpcomingReminderLines(limit: 5)
+
+        guard !taskLines.isEmpty || !noteLines.isEmpty || !reminderLines.isEmpty else {
+            return userPrompt
+        }
+
+        let memoryBlock = """
+        [SkyOS Memory Context]
+        Open tasks:
+        \(taskLines.isEmpty ? "- none" : taskLines.joined(separator: "\n"))
+        Recent notes:
+        \(noteLines.isEmpty ? "- none" : noteLines.joined(separator: "\n"))
+        Upcoming reminders:
+        \(reminderLines.isEmpty ? "- none" : reminderLines.joined(separator: "\n"))
+        [/SkyOS Memory Context]
+        """
+
+        return "\(memoryBlock)\n\nUser request:\n\(userPrompt)"
+    }
+
+    private func loadUpcomingReminderLines(limit: Int) async -> [String] {
+        guard let uid = Auth.auth().currentUser?.uid, !uid.isEmpty else { return [] }
+        let now = Date()
+        guard let snapshot = try? await firestore
+            .collection("users")
+            .document(uid)
+            .collection("reminders")
+            .limit(to: 80)
+            .getDocuments() else {
+            return []
+        }
+
+        let items: [(String, Date?)] = snapshot.documents.compactMap { document in
+            let data = document.data()
+            let title = ((data["title"] as? String) ?? (data["text"] as? String) ?? (data["message"] as? String) ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty else { return nil }
+            let date = Self.resolveReminderDate(
+                data["dueAt"],
+                data["scheduledAt"],
+                data["scheduledFor"],
+                data["remindAt"],
+                data["triggerAt"],
+                data["date"]
+            )
+            guard let date, date >= now else { return nil }
+            return (title, date)
+        }
+            .sorted { ($0.1 ?? .distantFuture) < ($1.1 ?? .distantFuture) }
+            .prefix(limit)
+            .map { $0 }
+
+        let formatter = ISO8601DateFormatter()
+        return items.map { title, date in
+            if let date {
+                return "- \(title) (\(formatter.string(from: date)))"
+            }
+            return "- \(title)"
+        }
+    }
+
+    private static func resolveReminderDate(_ candidates: Any?...) -> Date? {
+        for candidate in candidates {
+            switch candidate {
+            case let timestamp as Timestamp:
+                return timestamp.dateValue()
+            case let date as Date:
+                return date
+            case let number as NSNumber:
+                let value = number.doubleValue
+                return Date(timeIntervalSince1970: value > 10_000_000_000 ? value / 1000 : value)
+            case let seconds as TimeInterval:
+                return Date(timeIntervalSince1970: seconds > 10_000_000_000 ? seconds / 1000 : seconds)
+            default:
+                continue
+            }
+        }
+        return nil
     }
 
     private func updateProviderDiagnostics(from response: AgentChatResponse) {
