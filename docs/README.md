@@ -19,6 +19,7 @@ how it is operated without reverse-engineering the repository.
 - [release-checklist.md](release-checklist.md) - release readiness gate across product, legal, analytics, and trust
 - [branding.md](branding.md) - product naming, voice, assets, and copy rules
 - [workflow-http-api-activepieces.md](workflow-http-api-activepieces.md) - Activepieces HTTP setup for Reminder, Task, and Note creation
+- [automation/activepieces-minimal-app-flow.md](automation/activepieces-minimal-app-flow.md) - minimal Activepieces flow for **Agent-Automation** (sync URL, Return Response, app contract)
 - [faq.md](faq.md) - user-facing operational answers and support guidance
 - [store/README.md](store/README.md) - App Store and Google Play presence, screenshots, and review prep
 
