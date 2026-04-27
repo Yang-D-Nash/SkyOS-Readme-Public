@@ -1,3 +1,4 @@
+Produktlinie: Premium-Anspruch fuer SkyOS; Workflow-Beispiele hier sind **Referenz ohne** Nutzer-Pflicht-Keys.
 Statische JSON-Beispiele fuer Activepieces / SkyOS (Referenz, kein Runtime-Code).
 Kopieren oder als Dateien versionieren — verursacht keine Nutzungskosten; Live-Tests in Firebase/Activepieces loesen nach eurer Konfiguration ggf. normale Infrastrukturkosten aus.
 

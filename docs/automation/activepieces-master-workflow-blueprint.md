@@ -2,6 +2,8 @@
 
 Dieses Blueprint-Dokument ist auf die aktuelle SkyOS-Implementierung abgestimmt (`functions/index.js`, iOS/Android Agent-Clients, `agentRunStatusCallback`).
 
+**Produktlinie:** SkyOS zielt auf **Premium-Qualität** (Produkt, Sicherheit, Architektur) — dauerhaft **einen Schritt voraus** im Standard, den Nutzer erwarten dürfen. Die **Workflow-Automation** (externe Orchestrierung über Webhook) bleibt bewusst ein **kostenfreier Basispfad**: Endnutzer sollen **keine** zusätzlichen Drittanbieter-**API-Keys** hinterlegen müssen, um Automation regulär zu nutzen. Technische Secrets (Firebase, Callbacks, Owner-Webhook) liegen **serverseitig**; optionale BYOK-Szenarien (z. B. eigene KI-Provider-Keys) sind **getrennt** und freiwillig.
+
 ## 1) Zielbild
 
 Ein zentraler Activepieces-Master-Workflow soll **alle sinnvollen Agent-Automation-Requests** verarbeiten, robust routen und in einem einheitlichen SkyOS-Response-Format antworten.
