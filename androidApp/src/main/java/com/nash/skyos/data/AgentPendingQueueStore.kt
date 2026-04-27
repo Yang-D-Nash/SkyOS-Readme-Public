@@ -18,6 +18,7 @@ data class AgentPendingQueueEntry(
     val assistantMessageId: String,
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
     val attachments: List<AgentOutboundAttachment> = emptyList(),
+    val idempotencyKey: String = "",
 )
 
 object AgentPendingQueueStore {
@@ -111,6 +112,7 @@ object AgentPendingQueueStore {
                             assistantMessageId = assistantMessageId,
                             createdAtEpochMillis = item.optLong("createdAtEpochMillis", System.currentTimeMillis()),
                             attachments = parseAttachments(item.optJSONArray("attachments")),
+                            idempotencyKey = item.optString("idempotencyKey").trim(),
                         ),
                     )
                 }
@@ -173,6 +175,7 @@ object AgentPendingQueueStore {
                     .put("automationScope", entry.automationScope.ifBlank { "owner" })
                     .put("assistantMessageId", entry.assistantMessageId)
                     .put("createdAtEpochMillis", entry.createdAtEpochMillis)
+                    .put("idempotencyKey", entry.idempotencyKey)
                     .put(
                         "history",
                         JSONArray().apply {

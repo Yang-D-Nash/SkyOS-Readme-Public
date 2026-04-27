@@ -170,6 +170,8 @@ final class AgentChatViewModel: ObservableObject {
     @Published var selectedAutomationScope: AgentAutomationScope = .owner
     @Published var shouldTriggerAutomation = false
     @Published private(set) var canTriggerAutomation = false
+    /// When false, the global "App-Flow" (owner webhook) is hidden; use personal automation only.
+    @Published private(set) var canUseGlobalOwnerAutomationFlow = false
     /// Agent-only lifecycle (distinct from `BotInteractionPhase`).
     @Published private(set) var phase: AgentInteractionPhase = .idle
     @Published var showToast = false
@@ -220,6 +222,7 @@ final class AgentChatViewModel: ObservableObject {
         let assistantMessageID: UUID
         let createdAt: Date
         let attachments: [AgentOutboundAttachment]
+        let idempotencyKey: String
     }
 
     private struct InFlightRequestContext: Equatable {
@@ -278,6 +281,14 @@ final class AgentChatViewModel: ObservableObject {
         selectedLevel = resolvedAgentExperienceLevel(for: currentQuotaPlan)
         historyStore.updateRetentionDays(currentHistoryRetentionDays)
         canTriggerAutomation = user != nil
+        let previousCouldUseGlobal = canUseGlobalOwnerAutomationFlow
+        let isPlatformOwner = user?.isPlatformOwner == true
+        canUseGlobalOwnerAutomationFlow = isPlatformOwner
+        if !isPlatformOwner {
+            selectedAutomationScope = .personal
+        } else if !previousCouldUseGlobal {
+            selectedAutomationScope = .owner
+        }
         ManusBYOSStore.shared.setUserMode(userID: user?.id)
         if !canTriggerAutomation {
             shouldTriggerAutomation = false
@@ -330,6 +341,7 @@ final class AgentChatViewModel: ObservableObject {
         let levelAtSend = selectedLevel
         let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
         let automationScopeAtSend = selectedAutomationScope.rawValue
+        let idempotencyKeyAtSend = executeAutomationAtSend ? UUID().uuidString : ""
         let assistantID = UUID()
         let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
         let historyAtSend = buildHistory(from: messages + [userMessage])
@@ -360,6 +372,7 @@ final class AgentChatViewModel: ObservableObject {
                     executeAutomation: executeAutomationAtSend,
                     automationScope: automationScopeAtSend,
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil(),
+                    idempotencyKey: idempotencyKeyAtSend.isEmpty ? nil : idempotencyKeyAtSend,
                     attachments: preparedAttachments
                 )
                 guard isRequestContextValid(requestContext) else { return }
@@ -432,7 +445,8 @@ final class AgentChatViewModel: ObservableObject {
                             automationScope: automationScopeAtSend,
                             assistantMessageID: assistantID,
                             createdAt: .now,
-                            attachments: preparedAttachments
+                            attachments: preparedAttachments,
+                            idempotencyKey: idempotencyKeyAtSend
                         )
                     )
                     persistPendingRequests()
@@ -614,7 +628,8 @@ final class AgentChatViewModel: ObservableObject {
                 automationScope: entry.automationScope,
                 assistantMessageID: assistantID,
                 createdAt: entry.createdAt,
-                attachments: entry.attachments
+                attachments: entry.attachments,
+                idempotencyKey: entry.idempotencyKey
             )
         }
 
@@ -742,6 +757,7 @@ final class AgentChatViewModel: ObservableObject {
         let levelAtSend = selectedLevel
         let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
         let automationScopeAtSend = selectedAutomationScope.rawValue
+        let idempotencyKeyAtQueue = executeAutomationAtSend ? UUID().uuidString : ""
 
         messages.append(userMessage)
         messages.append(
@@ -768,7 +784,8 @@ final class AgentChatViewModel: ObservableObject {
                 automationScope: automationScopeAtSend,
                 assistantMessageID: assistantID,
                 createdAt: .now,
-                attachments: attachments
+                attachments: attachments,
+                idempotencyKey: idempotencyKeyAtQueue
             )
         )
         persistPendingRequests()
@@ -851,6 +868,7 @@ final class AgentChatViewModel: ObservableObject {
                     executeAutomation: request.executeAutomation,
                     automationScope: request.automationScope,
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil(),
+                    idempotencyKey: request.idempotencyKey.isEmpty ? nil : request.idempotencyKey,
                     attachments: request.attachments
                 )
                 guard isRequestContextValid(requestContext) else { return }
@@ -996,7 +1014,8 @@ final class AgentChatViewModel: ObservableObject {
                 automationScope: request.automationScope,
                 assistantMessageID: request.assistantMessageID.uuidString,
                 createdAt: request.createdAt,
-                attachments: request.attachments
+                attachments: request.attachments,
+                idempotencyKey: request.idempotencyKey
             )
         }
         pendingQueueStore.saveEntries(

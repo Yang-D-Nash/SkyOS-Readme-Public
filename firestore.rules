@@ -1024,6 +1024,11 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Automation webhook idempotency (Cloud Functions only)
+    match /users/{uid}/automationIdempotency/{docId} {
+      allow read, write: if false;
+    }
+
     match /users/{uid}/reminders/{reminderId} {
       allow read: if isSelf(uid) || isOwner();
       allow create, update: if (

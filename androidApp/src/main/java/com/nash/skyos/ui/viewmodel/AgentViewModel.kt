@@ -61,6 +61,7 @@ class AgentViewModel : ViewModel() {
         val assistantMessageId: String,
         val createdAtEpochMillis: Long,
         val attachments: List<AgentOutboundAttachment> = emptyList(),
+        val idempotencyKey: String = "",
     )
 
     private data class InFlightRequestContext(
@@ -116,10 +117,18 @@ class AgentViewModel : ViewModel() {
                 currentHistoryRetentionDays =
                     user?.resolvedAiHistoryRetentionDays ?: UserRole.User.defaultAiHistoryRetentionDays
                 AiConversationHistoryStore.updateRetentionDays(currentHistoryRetentionDays)
+                val isPlatformOwner = user?.isPlatformOwner == true
                 _uiState.update {
                     val canTriggerAutomation = user != null
+                    val wasNonOwnerFlow = !it.canUseGlobalOwnerAutomationFlow
                     it.copy(
                         canTriggerAutomation = canTriggerAutomation,
+                        canUseGlobalOwnerAutomationFlow = isPlatformOwner,
+                        selectedAutomationScope = when {
+                            !isPlatformOwner -> AgentAutomationScope.Personal
+                            isPlatformOwner && wasNonOwnerFlow -> AgentAutomationScope.Owner
+                            else -> it.selectedAutomationScope
+                        },
                         shouldTriggerAutomation = when {
                             !canTriggerAutomation -> false
                             it.selectedMode == AgentExecutionMode.Automation -> true
@@ -270,6 +279,8 @@ class AgentViewModel : ViewModel() {
         val levelRawAtSend = levelAtSend.rawValue
         val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
         val automationScopeAtSend = _uiState.value.selectedAutomationScope.rawValue
+        val idempotencyKeyAtSend =
+            if (executeAutomationAtSend) java.util.UUID.randomUUID().toString() else ""
         val userMessage = AgentMessage(role = AgentMessageRole.User, text = trimmedPrompt)
         val assistantMessage = AgentMessage(
             role = AgentMessageRole.Assistant,
@@ -305,6 +316,7 @@ class AgentViewModel : ViewModel() {
                     executeAutomation = executeAutomationAtSend,
                     automationScope = automationScopeAtSend,
                     manusApiKeyOverride = ManusByosPreferences.currentManusApiKeyOrNull(),
+                    idempotencyKey = idempotencyKeyAtSend.takeIf { it.isNotBlank() },
                     attachments = attachmentsAtSend,
                 )
                 if (!isRequestContextActive(requestContext)) return@launch
@@ -388,6 +400,7 @@ class AgentViewModel : ViewModel() {
                             assistantMessageId = assistantMessageId,
                             createdAtEpochMillis = System.currentTimeMillis(),
                             attachments = attachmentsAtSend,
+                            idempotencyKey = idempotencyKeyAtSend,
                         ),
                     )
                     persistPendingRequests()
@@ -633,6 +646,8 @@ class AgentViewModel : ViewModel() {
         val modeAtSend = _uiState.value.selectedMode.rawValue
         val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
         val automationScopeAtSend = _uiState.value.selectedAutomationScope.rawValue
+        val idempotencyKeyAtQueue =
+            if (executeAutomationAtSend) java.util.UUID.randomUUID().toString() else ""
         val userMessage = AgentMessage(role = AgentMessageRole.User, text = trimmedPrompt)
         val assistantMessage = AgentMessage(
             role = AgentMessageRole.Assistant,
@@ -655,6 +670,7 @@ class AgentViewModel : ViewModel() {
                 assistantMessageId = assistantMessage.id,
                 createdAtEpochMillis = System.currentTimeMillis(),
                 attachments = attachments,
+                idempotencyKey = idempotencyKeyAtQueue,
             ),
         )
         persistPendingRequests()
@@ -708,6 +724,7 @@ class AgentViewModel : ViewModel() {
                         executeAutomation = request.executeAutomation,
                         automationScope = request.automationScope,
                         manusApiKeyOverride = ManusByosPreferences.currentManusApiKeyOrNull(),
+                        idempotencyKey = request.idempotencyKey.takeIf { it.isNotBlank() },
                         attachments = request.attachments,
                     )
                     if (!isRequestContextActive(requestContext)) {
@@ -1080,6 +1097,7 @@ class AgentViewModel : ViewModel() {
                     assistantMessageId = entry.assistantMessageId,
                     createdAtEpochMillis = entry.createdAtEpochMillis,
                     attachments = entry.attachments,
+                    idempotencyKey = entry.idempotencyKey,
                 )
             },
         )
@@ -1121,6 +1139,7 @@ class AgentViewModel : ViewModel() {
                 assistantMessageId = request.assistantMessageId,
                 createdAtEpochMillis = request.createdAtEpochMillis,
                 attachments = request.attachments,
+                idempotencyKey = request.idempotencyKey,
             )
         }
         AgentPendingQueueStore.saveEntriesForSession(currentUserKey, currentSessionId, entries)

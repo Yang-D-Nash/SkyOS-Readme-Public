@@ -24,6 +24,7 @@ data class AgentResponse(
     val results: List<AgentResultEntry> = emptyList(),
     val usage: AiUsageSnapshot? = null,
     val decision: AgentDecision? = null,
+    val automationIdempotentReplay: Boolean = false,
 )
 
 data class AgentResultEntry(
@@ -90,6 +91,7 @@ class AgentClient {
         executeAutomation: Boolean,
         automationScope: String,
         manusApiKeyOverride: String? = null,
+        idempotencyKey: String? = null,
         attachments: List<AgentOutboundAttachment> = emptyList(),
     ): AgentResponse {
         if (!AppNetworkMonitor.isOnline.value) {
@@ -116,6 +118,10 @@ class AgentClient {
         if (attachments.isNotEmpty()) {
             payload["attachments"] = attachments.map { it.toPayloadMap() }
         }
+        idempotencyKey
+            ?.trim()
+            ?.takeIf { it.length >= 8 }
+            ?.let { payload["idempotencyKey"] = it }
 
         val result = functions
             .callWithAppCheckRetry(
@@ -142,6 +148,7 @@ class AgentClient {
                 ),
                 usage = null,
                 decision = null,
+                automationIdempotentReplay = false,
             )
             is Map<*, *> -> {
                 val parsedResults = parseAgentResults(data["results"])
@@ -171,6 +178,7 @@ class AgentClient {
                 },
                 usage = parseAiUsageSnapshot(data["usage"]),
                 decision = parseAgentDecision(data["agentDecision"]),
+                automationIdempotentReplay = data["automationIdempotentReplay"] as? Boolean ?: false,
             )
             }
             else -> error(AppTextResolver.string(R.string.agent_error_no_response))

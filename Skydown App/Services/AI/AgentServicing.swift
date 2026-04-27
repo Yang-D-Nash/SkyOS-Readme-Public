@@ -126,6 +126,8 @@ struct AgentChatResponse {
     let results: [AgentResultEntry]
     let usage: AIUsageSnapshot?
     let decision: AgentDecision?
+    /// True when the server skipped a second external webhook for the same idempotency key (TTL).
+    let automationIdempotentReplay: Bool
 }
 
 struct AgentResultEntry: Identifiable, Equatable {
@@ -223,6 +225,7 @@ protocol AgentChatServicing {
         executeAutomation: Bool,
         automationScope: String,
         manusApiKeyOverride: String?,
+        idempotencyKey: String?,
         attachments: [AgentOutboundAttachment]
     ) async throws -> AgentChatResponse
     func fetchRunStatus(runId: String) async throws -> AgentRunStatus
@@ -289,6 +292,7 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
         executeAutomation: Bool,
         automationScope: String,
         manusApiKeyOverride: String?,
+        idempotencyKey: String? = nil,
         attachments: [AgentOutboundAttachment] = []
     ) async throws -> AgentChatResponse {
         try await ensureConnectivity()
@@ -311,6 +315,10 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
         }
         if !attachments.isEmpty {
             payload["attachments"] = attachments.map { $0.asDictionary() }
+        }
+        if let idempotencyKey = idempotencyKey?.trimmingCharacters(in: .whitespacesAndNewlines),
+           idempotencyKey.count >= 8 {
+            payload["idempotencyKey"] = idempotencyKey
         }
 
         let result = try await functions.invokeCallable("skydownAgent", payload: payload)
@@ -340,7 +348,8 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
                     )
                 ],
                 usage: nil,
-                decision: nil
+                decision: nil,
+                automationIdempotentReplay: false
             )
         }
 
@@ -368,7 +377,8 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
                 resultType: (payload["resultType"] as? String) ?? "text",
                 results: parsedResults.isEmpty ? [AgentResultEntry(type: "text", text: resolvedReply)] : parsedResults,
                 usage: parseUsage(payload["usage"] as? [String: Any]),
-                decision: parseDecision(payload["agentDecision"] as? [String: Any])
+                decision: parseDecision(payload["agentDecision"] as? [String: Any]),
+                automationIdempotentReplay: payload["automationIdempotentReplay"] as? Bool ?? false
             )
         }
 

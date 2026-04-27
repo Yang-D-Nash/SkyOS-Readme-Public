@@ -72,6 +72,7 @@ struct AgentView: View {
                 selectedAutomationScope: $viewModel.selectedAutomationScope,
                 shouldTriggerAutomation: $viewModel.shouldTriggerAutomation,
                 canTriggerAutomation: viewModel.canTriggerAutomation,
+                canUseGlobalOwnerAutomationFlow: viewModel.canUseGlobalOwnerAutomationFlow,
                 interactionPhase: viewModel.phase,
                 attachments: inputAttachments,
                 quickPrompts: viewModel.quickPrompts,
@@ -1413,6 +1414,7 @@ private struct AgentPromptComposerSheet: View {
     @Binding var selectedAutomationScope: AgentAutomationScope
     @Binding var shouldTriggerAutomation: Bool
     let canTriggerAutomation: Bool
+    let canUseGlobalOwnerAutomationFlow: Bool
     let interactionPhase: AgentInteractionPhase
     let attachments: [AgentInputAttachment]
     let quickPrompts: [String]
@@ -1494,7 +1496,11 @@ private struct AgentPromptComposerSheet: View {
 
                 if canTriggerAutomation {
                     Menu {
-                        ForEach(AgentAutomationScope.allCases) { scope in
+                        ForEach(
+                            AgentAutomationScope.allCases.filter { scope in
+                                scope != .owner || canUseGlobalOwnerAutomationFlow
+                            }
+                        ) { scope in
                             Button(scope.title) { selectedAutomationScope = scope }
                         }
                     } label: {

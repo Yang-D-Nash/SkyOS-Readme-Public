@@ -492,6 +492,7 @@ fun AgentScreen(
                         selectedMode = uiState.selectedMode,
                         selectedAutomationScope = uiState.selectedAutomationScope,
                         canTriggerAutomation = uiState.canTriggerAutomation,
+                        canUseGlobalOwnerAutomationFlow = uiState.canUseGlobalOwnerAutomationFlow,
                         shouldTriggerAutomation = uiState.shouldTriggerAutomation,
                         agentPhase = uiState.agentPhase,
                         attachments = inputAttachments,
@@ -1427,6 +1428,7 @@ private fun AgentPromptComposerSheet(
     selectedMode: AgentExecutionMode,
     selectedAutomationScope: AgentAutomationScope,
     canTriggerAutomation: Boolean,
+    canUseGlobalOwnerAutomationFlow: Boolean,
     shouldTriggerAutomation: Boolean,
     agentPhase: AgentInteractionPhase,
     attachments: List<AgentInputAttachment>,
@@ -1538,6 +1540,7 @@ private fun AgentPromptComposerSheet(
             if (canTriggerAutomation) {
                 AgentAutomationScopeMenu(
                     selectedScope = selectedAutomationScope,
+                    canUseGlobalOwnerAutomationFlow = canUseGlobalOwnerAutomationFlow,
                     enabled = !agentPhase.shouldBlockComposerChrome,
                     onScopeChanged = onAutomationScopeChanged,
                 )
@@ -1809,6 +1812,7 @@ private fun AgentLevelMenu(
 @Composable
 private fun AgentAutomationScopeMenu(
     selectedScope: AgentAutomationScope,
+    canUseGlobalOwnerAutomationFlow: Boolean,
     enabled: Boolean,
     onScopeChanged: (AgentAutomationScope) -> Unit,
 ) {
@@ -1826,15 +1830,19 @@ private fun AgentAutomationScopeMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
-            AgentAutomationScope.entries.forEach { scope ->
-                DropdownMenuItem(
-                    text = { Text(scope.title) },
-                    onClick = {
-                        onScopeChanged(scope)
-                        expanded = false
-                    },
-                )
-            }
+            AgentAutomationScope.entries
+                .filter { scope ->
+                    scope != AgentAutomationScope.Owner || canUseGlobalOwnerAutomationFlow
+                }
+                .forEach { scope ->
+                    DropdownMenuItem(
+                        text = { Text(scope.title) },
+                        onClick = {
+                            onScopeChanged(scope)
+                            expanded = false
+                        },
+                    )
+                }
         }
     }
 }

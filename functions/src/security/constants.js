@@ -1,6 +1,14 @@
 "use strict";
 
-const OWNER_EMAIL = "nash.lioncorna@gmail.com";
+/**
+ * Single source of truth for platform owner identity (aligns with Cloud Functions
+ * index.js registration/bootstrap and roles.js claim resolution).
+ */
+const OWNER_EMAIL = (() => {
+  const raw = process.env.SKYOS_OWNER_EMAIL || process.env.SKYDOWN_OWNER_EMAIL || "";
+  const trimmed = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  return trimmed || "nash.lioncorna@gmail.com";
+})();
 
 const USER_ROLES = Object.freeze({
   owner: "owner",

@@ -16,6 +16,7 @@ const crypto = require("crypto");
 const {assertAppCheck} = require("./src/security/app-check");
 const {
   BILLING_LOCKDOWN_REASON_PREFIX,
+  OWNER_EMAIL,
 } = require("./src/security/constants");
 const {
   assertAdmin: assertAdminClaim,
@@ -75,7 +76,6 @@ const manusApiKey = defineSecret("MANUS_API_KEY");
 const xaiApiKey = defineSecret("XAI_API_KEY");
 const agentRunCallbackSecret = defineSecret("AGENT_RUN_CALLBACK_SECRET");
 const workflowApiSecret = defineSecret("SKYOS_WORKFLOW_SECRET");
-const OWNER_EMAIL = normalizeEmail(process.env.SKYOS_OWNER_EMAIL || process.env.SKYDOWN_OWNER_EMAIL) || "nash.lioncorna@gmail.com";
 const IOS_APP_BUNDLE_ID = nonEmptyString(process.env.SKYOS_IOS_APP_BUNDLE_ID) || "com.skydown.ios";
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
 const SHOPIFY_API_VERSION = "2026-01";
@@ -87,6 +87,8 @@ const AUTOMATION_CONFIG_COLLECTION = "adminConfig";
 const OWNER_ACTIVEPIECES_CONFIG_DOCUMENT = "ownerActivepiecesFlow";
 const USER_AUTOMATION_CONFIG_DOCUMENT_PREFIX = "automationN8n_";
 const AGENT_EXTERNAL_AUDIT_COLLECTION = "agentExternalBridgeAudit";
+const AUTOMATION_IDEMPOTENCY_TTL_MS = 60 * 60 * 1000;
+const AUTOMATION_IDEMPOTENCY_KEY_MIN_LEN = 8;
 const PERSONAL_AGENT_PROFILE_DOCUMENT_PREFIX = "agentProfile_";
 const AI_PROMPT_SETTINGS_COLLECTION = "adminConfig";
 const AI_PROMPT_SETTINGS_DOCUMENT = "aiPromptSettings";
@@ -230,6 +232,7 @@ const agentRequestSchema = z.object({
   automationScope: z.enum(["owner", "personal"]).default("owner"),
   confirmedByUser: z.boolean().default(false),
   manusApiKeyOverride: z.string().trim().min(16).max(1024).optional(),
+  idempotencyKey: z.string().trim().max(128).optional(),
   attachments: z.array(agentAttachmentSchema).max(5).optional().default([]),
 });
 
@@ -3017,6 +3020,71 @@ async function createAgentExternalAuditEntry({
   } catch (error) {
     logger.warn("Agent external audit write failed.", {
       requestId: nonEmptyString(requestId) || null,
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+  }
+}
+
+function automationIdempotencyDocId(uid, idempotencyKey) {
+  const a = nonEmptyString(uid) || "";
+  const b = nonEmptyString(idempotencyKey) || "";
+  return crypto.createHash("sha256").update(`${a}\0${b}`, "utf8").digest("hex");
+}
+
+async function loadRecentAutomationIdempotencyRecord(authUid, idempotencyKey) {
+  const uid = nonEmptyString(authUid);
+  const key = nonEmptyString(idempotencyKey);
+  if (!uid || !key) {
+    return null;
+  }
+  const docId = automationIdempotencyDocId(uid, key);
+  const snap = await admin.firestore()
+      .collection("users")
+      .doc(uid)
+      .collection("automationIdempotency")
+      .doc(docId)
+      .get();
+  if (!snap.exists) {
+    return null;
+  }
+  const data = snap.data() || {};
+  const ts = data.recordedAt;
+  const recordedMs = ts && ts.toDate && typeof ts.toDate === "function" ?
+    ts.toDate().getTime() :
+    0;
+  if (!recordedMs || (Date.now() - recordedMs) > AUTOMATION_IDEMPOTENCY_TTL_MS) {
+    return null;
+  }
+  return data;
+}
+
+async function saveAutomationIdempotencyRecord(authUid, idempotencyKey, record = {}) {
+  const uid = nonEmptyString(authUid);
+  const key = nonEmptyString(idempotencyKey);
+  if (!uid || !key) {
+    return;
+  }
+  const docId = automationIdempotencyDocId(uid, key);
+  try {
+    await admin.firestore()
+        .collection("users")
+        .doc(uid)
+        .collection("automationIdempotency")
+        .doc(docId)
+        .set({
+          lastRequestId: nonEmptyString(record?.lastRequestId) || "",
+          workflowName: nonEmptyString(record?.workflowName) || "",
+          schemaVersion: nonEmptyString(record?.schemaVersion) || "",
+          workflowStatus: nonEmptyString(record?.workflowStatus) || "completed",
+          lastMessage: trimTextMax(nonEmptyString(record?.lastMessage) || "", 1200),
+          route: nonEmptyString(record?.route) || "activepieces",
+          mode: nonEmptyString(record?.mode) || "",
+          automationScope: nonEmptyString(record?.automationScope) || "owner",
+          recordedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+  } catch (error) {
+    logger.warn("Automation idempotency write failed.", {
+      uid,
       error: error instanceof Error ? error.message : `${error}`,
     });
   }
@@ -13094,7 +13162,7 @@ async function maybeTriggerAgentAutomation({
   attachments = [],
 }) {
   if (!auth?.uid) {
-    return {attempted: false, triggered: false};
+    return {attempted: false, triggered: false, idempotentReplay: false};
   }
 
   try {
@@ -13124,6 +13192,7 @@ async function maybeTriggerAgentAutomation({
     return {
       attempted: true,
       triggered: true,
+      idempotentReplay: false,
       message: nonEmptyString(automationResult.message) || "An externen Workflow gesendet.",
       workflowName: nonEmptyString(automationResult.workflowName) || "",
       requestId: nonEmptyString(automationResult.requestId) || "",
@@ -13140,6 +13209,7 @@ async function maybeTriggerAgentAutomation({
     return {
       attempted: true,
       triggered: false,
+      idempotentReplay: false,
       message: error instanceof Error ? error.message : `${error}`,
       requestId: "",
       schemaVersion: "",
@@ -13647,12 +13717,16 @@ exports.skydownAgent = onCall({
   );
   const allowedExternalTaskTypes = agentCore.externalPolicy?.allowedExternalTaskTypes || [];
   const selectedAutomationScope = agentInput.automationScope === "personal" ? "personal" : "owner";
+  const maxExternalCallsPerRequest = Number.isFinite(Number(agentCore.externalPolicy?.maxExternalCallsPerRequest)) ?
+    Number(agentCore.externalPolicy.maxExternalCallsPerRequest) :
+    1;
   const canUseActivepieces = agentCore.externalPolicy?.activepiecesEnabled !== false &&
     allowedExternalTaskTypes.includes(requestedTask);
   const canUseN8n = selectedAutomationScope === "personal" &&
     agentCore.externalPolicy?.n8nEnabled !== false &&
     allowedExternalTaskTypes.includes(requestedTask);
-  const canUseAnyExternalWorkflow = canUseActivepieces || canUseN8n;
+  const canUseAnyExternalWorkflow =
+    (canUseActivepieces || canUseN8n) && maxExternalCallsPerRequest >= 1;
   const canUseManus = agentCore.externalPolicy?.manusEnabled !== false &&
     allowedExternalTaskTypes.includes(requestedTask);
   const manusKeyAvailable = nonEmptyString(agentInput.manusApiKeyOverride) || nonEmptyString(manusApiKey.value());
@@ -13689,6 +13763,10 @@ exports.skydownAgent = onCall({
     confirmationReason,
     summary: nonEmptyString(summary) || "Agent-Entscheidung ausgefuehrt.",
     ownerDiagnosticActive,
+    maxExternalCallsPerRequest,
+    externalProviderPriority: Array.isArray(agentCore.externalPolicy?.providerPriority) ?
+        agentCore.externalPolicy.providerPriority :
+        ["activepieces", "n8n"],
   });
 
   if ((runtimeSettings.bot.killSwitchEnabled || agentCore.killSwitch === true) &&
@@ -13756,6 +13834,44 @@ exports.skydownAgent = onCall({
         blocked: true,
         blockReason: "task_not_allowed",
         summary: "Task ist nicht in allowedTasks oder in blockedTasks.",
+      }),
+    };
+  }
+
+  if (agentInput.executeAutomation && maxExternalCallsPerRequest < 1) {
+    return {
+      reply: "Externe Workflows sind fuer diesen Lauf deaktiviert (max. Aufrufe: 0).",
+      mode: agentInput.mode,
+      automationTriggered: false,
+      automationAttempted: false,
+      automationMessage: "",
+      workflowName: "",
+      agentProvider: runtimeSettings.agentProvider,
+      providerFallbackUsed: false,
+      providerNotice: "",
+      historyRetentionDays: usage.historyRetentionDays,
+      agentRunId: "",
+      resultType: "text",
+      results: [
+        {type: "text", text: "Externe Workflows sind fuer diesen Lauf deaktiviert (max. Aufrufe: 0)."},
+      ],
+      usage: {
+        kind: usage.kind,
+        featureClass: usage.featureClass,
+        remainingForKind: usage.remainingForKind,
+        limitForKind: usage.limitForKind,
+        warningLevel: usage.warningLevel || "ok",
+        guardrailHints: usage.guardrailHints || {},
+        effectiveEntitlement: usage.effectiveEntitlement || null,
+        decision: usage.decision || null,
+      },
+      agentDecision: buildAgentDecision({
+        state: blockedState,
+        route: "external",
+        selectedExternal: "activepieces",
+        blocked: true,
+        blockReason: "max_external_calls_per_request_zero",
+        summary: "runtime externalPolicy: maxExternalCallsPerRequest blockiert den Webhook.",
       }),
     };
   }
@@ -13995,18 +14111,94 @@ exports.skydownAgent = onCall({
     agentProvider = AI_AGENT_PROVIDERS.gemini;
   }
 
-  const automation = agentInput.executeAutomation ?
-    await maybeTriggerAgentAutomation({
-      auth: request.auth,
-      mode: agentInput.mode,
-      prompt: agentInput.prompt,
-      reply,
-      history: agentInput.history,
-      runtimeSettings,
-      automationScope: selectedAutomationScope,
-      attachments: agentInput.attachments || [],
-    }) :
-    {attempted: false, triggered: false};
+  const idempotencyKey = nonEmptyString(agentInput.idempotencyKey) || "";
+  const idempotencyKeyUsable = idempotencyKey.length >= AUTOMATION_IDEMPOTENCY_KEY_MIN_LEN;
+  let automation = {attempted: false, triggered: false, idempotentReplay: false};
+  if (agentInput.executeAutomation) {
+    const callerRole = resolveRoleFromAuthClaims(request.auth);
+    const globalOwnerFlowRequiresOwner = selectedAutomationScope === "owner" &&
+      callerRole !== USER_ROLES.owner;
+    if (globalOwnerFlowRequiresOwner) {
+      automation = {
+        attempted: true,
+        triggered: false,
+        idempotentReplay: false,
+        ownerGlobalScopeDenied: true,
+        message: "Der globale App-Flow ist nur fuer das Owner-Konto verfuegbar. " +
+        "Waehle Eigener Flow fuer deinen persoenlichen Webhook (Activepieces/n8n).",
+        requestId: "",
+        workflowName: "",
+        schemaVersion: "",
+        workflowStatus: "failed",
+        results: [],
+        externalState: "external_failed",
+        route: "external",
+      };
+    } else {
+      let priorRecordHandled = false;
+      if (idempotencyKeyUsable) {
+        try {
+          const prior = await loadRecentAutomationIdempotencyRecord(
+              request.auth?.uid,
+              idempotencyKey,
+          );
+          if (prior) {
+            priorRecordHandled = true;
+            automation = {
+              attempted: true,
+              triggered: true,
+              idempotentReplay: true,
+              message: "Externer Workflow war bereits in der letzten Stunde mit diesem Schluessel " +
+            "gestartet. Kein neuer Webhook-Aufruf.",
+              requestId: nonEmptyString(prior.lastRequestId) || "",
+              workflowName: nonEmptyString(prior.workflowName) || "",
+              schemaVersion: nonEmptyString(prior.schemaVersion) || "",
+              workflowStatus: normalizeAutomationWorkflowStatus(
+                  nonEmptyString(prior.workflowStatus) || "completed",
+                  "completed",
+              ),
+              results: [],
+              externalState: "external_completed",
+              route: nonEmptyString(prior.route) || "activepieces",
+            };
+          }
+        } catch (error) {
+          logger.warn("Automation idempotency read failed.", {
+            uid: request.auth?.uid || null,
+            error: error instanceof Error ? error.message : `${error}`,
+          });
+        }
+      }
+      if (!priorRecordHandled) {
+        const fresh = await maybeTriggerAgentAutomation({
+          auth: request.auth,
+          mode: agentInput.mode,
+          prompt: agentInput.prompt,
+          reply,
+          history: agentInput.history,
+          runtimeSettings,
+          automationScope: selectedAutomationScope,
+          attachments: agentInput.attachments || [],
+        });
+        automation = {
+          ...fresh,
+          idempotentReplay: false,
+        };
+        if (idempotencyKeyUsable && fresh && fresh.triggered === true) {
+          await saveAutomationIdempotencyRecord(request.auth.uid, idempotencyKey, {
+            lastRequestId: fresh.requestId,
+            workflowName: fresh.workflowName,
+            schemaVersion: fresh.schemaVersion,
+            workflowStatus: nonEmptyString(fresh.workflowStatus) || "completed",
+            lastMessage: nonEmptyString(fresh.message) || "",
+            route: nonEmptyString(fresh.route) || "activepieces",
+            mode: agentInput.mode,
+            automationScope: selectedAutomationScope,
+          });
+        }
+      }
+    }
+  }
   const resolvedWorkflowStatus = automation.attempted === true ?
     normalizeAutomationWorkflowStatus(
         automation.workflowStatus,
@@ -14037,6 +14229,7 @@ exports.skydownAgent = onCall({
     providerNotice,
     historyRetentionDays: usage.historyRetentionDays,
     agentRunId: agentRunId || "",
+    automationIdempotentReplay: automation.idempotentReplay === true,
     resultType: automation.triggered === true || automation.attempted === true ? "workflow" : "text",
     results: [
       {
@@ -14077,24 +14270,32 @@ exports.skydownAgent = onCall({
     memoryUpdated: memoryWrite.stored === true,
     agentDecision: buildAgentDecision({
       state: agentInput.executeAutomation ?
+        (automation.ownerGlobalScopeDenied === true ? blockedState :
+        (automation.idempotentReplay === true ? "external_completed" :
         (resolvedWorkflowStatus === "queued" ?
           "webhook_pending" :
           (resolvedWorkflowStatus === "running" ?
             "external_running" :
-            (automation.triggered === true ? "external_completed" : "external_failed"))) :
+            (automation.triggered === true ? "external_completed" : "external_failed"))))) :
         (providerFallbackUsed ? "fallback_internal" : "completed"),
       route: agentInput.executeAutomation ? (automation.route || "external") : (providerFallbackUsed ? "hybrid" : "internal"),
       selectedExternal: agentInput.executeAutomation ? (automation.route || "activepieces") : "",
       retryable: providerFallbackUsed,
       retryReason: providerFallbackUsed ? "provider_fallback_used" : "",
+      blocked: automation.ownerGlobalScopeDenied === true,
+      blockReason: automation.ownerGlobalScopeDenied === true ? "owner_only_global_flow" : "",
       summary: agentInput.executeAutomation ?
+        (automation.ownerGlobalScopeDenied === true ?
+          "Globaler App-Flow: nur Owner; andere Accounts nutzen Eigener Flow." :
+        (automation.idempotentReplay === true ?
+          "Idempotency: kein erneuter Webhook-Aufruf innerhalb des TTL (gleicher Schluessel)." :
         (resolvedWorkflowStatus === "queued" ?
           "Externer Workflow wurde in die Warteschlange gestellt." :
           (resolvedWorkflowStatus === "running" ?
             "Externer Workflow laeuft." :
             (automation.triggered === true ?
               "Externer Workflow erfolgreich abgeschlossen." :
-              "Externer Workflow fehlgeschlagen."))) :
+              "Externer Workflow fehlgeschlagen."))))) :
         (providerFallbackUsed ?
           "Antwort mit Fallback erstellt (fallback_internal)." :
           "Agent-Run erfolgreich abgeschlossen."),
