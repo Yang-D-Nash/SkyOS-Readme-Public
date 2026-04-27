@@ -10,6 +10,7 @@ import com.nash.skyos.data.AgentPendingQueueEntry
 import com.nash.skyos.data.AgentPendingQueueStore
 import com.nash.skyos.data.AgentResultEntry
 import com.nash.skyos.data.AiConversationHistorySource
+import com.nash.skyos.data.AiConversationHistoryResultEntry
 import com.nash.skyos.data.AiConversationHistorySaveResult
 import com.nash.skyos.data.AiConversationHistoryStore
 import com.nash.skyos.data.AiConversationRemoteSnapshot
@@ -80,6 +81,7 @@ class AgentViewModel : ViewModel() {
     private var conversationRevision = 0
     private var activeRequestJob: Job? = null
     private var pendingRetryJob: Job? = null
+    private var workflowStatusJob: Job? = null
     private var remoteHydrationJob: Job? = null
     private var remoteHistoryListener: ListenerRegistration? = null
     private var activeRequestContext: InFlightRequestContext? = null
@@ -269,6 +271,11 @@ class AgentViewModel : ViewModel() {
                     sessionId = requestContext.sessionIdAtSend,
                     prompt = trimmedPrompt,
                     response = augmentedReply(result),
+                    resultType = result.resultType,
+                    automationMessage = result.automationMessage,
+                    workflowName = result.workflowName,
+                    agentRunId = result.agentRunId,
+                    structuredResults = result.results.map { it.toHistoryResultEntry() },
                 )
                 savedResult?.let(::syncSavedEntryToRemote)
                 refreshSessionState(requestContext.sessionIdAtSend)
@@ -285,6 +292,11 @@ class AgentViewModel : ViewModel() {
                     },
                     workflowSummary = buildWorkflowSummary(result),
                     results = result.results,
+                )
+                startWorkflowStatusPollingIfNeeded(
+                    response = result,
+                    assistantMessageId = assistantMessageId,
+                    requestContext = requestContext,
                 )
                 val trimmedNotice = result.providerNotice.trim()
                 val effectiveNotice = when {
@@ -544,6 +556,11 @@ class AgentViewModel : ViewModel() {
                         sessionId = requestContext.sessionIdAtSend,
                         prompt = request.prompt,
                         response = augmentedReply(result),
+                        resultType = result.resultType,
+                        automationMessage = result.automationMessage,
+                        workflowName = result.workflowName,
+                        agentRunId = result.agentRunId,
+                        structuredResults = result.results.map { it.toHistoryResultEntry() },
                     )
                     savedResult?.let(::syncSavedEntryToRemote)
                     refreshSessionState(requestContext.sessionIdAtSend)
@@ -560,6 +577,11 @@ class AgentViewModel : ViewModel() {
                         },
                         workflowSummary = buildWorkflowSummary(result),
                         results = result.results,
+                    )
+                    startWorkflowStatusPollingIfNeeded(
+                        response = result,
+                        assistantMessageId = request.assistantMessageId,
+                        requestContext = requestContext,
                     )
                     val trimmedNotice = result.providerNotice.trim()
                     val effectiveNotice = when {
@@ -726,6 +748,8 @@ class AgentViewModel : ViewModel() {
             activeRequestJob = null
             pendingRetryJob?.cancel()
             pendingRetryJob = null
+            workflowStatusJob?.cancel()
+            workflowStatusJob = null
             remoteHydrationJob?.cancel()
             remoteHydrationJob = null
             activeRequestContext = null
@@ -760,6 +784,70 @@ class AgentViewModel : ViewModel() {
                             resultType = resultType,
                             workflowSummary = workflowSummary,
                             results = results,
+                        )
+                    } else {
+                        message
+                    }
+                },
+            )
+        }
+    }
+
+    private fun startWorkflowStatusPollingIfNeeded(
+        response: com.nash.skyos.data.AgentResponse,
+        assistantMessageId: String,
+        requestContext: InFlightRequestContext,
+    ) {
+        val runId = response.agentRunId.trim()
+        if (runId.isBlank()) return
+        val workflowStatus = response.results.firstOrNull { it.type == "workflow" }?.status.orEmpty().trim().lowercase()
+        if (workflowStatus != "queued" && workflowStatus != "running") return
+
+        workflowStatusJob?.cancel()
+        workflowStatusJob = viewModelScope.launch {
+            repeat(12) { attempt ->
+                val waitMs = if (attempt < 4) 3_000L else 6_000L
+                kotlinx.coroutines.delay(waitMs)
+                if (!isConversationSnapshotValid(requestContext.conversationRevision, requestContext.userKeyAtSend)) return@launch
+                if (!AppNetworkMonitor.isOnline.value) return@repeat
+                val status = runCatching { agentClient.fetchRunStatus(runId) }.getOrNull() ?: return@repeat
+                val normalizedState = status.state.trim().lowercase()
+                val summary = status.automationMessage.trim().ifBlank {
+                    when (normalizedState) {
+                        "queued" -> "Workflow wurde in die Warteschlange gestellt."
+                        "running" -> "Workflow wird gerade ausgefuehrt."
+                        "completed" -> "Workflow abgeschlossen."
+                        else -> "Workflow fehlgeschlagen."
+                    }
+                }
+                updateWorkflowSummary(
+                    messageId = assistantMessageId,
+                    workflowName = status.workflowName.trim().ifBlank { response.workflowName.ifBlank { "External Workflow" } },
+                    statusText = summary,
+                )
+                if (normalizedState == "completed" || normalizedState == "failed") {
+                    return@launch
+                }
+            }
+        }
+    }
+
+    private fun updateWorkflowSummary(
+        messageId: String,
+        workflowName: String,
+        statusText: String,
+    ) {
+        _uiState.update { state ->
+            state.copy(
+                messages = state.messages.map { message ->
+                    if (message.id == messageId) {
+                        val existing = message.workflowSummary
+                        message.copy(
+                            workflowSummary = AgentWorkflowSummary(
+                                workflowName = workflowName.ifBlank { existing?.workflowName ?: "External Workflow" },
+                                statusText = statusText,
+                                runId = existing?.runId,
+                            ),
                         )
                     } else {
                         message
@@ -1103,4 +1191,22 @@ private fun resolveTerminalPhase(
         "idle" -> if (hasPendingQueue) AgentInteractionPhase.WaitingReconnect else AgentInteractionPhase.Idle
         else -> if (hasPendingQueue) AgentInteractionPhase.WaitingReconnect else AgentInteractionPhase.Completed
     }
+}
+
+private fun AgentResultEntry.toHistoryResultEntry(): AiConversationHistoryResultEntry {
+    return AiConversationHistoryResultEntry(
+        type = type,
+        text = text,
+        url = url,
+        title = title,
+        mimeType = mimeType,
+        fileName = fileName,
+        html = html,
+        columns = columns,
+        rows = rows,
+        workflowName = workflowName,
+        status = status,
+        summary = summary,
+        runId = runId,
+    )
 }

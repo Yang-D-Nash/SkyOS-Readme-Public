@@ -40,7 +40,28 @@ data class AiConversationHistoryEntry(
     val source: AiConversationHistorySource,
     val prompt: String,
     val response: String,
+    val resultType: String = "text",
+    val automationMessage: String = "",
+    val workflowName: String = "",
+    val agentRunId: String = "",
+    val structuredResults: List<AiConversationHistoryResultEntry> = emptyList(),
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
+)
+
+data class AiConversationHistoryResultEntry(
+    val type: String,
+    val text: String = "",
+    val url: String = "",
+    val title: String = "",
+    val mimeType: String = "",
+    val fileName: String = "",
+    val html: String = "",
+    val columns: List<String> = emptyList(),
+    val rows: List<List<String>> = emptyList(),
+    val workflowName: String = "",
+    val status: String = "",
+    val summary: String = "",
+    val runId: String = "",
 )
 
 data class AiConversationHistorySaveResult(
@@ -265,6 +286,11 @@ object AiConversationHistoryStore {
         sessionId: String?,
         prompt: String,
         response: String,
+        resultType: String = "text",
+        automationMessage: String = "",
+        workflowName: String = "",
+        agentRunId: String = "",
+        structuredResults: List<AiConversationHistoryResultEntry> = emptyList(),
     ): AiConversationHistorySaveResult? {
         val trimmedPrompt = prompt.trim()
         val trimmedResponse = response.trim()
@@ -300,6 +326,11 @@ object AiConversationHistoryStore {
             source = source,
             prompt = trimmedPrompt,
             response = trimmedResponse,
+            resultType = resultType,
+            automationMessage = automationMessage,
+            workflowName = workflowName,
+            agentRunId = agentRunId,
+            structuredResults = structuredResults,
             createdAtEpochMillis = now,
         )
         val updatedEntries = buildList {
@@ -412,6 +443,11 @@ object AiConversationHistoryStore {
                 source = legacyEntry.source,
                 prompt = legacyEntry.prompt,
                 response = legacyEntry.response,
+                resultType = "text",
+                automationMessage = "",
+                workflowName = "",
+                agentRunId = "",
+                structuredResults = emptyList(),
                 createdAtEpochMillis = legacyEntry.createdAtEpochMillis,
             )
         }
@@ -528,6 +564,11 @@ object AiConversationHistoryStore {
                             source = source,
                             prompt = prompt,
                             response = response,
+                            resultType = item.optString("resultType").trim().ifBlank { "text" },
+                            automationMessage = item.optString("automationMessage").trim(),
+                            workflowName = item.optString("workflowName").trim(),
+                            agentRunId = item.optString("agentRunId").trim(),
+                            structuredResults = item.optJSONArray("results").toHistoryResults(),
                             createdAtEpochMillis = item.optLong(
                                 "createdAtEpochMillis",
                                 System.currentTimeMillis(),
@@ -617,6 +658,11 @@ object AiConversationHistoryStore {
                     .put("source", entry.source.name)
                     .put("prompt", entry.prompt)
                     .put("response", entry.response)
+                    .put("resultType", entry.resultType)
+                    .put("automationMessage", entry.automationMessage)
+                    .put("workflowName", entry.workflowName)
+                    .put("agentRunId", entry.agentRunId)
+                    .put("results", entry.structuredResults.toJsonArray())
                     .put("createdAtEpochMillis", entry.createdAtEpochMillis),
             )
         }
@@ -647,4 +693,87 @@ object AiConversationHistoryStore {
         val trimmed = userKey?.trim().orEmpty()
         return trimmed.ifBlank { "guest" }.lowercase()
     }
+}
+
+private fun JSONArray?.toHistoryResults(): List<AiConversationHistoryResultEntry> {
+    if (this == null) return emptyList()
+    return buildList {
+        for (index in 0 until length()) {
+            val item = optJSONObject(index) ?: continue
+            val type = item.optString("type").trim().ifBlank { "text" }
+            val rows = item.optJSONArray("rows").toStringGrid()
+            val columns = item.optJSONArray("columns").toStringList()
+            add(
+                AiConversationHistoryResultEntry(
+                    type = type,
+                    text = item.optString("text").trim(),
+                    url = item.optString("url").trim(),
+                    title = item.optString("title").trim(),
+                    mimeType = item.optString("mimeType").trim(),
+                    fileName = item.optString("fileName").trim(),
+                    html = item.optString("html").trim(),
+                    columns = columns,
+                    rows = rows,
+                    workflowName = item.optString("workflowName").trim(),
+                    status = item.optString("status").trim(),
+                    summary = item.optString("summary").trim(),
+                    runId = item.optString("runId").trim(),
+                ),
+            )
+        }
+    }
+}
+
+private fun JSONArray?.toStringList(): List<String> {
+    if (this == null) return emptyList()
+    return buildList {
+        for (index in 0 until length()) {
+            val value = optString(index).trim()
+            if (value.isNotBlank()) add(value)
+        }
+    }
+}
+
+private fun JSONArray?.toStringGrid(): List<List<String>> {
+    if (this == null) return emptyList()
+    return buildList {
+        for (rowIndex in 0 until length()) {
+            val rowArray = optJSONArray(rowIndex)
+            if (rowArray != null) {
+                add(rowArray.toStringList())
+            } else {
+                val rowValue = optString(rowIndex).trim()
+                if (rowValue.isNotBlank()) add(listOf(rowValue))
+            }
+        }
+    }
+}
+
+private fun List<AiConversationHistoryResultEntry>.toJsonArray(): JSONArray {
+    val array = JSONArray()
+    forEach { result ->
+        val rows = JSONArray().apply {
+            result.rows.forEach { row ->
+                put(JSONArray().apply { row.forEach(::put) })
+            }
+        }
+        val columns = JSONArray().apply { result.columns.forEach(::put) }
+        array.put(
+            JSONObject()
+                .put("type", result.type)
+                .put("text", result.text)
+                .put("url", result.url)
+                .put("title", result.title)
+                .put("mimeType", result.mimeType)
+                .put("fileName", result.fileName)
+                .put("html", result.html)
+                .put("columns", columns)
+                .put("rows", rows)
+                .put("workflowName", result.workflowName)
+                .put("status", result.status)
+                .put("summary", result.summary)
+                .put("runId", result.runId),
+        )
+    }
+    return array
 }

@@ -72,6 +72,7 @@ const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 const shopifyAdminAccessToken = defineSecret("SHOPIFY_ADMIN_ACCESS_TOKEN");
 const manusApiKey = defineSecret("MANUS_API_KEY");
 const xaiApiKey = defineSecret("XAI_API_KEY");
+const agentRunCallbackSecret = defineSecret("AGENT_RUN_CALLBACK_SECRET");
 const OWNER_EMAIL = normalizeEmail(process.env.SKYOS_OWNER_EMAIL || process.env.SKYDOWN_OWNER_EMAIL) || "nash.lioncorna@gmail.com";
 const IOS_APP_BUNDLE_ID = nonEmptyString(process.env.SKYOS_IOS_APP_BUNDLE_ID) || "com.skydown.ios";
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
@@ -3089,6 +3090,26 @@ function extractAutomationResponseResults(parsedBody) {
   );
 }
 
+function normalizeAutomationWorkflowStatus(value, fallback = "completed") {
+  const normalized = nonEmptyString(value)?.trim().toLowerCase() || "";
+  if (!normalized) {
+    return fallback;
+  }
+  if (["queued", "queue", "pending", "accepted", "scheduled"].includes(normalized)) {
+    return "queued";
+  }
+  if (["running", "processing", "in_progress", "in-progress", "started"].includes(normalized)) {
+    return "running";
+  }
+  if (["completed", "complete", "success", "successful", "done", "ok"].includes(normalized)) {
+    return "completed";
+  }
+  if (["failed", "error", "errored", "timeout", "cancelled", "canceled"].includes(normalized)) {
+    return "failed";
+  }
+  return fallback;
+}
+
 async function triggerWorkflowAutomationWebhook({
   trigger,
   source,
@@ -3282,12 +3303,21 @@ async function triggerWorkflowAutomationWebhook({
   });
 
   const parsedResponseBody = parseAutomationResponseBody(responseBody);
+  const workflowStatus = normalizeAutomationWorkflowStatus(
+      parsedResponseBody?.workflowStatus ||
+      parsedResponseBody?.workflow_state ||
+      parsedResponseBody?.state ||
+      parsedResponseBody?.status ||
+      "",
+      "completed",
+  );
   return {
     message: extractAutomationResponseMessage(responseBody, settings.workflowName, parsedResponseBody),
     workflowName: settings.workflowName,
     status: response.status,
     provider: settings.provider,
     requestId,
+    workflowStatus,
     results: extractAutomationResponseResults(parsedResponseBody),
   };
 }
@@ -5271,11 +5301,18 @@ async function persistAgentRunSummary({
     const reply = typeof replyText === "string" ? replyText : "";
     await runRef.set({
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       mode: nonEmptyString(mode) || "release",
       agentProvider: nonEmptyString(agentProvider) || "unknown",
       providerFallbackUsed: providerFallbackUsed === true,
       automationAttempted: automation && automation.attempted === true,
       automationTriggered: automation && automation.triggered === true,
+      automationStatus: nonEmptyString(automation?.workflowStatus) || (
+        automation && automation.attempted === true ? "failed" : "completed"
+      ),
+      workflowName: nonEmptyString(automation?.workflowName) || "",
+      automationMessage: trimTextMax(nonEmptyString(automation?.message) || "", 1200),
+      automationRequestId: nonEmptyString(automation?.requestId) || "",
       promptChars: Math.min(Math.max(prompt.length, 0), 100000),
       replyChars: Math.min(Math.max(reply.length, 0), 500000),
     });
@@ -5288,6 +5325,221 @@ async function persistAgentRunSummary({
     return null;
   }
 }
+
+async function updateAgentRunStatus({
+  uid,
+  runId,
+  state,
+  message = "",
+  workflowName = "",
+  provider = "",
+  requestId = "",
+}) {
+  const normalizedUid = nonEmptyString(uid) || "";
+  const normalizedRunId = nonEmptyString(runId) || "";
+  if (!normalizedUid || !normalizedRunId) {
+    return false;
+  }
+  const resolved = await resolveAgentRunRef({
+    uid: normalizedUid,
+    runId: normalizedRunId,
+    requestId,
+  });
+  if (!resolved) {
+    return false;
+  }
+  const runRef = resolved.ref;
+  const snapshot = await runRef.get();
+  if (!snapshot.exists) {
+    return false;
+  }
+  const normalizedState = normalizeAutomationWorkflowStatus(state, "running");
+  await runRef.set({
+    automationAttempted: true,
+    automationTriggered: normalizedState !== "failed",
+    automationStatus: normalizedState,
+    automationMessage: trimTextMax(nonEmptyString(message) || "", 1200),
+    workflowName: nonEmptyString(workflowName) || "",
+    automationRequestId: nonEmptyString(requestId) || "",
+    agentProvider: nonEmptyString(provider) || (snapshot.data()?.agentProvider || ""),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+  return true;
+}
+
+async function resolveAgentRunRef({uid = "", runId = "", requestId = ""}) {
+  const normalizedUid = nonEmptyString(uid) || "";
+  const normalizedRunId = nonEmptyString(runId) || "";
+  const normalizedRequestId = nonEmptyString(requestId) || "";
+
+  if (normalizedUid && normalizedRunId) {
+    const directRef = admin.firestore()
+        .collection("users")
+        .doc(normalizedUid)
+        .collection("agentRuns")
+        .doc(normalizedRunId);
+    const directSnapshot = await directRef.get();
+    if (directSnapshot.exists) {
+      return {uid: normalizedUid, runId: normalizedRunId, ref: directRef};
+    }
+  }
+
+  if (!normalizedRequestId) {
+    return null;
+  }
+
+  if (normalizedUid) {
+    const scopedSnapshot = await admin.firestore()
+        .collection("users")
+        .doc(normalizedUid)
+        .collection("agentRuns")
+        .where("automationRequestId", "==", normalizedRequestId)
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get();
+    if (!scopedSnapshot.empty) {
+      const doc = scopedSnapshot.docs[0];
+      return {uid: normalizedUid, runId: doc.id, ref: doc.ref};
+    }
+  }
+
+  const collectionSnapshot = await admin.firestore()
+      .collectionGroup("agentRuns")
+      .where("automationRequestId", "==", normalizedRequestId)
+      .orderBy("createdAt", "desc")
+      .limit(1)
+      .get();
+  if (collectionSnapshot.empty) {
+    return null;
+  }
+  const doc = collectionSnapshot.docs[0];
+  const parentUserId = doc.ref.parent.parent?.id || "";
+  if (!parentUserId) {
+    return null;
+  }
+  return {
+    uid: parentUserId,
+    runId: doc.id,
+    ref: doc.ref,
+  };
+}
+
+exports.getAgentRunStatus = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "getAgentRunStatus");
+  const uid = assertAuthenticatedUser(
+      request.auth,
+      "Bitte melde dich an, um den Run-Status abzurufen.",
+  );
+  const runId = nonEmptyString(request.data?.runId) || "";
+  if (!runId || runId.length < 8 || runId.length > 120) {
+    throw new HttpsError("invalid-argument", "Ungueltige runId.");
+  }
+
+  const runRef = admin.firestore()
+      .collection("users")
+      .doc(uid)
+      .collection("agentRuns")
+      .doc(runId);
+  const snapshot = await runRef.get();
+  if (!snapshot.exists) {
+    throw new HttpsError("not-found", "Agent-Run wurde nicht gefunden.");
+  }
+
+  const data = snapshot.data() || {};
+  const automationAttempted = data.automationAttempted === true;
+  const automationTriggered = data.automationTriggered === true;
+  const state = normalizeAutomationWorkflowStatus(
+      data.automationStatus,
+      automationAttempted ? (automationTriggered ? "completed" : "failed") : "completed",
+  );
+  const workflowName = nonEmptyString(data.workflowName) || "";
+  const automationMessage = nonEmptyString(data.automationMessage) || "";
+  return {
+    runId,
+    state,
+    automationAttempted,
+    automationTriggered,
+    workflowName,
+    automationMessage,
+    provider: nonEmptyString(data.agentProvider) || "",
+    updatedAt: data.updatedAt instanceof admin.firestore.Timestamp ?
+      data.updatedAt.toDate().toISOString() :
+      (
+        data.createdAt instanceof admin.firestore.Timestamp ?
+          data.createdAt.toDate().toISOString() :
+          ""
+      ),
+  };
+});
+
+exports.agentRunStatusCallback = onRequest({
+  region: "us-central1",
+  timeoutSeconds: 30,
+  secrets: [agentRunCallbackSecret],
+}, async (request, response) => {
+  if (request.method !== "POST") {
+    response.status(405).send("Method Not Allowed");
+    return;
+  }
+  const expectedSecret = nonEmptyString(agentRunCallbackSecret.value()) || "";
+  if (!expectedSecret) {
+    logger.error("Agent run callback secret missing.");
+    response.status(500).json({ok: false, error: "callback_secret_missing"});
+    return;
+  }
+  const providedSecret = nonEmptyString(request.headers["x-skyos-run-callback-secret"]) || "";
+  if (!providedSecret || providedSecret !== expectedSecret) {
+    response.status(401).json({ok: false, error: "unauthorized"});
+    return;
+  }
+
+  const payload = request.body && typeof request.body === "object" ? request.body : {};
+  const uid = nonEmptyString(payload.uid) || "";
+  const runId = nonEmptyString(payload.runId) || "";
+  const requestId = nonEmptyString(payload.requestId) || "";
+  const state = normalizeAutomationWorkflowStatus(payload.state || payload.status || payload.workflowStatus || "", "running");
+  const message = nonEmptyString(payload.message) || nonEmptyString(payload.summary) || "";
+  const workflowName = nonEmptyString(payload.workflowName) || "";
+  const provider = nonEmptyString(payload.provider) || "";
+
+  if ((!uid || !runId) && !requestId) {
+    response.status(400).json({ok: false, error: "uid_runId_or_requestId_required"});
+    return;
+  }
+  try {
+    const updated = await updateAgentRunStatus({
+      uid,
+      runId,
+      state,
+      message,
+      workflowName,
+      provider,
+      requestId,
+    });
+    if (!updated) {
+      response.status(404).json({ok: false, error: "run_not_found"});
+      return;
+    }
+    const resolved = await resolveAgentRunRef({uid, runId, requestId});
+    response.status(200).json({
+      ok: true,
+      runId: resolved?.runId || runId,
+      uid: resolved?.uid || uid,
+      state,
+    });
+  } catch (error) {
+    logger.error("Agent run callback failed.", {
+      uid,
+      runId,
+      state,
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+    response.status(500).json({ok: false, error: "internal_error"});
+  }
+});
 
 const FAQ_TOPIC_DEFINITIONS = Object.freeze([
   {
@@ -12131,6 +12383,10 @@ async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history, 
       message: nonEmptyString(automationResult.message) || "An externen Workflow gesendet.",
       workflowName: nonEmptyString(automationResult.workflowName) || "",
       requestId: nonEmptyString(automationResult.requestId) || "",
+      workflowStatus: normalizeAutomationWorkflowStatus(
+          automationResult.workflowStatus,
+          "completed",
+      ),
       results: Array.isArray(automationResult.results) ? automationResult.results : [],
       externalState: "external_completed",
       route: nonEmptyString(automationResult.provider) || "activepieces",
@@ -12141,6 +12397,7 @@ async function maybeTriggerAgentAutomation({auth, mode, prompt, reply, history, 
       triggered: false,
       message: error instanceof Error ? error.message : `${error}`,
       requestId: "",
+      workflowStatus: "failed",
       externalState: "external_failed",
       route: "external",
     };
@@ -12981,6 +13238,12 @@ exports.skydownAgent = onCall({
       automationScope: selectedAutomationScope,
     }) :
     {attempted: false, triggered: false};
+  const resolvedWorkflowStatus = automation.attempted === true ?
+    normalizeAutomationWorkflowStatus(
+        automation.workflowStatus,
+        automation.triggered === true ? "completed" : "failed",
+    ) :
+    "completed";
 
   const agentRunId = await persistAgentRunSummary({
     uid: request.auth.uid,
@@ -13013,9 +13276,15 @@ exports.skydownAgent = onCall({
       ...(automation.triggered === true || automation.attempted === true ? [{
         type: "workflow",
         workflowName: nonEmptyString(automation.workflowName) || "External Workflow",
-        status: automation.triggered === true ? "completed" : "failed",
+        status: resolvedWorkflowStatus,
         summary: nonEmptyString(automation.message) || (
-          automation.triggered === true ? "Workflow wurde gestartet." : "Workflow konnte nicht gestartet werden."
+          resolvedWorkflowStatus === "queued" ?
+            "Workflow wurde in die Warteschlange gestellt." :
+            (resolvedWorkflowStatus === "running" ?
+              "Workflow wird gerade ausgefuehrt." :
+              (resolvedWorkflowStatus === "completed" ?
+                "Workflow wurde gestartet." :
+                "Workflow konnte nicht gestartet werden."))
         ),
         runId: agentRunId || "",
       }] : []),
@@ -13037,16 +13306,24 @@ exports.skydownAgent = onCall({
     },
     agentDecision: buildAgentDecision({
       state: input.executeAutomation ?
-        (automation.triggered === true ? "external_completed" : "external_failed") :
+        (resolvedWorkflowStatus === "queued" ?
+          "webhook_pending" :
+          (resolvedWorkflowStatus === "running" ?
+            "external_running" :
+            (automation.triggered === true ? "external_completed" : "external_failed"))) :
         (providerFallbackUsed ? "fallback_internal" : "completed"),
       route: input.executeAutomation ? (automation.route || "external") : (providerFallbackUsed ? "hybrid" : "internal"),
       selectedExternal: input.executeAutomation ? (automation.route || "activepieces") : "",
       retryable: providerFallbackUsed,
       retryReason: providerFallbackUsed ? "provider_fallback_used" : "",
       summary: input.executeAutomation ?
-        (automation.triggered === true ?
-          "Externer Workflow erfolgreich abgeschlossen." :
-          "Externer Workflow fehlgeschlagen.") :
+        (resolvedWorkflowStatus === "queued" ?
+          "Externer Workflow wurde in die Warteschlange gestellt." :
+          (resolvedWorkflowStatus === "running" ?
+            "Externer Workflow laeuft." :
+            (automation.triggered === true ?
+              "Externer Workflow erfolgreich abgeschlossen." :
+              "Externer Workflow fehlgeschlagen."))) :
         (providerFallbackUsed ?
           "Antwort mit Fallback erstellt (fallback_internal)." :
           "Agent-Run erfolgreich abgeschlossen."),

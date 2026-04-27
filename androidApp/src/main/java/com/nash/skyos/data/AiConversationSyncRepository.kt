@@ -263,6 +263,27 @@ class AiConversationSyncRepository(
             "source" to entry.source.name.lowercase(),
             "prompt" to entry.prompt,
             "response" to entry.response,
+            "resultType" to entry.resultType,
+            "automationMessage" to entry.automationMessage,
+            "workflowName" to entry.workflowName,
+            "agentRunId" to entry.agentRunId,
+            "results" to entry.structuredResults.map { result ->
+                mapOf(
+                    "type" to result.type,
+                    "text" to result.text,
+                    "url" to result.url,
+                    "title" to result.title,
+                    "mimeType" to result.mimeType,
+                    "fileName" to result.fileName,
+                    "html" to result.html,
+                    "columns" to result.columns,
+                    "rows" to result.rows,
+                    "workflowName" to result.workflowName,
+                    "status" to result.status,
+                    "summary" to result.summary,
+                    "runId" to result.runId,
+                )
+            },
             "createdAt" to Timestamp(entry.createdAtEpochMillis / 1000, ((entry.createdAtEpochMillis % 1000) * 1_000_000).toInt()),
         )
     }
@@ -306,6 +327,30 @@ class AiConversationSyncRepository(
         if (sessionId.isBlank() || prompt.isBlank() || response.isBlank()) {
             return null
         }
+        val resultType = (data["resultType"] as? String).orEmpty().trim().ifBlank { "text" }
+        val automationMessage = (data["automationMessage"] as? String).orEmpty().trim()
+        val workflowName = (data["workflowName"] as? String).orEmpty().trim()
+        val agentRunId = (data["agentRunId"] as? String).orEmpty().trim()
+        val structuredResults = (data["results"] as? List<*>)?.mapNotNull { raw ->
+            val row = raw as? Map<*, *> ?: return@mapNotNull null
+            AiConversationHistoryResultEntry(
+                type = (row["type"] as? String).orEmpty().trim().ifBlank { "text" },
+                text = (row["text"] as? String).orEmpty(),
+                url = (row["url"] as? String).orEmpty(),
+                title = (row["title"] as? String).orEmpty(),
+                mimeType = (row["mimeType"] as? String).orEmpty(),
+                fileName = (row["fileName"] as? String).orEmpty(),
+                html = (row["html"] as? String).orEmpty(),
+                columns = (row["columns"] as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
+                rows = (row["rows"] as? List<*>)?.mapNotNull { list ->
+                    (list as? List<*>)?.map { it?.toString().orEmpty() }
+                }.orEmpty(),
+                workflowName = (row["workflowName"] as? String).orEmpty(),
+                status = (row["status"] as? String).orEmpty(),
+                summary = (row["summary"] as? String).orEmpty(),
+                runId = (row["runId"] as? String).orEmpty(),
+            )
+        }.orEmpty()
         return AiConversationHistoryEntry(
             id = documentId,
             sessionId = sessionId,
@@ -313,6 +358,11 @@ class AiConversationSyncRepository(
             source = expectedSource,
             prompt = prompt,
             response = response,
+            resultType = resultType,
+            automationMessage = automationMessage,
+            workflowName = workflowName,
+            agentRunId = agentRunId,
+            structuredResults = structuredResults,
             createdAtEpochMillis = (data["createdAt"] as? Timestamp)?.toDate()?.time ?: System.currentTimeMillis(),
         )
     }

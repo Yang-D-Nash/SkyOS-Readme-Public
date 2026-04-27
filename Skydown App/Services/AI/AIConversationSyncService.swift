@@ -282,6 +282,27 @@ final class FirestoreAIConversationSyncService: AIConversationSyncServicing {
             "source": entry.source.rawValue,
             "prompt": entry.prompt,
             "response": entry.response,
+            "resultType": entry.resultType,
+            "automationMessage": entry.automationMessage,
+            "workflowName": entry.workflowName,
+            "agentRunId": entry.agentRunID,
+            "results": entry.structuredResults.map { result in
+                [
+                    "type": result.type,
+                    "text": result.text,
+                    "url": result.url,
+                    "title": result.title,
+                    "mimeType": result.mimeType,
+                    "fileName": result.fileName,
+                    "html": result.html,
+                    "columns": result.columns,
+                    "rows": result.rows,
+                    "workflowName": result.workflowName,
+                    "status": result.status,
+                    "summary": result.summary,
+                    "runId": result.runID
+                ]
+            },
             "createdAt": Timestamp(date: entry.createdAt)
         ]
     }
@@ -329,6 +350,33 @@ final class FirestoreAIConversationSyncService: AIConversationSyncServicing {
         let response = (data["response"] as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !prompt.isEmpty, !response.isEmpty else { return nil }
+        let resultType = (data["resultType"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? "text"
+        let automationMessage = (data["automationMessage"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let workflowName = (data["workflowName"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let agentRunID = (data["agentRunId"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let structuredResults: [AIScriptHistoryResultEntry] = (data["results"] as? [Any])?.compactMap { raw in
+            let result = raw as? [String: Any]
+            guard let result else { return nil }
+            return AIScriptHistoryResultEntry(
+                type: (result["type"] as? String) ?? "text",
+                text: (result["text"] as? String) ?? "",
+                url: (result["url"] as? String) ?? "",
+                title: (result["title"] as? String) ?? "",
+                mimeType: (result["mimeType"] as? String) ?? "",
+                fileName: (result["fileName"] as? String) ?? "",
+                html: (result["html"] as? String) ?? "",
+                columns: (result["columns"] as? [String]) ?? [],
+                rows: (result["rows"] as? [[String]]) ?? [],
+                workflowName: (result["workflowName"] as? String) ?? "",
+                status: (result["status"] as? String) ?? "",
+                summary: (result["summary"] as? String) ?? "",
+                runID: (result["runId"] as? String) ?? ""
+            )
+        } ?? []
 
         return AIScriptHistoryEntry(
             id: entryID,
@@ -338,6 +386,11 @@ final class FirestoreAIConversationSyncService: AIConversationSyncServicing {
             prompt: prompt,
             response: response,
             imageFileName: nil,
+            resultType: resultType.isEmpty ? "text" : resultType,
+            automationMessage: automationMessage,
+            workflowName: workflowName,
+            agentRunID: agentRunID,
+            structuredResults: structuredResults,
             createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? .now
         )
     }

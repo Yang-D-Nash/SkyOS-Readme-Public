@@ -12,18 +12,19 @@ fun openExternalLink(
     browserMissingMessage: String = "Kein Browser gefunden.",
 ) {
     val normalizedUrl = url.trim()
-    if (normalizedUrl.isBlank()) {
+    val parsedUri = normalizedUrl.toSafeHttpsUriOrNull()
+    if (parsedUri == null) {
         Toast.makeText(context, browserMissingMessage, Toast.LENGTH_SHORT).show()
         return
     }
 
-    val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(normalizedUrl)).apply {
+    val webIntent = Intent(Intent.ACTION_VIEW, parsedUri).apply {
         addCategory(Intent.CATEGORY_BROWSABLE)
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 
     if (normalizedUrl.contains("instagram.com", ignoreCase = true)) {
-        val instagramIntent = Intent(Intent.ACTION_VIEW, Uri.parse(normalizedUrl)).apply {
+        val instagramIntent = Intent(Intent.ACTION_VIEW, parsedUri).apply {
             setPackage("com.instagram.android")
             addCategory(Intent.CATEGORY_BROWSABLE)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -127,4 +128,13 @@ private fun tryStartActivity(
     } catch (_: RuntimeException) {
         false
     }
+}
+
+private fun String.toSafeHttpsUriOrNull(): Uri? {
+    if (isBlank()) return null
+    val parsed = runCatching { Uri.parse(this) }.getOrNull() ?: return null
+    val scheme = parsed.scheme?.lowercase().orEmpty()
+    if (scheme != "https") return null
+    if (parsed.host.isNullOrBlank()) return null
+    return parsed
 }

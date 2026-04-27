@@ -721,12 +721,28 @@ service cloud.firestore {
         "source",
         "prompt",
         "response",
+        "resultType",
+        "automationMessage",
+        "workflowName",
+        "agentRunId",
+        "results",
         "createdAt"
       ])
       && requiredString(request.resource.data.sessionId, 8, 80)
       && request.resource.data.source in ["bot", "agent"]
       && requiredString(request.resource.data.prompt, 1, 8000)
       && requiredString(request.resource.data.response, 1, 64000)
+      && optionalMapString(request.resource.data, "resultType", 40)
+      && optionalMapString(request.resource.data, "automationMessage", 4000)
+      && optionalMapString(request.resource.data, "workflowName", 180)
+      && optionalMapString(request.resource.data, "agentRunId", 120)
+      && (
+        !request.resource.data.keys().hasAny(["results"])
+        || (
+          request.resource.data.results is list
+          && request.resource.data.results.size() <= 12
+        )
+      )
       && request.resource.data.createdAt is timestamp;
     }
 

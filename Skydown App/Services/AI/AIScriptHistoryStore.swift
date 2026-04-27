@@ -80,6 +80,11 @@ struct AIScriptHistoryEntry: Identifiable, Codable, Equatable {
     let prompt: String
     let response: String
     var imageFileName: String?
+    var resultType: String
+    var automationMessage: String
+    var workflowName: String
+    var agentRunID: String
+    var structuredResults: [AIScriptHistoryResultEntry]
     let createdAt: Date
 
     init(
@@ -90,6 +95,11 @@ struct AIScriptHistoryEntry: Identifiable, Codable, Equatable {
         prompt: String,
         response: String,
         imageFileName: String? = nil,
+        resultType: String = "text",
+        automationMessage: String = "",
+        workflowName: String = "",
+        agentRunID: String = "",
+        structuredResults: [AIScriptHistoryResultEntry] = [],
         createdAt: Date = .now
     ) {
         self.id = id
@@ -99,8 +109,29 @@ struct AIScriptHistoryEntry: Identifiable, Codable, Equatable {
         self.prompt = prompt
         self.response = response
         self.imageFileName = imageFileName
+        self.resultType = resultType
+        self.automationMessage = automationMessage
+        self.workflowName = workflowName
+        self.agentRunID = agentRunID
+        self.structuredResults = structuredResults
         self.createdAt = createdAt
     }
+}
+
+struct AIScriptHistoryResultEntry: Codable, Equatable {
+    let type: String
+    let text: String
+    let url: String
+    let title: String
+    let mimeType: String
+    let fileName: String
+    let html: String
+    let columns: [String]
+    let rows: [[String]]
+    let workflowName: String
+    let status: String
+    let summary: String
+    let runID: String
 }
 
 struct AIScriptHistorySaveResult {
@@ -272,7 +303,12 @@ final class AIScriptHistoryStore: ObservableObject {
         sessionID: UUID? = nil,
         prompt: String,
         response: String,
-        imageData: Data? = nil
+        imageData: Data? = nil,
+        resultType: String = "text",
+        automationMessage: String = "",
+        workflowName: String = "",
+        agentRunID: String = "",
+        structuredResults: [AIScriptHistoryResultEntry] = []
     ) -> AIScriptHistorySaveResult? {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedResponse = response.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -305,7 +341,12 @@ final class AIScriptHistoryStore: ObservableObject {
             sessionID: session.id,
             prompt: trimmedPrompt,
             response: trimmedResponse,
-            imageFileName: imageFileName
+            imageFileName: imageFileName,
+            resultType: resultType,
+            automationMessage: automationMessage,
+            workflowName: workflowName,
+            agentRunID: agentRunID,
+            structuredResults: structuredResults
         )
         entries.insert(entry, at: 0)
         persistEntries()
@@ -398,6 +439,11 @@ final class AIScriptHistoryStore: ObservableObject {
                     prompt: entry.prompt,
                     response: entry.response,
                     imageFileName: existingImageFileNamesByEntryID[entry.id] ?? entry.imageFileName,
+                    resultType: entry.resultType,
+                    automationMessage: entry.automationMessage,
+                    workflowName: entry.workflowName,
+                    agentRunID: entry.agentRunID,
+                    structuredResults: entry.structuredResults,
                     createdAt: entry.createdAt
                 )
             }

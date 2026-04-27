@@ -196,6 +196,7 @@ final class AgentChatViewModel: ObservableObject {
     private var conversationRevision = 0
     private var activeRequestTask: Task<Void, Never>?
     private var pendingRetryTask: Task<Void, Never>?
+    private var workflowStatusTask: Task<Void, Never>?
     private var remoteHydrationTask: Task<Void, Never>?
     private var stopRemoteHistoryObservation: (() -> Void)?
     private var activeRequestContext: InFlightRequestContext?
@@ -242,6 +243,7 @@ final class AgentChatViewModel: ObservableObject {
     deinit {
         activeRequestTask?.cancel()
         pendingRetryTask?.cancel()
+        workflowStatusTask?.cancel()
         remoteHydrationTask?.cancel()
         stopRemoteHistoryObservation?()
     }
@@ -362,12 +364,22 @@ final class AgentChatViewModel: ObservableObject {
                     workflowSummary: buildWorkflowSummary(from: result),
                     results: result.results
                 )
+                startWorkflowStatusPollingIfNeeded(
+                    response: result,
+                    assistantMessageID: assistantID,
+                    requestContext: requestContext
+                )
                 if let savedResult = historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .agent,
                     sessionID: requestContext.sessionIDAtSend,
                     prompt: trimmedPrompt,
-                    response: replyText
+                    response: replyText,
+                    resultType: result.resultType,
+                    automationMessage: result.automationMessage,
+                    workflowName: result.workflowName,
+                    agentRunID: result.agentRunId,
+                    structuredResults: result.results.map(\.historyResultEntry)
                 ) {
                     syncSavedEntryToRemote(savedResult)
                 }
@@ -689,6 +701,8 @@ final class AgentChatViewModel: ObservableObject {
             activeRequestTask = nil
             pendingRetryTask?.cancel()
             pendingRetryTask = nil
+            workflowStatusTask?.cancel()
+            workflowStatusTask = nil
             remoteHydrationTask?.cancel()
             remoteHydrationTask = nil
             activeRequestContext = nil
@@ -833,12 +847,22 @@ final class AgentChatViewModel: ObservableObject {
                     workflowSummary: buildWorkflowSummary(from: result),
                     results: result.results
                 )
+                startWorkflowStatusPollingIfNeeded(
+                    response: result,
+                    assistantMessageID: request.assistantMessageID,
+                    requestContext: requestContext
+                )
                 if let savedResult = historyStore.saveEntry(
                     userKey: requestContext.userKeyAtSend,
                     source: .agent,
                     sessionID: requestContext.sessionIDAtSend,
                     prompt: request.prompt,
-                    response: replyText
+                    response: replyText,
+                    resultType: result.resultType,
+                    automationMessage: result.automationMessage,
+                    workflowName: result.workflowName,
+                    agentRunID: result.agentRunId,
+                    structuredResults: result.results.map(\.historyResultEntry)
                 ) {
                     syncSavedEntryToRemote(savedResult)
                 }
@@ -1175,6 +1199,63 @@ final class AgentChatViewModel: ObservableObject {
         lastAgentRunId = trimmedRun
     }
 
+    private func startWorkflowStatusPollingIfNeeded(
+        response: AgentChatResponse,
+        assistantMessageID: UUID,
+        requestContext: InFlightRequestContext
+    ) {
+        let runID = response.agentRunId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !runID.isEmpty else { return }
+        let workflowResult = response.results.first(where: { $0.type == "workflow" })
+        let initialStatus = workflowResult?.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        guard initialStatus == "queued" || initialStatus == "running" else { return }
+
+        workflowStatusTask?.cancel()
+        workflowStatusTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            for attempt in 0..<12 {
+                if Task.isCancelled { return }
+                let waitSeconds: UInt64 = attempt < 4 ? 3 : 6
+                try? await Task.sleep(nanoseconds: waitSeconds * 1_000_000_000)
+                if Task.isCancelled { return }
+                guard isConversationSnapshotValid(
+                    conversationRevision: requestContext.conversationRevision,
+                    userKeyAtSend: requestContext.userKeyAtSend,
+                    sessionIDAtSend: requestContext.sessionIDAtSend
+                ) else { return }
+                guard NetworkStatusMonitor.shared.isOnline else { continue }
+                guard let status = try? await service.fetchRunStatus(runId: runID) else { continue }
+                let normalized = status.state.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                let summaryText = status.automationMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+                let resolvedSummary = summaryText.isEmpty ? (
+                    normalized == "running" ? "Workflow wird gerade ausgefuehrt." :
+                    (normalized == "queued" ? "Workflow wurde in die Warteschlange gestellt." :
+                    (normalized == "completed" ? "Workflow abgeschlossen." : "Workflow fehlgeschlagen."))
+                ) : summaryText
+                updateWorkflowSummary(
+                    messageID: assistantMessageID,
+                    workflowName: status.workflowName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? response.workflowName : status.workflowName,
+                    statusText: resolvedSummary
+                )
+                if normalized == "completed" || normalized == "failed" {
+                    return
+                }
+            }
+        }
+    }
+
+    private func updateWorkflowSummary(messageID: UUID, workflowName: String, statusText: String) {
+        guard let index = messages.firstIndex(where: { $0.id == messageID }) else { return }
+        let existing = messages[index].workflowSummary
+        messages[index].workflowSummary = AgentWorkflowSummary(
+            workflowName: workflowName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
+                (existing?.workflowName ?? "External Workflow") :
+                workflowName,
+            statusText: statusText,
+            runID: existing?.runID
+        )
+    }
+
     private func resolvedTerminalPhase(for decision: AgentDecision?, hasPendingQueue: Bool) -> AgentInteractionPhase {
         guard let decision else {
             return hasPendingQueue ? .waitingReconnect : .completed
@@ -1274,5 +1355,25 @@ private func resolvedAgentExperienceLevel(for quotaPlan: UserQuotaPlan) -> AIExp
         return .pro
     case .free:
         return .standard
+    }
+}
+
+private extension AgentResultEntry {
+    var historyResultEntry: AIScriptHistoryResultEntry {
+        AIScriptHistoryResultEntry(
+            type: type,
+            text: text,
+            url: url,
+            title: title,
+            mimeType: mimeType,
+            fileName: fileName,
+            html: html,
+            columns: columns,
+            rows: rows,
+            workflowName: workflowName,
+            status: status,
+            summary: summary,
+            runID: runId
+        )
     }
 }

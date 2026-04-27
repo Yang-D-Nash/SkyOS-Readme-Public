@@ -97,6 +97,16 @@ struct AgentDecision: Equatable {
     let ownerDiagnosticActive: Bool
 }
 
+struct AgentRunStatus: Equatable {
+    let runId: String
+    let state: String
+    let automationAttempted: Bool
+    let automationTriggered: Bool
+    let workflowName: String
+    let automationMessage: String
+    let provider: String
+}
+
 protocol AgentChatServicing {
     func sendMessage(
         prompt: String,
@@ -107,6 +117,7 @@ protocol AgentChatServicing {
         automationScope: String,
         manusApiKeyOverride: String?
     ) async throws -> AgentChatResponse
+    func fetchRunStatus(runId: String) async throws -> AgentRunStatus
 }
 
 enum AgentServiceError: LocalizedError {
@@ -125,6 +136,30 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
 
     init(functions: Functions = Functions.functions(region: "us-central1")) {
         self.functions = functions
+    }
+
+    func fetchRunStatus(runId: String) async throws -> AgentRunStatus {
+        let trimmedRunId = runId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedRunId.isEmpty else {
+            throw AgentServiceError.invalidResponse
+        }
+        let result = try await functions.invokeCallable("getAgentRunStatus", payload: [
+            "runId": trimmedRunId
+        ])
+        guard let payload = result.data as? [String: Any] else {
+            throw AgentServiceError.invalidResponse
+        }
+        return AgentRunStatus(
+            runId: (payload["runId"] as? String) ?? trimmedRunId,
+            state: ((payload["state"] as? String) ?? "completed")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased(),
+            automationAttempted: payload["automationAttempted"] as? Bool ?? false,
+            automationTriggered: payload["automationTriggered"] as? Bool ?? false,
+            workflowName: (payload["workflowName"] as? String) ?? "",
+            automationMessage: (payload["automationMessage"] as? String) ?? "",
+            provider: (payload["provider"] as? String) ?? ""
+        )
     }
 
     func sendMessage(

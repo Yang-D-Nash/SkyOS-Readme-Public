@@ -63,6 +63,16 @@ data class AgentDecision(
     val ownerDiagnosticActive: Boolean,
 )
 
+data class AgentRunStatus(
+    val runId: String,
+    val state: String,
+    val automationAttempted: Boolean,
+    val automationTriggered: Boolean,
+    val workflowName: String,
+    val automationMessage: String,
+    val provider: String = "",
+)
+
 class AgentClient {
     private val functions = FirebaseFunctions.getInstance("us-central1")
 
@@ -153,6 +163,29 @@ class AgentClient {
             }
             else -> error(AppTextResolver.string(R.string.agent_error_no_response))
         }
+    }
+
+    suspend fun fetchRunStatus(runId: String): AgentRunStatus {
+        val normalizedRunId = runId.trim()
+        if (normalizedRunId.isBlank()) {
+            error(AppTextResolver.string(R.string.agent_error_no_response))
+        }
+        val result = functions
+            .callWithAppCheckRetry(
+                functionName = "getAgentRunStatus",
+                payload = mapOf("runId" to normalizedRunId),
+            )
+        val data = result.data as? Map<*, *>
+            ?: error(AppTextResolver.string(R.string.agent_error_no_response))
+        return AgentRunStatus(
+            runId = (data["runId"] as? String).orEmpty().ifBlank { normalizedRunId },
+            state = (data["state"] as? String).orEmpty().trim().lowercase().ifBlank { "completed" },
+            automationAttempted = data["automationAttempted"] as? Boolean ?: false,
+            automationTriggered = data["automationTriggered"] as? Boolean ?: false,
+            workflowName = (data["workflowName"] as? String).orEmpty(),
+            automationMessage = (data["automationMessage"] as? String).orEmpty(),
+            provider = (data["provider"] as? String).orEmpty(),
+        )
     }
 }
 

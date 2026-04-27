@@ -1670,7 +1670,12 @@ private extension AgentResultEntry {
     var agentURL: URL? {
         let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        return URL(string: trimmed)
+        guard let parsed = URL(string: trimmed),
+              let scheme = parsed.scheme?.lowercased(),
+              scheme == "https" else {
+            return nil
+        }
+        return parsed
     }
 
     var agentSubtitle: String {
