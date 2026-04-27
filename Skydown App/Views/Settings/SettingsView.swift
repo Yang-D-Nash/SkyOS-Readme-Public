@@ -536,6 +536,12 @@ struct SettingsView: View {
                                     .font(.headline)
                                     .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
+                                Text(user.email)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                                    .textSelection(.enabled)
+                                    .accessibilityIdentifier("settings.current_email")
+
                                 Button {
                                     presentSheet(.profileEditor)
                                 } label: {
@@ -1372,6 +1378,7 @@ struct SettingsView: View {
                 Text("Admin & Revenue zentral steuern.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                    .accessibilityIdentifier("settings.owner.section")
 
                 OwnerCommandCenterCard(
                     colorScheme: effectiveColorScheme,
@@ -1387,7 +1394,6 @@ struct SettingsView: View {
                     onOpenMembershipOps: { presentSheet(.adminWorkspace(.membershipOps)) },
                     onOpenAI: { presentSheet(.adminWorkspace(.aiPrompts)) }
                 )
-                .accessibilityIdentifier("settings.owner.command_center")
 
                 Button {
                     presentSheet(.adminWorkspace(.users))
@@ -1410,7 +1416,6 @@ struct SettingsView: View {
                 .accessibilityIdentifier("settings.owner.open_orders")
             }
         }
-        .accessibilityIdentifier("settings.owner.section")
     }
 
     @ViewBuilder
@@ -5176,13 +5181,6 @@ private struct OwnerCommandCenterCard: View {
     let onOpenMembershipOps: () -> Void
     let onOpenAI: () -> Void
 
-    private var columns: [GridItem] {
-        [
-            GridItem(.flexible(), spacing: SkydownLayout.stackSpacingPill),
-            GridItem(.flexible(), spacing: SkydownLayout.stackSpacingPill)
-        ]
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
@@ -5204,45 +5202,56 @@ private struct OwnerCommandCenterCard: View {
                 )
             }
 
-            LazyVGrid(columns: columns, alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                OwnerCommandSignalButton(
-                    colorScheme: colorScheme,
-                    title: "Membership-Steuerung",
-                    detail: membershipStatus,
-                    iconName: "chart.xyaxis.line",
-                    isEnabled: isOwner,
-                    action: onOpenMembershipOps
-                )
-                OwnerCommandSignalButton(
-                    colorScheme: colorScheme,
-                    title: "Rollen",
-                    detail: userStatus,
-                    iconName: "person.2.badge.key",
-                    isEnabled: isOwner,
-                    action: onOpenUsers
-                )
-                OwnerCommandSignalButton(
-                    colorScheme: colorScheme,
-                    title: "Zahlungen",
-                    detail: paymentStatus,
-                    iconName: "creditcard",
-                    isEnabled: isOwner,
-                    action: onOpenPayments
-                )
-                OwnerCommandSignalButton(
-                    colorScheme: colorScheme,
-                    title: "Header",
-                    detail: headerStatus,
-                    iconName: "photo.on.rectangle.angled",
-                    isEnabled: isOwner,
-                    action: onOpenHeaders
-                )
+            VStack(spacing: SkydownLayout.stackSpacingPill) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
+                    OwnerCommandSignalButton(
+                        colorScheme: colorScheme,
+                        title: "Membership-Steuerung",
+                        detail: membershipStatus,
+                        iconName: "chart.xyaxis.line",
+                        isEnabled: isOwner,
+                        accessibilityIdentifier: "settings.owner.command.membershipOps",
+                        action: onOpenMembershipOps
+                    )
+                    OwnerCommandSignalButton(
+                        colorScheme: colorScheme,
+                        title: "Rollen",
+                        detail: userStatus,
+                        iconName: "person.2.badge.key",
+                        isEnabled: isOwner,
+                        accessibilityIdentifier: "settings.owner.command.users",
+                        action: onOpenUsers
+                    )
+                }
+
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
+                    OwnerCommandSignalButton(
+                        colorScheme: colorScheme,
+                        title: "Zahlungen",
+                        detail: paymentStatus,
+                        iconName: "creditcard",
+                        isEnabled: isOwner,
+                        accessibilityIdentifier: "settings.owner.command.payments",
+                        action: onOpenPayments
+                    )
+                    OwnerCommandSignalButton(
+                        colorScheme: colorScheme,
+                        title: "Header",
+                        detail: headerStatus,
+                        iconName: "photo.on.rectangle.angled",
+                        isEnabled: isOwner,
+                        accessibilityIdentifier: "settings.owner.command.headers",
+                        action: onOpenHeaders
+                    )
+                }
+
                 OwnerCommandSignalButton(
                     colorScheme: colorScheme,
                     title: "KI Schutz",
                     detail: aiStatus,
                     iconName: "bolt.shield",
                     isEnabled: isOwner,
+                    accessibilityIdentifier: "settings.owner.command.aiPrompts",
                     action: onOpenAI
                 )
             }
@@ -5331,6 +5340,9 @@ private struct OwnerCommandSignalButton: View {
         .buttonStyle(.plain)
         .skydownInteractiveFeedback()
         .disabled(!isEnabled)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
+        .accessibilityValue(detail)
 
         if let accessibilityIdentifier, !accessibilityIdentifier.isEmpty {
             button.accessibilityIdentifier(accessibilityIdentifier)

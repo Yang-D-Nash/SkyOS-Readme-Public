@@ -353,7 +353,6 @@ struct AgentView: View {
             showingPromptComposer = true
             onConsumePrefilledPrompt?()
         }
-        .accessibilityIdentifier("agent.screen.root")
     }
 
     private func handleCriticalUsageWarning(_ level: String?) {
@@ -408,6 +407,18 @@ struct AgentView: View {
         )
 
         return ZStack(alignment: .bottom) {
+            AgentAccessibilityMarker(
+                identifier: "agent.screen.root",
+                label: "Agent screen"
+            )
+
+            if !viewModel.lastAgentRunId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                AgentAccessibilityMarker(
+                    identifier: "agent.lastRun.id",
+                    label: viewModel.lastAgentRunId
+                )
+            }
+
             VStack(spacing: SkydownLayout.stackSpacingNone) {
                 if featureFlags.isAIEnabled {
                     pinnedSessionStrip
@@ -1404,6 +1415,21 @@ private struct AgentPromptFab: View {
         .buttonStyle(.plain)
         .skydownTactileAction()
         .accessibilityLabel("Prompt oeffnen")
+        .accessibilityIdentifier("agent.prompt.open")
+    }
+}
+
+private struct AgentAccessibilityMarker: View {
+    let identifier: String
+    let label: String
+
+    var body: some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityElement()
+            .accessibilityLabel(label)
+            .accessibilityIdentifier(identifier)
+            .allowsHitTesting(false)
     }
 }
 
@@ -1433,6 +1459,11 @@ private struct AgentPromptComposerSheet: View {
     var body: some View {
         ScrollView {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            AgentAccessibilityMarker(
+                identifier: "agent.prompt.sheet",
+                label: "Agent prompt composer"
+            )
+
             HStack(alignment: .center, spacing: SkydownLayout.stackSpacingCompact) {
                 ZStack {
                     RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
@@ -1625,6 +1656,8 @@ private struct AgentPromptComposerSheet: View {
                 .buttonStyle(.plain)
                 .disabled(trimmedDraft.isEmpty || interactionPhase.shouldBlockSend)
                 .opacity(trimmedDraft.isEmpty || interactionPhase.shouldBlockSend ? 0.55 : 1)
+                .accessibilityLabel("Prompt senden")
+                .accessibilityIdentifier("agent.prompt.send")
             }
         }
         .padding(.horizontal, 18)
@@ -1632,7 +1665,6 @@ private struct AgentPromptComposerSheet: View {
         .padding(.bottom, 22)
         .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         }
-        .accessibilityIdentifier("agent.prompt.sheet")
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                 isFocused = true
@@ -1662,7 +1694,7 @@ private struct AgentQuickPromptCard: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
-                    ForEach(prompts, id: \.self) { prompt in
+                    ForEach(Array(prompts.enumerated()), id: \.element) { index, prompt in
                         Button(action: { onPromptSelected(prompt) }, label: {
                             Text(prompt)
                                 .font(.subheadline.weight(.semibold))
@@ -1689,6 +1721,8 @@ private struct AgentQuickPromptCard: View {
                         })
                         .buttonStyle(.plain)
                         .skydownTactileAction()
+                        .accessibilityLabel(prompt)
+                        .accessibilityIdentifier("agent.quick_prompt.\(index)")
                     }
                 }
             }

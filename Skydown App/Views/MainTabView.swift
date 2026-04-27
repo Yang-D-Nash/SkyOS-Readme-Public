@@ -463,67 +463,69 @@ struct AppSessionToolbarActions: View {
 
     var body: some View {
         HStack(spacing: SkydownLayout.stackSpacingPill) {
-            Button(action: authManager.userSession == nil ? onOpenSettings : (onOpenProfile ?? onOpenSettings)) {
-                HStack(spacing: SkydownLayout.stackSpacingPill) {
-                    ZStack(alignment: .bottomTrailing) {
-                        if let profileImageURL = authManager.userSession?.profileImageURL,
-                           let url = URL(string: profileImageURL) {
-                            AsyncImage(url: url) { image in
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                            } placeholder: {
+            if !useMiniMode {
+                Button(action: authManager.userSession == nil ? onOpenSettings : (onOpenProfile ?? onOpenSettings)) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
+                        ZStack(alignment: .bottomTrailing) {
+                            if let profileImageURL = authManager.userSession?.profileImageURL,
+                               let url = URL(string: profileImageURL) {
+                                AsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
+                                    profileFallbackAvatar
+                                }
+                                .frame(width: 28, height: 28)
+                                .clipShape(Circle())
+                            } else {
                                 profileFallbackAvatar
                             }
-                            .frame(width: 28, height: 28)
-                            .clipShape(Circle())
-                        } else {
-                            profileFallbackAvatar
+
+                            Circle()
+                                .fill(sessionAccent)
+                                .frame(width: 9, height: 9)
+                                .overlay(
+                                    Circle()
+                                        .stroke(AppColors.cardBackground(for: colorScheme), lineWidth: 1.5)
+                                )
+                                .offset(x: 2, y: 1)
                         }
 
-                        Circle()
-                            .fill(sessionAccent)
-                            .frame(width: 9, height: 9)
-                            .overlay(
-                                Circle()
-                                    .stroke(AppColors.cardBackground(for: colorScheme), lineWidth: 1.5)
-                            )
-                            .offset(x: 2, y: 1)
-                    }
+                        if !shouldCollapseIdentityLabel {
+                            Text(displayName)
+                                .font(.footnote.weight(.semibold))
+                                .foregroundColor(AppColors.text(for: colorScheme))
+                                .lineLimit(1)
 
-                    if !shouldCollapseIdentityLabel {
-                        Text(displayName)
-                            .font(.footnote.weight(.semibold))
-                            .foregroundColor(AppColors.text(for: colorScheme))
-                            .lineLimit(1)
-
-                        Image(systemName: "chevron.down")
-                            .font(.caption.weight(.bold))
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.88))
+                            Image(systemName: "chevron.down")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.88))
+                        }
                     }
                 }
-            }
-            .contentShape(Capsule())
-            .padding(.horizontal, sessionChipHorizontalPadding)
-            .padding(.vertical, sessionChipVerticalPadding)
-            .skydownCapsuleSurface(
-                colorScheme: colorScheme,
-                accent: sessionAccent
-            )
-            .buttonStyle(.plain)
-            .skydownTactileAction()
-            .accessibilityIdentifier("app.toolbar.session")
-            .accessibilityLabel(authManager.userSession == nil ? "Gastmenü" : "Profilmenü")
-            .accessibilityHint(authManager.userSession == nil ? "Öffnet Einstellungen" : "Öffnet Profil oder Einstellungen")
-
-            if authManager.userSession == nil, let onGuestSignIn, !useMiniMode {
-                Button(action: onGuestSignIn) {
-                    Text(AppLocalized.text("auth.session.sign_in", fallback: "Sign in"))
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.72))
-                }
+                .contentShape(Capsule())
+                .padding(.horizontal, sessionChipHorizontalPadding)
+                .padding(.vertical, sessionChipVerticalPadding)
+                .skydownCapsuleSurface(
+                    colorScheme: colorScheme,
+                    accent: sessionAccent
+                )
                 .buttonStyle(.plain)
-                .accessibilityIdentifier("app.toolbar.guest_sign_in")
+                .skydownTactileAction()
+                .accessibilityIdentifier("app.toolbar.session")
+                .accessibilityLabel(authManager.userSession == nil ? "Gastmenü" : "Profilmenü")
+                .accessibilityHint(authManager.userSession == nil ? "Öffnet Einstellungen" : "Öffnet Profil oder Einstellungen")
+
+                if authManager.userSession == nil, let onGuestSignIn {
+                    Button(action: onGuestSignIn) {
+                        Text(AppLocalized.text("auth.session.sign_in", fallback: "Sign in"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.72))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("app.toolbar.guest_sign_in")
+                }
             }
 
             if useMiniMode {
@@ -571,15 +573,13 @@ struct AppSessionToolbarActions: View {
                 )
             }
 
-            if !useMiniMode {
-                SessionToolbarIconButton(
-                    systemName: "gearshape.fill",
-                    accessibilityID: "app.open_settings",
-                    accent: AppColors.accentMystic(for: colorScheme),
-                    colorScheme: colorScheme,
-                    action: onOpenSettings
-                )
-            }
+            SessionToolbarIconButton(
+                systemName: "gearshape.fill",
+                accessibilityID: "app.open_settings",
+                accent: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                action: onOpenSettings
+            )
         }
     }
 
@@ -756,7 +756,8 @@ private struct ZweizweiTabView: View {
                                     compactMusicHubAction(
                                         title: "Katalog",
                                         systemImage: "waveform.circle.fill",
-                                        accent: AppColors.spotify(for: colorScheme)
+                                        accent: AppColors.spotify(for: colorScheme),
+                                        accessibilityID: "music.hub.open_catalog"
                                     ) {
                                         catalogInitialArtist = "JANNO"
                                         catalogAutoPresentArtistPage = false
@@ -768,7 +769,8 @@ private struct ZweizweiTabView: View {
                                         compactMusicHubAction(
                                             title: "Studio",
                                             systemImage: "sparkles",
-                                            accent: AppColors.accentMystic(for: colorScheme)
+                                            accent: AppColors.accentMystic(for: colorScheme),
+                                            accessibilityID: "music.hub.open_studio"
                                         ) {
                                             withAnimation(SkydownMotion.screenTransition) {
                                                 destination = .nicma
@@ -796,28 +798,28 @@ private struct ZweizweiTabView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                         .accessibilityIdentifier("music.hub.root")
                     }
-                }
-                .background(
-                    AppColors.screenGradient(
-                        for: colorScheme,
-                        secondaryAccent: AppColors.spotify(for: colorScheme)
-                    )
-                    .overlay {
-                        SkydownAtmosphereBackdrop(colorScheme: colorScheme)
-                    }
-                    .ignoresSafeArea()
-                )
-                .navigationTitle("Music")
-                .navigationBarTitleDisplayMode(.inline)
-                .skydownNavigationChrome(colorScheme: colorScheme)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        AppSessionToolbarActions(
-                            onOpenCart: onOpenCart,
-                            onOpenProfile: onOpenProfile,
-                            onOpenSettings: onOpenSettings,
-                            onGuestSignIn: onGuestSignIn
+                    .background(
+                        AppColors.screenGradient(
+                            for: colorScheme,
+                            secondaryAccent: AppColors.spotify(for: colorScheme)
                         )
+                        .overlay {
+                            SkydownAtmosphereBackdrop(colorScheme: colorScheme)
+                        }
+                        .ignoresSafeArea()
+                    )
+                    .navigationTitle("Music")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .skydownNavigationChrome(colorScheme: colorScheme)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            AppSessionToolbarActions(
+                                onOpenCart: onOpenCart,
+                                onOpenProfile: onOpenProfile,
+                                onOpenSettings: onOpenSettings,
+                                onGuestSignIn: onGuestSignIn
+                            )
+                        }
                     }
                 }
 
@@ -858,6 +860,7 @@ private struct ZweizweiTabView: View {
         title: String,
         systemImage: String,
         accent: Color,
+        accessibilityID: String? = nil,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -881,6 +884,7 @@ private struct ZweizweiTabView: View {
                     .stroke(accent.opacity(0.35), lineWidth: 1)
             )
         }
+        .accessibilityIdentifier(accessibilityID ?? title)
         .buttonStyle(.plain)
         .skydownTactileAction()
     }
@@ -1235,6 +1239,18 @@ private struct AIHubView: View {
         authManager.userSession?.resolvedQuotaPlan
     }
 
+    private func activatePendingAgentPrefillIfNeeded(_ value: String?) {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return }
+        guard authManager.userSession != nil,
+              featureFlags.allowsAIAccess(for: authManager.userSession) else { return }
+        withAnimation(SkydownMotion.screenTransition) {
+            membershipCoordinator.closeMembership()
+            showsWorkflowWorkspace = false
+            mode = .agent
+        }
+    }
+
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
@@ -1361,6 +1377,9 @@ private struct AIHubView: View {
                 membershipCoordinator.cacheCurrentPlan(currentUserQuotaPlan)
                 await aiSubscriptionStore.prepareStorefront(for: authManager.userSession)
             }
+            .onAppear {
+                activatePendingAgentPrefillIfNeeded(pendingAgentPrefillPrompt)
+            }
             .sheet(
                 isPresented: Binding(
                     get: { membershipCoordinator.isPresented },
@@ -1385,15 +1404,7 @@ private struct AIHubView: View {
                 }
             }
             .onChange(of: pendingAgentPrefillPrompt) { _, newValue in
-                let trimmed = newValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                guard !trimmed.isEmpty else { return }
-                guard authManager.userSession != nil,
-                      featureFlags.allowsAIAccess(for: authManager.userSession) else { return }
-                withAnimation(SkydownMotion.screenTransition) {
-                    membershipCoordinator.closeMembership()
-                    showsWorkflowWorkspace = false
-                    mode = .agent
-                }
+                activatePendingAgentPrefillIfNeeded(newValue)
             }
             .toolbar {
                 if !SkydownPlatform.isDesktop {

@@ -19,8 +19,12 @@ struct LaunchScreenView: View {
     private let growthTracker = MembershipAnalyticsTracker()
 
     init() {
-        if ProcessInfo.processInfo.arguments.contains("-ui_test_start_main_shell") {
+        let launchArguments = ProcessInfo.processInfo.arguments
+        if launchArguments.contains("-ui_test_start_main_shell") {
             _phase = State(initialValue: .shell(.hub))
+            _hasCompletedIntro = State(initialValue: true)
+        } else if launchArguments.contains(where: { $0.hasPrefix("-ui_test") }) {
+            _phase = State(initialValue: .landing)
             _hasCompletedIntro = State(initialValue: true)
         }
     }
@@ -298,6 +302,8 @@ private struct LaunchLandingView: View {
                                 title: AppLocalized.text("landing.home.open", fallback: "Open Home"),
                                 systemImage: "house.fill",
                                 style: .primary,
+                                accessibilityID: "launch.open_home",
+                                accessibilityLabel: "Open Home",
                                 action: onOpenHome
                             )
                             HStack(spacing: compactCardSpacing) {
@@ -955,9 +961,27 @@ private struct LaunchLandingActionButton: View {
     let title: String
     let systemImage: String
     let style: ActionStyle
+    let accessibilityID: String?
+    let accessibilityLabelText: String?
     let action: () -> Void
 
     private var hubColorScheme: ColorScheme { .dark }
+
+    init(
+        title: String,
+        systemImage: String,
+        style: ActionStyle,
+        accessibilityID: String? = nil,
+        accessibilityLabel: String? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.style = style
+        self.accessibilityID = accessibilityID
+        self.accessibilityLabelText = accessibilityLabel
+        self.action = action
+    }
 
     var body: some View {
         Button(action: action) {
@@ -984,6 +1008,8 @@ private struct LaunchLandingActionButton: View {
         }
         .buttonStyle(.plain)
         .contentShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
+        .accessibilityIdentifier(accessibilityID ?? title)
+        .accessibilityLabel(accessibilityLabelText ?? title)
         .skydownTactileAction()
     }
 

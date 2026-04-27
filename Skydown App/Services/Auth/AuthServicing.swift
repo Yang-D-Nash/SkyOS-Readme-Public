@@ -1020,12 +1020,16 @@ extension Functions {
     ) async throws -> HTTPSCallableResult {
         do {
             return try await invokeCallableOnce(functionName, payload: payload)
-        } catch {
-            guard shouldRetryAfterRefreshingAppCheckToken(for: error) else {
-                throw error
+        } catch let originalError {
+            guard shouldRetryAfterRefreshingAppCheckToken(for: originalError) else {
+                throw originalError
             }
 
-            try await refreshAppCheckToken()
+            do {
+                try await refreshAppCheckToken()
+            } catch {
+                throw originalError
+            }
             return try await invokeCallableOnce(functionName, payload: payload)
         }
     }

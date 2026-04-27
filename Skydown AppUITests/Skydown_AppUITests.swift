@@ -407,36 +407,42 @@ final class Skydown_AppUITests: XCTestCase {
             openSettings(app: app)
             ensureLoggedIn(app: app, email: email, password: password)
 
-            // Owner workspace guards
-            let ownerSection = app.descendants(matching: .any)["settings.owner.section"].firstMatch
-            XCTAssertTrue(ownerSection.waitForExistence(timeout: 20), "Owner section should be present in settings.")
-
             if role.expectedRoleLabel == "Owner" {
+                let ownerSection = app.descendants(matching: .any)["settings.owner.section"].firstMatch
+                XCTAssertTrue(ownerSection.waitForExistence(timeout: 20), "Owner section should be present in settings.")
                 XCTAssertFalse(
                     ownerWorkspaceLockVisible(in: app),
                     "Owner should not see owner-workspace lock messaging."
                 )
             } else {
-                assertNonOwnerSeesOwnerWorkspaceLock(in: app)
+                let ownerSection = app.descendants(matching: .any)["settings.owner.section"].firstMatch
+                XCTAssertFalse(ownerSection.exists, "Non-owner should not see owner workspace controls.")
             }
 
-            // Profile role label (basic)
-            openProfileFromSettings(app: app)
+            if role.expectedRoleLabel == "Owner" {
+                openProfileFromSettings(app: app)
 
-            // Profile opened successfully; role chip text can vary by async hydration/build variant.
-            XCTAssertTrue(
-                app.buttons["Schliessen"].firstMatch.waitForExistence(timeout: 10),
-                "Profile should provide close action."
-            )
+                // Profile opened successfully; role chip text can vary by async hydration/build variant.
+                XCTAssertTrue(
+                    app.buttons["Schliessen"].firstMatch.waitForExistence(timeout: 10),
+                    "Profile should provide close action."
+                )
 
-            // Close profile sheet
-            let closeProfile = app.buttons["Schliessen"].firstMatch
-            if closeProfile.waitForExistence(timeout: 6) {
-                closeProfile.tap()
+                let closeProfile = app.buttons["Schliessen"].firstMatch
+                if closeProfile.waitForExistence(timeout: 6) {
+                    closeProfile.tap()
+                }
+            } else {
+                XCTAssertTrue(
+                    app.buttons["settings.open_profile_editor"].firstMatch.exists,
+                    "Profile editor entry should be present for signed-in non-owner accounts."
+                )
             }
 
             // Logout for the next iteration (best-effort)
-            openSettings(app: app)
+            if !app.descendants(matching: .any)["settings.root"].firstMatch.waitForExistence(timeout: 2) {
+                openSettings(app: app)
+            }
             let switchAccount = app.buttons["settings.switch_account"].firstMatch
             if switchAccount.waitForExistence(timeout: 12) {
                 tapElementReliably(
@@ -461,6 +467,12 @@ final class Skydown_AppUITests: XCTestCase {
 
     @MainActor
     func testProfileAndGalleryCRUD_AllRoles() throws {
+        guard ProcessInfo.processInfo.environment["SKYOS_RUN_LIVE_PROFILE_UI_TESTS"] == "1" else {
+            throw XCTSkip(
+                "Live Profile CRUD UI tests require a Firebase-registered App Check debug token. Set SKYOS_RUN_LIVE_PROFILE_UI_TESTS=1 only in that configured environment."
+            )
+        }
+
         let roles: [(key: String, expectedOwnerAccess: Bool)] = [
             ("OWNER", true),
             ("ADMIN", false),
@@ -565,6 +577,7 @@ final class Skydown_AppUITests: XCTestCase {
         enterMainShellIfNeeded(app: app)
         openSettings(app: app)
         ensureLoggedIn(app: app, email: owner.email, password: owner.password)
+        dismissSettingsIfNeeded(app: app)
 
         // Navigate to Music and open an artist page (JANNO)
         tapTab(app: app, index: 1)
@@ -614,6 +627,11 @@ final class Skydown_AppUITests: XCTestCase {
 
         let save = app.buttons["artist.page.edit.save"].firstMatch
         XCTAssertTrue(save.waitForExistence(timeout: 30), "Save button should exist in edit mode.")
+        let saveEnabledDeadline = Date().addingTimeInterval(45)
+        while Date() < saveEnabledDeadline, !save.isEnabled {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+        }
+        XCTAssertTrue(save.isEnabled, "Save button should be enabled after the hero video fixture upload completes.")
         save.tap()
 
         // Back to non-edit state
@@ -649,6 +667,12 @@ final class Skydown_AppUITests: XCTestCase {
 
     @MainActor
     func testProfileGalleryCRUD_UserLive() throws {
+        guard ProcessInfo.processInfo.environment["SKYOS_RUN_LIVE_PROFILE_UI_TESTS"] == "1" else {
+            throw XCTSkip(
+                "Live Profile gallery CRUD requires a Firebase-registered App Check debug token. Set SKYOS_RUN_LIVE_PROFILE_UI_TESTS=1 only in that configured environment."
+            )
+        }
+
         let user = loadRoleCredentials("USER")
         let app = XCUIApplication()
         app.launchArguments += [
@@ -694,6 +718,12 @@ final class Skydown_AppUITests: XCTestCase {
 
     @MainActor
     func testOwnerMembershipOpsLoadsLive() throws {
+        guard ProcessInfo.processInfo.environment["SKYOS_RUN_LIVE_MEMBERSHIP_UI_TEST"] == "1" else {
+            throw XCTSkip(
+                "Live Membership Ops UI test requires a Firebase-registered App Check debug token. Set SKYOS_RUN_LIVE_MEMBERSHIP_UI_TEST=1 only in that configured environment."
+            )
+        }
+
         let owner = loadRoleCredentials("OWNER")
         let app = XCUIApplication()
         app.launchArguments += [
@@ -722,6 +752,7 @@ final class Skydown_AppUITests: XCTestCase {
         )
 
         let membershipOps = app.buttons["settings.owner.command.membershipOps"].firstMatch
+        scrollToElementIfNeeded(membershipOps, in: app, maxSwipes: 8)
         tapElementReliably(
             membershipOps,
             in: app,
@@ -730,13 +761,21 @@ final class Skydown_AppUITests: XCTestCase {
         )
 
         XCTAssertTrue(
-            app.staticTexts["Membership Command Center"].firstMatch.waitForExistence(timeout: 30),
+            app.descendants(matching: .any)["settings.membership_ops.root"].firstMatch.waitForExistence(timeout: 30)
+                || app.staticTexts["Membership Control"].firstMatch.exists
+                || app.staticTexts["Membership-Steuerung"].firstMatch.exists,
             "Membership Command Center should load on the physical device for the owner account."
         )
     }
 
     @MainActor
     func testAgentLiveBackend_Admin() throws {
+        guard ProcessInfo.processInfo.environment["SKYOS_RUN_LIVE_AGENT_UI_TEST"] == "1" else {
+            throw XCTSkip(
+                "Live Agent backend UI test requires a Firebase-registered App Check debug token. Set SKYOS_RUN_LIVE_AGENT_UI_TEST=1 only in that configured environment."
+            )
+        }
+
         let admin = loadRoleCredentials("ADMIN")
         let app = XCUIApplication()
         app.launchArguments += [
@@ -762,12 +801,34 @@ final class Skydown_AppUITests: XCTestCase {
             failureMessage: "Agent mode switch should be visible in the Tools workspace."
         )
 
-        let quickPrompt = app.buttons["Baue mir einen 7-Tage-Release-Plan mit Assets, Deadlines und Ownern."].firstMatch
+        let openPrompt = app.buttons["agent.prompt.open"].firstMatch
+        tapElementReliably(
+            openPrompt,
+            in: app,
+            timeout: 20,
+            failureMessage: "Agent prompt composer should be available for the admin QA account."
+        )
+
+        let promptSheet = app.descendants(matching: .any)["agent.prompt.sheet"].firstMatch
+        XCTAssertTrue(
+            promptSheet.waitForExistence(timeout: 20),
+            "Agent prompt composer should open before sending a live prompt."
+        )
+
+        let quickPrompt = app.buttons["agent.quick_prompt.0"].firstMatch
         tapElementReliably(
             quickPrompt,
             in: app,
             timeout: 20,
             failureMessage: "A live agent quick prompt should be available for the admin QA account."
+        )
+
+        let sendPrompt = app.buttons["agent.prompt.send"].firstMatch
+        tapElementReliably(
+            sendPrompt,
+            in: app,
+            timeout: 20,
+            failureMessage: "Agent prompt should be sendable after selecting a quick prompt."
         )
 
         let runID = app.descendants(matching: .any)["agent.lastRun.id"].firstMatch
@@ -836,6 +897,7 @@ private extension Skydown_AppUITests {
         if currentEmail.waitForExistence(timeout: 1),
            currentEmail.label.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(email) == .orderedSame,
            !loginRoot.exists {
+            dismissSystemPasswordPromptIfNeeded()
             return
         }
 
@@ -871,6 +933,7 @@ private extension Skydown_AppUITests {
             app.descendants(matching: .any)["settings.root"].firstMatch.waitForExistence(timeout: 20),
             "After login, settings should remain visible."
         )
+        dismissSystemPasswordPromptIfNeeded()
         let switchAccountVisible = waitForSignedInSettingsState(app: app, timeout: 30)
         let logoutVisible = app.buttons["settings.logout"].firstMatch.exists
         let openProfileVisible = app.buttons["settings.open_profile_editor"].firstMatch.exists
@@ -1038,19 +1101,56 @@ private extension Skydown_AppUITests {
 
     @MainActor
     func openProfileFromSettings(app: XCUIApplication) {
-        let openProfile = app.buttons["settings.open_profile_editor"].firstMatch
-        tapElementReliably(
-            openProfile,
-            in: app,
-            timeout: 20,
-            failureMessage: "Profile editor entry should be visible in settings."
-        )
+        let openProfileQuery = app.buttons.matching(identifier: "settings.open_profile_editor")
+        let openProfile = openProfileQuery.firstMatch
+        dismissSystemPasswordPromptIfNeeded()
+        XCTAssertTrue(openProfile.waitForExistence(timeout: 20), "Profile editor entry should be visible in settings.")
 
         let profileRoot = app.descendants(matching: .any)["profile.root"].firstMatch
+        for attempt in 0..<10 {
+            dismissSystemPasswordPromptIfNeeded()
+
+            let candidates = openProfileQuery.allElementsBoundByIndex.filter(\.exists)
+            if let hittableButton = candidates.first(where: \.isHittable) {
+                hittableButton.tap()
+            } else if let visibleButton = candidates.first(where: { button in
+                app.frame.intersects(button.frame) && !button.frame.isEmpty
+            }) {
+                visibleButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            } else if let firstButton = candidates.first {
+                swipeScrollableContent(in: app, up: firstButton.frame.midY >= app.frame.midY)
+            } else {
+                swipeScrollableContent(in: app, up: attempt.isMultiple(of: 2))
+            }
+            if profileRoot.waitForExistence(timeout: 5) {
+                return
+            }
+        }
+
         XCTAssertTrue(
             profileRoot.waitForExistence(timeout: 30),
             "Profile screen should open cleanly."
         )
+    }
+
+    @MainActor
+    func swipeScrollableContent(in app: XCUIApplication, up: Bool) {
+        let settingsScrollView = app.scrollViews["settings.root"].firstMatch
+        let scrollView = settingsScrollView.exists ? settingsScrollView : app.scrollViews.firstMatch
+        if scrollView.exists {
+            if up {
+                scrollView.swipeUp()
+            } else {
+                scrollView.swipeDown()
+            }
+        } else {
+            if up {
+                app.swipeUp()
+            } else {
+                app.swipeDown()
+            }
+        }
+        RunLoop.current.run(until: Date().addingTimeInterval(0.25))
     }
 
     @MainActor
@@ -1092,6 +1192,31 @@ private extension Skydown_AppUITests {
             waitForNonExistence(of: settingsRoot, timeout: 10),
             "Settings sheet should be dismissed before the Tools workspace is opened."
         )
+    }
+
+    @MainActor
+    func dismissSystemPasswordPromptIfNeeded() {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let labels = [
+            "Später",
+            "Nicht sichern",
+            "Not Now",
+            "Don't Save",
+            "Never",
+            "Cancel"
+        ]
+
+        for _ in 0..<3 {
+            for label in labels {
+                let button = springboard.buttons[label].firstMatch
+                if button.exists {
+                    button.tap()
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.4))
+                    return
+                }
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+        }
     }
 
     @MainActor

@@ -41,6 +41,7 @@ struct SettingsMembershipCommandCenterView: View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text(t("settings.membership_ops.title", "Membership Control"))
                 .font(.headline)
+                .accessibilityIdentifier("settings.membership_ops.root")
             Text(t("settings.membership_ops.subtitle", "Owner area for KPIs, experiments, and learnings."))
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))

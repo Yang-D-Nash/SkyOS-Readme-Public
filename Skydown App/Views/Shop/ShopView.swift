@@ -152,6 +152,27 @@ struct ShopView: View {
                                     openedCollectionLane = lane
                                 }
 
+                                if !filteredMerchandiseItems.isEmpty {
+                                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSnug) {
+                                        Text(AppLocalized.text("shop.section.pieces", fallback: "Pieces"))
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                                        LazyVStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSnug) {
+                                            ForEach(Array(filteredMerchandiseItems.enumerated()), id: \.element.id) { index, item in
+                                                MerchandiseRowView(
+                                                    item: item,
+                                                    environmentColorScheme: colorScheme,
+                                                    shelfSpotlight: index < 2,
+                                                    shelfSettled: index > 2
+                                                ) {
+                                                    selectedItem = $0
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
                                 if isAdmin {
                                     ShopAdminControlsPanel(
                                         colorScheme: colorScheme,

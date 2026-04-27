@@ -808,6 +808,7 @@ struct ProfileView: View {
             Text("UI Test")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
+                .accessibilityIdentifier("ui_test.profile.section")
 
             Text("Nur sichtbar bei UI-Tests.")
                 .font(.footnote)
@@ -849,7 +850,6 @@ struct ProfileView: View {
             shadowRadius: 10,
             shadowYOffset: 6
         )
-        .accessibilityIdentifier("ui_test.profile.section")
     }
 }
 
