@@ -4,5 +4,5 @@ Kopieren oder als Dateien versionieren — verursacht keine Nutzungskosten; Live
 
 Einmal-Download: skyos-activepieces-json-samples.zip (dieselben Dateien gebundelt).
 
-Activepieces „Flow importieren“: lies HINWEIS-ACTIVEPIECES-IMPORT.txt — diese JSON sind
-HTTP-Beispiele, kein AP-Flow-Export.
+Activepieces „Flow importieren“: activepieces-import-skyos-webhook-starter.json (Minimalflow-Template).
+Die 01-07-*.json sind HTTP-Beispiele — siehe HINWEIS-ACTIVEPIECES-IMPORT.txt.

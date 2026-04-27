@@ -1,0 +1,27 @@
+{
+  "name": "SkyOS – Webhook Starter",
+  "flows": [
+    {
+      "displayName": "SkyOS – Webhook Starter",
+      "description": "Nur Catch-Webhook-Trigger. Nach dem Import: Flow oeffnen, die Webhook-URL kopieren und in den SkyOS-Automation-Einstellungen (baseURL/webhookPath) hinterlegen. Wenn der Import wegen der Piece-Version scheitert: In Activepieces im Flow das Webhook-Piece einmal oeffnen und speichern (waehlt passende Version).",
+      "schemaVersion": "20",
+      "valid": true,
+      "trigger": {
+        "name": "trigger_1",
+        "type": "PIECE_TRIGGER",
+        "valid": true,
+        "displayName": "Catch Webhook",
+        "lastUpdatedDate": "2026-04-27T00:00:00.000Z",
+        "settings": {
+          "pieceName": "@activepieces/piece-webhook",
+          "pieceVersion": "0.1.33",
+          "triggerName": "catch_webhook",
+          "input": {
+            "authType": "none"
+          },
+          "propertySettings": {}
+        }
+      }
+    }
+  ]
+}
