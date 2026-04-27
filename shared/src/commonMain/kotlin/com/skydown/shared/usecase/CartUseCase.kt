@@ -17,10 +17,13 @@ object CartUseCase {
         sku: String? = null,
         unitPrice: Double? = null,
     ): List<CartItem> {
+        require(quantity > 0) { "Quantity must be greater than zero." }
+
         val mutableItems = currentItems.toMutableList()
+        val normalizedSize = size.normalizedRequiredValue()
         val normalizedColor = color.normalizedOptionalValue()
         val existingIndex = mutableItems.indexOfFirst {
-            it.matches(itemId = item.id, size = size, color = normalizedColor)
+            it.matches(itemId = item.id, size = normalizedSize, color = normalizedColor)
         }
 
         if (existingIndex >= 0) {
@@ -29,7 +32,7 @@ object CartUseCase {
         } else {
             mutableItems += CartItem(
                 item = item,
-                size = size,
+                size = normalizedSize,
                 color = normalizedColor,
                 quantity = quantity,
                 shopifyVariantId = shopifyVariantId,
@@ -42,9 +45,10 @@ object CartUseCase {
     }
 
     fun removeItem(currentItems: List<CartItem>, itemId: String, size: String, color: String? = null): List<CartItem> {
+        val normalizedSize = size.normalizedRequiredValue()
         val normalizedColor = color.normalizedOptionalValue()
         return currentItems.filterNot {
-            it.matches(itemId = itemId, size = size, color = normalizedColor)
+            it.matches(itemId = itemId, size = normalizedSize, color = normalizedColor)
         }
     }
 
@@ -63,8 +67,12 @@ object CartUseCase {
 
 private fun CartItem.matches(itemId: String?, size: String, color: String?): Boolean {
     return item.id == itemId &&
-        this.size == size &&
+        this.size.equals(size, ignoreCase = true) &&
         this.color.equals(color, ignoreCase = true)
+}
+
+private fun String.normalizedRequiredValue(): String {
+    return trim()
 }
 
 private fun String?.normalizedOptionalValue(): String? {

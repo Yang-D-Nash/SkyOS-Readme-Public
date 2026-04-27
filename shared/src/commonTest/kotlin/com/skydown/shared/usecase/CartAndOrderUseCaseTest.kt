@@ -6,6 +6,7 @@ import com.skydown.shared.model.OrderItem
 import com.skydown.shared.text.SharedText
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
@@ -32,6 +33,46 @@ class CartAndOrderUseCaseTest {
         assertEquals(1, cartAfterSecondAdd.size)
         assertEquals(3, cartAfterSecondAdd.first().quantity)
         assertEquals("Black", cartAfterSecondAdd.first().color)
+    }
+
+    @Test
+    fun addItem_mergesExistingItem_whenSizeOnlyDiffersByCaseAndWhitespace() {
+        val item = merchandiseItem(id = "hoodie-2", name = "Hoodie")
+        val cartAfterFirstAdd = CartUseCase.addItem(
+            currentItems = emptyList(),
+            item = item,
+            size = " M ",
+            color = "Black",
+            quantity = 1,
+        )
+
+        val cartAfterSecondAdd = CartUseCase.addItem(
+            currentItems = cartAfterFirstAdd,
+            item = item,
+            size = "m",
+            color = "BLACK",
+            quantity = 2,
+        )
+
+        assertEquals(1, cartAfterSecondAdd.size)
+        assertEquals(3, cartAfterSecondAdd.first().quantity)
+        assertEquals("M", cartAfterSecondAdd.first().size)
+        assertEquals("Black", cartAfterSecondAdd.first().color)
+    }
+
+    @Test
+    fun addItem_throws_whenQuantityIsZeroOrNegative() {
+        val item = merchandiseItem(id = "hoodie-3", name = "Hoodie")
+
+        assertFailsWith<IllegalArgumentException> {
+            CartUseCase.addItem(
+                currentItems = emptyList(),
+                item = item,
+                size = "M",
+                color = "Black",
+                quantity = 0,
+            )
+        }
     }
 
     @Test
