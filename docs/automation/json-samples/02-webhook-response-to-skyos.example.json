@@ -1,0 +1,15 @@
+{
+  "message": "Kurztext fuer die Chat-Bubble in SkyOS.",
+  "workflowStatus": "completed",
+  "results": [
+    {
+      "type": "text",
+      "text": "Konkretes Ergebnis in 1-3 Saetzen."
+    },
+    {
+      "type": "link",
+      "title": "Nur https-URLs",
+      "url": "https://example.com/path"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "provider": "activepieces",
+  "scope": "owner_global",
+  "requestId": "1714382030000_ab12cd34",
+  "workflowName": "SkyOS Owner Activepieces Flow",
+  "trigger": "agent_automation",
+  "source": "agent",
+  "timestamp": "2026-04-27T10:16:00.000Z",
+  "data": {
+    "mode": "automation",
+    "prompt": "User prompt",
+    "reply": "Agent reply after internal model",
+    "history": [
+      { "role": "user", "text": "..." },
+      { "role": "assistant", "text": "..." }
+    ],
+    "automationScope": "owner",
+    "attachments": [],
+    "memory": {
+      "profileSummary": "",
+      "goals": [],
+      "habits": [],
+      "moodLogs": []
+    },
+    "knowledgeContext": "",
+    "sourceRole": "agent_gateway"
+  },
+  "knowledgeContext": "",
+  "user": {
+    "uid": "optional_if_sendsUserContext",
+    "email": "optional",
+    "role": "optional"
+  }
+}

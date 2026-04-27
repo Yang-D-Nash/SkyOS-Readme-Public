@@ -1,0 +1,11 @@
+{
+  "uid": "FIREBASE_UID",
+  "runId": "OPTIONAL_FIRESTORE_RUN_ID",
+  "requestId": "1714382030000_ab12cd34",
+  "state": "completed",
+  "workflowName": "SkyOS Master Workflow",
+  "message": "Workflow erfolgreich abgeschlossen.",
+  "provider": "activepieces",
+  "progressPercent": 100,
+  "step": "Fertig"
+}

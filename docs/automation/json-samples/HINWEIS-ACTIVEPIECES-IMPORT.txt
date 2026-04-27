@@ -1,0 +1,17 @@
+Wichtig: Zwei verschiedene Dinge
+
+(1) DIESE .json IN DIESEM ORDNER
+    = Beispiel-Bodies fuer HTTP (SkyOS Webhook-Payload, Callback an agentRunStatusCallback,
+      Antwort an SkyOS, createTask/Reminder/Note).
+    = In Activepieces copy-pasten: z.B. in „HTTP Request“-Node Body, Testdaten, oder Doku.
+    = Das ist KEIN gueltiger „Flow importieren“-Export von Activepieces.
+
+(2) ECHTER ACTIVEPIECES-FLOW-IMPORT
+    = JSON, das Activepieces in der UI unter Import erwartet (Export-Format eurer Plattform,
+      inkl. Trigger-Knoten, schemaVersion, Piece-Versionen).
+    = So bekommt man das zuverlaessig: In Activepieces Flow bauen → Flow exportieren.
+    = Eine per Hand gebaute flow.json aus dem Internet importiert oft mit „format error“,
+      weil Schema und Piece-Versionen exakt passen muessen.
+
+Fazit: Den Inhalt von (1) in die passenden Schritte IN einem importierten oder selbst
+angelegten Flow legen – nicht (1) statt (2) in „Import“ hochladen.
