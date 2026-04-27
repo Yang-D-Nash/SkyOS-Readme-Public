@@ -158,16 +158,7 @@ class AiViewModel : ViewModel() {
 
     fun sendPrompt(prompt: String) {
         val trimmedPrompt = prompt.trim()
-        if (!AppFeatureFlagsStore.allowsAiAccess(AppContainer.currentUser.value)) {
-            _uiState.update {
-                it.copy(errorMessage = AppFeatureFlagsStore.accessDeniedMessage(AppContainer.currentUser.value))
-            }
-            return
-        }
-        if (!_uiState.value.isAiEnabled) {
-            _uiState.update { it.copy(errorMessage = "Der SkyOS Bot ist gerade pausiert.") }
-            return
-        }
+        if (!isAiRequestAllowed()) return
         if (trimmedPrompt.isBlank() || _uiState.value.botPhase.isBusy) return
 
         val levelAtSend = _uiState.value.selectedLevel
@@ -262,16 +253,7 @@ class AiViewModel : ViewModel() {
 
     fun generateVisual(prompt: String) {
         val trimmedPrompt = prompt.trim()
-        if (!AppFeatureFlagsStore.allowsAiAccess(AppContainer.currentUser.value)) {
-            _uiState.update {
-                it.copy(errorMessage = AppFeatureFlagsStore.accessDeniedMessage(AppContainer.currentUser.value))
-            }
-            return
-        }
-        if (!_uiState.value.isAiEnabled) {
-            _uiState.update { it.copy(errorMessage = "Der SkyOS Bot ist gerade pausiert.") }
-            return
-        }
+        if (!isAiRequestAllowed()) return
         if (trimmedPrompt.isBlank() || _uiState.value.botPhase.isBusy) return
 
         val levelAtSend = _uiState.value.selectedLevel
@@ -828,5 +810,18 @@ class AiViewModel : ViewModel() {
         AiExperienceLevel.Advanced,
         -> true
         AiExperienceLevel.Pro -> plan != UserQuotaPlan.Free
+    }
+
+    private fun isAiRequestAllowed(): Boolean {
+        val currentUser = AppContainer.currentUser.value
+        if (!AppFeatureFlagsStore.allowsAiAccess(currentUser)) {
+            _uiState.update { it.copy(errorMessage = AppFeatureFlagsStore.accessDeniedMessage(currentUser)) }
+            return false
+        }
+        if (!_uiState.value.isAiEnabled) {
+            _uiState.update { it.copy(errorMessage = "Der SkyOS Bot ist gerade pausiert.") }
+            return false
+        }
+        return true
     }
 }

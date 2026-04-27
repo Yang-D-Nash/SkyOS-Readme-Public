@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.SpotifyAuthManager
 import com.nash.skyos.ui.model.MusicUiState
+import com.skydown.shared.model.Track
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,19 +21,7 @@ class MusicViewModel : ViewModel() {
     init {
         viewModelScope.launch {
             SpotifyAuthManager.isConnected.collectLatest { connected ->
-                _uiState.update {
-                    if (connected) {
-                        it.copy(
-                            isSpotifyConnected = true,
-                            errorMessage = null,
-                        )
-                    } else {
-                        it.copy(
-                            isSpotifyConnected = false,
-                            errorMessage = null,
-                        )
-                    }
-                }
+                setSpotifyConnectionState(connected)
 
                 val currentState = _uiState.value
                 if (currentState.tracks.isEmpty() && !currentState.isLoading) {
@@ -46,35 +35,17 @@ class MusicViewModel : ViewModel() {
 
     fun selectArtist(artist: String) {
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    selectedArtist = artist,
-                    isLoading = true,
-                    tracks = emptyList(),
-                    errorMessage = null,
-                )
-            }
+            setArtistLoading(artist)
 
             musicService.fetchTracks(artist)
                 .onSuccess { tracks ->
-                    _uiState.update {
-                        it.copy(
-                            selectedArtist = artist,
-                            isLoading = false,
-                            tracks = tracks,
-                            errorMessage = null,
-                        )
-                    }
+                    applyTrackLoadSuccess(artist, tracks)
                 }
                 .onFailure { error ->
-                    _uiState.update {
-                        it.copy(
-                            selectedArtist = artist,
-                            isLoading = false,
-                            tracks = emptyList(),
-                            errorMessage = error.message ?: "Tracks konnten gerade nicht geladen werden.",
-                        )
-                    }
+                    applyTrackLoadFailure(
+                        artist = artist,
+                        message = error.message ?: "Tracks konnten gerade nicht geladen werden.",
+                    )
                 }
         }
     }
@@ -86,5 +57,42 @@ class MusicViewModel : ViewModel() {
     fun clearSpotifyError() {
         SpotifyAuthManager.clearError()
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun setSpotifyConnectionState(connected: Boolean) {
+        _uiState.update { it.copy(isSpotifyConnected = connected, errorMessage = null) }
+    }
+
+    private fun setArtistLoading(artist: String) {
+        _uiState.update {
+            it.copy(
+                selectedArtist = artist,
+                isLoading = true,
+                tracks = emptyList(),
+                errorMessage = null,
+            )
+        }
+    }
+
+    private fun applyTrackLoadSuccess(artist: String, tracks: List<Track>) {
+        _uiState.update {
+            it.copy(
+                selectedArtist = artist,
+                isLoading = false,
+                tracks = tracks,
+                errorMessage = null,
+            )
+        }
+    }
+
+    private fun applyTrackLoadFailure(artist: String, message: String) {
+        _uiState.update {
+            it.copy(
+                selectedArtist = artist,
+                isLoading = false,
+                tracks = emptyList(),
+                errorMessage = message,
+            )
+        }
     }
 }
