@@ -4,6 +4,16 @@ IMPORTIERBAR IN ACTIVEPIECES (nur diese eine Datei im Root):
   activepieces-import-skyos-webhook-starter.json
   → „Import Flow“ in Activepieces; minimaler Catch-Webhook.
 
+WICHTIG – „Empty Trigger“ / „Select Trigger“ nach dem Import
+  Das passiert oft in der Cloud: der Flow-Name kommt an, der Piece-Trigger nicht.
+  Dann ist das kein totales Scheitern — 2 Minuten manuell:
+  1) Im Builder auf den Trigger-Kasten klicken (oder „Select Trigger“).
+  2) Unter „Highlights“ oder Suche: „Webhook“ / „Catch Webhook“ waehlen.
+  3) Authentication: None (kein Key noetig).
+  4) Rechts oben **Publish** — dann erscheint die Webhook-URL; die in SkyOS
+     (Owner-Automation: baseURL + webhookPath) eintragen.
+  Ohne Publish gibt es keine feste URL fuer SkyOS.
+
 NICHT importieren (nur Referenz / Copy-Paste):
   reference-http-payloads/
     01  Eingehender Agent-Webhook-Body (SkyOS → AP)
