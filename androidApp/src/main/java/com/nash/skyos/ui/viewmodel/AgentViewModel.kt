@@ -203,6 +203,9 @@ class AgentViewModel : ViewModel() {
                     if (AppNetworkMonitor.isOnline.value) {
                         retryPendingMessages()
                     }
+                    if (!userId.isNullOrBlank()) {
+                        startNewConversation()
+                    }
                 } else {
                     refreshSessionState()
                     pruneRemoteHistoryIfNeeded()

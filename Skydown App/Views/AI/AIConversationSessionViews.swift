@@ -9,7 +9,6 @@ struct AIConversationSessionStrip: View {
     let canDelete: Bool
     let showsManagementActions: Bool
     let onOpenSessions: () -> Void
-    let onCreateNewChat: () -> Void
     let onRefreshChat: () -> Void
     let onDeleteChat: () -> Void
 
@@ -22,7 +21,6 @@ struct AIConversationSessionStrip: View {
         canDelete: Bool = false,
         showsManagementActions: Bool = false,
         onOpenSessions: @escaping () -> Void,
-        onCreateNewChat: @escaping () -> Void,
         onRefreshChat: @escaping () -> Void = { },
         onDeleteChat: @escaping () -> Void = { }
     ) {
@@ -34,7 +32,6 @@ struct AIConversationSessionStrip: View {
         self.canDelete = canDelete
         self.showsManagementActions = showsManagementActions
         self.onOpenSessions = onOpenSessions
-        self.onCreateNewChat = onCreateNewChat
         self.onRefreshChat = onRefreshChat
         self.onDeleteChat = onDeleteChat
     }
@@ -93,15 +90,6 @@ struct AIConversationSessionStrip: View {
                 .disabled(isBusy)
             }
 
-            AIConversationToolbarButton(
-                systemName: "plus",
-                title: "Neuer Chat",
-                accent: accent,
-                colorScheme: colorScheme,
-                action: onCreateNewChat
-            )
-            .disabled(isBusy)
-
             if showsManagementActions {
                 AIConversationToolbarButton(
                     systemName: "trash",
@@ -153,7 +141,6 @@ struct AIConversationSessionsSheet: View {
     let activeSessionID: UUID?
     let isBusy: Bool
     @Binding var renameDraft: String
-    let onCreateNewChat: () -> Void
     let onSelectSession: (UUID) -> Void
     let onRenameActiveSession: () -> Void
     let onDeleteActiveSession: () -> Void
@@ -166,23 +153,6 @@ struct AIConversationSessionsSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
-                    Button(action: onCreateNewChat) {
-                        HStack(spacing: SkydownLayout.stackSpacingPill) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.subheadline.weight(.bold))
-                            Text("Neuer Chat")
-                                .font(.subheadline.weight(.bold))
-                            Spacer(minLength: 0)
-                        }
-                        .foregroundColor(accent)
-                        .padding(15)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(AppColors.secondaryBackground(for: colorScheme))
-                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isBusy)
-
                     if let activeSession {
                         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                             Text("Aktiver Chat")

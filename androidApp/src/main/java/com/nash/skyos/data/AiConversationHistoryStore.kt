@@ -376,8 +376,29 @@ object AiConversationHistoryStore {
             }
             .sortedByDescending { it.createdAtEpochMillis }
 
+        val existingForScope = readSessions().filter { it.userKey == normalizedUserKey && it.source == source }
+        val existingEntriesForScope = readEntries().filter { it.userKey == normalizedUserKey && it.source == source }
+        val remoteSessionIds = normalizedSessions.map { it.id }.toSet()
+        val remoteEntryIds = normalizedEntries.map { it.id }.toSet()
+        // Firestore can deliver a snapshot before our own upsert lands; without this merge the UI
+        // drops the new local row and the active thread repaints as empty.
+        val maxLocalOrphanAgeMs = 20 * 60 * 1000L
+        val now = System.currentTimeMillis()
+        val localEntryOrphans = existingEntriesForScope.filter { local ->
+            local.id !in remoteEntryIds && (now - local.createdAtEpochMillis) <= maxLocalOrphanAgeMs
+        }
+        val entryOrphanSessionIds = localEntryOrphans.map { it.sessionId }.toSet()
+        val localSessionOrphans = existingForScope.filter { local ->
+            local.id !in remoteSessionIds &&
+                ((now - local.updatedAtEpochMillis) <= maxLocalOrphanAgeMs || local.id in entryOrphanSessionIds)
+        }
+        val mergedSessions = (normalizedSessions + localSessionOrphans)
+            .sortedByDescending { it.updatedAtEpochMillis }
+        val mergedEntries = (normalizedEntries + localEntryOrphans)
+            .sortedByDescending { it.createdAtEpochMillis }
+
         val updatedSessions = buildList {
-            addAll(normalizedSessions)
+            addAll(mergedSessions)
             addAll(
                 readSessions().filterNot { session ->
                     session.userKey == normalizedUserKey && session.source == source
@@ -386,7 +407,7 @@ object AiConversationHistoryStore {
         }.sortedByDescending { it.updatedAtEpochMillis }
 
         val updatedEntries = buildList {
-            addAll(normalizedEntries)
+            addAll(mergedEntries)
             addAll(
                 readEntries().filterNot { entry ->
                     entry.userKey == normalizedUserKey && entry.source == source

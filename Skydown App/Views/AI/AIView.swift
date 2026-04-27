@@ -49,10 +49,6 @@ struct AIView: View {
                 onDismiss: {
                     showingPromptComposer = false
                 },
-                onCreateNewChat: {
-                    viewModel.startNewConversation()
-                    showingPromptComposer = false
-                },
                 onSend: {
                     viewModel.sendDraft()
                     showingPromptComposer = false
@@ -70,10 +66,6 @@ struct AIView: View {
                 activeSessionID: viewModel.activeSessionID,
                 isBusy: viewModel.phase.isBusy,
                 renameDraft: $renameDraft,
-                onCreateNewChat: {
-                    viewModel.startNewConversation()
-                    showingConversationSessions = false
-                },
                 onSelectSession: { sessionID in
                     viewModel.openConversation(sessionID)
                     showingConversationSessions = false
@@ -158,7 +150,6 @@ struct AIView: View {
             canDelete: viewModel.activeSessionID != nil,
             showsManagementActions: true,
             onOpenSessions: { showingConversationSessions = true },
-            onCreateNewChat: viewModel.startNewConversation,
             onRefreshChat: viewModel.refreshActiveConversation,
             onDeleteChat: { showingDeleteConversationDialog = true }
         )
@@ -799,24 +790,27 @@ private struct AIDisabledCard: View {
 
 private struct AIQuickPromptCard: View {
     let colorScheme: ColorScheme
+    var showsInlineHeading: Bool = true
     let prompts: [String]
     let onPromptSelected: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-            HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                AIStatusChip(
-                    text: "Text",
-                    accent: AppColors.accent(for: colorScheme),
-                    colorScheme: colorScheme
-                )
-                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
-                    Text("Prompts")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                    Text("Schnell rein.")
-                        .font(.caption)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            if showsInlineHeading {
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                    AIStatusChip(
+                        text: "Text",
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme
+                    )
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
+                        Text("Prompts")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                        Text("Schnell rein.")
+                            .font(.caption)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
                 }
             }
 
@@ -859,24 +853,27 @@ private struct AIQuickPromptCard: View {
 
 private struct AIVisualPromptCard: View {
     let colorScheme: ColorScheme
+    var showsInlineHeading: Bool = true
     let prompts: [AIVisualPrompt]
     let onPromptSelected: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-            HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                AIStatusChip(
-                    text: "Visual",
-                    accent: AppColors.accentHighlight(for: colorScheme),
-                    colorScheme: colorScheme
-                )
-                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
-                    Text("Visuals")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                    Text("Ein Prompt reicht.")
-                        .font(.caption)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            if showsInlineHeading {
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                    AIStatusChip(
+                        text: "Visual",
+                        accent: AppColors.accentHighlight(for: colorScheme),
+                        colorScheme: colorScheme
+                    )
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
+                        Text("Visuals")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                        Text("Ein Prompt reicht.")
+                            .font(.caption)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
                 }
             }
 
@@ -1174,7 +1171,6 @@ private struct AIPromptComposerSheet: View {
     let quickPrompts: [String]
     let visualPrompts: [AIVisualPrompt]
     let onDismiss: () -> Void
-    let onCreateNewChat: () -> Void
     let onSend: () -> Void
     @FocusState private var isFocused: Bool
 
@@ -1188,181 +1184,191 @@ private struct AIPromptComposerSheet: View {
             : AppColors.accent(for: colorScheme)
     }
 
-    var body: some View {
-        ScrollView {
-        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-            HStack(alignment: .center, spacing: SkydownLayout.stackSpacingCompact) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
-                        .fill(composerAccent.opacity(0.14))
-                    Image(systemName: composerMode == .visual ? "camera.aperture" : "text.bubble.fill")
-                        .font(.headline.weight(.black))
-                        .foregroundColor(composerAccent)
-                }
-                .frame(width: 48, height: 48)
-
-                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
-                    Text("Neue AI-Anfrage")
-                        .font(.title3.weight(.black))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                    Text("Optionen waehlen, Prompt schaerfen, senden.")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-
-                Spacer(minLength: 0)
-
-                AIStatusChip(
-                    text: composerMode.title,
-                    accent: composerAccent,
-                    colorScheme: colorScheme
-                )
-
-                Button(action: onDismiss) {
-                    Image(systemName: "xmark")
-                        .font(.caption.weight(.black))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .frame(width: 36, height: 36)
-                        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.9))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .skydownTactileAction()
-                .accessibilityLabel("Prompt schliessen")
-            }
-
-            if let status = interactionPhase.composerStatusLabel {
-                Text(status)
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
-            }
-
-            Text("Optionen")
-                .font(.caption2.weight(.black))
-                .foregroundColor(composerAccent)
-
-            Picker("Modus", selection: $composerMode) {
+    @ViewBuilder
+    private var aiSettingsDropdownRows: some View {
+        HStack(alignment: .center) {
+            Text("Format")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            Spacer(minLength: 12)
+            Picker("Format", selection: $composerMode) {
                 ForEach(AIComposerMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
             }
-            .pickerStyle(.segmented)
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .tint(composerAccent)
             .disabled(interactionPhase.isBusy)
-            .skydownSelectionFeedback(trigger: composerMode)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
 
-            if composerMode == .text {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                        ForEach(AITextMode.allCases) { mode in
-                            Button {
-                                textMode = mode
-                            } label: {
-                                Text(mode.title)
-                                    .font(.caption.weight(.bold))
-                                    .foregroundColor(textMode == mode ? .white : AppColors.text(for: colorScheme))
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(
-                                        Capsule()
-                                            .fill(textMode == mode ? composerAccent : AppColors.secondaryBackground(for: colorScheme))
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                            .skydownTactileAction()
-                        }
+        if composerMode == .text {
+            Divider()
+                .padding(.leading, 8)
+            HStack(alignment: .center) {
+                Text("Tonalitaet")
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                Spacer(minLength: 12)
+                Picker("Tonalitaet", selection: $textMode) {
+                    ForEach(AITextMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
                     }
                 }
-                .skydownSelectionFeedback(trigger: textMode)
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .tint(composerAccent)
+                .disabled(interactionPhase.isBusy)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
 
-            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSubtle) {
-                Picker(AppLocalized.text("ai.level.picker.title", fallback: "AI Level"), selection: $selectedLevel) {
+        Divider()
+            .padding(.leading, 8)
+
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
+            HStack(alignment: .center) {
+                Text(AppLocalized.text("ai.level.picker.title", fallback: "Tiefe"))
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                Spacer(minLength: 12)
+                Picker("Tiefe", selection: $selectedLevel) {
                     ForEach(AIExperienceLevel.allCases) { level in
                         Text(level.title).tag(level)
                     }
                 }
-                .pickerStyle(.segmented)
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .tint(composerAccent)
                 .disabled(interactionPhase.isBusy)
-                .skydownSelectionFeedback(trigger: selectedLevel)
-
-                Text(selectedLevel.subtitle)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    .lineLimit(2)
             }
-
-            if composerMode == .text {
-                AIQuickPromptCard(
-                    colorScheme: colorScheme,
-                    prompts: quickPrompts,
-                    onPromptSelected: { prompt in
-                        draft = prompt
-                    }
-                )
-            } else {
-                AIVisualPromptCard(
-                    colorScheme: colorScheme,
-                    prompts: visualPrompts,
-                    onPromptSelected: { prompt in
-                        draft = prompt
-                    }
-                )
-            }
-
-            Text("Prompt")
-                .font(.caption2.weight(.black))
-                .foregroundColor(composerAccent)
-
-            TextField(
-                composerMode == .text
-                    ? textMode.placeholder
-                    : "Zum Beispiel: Dunkles Cover-Art fuer einen neuen Release.",
-                text: $draft,
-                axis: .vertical
-            )
-            .lineLimit(4...8)
-            .focused($isFocused)
-            .submitLabel(.send)
-            .onSubmit {
-                if !trimmedDraft.isEmpty && !interactionPhase.isBusy {
-                    onSend()
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
-                    .fill(AppColors.secondaryBackground(for: colorScheme))
-            )
-            .foregroundColor(AppColors.text(for: colorScheme))
-
-            HStack(spacing: SkydownLayout.stackSpacingPill) {
-                Spacer(minLength: 0)
-                Button("Neuer Chat", action: onCreateNewChat)
-                    .font(.caption.weight(.bold))
-                    .disabled(interactionPhase.isBusy)
-
-                Button(action: onSend) {
-                    Image(systemName: composerMode == .text ? "arrow.up.circle.fill" : "sparkles")
-                        .font(.title2.weight(.bold))
-                        .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                        .background(composerAccent)
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .skydownTactileAction()
-                .disabled(trimmedDraft.isEmpty || interactionPhase.isBusy)
-                .opacity(trimmedDraft.isEmpty || interactionPhase.isBusy ? 0.55 : 1)
-            }
+            Text(selectedLevel.subtitle)
+                .font(.caption2)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 18)
-        .padding(.bottom, 22)
-        .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
+                PremiumPromptSheetHeader(
+                    iconSystemName: composerMode == .visual ? "camera.aperture" : "text.bubble.fill",
+                    title: "Neue Anfrage",
+                    subtitle: "Alles unten per Dropdown — ein Absenden genuegt.",
+                    accent: composerAccent,
+                    colorScheme: colorScheme,
+                    onDismiss: onDismiss
+                )
+
+                if let status = interactionPhase.composerStatusLabel {
+                    Text(status)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                        .padding(SkydownLayout.compactRadius)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                                .fill(AppColors.accentMystic(for: colorScheme).opacity(0.1))
+                        )
+                }
+
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                    PremiumPromptSectionHeader(
+                        title: "Einstellungen",
+                        footnote: "Kompakt als Menues — auswaehlen, tippen, senden.",
+                        accent: composerAccent,
+                        colorScheme: colorScheme
+                    )
+                    PremiumPromptSettingsDropdownCard(
+                        colorScheme: colorScheme,
+                        emphasisAccent: composerAccent
+                    ) {
+                        aiSettingsDropdownRows
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                    PremiumPromptSectionHeader(
+                        title: "Inspiration",
+                        footnote: "Schnellstarte — tippen und anpassen.",
+                        accent: composerAccent,
+                        colorScheme: colorScheme
+                    )
+                    if composerMode == .text {
+                        AIQuickPromptCard(
+                            colorScheme: colorScheme,
+                            showsInlineHeading: false,
+                            prompts: quickPrompts,
+                            onPromptSelected: { prompt in
+                                draft = prompt
+                            }
+                        )
+                    } else {
+                        AIVisualPromptCard(
+                            colorScheme: colorScheme,
+                            showsInlineHeading: false,
+                            prompts: visualPrompts,
+                            onPromptSelected: { prompt in
+                                draft = prompt
+                            }
+                        )
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                    PremiumPromptSectionHeader(
+                        title: "Eingabe",
+                        footnote: "Klar formulieren — je praeziser, desto besser das Ergebnis.",
+                        accent: composerAccent,
+                        colorScheme: colorScheme
+                    )
+                    PremiumPromptCard(colorScheme: colorScheme) {
+                        TextField(
+                            composerMode == .text
+                                ? textMode.placeholder
+                                : "Beschreibe Szenenlicht, Stimmung, Stil. Ein Satz reicht als Start.",
+                            text: $draft,
+                            axis: .vertical
+                        )
+                        .lineLimit(4...9)
+                        .focused($isFocused)
+                        .submitLabel(.send)
+                        .onSubmit {
+                            if !trimmedDraft.isEmpty && !interactionPhase.isBusy {
+                                onSend()
+                            }
+                        }
+                        .font(.body)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                    }
+                }
+
+                PremiumPromptPrimaryButton(
+                    title: composerMode == .text ? "Senden" : "Generieren",
+                    systemImage: composerMode == .text ? "arrow.up.circle.fill" : "sparkles",
+                    accent: composerAccent,
+                    colorScheme: colorScheme,
+                    isEnabled: !trimmedDraft.isEmpty && !interactionPhase.isBusy,
+                    action: onSend
+                )
+            }
+            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+            .padding(.top, 10)
+            .padding(.bottom, 28)
         }
+        .background(
+            AppColors.primaryBackground(for: colorScheme)
+                .ignoresSafeArea()
+        )
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
                 isFocused = true
             }
         }

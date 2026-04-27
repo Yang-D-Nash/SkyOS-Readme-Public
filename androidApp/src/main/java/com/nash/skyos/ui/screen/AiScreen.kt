@@ -399,7 +399,6 @@ fun AiScreen(
                             canDelete = uiState.activeSessionId != null,
                             showsManagementActions = true,
                             onOpenSessions = { showSessionsSheet = true },
-                            onCreateNewChat = viewModel::startNewConversation,
                             onRefreshChat = viewModel::refreshActiveConversation,
                             onDeleteChat = viewModel::deleteActiveConversation,
                         )
@@ -442,11 +441,6 @@ fun AiScreen(
                             dismissKeyboard()
                             showPromptComposer = false
                         },
-                        onReset = {
-                            viewModel.startNewConversation()
-                            dismissKeyboard()
-                            showPromptComposer = false
-                        },
                     )
                 }
             }
@@ -463,10 +457,6 @@ fun AiScreen(
                     onDismiss = { showSessionsSheet = false },
                     onSelectSession = { sessionId ->
                         viewModel.openConversation(sessionId)
-                        showSessionsSheet = false
-                    },
-                    onCreateNewChat = {
-                        viewModel.startNewConversation()
                         showSessionsSheet = false
                     },
                     onRenameActiveSession = {
@@ -674,7 +664,6 @@ private fun AiPromptComposerSheet(
     onTextModeChange: (AiTextMode) -> Unit,
     onLevelChange: (AiExperienceLevel) -> Unit,
     onSend: () -> Unit,
-    onReset: () -> Unit,
 ) {
     val composerAccent = if (composerMode == AiComposerMode.Visual) {
         MaterialTheme.colorScheme.tertiary
@@ -886,12 +875,7 @@ private fun AiPromptComposerSheet(
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedButton(
-                onClick = onReset,
-                enabled = !botPhase.isBusy,
-            ) {
-                Text(stringResource(R.string.ai_action_new_chat))
-            }
+            Spacer(modifier = Modifier.weight(1f, fill = true))
             BrandActionButton(
                 text = if (composerMode == AiComposerMode.Text) stringResource(R.string.ai_action_send) else stringResource(R.string.ai_action_render),
                 onClick = onSend,

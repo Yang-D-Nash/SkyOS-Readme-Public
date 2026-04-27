@@ -459,7 +459,6 @@ fun AgentScreen(
                         canDelete = uiState.activeSessionId != null,
                         showsManagementActions = true,
                         onOpenSessions = { showSessionsSheet = true },
-                        onCreateNewChat = viewModel::startNewConversation,
                         onRefreshChat = viewModel::refreshActiveConversation,
                         onDeleteChat = viewModel::deleteActiveConversation,
                     )
@@ -521,11 +520,6 @@ fun AgentScreen(
                                 dismissKeyboard()
                                 showPromptComposer = false
                             }
-                        },
-                        onReset = {
-                            viewModel.startNewConversation()
-                            dismissKeyboard()
-                            showPromptComposer = false
                         },
                     )
                 }
@@ -699,10 +693,6 @@ fun AgentScreen(
                     onDismiss = { showSessionsSheet = false },
                     onSelectSession = { sessionId ->
                         viewModel.openConversation(sessionId)
-                        showSessionsSheet = false
-                    },
-                    onCreateNewChat = {
-                        viewModel.startNewConversation()
                         showSessionsSheet = false
                     },
                     onRenameActiveSession = {
@@ -1442,7 +1432,6 @@ private fun AgentPromptComposerSheet(
     onRemoveAttachment: (AgentInputAttachment) -> Unit,
     onClearAttachments: () -> Unit,
     onSend: () -> Unit,
-    onReset: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -1657,12 +1646,7 @@ private fun AgentPromptComposerSheet(
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(
-                onClick = onReset,
-                enabled = !agentPhase.shouldBlockComposerChrome,
-            ) {
-                Text(stringResource(R.string.agent_action_new_chat))
-            }
+            Spacer(modifier = Modifier.weight(1f, fill = true))
             BrandActionButton(
                 text = stringResource(R.string.agent_action_send),
                 onClick = onSend,

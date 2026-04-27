@@ -404,6 +404,9 @@ final class AIScriptHistoryStore: ObservableObject {
         entries remoteEntries: [AIScriptHistoryEntry]
     ) {
         let normalizedUserKey = normalizeUserKey(userKey)
+        let existingSessions = sessions.filter {
+            $0.userKey == normalizedUserKey && $0.source == source
+        }
         let existingEntries = entries.filter {
             $0.userKey == normalizedUserKey && $0.source == source
         }
@@ -450,14 +453,42 @@ final class AIScriptHistoryStore: ObservableObject {
             }
             .sorted { $0.createdAt > $1.createdAt }
 
-        let retainedEntryIDs = Set(normalizedEntries.map { $0.id })
-        let removedEntries = existingEntries.filter { retainedEntryIDs.contains($0.id) == false }
+        // Remote snapshots can arrive before our own `upsertEntry`/`upsertSession` round-trip finishes.
+        // A blind replace would delete the fresh local save; `restoreConversationState` then rebuilds
+        // an empty thread while the row still shows up in the session list — exact symptom: progress, then
+        // “empty chat in history”.
+        let remoteEntryIDSet = Set(normalizedEntries.map { $0.id })
+        let remoteSessionIDSet = Set(normalizedSessions.map { $0.id })
+        let maxLocalOrphanAge: TimeInterval = 20 * 60
+        let localEntryOrphans = existingEntries
+            .filter { !remoteEntryIDSet.contains($0.id) }
+            .filter { $0.createdAt.timeIntervalSinceNow > -maxLocalOrphanAge }
+        let entryOrphanSessionIDSet = Set(
+            localEntryOrphans.compactMap(\.sessionID)
+        )
+        let localSessionOrphans = existingSessions
+            .filter { !remoteSessionIDSet.contains($0.id) }
+            .filter { session in
+                session.updatedAt.timeIntervalSinceNow > -maxLocalOrphanAge ||
+                entryOrphanSessionIDSet.contains(session.id)
+            }
+
+        var mergedEntries = normalizedEntries
+        mergedEntries.append(contentsOf: localEntryOrphans)
+        mergedEntries.sort { $0.createdAt > $1.createdAt }
+
+        var mergedSessions = normalizedSessions
+        mergedSessions.append(contentsOf: localSessionOrphans)
+        mergedSessions.sort { $0.updatedAt > $1.updatedAt }
+
+        let mergedEntryIDs = Set(mergedEntries.map { $0.id })
+        let removedEntries = existingEntries.filter { !mergedEntryIDs.contains($0.id) }
         removeStoredImages(for: removedEntries)
 
         sessions.removeAll { $0.userKey == normalizedUserKey && $0.source == source }
         entries.removeAll { $0.userKey == normalizedUserKey && $0.source == source }
-        sessions.append(contentsOf: normalizedSessions)
-        entries.append(contentsOf: normalizedEntries)
+        sessions.append(contentsOf: mergedSessions)
+        entries.append(contentsOf: mergedEntries)
         sessions.sort { $0.updatedAt > $1.updatedAt }
         entries.sort { $0.createdAt > $1.createdAt }
         persistSessions()

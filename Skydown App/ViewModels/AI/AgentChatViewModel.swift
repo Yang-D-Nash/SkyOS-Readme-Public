@@ -309,6 +309,9 @@ final class AgentChatViewModel: ObservableObject {
         if NetworkStatusMonitor.shared.isOnline {
             startPendingRetryIfNeeded()
         }
+        if normalizedUserID != nil {
+            startNewConversation()
+        }
     }
 
     func sendDraft(attachmentURLs: [URL] = []) {

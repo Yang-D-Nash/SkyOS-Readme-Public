@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
@@ -46,7 +45,6 @@ fun AiConversationSessionStrip(
     canDelete: Boolean = false,
     showsManagementActions: Boolean = false,
     onOpenSessions: () -> Unit,
-    onCreateNewChat: () -> Unit,
     onRefreshChat: () -> Unit = {},
     onDeleteChat: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -101,16 +99,6 @@ fun AiConversationSessionStrip(
                 )
             }
         }
-        FilledIconButton(
-            onClick = onCreateNewChat,
-            enabled = enabled,
-            modifier = Modifier.size(46.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = stringResource(R.string.ai_action_new_chat),
-            )
-        }
         if (showsManagementActions) {
             FilledIconButton(
                 onClick = onDeleteChat,
@@ -138,7 +126,6 @@ fun AiConversationSessionsSheet(
     onRenameDraftChanged: (String) -> Unit,
     onDismiss: () -> Unit,
     onSelectSession: (String) -> Unit,
-    onCreateNewChat: () -> Unit,
     onRenameActiveSession: () -> Unit,
     onDeleteActiveSession: () -> Unit,
 ) {
@@ -162,15 +149,6 @@ fun AiConversationSessionsSheet(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 )
-            }
-
-            OutlinedButton(
-                onClick = onCreateNewChat,
-                enabled = enabled,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(SkydownUiTokens.sheetHeroRadius),
-            ) {
-                Text(stringResource(R.string.ai_action_new_chat))
             }
 
             if (activeSession != null) {

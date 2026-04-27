@@ -87,10 +87,6 @@ struct AgentView: View {
                 },
                 onRemoveAttachment: removeAttachment,
                 onClearAttachments: { inputAttachments.removeAll() },
-                onCreateNewChat: {
-                    viewModel.startNewConversation()
-                    showingPromptComposer = false
-                },
                 onSend: {
                     let urls = inputAttachments.compactMap { URL(string: $0.id) }
                     viewModel.sendDraft(attachmentURLs: urls)
@@ -110,10 +106,6 @@ struct AgentView: View {
                 activeSessionID: viewModel.activeSessionID,
                 isBusy: viewModel.phase.shouldBlockComposerChrome,
                 renameDraft: $renameDraft,
-                onCreateNewChat: {
-                    viewModel.startNewConversation()
-                    showingConversationSessions = false
-                },
                 onSelectSession: { sessionID in
                     viewModel.openConversation(sessionID)
                     showingConversationSessions = false
@@ -403,7 +395,6 @@ struct AgentView: View {
             canDelete: viewModel.activeSessionID != nil,
             showsManagementActions: true,
             onOpenSessions: { showingConversationSessions = true },
-            onCreateNewChat: viewModel.startNewConversation,
             onRefreshChat: viewModel.refreshActiveConversation,
             onDeleteChat: { showingDeleteConversationDialog = true }
         )
@@ -1450,7 +1441,6 @@ private struct AgentPromptComposerSheet: View {
     let onAddFiles: () -> Void
     let onRemoveAttachment: (AgentInputAttachment) -> Void
     let onClearAttachments: () -> Void
-    let onCreateNewChat: () -> Void
     let onSend: () -> Void
     @FocusState private var isFocused: Bool
 
@@ -1458,217 +1448,237 @@ private struct AgentPromptComposerSheet: View {
         draft.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var agentAccent: Color {
+        AppColors.accentMystic(for: colorScheme)
+    }
+
+    private var agentAutomationScopeChoices: [AgentAutomationScope] {
+        AgentAutomationScope.allCases.filter { scope in
+            scope != .owner || canUseGlobalOwnerAutomationFlow
+        }
+    }
+
+    @ViewBuilder
+    private var agentSettingsDropdownRows: some View {
+        HStack(alignment: .center) {
+            Text("Modus")
+                .font(.subheadline)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            Spacer(minLength: 12)
+            Picker("Modus", selection: $selectedMode) {
+                ForEach(AgentExecutionMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .tint(agentAccent)
+            .disabled(interactionPhase.shouldBlockComposerChrome)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+
+        if canTriggerAutomation {
+            Divider()
+                .padding(.leading, 8)
+            HStack(alignment: .center) {
+                Text("Bereich")
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                Spacer(minLength: 12)
+                Picker("Bereich", selection: $selectedAutomationScope) {
+                    ForEach(agentAutomationScopeChoices) { scope in
+                        Text(scope.title).tag(scope)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .tint(agentAccent)
+                .disabled(interactionPhase.shouldBlockComposerChrome)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+                .padding(.leading, 8)
+            Toggle(isOn: $shouldTriggerAutomation) {
+                Text("Workflow")
+                    .font(.subheadline)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+            }
+            .tint(agentAccent)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .disabled(interactionPhase.shouldBlockComposerChrome)
+            .accessibilityLabel(shouldTriggerAutomation ? "Workflow aktiv" : "Workflow starten")
+        }
+    }
+
     var body: some View {
         ScrollView {
-        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-            AgentAccessibilityMarker(
-                identifier: "agent.prompt.sheet",
-                label: "Agent prompt composer"
-            )
-
-            HStack(alignment: .center, spacing: SkydownLayout.stackSpacingCompact) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
-                        .fill(AppColors.accentMystic(for: colorScheme).opacity(0.14))
-                    Image(systemName: "wand.and.stars")
-                        .font(.headline.weight(.black))
-                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                }
-                .frame(width: 48, height: 48)
-
-                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
-                    Text("Neue Agent-Anfrage")
-                        .font(.title3.weight(.black))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                    Text("Modus, Workflow und Prompt in einem ruhigen Flow.")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-
-                Spacer(minLength: 0)
-
-                AgentStatusChip(
-                    text: selectedMode.title,
-                    accent: AppColors.accentMystic(for: colorScheme),
-                    colorScheme: colorScheme
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
+                AgentAccessibilityMarker(
+                    identifier: "agent.prompt.sheet",
+                    label: "Agent prompt composer"
                 )
 
-                Button(action: onDismiss) {
-                    Image(systemName: "xmark")
-                        .font(.caption.weight(.black))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .frame(width: 36, height: 36)
-                        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.9))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .skydownTactileAction()
-                .accessibilityLabel("Prompt schliessen")
-            }
+                PremiumPromptSheetHeader(
+                    iconSystemName: "wand.and.stars",
+                    title: "Agent",
+                    subtitle: "Dropdowns fuer Modus & Co. — ein Senden reicht.",
+                    accent: agentAccent,
+                    colorScheme: colorScheme,
+                    onDismiss: onDismiss
+                )
 
-            if let status = interactionPhase.composerStatusLabel {
-                Text(status)
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
-            }
-
-            Text("Optionen")
-                .font(.caption2.weight(.black))
-                .foregroundColor(AppColors.accentMystic(for: colorScheme))
-
-            HStack(spacing: SkydownLayout.stackSpacingPill) {
-                Menu {
-                    ForEach(AgentExecutionMode.allCases) { mode in
-                        Button(mode.title) { selectedMode = mode }
-                    }
-                } label: {
-                    Label(selectedMode.title, systemImage: "slider.horizontal.3")
-                        .font(.caption.weight(.bold))
-                }
-                .disabled(interactionPhase.shouldBlockComposerChrome)
-
-                if canTriggerAutomation {
-                    Menu {
-                        ForEach(
-                            AgentAutomationScope.allCases.filter { scope in
-                                scope != .owner || canUseGlobalOwnerAutomationFlow
-                            }
-                        ) { scope in
-                            Button(scope.title) { selectedAutomationScope = scope }
-                        }
-                    } label: {
-                        Label(selectedAutomationScope.title, systemImage: "point.3.connected.trianglepath.dotted")
-                            .font(.caption.weight(.bold))
-                    }
-                    .disabled(interactionPhase.shouldBlockComposerChrome)
-
-                    Button { shouldTriggerAutomation.toggle() } label: {
-                        HStack(spacing: SkydownLayout.stackSpacingChrome) {
-                            Image(systemName: shouldTriggerAutomation ? "play.circle.fill" : "play.circle")
-                                .font(.subheadline.weight(.black))
-                            Text(shouldTriggerAutomation ? "Workflow aktiv" : "Workflow")
-                                .font(.caption.weight(.bold))
-                                .lineLimit(1)
-                        }
-                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 8)
+                if let status = interactionPhase.composerStatusLabel {
+                    Text(status)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(agentAccent)
+                        .padding(SkydownLayout.compactRadius)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
-                            Capsule(style: .continuous)
-                                .fill(AppColors.accentMystic(for: colorScheme).opacity(shouldTriggerAutomation ? 0.16 : 0.09))
+                            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                                .fill(agentAccent.opacity(0.1))
                         )
-                        .overlay(
-                            Capsule(style: .continuous)
-                                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                    .disabled(interactionPhase.shouldBlockComposerChrome)
-                    .accessibilityLabel(shouldTriggerAutomation ? "Workflow aktiv" : "Workflow starten")
                 }
-            }
 
-            AgentQuickPromptCard(
-                colorScheme: colorScheme,
-                prompts: quickPrompts,
-                onPromptSelected: { prompt in
-                    draft = prompt
-                }
-            )
-
-            Text("Prompt")
-                .font(.caption2.weight(.black))
-                .foregroundColor(AppColors.accentMystic(for: colorScheme))
-
-            TextField(selectedMode.placeholder, text: $draft, axis: .vertical)
-                .accessibilityIdentifier("agent.prompt.draft")
-                .lineLimit(4...8)
-                .focused($isFocused)
-                .submitLabel(.send)
-                .onSubmit {
-                    if !trimmedDraft.isEmpty && !interactionPhase.shouldBlockSend {
-                        onSend()
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                    PremiumPromptSectionHeader(
+                        title: "Einstellungen",
+                        footnote: "Alles in einer Zeile pro Option — schnell erfassbar.",
+                        accent: agentAccent,
+                        colorScheme: colorScheme
+                    )
+                    PremiumPromptSettingsDropdownCard(
+                        colorScheme: colorScheme,
+                        emphasisAccent: agentAccent
+                    ) {
+                        agentSettingsDropdownRows
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
-                .foregroundColor(AppColors.text(for: colorScheme))
 
-            HStack(spacing: SkydownLayout.stackSpacingPill) {
-                Button(action: onAddFiles) {
-                    Image(systemName: "paperclip")
-                        .font(.subheadline.weight(.bold))
-                        .frame(width: 34, height: 34)
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                    PremiumPromptSectionHeader(
+                        title: "Ideen",
+                        footnote: "Einstiegstexte anpassen und weiterschreiben.",
+                        accent: agentAccent,
+                        colorScheme: colorScheme
+                    )
+                    AgentQuickPromptCard(
+                        colorScheme: colorScheme,
+                        showsInlineHeading: false,
+                        prompts: quickPrompts,
+                        onPromptSelected: { prompt in
+                            draft = prompt
+                        }
+                    )
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Dateien hinzufuegen")
 
-                Text(attachments.isEmpty ? "Keine Dateien" : "\(attachments.count) Datei(en)")
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            }
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                    PremiumPromptSectionHeader(
+                        title: "Eingabe",
+                        footnote: "Aufgabe, Erwartung, ggf. Links. Ein fester Satz reicht oft.",
+                        accent: agentAccent,
+                        colorScheme: colorScheme
+                    )
+                    PremiumPromptCard(colorScheme: colorScheme) {
+                        TextField(selectedMode.placeholder, text: $draft, axis: .vertical)
+                            .accessibilityIdentifier("agent.prompt.draft")
+                            .lineLimit(4...9)
+                            .focused($isFocused)
+                            .submitLabel(.send)
+                            .onSubmit {
+                                if !trimmedDraft.isEmpty && !interactionPhase.shouldBlockSend {
+                                    onSend()
+                                }
+                            }
+                            .font(.body)
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                    }
+                }
 
-            if !attachments.isEmpty {
-                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                    ForEach(attachments) { attachment in
-                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                            Image(systemName: attachment.kind.iconName)
-                                .font(.caption.weight(.bold))
-                                .foregroundColor(AppColors.accent(for: colorScheme))
-                            Text(attachment.name)
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(AppColors.text(for: colorScheme))
-                                .lineLimit(1)
-                            Spacer(minLength: 0)
-                            Button { onRemoveAttachment(attachment) } label: {
-                                Image(systemName: "xmark")
-                                    .font(.caption2.weight(.bold))
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                    PremiumPromptSectionHeader(
+                        title: "Anhaenge",
+                        footnote: "Optional. Referenzen, PDFs, Bilder.",
+                        accent: agentAccent,
+                        colorScheme: colorScheme
+                    )
+                    PremiumPromptCard(colorScheme: colorScheme) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
+                            Button(action: onAddFiles) {
+                                HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                                    Image(systemName: "paperclip")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("Hinzufuegen")
+                                        .font(.subheadline.weight(.semibold))
+                                }
+                                .foregroundColor(agentAccent)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous)
+                                        .fill(agentAccent.opacity(0.12))
+                                )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel("Dateien hinzufuegen")
+
+                            Text(attachments.isEmpty ? "Keine Datei" : "\(attachments.count) Anhang")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.78))
-                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
+
+                        if !attachments.isEmpty {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                                ForEach(attachments) { attachment in
+                                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                                        Image(systemName: attachment.kind.iconName)
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundColor(AppColors.accent(for: colorScheme))
+                                        Text(attachment.name)
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundColor(AppColors.text(for: colorScheme))
+                                            .lineLimit(1)
+                                        Spacer(minLength: 0)
+                                        Button { onRemoveAttachment(attachment) } label: {
+                                            Image(systemName: "xmark")
+                                                .font(.caption2.weight(.bold))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                Button("Alle entfernen", action: onClearAttachments)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(AppColors.accent(for: colorScheme))
+                            }
+                            .padding(.top, 8)
+                        }
                     }
-
-                    Button("Alle entfernen", action: onClearAttachments)
-                        .font(.caption.weight(.bold))
-                        .foregroundColor(AppColors.accent(for: colorScheme))
                 }
-            }
 
-            HStack(spacing: SkydownLayout.stackSpacingPill) {
-                Spacer(minLength: 0)
-                Button("Neuer Chat", action: onCreateNewChat)
-                    .font(.caption.weight(.bold))
-                    .disabled(interactionPhase.shouldBlockComposerChrome)
-
-                Button(action: onSend) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.title2.weight(.black))
-                        .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                        .background(AppColors.accentMystic(for: colorScheme))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .disabled(trimmedDraft.isEmpty || interactionPhase.shouldBlockSend)
-                .opacity(trimmedDraft.isEmpty || interactionPhase.shouldBlockSend ? 0.55 : 1)
+                PremiumPromptPrimaryButton(
+                    title: "Senden",
+                    systemImage: "arrow.up.circle.fill",
+                    accent: agentAccent,
+                    colorScheme: colorScheme,
+                    isEnabled: !trimmedDraft.isEmpty && !interactionPhase.shouldBlockSend,
+                    action: onSend
+                )
                 .accessibilityLabel("Prompt senden")
                 .accessibilityIdentifier("agent.prompt.send")
             }
+            .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+            .padding(.top, 10)
+            .padding(.bottom, 28)
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 18)
-        .padding(.bottom, 22)
-        .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
-        }
+        .background(
+            AppColors.primaryBackground(for: colorScheme)
+                .ignoresSafeArea()
+        )
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
                 isFocused = true
             }
         }
@@ -1677,21 +1687,24 @@ private struct AgentPromptComposerSheet: View {
 
 private struct AgentQuickPromptCard: View {
     let colorScheme: ColorScheme
+    var showsInlineHeading: Bool = true
     let prompts: [String]
     let onPromptSelected: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-            HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                AgentStatusChip(
-                    text: "Prompts",
-                    accent: AppColors.accentMystic(for: colorScheme),
-                    colorScheme: colorScheme
-                )
+            if showsInlineHeading {
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                    AgentStatusChip(
+                        text: "Prompts",
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme
+                    )
 
-                Text("Schnelle Starts")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundColor(AppColors.text(for: colorScheme))
+                    Text("Schnelle Starts")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                }
             }
 
             ScrollView(.horizontal, showsIndicators: false) {

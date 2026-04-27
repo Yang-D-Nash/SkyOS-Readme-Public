@@ -104,6 +104,10 @@ class AiViewModel : ViewModel() {
                     restoreHistory()
                     hydrateRemoteHistoryIfNeeded(currentSessionId)
                     startRemoteHistoryObservation()
+                    // After app relaunch (new process) or account switch: empty composer; past threads stay in the history sheet.
+                    if (!userId.isNullOrBlank()) {
+                        startNewConversation()
+                    }
                 } else {
                     refreshSessionState()
                     pruneRemoteHistoryIfNeeded()

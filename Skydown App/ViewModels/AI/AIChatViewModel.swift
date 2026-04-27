@@ -350,6 +350,9 @@ final class AIChatViewModel: ObservableObject {
         restoreConversationState()
         hydrateRemoteHistoryIfNeeded(preferredSessionID: currentSessionID)
         startRemoteHistoryObservation()
+        if normalizedUserID != nil {
+            startNewConversation()
+        }
     }
 
     func sendDraft() {
