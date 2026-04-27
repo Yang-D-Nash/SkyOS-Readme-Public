@@ -8,6 +8,8 @@ Dieses Blueprint-Dokument ist auf die aktuelle SkyOS-Implementierung abgestimmt 
 
 Ein zentraler Activepieces-Master-Workflow soll **alle sinnvollen Agent-Automation-Requests** verarbeiten, robust routen und in einem einheitlichen SkyOS-Response-Format antworten.
 
+**Produktpragmatik:** Fuer den typischen Fall „User-Eingabe → sofort Antwort in der App“ reicht **dieser eine** synchrone Webhook-Flow (Return Response, `/sync`-URL). Zusaetzliche Flows fuer [Task/Note/Reminder-HTTP-API](../workflow-http-api-activepieces.md) oder [Run-Status-Callbacks](agent-run-callback-playbook.md) sind **optional** (zusaetzliche Daten in Firebase bzw. lange Laeufe).
+
 Architektur:
 
 `Webhook In -> Validate -> Intent Detection -> Router -> Action Subflows -> Callback Status Updates -> Response Composer -> Webhook Out`

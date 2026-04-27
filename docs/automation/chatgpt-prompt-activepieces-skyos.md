@@ -9,39 +9,29 @@ Den **Kasten unten** komplett in ChatGPT einfügen (Sprache des Modells egal). A
 ```
 Du bist ein Experte für Activepieces (cloud.activepieces.com) und für API-Integrationen.
 
-Kontext SkyOS:
-- Die App ruft NICHT selbst Activepieces auf. Das Firebase-Backend (Callable skydownAgent) sendet bei aktivierter Automation einen HTTP POST an eine konfigurierte Webhook-URL mit JSON-Body (Agent-Automation).
-- Der Webhook muss dem Client im GLEICHEN Request antworten (synchrone Ausführung): Dafür in Activepieces die Webhook-URL mit Suffix /sync verwenden (wie in der AP-Doku „Synchronous Requests“), sofern die Plattform das so anzeigt. Im Return-Response-Schritt JSON zurückgeben.
-- Die Antwort-JSON muss zum „Agent Results Contract“ passen: mindestens message, workflowStatus (queued|running|completed|failed), optional results[] mit erlaubten types (text, workflow, link, file, image, video, audio, table, html). Nur https-Links. Max. ca. 12 Result-Einträge.
-- Eingehendes JSON (vereinfacht) enthält u.a.: requestId, trigger (z.B. agent_release), data.mode (release|briefing|content|merch|automation), data.prompt, data.reply, data.history, optional data.user aus user-Objekt, knowledgeContext.
+Kontext SkyOS (WICHTIG – Priorität):
+- Für „User gibt Text/Datei ein und erwartet sofort Antwort in der App“ reicht EIN synchroner Master-Flow. Ablauf: User → Firebase Callable skydownAgent → HTTP POST JSON an Activepieces Webhook-URL mit /sync → Activepieces: Return Response mit JSON → App zeigt Output.
+- Die App ruft Activepieces nicht direkt an; nur das Backend sendet an den Webhook.
+- Eingehend: u.a. data.prompt, data.reply, data.history, knowledgeContext, ggf. data.attachments (Metadaten; keine echten Dateibytes in AP außer SkyOS liefert sinnvoll im JSON). Ausgehend: message, workflowStatus, results[] gemäß Agent-Results-Contract. Für type "text" Feld "text" (oder message/summary/description) — nicht "content". file/link nur mit https-URLs.
+- Mindestens 80% deiner Antwort: Flow (1) „SkyOS – Agent Webhook (Master)“.
 
 Aufgabe:
-Erstelle mir genau DREI getrennte Activepieces-Workflow-Konzepte als klare Schritt-für-Schritt-Bauanleitungen (Trigger → Aktionen → Publish), jeweils mit sinnvollem deutschen/englischen Anzeigenamen:
 
-(1) „SkyOS – Agent Webhook (Master)“
-   - Trigger: Webhook / Catch Webhook, Auth None (sofern kein Header-Abgleich nötig).
-   - Optional: Code-Schritt, der requestId und data.mode aus dem Body liest und validiert.
-   - Router oder Verzweigung nach data.mode mit kurzen Beispiel-Antworttexten (ohne externe APIs).
-   - Abschluss: Aktion „Return Response“ (Webhook-Piece) mit Beispiel-JSON-Body, der den Contract erfüllt.
-   - Kurz erklären, welche URL-Teile in SkyOS als baseURL bzw. webhookPath einzutragen sind (nur der Pfad inkl. /sync, exakt aus der AP-UI kopieren).
+(Schwerpunkt) (1) „SkyOS – Agent Webhook (Master)“
+   - Trigger: Catch Webhook, Auth None, synchrone /sync-URL.
+   - Optional: Code/Router nach data.mode; Input aus trigger body.
+   - Abschluss: Return Response mit vollständigem Beispiel-JSON inkl. message, workflowStatus completed, results mit text- und file-Eintrag (https-Beispiel-URL).
+   - Erkläre baseURL vs. webhookPath für SkyOS-Admin.
+   - Kurz: Activepieces verarbeitet Anhänge nur über im JSON mitgelieferte Infos, nicht magisch.
 
-(2) „SkyOS – Run-Status Callbacks (optional)“
-   - Für längere Läufe: HTTP-Request(s) an POST https://us-central1-<PROJECT_ID>.cloudfunctions.net/agentRunStatusCallback
-   - Header: Content-Type application/json, x-skyos-run-callback-secret: <PLATZHALTER>
-   - Body-Felder: mindestens requestId, state (queued|running|completed|failed), optional uid, runId, message, provider activepieces
-   - Erkläre, dass PROJECT_ID und Secret aus dem eigenen Firebase-Projekt stammen (Platzhalter lassen).
+(Kurz, optional) (2) Run-Status Callbacks — NUR für lange asynchrone Jobs, nicht für direkte Eine-Antwort: HTTP POST an https://us-central1-<PROJECT_ID>.cloudfunctions.net/agentRunStatusCallback, Header x-skyos-run-callback-secret, Body mit requestId/state, PLATZHALTER.
 
-(3) „SkyOS – Workflow HTTP (Task-Beispiel)“
-   - GETRENNT von der Agent-Automation: Server-zu-Server POST an https://us-central1-<PROJECT_ID>.cloudfunctions.net/createTaskFromWorkflow
-   - Header: x-skyos-workflow-secret: <PLATZHALTER>, Content-Type application/json
-   - Beispiel-Body mit uid, title, source activepieces, requestId
-   - Hinweis: Das ist die Task/Note/Reminder-API, nicht der Agent-Webhook.
+(Kurz, optional) (3) Workflow HTTP Task-Beispiel — NUR wenn ZUSÄTZLICH ein Task in Firebase aus demselben Szenario angelegt werden soll: createTaskFromWorkflow, Header x-skyos-workflow-secret, PLATZHALTER — nicht derselbe Weg wie Agent-Webhook.
 
 Lieferform:
-- Pro Flow: nummerierte Schritte für die Activepieces-UI, welches Piece, welche Felder.
-- Pro Flow: ein validierbares Beispiel-JSON für Return Response bzw. Request-Body.
-- Eine kurze Checkliste „Nach dem Publish in SkyOS testen“.
-- Keine erfundenen Geheimnisse: überall PLATZHALTER für Secrets und PROJECT_ID.
+- Detailliert nummeriert nur für (1). Für (2)(3) je 5–8 Sätze.
+- Checkliste „Publish & SkyOS testen“.
+- Keine erfundenen Secrets: PROJECT_ID und Geheimnisse als PLATZHALTER.
 ```
 
 ---
