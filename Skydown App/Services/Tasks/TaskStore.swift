@@ -117,6 +117,7 @@ final class TaskStore: ObservableObject {
                 "description": normalizedDetails,
                 "status": TaskStatus.open.rawValue,
                 "priority": TaskPriority.medium.rawValue,
+                "source": "manual",
                 "createdAt": FieldValue.serverTimestamp(),
                 "updatedAt": FieldValue.serverTimestamp()
             ])

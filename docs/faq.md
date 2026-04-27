@@ -40,9 +40,9 @@ Yes, depending on the active feature path. SkyOS can use Firebase-backed AI exec
 route optional work through configured external systems such as Activepieces, `n8n`, or Manus BYOS.
 Those integrations should be transparent and governed by account scope and runtime rules.
 
-## Which workflow use case is fully live today?
+## Which workflow use cases are live today?
 
-Reminder is currently the strongest end-to-end workflow use case in SkyOS.
+Reminder, Tasks, and Notes are live in SkyOS.
 
 If a user says, "Remind me tomorrow at 9 about the dentist", the flow can run through
 Activepieces, create the reminder in Firebase, and trigger scheduled due-reminder processing
@@ -50,9 +50,10 @@ that delivers push notifications on iPhone and Android.
 
 Current status:
 
-- Fully active: Reminder plus automatic push delivery
-- In progress: Tasks (stored, but not yet full reminder automation)
-- In progress: Notes (stored, app-side experience still expanding)
+- Live: Reminder plus automatic push delivery
+- Live: Tasks for app capture, storage, management, and Activepieces creation
+- Live: Notes for app capture, storage, management, and Activepieces creation
+- Coming next: longer-lived profile memory and deeper follow-up automations
 
 ## Should I paste sensitive information into prompts?
 

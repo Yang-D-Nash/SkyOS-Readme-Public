@@ -67,14 +67,17 @@ final class NoteStore: ObservableObject {
 
     func update(noteID: String, title: String, content: String) async throws {
         guard let uid = observedUID, !uid.isEmpty else { return }
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        let safeTitle = normalizedTitle.isEmpty ? "Untitled" : normalizedTitle
         try await firestore
             .collection("users")
             .document(uid)
             .collection("notes")
             .document(noteID)
             .setData([
-                "title": title.trimmingCharacters(in: .whitespacesAndNewlines),
-                "content": content.trimmingCharacters(in: .whitespacesAndNewlines),
+                "title": safeTitle,
+                "content": normalizedContent,
                 "updatedAt": FieldValue.serverTimestamp()
             ], merge: true)
     }
@@ -94,14 +97,16 @@ final class NoteStore: ObservableObject {
         let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedTitle.isEmpty || !normalizedContent.isEmpty else { return }
+        let safeTitle = normalizedTitle.isEmpty ? "Untitled" : normalizedTitle
 
         try await firestore
             .collection("users")
             .document(uid)
             .collection("notes")
             .addDocument(data: [
-                "title": normalizedTitle,
+                "title": safeTitle,
                 "content": normalizedContent,
+                "source": "manual",
                 "createdAt": FieldValue.serverTimestamp(),
                 "updatedAt": FieldValue.serverTimestamp()
             ])

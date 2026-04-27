@@ -18,20 +18,23 @@ how it is operated without reverse-engineering the repository.
 - [ci.md](ci.md) - CI jobs, path filters, quality gates, and trigger behavior
 - [release-checklist.md](release-checklist.md) - release readiness gate across product, legal, analytics, and trust
 - [branding.md](branding.md) - product naming, voice, assets, and copy rules
+- [workflow-http-api-activepieces.md](workflow-http-api-activepieces.md) - Activepieces HTTP setup for Reminder, Task, and Note creation
 - [faq.md](faq.md) - user-facing operational answers and support guidance
 - [store/README.md](store/README.md) - App Store and Google Play presence, screenshots, and review prep
 
 ## Current Release Entry
 
-As of 2026-04-27, SkyOS is documented as a `1.0.0` release candidate with passing local code gates
-and generated iPad/Google Play asset exports, but public rollout remains blocked until the
-store-console, legal, URL, asset upload/mapping, and real-device smoke items in the release runbook
-are closed.
+As of 2026-04-27, SkyOS is documented as a `1.0.0` release candidate for the productivity
+automation launch. Reminder + Push, Tasks, Notes, and Activepieces creation endpoints are the live
+workflow surface; longer-lived memory and deeper follow-up automations remain coming next. Public
+store rollout still depends on store-console, legal, URL, asset upload/mapping, and real-device
+smoke items outside the repo.
 
 - [release/store-upload-runbook.md](release/store-upload-runbook.md) - current build identity, upload state, blockers, hashes, and next console clicks
 - [release-checklist.md](release-checklist.md) - generic go/no-go checklist for every release candidate
 - [../manual-test-checklist.md](../manual-test-checklist.md) - role and platform smoke matrix for manual release validation
 - [beta-distribution.md](beta-distribution.md) - external tester access path and 5-minute feedback script
+- [workflow-http-api-activepieces.md](workflow-http-api-activepieces.md) - server-side HTTP workflow API and secret header contract
 
 ## Legal And Trust
 

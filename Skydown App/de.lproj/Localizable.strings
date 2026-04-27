@@ -227,8 +227,8 @@
 "settings.agent_service.manage" = "Agent-Service verwalten";
 "settings.workflow_status.title" = "Workflow-Status";
 "settings.workflow_status.reminder" = "Reminder + Push: voll aktiv";
-"settings.workflow_status.tasks" = "Tasks: in Ausbau (gespeichert, Automation wird erweitert)";
-"settings.workflow_status.notes" = "Notes: in Ausbau (gespeichert, App-UX wird erweitert)";
+"settings.workflow_status.tasks" = "Tasks: live fuer Erfassung und Verwaltung";
+"settings.workflow_status.notes" = "Notes: live fuer Erfassung und Verwaltung";
 "tasks.title" = "Aufgaben";
 "tasks.empty" = "Noch keine Aufgaben";
 "tasks.completed" = "Aufgabe erledigt";

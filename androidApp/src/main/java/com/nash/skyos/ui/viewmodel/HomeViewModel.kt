@@ -10,6 +10,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.nash.skyos.data.ExternalMediaProvider
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.ui.model.FeaturedVideoHighlight
@@ -29,6 +30,7 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.tasks.await
 import java.util.Calendar
 import java.util.Date
+import java.util.TimeZone
 
 class HomeViewModel(
     application: Application
@@ -111,7 +113,10 @@ class HomeViewModel(
                     .add(
                         mapOf(
                             "title" to normalizedTitle,
-                            "dueAt" to Timestamp(dueAt),
+                            "scheduledAt" to Timestamp(dueAt),
+                            "timezone" to TimeZone.getDefault().id,
+                            "status" to "scheduled",
+                            "source" to "manual",
                             "createdAt" to FieldValue.serverTimestamp(),
                             "updatedAt" to FieldValue.serverTimestamp(),
                         ),
@@ -133,7 +138,8 @@ class HomeViewModel(
                             "title" to normalizedTitle,
                             "description" to description.trim(),
                             "status" to "open",
-                            "priority" to "medium",
+                            "priority" to "normal",
+                            "source" to "manual",
                             "createdAt" to FieldValue.serverTimestamp(),
                             "updatedAt" to FieldValue.serverTimestamp(),
                         ),
@@ -148,13 +154,15 @@ class HomeViewModel(
         val normalizedTitle = title.trim()
         val normalizedContent = content.trim()
         if (normalizedTitle.isBlank() && normalizedContent.isBlank()) return
+        val safeTitle = normalizedTitle.ifBlank { "Untitled" }
         viewModelScope.launch {
             runCatching {
                 firestore.collection("users").document(uid).collection("notes")
                     .add(
                         mapOf(
-                            "title" to normalizedTitle,
+                            "title" to safeTitle,
                             "content" to normalizedContent,
+                            "source" to "manual",
                             "createdAt" to FieldValue.serverTimestamp(),
                             "updatedAt" to FieldValue.serverTimestamp(),
                         ),
@@ -177,6 +185,7 @@ class HomeViewModel(
                             "title" to normalizedTitle,
                             "updatedAt" to FieldValue.serverTimestamp(),
                         ),
+                        SetOptions.merge(),
                     ).await()
             }
             refresh()
@@ -209,6 +218,7 @@ class HomeViewModel(
                             "title" to normalizedTitle,
                             "updatedAt" to FieldValue.serverTimestamp(),
                         ),
+                        SetOptions.merge(),
                     ).await()
             }
             refresh()
@@ -241,6 +251,7 @@ class HomeViewModel(
                             "title" to normalizedTitle,
                             "updatedAt" to FieldValue.serverTimestamp(),
                         ),
+                        SetOptions.merge(),
                     ).await()
             }
             refresh()

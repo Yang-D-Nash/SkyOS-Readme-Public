@@ -61,11 +61,14 @@ class NoteRepository(
     }
 
     suspend fun updateNote(uid: String, noteId: String, title: String, content: String) {
+        val normalizedTitle = title.trim()
+        val normalizedContent = content.trim()
+        val safeTitle = normalizedTitle.ifBlank { "Untitled" }
         firestore.collection("users").document(uid).collection("notes").document(noteId)
             .set(
                 mapOf(
-                    "title" to title.trim(),
-                    "content" to content.trim(),
+                    "title" to safeTitle,
+                    "content" to normalizedContent,
                     "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
                 ),
                 SetOptions.merge(),
@@ -81,13 +84,15 @@ class NoteRepository(
         val normalizedTitle = title.trim()
         val normalizedContent = content.trim()
         if (normalizedTitle.isBlank() && normalizedContent.isBlank()) return
+        val safeTitle = normalizedTitle.ifBlank { "Untitled" }
 
         firestore.collection("users").document(uid).collection("notes")
             .document()
             .set(
                 mapOf(
-                    "title" to normalizedTitle,
+                    "title" to safeTitle,
                     "content" to normalizedContent,
+                    "source" to "manual",
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp(),
                 ),

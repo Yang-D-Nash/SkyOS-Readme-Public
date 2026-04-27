@@ -3,7 +3,7 @@ import FirebaseFirestore
 
 enum TaskPriority: String, CaseIterable {
     case low
-    case medium
+    case medium = "normal"
     case high
 
     var localizedLabel: String {

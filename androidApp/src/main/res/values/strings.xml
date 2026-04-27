@@ -92,8 +92,8 @@
     <string name="settings_notifications_toast_manage_in_settings">Manage notifications directly in system settings.</string>
     <string name="settings_workflow_status_title">Workflow status</string>
     <string name="settings_workflow_status_reminder">Reminder + Push: fully active</string>
-    <string name="settings_workflow_status_tasks">Tasks: in progress (stored, automation expanding)</string>
-    <string name="settings_workflow_status_notes">Notes: in progress (stored, app UX expanding)</string>
+    <string name="settings_workflow_status_tasks">Tasks: live for capture and management</string>
+    <string name="settings_workflow_status_notes">Notes: live for capture and management</string>
 
     <string name="settings_legal_section_title">Privacy / Legal / Help</string>
     <string name="settings_legal_section_subtitle">Legal, help and trust in one clear sequence.</string>

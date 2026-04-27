@@ -1456,10 +1456,10 @@ struct SettingsView: View {
                     Text(AppLocalized.text("settings.workflow_status.reminder", fallback: "Reminder + Push: fully active"))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-                    Text(AppLocalized.text("settings.workflow_status.tasks", fallback: "Tasks: in progress (stored, automation expanding)"))
+                    Text(AppLocalized.text("settings.workflow_status.tasks", fallback: "Tasks: live for capture and management"))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-                    Text(AppLocalized.text("settings.workflow_status.notes", fallback: "Notes: in progress (stored, app UX expanding)"))
+                    Text(AppLocalized.text("settings.workflow_status.notes", fallback: "Notes: live for capture and management"))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                 }

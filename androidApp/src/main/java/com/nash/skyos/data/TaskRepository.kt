@@ -19,11 +19,15 @@ enum class TaskStatus(val rawValue: String) {
 
 enum class TaskPriority(val rawValue: String) {
     Low("low"),
-    Medium("medium"),
+    Medium("normal"),
     High("high");
 
     companion object {
-        fun resolve(raw: String?): TaskPriority = entries.firstOrNull { it.rawValue == raw?.trim()?.lowercase() } ?: Medium
+        fun resolve(raw: String?): TaskPriority {
+            val normalized = raw?.trim()?.lowercase()
+            if (normalized == "medium") return Medium
+            return entries.firstOrNull { it.rawValue == normalized } ?: Medium
+        }
     }
 }
 
@@ -112,6 +116,7 @@ class TaskRepository(
                     "description" to normalizedDescription,
                     "status" to TaskStatus.Open.rawValue,
                     "priority" to TaskPriority.Medium.rawValue,
+                    "source" to "manual",
                     "createdAt" to FieldValue.serverTimestamp(),
                     "updatedAt" to FieldValue.serverTimestamp(),
                 ),

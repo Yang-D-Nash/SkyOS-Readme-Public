@@ -88,8 +88,8 @@
     <string name="settings_notifications_toast_manage_in_settings">Benachrichtigungen verwaltest du in den Systemeinstellungen.</string>
     <string name="settings_workflow_status_title">Workflow-Status</string>
     <string name="settings_workflow_status_reminder">Reminder + Push: voll aktiv</string>
-    <string name="settings_workflow_status_tasks">Tasks: in Ausbau (gespeichert, Automation wird erweitert)</string>
-    <string name="settings_workflow_status_notes">Notes: in Ausbau (gespeichert, App-UX wird erweitert)</string>
+    <string name="settings_workflow_status_tasks">Tasks: live fuer Erfassung und Verwaltung</string>
+    <string name="settings_workflow_status_notes">Notes: live fuer Erfassung und Verwaltung</string>
     <string name="settings_legal_section_title">Datenschutz / Recht / Hilfe</string>
     <string name="settings_legal_section_subtitle">Recht, Hilfe und Vertrauen in einer klaren Reihe.</string>
     <string name="settings_legal_version_label">Version %1$s</string>

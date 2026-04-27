@@ -69,7 +69,9 @@ Music is curated as a dedicated ZweiZwei / 22 environment.
 Video remains part of the Skydown core experience.  
 Merch is organized as Skydown x 22 with a clear path from discovery to cart.
 
-Tasks and Notes are currently in expansion: creation and storage are active, while deeper app UX and automation layers continue to roll out.
+Tasks and Notes are live for capture, storage, and management in the app, and can also be created from the Activepieces workflow API.
+
+Longer-lived profile memory and deeper follow-up automations are coming next.
 
 SkyOS provides the system foundation behind this experience: visual consistency, motion language, and reliable interaction patterns across supported platforms.
 
@@ -111,7 +113,9 @@ Music is presented in a dedicated ZweiZwei / 22 environment.
 Video stays integrated into the Skydown experience.  
 Merch appears as Skydown x 22 with a guided commerce flow from product view to cart.
 
-Tasks and Notes are available for structured capture and storage, with full in-app experience and expanded automation currently being rolled out.
+Tasks and Notes are live for structured capture, storage, and management in the app, with Activepieces creation available through the workflow API.
+
+Longer-lived profile memory and deeper follow-up automations are coming next.
 
 SkyOS powers the system layer behind the app: design language, visual hierarchy, and cross-platform continuity.
 
@@ -172,3 +176,5 @@ Do not use:
 - Listing language aligned with selected store locales
 - Screenshot set and listing copy use identical product naming
 - First screenshot and first paragraph communicate the same value proposition
+- Live claims stay limited to Reminder + Push, Tasks, Notes, and documented Activepieces workflow creation
+- Memory and broader automations stay described as coming next until shipped end-to-end

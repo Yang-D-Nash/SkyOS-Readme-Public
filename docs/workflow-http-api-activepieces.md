@@ -1,12 +1,23 @@
 # Activepieces -> SkyOS Workflow HTTP API
 
 Diese Endpoints sind fuer serverseitige Workflow-Calls gedacht (kein direkter Firestore-Zugriff).
+Sie erstellen Daten unter `users/{uid}/...`; Activepieces muss deshalb die Firebase `uid` des
+Zielkontos im JSON-Body mitsenden.
 
 ## Security
 
 - Methode: `POST`
 - Header: `x-skyos-workflow-secret: <SKYOS_WORKFLOW_SECRET>`
 - Secret kommt aus Firebase Secret `SKYOS_WORKFLOW_SECRET` (oder Runtime-Env gleichnamig)
+- Der Secret Header ist Pflicht. Requests ohne gueltigen Header erhalten `401 unauthorized`.
+- Keine echten Secret-Werte in Activepieces Screenshots, Logs oder Repo-Dateien committen.
+
+Firebase Secret setzen:
+
+```bash
+firebase functions:secrets:set SKYOS_WORKFLOW_SECRET
+firebase deploy --only functions
+```
 
 ## Endpoints
 
@@ -69,3 +80,31 @@ Note:
   - `x-skyos-workflow-secret: {{SKYOS_WORKFLOW_SECRET}}`
 - Body Type: JSON
 - Body: je nach Endpoint die passende Struktur oben
+
+## Erwartete Antworten
+
+Erfolg:
+
+```json
+{
+  "ok": true,
+  "uid": "firebaseUserId",
+  "reminderId": "generatedDocumentId"
+}
+```
+
+Je nach Endpoint heisst die ID `reminderId`, `taskId` oder `noteId`.
+
+Fehler:
+
+- `400 title_required` oder `400 invalid_argument` bei unvollstaendigen Bodies
+- `401 unauthorized` bei fehlendem/falschem `x-skyos-workflow-secret`
+- `405 method_not_allowed` bei Methoden ausser `POST`
+- `500 workflow_secret_missing`, wenn das Secret nicht in Functions konfiguriert ist
+
+## Live Status
+
+- Reminder: erstellt `users/{uid}/reminders/{id}` mit `scheduledAt`, `timezone`, `status=scheduled`; die Scheduled Function `processDueReminders` versendet Push, sobald der Reminder faellig ist.
+- Task: erstellt `users/{uid}/tasks/{id}` mit `status=open`, `priority`, optionalem `dueAt` und `source=activepieces`.
+- Note: erstellt `users/{uid}/notes/{id}` mit Titel, Inhalt und `source=activepieces`.
+- Memory und weitere Automationen sind bewusst `coming next` und nicht Teil dieser Live-HTTP-API.

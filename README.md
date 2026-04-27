@@ -4,7 +4,8 @@
 
 <h1 align="center">SkyOS</h1>
 <p align="center">
-  Ein hochwertiger nativer Produktraum fuer KI, Creator-Medien, Membership, Merch-Commerce und vertrauenswuerdige Kontosteuerung.
+  Eine native Productivity- und Automation-App fuer Reminder, Tasks, Notes, KI-Unterstuetzung,
+  Creator-Medien, Commerce und vertrauenswuerdige Kontosteuerung.
 </p>
 
 <p align="center">
@@ -17,9 +18,9 @@
 
 ## Was SkyOS ist
 
-SkyOS ist der Betriebskern hinter der Skydown-App. Die App verbindet KI-Assistenz, Musik, Video,
-Merch, Membership, Support sowie rechtliche und kontobezogene Steuerung in einer ruhigen nativen
-Oberflaeche, statt diese Bereiche auf lose Einzeltools zu verteilen.
+SkyOS ist der Betriebskern hinter der Skydown-App. Die App verbindet produktive Workflows
+wie Reminder, Tasks und Notes mit KI-Assistenz, Musik, Video, Merch, Membership, Support
+sowie rechtlicher und kontobezogener Steuerung in einer ruhigen nativen Oberflaeche.
 
 Das Produkt ist fuer Nutzer, Creator, Betreiber und Reviewer so aufgebaut, dass drei Fragen schnell
 klar werden:
@@ -38,20 +39,31 @@ Stand: `2026-04-27` Europe/Berlin.
 | iOS / iPadOS | Bundle `com.skydown.ios`, Build `10007`, Release-Simulator-Build bestanden |
 | Android | Package `com.nash.skyos`, `versionCode 10015`, Release-AAB/APK verifiziert |
 | Backend | Firebase-Projekt `skydown-a6add`, Functions-Paket `skyos-functions@1.0.0` |
-| Lokale Gates | `./scripts/ci_local_gate.sh`, `./gradlew detektAll`, Android-Artefaktverify, iOS Release-Build und iPad Store-Screenshot-Test bestanden |
-| Store-Status | Interner/Test-Release ist vorbereitet; oeffentlicher Rollout bleibt `no-go`, bis Store-, Legal-, Domain- und Device-Smoke-Freigaben abgeschlossen sind |
+| Live Productivity | Reminder + Push, Tasks, Notes, Activepieces HTTP Workflow API |
+| Lokale Gates | Functions Build/Syntax, Rules-Tests, Android/iOS Builds und relevante Lints muessen vor Release-Commit gruen sein |
+| Store-Status | Listing-Copy ist vorbereitet; Store-Konsole, Produktions-URLs, Legal-Sign-off und echte Device-Smokes bleiben externe Launch-Gates |
 
 Die operative Wahrheit fuer Uploads und offene Store-Punkte steht im
 [Store Upload Runbook](docs/release/store-upload-runbook.md). Diese README beschreibt den
 releasefaehigen Code- und Doku-Stand, nicht automatisch eine bereits genehmigte oeffentliche
 Store-Freigabe.
 
+## Live Features
+
+| Feature | Status |
+| --- | --- |
+| Reminder + Push | Live: App, callable Functions, Firestore, Push-Token-Sync und Scheduled Function `processDueReminders` |
+| Tasks | Live: App-Erfassung, Speicherung, Anzeige, Abschluss und Workflow-Erstellung |
+| Notes | Live: App-Erfassung, Speicherung, Anzeige, Bearbeitung und Workflow-Erstellung |
+| Activepieces | Live: HTTP Endpoints fuer Reminder, Task und Note mit `x-skyos-workflow-secret` |
+| Memory / erweiterte Automationen | Coming next: sichtbar als naechster Ausbauschritt, nicht als vollstaendig live beworben |
+
 ## Produktbereiche
 
 | Bereich | Nutzen |
 | --- | --- |
-| Home | Einstieg fuer Orientierung, hervorgehobene Inhalte und Systemkontext |
-| AI / Agent | Assistenz, Visuals, FAQ und strukturierte Workflow-Unterstuetzung |
+| Home | Einstieg fuer Orientierung, Productivity Snapshot, Quick Actions und Systemkontext |
+| AI / Agent | Assistenz, Visuals, FAQ, Tasks/Notes-Dock und strukturierte Workflow-Unterstuetzung |
 | Music | Kuratierter Creator- und `ZweiZwei / 22`-Musikkontext |
 | Video | Fokussierte Medienflaeche fuer Clips und visuelles Storytelling |
 | Shop / Orders | `Skydown x 22` Merch, Warenkorb, Bestellungen und Kaufuebersicht |
@@ -149,6 +161,18 @@ npm run build --prefix functions
 npm test --prefix functions
 ```
 
+Firebase Functions Deployment:
+
+```bash
+firebase deploy --only functions
+```
+
+Firestore Rules Deployment:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
 Fuer iOS:
 
 ```bash
@@ -202,6 +226,30 @@ Store-faehige Builds benoetigen Produktionssigning ueber `keystore.properties` o
 fuer Verteilung und Store-Tests muessen die Release-Artefakte aus dem Clean-Build-Script verwendet
 werden.
 
+## Activepieces Setup
+
+SkyOS bietet drei serverseitige HTTP Endpoints fuer Activepieces:
+
+- `createReminderFromWorkflow`
+- `createTaskFromWorkflow`
+- `createNoteFromWorkflow`
+
+Basis-URL:
+
+```text
+https://us-central1-<project-id>.cloudfunctions.net/<endpointName>
+```
+
+Activepieces HTTP Step:
+
+- Methode: `POST`
+- Header: `Content-Type: application/json`
+- Header: `x-skyos-workflow-secret: <SKYOS_WORKFLOW_SECRET>`
+- Body enthaelt immer `uid` des Firebase Users plus die Endpoint-Daten
+
+Details und Beispiel-Payloads stehen in
+[docs/workflow-http-api-activepieces.md](docs/workflow-http-api-activepieces.md).
+
 ## Konfiguration und Secrets
 
 | Zweck | Quelle |
@@ -210,6 +258,7 @@ werden.
 | Apple Firebase Client | `Skydown App/GoogleService-Info.plist` |
 | Android Release Signing | `keystore.properties.example`, `.env.example`, `SKYOS_UPLOAD_*` |
 | Google Play Fastlane | `SUPPLY_JSON_KEY` als Pfad zur Play-Service-Account-JSON |
+| Workflow HTTP API | Firebase Secret `SKYOS_WORKFLOW_SECRET`, gesendet als `x-skyos-workflow-secret` |
 | Functions Runtime | Firebase Secrets / Runtime Config, dokumentiert in `.env.example` |
 | Public Policy Pages | `site/privacy.html`, `site/terms.html`, `site/support.html`, final auf Produktionsdomain zu hosten |
 
@@ -268,25 +317,16 @@ fuer einen konkreten Release, Markt, Provider-Setup oder eine konkrete Datenvera
 
 ## Release-Bereitschaft
 
-SkyOS ist als `v1.0.0` Release Candidate dokumentiert und die lokalen technischen Gates sind
-bestanden. Das bedeutet: Der Code- und Artefaktstand ist fuer interne Distribution und Store-Prep
-geeignet. Es bedeutet nicht automatisch, dass ein oeffentlicher Produktionsrollout freigegeben ist.
+SkyOS ist als `v1.0.0` Release Candidate fuer den Productivity-Automation-Launch dokumentiert.
+Repository-seitig gehoeren Reminder + Push, Tasks, Notes und die Activepieces HTTP API zum Live-Stand.
+Memory und weitere Follow-up-Automationen bleiben bewusst als `coming next` kommuniziert.
 
-Aktuelle harte Vor-Release-Punkte:
+Vor oeffentlichem Store-Rollout muessen ausserhalb des Repos weiterhin bestaetigt werden:
 
-- iOS: vorhandenen Build `10007` in App Store Connect/TestFlight bestaetigen oder vor erneutem
-  Upload auf Build `10008` erhoehen.
-- Android: Google Play Android Developer API fuer Projekt `1069068117600` aktivieren/Propagation
-  abwarten und Fastlane `validate_android_internal` erneut laufen lassen.
-- Store Assets: Play-konforme Android-Screenshots liegen unter
-  `screenshots/final/google-play/android-phone/`, iPad-Screenshots unter
-  `screenshots/final/ipad/`, Play-Grafiken unter `docs/assets/google-play/`; finale Assets in den
-  Store-Konsolen hochladen, mappen und freigeben.
-- Store URLs: finale Produktionsdomain fuer Datenschutz, AGB, Support und App-Website eintragen.
-- Legal: finale Freigabe fuer Datenschutz, AGB, Subscription Terms, KI-Hinweis und Impressum.
-- QA: realer iPhone- und Android-Device-Smoke aus den hochgeladenen Store-Artefakten.
-
-Wenn einer dieser Punkte unbekannt ist, bleibt die Antwort fuer oeffentlichen Rollout `no-go`.
+- finale Store-Console-Eintraege und Uploads
+- Produktions-URLs fuer Datenschutz, AGB, Support und Website
+- Legal-Sign-off fuer Policies, Subscription Terms, KI-Hinweis und Impressum
+- realer iPhone- und Android-Device-Smoke aus den hochgeladenen Store-Artefakten
 
 ## Support
 

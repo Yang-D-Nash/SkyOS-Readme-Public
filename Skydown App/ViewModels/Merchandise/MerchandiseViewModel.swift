@@ -457,7 +457,10 @@ final class HomeViewModel: ObservableObject {
             .collection("reminders")
             .addDocument(data: [
                 "title": normalizedTitle,
-                "dueAt": Timestamp(date: dueAt),
+                "scheduledAt": Timestamp(date: dueAt),
+                "timezone": TimeZone.current.identifier,
+                "status": "scheduled",
+                "source": "manual",
                 "createdAt": FieldValue.serverTimestamp(),
                 "updatedAt": FieldValue.serverTimestamp()
             ])
@@ -477,7 +480,8 @@ final class HomeViewModel: ObservableObject {
                 "title": normalizedTitle,
                 "description": normalizedDetails,
                 "status": "open",
-                "priority": "medium",
+                "priority": "normal",
+                "source": "manual",
                 "createdAt": FieldValue.serverTimestamp(),
                 "updatedAt": FieldValue.serverTimestamp()
             ])
@@ -489,13 +493,15 @@ final class HomeViewModel: ObservableObject {
         let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedTitle.isEmpty || !normalizedContent.isEmpty else { return }
+        let safeTitle = normalizedTitle.isEmpty ? "Untitled" : normalizedTitle
         try await firestore
             .collection("users")
             .document(uid)
             .collection("notes")
             .addDocument(data: [
-                "title": normalizedTitle,
+                "title": safeTitle,
                 "content": normalizedContent,
+                "source": "manual",
                 "createdAt": FieldValue.serverTimestamp(),
                 "updatedAt": FieldValue.serverTimestamp()
             ])
