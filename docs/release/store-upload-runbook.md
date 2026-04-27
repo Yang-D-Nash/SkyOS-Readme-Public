@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-04-27 (release readiness check: iOS 10008 prepared, Android 10015)
+Last updated: 2026-04-27 23:48 CEST (iOS 10010 uploaded, Android 10016 built)
 Owner: Release Engineering
 
 ## Build Identity
@@ -9,31 +9,37 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10008` (next upload; last archived build: `10007`)
+- Build: `10010` (uploaded; includes the iOS Music Studio split fix and Agent tap hardening; build `10008` was uploaded before these fixes)
 - Team ID: `F3BNLG6L7P`
 
 ### Android
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10015`
+- versionCode: `10016`
 - Play Billing Library: `8.3.0`
 
 ## Build Artifacts
 
-- iOS archive: `build/ios/SkyOS-1.0.0-10007-20260427.xcarchive` (rebuilt 2026-04-27 Europe/Berlin)
-- iOS upload status: App Store Connect rejected a repeat upload for build `10007` as redundant, which indicates build `10007` already exists for version `1.0` / `1.0.0`.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-27 14:48 Europe/Berlin, versionCode `10015`)
-- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-04-27 14:48 Europe/Berlin, versionCode `10015`)
+- iOS archive: `build/ios/SkyOS-1.0.0-10010-20260427.xcarchive` archived successfully after the Music Studio split fix and Agent tap hardening.
+- iOS upload status: build `10010` uploaded to App Store Connect at 2026-04-27 23:48 CEST and package processing started. Previous build `10008` was uploaded to App Store Connect at 2026-04-27 23:06 CEST, but does not include the iOS Music Studio split fix or Agent tap hardening.
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-27 23:11 CEST, versionCode `10016`)
+- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-04-27 23:11 CEST, versionCode `10016`)
 
 ## Upload Status
 
 ### iOS Upload Status
-- Archive build: DONE for build `10007`
-- App Store Connect upload: NOT rerun successfully during this check; the server reported redundant binary for build `10007`.
-- Processing status: verify existing build `10007` in App Store Connect and attach it to internal TestFlight testers if available.
+- Archive build: DONE locally for build `10010`
+- App Store Connect upload: DONE for build `10010` at 2026-04-27 23:48 CEST
+- Processing status: uploaded package is processing; wait for build `10010` to appear in TestFlight, then attach to Internal Testers.
 - Notes:
-  - `CURRENT_PROJECT_VERSION` is now set to `10008`; generate a fresh archive before uploading again.
+  - `CURRENT_PROJECT_VERSION` is set to `10010`; archive path is `build/ios/SkyOS-1.0.0-10010-20260427.xcarchive`.
+  - Export/upload used `build/ios/ExportOptions-app-store-upload-10010.plist` with `manageAppVersionAndBuildNumber=false`.
+  - Build `10009` was archived and identity-checked locally on 2026-04-27, but its upload was intentionally stopped before success after the iOS Agent tap crash report; use build `10010`.
+  - Build `10008` uploaded successfully on 2026-04-27, but was superseded by build `10010` for the iOS Music Studio split fix and Agent tap hardening.
+  - Export/upload for build `10008` used `build/ios/ExportOptions-app-store-upload-10008.plist` with `manageAppVersionAndBuildNumber=false`.
+  - Xcode reported missing dSYMs for FirebaseFirestoreInternal, absl, grpc, grpcpp, and openssl_grpc binary frameworks during symbol upload; app package upload still succeeded.
+  - A repeat upload for build `10007` was previously rejected as redundant, which indicates build `10007` already exists for version `1.0` / `1.0.0`.
   - Build `10007` was archived successfully on 2026-04-27.
   - The redundant-upload response for build `10007` means reusing the same build number will not work.
   - Build `10006` uploaded successfully on 2026-04-26 via `xcodebuild -exportArchive` with `destination=upload`.
@@ -44,24 +50,31 @@ Owner: Release Engineering
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: DONE for versionCode `10015`
+- Release AAB build: DONE for versionCode `10016`
+- Play Console status: versionCode `10015` confirmed online/visible by release owner on 2026-04-27; `10016` is built and ready for Play upload.
 - Play upload automation: CONFIGURED via Fastlane `upload_android_internal`
 - CLI validate-only attempt: BLOCKED by Google Cloud API configuration
 - Blocker details:
   - Fastlane was run with `SUPPLY_JSON_KEY` pointing at a local Play service-account JSON and `validate_only: true`.
   - Google Play Android Developer API is disabled or not yet propagated for project `1069068117600`.
-  - Enable `androidpublisher.googleapis.com` for project `1069068117600`, wait for propagation, then rerun the validate-only lane before any automated upload.
+  - Manual Play Console upload is confirmed for `10015`; upload `10016` manually unless Play API/service-account access is restored.
+  - Current shell has no `SUPPLY_JSON_KEY`, so this run cannot upload to Play automatically.
 
 ## 2026-04-27 Verification Log
 
-1. Android clean release gate passed for version `1.0.0` / versionCode `10015` after gating UI-test launch extras to debuggable builds only.
-2. Android AAB SHA-256: `5e03e53452aa1ae29ce5d13bc551bc641924a8d19cb1fe8ae2be5b2b98e05e97`.
-3. Android APK SHA-256: `6aa428722645f0af697080fcb3c16443005dd7649426442969fc0d89e20c359d`.
+1. Android clean release gate passed for version `1.0.0` / versionCode `10016` and verified with `aapt2` from local Android SDK.
+2. Android AAB SHA-256: `99e4d4840005e3d0eb686937f53224e6198f72a63e33f81ef5f861889f0d74f3`.
+3. Android APK SHA-256: `a058b9d56e4814bfa521e16205effc399035e5ebf6caa5e837103ab945fd94c9`.
 4. iOS Release build passed with code signing disabled for compile validation.
-5. iOS archive passed for `com.skydown.ios`, version `1.0.0`, build `10007`.
-6. Local CI gate passed: shared tests, Android lint, Functions tests, Firestore rules tests, and Storage rules tests.
-7. Detekt passed with `./gradlew detektAll --no-daemon`.
-8. Store screenshot folders contain 7-frame iPad/phone/fold/iPhone sets. Play-compliant Android phone exports were added at `screenshots/final/google-play/android-phone/` (`1242x2424`, no alpha), iPad screenshots were exported at `screenshots/final/ipad/` (`2064x2752`, no alpha), and Google Play listing graphics were exported under `docs/assets/google-play/`.
+5. iOS Debug simulator build passed after the Music Studio split fix and Agent tap hardening.
+6. iOS UI screenshot test passed through the Agent tap path and waited for `agent.screen.root`.
+7. iOS build `10010` archived at `build/ios/SkyOS-1.0.0-10010-20260427.xcarchive`; archive identity verified as `SkyOS` / `com.skydown.ios` / `1.0.0` / `10010`.
+8. iOS build `10010` uploaded to App Store Connect successfully at 2026-04-27 23:48 CEST; uploaded package is processing.
+9. Previous iOS build `10008` uploaded to App Store Connect successfully; build `10009` was superseded before successful upload; use build `10010`.
+10. Local CI gate passed: shared tests, Android lint, Functions tests, Firestore rules tests, and Storage rules tests.
+11. Detekt passed with `./gradlew detektAll --no-daemon`.
+12. Release identity preflight passed: iOS `SkyOS 1.0.0 (10010)` / `com.skydown.ios`; Android `SkyOS 1.0.0 (10016)` / `com.nash.skyos`.
+13. Store screenshot folders contain 7-frame iPad/phone/fold/iPhone sets. Play-compliant Android phone exports were added at `screenshots/final/google-play/android-phone/` (`1242x2424`, no alpha), iPad screenshots were exported at `screenshots/final/ipad/` (`2064x2752`, no alpha), and Google Play listing graphics were exported under `docs/assets/google-play/`.
 
 ## Execution Log (Direct Upload Run)
 
@@ -146,6 +159,8 @@ Suggested review note text:
 ## Release Notes
 
 ### iOS "What to Test" / TestFlight notes
+- NICMA MUSIC and NICMA STUDIO now open as separate iOS Music pages, matching Android.
+- Agent mode startup is hardened so tapping Agent opens the surface before live task/note observers attach.
 - Unified first-session growth tracking events across startup, onboarding, signup, and first value.
 - Stability and trust cleanup across launch and public-facing support/legal surfaces.
 - Video Hub player flow replaces the public video list; owner controls stay admin-only.
@@ -161,7 +176,7 @@ Suggested review note text:
 
 1. Confirm final legal approval for public privacy/terms wording.
 2. Confirm final production domain and replace URL placeholders in App Store Connect and Play Console.
-3. Verify subscription product setup status for iOS build `10007` and Android versionCode `10015`.
+3. Verify subscription product setup status for uploaded iOS build `10010`, plus Android versionCode `10016`.
 4. Update production Firestore `appConfig/legalContent` and `appConfig/commerceSettings` if old remote operator/legal values still exist.
 5. Firestore/Storage rules were deployed on 2026-04-25; fixed owner Firebase Auth account was verified with `emailVerified=true`.
 6. Verify data safety/privacy forms reflect actual SDK usage:
@@ -173,12 +188,12 @@ Suggested review note text:
    - Not used by current binaries: precise/coarse location, camera capture, microphone, contacts, calendar. Photo/video selection uses system pickers; Android `WRITE_EXTERNAL_STORAGE` is capped to API 28 only for saving generated images.
 7. Upload and map final screenshot sets for iPhone, iPad, and Android phone form factors. Use `screenshots/final/ipad/` for iPad, `screenshots/final/google-play/android-phone/` for Play phone screenshots, and `docs/assets/google-play/` for the Play icon/feature graphic.
 8. Set age rating/content rating questionnaires in both consoles.
-9. Build numbers are current for the 2026-04-27 check: iOS `10007`, Android `10015`.
+9. Build numbers are current for the 2026-04-27 check: iOS build `10010` is uploaded and processing, Android `10016` is the next tester build after `10015` went online.
 
 ## Go/No-Go Checklist
 
-- [ ] Existing iOS build `10007` visible in App Store Connect TestFlight, or upload a newly archived build `10008`
-- [ ] Android release visible in Play Console internal/closed track
+- [x] iOS build `10010` uploaded to App Store Connect and processing
+- [ ] Android release `10016` visible in Play Console internal/closed track (`10015` is currently confirmed online/visible)
 - [ ] Privacy, terms, support URLs point to final public domain
 - [ ] Legal text approved for store/public use
 - [ ] Subscription metadata, pricing, and restore behavior validated
@@ -192,9 +207,9 @@ Suggested review note text:
 1. Open [App Store Connect](https://appstoreconnect.apple.com/).
 2. Go to **My Apps** -> select/create app for bundle `com.skydown.ios`.
 3. Open **TestFlight** tab.
-4. Under **Builds**, click **+** and look for existing build `10007`.
-5. If build `10007` is available, attach it to Internal Testers. If it is not available and a new binary is required, increment the iOS build number to `10008` before uploading.
-6. When build appears, assign to Internal Testers first.
+4. Wait for uploaded build `10010` to finish processing.
+5. Under **Builds**, click **+** and select build `10010`.
+6. Assign build `10010` to Internal Testers first.
 7. Fill **App Information** and **App Privacy** sections.
 8. Fill **Pricing and Availability** (manual business decision required).
 9. Fill **App Review Information** with support contact + test account.
@@ -205,7 +220,7 @@ Suggested review note text:
 1. Open [Google Play Console](https://play.google.com/console/).
 2. Select app with package `com.nash.skyos` (or create it if missing).
 3. Go to **Testing** -> **Internal testing** (or **Closed testing**).
-4. Create/Edit release and upload `androidApp/build/outputs/bundle/release/androidApp-release.aab` (versionCode `10015`).
+4. Create/Edit release and upload `androidApp/build/outputs/bundle/release/androidApp-release.aab` (versionCode `10016`).
 5. Add release notes and save.
 6. Go to **Store presence** and complete store listing fields.
 7. Go to **App content** and complete:

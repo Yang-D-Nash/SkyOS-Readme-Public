@@ -5,17 +5,24 @@ trust paths, backend authority, and support readiness all line up at the same ti
 
 ## Current RC Snapshot
 
-Status as of 2026-04-27: local code gates and artifact checks have passed for `1.0.0`, but public
+Status as of 2026-04-27: local code gates and artifact checks have passed for `1.0.0`, Android
+versionCode `10015` is confirmed online/visible in Play Console, Android `10016` is built
+as the next tester build, and iOS build `10010` was uploaded to App Store Connect with the Music
+Studio split fix and Agent tap hardening. Public
 store rollout is still `no-go` until the open items in
 [release/store-upload-runbook.md](release/store-upload-runbook.md) are closed.
 
 Known open release gates:
 
-- App Store Connect: confirm existing iOS build `10007` in TestFlight or upload a freshly archived build `10008`.
-- Google Play: enable/propagate `androidpublisher.googleapis.com` for project `1069068117600`, then rerun Fastlane validate-only.
+- App Store Connect: wait for iOS build `10010` processing, then attach it to Internal TestFlight testers.
+- Google Play: upload Android AAB versionCode `10016` to the tester track.
 - Store assets: upload/map the generated iPhone, iPad, Play-compliant Android screenshots, and Play listing graphics.
 - Store URLs and legal: replace placeholder console URLs with final hosted pages and confirm final legal approval.
 - QA: complete real-device smoke from uploaded store artifacts on iPhone and Android.
+
+Post-release automation follow-up:
+
+- Google Play: enable/propagate `androidpublisher.googleapis.com` for project `1069068117600`, then rerun Fastlane validate-only before relying on automated uploads in future releases.
 
 ## 1. Source and Hygiene
 

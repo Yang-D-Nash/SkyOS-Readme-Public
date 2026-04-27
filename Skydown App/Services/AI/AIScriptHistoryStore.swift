@@ -407,12 +407,13 @@ final class AIScriptHistoryStore: ObservableObject {
         let existingEntries = entries.filter {
             $0.userKey == normalizedUserKey && $0.source == source
         }
-        let existingImageFileNamesByEntryID: [UUID: String] = Dictionary(
-            uniqueKeysWithValues: existingEntries.compactMap { entry in
-                guard let imageFileName = entry.imageFileName else { return nil }
-                return (entry.id, imageFileName)
+        // Build without Dictionary(uniqueKeysWithValues:): duplicate entry IDs in local state must not crash.
+        var existingImageFileNamesByEntryID: [UUID: String] = [:]
+        for entry in existingEntries {
+            if let imageFileName = entry.imageFileName {
+                existingImageFileNamesByEntryID[entry.id] = imageFileName
             }
-        )
+        }
 
         let normalizedSessions = remoteSessions
             .filter { $0.userKey == normalizedUserKey && $0.source == source }

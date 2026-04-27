@@ -22,6 +22,13 @@
 - [ ] `git status` sauber oder bewusst begrenzter WIP.
 - [ ] Keine Secrets, Keystores, Dumps, große Log-Exports im Commit.
 - [ ] Release-Notizen / interne Zusammenfassung vorbereitet (für Store / intern).
+- [ ] App-/Versionsidentität maschinell geprüft:
+
+```bash
+./scripts/release_identity_check.sh
+```
+
+Prüft u. a. Android `applicationId`, Fastlane-Package, Android/iOS-Firebase-Konfiguration, iOS Bundle-ID, Display Name, Version, vorhandene iOS-Archive und Runbook-Abgleich.
 
 ---
 

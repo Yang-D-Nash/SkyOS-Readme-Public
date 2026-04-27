@@ -401,7 +401,10 @@ final class FirestoreAIConversationSyncService: AIConversationSyncServicing {
         userID: String,
         source: AIScriptHistorySource
     ) -> [AIScriptHistorySession] {
-        var knownSessions = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
+        var knownSessions: [UUID: AIScriptHistorySession] = [:]
+        for session in sessions {
+            knownSessions[session.id] = session
+        }
         let groupedEntries = Dictionary(grouping: entries) { $0.sessionID }
 
         for (maybeSessionID, sessionEntries) in groupedEntries {

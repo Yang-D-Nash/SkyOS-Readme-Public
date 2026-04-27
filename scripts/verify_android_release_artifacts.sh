@@ -60,14 +60,22 @@ elif [[ -f "$AAB_FILE" ]]; then
   echo
 fi
 
+android_home="${ANDROID_HOME:-}"
+if [[ -z "$android_home" && -f "local.properties" ]]; then
+  android_home="$(sed -n 's/^[[:space:]]*sdk\.dir[[:space:]]*=[[:space:]]*//p' local.properties | head -1)"
+  if [[ -n "$android_home" ]]; then
+    echo "Using Android SDK from local.properties: $android_home"
+  fi
+fi
+
 if [[ -f "$APK_FILE" && $err -eq 0 ]]; then
-  if [[ -n "${ANDROID_HOME:-}" ]]; then
+  if [[ -n "$android_home" ]]; then
     bt_dir=""
-    if [[ -d "$ANDROID_HOME/build-tools" ]]; then
-      bt_dir=$(ls -1 "$ANDROID_HOME/build-tools" 2>/dev/null | sort -V | tail -1 || true)
+    if [[ -d "$android_home/build-tools" ]]; then
+      bt_dir=$(ls -1 "$android_home/build-tools" 2>/dev/null | sort -V | tail -1 || true)
     fi
-    if [[ -n "$bt_dir" && -f "$ANDROID_HOME/build-tools/$bt_dir/aapt2" ]]; then
-      aapt2="$ANDROID_HOME/build-tools/$bt_dir/aapt2"
+    if [[ -n "$bt_dir" && -f "$android_home/build-tools/$bt_dir/aapt2" ]]; then
+      aapt2="$android_home/build-tools/$bt_dir/aapt2"
       # First line of badging contains versionCode and versionName.
       first_line=$("$aapt2" dump badging "$APK_FILE" 2>/dev/null | head -1) || true
       if [[ -z "$first_line" ]]; then
@@ -82,10 +90,10 @@ if [[ -f "$APK_FILE" && $err -eq 0 ]]; then
         echo "aapt2 ($aapt2): binary APK version matches $BUILD_FILE."
       fi
     else
-      echo "Tip: install Android build-tools under ANDROID_HOME so aapt2 can verify the binary APK, not just metadata."
+      echo "Tip: install Android build-tools under ANDROID_HOME or local.properties sdk.dir so aapt2 can verify the binary APK, not just metadata."
     fi
   else
-    echo "Tip: set ANDROID_HOME so aapt2 can double-check the APK binary."
+    echo "Tip: set ANDROID_HOME or local.properties sdk.dir so aapt2 can double-check the APK binary."
   fi
 fi
 

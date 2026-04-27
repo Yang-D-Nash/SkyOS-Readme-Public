@@ -13,6 +13,8 @@ struct ArtistPageView: View {
 
     let brand: ArtistPageBrand
     let artistName: String
+    let onBack: (() -> Void)?
+    let onNicmaProfileChange: ((String) -> Void)?
 
     @State private var isEditing = false
     @State private var taglineDraft = ""
@@ -44,12 +46,16 @@ struct ArtistPageView: View {
         authManager: AuthManager,
         store: ArtistPagesStore,
         brand: ArtistPageBrand,
-        artistName: String
+        artistName: String,
+        onBack: (() -> Void)? = nil,
+        onNicmaProfileChange: ((String) -> Void)? = nil
     ) {
         _authManager = ObservedObject(wrappedValue: authManager)
         _store = ObservedObject(wrappedValue: store)
         self.brand = brand
         self.artistName = artistName
+        self.onBack = onBack
+        self.onNicmaProfileChange = onNicmaProfileChange
     }
 
     private var page: ArtistPage {
@@ -62,6 +68,18 @@ struct ArtistPageView: View {
 
     private var allowsStudioPriceEditing: Bool {
         brand == .nicma && routeArtistName.caseInsensitiveCompare("NICMA STUDIO") == .orderedSame
+    }
+
+    private var isNicmaStudioPage: Bool {
+        allowsStudioPriceEditing
+    }
+
+    private var showsNicmaProfileSwitch: Bool {
+        brand == .nicma && onNicmaProfileChange != nil
+    }
+
+    private var studioFallbackBio: String {
+        "Preise, Production, Recording."
     }
 
     /// Kurz halten: `BrandSurface` blendet die Eyebrow aus, sobald der Titel mit derselben Zeichenkette beginnt
@@ -116,6 +134,15 @@ struct ArtistPageView: View {
                 .withNicmaMusicPublicLinkDefaults()
         }
         return displayPage
+    }
+
+    private var resolvedStudioPackages: [NicmaProducerPackage] {
+        if displayPage.studioPriceList.isEmpty {
+            return nicmaProducerPackages
+        }
+        return displayPage.studioPriceList.map {
+            NicmaProducerPackage(title: $0.title, detail: $0.detail, price: $0.price)
+        }
     }
 
     private var canEdit: Bool {
@@ -191,10 +218,20 @@ struct ArtistPageView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                    heroCard
-                    spotlightCard
-                    topTracksCard
-                    linksCard
+                    if showsNicmaProfileSwitch {
+                        nicmaProfileSelector
+                    }
+
+                    if isNicmaStudioPage {
+                        studioHeroCard
+                        studioPriceListCard
+                        linksCard
+                    } else {
+                        heroCard
+                        spotlightCard
+                        topTracksCard
+                        linksCard
+                    }
 
                     if canEdit && isEditing {
                         editorCard
@@ -210,8 +247,12 @@ struct ArtistPageView: View {
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Schliessen") {
-                        dismiss()
+                    Button(onBack == nil ? "Schliessen" : "Zurueck") {
+                        if let onBack {
+                            onBack()
+                        } else {
+                            dismiss()
+                        }
                     }
                 }
 
@@ -302,6 +343,116 @@ struct ArtistPageView: View {
             heroVideoPlayer.seek(to: .zero)
             heroVideoPlayer.play()
         }
+    }
+
+    private var nicmaProfileSelector: some View {
+        HStack(spacing: SkydownLayout.stackSpacingPill) {
+            ForEach(["NICMA MUSIC", "NICMA STUDIO"], id: \.self) { profile in
+                let selected = routeArtistName.caseInsensitiveCompare(profile) == .orderedSame
+                Button {
+                    onNicmaProfileChange?(profile)
+                } label: {
+                    VStack(spacing: 4) {
+                        Text(profile)
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                        if selected {
+                            HStack(spacing: 5) {
+                                Circle()
+                                    .fill(AppColors.spotify(for: colorScheme))
+                                    .frame(width: 5, height: 5)
+                                Text("Aktiv")
+                                    .font(.caption2.weight(.semibold))
+                            }
+                            .foregroundColor(AppColors.spotify(for: colorScheme))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .background(
+                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
+                        .fill(
+                            selected
+                            ? AppColors.secondaryBackground(for: colorScheme).opacity(0.88)
+                            : AppColors.cardBackground(for: colorScheme)
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
+                        .stroke(
+                            (selected ? AppColors.spotify(for: colorScheme) : AppColors.accentMystic(for: colorScheme))
+                                .opacity(selected ? 0.42 : 0.16),
+                            lineWidth: selected ? 1.4 : 1
+                        )
+                )
+                .skydownTactileAction()
+                .accessibilityIdentifier("nicma.profile.\(profile.replacingOccurrences(of: " ", with: "_").lowercased())")
+            }
+        }
+    }
+
+    private var studioHeroCard: some View {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
+            BrandHeroSurface(
+                colorScheme: colorScheme,
+                eyebrow: "NICMA",
+                title: displayPage.artistName,
+                subtitle: displayPage.tagline ?? "Studio",
+                detail: displayPage.bio ?? studioFallbackBio,
+                backgroundImageURL: displayPage.heroImageURL,
+                accent: AppColors.accentMystic(for: colorScheme),
+                secondaryAccent: AppColors.spotify(for: colorScheme),
+                marks: [.zweizwei],
+                edgeToEdge: true
+            ) {
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                    MusicBadge(text: "Mix", isAccent: true)
+                    MusicBadge(text: "Master", isAccent: false)
+                    MusicBadge(text: "Rec", isAccent: false)
+                }
+            }
+
+            Text(displayPage.bio ?? studioFallbackBio)
+                .font(.body)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .padding(SkydownLayout.panelPadding)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppColors.cardBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
+                        .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.12), lineWidth: 1)
+                )
+        }
+    }
+
+    private var studioPriceListCard: some View {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            ArtistSectionBanner(
+                title: "Preisliste",
+                subtitle: "Production, Recording, Mixing",
+                icon: "slider.horizontal.3",
+                colorScheme: colorScheme,
+                accent: AppColors.accentMystic(for: colorScheme),
+                tag: "\(resolvedStudioPackages.count) ITEMS"
+            )
+
+            ForEach(resolvedStudioPackages) { package in
+                NicmaProducerPriceCard(
+                    package: package,
+                    colorScheme: colorScheme
+                )
+            }
+        }
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: AppColors.accentMystic(for: colorScheme),
+            cornerRadius: SkydownLayout.cardCornerRadius
+        )
     }
 
     private var activePresentedSheetBinding: Binding<ArtistPagePresentedSheet?> {
@@ -1003,7 +1154,12 @@ struct ArtistPageView: View {
     private var socialLinks: [ArtistPageSocialLink] {
         var links: [ArtistPageSocialLink] = []
 
-        if let instagramURL = pageForConnect.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines), !instagramURL.isEmpty {
+        let resolvedInstagramURL = pageForConnect.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let instagramURL = (resolvedInstagramURL?.isEmpty == false)
+            ? resolvedInstagramURL
+            : (isNicmaStudioPage ? nicmaInstagramDestination.urlString : nil)
+
+        if let instagramURL, !instagramURL.isEmpty {
             links.append(
                 ArtistPageSocialLink(
                     kind: .instagram,

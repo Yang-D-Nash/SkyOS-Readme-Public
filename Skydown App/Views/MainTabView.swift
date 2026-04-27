@@ -843,11 +843,9 @@ private struct ZweizweiTabView: View {
                 )
 
             case .nicma:
-                NavigationStack {
-                    NicmaProducerView {
-                        withAnimation(SkydownMotion.screenTransition) {
-                            destination = .hub
-                        }
+                NicmaProducerView {
+                    withAnimation(SkydownMotion.screenTransition) {
+                        destination = .hub
                     }
                 }
             }
@@ -1172,6 +1170,7 @@ private struct AIHubView: View {
     let onOpenAutomationSettings: () -> Void
     @State private var mode: AIHubMode = .bot
     @StateObject private var membershipCoordinator = AIMembershipCoordinator()
+    @State private var isAgentSurfaceReady = false
     @State private var showsMembershipToast = false
     @State private var membershipToastMessage = ""
     @State private var membershipToastStyle: ToastStyle = .info
@@ -1247,7 +1246,19 @@ private struct AIHubView: View {
         withAnimation(SkydownMotion.screenTransition) {
             membershipCoordinator.closeMembership()
             showsWorkflowWorkspace = false
+            isAgentSurfaceReady = false
             mode = .agent
+        }
+    }
+
+    private func selectMode(_ newMode: AIHubMode) {
+        withAnimation(SkydownMotion.screenTransition) {
+            membershipCoordinator.closeMembership()
+            showsWorkflowWorkspace = false
+            if newMode == .agent, mode != .agent {
+                isAgentSurfaceReady = false
+            }
+            mode = newMode
         }
     }
 
@@ -1288,13 +1299,7 @@ private struct AIHubView: View {
                             mode: mode,
                             colorScheme: colorScheme,
                             showsWorkflowWorkspace: showsWorkflowWorkspace,
-                            onSelectMode: { newMode in
-                                withAnimation(SkydownMotion.screenTransition) {
-                                    membershipCoordinator.closeMembership()
-                                    showsWorkflowWorkspace = false
-                                    mode = newMode
-                                }
-                            },
+                            onSelectMode: selectMode,
                             onToggleWorkflow: {
                                 withAnimation(SkydownMotion.screenTransition) {
                                     membershipCoordinator.closeMembership()
@@ -1338,7 +1343,7 @@ private struct AIHubView: View {
                                     membershipCoordinator: membershipCoordinator,
                                     showsNavigation: false
                                 )
-                            } else {
+                            } else if isAgentSurfaceReady {
                                 AgentView(
                                     agentChatService: agentChatService,
                                     featureFlags: featureFlags,
@@ -1347,6 +1352,14 @@ private struct AIHubView: View {
                                     onConsumePrefilledPrompt: { pendingAgentPrefillPrompt = nil },
                                     showsNavigation: false
                                 )
+                            } else {
+                                AIHubAgentWarmupView(colorScheme: colorScheme)
+                                    .task(id: mode.rawValue) {
+                                        guard mode == .agent else { return }
+                                        await Task.yield()
+                                        guard !Task.isCancelled else { return }
+                                        isAgentSurfaceReady = true
+                                    }
                             }
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -1582,6 +1595,23 @@ private struct AIHubView: View {
         membershipToastMessage = message
         membershipToastStyle = style
         showsMembershipToast = true
+    }
+}
+
+private struct AIHubAgentWarmupView: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack {
+            Spacer(minLength: 56)
+            ProgressView()
+                .progressViewStyle(.circular)
+                .tint(AppColors.accentMystic(for: colorScheme))
+                .scaleEffect(1.08)
+                .accessibilityIdentifier("agent.surface.warmup")
+            Spacer(minLength: 56)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 }
 

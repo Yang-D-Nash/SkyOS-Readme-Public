@@ -320,6 +320,8 @@ struct AgentView: View {
         }
         .task(id: sessionObservationKey) {
             viewModel.configureUser(user: authManager.userSession)
+            await Task.yield()
+            guard !Task.isCancelled else { return }
             configureIntegrationObservations(for: authManager.userSession)
             taskStore.observeTasks(for: authManager.userSession?.id)
             noteStore.observeNotes(for: authManager.userSession?.id)

@@ -227,6 +227,10 @@ final class Skydown_AppUITests: XCTestCase {
             timeout: 20,
             failureMessage: "Agent mode should be available for store screenshots."
         )
+        XCTAssertTrue(
+            app.descendants(matching: .any)["agent.screen.root"].firstMatch.waitForExistence(timeout: 20),
+            "Agent screen should open without crashing after tapping the Agent mode."
+        )
         waitForUISettle()
         saveScreenshot(name: "03-agent")
 
