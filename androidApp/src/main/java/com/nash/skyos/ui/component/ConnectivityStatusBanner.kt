@@ -1,7 +1,6 @@
 package com.nash.skyos.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -37,7 +36,7 @@ fun ConnectivityStatusBanner(
     visible: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(SkydownUiTokens.compactRadius)
 
     AnimatedVisibility(
         visible = visible,
@@ -63,18 +62,18 @@ fun ConnectivityStatusBanner(
             targetOffsetY = { -it / 2 },
             animationSpec = tween(
                 durationMillis = SkydownMotionTokens.statusExitDurationMillis,
-                easing = FastOutSlowInEasing,
+                easing = SkydownExitEasing,
             ),
         ) + fadeOut(
             animationSpec = tween(
                 durationMillis = SkydownMotionTokens.statusExitDurationMillis,
-                easing = FastOutSlowInEasing,
+                easing = SkydownExitEasing,
             ),
         ) + scaleOut(
             targetScale = 0.985f,
             animationSpec = tween(
                 durationMillis = SkydownMotionTokens.statusExitDurationMillis,
-                easing = FastOutSlowInEasing,
+                easing = SkydownExitEasing,
             ),
         ),
         modifier = modifier,

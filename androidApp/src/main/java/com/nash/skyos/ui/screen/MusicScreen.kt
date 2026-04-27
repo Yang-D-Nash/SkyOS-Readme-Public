@@ -2,7 +2,6 @@ package com.nash.skyos.ui.screen
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -72,7 +71,9 @@ import com.nash.skyos.ui.component.BrandArtwork
 import com.nash.skyos.ui.component.BrandHeroCard
 import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.SkydownTopBarTitle
+import com.nash.skyos.ui.component.SkydownMotionTokens
 import com.nash.skyos.ui.component.SkydownUiTokens
+import com.nash.skyos.ui.component.skydownTween
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownPressable
@@ -227,7 +228,7 @@ fun MusicScreen(
                                     .calculateBottomPadding() +
                                 SkydownUiTokens.screenBottomPadding + 32.dp,
                         ),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSection),
                 ) {
                     MusicCatalogHero(
                         uiState = uiState,
@@ -290,7 +291,7 @@ private fun MusicCatalogHero(
             Row(
                 modifier = Modifier
                     .horizontalScroll(rowScroll),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             ) {
                 BrandPill(
                     text = uiState.selectedArtist,
@@ -375,10 +376,10 @@ private fun ArtistButtonHub(
     val labelLiftPx = with(LocalDensity.current) { 6.dp.toPx() }
     val headerAlpha by animateFloatAsState(
         targetValue = if (listStaggerKey) 1f else 0.35f,
-        animationSpec = tween(280),
+        animationSpec = skydownTween<Float>(SkydownMotionTokens.premiumAccentTransitionMillis),
         label = "dirEinstiegHeader",
     )
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
         Text(
             text = stringResource(R.string.music_hub_quick_access_title),
             style = MaterialTheme.typography.labelMedium,
@@ -388,7 +389,7 @@ private fun ArtistButtonHub(
                 .alpha(headerAlpha)
                 .graphicsLayer { translationY = (1f - headerAlpha) * labelLiftPx },
         )
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             artists.forEachIndexed { index, artist ->
                 key(artist) {
                     StaggeredArtistEinstiegRow(
@@ -449,14 +450,14 @@ private fun StaggeredArtistEinstiegRow(
                 translationY = (1f - appear) * liftPx
                 scaleX = 0.96f + 0.04f * appear
             }
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
             .skydownPressable(interaction, pressedScale = 0.99f)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
                 onClick = onOpen,
             ),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
         color = background,
         border = BorderStroke(1.dp, accent.copy(alpha = borderAlpha)),
     ) {
@@ -465,7 +466,7 @@ private fun StaggeredArtistEinstiegRow(
                 .fillMaxWidth()
                 .heightIn(min = 46.dp)
                 .padding(horizontal = 12.dp, vertical = 11.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(

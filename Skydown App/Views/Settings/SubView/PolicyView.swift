@@ -28,7 +28,7 @@ struct PolicyView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
                     Text(title)
                         .font(.title2.bold())
                         .foregroundStyle(AppColors.text(for: colorScheme))
@@ -58,7 +58,7 @@ struct PolicyView: View {
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
                                 .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.65))
                         )
                         .accessibilityLabel(
@@ -67,7 +67,7 @@ struct PolicyView: View {
                     }
 
                     if parsedParagraphs.count > 1 {
-                        VStack(alignment: .leading, spacing: 14) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                             ForEach(Array(parsedParagraphs.enumerated()), id: \.offset) { _, paragraph in
                                 Text(paragraph)
                                     .font(.body)
@@ -87,7 +87,7 @@ struct PolicyView: View {
                     }
 
                     if let supportEmail, !supportEmail.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                             Text(AppLocalized.text("legal.ui.contact_header", fallback: "Contact"))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(AppColors.text(for: colorScheme))

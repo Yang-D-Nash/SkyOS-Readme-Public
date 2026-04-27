@@ -488,7 +488,7 @@ struct SettingsView: View {
                         NavigationLink {
                             OwnerHubView(onOpenAgentWithPrompt: onOpenAgentWithPrompt)
                         } label: {
-                            HStack(spacing: 12) {
+                            HStack(spacing: SkydownLayout.stackSpacingCompact) {
                                 Image(systemName: "chart.bar.doc.horizontal")
                                     .font(.title3.weight(.semibold))
                                     .foregroundColor(AppColors.accentMystic(for: effectiveColorScheme))
@@ -498,7 +498,7 @@ struct SettingsView: View {
                                             .fill(AppColors.accentMystic(for: effectiveColorScheme).opacity(0.14))
                                     )
 
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                                     Text(AppLocalized.text("settings.owner_hub.link_title", fallback: "Owner hub"))
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
@@ -518,7 +518,7 @@ struct SettingsView: View {
                             .skydownPanelSurface(
                                 colorScheme: effectiveColorScheme,
                                 accent: AppColors.accentMystic(for: effectiveColorScheme),
-                                cornerRadius: 18,
+                                cornerRadius: SkydownLayout.messageBubbleRadius,
                                 shadowRadius: 8,
                                 shadowYOffset: 4
                             )
@@ -531,7 +531,7 @@ struct SettingsView: View {
 
                     SettingsSectionCard(title: AppLocalized.text("settings.section.profile_account", fallback: "Profile / Account"), colorScheme: effectiveColorScheme) {
                         if let user = authManager.userSession {
-                            VStack(alignment: .leading, spacing: 12) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                                 Text("\(AppLocalized.text("settings.logged_in_as", fallback: "Signed in as")) \(user.username)")
                                     .font(.headline)
                                     .foregroundColor(AppColors.text(for: effectiveColorScheme))
@@ -547,7 +547,7 @@ struct SettingsView: View {
                                 .tint(AppColors.accent(for: effectiveColorScheme))
                                 .accessibilityIdentifier("settings.open_profile_editor")
 
-                                VStack(spacing: 10) {
+                                VStack(spacing: SkydownLayout.stackSpacingPill) {
                                     Button(role: .destructive) {
                                         activeAlert = .logout
                                     } label: {
@@ -584,7 +584,7 @@ struct SettingsView: View {
                                 }
                             }
                         } else {
-                            VStack(alignment: .leading, spacing: 12) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                                 Button {
                                     presentSheet(.login(.settings))
                                 } label: {
@@ -621,7 +621,7 @@ struct SettingsView: View {
                     }
 
                     SettingsSectionCard(title: AppLocalized.text("settings.section.system", fallback: "System"), colorScheme: effectiveColorScheme) {
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                             HStack {
                                 Text(
                                     AppLocalized.text(
@@ -651,7 +651,7 @@ struct SettingsView: View {
                     }
 
                     SettingsSectionCard(title: AppLocalized.text("settings.section.theme", fallback: "Theme"), colorScheme: effectiveColorScheme) {
-                        VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                             ForEach(Appearance.allCases) { appearance in
                                 AppearanceChoiceCard(
                                     colorScheme: effectiveColorScheme,
@@ -665,7 +665,7 @@ struct SettingsView: View {
                     }
 
                     SettingsSectionCard(title: AppLocalized.text("settings.section.privacy_legal_help", fallback: "Privacy / Legal / Help"), colorScheme: effectiveColorScheme) {
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                             Text("\(AppLocalized.text("settings.version", fallback: "Version")) \(appVersion)")
                                 .font(.headline)
                                 .foregroundColor(AppColors.text(for: effectiveColorScheme))
@@ -739,7 +739,7 @@ struct SettingsView: View {
                             .tint(AppColors.accent(for: effectiveColorScheme))
 
                             if isOwnerUser {
-                                VStack(alignment: .leading, spacing: 12) {
+                                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                                     Text(AppLocalized.text("settings.legal.owner_title", fallback: "Legal (owner)"))
                                         .font(.headline)
                                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
@@ -1240,7 +1240,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var controlCenterSectionCard: some View {
         SettingsSectionCard(title: "Control Center", colorScheme: effectiveColorScheme) {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                 SettingsInlineStatusStrip(
                     icon: "slider.horizontal.3",
                     title: "System aktiv",
@@ -1254,7 +1254,7 @@ struct SettingsView: View {
                     colorScheme: effectiveColorScheme
                 )
 
-                VStack(spacing: 10) {
+                VStack(spacing: SkydownLayout.stackSpacingPill) {
                     Button {
                         Task { await runControlCenterHealthCheck() }
                     } label: {
@@ -1324,7 +1324,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var membershipSectionCard: some View {
         SettingsSectionCard(title: "Membership", colorScheme: effectiveColorScheme) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 if let user = authManager.userSession {
                     if canUseAISelfPaySubscription {
                         NativeAISubscriptionStatusCard(
@@ -1368,7 +1368,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var adminWorkspaceSectionCard: some View {
         SettingsSectionCard(title: "Owner-Bereich", colorScheme: effectiveColorScheme) {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                 Text("Admin & Revenue zentral steuern.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
@@ -1416,9 +1416,9 @@ struct SettingsView: View {
     @ViewBuilder
     private var personalAgentServiceSectionCard: some View {
         SettingsSectionCard(title: "AI Control", colorScheme: effectiveColorScheme) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 10) {
+                    LazyHStack(spacing: SkydownLayout.stackSpacingPill) {
                     SettingsBadge(
                         text: workflowAutomationSettings.settings.isPrepared ? "Workflow bereit" : "Workflow offen",
                         colorScheme: effectiveColorScheme,
@@ -1449,7 +1449,7 @@ struct SettingsView: View {
                 .skydownInteractiveFeedback()
                 .tint(AppColors.accent(for: effectiveColorScheme))
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                     Text(AppLocalized.text("settings.workflow_status.title", fallback: "Workflow status"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
@@ -1470,7 +1470,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private func adminWorkspaceContent(for section: SettingsAdminWorkspaceSection) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             SettingsAdminWorkspaceSummaryCard(
                 section: section,
                 colorScheme: effectiveColorScheme
@@ -1478,12 +1478,12 @@ struct SettingsView: View {
 
             switch section {
             case .users:
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                     Text(AppLocalized.text("settings.system_control.roles_limits", fallback: "Roles, AI enablement, and daily limits per account."))
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SettingsBadge(text: "4 Rollen", colorScheme: effectiveColorScheme)
                         SettingsBadge(text: "\(adminUserManagementStore.users.count) Konten", colorScheme: effectiveColorScheme)
                     }
@@ -1501,7 +1501,7 @@ struct SettingsView: View {
                             .font(.footnote)
                             .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                     } else {
-                        VStack(spacing: 12) {
+                        VStack(spacing: SkydownLayout.stackSpacingCompact) {
                             ForEach(adminUserManagementStore.users) { managedUser in
                                 SettingsAdminUserCard(
                                     user: managedUser,
@@ -1516,12 +1516,12 @@ struct SettingsView: View {
                 }
 
             case .artists:
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                     Text("Artist-Seiten: Owner vergibt Editoren.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SettingsBadge(text: "\(publishedArtistPageCount) Seiten mit Inhalt", colorScheme: effectiveColorScheme)
                         SettingsBadge(text: "\(assignedArtistPageCount) mit Editoren", colorScheme: effectiveColorScheme)
                     }
@@ -1532,7 +1532,7 @@ struct SettingsView: View {
                             .foregroundColor(AppColors.accentHighlight(for: effectiveColorScheme))
                     }
 
-                    VStack(spacing: 12) {
+                    VStack(spacing: SkydownLayout.stackSpacingCompact) {
                         ForEach(managedShowcasePages) { page in
                             SettingsArtistPageCard(
                                 page: page,
@@ -1547,12 +1547,12 @@ struct SettingsView: View {
                 }
 
             case .headers:
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                     Text("Hero unter Home, Music, Shop, Video — Bilder werden für Lesbarkeit abgedunkelt.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SettingsBadge(text: "\(configuredScreenHeaderCount) angepasst", colorScheme: effectiveColorScheme)
                         SettingsBadge(text: "Overlay aktiv", colorScheme: effectiveColorScheme)
                         SettingsBadge(text: "CRUD bereit", colorScheme: effectiveColorScheme)
@@ -1750,7 +1750,7 @@ struct SettingsView: View {
                 }
 
             case .shopify:
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                     Text("Domain, Token, Collections — dann lädt Shopify.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
@@ -1777,7 +1777,7 @@ struct SettingsView: View {
                         placeholder: "z. B. spring-drop-2026, hoodies, accessories"
                     )
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button {
                             Task {
                                 await shopifyAdminSettingsStore.refreshAvailableCollections(force: true)
@@ -1824,9 +1824,9 @@ struct SettingsView: View {
                         }
 
                         LazyVGrid(
-                            columns: [GridItem(.adaptive(minimum: 190), spacing: 10)],
+                            columns: [GridItem(.adaptive(minimum: 190), spacing: SkydownLayout.stackSpacingPill)],
                             alignment: .leading,
-                            spacing: 10
+                            spacing: SkydownLayout.stackSpacingPill
                         ) {
                             ForEach(filteredShopifyCollectionOptions) { collection in
                                 ShopifyCollectionToggleCard(
@@ -1855,7 +1855,7 @@ struct SettingsView: View {
                         colorScheme: effectiveColorScheme
                     )
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button(action: saveShopifyAdminSettings) {
                             Label("Shopify speichern", systemImage: "shippingbox.and.arrow.backward")
                                 .frame(maxWidth: .infinity)
@@ -1878,7 +1878,7 @@ struct SettingsView: View {
                 }
 
             case .payments:
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                     Text("PayPal/Bank: manuell. Stripe live. Klarna über Stripe, wenn aktiv.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
@@ -1983,12 +1983,12 @@ struct SettingsView: View {
                 }
 
             case .commerce:
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                     Text("Versand & Steuer für Checkout. Store-Schalter = harte Freigabe.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SettingsBadge(
                             text: merchStoreStatusStore.status.isOpen ? "Store offen" : "Store pausiert",
                             colorScheme: effectiveColorScheme
@@ -2077,7 +2077,7 @@ struct SettingsView: View {
                         placeholder: "optional"
                     )
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SettingsInputField(
                             title: "MwSt. Satz (%)",
                             text: $invoiceTaxRateDraft,
@@ -2114,7 +2114,7 @@ struct SettingsView: View {
                 }
 
             case .visuals:
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                     Toggle(
                         "Visual Reference Pack aktiv",
                         isOn: Binding(
@@ -2159,7 +2159,7 @@ struct SettingsView: View {
                         placeholder: "z. B. skydown_drop_"
                     )
 
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                         Text("Referenzhinweise")
                             .font(.headline)
                             .foregroundColor(AppColors.text(for: effectiveColorScheme))
@@ -2188,7 +2188,7 @@ struct SettingsView: View {
                 }
 
             case .automation:
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                     Text(isOwnerUser
                         ? "Globaler Owner-Flow fuer die ganze App. User triggern nie direkt Activepieces; das Backend prueft Rolle, Abo, Limits und Kontext vor jedem Lauf."
                         : "Optionaler eigener Workflow. Du kannst Activepieces oder n8n anbinden und ihn im Agent bewusst triggern.")
@@ -2268,7 +2268,7 @@ struct SettingsView: View {
                         )
                     }
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                         if let saveReason = automationSaveDisabledReasons.first {
                             Text("Speichern: \(saveReason)")
                                 .font(.caption)
@@ -2282,7 +2282,7 @@ struct SettingsView: View {
                         }
                     }
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button(action: saveAutomationSettings) {
                             Label(
                                 isSavingAutomationSettings ? "Speichert..." : "Workflow speichern",
@@ -2319,7 +2319,7 @@ struct SettingsView: View {
 
                     Toggle("Eigenen Manus-Account verwenden", isOn: $manusByosEnabledDraft)
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SettingsBadge(
                             text: manusByosStore.settings.hasAPIKey ? "Key gespeichert" : "Key fehlt",
                             colorScheme: effectiveColorScheme
@@ -2350,7 +2350,7 @@ struct SettingsView: View {
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button(action: saveManusBYOSSettings) {
                             Label("Manus speichern", systemImage: "lock.shield")
                                 .frame(maxWidth: .infinity)
@@ -2381,13 +2381,13 @@ struct SettingsView: View {
                 }
 
             case .aiPrompts:
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                     Text("Bot / Visual / Agent — `adminConfig/aiPromptSettings`. Optional: Asset-Link global.")
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
                             SettingsBadge(
                                 text: "Text \(aiTextInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
                                 colorScheme: effectiveColorScheme
@@ -2486,7 +2486,7 @@ struct SettingsView: View {
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                         HStack {
                             Text("FAQ Review Loop (30d)")
                                 .font(.subheadline.weight(.semibold))
@@ -2519,7 +2519,7 @@ struct SettingsView: View {
                                 .font(.footnote)
                                 .foregroundColor(.red)
                         } else {
-                            HStack(spacing: 8) {
+                            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                 SettingsBadge(text: "Strong \(aiFaqOwnerReviewLoopStore.strongestTriggers.count)", colorScheme: effectiveColorScheme)
                                 SettingsBadge(text: "Weak \(aiFaqOwnerReviewLoopStore.weakTriggers.count)", colorScheme: effectiveColorScheme)
                                 SettingsBadge(text: "Useless \(aiFaqOwnerReviewLoopStore.likelyUselessTriggers.count)", colorScheme: effectiveColorScheme)
@@ -2544,7 +2544,7 @@ struct SettingsView: View {
                             }
 
                             ForEach(aiFaqOwnerReviewLoopStore.strategyInsights.prefix(3)) { insight in
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                                     Text(insight.title)
                                         .font(.footnote.weight(.semibold))
                                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
@@ -2558,13 +2558,13 @@ struct SettingsView: View {
                                 .padding(10)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
                                         .fill(AppColors.cardBackground(for: effectiveColorScheme))
                                 )
                             }
 
                             ForEach(aiFaqOwnerReviewLoopStore.recommendations.prefix(3)) { recommendation in
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                                     Text(recommendation.title)
                                         .font(.footnote.weight(.semibold))
                                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
@@ -2574,7 +2574,7 @@ struct SettingsView: View {
                                     Text("Action: \(recommendation.actionType) · Target: \(recommendation.targetField) · Suggest: \(recommendation.suggestedValueLabel)")
                                         .font(.caption2)
                                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-                                    HStack(spacing: 8) {
+                                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                         Button("Preview") {
                                             Task {
                                                 let message = await aiFaqOwnerReviewLoopStore.preview(
@@ -2603,7 +2603,7 @@ struct SettingsView: View {
                                 .padding(10)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
                                         .fill(AppColors.cardBackground(for: effectiveColorScheme))
                                 )
                             }
@@ -2623,7 +2623,7 @@ struct SettingsView: View {
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
                             SettingsBadge(
                                 text: aiBotPromptVersionDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Prompt v?" : aiBotPromptVersionDraft,
                                 colorScheme: effectiveColorScheme
@@ -2676,7 +2676,7 @@ struct SettingsView: View {
                         placeholder: "standard / verbose"
                     )
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "Quality Mode", colorScheme: effectiveColorScheme)
                         Picker("Quality Mode", selection: $aiBotQualityModeDraft) {
                             Text("Balanced").tag("balanced")
@@ -2685,7 +2685,7 @@ struct SettingsView: View {
                         .pickerStyle(.segmented)
                     }
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "FAQ Mode", colorScheme: effectiveColorScheme)
                         Picker("FAQ Mode", selection: $aiBotFAQModeDraft) {
                             Text("Off").tag("off")
@@ -2695,7 +2695,7 @@ struct SettingsView: View {
                         .pickerStyle(.segmented)
                     }
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "Owner Mode", colorScheme: effectiveColorScheme)
                         Picker("Owner Mode", selection: $aiBotOwnerModeDraft) {
                             Text("Standard").tag("standard")
@@ -2704,7 +2704,7 @@ struct SettingsView: View {
                         .pickerStyle(.segmented)
                     }
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "Antwortlaenge", colorScheme: effectiveColorScheme)
                         Picker("Antwortlaenge", selection: $aiBotAnswerLengthDraft) {
                             Text("Adaptive").tag("adaptive")
@@ -2714,7 +2714,7 @@ struct SettingsView: View {
                         .pickerStyle(.segmented)
                     }
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "Diagnostics", colorScheme: effectiveColorScheme)
                         Picker("Diagnostics", selection: $aiBotDiagnosticsModeDraft) {
                             Text("Off").tag("off")
@@ -2780,7 +2780,7 @@ struct SettingsView: View {
                         placeholder: "bot-max-v1"
                     )
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "FAQ Prioritaet", colorScheme: effectiveColorScheme)
                         Picker("FAQ Prioritaet", selection: $aiBotFaqPriorityModeDraft) {
                             Text("Live -> Owner -> Generic").tag("live_owner_generic")
@@ -2839,7 +2839,7 @@ struct SettingsView: View {
 
                     Toggle("Kosten-Guard aktiv", isOn: $aiCostGuardEnabledDraft)
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "Agent Provider", colorScheme: effectiveColorScheme)
                         Picker("Agent Provider", selection: $aiAgentProviderDraft) {
                             ForEach(AIRuntimeAgentProvider.allCases, id: \.self) { provider in
@@ -2849,7 +2849,7 @@ struct SettingsView: View {
                         .pickerStyle(.segmented)
                     }
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "Fallback Provider", colorScheme: effectiveColorScheme)
                         Picker("Fallback Provider", selection: $aiFallbackAgentProviderDraft) {
                             ForEach(AIRuntimeAgentProvider.allCases, id: \.self) { provider in
@@ -4366,7 +4366,7 @@ private struct SettingsInputField: View {
     var keyboardType: UIKeyboardType = .default
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             SettingsFieldTitle(title: title, colorScheme: colorScheme)
 
             TextField(placeholder, text: $text)
@@ -4388,7 +4388,7 @@ private struct SettingsSecureInputField: View {
     let placeholder: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             SettingsFieldTitle(title: title, colorScheme: colorScheme)
 
             SecureField(placeholder, text: $text)
@@ -4406,7 +4406,7 @@ private struct SettingsMultilineInputField: View {
     var minHeight: CGFloat = 110
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             SettingsFieldTitle(title: title, colorScheme: colorScheme)
 
             ZStack(alignment: .topLeading) {
@@ -4415,7 +4415,7 @@ private struct SettingsMultilineInputField: View {
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .padding(.horizontal, 18)
-                        .padding(.vertical, 16)
+                        .padding(.vertical, SkydownLayout.cardPadding)
                 }
 
                 TextEditor(text: $text)
@@ -4448,9 +4448,9 @@ private extension View {
             .padding(.horizontal, horizontalPadding)
             .padding(.vertical, verticalPadding)
             .background(AppColors.secondaryBackground(for: colorScheme))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                     .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
             )
     }
@@ -4472,8 +4472,8 @@ private struct SettingsProfileEditorCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            HStack(spacing: SkydownLayout.stackSpacingCompact) {
                 ZStack {
                     Circle()
                         .fill(AppColors.accent(for: colorScheme).opacity(0.14))
@@ -4484,7 +4484,7 @@ private struct SettingsProfileEditorCard: View {
                         .foregroundColor(AppColors.accent(for: colorScheme))
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text("Profil")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -4563,9 +4563,9 @@ private struct PaymentProviderSettingsCard: View {
     let onToggleCheckoutVisible: (Bool) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(title)
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -4605,7 +4605,7 @@ private struct PaymentProviderSettingsCard: View {
                 isEnabled: statusText == "Verbunden"
             )
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Button(actionTitle, action: onPrimaryAction)
                     .buttonStyle(.borderedProminent)
                     .skydownInteractiveFeedback()
@@ -4618,9 +4618,9 @@ private struct PaymentProviderSettingsCard: View {
                 }
             }
         }
-        .padding(16)
+        .padding(SkydownLayout.cardPadding)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -4632,9 +4632,9 @@ private struct StripeBackendSecretsCard: View {
     let onSave: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text("Sicheres Stripe-Backend")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -4656,7 +4656,7 @@ private struct StripeBackendSecretsCard: View {
                 )
             }
 
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 SettingsBadge(
                     text: status.hasSecretKey ? "Secret Key gesetzt" : "Secret Key fehlt",
                     colorScheme: colorScheme
@@ -4690,9 +4690,9 @@ private struct StripeBackendSecretsCard: View {
                 .skydownInteractiveFeedback()
                 .tint(AppColors.accent(for: colorScheme))
         }
-        .padding(16)
+        .padding(SkydownLayout.cardPadding)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -4713,9 +4713,9 @@ private struct NativeAISubscriptionStatusCard: View {
     let onManage: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 10) {
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingPill) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text("KI-Plan")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -4756,18 +4756,18 @@ private struct NativeAISubscriptionStatusCard: View {
             }
 
             if isLoadingProducts || isSyncing {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ProgressView()
                     Text(isLoadingProducts ? "StoreKit-Produkte werden geladen..." : "KI-Abo wird synchronisiert...")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
             } else if isStorefrontReady && !products.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     ForEach(products) { product in
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(alignment: .center, spacing: 10) {
-                                VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
+                            HStack(alignment: .center, spacing: SkydownLayout.stackSpacingPill) {
+                                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                                     Text(product.plan.displayTitle)
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -4803,7 +4803,7 @@ private struct NativeAISubscriptionStatusCard: View {
                         }
                         .padding(12)
                         .background(AppColors.cardBackground(for: colorScheme))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
                     }
                 }
             } else if isStorefrontReady {
@@ -4822,7 +4822,7 @@ private struct NativeAISubscriptionStatusCard: View {
                     .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Button("Kaeufe synchronisieren", action: onRestore)
                     .buttonStyle(.bordered)
                     .skydownInteractiveFeedback()
@@ -4835,7 +4835,7 @@ private struct NativeAISubscriptionStatusCard: View {
         }
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
     }
 }
 
@@ -4868,9 +4868,9 @@ private struct AISubscriptionPricingCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text("KI-Abos")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -4886,7 +4886,7 @@ private struct AISubscriptionPricingCard: View {
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 6) {
+                VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingDense) {
                     SettingsBadge(text: hasStripePricing ? "Stripe ok" : "Stripe fehlt", colorScheme: colorScheme)
                     SettingsBadge(text: hasIOSProducts ? "iOS ok" : "iOS fehlt", colorScheme: colorScheme)
                     SettingsBadge(text: hasAndroidProducts ? "Android ok" : "Android offen", colorScheme: colorScheme)
@@ -4958,9 +4958,9 @@ private struct AISubscriptionPricingCard: View {
                 .skydownInteractiveFeedback()
                 .tint(AppColors.accent(for: colorScheme))
         }
-        .padding(16)
+        .padding(SkydownLayout.cardPadding)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -4994,9 +4994,9 @@ private struct BankTransferSettingsCard: View {
     let onToggleCheckoutVisible: (Bool) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text("Bankueberweisung")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -5065,9 +5065,9 @@ private struct BankTransferSettingsCard: View {
                 .skydownInteractiveFeedback()
                 .tint(AppColors.accentMystic(for: colorScheme))
         }
-        .padding(16)
+        .padding(SkydownLayout.cardPadding)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -5087,9 +5087,9 @@ private struct SettingsHeroCard: View {
     let appearance: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingComfortable) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     Text(username ?? "SkyOS Einstellungen")
                         .font(.largeTitle)
                         .fontWeight(.bold)
@@ -5105,7 +5105,7 @@ private struct SettingsHeroCard: View {
                 Spacer(minLength: 0)
 
                 ZStack {
-                    RoundedRectangle(cornerRadius: 18)
+                    RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                         .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
                         .frame(width: 58, height: 58)
 
@@ -5116,7 +5116,7 @@ private struct SettingsHeroCard: View {
             }
 
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     SettingsBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
                     SettingsBadge(text: notificationsEnabled ? "Hinweise an" : "Hinweise aus", colorScheme: colorScheme)
                     SettingsBadge(text: appearance, colorScheme: colorScheme)
@@ -5125,13 +5125,13 @@ private struct SettingsHeroCard: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SettingsBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
                         SettingsBadge(text: notificationsEnabled ? "Hinweise an" : "Hinweise aus", colorScheme: colorScheme)
                     }
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SettingsBadge(text: appearance, colorScheme: colorScheme)
                         if isOwner {
                             SettingsBadge(text: "Owner aktiv", colorScheme: colorScheme)
@@ -5143,10 +5143,10 @@ private struct SettingsHeroCard: View {
         .padding(20)
         .background(cardBackground)
         .overlay(
-            RoundedRectangle(cornerRadius: 26)
+            RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 26))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.24 : 0.08), radius: 18, y: 8)
     }
 
@@ -5178,15 +5178,15 @@ private struct OwnerCommandCenterCard: View {
 
     private var columns: [GridItem] {
         [
-            GridItem(.flexible(), spacing: 10),
-            GridItem(.flexible(), spacing: 10)
+            GridItem(.flexible(), spacing: SkydownLayout.stackSpacingPill),
+            GridItem(.flexible(), spacing: SkydownLayout.stackSpacingPill)
         ]
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                     Text(isOwner ? "Owner-Steuerung" : "Owner-Steuerung gesperrt")
                         .font(.headline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -5204,7 +5204,7 @@ private struct OwnerCommandCenterCard: View {
                 )
             }
 
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+            LazyVGrid(columns: columns, alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 OwnerCommandSignalButton(
                     colorScheme: colorScheme,
                     title: "Membership-Steuerung",
@@ -5247,7 +5247,7 @@ private struct OwnerCommandCenterCard: View {
                 )
             }
         }
-        .padding(16)
+        .padding(SkydownLayout.cardPadding)
         .background(
             LinearGradient(
                 colors: [
@@ -5259,9 +5259,9 @@ private struct OwnerCommandCenterCard: View {
                 endPoint: .bottomTrailing
             )
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
         )
     }
@@ -5296,7 +5296,7 @@ private struct OwnerCommandSignalButton: View {
 
     var body: some View {
         let button = Button(action: action) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 HStack {
                     Image(systemName: iconName)
                         .font(.subheadline.weight(.bold))
@@ -5322,9 +5322,9 @@ private struct OwnerCommandSignalButton: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
             .background(AppColors.cardBackground(for: colorScheme).opacity(isEnabled ? 0.95 : 0.45))
-            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                     .stroke(AppColors.accent(for: colorScheme).opacity(isEnabled ? 0.14 : 0.06), lineWidth: 1)
             )
         }
@@ -5346,7 +5346,7 @@ private struct SettingsSectionCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             Text(title)
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -5356,10 +5356,10 @@ private struct SettingsSectionCard<Content: View>: View {
         .padding(SkydownLayout.panelPadding)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
     }
 }
 
@@ -5371,8 +5371,8 @@ private struct SettingsToggleCard: View {
     var isEnabled: Bool = true
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: SkydownLayout.stackSpacingCompact) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text(title)
                     .font(.headline)
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -5390,7 +5390,7 @@ private struct SettingsToggleCard: View {
         }
         .padding(14)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
         .opacity(isEnabled ? 1 : 0.6)
     }
 }
@@ -5404,7 +5404,7 @@ private struct AppearanceChoiceCard: View {
     var body: some View {
         Button(action: onTap) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                     Text(title)
                         .font(.headline)
                     Text(isSelected ? "Aktiv" : "Tippen zum Wechseln")
@@ -5424,7 +5424,7 @@ private struct AppearanceChoiceCard: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                     .fill(
                         isSelected
                         ? AppColors.accent(for: colorScheme)
@@ -5432,7 +5432,7 @@ private struct AppearanceChoiceCard: View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                     .stroke(AppColors.accent(for: colorScheme).opacity(isSelected ? 1 : 0.18), lineWidth: 1)
             )
             .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
@@ -5455,7 +5455,7 @@ private struct SettingsBadge: View {
     }
 
     private var badgeContent: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: SkydownLayout.stackSpacingSubtle) {
             Text(text)
                 .font(.caption.weight(.semibold))
             Image(systemName: "arrow.right")
@@ -5474,7 +5474,7 @@ private struct SettingsLockedHintCard: View {
     let text: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingMicro) {
             Image(systemName: "lock.fill")
                 .font(.caption.weight(.bold))
                 .foregroundColor(.white)
@@ -5489,11 +5489,11 @@ private struct SettingsLockedHintCard: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                 .fill(Color.red.opacity(colorScheme == .dark ? 0.34 : 0.76))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.24), lineWidth: 1)
         )
     }
@@ -5508,8 +5508,8 @@ private struct SettingsInlineStatusStrip: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingChrome) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: icon)
                     .font(.caption.weight(.bold))
                     .foregroundColor(accent)
@@ -5524,7 +5524,7 @@ private struct SettingsInlineStatusStrip: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             if let detail, !detail.isEmpty {
-                HStack(spacing: 6) {
+                HStack(spacing: SkydownLayout.stackSpacingDense) {
                     Image(systemName: "circle.fill")
                         .font(.system(size: 5))
                     Text(detail)
@@ -5538,11 +5538,11 @@ private struct SettingsInlineStatusStrip: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .fill(AppColors.secondaryBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .stroke(accent.opacity(0.12), lineWidth: 1)
         )
     }
@@ -5560,10 +5560,10 @@ private struct SettingsUtilityRow: View {
     let actions: [SettingsUtilityAction]
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: SkydownLayout.stackSpacingMicro) {
             ForEach(Array(actions.enumerated()), id: \.offset) { _, item in
                 Button(action: item.action) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: SkydownLayout.stackSpacingDense) {
                         Image(systemName: item.systemImage)
                             .font(.caption2.weight(.bold))
                         Text(item.title)
@@ -5600,8 +5600,8 @@ private struct SettingsStatusCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: style.icon)
                     .foregroundColor(style.color)
                     .font(.subheadline.weight(.semibold))
@@ -5618,9 +5618,9 @@ private struct SettingsStatusCard: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             if !details.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     ForEach(Array(details.enumerated()), id: \.offset) { _, detail in
-                        HStack(alignment: .top, spacing: 6) {
+                        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingDense) {
                             Image(systemName: "circle.fill")
                                 .font(.system(size: 5))
                                 .foregroundColor(style.color.opacity(0.9))
@@ -5636,11 +5636,11 @@ private struct SettingsStatusCard: View {
         }
         .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .fill(AppColors.secondaryBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .stroke(style.color.opacity(0.35), lineWidth: 1)
         )
     }
@@ -5654,7 +5654,7 @@ private struct ShopifyCollectionToggleCard: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 HStack {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                         .foregroundColor(isSelected ? AppColors.accent(for: colorScheme) : AppColors.secondaryText(for: colorScheme))
@@ -5681,11 +5681,11 @@ private struct ShopifyCollectionToggleCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                     .fill(isSelected ? AppColors.accent(for: colorScheme).opacity(0.18) : AppColors.secondaryBackground(for: colorScheme))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                     .stroke(
                         isSelected ? AppColors.accent(for: colorScheme) : AppColors.secondaryText(for: colorScheme).opacity(0.18),
                         lineWidth: 1
@@ -5795,7 +5795,7 @@ private struct SettingsAdminWorkspaceChip: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: section.iconName)
                     .font(.caption.weight(.bold))
                 Text(section.rawValue)
@@ -5834,9 +5834,9 @@ private struct SettingsAdminWorkspaceListRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 12) {
+            HStack(spacing: SkydownLayout.stackSpacingCompact) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 16)
+                    RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                         .fill(AppColors.accent(for: colorScheme).opacity(0.12))
                         .frame(width: 44, height: 44)
 
@@ -5845,7 +5845,7 @@ private struct SettingsAdminWorkspaceListRow: View {
                         .foregroundColor(AppColors.accent(for: colorScheme))
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(section.rawValue)
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -5858,7 +5858,7 @@ private struct SettingsAdminWorkspaceListRow: View {
 
                 Spacer(minLength: 0)
 
-                VStack(alignment: .trailing, spacing: 6) {
+                VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingDense) {
                     Text(detailText)
                         .font(.caption.weight(.semibold))
                         .foregroundColor(AppColors.accentMystic(for: colorScheme))
@@ -5873,10 +5873,10 @@ private struct SettingsAdminWorkspaceListRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.secondaryBackground(for: colorScheme))
             .overlay(
-                RoundedRectangle(cornerRadius: 20)
+                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                     .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
         }
         .accessibilityIdentifier(accessibilityIdentifier)
         .buttonStyle(.plain)
@@ -5892,7 +5892,7 @@ private struct SettingsAdminWorkspaceSidebarButton: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Image(systemName: section.iconName)
                     .font(.subheadline.weight(.bold))
                     .frame(width: 20)
@@ -5908,7 +5908,7 @@ private struct SettingsAdminWorkspaceSidebarButton: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                     .fill(
                         isSelected
                         ? AppColors.accent(for: colorScheme)
@@ -5916,7 +5916,7 @@ private struct SettingsAdminWorkspaceSidebarButton: View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                     .stroke(
                         AppColors.accent(for: colorScheme).opacity(isSelected ? 1 : 0.14),
                         lineWidth: 1
@@ -5933,7 +5933,7 @@ private struct SettingsAdminWorkspaceSummaryCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
             ZStack {
                 Circle()
                     .fill(AppColors.accent(for: colorScheme).opacity(0.12))
@@ -5944,7 +5944,7 @@ private struct SettingsAdminWorkspaceSummaryCard: View {
                     .foregroundColor(AppColors.accent(for: colorScheme))
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                 Text(section.rawValue)
                     .font(.headline)
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -5957,7 +5957,7 @@ private struct SettingsAdminWorkspaceSummaryCard: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
     }
 }
 
@@ -5965,14 +5965,14 @@ private struct SettingsAdminRoleGuideCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text("Rollen im System")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            VStack(spacing: 10) {
+            VStack(spacing: SkydownLayout.stackSpacingPill) {
                 ForEach(UserRole.allCases, id: \.self) { role in
-                    HStack(alignment: .top, spacing: 10) {
+                    HStack(alignment: .top, spacing: SkydownLayout.stackSpacingPill) {
                         SettingsBadge(text: role.displayTitle, colorScheme: colorScheme)
 
                         Text(role.roleSummary)
@@ -5983,9 +5983,9 @@ private struct SettingsAdminRoleGuideCard: View {
                 }
             }
         }
-        .padding(16)
+        .padding(SkydownLayout.cardPadding)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -6012,9 +6012,9 @@ private struct SettingsArtistPageCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSubtle) {
                     Text(page.artistName)
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -6026,7 +6026,7 @@ private struct SettingsArtistPageCard: View {
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 6) {
+                VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingDense) {
                     SettingsBadge(text: page.hasCustomPresentation ? "Live" : "Platzhalter", colorScheme: colorScheme)
                     SettingsBadge(
                         text: page.brand == .nicma
@@ -6047,9 +6047,9 @@ private struct SettingsArtistPageCard: View {
                     .foregroundColor(AppColors.text(for: colorScheme))
 
                 LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 132), spacing: 8)],
+                    columns: [GridItem(.adaptive(minimum: 132), spacing: SkydownLayout.stackSpacingMicro)],
                     alignment: .leading,
-                    spacing: 8
+                    spacing: SkydownLayout.stackSpacingMicro
                 ) {
                     ForEach(users) { user in
                         let isSelected = selectedEditorUids.contains(user.id ?? "")
@@ -6066,7 +6066,7 @@ private struct SettingsArtistPageCard: View {
                                 }
                             }
                         } label: {
-                            HStack(spacing: 6) {
+                            HStack(spacing: SkydownLayout.stackSpacingDense) {
                                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                                     .font(.caption.weight(.bold))
                                 Text(user.username)
@@ -6123,9 +6123,9 @@ private struct SettingsArtistPageCard: View {
             .skydownInteractiveFeedback()
             .tint(AppColors.accent(for: colorScheme))
         }
-        .padding(16)
+        .padding(SkydownLayout.cardPadding)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -6203,9 +6203,9 @@ private struct SettingsAdminUserCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 10) {
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingPill) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(user.username)
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -6217,7 +6217,7 @@ private struct SettingsAdminUserCard: View {
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 6) {
+                VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingDense) {
                     SettingsBadge(text: draftRole.displayTitle, colorScheme: colorScheme)
                     if isCurrentUser {
                         SettingsBadge(text: "Du", colorScheme: colorScheme)
@@ -6232,7 +6232,7 @@ private struct SettingsAdminUserCard: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 Text("Rolle")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -6254,9 +6254,9 @@ private struct SettingsAdminUserCard: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 14)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16)
+                        RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                             .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
                     )
                 }
@@ -6294,12 +6294,12 @@ private struct SettingsAdminUserCard: View {
                 isOn: $aiAccessEnabled
             )
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 Text("Tageslimits")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     SettingsInputField(
                         title: "Bot",
                         text: $textLimitDraft,
@@ -6324,7 +6324,7 @@ private struct SettingsAdminUserCard: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 Text("History-Aufbewahrung")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -6359,7 +6359,7 @@ private struct SettingsAdminUserCard: View {
                     }
                 }
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     if isSaving {
                         ProgressView()
                             .tint(Color.white)
@@ -6395,9 +6395,9 @@ private struct SettingsAdminUserCard: View {
                     .foregroundColor(AppColors.accent(for: colorScheme))
             }
         }
-        .padding(16)
+        .padding(SkydownLayout.cardPadding)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
         .overlay(alignment: .topTrailing) {
             if isSaving {
                 ProgressView()
@@ -6513,7 +6513,7 @@ private struct SettingsAdminUserCard: View {
     }
 
     private var ownerControlNote: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text("Owner-Kontrolle")
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -6525,7 +6525,7 @@ private struct SettingsAdminUserCard: View {
     }
 
     private var adminCapabilitiesSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             Text("Zugewiesene Funktionen")
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -6554,13 +6554,13 @@ private struct SettingsAdminUserCard: View {
     }
 
     private var quotaPlanSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             Text((draftRole == .admin || draftRole == .subadmin) ? "Abo-Modell" : "Kontingent")
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             if draftRole == .user {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     SettingsBadge(text: UserQuotaPlan.free.displayTitle, colorScheme: colorScheme)
                     Text(UserQuotaPlan.free.planSummary)
                         .font(.footnote)
@@ -6583,9 +6583,9 @@ private struct SettingsAdminUserCard: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 14)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16)
+                        RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                             .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
                     )
                 }

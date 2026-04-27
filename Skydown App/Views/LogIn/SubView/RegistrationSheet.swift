@@ -68,7 +68,7 @@ struct RegistrationSheet: View {
                     .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: colorScheme)))
                     .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
-                    HStack(spacing: 12) {
+                    HStack(spacing: SkydownLayout.stackSpacingCompact) {
                         Button(localized("auth.register.legal.open_terms", "Open AGB")) {
                             activeLegalDocument = .terms
                         }

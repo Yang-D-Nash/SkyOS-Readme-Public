@@ -62,8 +62,8 @@ struct TrackView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: catalog ? 9 : 12) {
-            HStack(alignment: .top, spacing: catalog ? 10 : 12) {
+        VStack(alignment: .leading, spacing: catalog ? SkydownLayout.stackSpacingSnug : SkydownLayout.stackSpacingCompact) {
+            HStack(alignment: .top, spacing: catalog ? SkydownLayout.stackSpacingPill : SkydownLayout.stackSpacingCompact) {
                 AsyncImage(url: URL(string: track.artworkUrl100 ?? "")) { image in
                     image
                         .resizable()
@@ -83,9 +83,9 @@ struct TrackView: View {
                         )
                 )
 
-                VStack(alignment: .leading, spacing: catalog ? 3 : (isSecondary ? 5 : 8)) {
+                VStack(alignment: .leading, spacing: catalog ? SkydownLayout.stackSpacingTick : (isSecondary ? SkydownLayout.stackSpacingSubtle : SkydownLayout.stackSpacingMicro)) {
                     if catalog {
-                        HStack(alignment: .center, spacing: 6) {
+                        HStack(alignment: .center, spacing: SkydownLayout.stackSpacingDense) {
                             if let artist = track.artistName, !artist.isEmpty {
                                 Text(artist.uppercased())
                                     .font(.caption2.weight(.semibold))
@@ -100,7 +100,7 @@ struct TrackView: View {
                             }
                         }
                     } else {
-                    HStack(alignment: .center, spacing: 8) {
+                    HStack(alignment: .center, spacing: SkydownLayout.stackSpacingMicro) {
                         if let artist = track.artistName, !artist.isEmpty {
                             Text(artist.uppercased())
                                 .font(isSecondary ? .caption2.weight(.semibold) : AppTypography.listMeta)
@@ -144,7 +144,7 @@ struct TrackView: View {
                     }
 
                     if isSecondary {
-                    HStack(spacing: 8) {
+                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
                         if allowsInAppPreview, track.previewUrl != nil {
                             TrackTag(text: "In-App Preview", isAccent: false)
                         }
@@ -160,7 +160,7 @@ struct TrackView: View {
                 }
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 if allowsInAppPreview, track.previewUrl != nil {
                     Button {
                         onSelect()
@@ -177,7 +177,7 @@ struct TrackView: View {
                         .padding(.vertical, 12)
                         .background(AppColors.accent(for: colorScheme))
                         .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
                     }
                     .skydownTactileAction()
                 }
@@ -194,10 +194,10 @@ struct TrackView: View {
                             .background(AppColors.spotifySurface(for: colorScheme))
                             .foregroundColor(AppColors.spotify(for: colorScheme))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 14)
+                                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                                     .stroke(AppColors.spotify(for: colorScheme).opacity(0.24), lineWidth: 1)
                             )
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
                     }
                     .skydownTactileAction()
                 } else if hasSpotifyArtistLink || hasSpotifySearch {
@@ -214,10 +214,10 @@ struct TrackView: View {
                             .background(AppColors.spotifySurface(for: colorScheme))
                             .foregroundColor(AppColors.spotify(for: colorScheme))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 14)
+                                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                                     .stroke(AppColors.spotify(for: colorScheme).opacity(0.24), lineWidth: 1)
                             )
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
                     }
                     .skydownTactileAction()
                 }

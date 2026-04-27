@@ -25,9 +25,9 @@ struct LoginView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
+            VStack(spacing: SkydownLayout.sectionSpacing) {
                 Spacer()
-                VStack(spacing: 5) {
+                VStack(spacing: SkydownLayout.stackSpacingSubtle) {
                     Text(localized("auth.login.welcome", "Welcome to SkyOS"))
                         .font(.largeTitle)
                         .fontWeight(.bold)
@@ -42,7 +42,7 @@ struct LoginView: View {
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                     Text(localized("feature.status.live.title", "Live now:"))
                         .font(.caption.weight(.bold))
                         .foregroundColor(AppColors.accentMystic(for: colorScheme))
@@ -57,16 +57,16 @@ struct LoginView: View {
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
+                .padding(SkydownLayout.cardPadding)
                 .background(AppColors.secondaryBackground(for: colorScheme))
-                .cornerRadius(14)
-                .padding(.horizontal)
+                .cornerRadius(SkydownLayout.compactRadius)
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
 
-                VStack(spacing: 15) {
+                VStack(spacing: SkydownLayout.stackSpacingLoft) {
                     TextField(localized("auth.email", "Email"), text: $viewModel.email)
                         .padding()
                         .background(AppColors.secondaryBackground(for: colorScheme))
-                        .cornerRadius(10)
+                        .cornerRadius(SkydownLayout.cardCornerRadius)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -75,16 +75,16 @@ struct LoginView: View {
                     SecureField(localized("auth.password", "Password"), text: $viewModel.password)
                         .padding()
                         .background(AppColors.secondaryBackground(for: colorScheme))
-                        .cornerRadius(10)
+                        .cornerRadius(SkydownLayout.cardCornerRadius)
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .accessibilityIdentifier("login.password")
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
 
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
-                        .padding(.horizontal)
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                         .multilineTextAlignment(.center)
                         .accessibilityIdentifier("login.error")
                 }
@@ -101,17 +101,17 @@ struct LoginView: View {
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(AppColors.accent(for: colorScheme))
-                .cornerRadius(10)
+                .cornerRadius(SkydownLayout.cardCornerRadius)
                 .foregroundColor(.white)
                 .opacity(viewModel.isSignInButtonDisabled ? 0.6 : 1.0)
                 .disabled(viewModel.isSignInButtonDisabled)
-                .padding(.horizontal)
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .accessibilityIdentifier("login.submit")
 
                 Button {
                     Task { await signInWithGoogleAndHydrateSession() }
                 } label: {
-                    HStack(spacing: 12) {
+                    HStack(spacing: SkydownLayout.stackSpacingCompact) {
                         Image(systemName: "globe")
                         Text(localized("auth.sign_in_google", "Sign in with Google"))
                             .font(.headline)
@@ -119,11 +119,11 @@ struct LoginView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(AppColors.secondaryBackground(for: colorScheme))
-                    .cornerRadius(10)
+                    .cornerRadius(SkydownLayout.cardCornerRadius)
                     .foregroundColor(AppColors.text(for: colorScheme))
                 }
                 .disabled(viewModel.isLoading)
-                .padding(.horizontal)
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .accessibilityIdentifier("login.google")
 
                 Button {

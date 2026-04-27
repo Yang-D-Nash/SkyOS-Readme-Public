@@ -172,9 +172,9 @@ struct MerchandiseCollabSidebar: View {
     let onSelect: (MerchandiseCollabLane) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 8) {
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingMicro) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(AppLocalized.text("shop.map.title", fallback: "Collections map"))
                         .font(AppTypography.sectionHeadline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -194,7 +194,7 @@ struct MerchandiseCollabSidebar: View {
                     )
             }
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 ForEach(lanes) { lane in
                     MerchandiseCollabSidebarButton(
                         lane: lane,
@@ -218,9 +218,9 @@ struct MerchandiseCollabQuickGrid: View {
     let onSelect: (MerchandiseCollabLane) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 8) {
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingMicro) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(AppLocalized.text("shop.quick.title", fallback: "Quick access"))
                         .font(AppTypography.sectionHeadline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -240,7 +240,7 @@ struct MerchandiseCollabQuickGrid: View {
                     )
             }
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 ForEach(lanes) { lane in
                     MerchandiseCollabSidebarButton(
                         lane: lane,
@@ -360,12 +360,12 @@ struct MerchandiseCollabSelectionCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingPill) {
                 Image(systemName: selectedLane.id == MerchandiseCollabLane.allID ? "bag" : "person.2")
                     .font(.caption.weight(.semibold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
                     Text(shopMerchLocalizedLaneTitle(selectedLane))
                         .font(AppTypography.cardTitle)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -396,7 +396,7 @@ struct MerchandiseCollabSelectionCard: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     MerchandiseCollabFocusMetric(
                         title: AppLocalized.text("shop.lane.metric.type", fallback: "Type"),
                         value: laneKindLabel,
@@ -441,7 +441,7 @@ private struct MerchandiseCollabSidebarButton: View {
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: compact ? 8 : 10) {
-                HStack(alignment: .top, spacing: 10) {
+                HStack(alignment: .top, spacing: SkydownLayout.stackSpacingPill) {
                     Circle()
                         .fill(
                             isSelected
@@ -450,7 +450,7 @@ private struct MerchandiseCollabSidebarButton: View {
                         )
                         .frame(width: 12, height: 12)
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                         Text(shopMerchLocalizedLaneTitle(lane))
                             .font(AppTypography.buttonLabel)
                             .foregroundColor(isSelected ? .white : AppColors.text(for: colorScheme))
@@ -472,7 +472,7 @@ private struct MerchandiseCollabSidebarButton: View {
                     Spacer(minLength: 0)
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     Text(shopMerchLocalizedPieces(lane.itemCount))
                         .font(AppTypography.bodyCaption)
                         .foregroundColor(isSelected ? .white : AppColors.accentHighlight(for: colorScheme))
@@ -502,12 +502,12 @@ private struct MerchandiseCollabSidebarButton: View {
                     )
                 }
             }
-            .padding(.horizontal, compact ? 14 : 16)
+            .padding(.horizontal, compact ? SkydownLayout.compactRadius : SkydownLayout.denseRadius)
             .padding(.vertical, compact ? 14 : 15)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: compact ? 114 : 126, alignment: .topLeading)
             .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                     .fill(
                         isSelected
                             ? AppColors.accent(for: colorScheme)
@@ -515,7 +515,7 @@ private struct MerchandiseCollabSidebarButton: View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                     .stroke(
                         isSelected
                             ? AppColors.accentHighlight(for: colorScheme)
@@ -537,7 +537,7 @@ private struct MerchandiseCollabFocusMetric: View {
     let accent: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSubtle) {
             Text(title.uppercased())
                 .font(AppTypography.sectionEyebrow)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -553,14 +553,14 @@ private struct MerchandiseCollabFocusMetric: View {
                 .lineLimit(1)
         }
         .frame(width: 136, alignment: .leading)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, SkydownLayout.tightRadius)
         .padding(.vertical, 11)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                 .fill(AppColors.secondaryBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                 .stroke(accent.opacity(0.16), lineWidth: 1)
         )
     }

@@ -46,7 +46,7 @@ struct HomeUtilityRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text(
                 AppLocalized.text("home.explore.title", fallback: "Open")
             )
@@ -54,7 +54,7 @@ struct HomeUtilityRow: View {
             .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ForEach(Array(utilities.enumerated()), id: \.offset) { _, utility in
                         utilityButton(utility)
                     }
@@ -72,7 +72,7 @@ struct HomeUtilityRow: View {
             SkydownHaptics.selection()
             utility.action()
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: SkydownLayout.stackSpacingDense) {
                 Image(systemName: utility.icon)
                     .font(.caption.weight(.semibold))
                     .padding(5)
@@ -83,11 +83,11 @@ struct HomeUtilityRow: View {
             .padding(.horizontal, 11)
             .padding(.vertical, 9)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
                     .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.72))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
                     .stroke(tint.opacity(0.22), lineWidth: 1)
             )
         }

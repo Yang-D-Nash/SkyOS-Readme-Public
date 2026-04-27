@@ -8,13 +8,13 @@ struct HomeSectionBanner: View {
     let accent: Color
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: SkydownLayout.stackSpacingPill) {
             ZStack {
                 Circle().fill(accent.opacity(colorScheme == .dark ? 0.16 : 0.14))
                 Image(systemName: icon).font(.caption.weight(.bold)).foregroundColor(accent)
             }
             .frame(width: 24, height: 24)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text(title).font(.subheadline.weight(.bold)).foregroundColor(AppColors.text(for: colorScheme))
                 Text(subtitle).font(.caption).foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -22,8 +22,8 @@ struct HomeSectionBanner: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.72)))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(accent.opacity(0.14), lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous).fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.72)))
+        .overlay(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous).stroke(accent.opacity(0.14), lineWidth: 1))
     }
 }
 
@@ -96,8 +96,8 @@ struct HomeDailyOpsStrip: View {
         }
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
+            HStack(spacing: SkydownLayout.stackSpacingDense) {
                 Image(systemName: "gauge.with.dots.needle.50percent")
                     .font(.caption2.weight(.medium))
                     .foregroundColor(priorityAccent.opacity(0.5))
@@ -172,8 +172,8 @@ struct HomeCommandDockStrip: View {
         }
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(spacing: SkydownLayout.stackSpacingDense) {
                 Image(systemName: "command")
                     .font(.caption2.weight(.medium))
                     .foregroundColor(priorityAccent.opacity(0.48))
@@ -192,7 +192,7 @@ struct HomeCommandDockStrip: View {
             )
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.72))
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 if let onOpenWorkflow {
                     Button(
                         AppLocalized.text("home.command.ai_agent", fallback: "AI agent"),
@@ -291,7 +291,7 @@ struct HomeLiveSignalSurface: View {
         return signals
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
             Text(
                 AppLocalized.text("home.status.signals", fallback: "Status / signals")
             )

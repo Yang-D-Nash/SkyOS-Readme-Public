@@ -37,14 +37,19 @@ import com.nash.skyos.R
 import com.skydown.shared.text.OwnerHubPrompts
 import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
+import com.nash.skyos.ui.component.SkydownTopBarTitle
+import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.skydownContentPadding
 import com.nash.skyos.ui.component.skydownPanelSurface
 import com.nash.skyos.ui.component.skydownScreenBrush
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.theme.SkydownPanelTitleTextStyle
+import com.nash.skyos.ui.theme.SkydownSectionTitleTextStyle
 import com.nash.skyos.ui.theme.SpotifyGreen
 import com.nash.skyos.ui.theme.skydownAccentHighlight
 import com.nash.skyos.ui.theme.skydownAccentMystic
+import com.nash.skyos.ui.theme.skydownSecondaryText
+import com.nash.skyos.ui.theme.skydownText
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OwnerHubScreen(
@@ -61,10 +66,8 @@ fun OwnerHubScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = stringResource(R.string.owner_hub_nav_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                    SkydownTopBarTitle(
+                        title = stringResource(R.string.owner_hub_nav_title),
                     )
                 },
                 navigationIcon = {
@@ -100,24 +103,23 @@ fun OwnerHubScreen(
             ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
             ) {
                 Text(
                     text = stringResource(R.string.owner_hub_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = colorScheme.onBackground,
+                    style = SkydownSectionTitleTextStyle,
+                    color = colorScheme.skydownText(),
                 )
                 Text(
                     text = stringResource(R.string.owner_hub_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = colorScheme.onBackground.copy(alpha = 0.72f),
+                    color = colorScheme.skydownSecondaryText().copy(alpha = 0.78f),
                 )
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             ) {
                 OwnerHubMetricCard(
                     title = stringResource(R.string.owner_hub_card_health_title),
@@ -134,7 +136,7 @@ fun OwnerHubScreen(
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             ) {
                 OwnerHubMetricCard(
                     title = stringResource(R.string.owner_hub_card_quality_title),
@@ -155,12 +157,12 @@ fun OwnerHubScreen(
                     .fillMaxWidth()
                     .skydownPanelSurface(
                         accent = colorScheme.skydownAccentMystic(),
-                        cornerRadius = 18.dp,
+                        cornerRadius = SkydownUiTokens.cardCornerRadius,
                         shadowRadius = 8.dp,
                         shadowYOffset = 4.dp,
                     )
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                    .padding(SkydownUiTokens.cardPadding),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             ) {
                 Text(
                     text = stringResource(R.string.owner_hub_briefing_title),
@@ -188,7 +190,7 @@ fun OwnerHubScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 2.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             ) {
                 Text(
                     text = stringResource(R.string.owner_hub_roadmap_title),
@@ -197,7 +199,7 @@ fun OwnerHubScreen(
                     color = colorScheme.onBackground,
                 )
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -213,7 +215,7 @@ fun OwnerHubScreen(
                     )
                 }
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -251,7 +253,7 @@ private fun OwnerHubMetricCard(
                 shadowYOffset = 3.dp,
             )
             .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
         Text(
             text = title,

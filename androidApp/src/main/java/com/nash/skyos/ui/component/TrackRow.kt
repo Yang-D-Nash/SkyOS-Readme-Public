@@ -7,7 +7,6 @@ import android.net.Uri
 import android.webkit.WebView
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -114,7 +113,7 @@ fun TrackRow(
         TrackRowPresentation.Featured -> 16.dp
     }
     val selectionTween = remember {
-        tween<Color>(durationMillis = SkydownMotionTokens.selectionCrossFadeMillis, easing = FastOutSlowInEasing)
+        tween<Color>(durationMillis = SkydownMotionTokens.selectionCrossFadeMillis, easing = SkydownStandardEasing)
     }
     val playingSurface = isPlaying && allowInAppPreview
     val containerColor by animateColorAsState(
@@ -169,9 +168,9 @@ fun TrackRow(
         label = "track_border",
     )
     val cardShape = when (presentation) {
-        TrackRowPresentation.Catalog -> RoundedCornerShape(17.dp)
-        TrackRowPresentation.Secondary -> RoundedCornerShape(20.dp)
-        TrackRowPresentation.Featured -> RoundedCornerShape(22.dp)
+        TrackRowPresentation.Catalog -> RoundedCornerShape(SkydownUiTokens.catalogCornerRadius)
+        TrackRowPresentation.Secondary -> RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
+        TrackRowPresentation.Featured -> RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
     }
     val innerPad = when (presentation) {
         TrackRowPresentation.Catalog -> 9.dp
@@ -214,7 +213,7 @@ fun TrackRow(
             Row(
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(
-                    if (isCatalog) 9.dp else 11.dp,
+                    if (isCatalog) SkydownUiTokens.stackSpacingSnug else SkydownUiTokens.stackSpacingToast,
                 ),
             ) {
                 AsyncImage(
@@ -231,9 +230,9 @@ fun TrackRow(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(
                         when (presentation) {
-                            TrackRowPresentation.Catalog -> 3.dp
-                            TrackRowPresentation.Secondary -> 5.dp
-                            TrackRowPresentation.Featured -> 6.dp
+                            TrackRowPresentation.Catalog -> SkydownUiTokens.stackSpacingTick
+                            TrackRowPresentation.Secondary -> SkydownUiTokens.stackSpacingSubtle
+                            TrackRowPresentation.Featured -> SkydownUiTokens.stackSpacingDense
                         },
                     ),
                 ) {
@@ -310,7 +309,7 @@ fun TrackRow(
                     if (showNonCatalogPillRow) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (hasPreviewCta) {
@@ -361,7 +360,7 @@ fun TrackRow(
                     }
                     } else {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             if (playingSurface) {
@@ -380,7 +379,7 @@ fun TrackRow(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     ) {
                         if (hasPreviewCta) {
                             val toggle = requireNotNull(onPlayToggle)
@@ -465,11 +464,11 @@ fun TrackRow(
                     if (!hasCtaOrExternalOptions) {
                         Row(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
+                                .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                                 .background(MaterialTheme.colorScheme.surface)
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MusicNote,
@@ -517,7 +516,7 @@ private fun TrackPill(
 
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(backgroundColor)
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -576,7 +575,7 @@ private fun SpotifyEmbedDialog(
             modifier = Modifier
                 .testTag("music.track.spotify.dialog")
                 .semantics { contentDescription = spotifyDialogContentDescription },
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.spotlightRadius),
             tonalElevation = 8.dp,
             shadowElevation = 10.dp,
             color = MaterialTheme.colorScheme.surface,
@@ -585,7 +584,7 @@ private fun SpotifyEmbedDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -594,7 +593,7 @@ private fun SpotifyEmbedDialog(
                 ) {
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                     ) {
                         Text(
                             text = track.trackName,
@@ -628,7 +627,7 @@ private fun SpotifyEmbedDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(420.dp)
-                            .clip(RoundedCornerShape(22.dp)),
+                            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius)),
                         factory = { playerContext ->
                             WebView(playerContext).apply {
                                 webViewClient = SkydownMediaWebViewClient()
@@ -652,7 +651,7 @@ private fun SpotifyEmbedDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
                     FilledTonalButton(
                         onClick = {

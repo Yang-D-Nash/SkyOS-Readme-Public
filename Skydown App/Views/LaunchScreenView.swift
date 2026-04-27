@@ -243,7 +243,7 @@ private struct LaunchLandingView: View {
                     .blur(radius: 48)
                     .offset(x: proxy.size.width * 0.16, y: 210)
 
-                RoundedRectangle(cornerRadius: 44, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.launchOrbRadius, style: .continuous)
                     .fill(AppColors.spotify(for: hubColorScheme).opacity(0.06))
                     .frame(width: layout.prefersDesktopChrome ? 320 : 220, height: layout.prefersDesktopChrome ? 440 : 320)
                     .blur(radius: 40)
@@ -251,7 +251,7 @@ private struct LaunchLandingView: View {
                     .offset(x: -proxy.size.width * 0.24, y: -160)
 
                 VStack(alignment: .leading, spacing: sectionCadence) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
                         LaunchLandingMetaPill(
                             text: "SkyOS",
                             accent: AppColors.accent(for: hubColorScheme),
@@ -280,7 +280,7 @@ private struct LaunchLandingView: View {
                             edgeToEdge: true,
                             onSurfaceTap: onOpenHome
                         ) {
-                            VStack(alignment: .leading, spacing: 8) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                                 Text(AppLocalized.text("landing.home.recommended", fallback: "Start with Home"))
                                     .font(.footnote.weight(.semibold))
                                     .foregroundColor(AppColors.spotify(for: hubColorScheme).opacity(0.96))
@@ -656,7 +656,7 @@ private struct LaunchLandingButton: View {
     }
 
     private var cornerRadius: CGFloat {
-        emphasis == .secondary ? 18 : 24
+        emphasis == .secondary ? SkydownLayout.messageBubbleRadius : SkydownLayout.elevatedPanelRadius
     }
 
     private var resolvedBackgroundURL: URL? {
@@ -693,7 +693,10 @@ private struct LaunchLandingButton: View {
                         .padding(emphasis == .secondary ? 7 : 9)
                         .frame(width: markSize, height: markSize)
                         .background(
-                            RoundedRectangle(cornerRadius: emphasis == .secondary ? 14 : 18, style: .continuous)
+                            RoundedRectangle(
+                                cornerRadius: emphasis == .secondary ? SkydownLayout.compactRadius : SkydownLayout.messageBubbleRadius,
+                                style: .continuous
+                            )
                                 .fill(
                                     LinearGradient(
                                         colors: [
@@ -769,7 +772,7 @@ private struct LaunchLandingButton: View {
                         )
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     ForEach(displayedBadges, id: \.self) { badge in
                         Text(badge)
                             .font(emphasis == .secondary ? .caption2.weight(.semibold) : .caption.weight(.semibold))
@@ -784,14 +787,14 @@ private struct LaunchLandingButton: View {
                 }
 
                 if emphasis != .secondary {
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Text(ctaLabel)
                             .font(.footnote.weight(.semibold))
                             .foregroundColor(.white.opacity(0.94))
 
                         Spacer(minLength: 10)
 
-                        HStack(spacing: 6) {
+                        HStack(spacing: SkydownLayout.stackSpacingDense) {
                             Text("Start")
                                 .font(.caption.weight(.semibold))
                             Image(systemName: "arrow.up.right")
@@ -866,10 +869,10 @@ private struct LaunchLandingButton: View {
             }
             .overlay(alignment: .leading) {
                 if emphasis != .secondary {
-                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.microTickRadius, style: .continuous)
                         .fill(accent)
                         .frame(width: 4)
-                        .padding(.vertical, 16)
+                        .padding(.vertical, SkydownLayout.cardPadding)
                         .padding(.leading, 10)
                 }
             }
@@ -958,7 +961,7 @@ private struct LaunchLandingActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: systemImage)
                     .font(.footnote.weight(.bold))
                 Text(title)
@@ -971,16 +974,16 @@ private struct LaunchLandingActionButton: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                     .fill(backgroundColor)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                     .stroke(borderColor, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
-        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
         .skydownTactileAction()
     }
 
@@ -1046,7 +1049,7 @@ private struct LaunchLandingVisionBand: View {
     let onOpenVideography: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text("Sky trifft Weite. Down trifft Tiefe.")
                 .font(.system(size: 24, weight: .semibold, design: .rounded))
                 .foregroundColor(.white.opacity(0.96))
@@ -1058,7 +1061,7 @@ private struct LaunchLandingVisionBand: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     LaunchLandingInlineTag(
                         text: "Premium Technologie",
                         accent: AppColors.accent(for: colorScheme),
@@ -1075,7 +1078,7 @@ private struct LaunchLandingVisionBand: View {
         .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -1089,7 +1092,7 @@ private struct LaunchLandingVisionBand: View {
                 )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.10), lineWidth: 1)
         )
     }
@@ -1129,7 +1132,7 @@ private struct LaunchLandingNarrativeStep: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
                 Text(title)
                     .font(.caption.weight(.bold))
                     .foregroundColor(accent.opacity(0.95))
@@ -1149,7 +1152,7 @@ private struct LaunchLandingNarrativeStep: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
@@ -1162,7 +1165,7 @@ private struct LaunchLandingNarrativeStep: View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                     .stroke(Color.white.opacity(0.08), lineWidth: 1)
             )
         }

@@ -3,10 +3,10 @@ package com.nash.skyos.ui.screen
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -30,7 +29,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,10 +44,16 @@ import com.nash.skyos.data.LegalContentSettings
 import com.nash.skyos.data.GoogleSignInManager
 import com.nash.skyos.ui.component.GoogleAuthButton
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownUiTokens
+import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.model.SettingsLegalDocumentType
 import com.nash.skyos.ui.model.resolve
+import com.nash.skyos.ui.theme.SkydownBodyCaptionTextStyle
+import com.nash.skyos.ui.theme.SkydownPanelTitleTextStyle
+import com.nash.skyos.ui.theme.skydownSecondaryText
+import com.nash.skyos.ui.theme.skydownText
 import com.nash.skyos.ui.viewmodel.RegistrationViewModel
 
 @Composable
@@ -119,17 +123,13 @@ fun RegistrationScreen(
         }
     }
 
+    val colorScheme = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.07f),
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.05f),
-                        MaterialTheme.colorScheme.background,
-                    ),
-                ),
+            .fillMaxSize()
+            .skydownAtmosphereBackground(
+                primaryAlpha = 0.038f,
+                secondaryAlpha = 0.026f,
             ),
     ) {
         Column(
@@ -138,8 +138,8 @@ fun RegistrationScreen(
                 .navigationBarsPadding()
                 .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = SkydownUiTokens.screenHorizontalPadding, vertical = SkydownUiTokens.screenTopPadding),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.screenSectionSpacing),
         ) {
             androidx.compose.foundation.layout.Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -148,31 +148,36 @@ fun RegistrationScreen(
             ) {
                 Text(
                     text = stringResource(R.string.auth_register_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = SkydownPanelTitleTextStyle,
+                    color = colorScheme.skydownText(),
                 )
                 TextButton(
                     onClick = onClose,
                     enabled = !isAuthBusy,
                 ) {
-                    Text(stringResource(R.string.auth_close))
+                    Text(
+                        stringResource(R.string.auth_close),
+                        style = SkydownBodyCaptionTextStyle,
+                        color = colorScheme.skydownSecondaryText().copy(alpha = 0.88f),
+                    )
                 }
             }
 
-            SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)) {
+            SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(SkydownUiTokens.panelPadding)) {
                 Text(
                     text = stringResource(R.string.auth_register_new_account),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
+                    style = SkydownPanelTitleTextStyle,
+                    color = colorScheme.skydownText(),
                 )
                 Text(
                     text = stringResource(R.string.auth_register_subtitle),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    modifier = Modifier.padding(top = 8.dp),
+                    style = SkydownBodyCaptionTextStyle,
+                    color = colorScheme.skydownSecondaryText().copy(alpha = 0.78f),
+                    modifier = Modifier.padding(top = 10.dp),
                 )
                 androidx.compose.foundation.layout.Row(
                     modifier = Modifier.padding(top = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     LoginInfoPill(text = stringResource(R.string.auth_register_badge_profile))
                     LoginInfoPill(text = stringResource(R.string.auth_register_badge_google))
@@ -180,11 +185,11 @@ fun RegistrationScreen(
                 }
             }
 
-            SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)) {
+            SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(SkydownUiTokens.panelPadding)) {
                 Text(
                     text = stringResource(R.string.auth_register_email_section_title),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    color = colorScheme.skydownText(),
                 )
                 OutlinedTextField(
                     value = uiState.username,
@@ -194,7 +199,7 @@ fun RegistrationScreen(
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = MaterialTheme.shapes.large,
                 )
                 OutlinedTextField(
                     value = uiState.email,
@@ -204,7 +209,7 @@ fun RegistrationScreen(
                         .fillMaxWidth()
                         .padding(top = 12.dp),
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = MaterialTheme.shapes.large,
                 )
                 OutlinedTextField(
                     value = uiState.password,
@@ -215,7 +220,7 @@ fun RegistrationScreen(
                         .padding(top = 12.dp),
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = MaterialTheme.shapes.large,
                 )
                 OutlinedTextField(
                     value = uiState.confirmPassword,
@@ -226,15 +231,15 @@ fun RegistrationScreen(
                         .padding(top = 12.dp),
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = MaterialTheme.shapes.large,
                 )
                 Text(
                     text = stringResource(
                         R.string.auth_register_legal_version,
                         legalSettings.resolvedLastUpdatedLabel,
                     ),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = SkydownBodyCaptionTextStyle,
+                    color = colorScheme.skydownSecondaryText().copy(alpha = 0.76f),
                     modifier = Modifier.padding(top = 12.dp),
                 )
                 RegistrationConsentRow(
@@ -258,7 +263,7 @@ fun RegistrationScreen(
                 )
                 androidx.compose.foundation.layout.Row(
                     modifier = Modifier.padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
                     TextButton(
                         onClick = { activeLegalDocument.value = SettingsLegalDocumentType.TermsAndConditions },
@@ -284,7 +289,7 @@ fun RegistrationScreen(
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     enabled = !isAuthBusy && uiState.acceptedTerms && uiState.acceptedPrivacyPolicy,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = MaterialTheme.shapes.large,
                 ) {
                     Text(if (uiState.isLoading) stringResource(R.string.auth_register_loading) else stringResource(R.string.auth_register))
                 }
@@ -306,7 +311,7 @@ fun RegistrationScreen(
                 )
                 Text(
                     text = stringResource(R.string.auth_register_google_hint),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                    color = colorScheme.skydownSecondaryText().copy(alpha = 0.68f),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 8.dp),
                 )
@@ -338,7 +343,7 @@ private fun RegistrationConsentRow(
 ) {
     androidx.compose.foundation.layout.Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(
@@ -369,19 +374,19 @@ private fun RegistrationLegalDocumentSheet(
     ) {
         androidx.compose.foundation.lazy.LazyColumn(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                start = 20.dp,
-                top = 16.dp,
-                end = 20.dp,
+                start = SkydownUiTokens.screenHorizontalPadding,
+                top = SkydownUiTokens.screenTopPadding,
+                end = SkydownUiTokens.screenHorizontalPadding,
                 bottom = 36.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.screenSectionSpacing),
         ) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                     Text(
                         text = document.title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
+                        style = SkydownPanelTitleTextStyle,
+                        color = MaterialTheme.colorScheme.skydownText(),
                     )
                     Text(
                         text = stringResource(R.string.legal_ui_last_updated, document.updatedAt),

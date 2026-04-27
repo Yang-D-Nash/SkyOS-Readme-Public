@@ -53,7 +53,7 @@ fun AiConversationSessionStrip(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         OutlinedButton(
@@ -61,11 +61,11 @@ fun AiConversationSessionStrip(
             enabled = enabled,
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-            shape = RoundedCornerShape(26.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.sheetHeroRadius),
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
             ) {
                 Text(
                     text = title,
@@ -149,9 +149,9 @@ fun AiConversationSessionsSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 18.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
@@ -168,13 +168,13 @@ fun AiConversationSessionsSheet(
                 onClick = onCreateNewChat,
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.sheetHeroRadius),
             ) {
                 Text(stringResource(R.string.ai_action_new_chat))
             }
 
             if (activeSession != null) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                     Text(
                         text = stringResource(R.string.ai_active_chat),
                         style = MaterialTheme.typography.labelMedium,
@@ -190,11 +190,11 @@ fun AiConversationSessionsSheet(
                             Text(activeSession.title)
                         },
                         singleLine = true,
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius),
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill, Alignment.End),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         TextButton(
@@ -233,7 +233,7 @@ fun AiConversationSessionsSheet(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 )
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                     sessions.forEach { session ->
                         val selected = session.sessionId == activeSessionId
                         val countLabel = when (session.promptCount) {
@@ -250,13 +250,13 @@ fun AiConversationSessionsSheet(
                                     } else {
                                         MaterialTheme.colorScheme.surface.copy(alpha = 0.74f)
                                     },
-                                    shape = RoundedCornerShape(24.dp),
+                                    shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius),
                                 )
                                 .clickable(enabled = enabled) {
                                     onSelectSession(session.sessionId)
                                 }
                                 .padding(horizontal = 14.dp, vertical = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                         ) {
                             Text(
                                 text = session.title,

@@ -276,7 +276,7 @@ struct VideoHubView: View {
     @ViewBuilder
     private var collaborationsCard: some View {
         let collaborationItems = viewModel.publicConfig.collaborationItems
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             Text("Featured Collabs")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -382,7 +382,7 @@ struct VideoHubView: View {
             }
         ) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     MusicBadge(text: "Videos", isAccent: true, onTap: onOpenVideos)
                     MusicBadge(text: "Equipment", isAccent: false, onTap: onOpenEquipment)
                     MusicBadge(text: "Collabs", isAccent: false, onTap: onOpenCollaborations)
@@ -392,7 +392,7 @@ struct VideoHubView: View {
     }
 
     private var formatCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text("Format-Hinweis")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -417,7 +417,7 @@ struct VideoHubView: View {
     }
 
     private var adminToolsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text("Video Admin")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -449,7 +449,7 @@ struct VideoHubView: View {
     }
 
     private var uploadCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             Text("Video Upload")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -478,7 +478,7 @@ struct VideoHubView: View {
                 autocapitalization: .never
             )
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 Text("Notiz (optional)")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -487,9 +487,9 @@ struct VideoHubView: View {
                     .frame(minHeight: 110)
                     .padding(12)
                     .background(AppColors.secondaryBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18)
+                        RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                             .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                     )
             }
@@ -518,7 +518,7 @@ struct VideoHubView: View {
             .tint(AppColors.accentMystic(for: colorScheme))
 
             if !viewModel.selectedFiles.isEmpty {
-                VStack(spacing: 10) {
+                VStack(spacing: SkydownLayout.stackSpacingPill) {
                     ForEach(viewModel.selectedFiles) { file in
                         SkydownSelectedVideoRow(
                             file: file,
@@ -555,7 +555,7 @@ struct VideoHubView: View {
             }
             .background(AppColors.accent(for: colorScheme))
             .foregroundColor(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
             .disabled(!viewModel.canUpload)
             .opacity(viewModel.canUpload ? 1 : 0.6)
 
@@ -576,17 +576,17 @@ struct VideoHubView: View {
         .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
     }
 
     private var playerCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             Text("Der Clip bleibt jetzt gross, vertikal und direkt im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Video-Modus springen.")
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -596,7 +596,7 @@ struct VideoHubView: View {
                     Group {
                         if selectedVideo.youTubeItem != nil {
                             ZStack {
-                                RoundedRectangle(cornerRadius: 24)
+                                RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                                     .fill(
                                         LinearGradient(
                                             colors: [
@@ -609,7 +609,7 @@ struct VideoHubView: View {
                                         )
                                     )
 
-                                VStack(spacing: 16) {
+                                VStack(spacing: SkydownLayout.stackSpacingComfortable) {
                                     Image(systemName: "play.rectangle.fill")
                                         .font(.system(size: 54, weight: .bold))
                                         .foregroundColor(.white.opacity(0.95))
@@ -631,10 +631,10 @@ struct VideoHubView: View {
                             VideoPlayer(player: playbackManager.player)
                         } else {
                             ZStack {
-                                RoundedRectangle(cornerRadius: 24)
+                                RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                                     .fill(AppColors.secondaryBackground(for: colorScheme))
 
-                                VStack(spacing: 12) {
+                                VStack(spacing: SkydownLayout.stackSpacingCompact) {
                                     Image(systemName: "link")
                                         .font(.system(size: 34, weight: .bold))
                                         .foregroundColor(.white.opacity(0.86))
@@ -649,7 +649,7 @@ struct VideoHubView: View {
                         }
                     }
                     .frame(height: 560)
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
 
                     LinearGradient(
                         colors: [
@@ -660,9 +660,9 @@ struct VideoHubView: View {
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
 
-                    VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSubtle) {
                         Text(selectedVideo.title)
                             .font(.title3.weight(.semibold))
                             .foregroundColor(.white)
@@ -680,7 +680,7 @@ struct VideoHubView: View {
                                 .lineLimit(2)
                         }
                     }
-                    .padding(16)
+                    .padding(SkydownLayout.cardPadding)
                 }
 
                 if selectedVideo.supportsInlinePlayback && selectedVideo.youTubeItem == nil {
@@ -741,19 +741,19 @@ struct VideoHubView: View {
         .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
     }
 
     private var libraryCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(
                         viewModel.isAdmin
                         ? "\(viewModel.videos.count) Titel im Hub"
@@ -793,7 +793,7 @@ struct VideoHubView: View {
             .accessibilityIdentifier("video.hub.library.header")
 
             if viewModel.isLoadingVideos {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ProgressView()
                         .controlSize(.small)
                     Text("Videos werden ruhig vorbereitet ...")
@@ -892,11 +892,11 @@ struct VideoHubView: View {
         .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
     }
@@ -1087,7 +1087,7 @@ private struct VideoHubLibraryRow: View {
 
     @ViewBuilder
     private var featuredImmersive: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNone) {
             ZStack(alignment: .bottomLeading) {
                 Group {
                     if let url = posterUrl {
@@ -1130,7 +1130,7 @@ private struct VideoHubLibraryRow: View {
                     )
                     .frame(height: 104)
                 }
-                HStack(alignment: .lastTextBaseline, spacing: 12) {
+                HStack(alignment: .lastTextBaseline, spacing: SkydownLayout.stackSpacingCompact) {
                     Text(video.title)
                         .font(.title2.weight(.semibold))
                         .foregroundColor(.white)
@@ -1142,10 +1142,10 @@ private struct VideoHubLibraryRow: View {
                         .font(.body)
                         .foregroundColor(.white.opacity(0.45))
                 }
-                .padding(16)
+                .padding(SkydownLayout.cardPadding)
             }
             .clipped()
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 Text(libraryRowMetaLine)
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.95))
@@ -1162,7 +1162,7 @@ private struct VideoHubLibraryRow: View {
                         .lineLimit(1)
                 }
                 if isAdmin {
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button(action: onSelect) {
                             Label(isSelected ? "Im Player" : "Auswaehlen", systemImage: "rectangle.on.rectangle")
                                 .frame(maxWidth: .infinity)
@@ -1206,8 +1206,8 @@ private struct VideoHubLibraryRow: View {
                 }
 
                 if isAdmin {
-                    VStack(spacing: 10) {
-                        HStack(spacing: 10) {
+                    VStack(spacing: SkydownLayout.stackSpacingPill) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
                             Button(action: onToggleHomeFeatured) {
                                 Label(video.isHomeFeatured ? "Home aktiv" : "Im Home zeigen", systemImage: "house.fill")
                                     .frame(maxWidth: .infinity)
@@ -1229,7 +1229,7 @@ private struct VideoHubLibraryRow: View {
                     }
                 }
             }
-            .padding(16)
+            .padding(SkydownLayout.cardPadding)
         }
     }
 
@@ -1238,7 +1238,7 @@ private struct VideoHubLibraryRow: View {
         VStack(alignment: .leading, spacing: presentation == .catalog ? 7 : 9) {
             HStack(alignment: .top, spacing: presentation == .secondary ? 12 : 7) {
                 listThumb
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(video.title)
                         .font(
                             presentation == .secondary
@@ -1273,7 +1273,7 @@ private struct VideoHubLibraryRow: View {
             }
 
             if presentation != .catalog {
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
                 Text(routeTitle)
                     .font(.caption.weight(.semibold))
                     .foregroundColor(routeAccent.opacity(0.95))
@@ -1291,7 +1291,7 @@ private struct VideoHubLibraryRow: View {
             }
 
             if isAdmin {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     Button(action: onSelect) {
                         Label(isSelected ? "Im Player" : "Auswaehlen", systemImage: "rectangle.on.rectangle")
                             .frame(maxWidth: .infinity)
@@ -1335,8 +1335,8 @@ private struct VideoHubLibraryRow: View {
             }
 
             if isAdmin {
-                VStack(spacing: 10) {
-                    HStack(spacing: 10) {
+                VStack(spacing: SkydownLayout.stackSpacingPill) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button(action: onToggleHomeFeatured) {
                             Label(video.isHomeFeatured ? "Home aktiv" : "Im Home zeigen", systemImage: "house.fill")
                                 .frame(maxWidth: .infinity)
@@ -1363,7 +1363,7 @@ private struct VideoHubLibraryRow: View {
     @ViewBuilder
     private var listThumb: some View {
         ZStack(alignment: .bottomTrailing) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -1397,9 +1397,9 @@ private struct VideoHubLibraryRow: View {
         }
         .frame(width: thumbSize.w, height: thumbSize.h)
         .clipped()
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
         )
     }
@@ -1438,9 +1438,9 @@ private struct VideoOwnerEditPanel: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text("Video bearbeiten")
                         .font(.headline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -1470,7 +1470,7 @@ private struct VideoOwnerEditPanel: View {
                 colorScheme: colorScheme
             )
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 Text("Notiz")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -1480,9 +1480,9 @@ private struct VideoOwnerEditPanel: View {
                     .padding(12)
                     .scrollContentBackground(.hidden)
                     .background(AppColors.secondaryBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18)
+                        RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                             .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                     )
             }
@@ -1497,7 +1497,7 @@ private struct VideoOwnerEditPanel: View {
             }
             .tint(AppColors.accent(for: colorScheme))
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Button(action: onCancel) {
                     Label("Abbrechen", systemImage: "xmark")
                         .frame(maxWidth: .infinity)
@@ -1514,12 +1514,12 @@ private struct VideoOwnerEditPanel: View {
                 .tint(AppColors.accent(for: colorScheme))
             }
         }
-        .padding(16)
+        .padding(SkydownLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.74))
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
         )
         .accessibilityIdentifier("video.hub.owner.edit")
@@ -1563,7 +1563,7 @@ private struct VideoReelViewer: View {
                                 Rectangle()
                                     .fill(Color.black)
                                     .overlay {
-                                        VStack(spacing: 12) {
+                                        VStack(spacing: SkydownLayout.stackSpacingCompact) {
                                             Image(systemName: "play.rectangle.fill")
                                                 .font(.system(size: 48, weight: .bold))
                                                 .foregroundColor(.white.opacity(0.72))
@@ -1589,7 +1589,7 @@ private struct VideoReelViewer: View {
                                 endPoint: .bottom
                             )
 
-                            VStack(alignment: .leading, spacing: 6) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                                 Text(video.projectName.uppercased())
                                     .font(.caption2.weight(.semibold))
                                     .foregroundColor(.white.opacity(0.68))
@@ -1662,7 +1662,7 @@ private struct VideoReelViewer: View {
                 }
 
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
                         Text("SkyOS Video")
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(.white.opacity(0.92))
@@ -1695,16 +1695,16 @@ private struct VideoReelViewer: View {
                 .zIndex(2_000)
 
                 if isTransitioning {
-                    VStack(spacing: 10) {
+                    VStack(spacing: SkydownLayout.stackSpacingPill) {
                         ProgressView()
                             .tint(.white)
                         Text("Clip wird vorbereitet ...")
                             .font(.caption.weight(.semibold))
                             .foregroundColor(.white.opacity(0.86))
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, SkydownLayout.cardPadding)
                     .padding(.vertical, 12)
-                    .background(Color.black.opacity(0.46), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(Color.black.opacity(0.46), in: RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .transition(.opacity)
                     .zIndex(12)
@@ -1810,7 +1810,7 @@ private struct ReelProgressRail: View {
     let count: Int
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: SkydownLayout.stackSpacingDense) {
             ForEach(0..<count, id: \.self) { index in
                 Capsule()
                     .fill(Color.white.opacity(index == currentIndex ? 0.96 : 0.34))
@@ -1829,7 +1829,7 @@ struct VideoEquipmentCard: View {
     let onSelectItem: (SkydownVideoEquipmentItem) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             Text("Equipment & Software")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1844,7 +1844,7 @@ struct VideoEquipmentCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .padding(.top, 4)
             } else {
-                VStack(spacing: 10) {
+                VStack(spacing: SkydownLayout.stackSpacingPill) {
                     ForEach(items) { item in
                         VideoEquipmentRow(
                             item: item,
@@ -1860,11 +1860,11 @@ struct VideoEquipmentCard: View {
         .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
     }
@@ -1876,7 +1876,7 @@ private struct VideoHubQuickActionDock: View {
     let onOpenUpload: () -> Void
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 10) {
+        VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingPill) {
             VideoHubQuickActionButton(
                 title: isUploadOpen ? "Schliessen" : "Upload",
                 systemImage: isUploadOpen ? "xmark.circle.fill" : "arrow.up.circle.fill",
@@ -1897,7 +1897,7 @@ private struct VideoHubQuickActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Image(systemName: systemImage)
                     .font(.headline.weight(.bold))
 
@@ -1935,10 +1935,10 @@ struct VideoEquipmentRow: View {
     }
 
     private var rowContent: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
             equipmentArtwork
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text(item.title)
                     .font(.subheadline.weight(.bold))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -1954,15 +1954,15 @@ struct VideoEquipmentRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 18)
+            RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
     }
 
     private var equipmentArtwork: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -1990,7 +1990,7 @@ struct VideoEquipmentRow: View {
             }
         }
         .frame(width: 72, height: 72)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
     }
 
     private var fallbackEquipmentArtwork: some View {
@@ -2014,7 +2014,7 @@ struct VideoEquipmentDetailSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                     Text(item.title)
                         .font(.title2.weight(.bold))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -2042,11 +2042,11 @@ struct VideoEquipmentDetailSheet: View {
                         }
                         .frame(height: 220)
                         .frame(maxWidth: .infinity)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .padding(.top, SkydownLayout.cardPadding)
                 .padding(.bottom, 28)
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
@@ -2099,13 +2099,13 @@ struct ProducedWithArtistRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
             previewArtwork
                 .frame(width: 76, height: 76)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     Text(artist.role.uppercased())
                         .font(.caption2.weight(.bold))
                         .foregroundColor(AppColors.accentHighlight(for: colorScheme))
@@ -2147,7 +2147,7 @@ struct ProducedWithArtistRow: View {
                         .minimumScaleFactor(0.84)
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     if let spotifyURL {
                         SocialLinkButton(
                             accessibilityTitle: "Spotify",
@@ -2219,10 +2219,10 @@ struct ProducedWithArtistRow: View {
             )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18)
+            RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.10), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
     }
 
     private var previewArtwork: some View {
@@ -2337,8 +2337,8 @@ struct VideoYouTubeRow: View {
     let onPlay: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text(item.title)
                     .font(.subheadline.weight(.bold))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -2380,7 +2380,7 @@ struct VideoYouTubeRow: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
     }
 }
 
@@ -2392,7 +2392,7 @@ struct VideoPublicConfigEditorCard: View {
     private let editableImageUploadService = EditableImageAssetUploadService()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
             Text("Videography Editor")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -2405,13 +2405,13 @@ struct VideoPublicConfigEditorCard: View {
                 .font(.footnote.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 Text("Equipment")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
                 ForEach(Array(viewModel.publicConfig.equipmentItems.enumerated()), id: \.element.id) { _, item in
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         NicmaUploadField(
                             title: "Titel",
                             text: Binding(
@@ -2449,7 +2449,7 @@ struct VideoPublicConfigEditorCard: View {
                     }
                     .padding(14)
                     .background(AppColors.secondaryBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
                 }
 
                 Button {
@@ -2462,13 +2462,13 @@ struct VideoPublicConfigEditorCard: View {
                 .tint(AppColors.accent(for: colorScheme))
             }
 
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 Text("Featured Collabs")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
                 ForEach(Array(viewModel.publicConfig.collaborationItems.enumerated()), id: \.element.id) { _, item in
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         NicmaUploadField(
                             title: "Name",
                             text: Binding(
@@ -2551,7 +2551,7 @@ struct VideoPublicConfigEditorCard: View {
                     }
                     .padding(14)
                     .background(AppColors.secondaryBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
                 }
 
                 Button {
@@ -2588,11 +2588,11 @@ struct VideoPublicConfigEditorCard: View {
         .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
         .sheet(item: $pendingUploadTarget) { target in
@@ -2706,7 +2706,7 @@ struct SkydownSelectedVideoRow: View {
     let onRemove: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: SkydownLayout.stackSpacingCompact) {
             ZStack {
                 Circle()
                     .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
@@ -2716,7 +2716,7 @@ struct SkydownSelectedVideoRow: View {
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text(file.fileName)
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -2736,7 +2736,7 @@ struct SkydownSelectedVideoRow: View {
         }
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
     }
 }
 
@@ -2898,7 +2898,7 @@ struct SkydownOriginalVideoDestinationView: View {
                         .frame(height: 220)
                         .ignoresSafeArea(edges: .top)
 
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                             Text(title)
                                 .font(.headline.weight(.bold))
                                 .foregroundColor(.white)
@@ -2908,7 +2908,7 @@ struct SkydownOriginalVideoDestinationView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.white.opacity(0.76))
 
-                            HStack(spacing: 10) {
+                            HStack(spacing: SkydownLayout.stackSpacingPill) {
                                 SkydownViewerToolbarButton(
                                     title: "Extern",
                                     systemImage: "arrow.up.forward.square",
@@ -2936,8 +2936,8 @@ struct SkydownOriginalVideoDestinationView: View {
                         VStack {
                             Spacer()
 
-                            VStack(spacing: 10) {
-                                HStack(spacing: 10) {
+                            VStack(spacing: SkydownLayout.stackSpacingPill) {
+                                HStack(spacing: SkydownLayout.stackSpacingPill) {
                                     SkydownViewerToolbarButton(
                                         title: isPlaying ? "Pause" : "Play",
                                         systemImage: isPlaying ? "pause.fill" : "play.fill",
@@ -2971,7 +2971,7 @@ struct SkydownOriginalVideoDestinationView: View {
                                 }
                             }
                             .padding(.horizontal, 20)
-                            .padding(.bottom, max(proxy.safeAreaInsets.bottom, 16))
+                            .padding(.bottom, max(proxy.safeAreaInsets.bottom, SkydownLayout.cardPadding))
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .zIndex(3)
@@ -3060,7 +3060,7 @@ struct SkydownVideoFullscreenControlBar: View {
     let onClose: () -> Void
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: SkydownLayout.stackSpacingDense) {
             if showsClipNavigation {
                 SkydownVideoFullscreenIconButton(
                     systemImage: "backward.end.fill",
@@ -3168,12 +3168,12 @@ private struct SkydownViewerToolbarButton: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                         .fill(isPrimary ? Color.white : Color.white.opacity(0.12))
                 )
                 .foregroundColor(isPrimary ? .black : .white)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                         .stroke(Color.white.opacity(isPrimary ? 0 : 0.18), lineWidth: 1)
                 )
         }
@@ -3213,7 +3213,7 @@ struct SkydownManagedBrowserView: View {
                 .frame(height: 240)
                 .ignoresSafeArea(edges: .top)
 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                     Text(title.isEmpty ? "Original" : title)
                         .font(.headline.weight(.bold))
                         .foregroundColor(.white)
@@ -3223,7 +3223,7 @@ struct SkydownManagedBrowserView: View {
                         .font(.subheadline)
                         .foregroundColor(.white.opacity(0.76))
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SkydownViewerToolbarButton(
                             title: "Zurueck",
                             systemImage: "chevron.left",
@@ -3243,7 +3243,7 @@ struct SkydownManagedBrowserView: View {
                         }
                     }
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SkydownViewerToolbarButton(
                             title: "Extern",
                             systemImage: "arrow.up.forward.square",
@@ -3263,14 +3263,14 @@ struct SkydownManagedBrowserView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, max(proxy.safeAreaInsets.top, 12))
-                .padding(.bottom, 16)
-                .background(Color.black.opacity(0.42), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-                .padding(.horizontal, 16)
+                .padding(.bottom, SkydownLayout.cardPadding)
+                .background(Color.black.opacity(0.42), in: RoundedRectangle(cornerRadius: SkydownLayout.spotlightRadius, style: .continuous))
+                .padding(.horizontal, SkydownLayout.cardPadding)
 
                 VStack {
                     Spacer()
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SkydownViewerToolbarButton(
                             title: "Extern",
                             systemImage: "arrow.up.forward.square",
@@ -3288,7 +3288,7 @@ struct SkydownManagedBrowserView: View {
                         }
                     }
                     .padding(.horizontal, 20)
-                    .padding(.bottom, max(proxy.safeAreaInsets.bottom, 16))
+                    .padding(.bottom, max(proxy.safeAreaInsets.bottom, SkydownLayout.cardPadding))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }

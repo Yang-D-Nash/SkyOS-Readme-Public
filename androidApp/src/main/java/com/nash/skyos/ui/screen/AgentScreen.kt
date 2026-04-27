@@ -165,7 +165,7 @@ fun AgentScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val compactLayout = rememberIsCompactAppLayout()
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
-    val listVerticalSpacing = if (showTopBar) sectionSpacing else if (compactLayout) 8.dp else 10.dp
+    val listVerticalSpacing = if (showTopBar) sectionSpacing else if (compactLayout) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingPill
     val contentMaxWidth = if (compactLayout) 620.dp else 1040.dp
     val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -365,7 +365,7 @@ fun AgentScreen(
                             bottom = safeContentPadding.calculateBottomPadding() + 78.dp,
                         ),
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
                         AgentProductivityDockCard(
                             openTaskCount = uiState.tasks.count { it.status != com.nash.skyos.data.TaskStatus.Completed },
                             noteCount = uiState.notes.size,
@@ -540,7 +540,7 @@ fun AgentScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     ) {
                         Text(
                             text = stringResource(R.string.tasks_title),
@@ -550,7 +550,7 @@ fun AgentScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
                         ) {
@@ -590,7 +590,7 @@ fun AgentScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     ) {
                         Text(
                             text = stringResource(R.string.notes_title),
@@ -600,7 +600,7 @@ fun AgentScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
                         ) {
@@ -642,7 +642,7 @@ fun AgentScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     ) {
                         Text(stringResource(R.string.notes_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         OutlinedTextField(
@@ -809,7 +809,7 @@ private fun AgentRevenueUsageCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 modifier = Modifier
                     .padding(top = 6.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
                     .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f))
                     .padding(horizontal = 10.dp, vertical = 7.dp),
             )
@@ -837,7 +837,7 @@ private fun AgentRevenueUsageCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                 modifier = Modifier
                     .padding(top = 3.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
                     .padding(horizontal = 10.dp, vertical = 7.dp),
             )
@@ -870,14 +870,14 @@ private fun LinearUsageBar(
     Box(
         modifier = modifier
             .height(8.dp)
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth(progress)
-                .clip(RoundedCornerShape(999.dp))
+                .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                 .background(if (isCritical) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary),
         )
     }
@@ -903,7 +903,7 @@ private fun AiMembershipSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             Text(stringResource(R.string.ai_membership_sheet_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
             Text(stringResource(R.string.ai_membership_sheet_subtitle), style = MaterialTheme.typography.bodyMedium)
@@ -915,7 +915,7 @@ private fun AiMembershipSheet(
             Text(stringResource(R.string.ai_membership_free_detail), style = MaterialTheme.typography.labelMedium)
             Text(stringResource(R.string.ai_membership_pro_detail), style = MaterialTheme.typography.labelMedium)
             Text(stringResource(R.string.ai_membership_creator_detail), style = MaterialTheme.typography.labelMedium)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                 Text(stringResource(R.string.membership_annual_option), style = MaterialTheme.typography.labelMedium)
                 androidx.compose.material3.Switch(
                     checked = state.selectedAnnual,
@@ -958,7 +958,7 @@ private fun AiMembershipSheet(
 @Composable
 private fun AgentEmptyStateHeader() {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
         Text(
             text = stringResource(R.string.agent_empty_header_title),
@@ -990,7 +990,7 @@ private fun AgentProductivityDockCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             BrandActionButton(
                 text = stringResource(R.string.agent_productivity_tasks_count, openTaskCount),
@@ -1089,7 +1089,10 @@ private fun AgentTasksSection(
             return@SkydownCard
         }
 
-        Column(modifier = Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(
+            modifier = Modifier.padding(top = SkydownUiTokens.stackSpacingDense),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+        ) {
             tasks.take(10).forEach { task ->
                 val priorityLabel = when (task.priority) {
                     com.nash.skyos.data.TaskPriority.Low -> "LOW"
@@ -1099,17 +1102,17 @@ private fun AgentTasksSection(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         .padding(horizontal = 8.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Checkbox(
                         checked = task.status == com.nash.skyos.data.TaskStatus.Completed,
                         onCheckedChange = { onToggleTask(task.id, task.status) },
                     )
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick)) {
                         Text(task.title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                         if (task.description.isNotBlank()) {
                             Text(
@@ -1120,7 +1123,7 @@ private fun AgentTasksSection(
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro), verticalAlignment = Alignment.CenterVertically) {
                             Text(priorityLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
                             task.dueAt?.let {
                                 Text(
@@ -1242,20 +1245,20 @@ private fun AgentNotesSection(
         }
         Column(
             modifier = Modifier.padding(top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             filteredNotes.take(10).forEach { note ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         .clickable { onOpenNote(note) }
                         .padding(horizontal = 10.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
                         Text(note.title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                         if (note.content.isNotBlank()) {
                             Text(
@@ -1318,7 +1321,7 @@ private fun AgentFeatureStatusCard() {
 
 @Composable
 private fun AgentDisabledCard() {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1330,10 +1333,10 @@ private fun AgentDisabledCard() {
                 shape = shape,
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -1373,13 +1376,13 @@ private fun AgentPromptFab(
         modifier = Modifier
             .widthIn(min = 132.dp)
             .height(58.dp),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(SkydownUiTokens.sheetHeroRadius),
         containerColor = MaterialTheme.colorScheme.tertiary,
         contentColor = MaterialTheme.colorScheme.onTertiary,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSnug),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isWorking) {
@@ -1446,17 +1449,17 @@ private fun AgentPromptComposerSheet(
             .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars).only(WindowInsetsSides.Bottom))
             .padding(horizontal = 18.dp)
             .padding(top = 8.dp, bottom = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
                     .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -1470,7 +1473,7 @@ private fun AgentPromptComposerSheet(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick),
             ) {
                 Text(
                     text = stringResource(R.string.agent_prompt_sheet_title),
@@ -1522,8 +1525,8 @@ private fun AgentPromptComposerSheet(
         )
 
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             AgentModeMenu(
                 selectedMode = selectedMode,
@@ -1568,7 +1571,7 @@ private fun AgentPromptComposerSheet(
             maxLines = 8,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { onSend() }),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.72f),
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
@@ -1579,7 +1582,7 @@ private fun AgentPromptComposerSheet(
         )
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onAddFiles) {
@@ -1601,15 +1604,15 @@ private fun AgentPromptComposerSheet(
         }
 
         if (attachments.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                 attachments.forEach { attachment ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
+                            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f))
                             .padding(horizontal = 10.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -1646,7 +1649,7 @@ private fun AgentPromptComposerSheet(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TextButton(
@@ -1678,10 +1681,10 @@ private fun AgentQuickPromptCard(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BrandStatusChip(
@@ -1698,23 +1701,23 @@ private fun AgentQuickPromptCard(
         }
 
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
             items(prompts, key = { it }) { prompt ->
                 Column(
                     modifier = Modifier
                         .widthIn(min = 220.dp, max = 260.dp)
-                        .clip(RoundedCornerShape(24.dp))
+                        .clip(RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.54f))
                         .border(
                             width = 1.dp,
                             color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
-                            shape = RoundedCornerShape(24.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius),
                         )
                         .clickable { onPromptSelected(prompt) }
                         .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     Text(
                         text = prompt,
@@ -1747,7 +1750,7 @@ private fun AgentModeMenu(
             onClick = { expanded = true },
             enabled = enabled,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
         ) {
             Text(selectedMode.title)
         }
@@ -1780,7 +1783,7 @@ private fun AgentLevelMenu(
             onClick = { expanded = true },
             enabled = enabled,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
         ) {
             Text(selectedLevel.title)
         }
@@ -1813,7 +1816,7 @@ private fun AgentAutomationScopeMenu(
             onClick = { expanded = true },
             enabled = enabled,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
         ) {
             Text(selectedScope.title)
         }
@@ -1840,7 +1843,7 @@ private fun AgentAutomationTriggerButton(
     onToggle: () -> Unit,
 ) {
     val accent = if (isEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
-    val shape = RoundedCornerShape(22.dp)
+    val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
     OutlinedButton(
         onClick = onToggle,
         contentPadding = PaddingValues(horizontal = 13.dp, vertical = 9.dp),
@@ -1949,8 +1952,8 @@ private fun AgentMessageBubble(
     val bubbleShape = RoundedCornerShape(
         topStart = SkydownUiTokens.cardCornerRadius,
         topEnd = SkydownUiTokens.cardCornerRadius,
-        bottomStart = if (isUser) SkydownUiTokens.cardCornerRadius else 18.dp,
-        bottomEnd = if (isUser) 18.dp else SkydownUiTokens.cardCornerRadius,
+        bottomStart = if (isUser) SkydownUiTokens.cardCornerRadius else SkydownUiTokens.messageBubbleRadius,
+        bottomEnd = if (isUser) SkydownUiTokens.messageBubbleRadius else SkydownUiTokens.cardCornerRadius,
     )
     val bubbleColor = if (isUser) {
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f)
@@ -1997,7 +2000,7 @@ private fun AgentMessageBubble(
             if (message.resultType == AgentResultType.Progress || (message.isStreaming && message.text.isBlank())) {
                 Row(
                     modifier = Modifier.padding(top = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     CircularProgressIndicator(
@@ -2038,7 +2041,7 @@ private fun AgentMessageBubble(
                 if (!isUser && !message.isStreaming) {
                     Row(
                         modifier = Modifier.padding(top = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                     ) {
                         Button(
                             onClick = {
@@ -2077,7 +2080,7 @@ private fun AgentStructuredResults(
     if (visibleResults.isNotEmpty()) {
         Column(
             modifier = modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             visibleResults.forEach { result ->
                 when (result.agentOutputKind()) {
@@ -2105,24 +2108,24 @@ private fun AgentResultShell(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.46f))
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
             )
             .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSnug),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
                     .size(28.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
                     .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.13f)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -2135,7 +2138,7 @@ private fun AgentResultShell(
             }
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
             ) {
                 Text(
                     text = result.agentDisplayTitle(fallbackTitle),
@@ -2174,7 +2177,7 @@ private fun AgentImageResultCard(result: AgentResultEntry) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(190.dp)
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)),
                 contentScale = ContentScale.Crop,
             )
@@ -2198,7 +2201,7 @@ private fun AgentVideoResultCard(result: AgentResultEntry) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(18.dp)),
+                    .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius)),
             )
         } else {
             AgentFallbackResultText(result)
@@ -2220,7 +2223,7 @@ private fun AgentAudioResultCard(result: AgentResultEntry) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(88.dp)
-                    .clip(RoundedCornerShape(18.dp)),
+                    .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius)),
             )
         } else {
             AgentFallbackResultText(result)
@@ -2334,11 +2337,11 @@ private fun AgentTableResultCard(result: AgentResultEntry) {
             Column(
                 modifier = Modifier
                     .horizontalScroll(rememberScrollState())
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.denseRadius))
                     .border(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
                     ),
             ) {
                 AgentTableResultRow(cells = columns, isHeader = true)
@@ -2394,7 +2397,7 @@ private fun AgentHtmlResultCard(result: AgentResultEntry) {
             AndroidView(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.76f))
                     .padding(10.dp),
                 factory = { viewContext ->
@@ -2436,7 +2439,7 @@ private fun AgentFallbackResultText(result: AgentResultEntry) {
         color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.76f))
             .padding(10.dp),
     )
@@ -2492,14 +2495,14 @@ private fun AgentWorkflowResultCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f))
-            .border(1.dp, accent.copy(alpha = 0.28f), RoundedCornerShape(20.dp))
+            .border(1.dp, accent.copy(alpha = 0.28f), RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
             .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -2521,9 +2524,9 @@ private fun AgentWorkflowResultCard(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
         )
         summary.progressPercent?.let { progress ->
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
                 androidx.compose.material3.LinearProgressIndicator(
-                    progress = progress.coerceIn(0, 100) / 100f,
+                    progress = { progress.coerceIn(0, 100) / 100f },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(

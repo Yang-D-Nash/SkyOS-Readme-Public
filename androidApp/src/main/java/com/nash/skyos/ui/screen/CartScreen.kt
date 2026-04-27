@@ -56,6 +56,7 @@ import com.nash.skyos.ui.component.AppTopBarSessionActions
 import com.nash.skyos.ui.component.SectionHeader
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownTopBarTitle
+import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
@@ -236,7 +237,7 @@ fun CartScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Login,
@@ -332,7 +333,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             )
                             OutlinedTextField(
                                 value = uiState.email,
@@ -342,7 +343,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             )
                             OutlinedTextField(
                                 value = uiState.whatsApp,
@@ -352,7 +353,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             )
                         }
                     }
@@ -373,7 +374,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             )
                             OutlinedTextField(
                                 value = uiState.shippingAddressExtra,
@@ -383,7 +384,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             )
                             OutlinedTextField(
                                 value = uiState.shippingPostalCode,
@@ -393,7 +394,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             )
                             OutlinedTextField(
                                 value = uiState.shippingCity,
@@ -403,7 +404,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             )
                             OutlinedTextField(
                                 value = uiState.shippingCountry,
@@ -413,7 +414,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 singleLine = true,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             )
                         }
                     }
@@ -434,7 +435,7 @@ fun CartScreen(
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
                                 minLines = 4,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             )
                         }
                     }
@@ -455,7 +456,7 @@ fun CartScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
                                     Text(
                                         text = stringResource(R.string.cart_checkout_title),
                                         style = MaterialTheme.typography.titleMedium,
@@ -496,7 +497,7 @@ fun CartScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             ) {
                                 Text(
                                     if (uiState.isSubmitting) {
@@ -518,7 +519,7 @@ fun CartScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(top = 10.dp),
-                                    shape = RoundedCornerShape(20.dp),
+                                    shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                                 ) {
                                     Text(stringResource(R.string.cart_action_add_items_first))
                                 }
@@ -552,12 +553,12 @@ private fun CartOverviewCard(
 ) {
     SkydownCard(contentPadding = PaddingValues(20.dp)) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingComfortable),
             verticalAlignment = Alignment.Top,
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             ) {
                 Text(
                     text = stringResource(R.string.cart_title),
@@ -568,7 +569,7 @@ private fun CartOverviewCard(
                     text = stringResource(R.string.cart_subtitle),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                     CartInfoPill(text = stringResource(R.string.cart_items_count, itemCount))
                     CartInfoPill(text = if (isLoggedIn) stringResource(R.string.cart_account_active) else stringResource(R.string.cart_guest))
                     if (itemCount > 0) {
@@ -643,7 +644,7 @@ private fun PaymentMethodAvailabilityCard(
             )
             Row(
                 modifier = Modifier.padding(top = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             ) {
                 methods.forEach { method ->
                     CartInfoPill(text = method)
@@ -726,7 +727,7 @@ private fun PaymentMethodSelectionCard(
 
         Column(
             modifier = Modifier.padding(top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             methods.forEach { method ->
                 val isSelected = selectedMethod == method
@@ -738,7 +739,7 @@ private fun PaymentMethodSelectionCard(
                     ) {
                         Column(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                         ) {
                             Text(method, fontWeight = FontWeight.SemiBold)
                             Text(
@@ -757,7 +758,7 @@ private fun PaymentMethodSelectionCard(
                     FilledTonalButton(
                         onClick = { onSelect(method) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                     ) {
                         content()
                     }
@@ -765,7 +766,7 @@ private fun PaymentMethodSelectionCard(
                     OutlinedButton(
                         onClick = { onSelect(method) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                     ) {
                         content()
                     }
@@ -798,7 +799,7 @@ private fun PaymentMethodSelectionCard(
 @Composable
 private fun CheckoutSafetyZone() {
     SkydownCard {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             Text(
                 text = stringResource(R.string.cart_safety_title),
                 style = MaterialTheme.typography.labelLarge,
@@ -839,7 +840,7 @@ private fun CheckoutPulseCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             CheckoutSignalCard(
                 title = stringResource(R.string.cart_pulse_status),
@@ -874,14 +875,14 @@ private fun CartInlineStatusStrip(
             .fillMaxWidth()
             .background(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-                RoundedCornerShape(20.dp),
+                RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
             )
             .animateContentSize()
             .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -908,10 +909,10 @@ private fun CheckoutSignalCard(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f))
             .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
         Text(
             text = title.uppercase(),
@@ -971,7 +972,7 @@ private fun PaymentMethodDetailCard(
                 )
                 Column(
                     modifier = Modifier.padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     if (settings.bankTransfer.accountHolder.isNotBlank()) {
                         PaymentInfoLine(stringResource(R.string.cart_bank_account_holder), settings.bankTransfer.accountHolder)
@@ -1015,7 +1016,7 @@ private fun PaymentInfoLine(
     title: String,
     value: String,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelMedium,
@@ -1046,14 +1047,14 @@ private fun CartItemCard(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             ) {
                 Text(
                     text = name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                     CartInfoPill(text = stringResource(R.string.cart_size_value, size))
                     color?.takeIf { it.isNotBlank() }?.let {
                         CartInfoPill(text = it)
@@ -1073,7 +1074,7 @@ private fun CartItemCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
         ) {
             Icon(
                 imageVector = Icons.Default.DeleteOutline,
@@ -1092,7 +1093,7 @@ private fun CartItemCard(
 private fun CartInfoPill(text: String) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
             .animateContentSize()
             .padding(horizontal = 12.dp, vertical = 7.dp),

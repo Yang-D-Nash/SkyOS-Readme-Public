@@ -99,7 +99,7 @@ struct HomeViewContent: View {
                                     proxy.scrollTo(HomeSectionAnchor.video.rawValue, anchor: .top)
                                 }
                             }
-                            VStack(alignment: .leading, spacing: 6) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                                 Spacer()
                                     .frame(height: 4)
                                 HomeHeroIntroCard(
@@ -455,9 +455,9 @@ private struct HomeManageableItemRow: View {
     let onSave: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 10) {
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingPill) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(title)
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -469,7 +469,7 @@ private struct HomeManageableItemRow: View {
                     }
                 }
                 Spacer(minLength: 8)
-                HStack(spacing: 2) {
+                HStack(spacing: SkydownLayout.stackSpacingHairline) {
                     Button(action: onEdit) {
                         Image(systemName: "pencil")
                             .font(.caption.weight(.semibold))
@@ -495,12 +495,12 @@ private struct HomeManageableItemRow: View {
             }
 
             if isEditing {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                     TextField(fieldPlaceholder, text: $draftTitle)
                         .textInputAutocapitalization(.sentences)
                         .padding(12)
                         .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.55))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
                     Button(action: onSave) {
                         Text(AppLocalized.text("common.save", fallback: "Save"))
                             .font(.caption.weight(.semibold))
@@ -530,7 +530,7 @@ private struct HomeReminderManagerSheet: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 if reminders.isEmpty {
                     Text(AppLocalized.text("home.manager.empty", fallback: "All clear."))
                         .font(.footnote)
@@ -592,7 +592,7 @@ private struct HomeTaskManagerSheet: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 if tasks.isEmpty {
                     Text(AppLocalized.text("home.manager.empty", fallback: "All clear."))
                         .font(.footnote)
@@ -651,7 +651,7 @@ private struct HomeNoteManagerSheet: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 if notes.isEmpty {
                     Text(AppLocalized.text("home.manager.empty", fallback: "All clear."))
                         .font(.footnote)
@@ -712,14 +712,14 @@ private struct HomeReminderComposerSheet: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 Text(AppLocalized.text("home.sheet.reminder.hint", fallback: "Pick a clear title, then set date and time. SkyOS uses the exact timestamp for push scheduling."))
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 TextField(AppLocalized.text("home.sheet.reminder.title_hint", fallback: "Reminder title"), text: $titleText)
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
                 DatePicker(
                     AppLocalized.text("home.sheet.reminder.date_label", fallback: "Due at"),
                     selection: $dueAt,
@@ -752,18 +752,18 @@ private struct HomeTaskComposerSheet: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 Text(AppLocalized.text("home.sheet.task.hint", fallback: "Start with a verb and keep it actionable. Example: Send invoice to Alex."))
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 TextField(AppLocalized.text("tasks.input.title_hint", fallback: "Task title"), text: $titleText)
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
                 TextField(AppLocalized.text("tasks.input.details_hint", fallback: "Optional details"), text: $detailText)
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
                 Button(AppLocalized.text("tasks.input.add", fallback: "Add task")) {
                     let title = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !title.isEmpty else { return }
@@ -791,19 +791,19 @@ private struct HomeNoteComposerSheet: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 Text(AppLocalized.text("home.sheet.note.hint", fallback: "Use a short title and keep the first line specific."))
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 TextField(AppLocalized.text("notes.input.title_hint", fallback: "Note title"), text: $titleText)
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
                 TextField(AppLocalized.text("notes.input.content_hint", fallback: "Write a quick note..."), text: $contentText, axis: .vertical)
                     .lineLimit(3...5)
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
                 Button(AppLocalized.text("notes.input.add", fallback: "Add note")) {
                     let title = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
                     let content = contentText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -860,7 +860,7 @@ private struct HomeFullscreenVideoViewer: View {
                             isPlaying = true
                         }
                 } else {
-                    VStack(spacing: 12) {
+                    VStack(spacing: SkydownLayout.stackSpacingCompact) {
                         Image(systemName: "play.rectangle.fill")
                             .font(.system(size: 48, weight: .bold))
                             .foregroundColor(.white.opacity(0.72))
@@ -965,7 +965,7 @@ private struct HomeMediaClusterSection: View {
     let onOpenOriginal: (FeaturedHomeVideo) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
             Text(
                 AppLocalized.text("home.section.current", fallback: "Current")
             )
@@ -1010,12 +1010,12 @@ private struct HomeProductivityOverviewSection: View {
         let reminderCount = remindersToday.count + remindersUpcoming.count
         let taskCount = openTasks.count
         let noteCount = recentNotes.count
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             Text(AppLocalized.text("home.productivity.ask_anything", fallback: "Ask SkyOS anything"))
                 .font(.caption2.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme).opacity(0.55))
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 HomeProductivityRow(
                     title: AppLocalized.text("home.productivity.today", fallback: "Today"),
                     emptyText: AppLocalized.text("home.productivity.empty_today", fallback: "No reminders due today"),
@@ -1082,7 +1082,7 @@ private struct HomeProductivityOverviewSection: View {
                 .font(.caption2)
                 .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
 
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 HomeQuickActionButton(
                     title: AppLocalized.text("home.quick.create_reminder", fallback: "Create Reminder"),
                     colorScheme: colorScheme,
@@ -1114,10 +1114,10 @@ private struct HomeProductivityOverviewSection: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.88))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -1129,12 +1129,12 @@ private struct HomeOwnerWorkflowSection: View {
     let onOpenWorkflowWithPrompt: (String) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text(AppLocalized.text("home.owner.workflows.title", fallback: "Owner workflows"))
                 .font(.caption.weight(.semibold))
                 .foregroundColor(.secondary)
 
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 HomeQuickActionButton(
                     title: AppLocalized.text("home.owner.workflows.plan", fallback: "Plan"),
                     badgeCount: taskCount,
@@ -1174,9 +1174,9 @@ private struct HomeProductivityRow: View {
     @State private var isExpanded = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
             Button(action: onOpen) {
-                HStack(spacing: 6) {
+                HStack(spacing: SkydownLayout.stackSpacingDense) {
                     Text(title)
                         .font(.caption.weight(.semibold))
                     HomeCountBadge(count: count)
@@ -1266,7 +1266,7 @@ private struct HomeQuickActionButton: View {
                 .padding(.vertical, 7)
                 .frame(maxWidth: .infinity)
                 .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
                 .overlay(alignment: .topTrailing) {
                     if let badgeCount, badgeCount > 0 {
                         HomeCountBadge(count: badgeCount)

@@ -7,7 +7,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
+import com.nash.skyos.ui.component.SkydownStandardEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import com.nash.skyos.ui.component.SkydownMotionTokens
@@ -389,7 +389,7 @@ fun VideoHubScreen(
         },
         floatingActionButton = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 horizontalAlignment = Alignment.End,
             ) {
                 if (uiState.isAdmin) {
@@ -556,7 +556,7 @@ fun VideoHubScreen(
                 ) {
                     LazyColumn(
                         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingComfortable),
                     ) {
                         item {
                             VideoUploadCard(
@@ -599,7 +599,7 @@ fun VideoHubScreen(
                 ) {
                     LazyColumn(
                         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingComfortable),
                     ) {
                         item {
                             VideoFormatCard()
@@ -781,7 +781,7 @@ private fun VideoHubHeroCard(
     ) {
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             BrandPill(
                 text = clipsPill,
@@ -801,7 +801,7 @@ private fun VideoHubHeroCard(
         }
         Row(
             modifier = Modifier.padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             VideoHubHeroStatCard(
                 label = stringResource(R.string.video_stat_reels),
@@ -915,7 +915,7 @@ private fun VideoControlDeckCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -928,10 +928,10 @@ private fun VideoControlDeckCard(
             .border(
                 width = 1.dp,
                 color = accent.copy(alpha = 0.18f),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
             )
             .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         content = {
             VideoHubSectionBanner(
                 title = title,
@@ -964,7 +964,7 @@ private fun VideoFormatCard() {
         )
         Row(
             modifier = Modifier.padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             VideoPill(text = stringResource(R.string.video_pill_mp4), isActive = true)
             VideoPill(text = stringResource(R.string.video_pill_916), isActive = false)
@@ -1010,7 +1010,7 @@ private fun VideoCollaborationsCard(
         } else {
             Column(
                 modifier = Modifier.padding(top = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             ) {
                 items.forEach { artist ->
                     ProducedWithArtistRow(
@@ -1054,7 +1054,7 @@ private fun VideoEquipmentCard(
         } else {
             Column(
                 modifier = Modifier.padding(top = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             ) {
                 items.forEach { item ->
                     VideoEquipmentRow(
@@ -1078,7 +1078,7 @@ private fun VideoEquipmentRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -1091,7 +1091,7 @@ private fun VideoEquipmentRow(
             .border(
                 width = 1.dp,
                 color = accent.copy(alpha = 0.18f),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
             )
             .skydownPressable(
                 interactionSource = interactionSource,
@@ -1103,7 +1103,7 @@ private fun VideoEquipmentRow(
                 onClick = onClick,
             )
             .padding(horizontal = 14.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         verticalAlignment = Alignment.Top,
     ) {
         BrandPreviewFrame(
@@ -1144,7 +1144,7 @@ private fun VideoEquipmentRow(
 
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
         ) {
             VideoPill(text = stringResource(R.string.video_pill_visual_stack), isActive = true)
             Text(
@@ -1178,7 +1178,7 @@ private fun VideoEquipmentDetailSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             VideoPill(text = stringResource(R.string.video_pill_visual_stack), isActive = true)
             Text(
@@ -1210,7 +1210,7 @@ private fun VideoEquipmentDetailSheet(
                 OutlinedButton(
                     onClick = { onOpenImageFullscreen(item.imageUrl.orEmpty()) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
                 ) {
                     Text(stringResource(R.string.video_image_fullscreen))
                 }
@@ -1219,7 +1219,7 @@ private fun VideoEquipmentDetailSheet(
             Button(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
             ) {
                 Text(stringResource(R.string.common_close))
             }
@@ -1280,7 +1280,7 @@ private fun VideoPublicConfigEditorCard(
 
         Row(
             modifier = Modifier.padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             VideoPill(text = stringResource(R.string.video_pill_picker_first), isActive = true)
             VideoPill(text = stringResource(R.string.video_pill_public_save), isActive = false)
@@ -1296,13 +1296,13 @@ private fun VideoPublicConfigEditorCard(
             modifier = Modifier.padding(top = 18.dp),
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             ) {
                 uiState.publicConfig.equipmentItems.forEach { item ->
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
+                            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
                             .background(
                                 Brush.linearGradient(
                                     colors = listOf(
@@ -1315,12 +1315,12 @@ private fun VideoPublicConfigEditorCard(
                             .border(
                                 width = 1.dp,
                                 color = equipmentAccent.copy(alpha = 0.18f),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             )
                             .padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                             VideoPill(text = stringResource(R.string.video_pill_gear), isActive = true)
                             VideoPill(
                                 text = if (item.imageUrl.isNullOrBlank()) {
@@ -1382,13 +1382,13 @@ private fun VideoPublicConfigEditorCard(
             modifier = Modifier.padding(top = 18.dp),
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             ) {
                 uiState.publicConfig.collaborationItems.forEach { item ->
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
+                            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
                             .background(
                                 Brush.linearGradient(
                                     colors = listOf(
@@ -1401,12 +1401,12 @@ private fun VideoPublicConfigEditorCard(
                             .border(
                                 width = 1.dp,
                                 color = collabAccent.copy(alpha = 0.18f),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             )
                             .padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                             VideoPill(
                                 text = item.role.ifBlank { collabRoleDefault },
                                 isActive = true,
@@ -1492,7 +1492,7 @@ private fun VideoPublicConfigEditorCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
         ) {
             if (uiState.isSavingPublicConfig) {
                 CircularProgressIndicator(
@@ -1524,7 +1524,7 @@ private fun ProducedWithArtistRow(
         modifier = Modifier
             .fillMaxWidth()
             .height(164.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -1537,7 +1537,7 @@ private fun ProducedWithArtistRow(
             .border(
                 width = 1.dp,
                 color = collabAccent.copy(alpha = 0.22f),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
             ),
     ) {
         Box(
@@ -1588,15 +1588,15 @@ private fun ProducedWithArtistRow(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                         .background(Color.Black.copy(alpha = 0.20f))
                         .padding(horizontal = 8.dp, vertical = 5.dp),
                 ) {
@@ -1612,7 +1612,7 @@ private fun ProducedWithArtistRow(
 
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                         .background(highlightAccent.copy(alpha = 0.22f))
                         .padding(horizontal = 8.dp, vertical = 5.dp),
                 ) {
@@ -1629,7 +1629,7 @@ private fun ProducedWithArtistRow(
                 if (artist.vibe.isNotBlank()) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
+                            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                             .background(collabAccent.copy(alpha = 0.82f))
                             .padding(horizontal = 8.dp, vertical = 5.dp),
                     ) {
@@ -1666,14 +1666,14 @@ private fun ProducedWithArtistRow(
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                 VideoPill(text = artist.role.ifBlank { collabRoleDefault }, isActive = true)
                 if (artist.vibe.isNotBlank()) {
                     VideoPill(text = artist.vibe, isActive = false)
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                 artist.spotifyArtistId?.takeIf { it.isNotBlank() }?.let { spotifyArtistId ->
                     SocialActionChip(
                         title = spotifyTitle,
@@ -1785,7 +1785,7 @@ private fun VideoUploadCard(
 
         Row(
             modifier = Modifier.padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             VideoPill(text = stringResource(R.string.video_pill_storage), isActive = true)
             VideoPill(text = stringResource(R.string.video_pill_video_link), isActive = false)
@@ -1857,13 +1857,13 @@ private fun VideoUploadCard(
         if (uiState.selectedFiles.isNotEmpty()) {
             Column(
                 modifier = Modifier.padding(top = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             ) {
                 uiState.selectedFiles.forEach { file ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(SkydownUiTokens.denseRadius))
                             .background(
                                 Brush.linearGradient(
                                     colors = listOf(
@@ -1876,11 +1876,11 @@ private fun VideoUploadCard(
                             .border(
                                 width = 1.dp,
                                 color = pickerAccent.copy(alpha = 0.18f),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
                             )
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Movie,
@@ -2046,7 +2046,7 @@ private fun VideoPlayerCard(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(SkydownUiTokens.panelPadding),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSubtle),
                 ) {
                     Text(
                         text = video.title,
@@ -2205,7 +2205,7 @@ private fun VideoLibraryCard(
     SkydownCard {
         Column(
             modifier = Modifier.testTag("video.hub.library.header"),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             Text(
                 text = if (uiState.isAdmin) {
@@ -2241,7 +2241,7 @@ private fun VideoLibraryCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("video.hub.owner.create"),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Movie,
@@ -2260,7 +2260,7 @@ private fun VideoLibraryCard(
                 Row(
                     modifier = Modifier.padding(top = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
@@ -2282,7 +2282,7 @@ private fun VideoLibraryCard(
             else -> {
                 Column(
                     modifier = Modifier.padding(top = 18.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
                     uiState.videos.forEachIndexed { index, video ->
                         val presentation = when {
@@ -2349,16 +2349,16 @@ private fun VideoOwnerEditPanel(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 8.dp)
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
             .background(colorScheme.skydownSecondaryBackground().copy(alpha = 0.72f))
             .border(
                 width = 1.dp,
                 color = colorScheme.skydownAccentMystic().copy(alpha = 0.22f),
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
             )
             .padding(14.dp)
             .testTag("video.hub.owner.edit"),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
         Text(
             text = stringResource(R.string.video_edit_heading),
@@ -2400,11 +2400,11 @@ private fun VideoOwnerEditPanel(
             maxLines = 4,
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill)) {
             OutlinedButton(
                 onClick = { isPublic = !isPublic },
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
             ) {
                 Icon(
                     imageVector = if (isPublic) Icons.Default.CheckCircle else Icons.Default.Close,
@@ -2422,7 +2422,7 @@ private fun VideoOwnerEditPanel(
             Button(
                 onClick = { onSave(title, projectName, notes, isPublic) },
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
             ) {
                 Text(stringResource(R.string.video_action_save))
             }
@@ -2468,9 +2468,9 @@ private fun VideoLibraryRow(
         VideoLibraryRowPresentation.Catalog -> 40.dp
     }
     val cardShape = when (presentation) {
-        VideoLibraryRowPresentation.Featured -> RoundedCornerShape(26.dp)
-        VideoLibraryRowPresentation.Secondary -> RoundedCornerShape(20.dp)
-        VideoLibraryRowPresentation.Catalog -> RoundedCornerShape(17.dp)
+        VideoLibraryRowPresentation.Featured -> RoundedCornerShape(SkydownUiTokens.sheetHeroRadius)
+        VideoLibraryRowPresentation.Secondary -> RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
+        VideoLibraryRowPresentation.Catalog -> RoundedCornerShape(SkydownUiTokens.catalogCornerRadius)
     }
     val innerH = when (presentation) {
         VideoLibraryRowPresentation.Featured -> 18.dp
@@ -2627,11 +2627,11 @@ private fun VideoLibraryRow(
                 horizontal = innerH,
                 vertical = if (isFeatured) 14.dp else innerV,
             ),
-            verticalArrangement = Arrangement.spacedBy(if (isFeatured) 10.dp else if (catalog) 6.dp else 8.dp),
+            verticalArrangement = Arrangement.spacedBy(if (isFeatured) SkydownUiTokens.stackSpacingPill else if (catalog) SkydownUiTokens.stackSpacingDense else SkydownUiTokens.stackSpacingMicro),
         ) {
             if (!isFeatured) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(if (catalog) 7.dp else 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (catalog) SkydownUiTokens.stackSpacingChrome else SkydownUiTokens.stackSpacingCompact),
                     verticalAlignment = Alignment.Top,
                 ) {
                     BrandPreviewFrame(
@@ -2646,7 +2646,7 @@ private fun VideoLibraryRow(
                                     contentDescription = null,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .clip(RoundedCornerShape(14.dp)),
+                                        .clip(RoundedCornerShape(SkydownUiTokens.compactRadius)),
                                     contentScale = ContentScale.Crop,
                                 )
                             } else {
@@ -2678,7 +2678,7 @@ private fun VideoLibraryRow(
 
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                     ) {
                         Text(
                             text = video.title,
@@ -2787,7 +2787,7 @@ private fun VideoLibraryRow(
                     Button(
                         onClick = onSelect,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     ) {
                         Text(
                             when {
@@ -2802,17 +2802,17 @@ private fun VideoLibraryRow(
                     OutlinedButton(
                         onClick = onOpenOriginal,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     ) {
                         Text(video.originalActionLabel)
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill)) {
                     OutlinedButton(
                         onClick = onToggleHomeFeatured,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Home,
@@ -2831,7 +2831,7 @@ private fun VideoLibraryRow(
                     OutlinedButton(
                         onClick = onEdit,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Sync,
@@ -2844,11 +2844,11 @@ private fun VideoLibraryRow(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill)) {
                     OutlinedButton(
                         onClick = onDelete,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,
@@ -2865,7 +2865,7 @@ private fun VideoLibraryRow(
                     Button(
                         onClick = onOpenReel,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     ) {
                         Text(videoHubInlineCompactActionLabelText(video))
                     }
@@ -2873,7 +2873,7 @@ private fun VideoLibraryRow(
                     OutlinedButton(
                         onClick = onOpenOriginal,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     ) {
                         Text(video.originalActionLabel)
                     }
@@ -3041,7 +3041,7 @@ private fun VideoReelViewerDialog(
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.PlayArrow,
@@ -3080,7 +3080,7 @@ private fun VideoReelViewerDialog(
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
                                 .padding(start = 22.dp, end = 90.dp, bottom = 30.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                         ) {
                             Text(
                                 text = it.projectName.uppercase(),
@@ -3127,18 +3127,18 @@ private fun VideoReelViewerDialog(
                         .padding(end = 14.dp)
                         .background(
                             color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.30f),
-                            shape = RoundedCornerShape(999.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                         )
                         .padding(horizontal = 6.dp, vertical = 10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                 ) {
                     videos.forEachIndexed { index, _ ->
                         val isActive = index == pagerState.currentPage
                         Box(
                             modifier = Modifier
                                 .size(width = 4.dp, height = if (isActive) 28.dp else 9.dp)
-                                .clip(RoundedCornerShape(999.dp))
+                                .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                                 .background(
                                     androidx.compose.ui.graphics.Color.White.copy(
                                         alpha = if (isActive) 0.96f else 0.34f,
@@ -3156,7 +3156,7 @@ private fun VideoReelViewerDialog(
                     .statusBarsPadding()
                     .padding(horizontal = 18.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingComfortable),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -3237,17 +3237,17 @@ private fun VideoReelViewerDialog(
                 enter = fadeIn(
                     animationSpec = tween(
                         durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
-                        easing = FastOutSlowInEasing,
+                        easing = SkydownStandardEasing,
                     ),
                 ),
             ) {
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
                         .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.48f))
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
@@ -3315,7 +3315,7 @@ private fun VideoHubImageViewerDialog(
                     .statusBarsPadding()
                     .padding(horizontal = 18.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingComfortable),
             ) {
                 Text(
                     text = stringResource(R.string.video_image_preview_title),

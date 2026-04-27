@@ -32,7 +32,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -94,7 +93,10 @@ import com.nash.skyos.ui.component.BrandStatusChip
 import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.MerchandiseCard
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownMotionTokens
 import com.nash.skyos.ui.component.SkydownTopBarTitle
+import com.nash.skyos.ui.component.SkydownUiTokens
+import com.nash.skyos.ui.component.skydownTween
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
@@ -417,7 +419,7 @@ private fun ShopOverviewCard(
         edgeToEdge = true,
         onSurfaceClick = onSurfaceClick,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
             Row(
                 modifier = Modifier
                     .horizontalScroll(rememberScrollState())
@@ -426,7 +428,7 @@ private fun ShopOverviewCard(
                         indication = null,
                         onClick = onSurfaceClick,
                     ),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             ) {
                 BrandPill(text = pieceLabel, tint = MaterialTheme.colorScheme.primary)
                 BrandPill(
@@ -459,7 +461,7 @@ private fun ShopOverviewCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             ) {
                 Box(
                     modifier = Modifier
@@ -541,7 +543,7 @@ private fun ShopBrowseEntryHint(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
         if (showConnectorLine) {
             Spacer(modifier = Modifier.height(4.dp))
@@ -585,7 +587,7 @@ private fun ShopMerchOpeningBlock(
 ) {
     Column(
         modifier = Modifier.padding(vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSection),
     ) {
         if (showFeatured) {
             ShopLandingCuratedModule(
@@ -604,15 +606,15 @@ private fun ShopLandingCuratedModule(
     editorialPicks: List<MerchandiseItem>,
     onOpenItem: (MerchandiseItem) -> Unit,
 ) {
-    val momentShape = RoundedCornerShape(32.dp)
+    val momentShape = RoundedCornerShape(SkydownUiTokens.heroCornerRadius)
     Column(
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHero),
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 BrandStatusChip(
@@ -686,7 +688,7 @@ private fun ShopLandingCuratedModule(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 22.dp, vertical = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     Text(
                         text = stringResource(R.string.shop_featured_badge),
@@ -722,20 +724,20 @@ private fun ShopLandingCuratedModule(
                 .fillMaxWidth()
                 .padding(top = 2.dp)
                 .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             editorialPicks.forEach { item ->
                 Box(
                     modifier = Modifier
                         .width(132.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(SkydownUiTokens.denseRadius))
                         .background(
                             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
                         )
                         .clickable { onOpenItem(item) }
                         .padding(horizontal = 10.dp, vertical = 9.dp),
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
                         Text(
                             text = item.name,
                             style = MaterialTheme.typography.labelSmall,
@@ -797,7 +799,7 @@ private fun ShopAdminControlsCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             BrandActionButton(
                 text = if (uiState.isUpdatingStoreState) {
@@ -872,19 +874,19 @@ private fun ShopWelcomeQuickEntryCard(
         )
         Column(
             modifier = Modifier.padding(top = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             quickLanes.forEach { lane ->
                 val laneInteraction = remember(lane.id) { MutableInteractionSource() }
                 val isActive = lane.id == selectedLaneId
                 val animatedScale by animateFloatAsState(
                     targetValue = if (isActive) 1.0f else 0.985f,
-                    animationSpec = tween(durationMillis = 220),
+                    animationSpec = skydownTween<Float>(SkydownMotionTokens.selectionCrossFadeMillis),
                     label = "shopLaneScale",
                 )
                 val animatedAlpha by animateFloatAsState(
                     targetValue = if (isActive) 1.0f else 0.92f,
-                    animationSpec = tween(durationMillis = 220),
+                    animationSpec = skydownTween<Float>(SkydownMotionTokens.selectionCrossFadeMillis),
                     label = "shopLaneAlpha",
                 )
                 BrandActionButton(
@@ -927,7 +929,7 @@ private fun ShopCollectionDialog(
     val listState = rememberLazyListState()
     val headerParallax by animateFloatAsState(
         targetValue = -(listState.firstVisibleItemScrollOffset * 0.08f),
-        animationSpec = tween(durationMillis = 120),
+        animationSpec = skydownTween(SkydownMotionTokens.staggerStepMillis * 13),
         label = "shopCollectionHeaderParallax",
     )
     ModalBottomSheet(
@@ -939,11 +941,16 @@ private fun ShopCollectionDialog(
                 modifier = Modifier
                     .padding(top = 8.dp)
                     .size(width = 44.dp, height = 5.dp)
-                    .clip(RoundedCornerShape(99.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.sheetDragHandleRadius))
                     .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f)),
             )
         },
-        modifier = Modifier.clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)),
+        modifier = Modifier.clip(
+            RoundedCornerShape(
+                topStart = SkydownUiTokens.heroCornerRadius,
+                topEnd = SkydownUiTokens.heroCornerRadius,
+            ),
+        ),
     ) {
         Scaffold(
             containerColor = Color.Transparent,
@@ -979,18 +986,18 @@ private fun ShopCollectionDialog(
                     ),
                 state = listState,
                 contentPadding = skydownContentPadding(innerPadding),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             ) {
                 item {
                     AnimatedVisibility(
                         visible = true,
-                        enter = fadeIn(animationSpec = tween(260)) + slideInVertically(
+                        enter = fadeIn(skydownTween<Float>(SkydownMotionTokens.overlayEnterDurationMillis)) + slideInVertically(
                             initialOffsetY = { it / 7 },
-                            animationSpec = tween(260),
+                            animationSpec = skydownTween(SkydownMotionTokens.overlayEnterDurationMillis),
                         ),
                     ) {
                         SkydownCard(
-                            contentPadding = PaddingValues(16.dp),
+                            contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
                             modifier = Modifier.graphicsLayer { translationY = headerParallax },
                         ) {
                             BrandSectionBanner(
@@ -1007,9 +1014,9 @@ private fun ShopCollectionDialog(
                     item {
                         AnimatedVisibility(
                             visible = true,
-                            enter = fadeIn(animationSpec = tween(280)) + slideInVertically(
+                            enter = fadeIn(skydownTween<Float>(SkydownMotionTokens.primaryEnterDurationMillis)) + slideInVertically(
                                 initialOffsetY = { it / 8 },
-                                animationSpec = tween(280),
+                                animationSpec = skydownTween(SkydownMotionTokens.primaryEnterDurationMillis),
                             ),
                         ) {
                             ShopMessageCard(
@@ -1051,7 +1058,7 @@ private fun ShopMessageCard(
     tag: String? = null,
 ) {
     val bannerAccent = accent ?: MaterialTheme.colorScheme.primary
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(SkydownUiTokens.denseRadius)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1063,10 +1070,10 @@ private fun ShopMessageCard(
                 shape = shape,
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -1282,7 +1289,7 @@ private fun ShopCollabSidebar(
         modifier = modifier,
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
         ) {
             BrandSectionBanner(
                 title = stringResource(R.string.shop_map_title),
@@ -1293,7 +1300,7 @@ private fun ShopCollabSidebar(
             )
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             ) {
                 lanes.forEach { lane ->
                     ShopCollabSidebarButton(
@@ -1315,7 +1322,7 @@ private fun ShopCollabRail(
 ) {
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
         lanes.forEach { lane ->
             ShopCollabSidebarButton(
@@ -1337,7 +1344,7 @@ private fun ShopCollabQuickGrid(
 ) {
     SkydownCard {
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             BrandSectionBanner(
                 title = stringResource(R.string.shop_quick_title),
@@ -1348,7 +1355,7 @@ private fun ShopCollabQuickGrid(
             )
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             ) {
                 lanes.forEach { lane ->
                     ShopCollabSidebarButton(
@@ -1466,7 +1473,7 @@ private fun ShopCollabSelectionCard(
         modifier = Modifier.height(176.dp),
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             BrandSectionBanner(
                 title = shopLaneTitle(lane),
@@ -1488,7 +1495,7 @@ private fun ShopCollabSelectionCard(
 
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             ) {
                 ShopLaneMetricCard(
                     title = stringResource(R.string.shop_lane_metric_group_type),
@@ -1544,7 +1551,7 @@ private fun ShopCollabSidebarButton(
     Column(
         modifier = modifier
             .skydownPressable(interactionSource, pressedScale = 0.984f)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
             .background(backgroundColor)
             .clickable(
                 interactionSource = interactionSource,
@@ -1553,16 +1560,16 @@ private fun ShopCollabSidebarButton(
             )
             .height(if (compact) 106.dp else 118.dp)
             .padding(horizontal = if (compact) 14.dp else 16.dp, vertical = if (compact) 14.dp else 15.dp),
-        verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingPill),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             verticalAlignment = Alignment.Top,
         ) {
             Box(
                 modifier = Modifier
                     .size(12.dp)
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                     .background(
                         if (isSelected) {
                             MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f)
@@ -1574,7 +1581,7 @@ private fun ShopCollabSidebarButton(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
             ) {
                 Text(
                     text = shopLaneTitle(lane),
@@ -1594,7 +1601,7 @@ private fun ShopCollabSidebarButton(
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             ShopLaneMetaChip(
                 text = shopPiecesLabel(lane.itemCount),
                 isSelected = isSelected,
@@ -1617,10 +1624,10 @@ private fun ShopLaneMetricCard(
     Column(
         modifier = Modifier
             .width(136.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.76f))
             .padding(horizontal = 12.dp, vertical = 11.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
     ) {
         Text(
             text = title.uppercase(),
@@ -1654,7 +1661,7 @@ private fun ShopLaneMetaChip(
     Text(
         text = text,
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(
                 if (isSelected) {
                     MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.14f)
@@ -1762,16 +1769,16 @@ private fun MerchandiseDetailSheet(
                 .testTag("shop.merch.detail.root")
                 .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.52f))
                 .padding(12.dp)
-                .clip(RoundedCornerShape(30.dp))
+                .clip(RoundedCornerShape(SkydownUiTokens.heroCornerRadius))
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.99f))
                 .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSection),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(460.dp)
-                    .clip(RoundedCornerShape(30.dp)),
+                    .clip(RoundedCornerShape(SkydownUiTokens.heroCornerRadius)),
             ) {
                 HorizontalPager(
                     state = pagerState,
@@ -1806,9 +1813,9 @@ private fun MerchandiseDetailSheet(
                 Row(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(16.dp)
+                        .padding(SkydownUiTokens.cardPadding)
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     ShopBadge(
                         text = if (item.available) {
@@ -1850,7 +1857,7 @@ private fun MerchandiseDetailSheet(
                         .align(Alignment.TopEnd)
                         .padding(12.dp)
                         .testTag("shop.merch.detail.close")
-                        .clip(RoundedCornerShape(18.dp))
+                        .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)),
                 ) {
                     Icon(
@@ -1865,7 +1872,7 @@ private fun MerchandiseDetailSheet(
                         .align(Alignment.BottomStart)
                         .padding(start = 20.dp, bottom = 18.dp)
                         .testTag("shop.merch.fullscreen.open")
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.76f)),
                 ) {
                     Text(stringResource(R.string.shop_detail_fullscreen))
@@ -1875,7 +1882,7 @@ private fun MerchandiseDetailSheet(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 64.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     Text(
                         text = item.name,
@@ -1899,13 +1906,13 @@ private fun MerchandiseDetailSheet(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     ) {
                         repeat(item.imageUrls.size) { index ->
                             Box(
                                 modifier = Modifier
                                     .size(if (pagerState.currentPage == index) 10.dp else 8.dp)
-                                    .clip(RoundedCornerShape(999.dp))
+                                    .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                                     .background(
                                         if (pagerState.currentPage == index) {
                                             MaterialTheme.colorScheme.onPrimaryContainer
@@ -1921,9 +1928,9 @@ private fun MerchandiseDetailSheet(
 
             Column(
                 modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingComfortable),
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                     Text(
                         text = stringResource(R.string.shop_detail_story_title),
                         style = MaterialTheme.typography.titleMedium,
@@ -1939,7 +1946,7 @@ private fun MerchandiseDetailSheet(
                 BoxWithConstraints {
                     val wideCards = maxWidth >= 520.dp
                     if (wideCards) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
                             MerchDetailSignalCard(
                                 title = readinessTitle,
                                 detail = readinessDetail,
@@ -1968,7 +1975,7 @@ private fun MerchandiseDetailSheet(
                             )
                         }
                     } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
                             MerchDetailSignalCard(
                                 title = readinessTitle,
                                 detail = readinessDetail,
@@ -2001,7 +2008,7 @@ private fun MerchandiseDetailSheet(
 
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     if (item.hasCuratedMerchCategory) {
                         ShopBadge(
@@ -2048,7 +2055,7 @@ private fun MerchandiseDetailSheet(
                 }
 
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                 ) {
                     Text(
                         text = stringResource(R.string.shop_detail_variant_title),
@@ -2056,7 +2063,7 @@ private fun MerchandiseDetailSheet(
                         fontWeight = FontWeight.SemiBold,
                     )
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                         sizeOptions.forEach { size ->
                             FilterPill(
                                 text = size,
@@ -2067,7 +2074,7 @@ private fun MerchandiseDetailSheet(
                     }
 
                     if (colorOptions.isNotEmpty()) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                             colorOptions.forEach { color ->
                                 FilterPill(
                                     text = color,
@@ -2080,7 +2087,7 @@ private fun MerchandiseDetailSheet(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -2107,7 +2114,7 @@ private fun MerchandiseDetailSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             ) {
                 TextButton(
                     onClick = onDismiss,
@@ -2160,7 +2167,7 @@ private fun MerchDetailSignalCard(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -2170,7 +2177,7 @@ private fun MerchDetailSignalCard(
                 ),
             )
             .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
         Text(
             text = title,
@@ -2196,7 +2203,7 @@ private fun MerchDetailTrustModule(
     shipping: String,
     support: String,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(SkydownUiTokens.denseRadius)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -2208,10 +2215,10 @@ private fun MerchDetailTrustModule(
                 shape = shape,
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ShopBadge(
@@ -2234,7 +2241,7 @@ private fun MerchDetailTrustModule(
 @Composable
 private fun TrustRow(text: String) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(
@@ -2274,7 +2281,7 @@ private fun FilterPill(
     Box(
         modifier = Modifier
             .skydownPressable(interactionSource, pressedScale = 0.988f)
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(background)
             .clickable(
                 interactionSource = interactionSource,
@@ -2341,7 +2348,7 @@ private fun MerchandiseImageViewerDialog(
                     .statusBarsPadding()
                     .padding(horizontal = 18.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingComfortable),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(

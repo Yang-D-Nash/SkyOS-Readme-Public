@@ -38,18 +38,86 @@ import com.nash.skyos.ui.theme.skydownSecondaryText
 import com.nash.skyos.ui.theme.skydownText
 
 object SkydownUiTokens {
-    val screenHorizontalPadding = 16.dp
-    val screenTopPadding = 14.dp
+    val screenHorizontalPadding = 20.dp
+    val screenTopPadding = 16.dp
     val screenBottomPadding = 48.dp
-    val cardPadding = 12.dp
+    val cardPadding = 16.dp
     /// Größere Karten/Module (Music, Video, Profil) — iOS `SkydownLayout.panelPadding` Parität.
-    val panelPadding = 18.dp
-    val heroPadding = 17.dp
-    val cardCornerRadius = 20.dp
-    val heroCornerRadius = 30.dp
-    val buttonCornerRadius = 16.dp
-    val screenSectionSpacing = 14.dp
-    val compactScreenSectionSpacing = 12.dp
+    val panelPadding = 20.dp
+    val heroPadding = 20.dp
+    val cardCornerRadius = 22.dp
+    val heroCornerRadius = 32.dp
+    val buttonCornerRadius = 14.dp
+    val screenSectionSpacing = 18.dp
+    val compactScreenSectionSpacing = 14.dp
+    /// Sehr kleine Ecken (z. B. kompakte Menü-Clips).
+    val microCorner = 8.dp
+    /// Kleine Kacheln und Tag-Container.
+    val tightRadius = 12.dp
+    /// Chips, kleine Clips, kompakte UI-Elemente.
+    val compactRadius = 14.dp
+    /// Dichte Raster / sekundäre Flächen.
+    val denseRadius = 16.dp
+    /// Chat-Bubbles, modale Eingaben — etwas weicher als Karte.
+    val messageBubbleRadius = 18.dp
+    /// Größere Paneele, Sheets (unterhalb Hero).
+    val elevatedPanelRadius = 24.dp
+    /// Prominente Sheet- und Dialog-Ecken.
+    val sheetHeroRadius = 26.dp
+    /// Große Medien-/Spotlight-Kacheln (zwischen Card und Hero).
+    val spotlightRadius = 28.dp
+    /// Katalog-Zeilen (Music/Video), leicht enger als Standard-Karte.
+    val catalogCornerRadius = 17.dp
+    /// Sanfte Mini-Pills (Badges, Micro-Chips).
+    val pillSoftRadius = 10.dp
+    /// Minimaler Radius (Fortschritt, Hairline-Flächen).
+    val nanoCorner = 4.dp
+    /// Volle Pille / Capsule (ersetzt magisches 999.dp an einer Stelle im Code).
+    val fullCapsuleRadius = 999.dp
+    /// Sheet-Ziehgriff (Material-nah, aber markenkonstant).
+    val sheetDragHandleRadius = 99.dp
+
+    /// Parität iOS `SkydownLayout.stackSpacingComfortable`.
+    val stackSpacingComfortable get() = cardPadding
+    /// Parität iOS `SkydownLayout.stackSpacingCompact`.
+    val stackSpacingCompact get() = tightRadius
+    /// Parität iOS `SkydownLayout.stackSpacingMicro`.
+    val stackSpacingMicro get() = microCorner
+    /// Parität iOS `SkydownLayout.stackSpacingPill`.
+    val stackSpacingPill get() = pillSoftRadius
+    /// Parität iOS `SkydownLayout.stackSpacingRelaxed`.
+    val stackSpacingRelaxed get() = compactRadius
+    /// Parität iOS `SkydownLayout.stackSpacingSection`.
+    val stackSpacingSection get() = screenSectionSpacing
+
+    /// Parität iOS `SkydownLayout.stackSpacingNone`.
+    val stackSpacingNone get() = 0.dp
+    /// Parität iOS `SkydownLayout.stackSpacingSingle`.
+    val stackSpacingSingle = 1.dp
+    /// Parität iOS `SkydownLayout.stackSpacingHairline`.
+    val stackSpacingHairline = 2.dp
+    /// Parität iOS `SkydownLayout.stackSpacingTick`.
+    val stackSpacingTick = 3.dp
+    /// Parität iOS `SkydownLayout.stackSpacingNano`.
+    val stackSpacingNano get() = nanoCorner
+    /// Parität iOS `SkydownLayout.stackSpacingSubtle`.
+    val stackSpacingSubtle = 5.dp
+    /// Parität iOS `SkydownLayout.stackSpacingDense`.
+    val stackSpacingDense = 6.dp
+    /// Parität iOS `SkydownLayout.stackSpacingChrome`.
+    val stackSpacingChrome = 7.dp
+    /// Parität iOS `SkydownLayout.stackSpacingSnug`.
+    val stackSpacingSnug = 9.dp
+    /// Parität iOS `SkydownLayout.stackSpacingToast`.
+    val stackSpacingToast = 11.dp
+    /// Parität iOS `SkydownLayout.stackSpacingLoft`.
+    val stackSpacingLoft = 15.dp
+    /// Parität iOS `SkydownLayout.stackSpacingHero`.
+    val stackSpacingHero get() = heroPadding
+    /// Parität iOS `SkydownLayout.stackSpacingDockRow` (Dock-/Multi-Icon-Zeile).
+    val stackSpacingDockRow = 13.dp
+    /// Parität iOS `SkydownLayout.layoutProminentInset` (Dock-Vertikal, betonte Schatten).
+    val layoutProminentInset = 19.dp
 }
 
 fun skydownContentPadding(innerPadding: PaddingValues): PaddingValues = PaddingValues(
@@ -162,12 +230,12 @@ fun SkydownTopBarTitle(
 
     Column(
         verticalArrangement = Arrangement.spacedBy(
-            if (resolvedMetaLabel != null || resolvedSubtitle != null) 4.dp else 0.dp,
+            if (resolvedMetaLabel != null || resolvedSubtitle != null) SkydownUiTokens.stackSpacingNano else SkydownUiTokens.stackSpacingNone,
         ),
     ) {
         if (resolvedMetaLabel != null) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(

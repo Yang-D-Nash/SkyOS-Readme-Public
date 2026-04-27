@@ -23,7 +23,7 @@ fun BrandPreviewFrame(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -36,14 +36,14 @@ fun BrandPreviewFrame(
             .border(
                 width = 1.dp,
                 color = accent.copy(alpha = 0.24f),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius),
             )
             .padding(4.dp),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f)),
             content = content,
         )

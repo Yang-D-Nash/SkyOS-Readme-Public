@@ -46,6 +46,7 @@ import com.nash.skyos.ui.component.BrandHeroCard
 import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.SectionHeader
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.theme.SpotifyGreen
 
 const val nicmaProfileMusic = "NICMA MUSIC"
@@ -121,14 +122,14 @@ fun NicmaProfileSelectorRow(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
         nicmaProfileOptions.forEach { profile ->
             val selected = profile == selectedProfile
             OutlinedButton(
                 onClick = { onSelectProfile(profile) },
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(999.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                 colors = if (selected) {
                     ButtonDefaults.outlinedButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f),
@@ -149,7 +150,7 @@ fun NicmaProfileSelectorRow(
                         Row(
                             modifier = Modifier.padding(top = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                         ) {
                             Box(
                                 modifier = Modifier
@@ -188,7 +189,7 @@ fun NicmaHubHeroCard(
         secondaryAccent = MaterialTheme.colorScheme.primary,
         onSurfaceClick = onSurfaceClick,
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             if (isStudioProfile) {
                 BrandPill(text = stringResource(R.string.nicma_pill_mix), tint = MaterialTheme.colorScheme.tertiary)
                 BrandPill(text = stringResource(R.string.nicma_pill_master), tint = MaterialTheme.colorScheme.primary)
@@ -210,7 +211,7 @@ fun NicmaPriceListCard(
         SectionHeader(stringResource(R.string.nicma_price_list_title))
         Column(
             modifier = Modifier.padding(top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             priceList.forEach { item ->
                 NicmaPriceRow(item)
@@ -241,21 +242,21 @@ fun NicmaPriceListEditorCard(
         } else {
             Column(
                 modifier = Modifier.padding(top = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             ) {
                 items.forEachIndexed { index, item ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
+                            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f))
                             .padding(horizontal = 10.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     ) {
                         Column(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                         ) {
                             Text(
                                 text = item.title,
@@ -304,7 +305,7 @@ fun NicmaPriceListEditorCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
         ) {
             Icon(
                 imageVector = Icons.Filled.Add,
@@ -350,7 +351,7 @@ fun StudioPriceItemEditorDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                 OutlinedTextField(
                     value = titleField,
                     onValueChange = { titleField = it },
@@ -406,15 +407,15 @@ private fun NicmaPriceRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f))
             .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
     ) {
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
         ) {
             Text(
                 text = packageItem.title,
@@ -461,12 +462,12 @@ fun NicmaStudioInlineLinkRow(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
     ) {
         links.forEach { link ->
             OutlinedButton(
                 onClick = { onOpenLink(link.url) },
-                shape = RoundedCornerShape(999.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
             ) {
                 Text(link.label, style = MaterialTheme.typography.labelLarge)
@@ -496,7 +497,7 @@ fun NicmaContactCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
         ) {
             Text(stringResource(R.string.nicma_instagram_label))
         }
@@ -507,7 +508,7 @@ fun NicmaContactCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
             ) {
                 Text(stringResource(R.string.common_spotify))
             }
@@ -519,7 +520,7 @@ fun NicmaContactCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
             ) {
                 Text(stringResource(R.string.common_youtube))
             }

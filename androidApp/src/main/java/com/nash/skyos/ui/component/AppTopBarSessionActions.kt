@@ -168,7 +168,7 @@ fun RowScope.AppTopBarSessionActions(
                         text = initials,
                         style = MaterialTheme.typography.labelSmall,
                         color = sessionAccent,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
 
@@ -190,7 +190,7 @@ fun RowScope.AppTopBarSessionActions(
         if (showIdentityLabel) {
             Row(
                 modifier = Modifier.weight(1f, fill = false),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -219,7 +219,7 @@ fun RowScope.AppTopBarSessionActions(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.52f),
             modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(SkydownUiTokens.microCorner))
                 .clickable(
                     interactionSource = guestInteractionSource,
                     indication = null,
@@ -344,7 +344,7 @@ private fun SessionIconAction(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = 2.dp, end = 2.dp)
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                     .background(accentColor.copy(alpha = 0.96f))
                     .padding(horizontal = 5.dp, vertical = 1.dp),
                 contentAlignment = Alignment.Center,
@@ -353,7 +353,7 @@ private fun SessionIconAction(
                     text = badgeCount.toString(),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.surface,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
         }

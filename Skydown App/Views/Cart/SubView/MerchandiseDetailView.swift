@@ -201,7 +201,7 @@ struct MerchandiseDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
                 MerchDetailHeroCard(
                     colorScheme: colorScheme,
                     itemName: item.name,
@@ -240,7 +240,7 @@ struct MerchandiseDetailView: View {
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                        HStack(spacing: 10) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
                             MerchDetailBadge(text: storeIsOpen ? "Live" : "Pause", colorScheme: colorScheme)
                             MerchDetailBadge(text: item.available ? "Sichtbar" : "Offline", colorScheme: colorScheme)
                         }
@@ -253,7 +253,7 @@ struct MerchandiseDetailView: View {
 
                 MerchDetailSectionCard(title: "Größe", colorScheme: colorScheme) {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
                             ForEach(availableSizes, id: \.self) { size in
                                 Button {
                                     selectedSize = size
@@ -277,7 +277,7 @@ struct MerchandiseDetailView: View {
                 if !availableColors.isEmpty {
                     MerchDetailSectionCard(title: "Farbe", colorScheme: colorScheme) {
                         ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
+                            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                 ForEach(availableColors, id: \.self) { color in
                                     Button {
                                         selectedColor = color
@@ -300,7 +300,7 @@ struct MerchandiseDetailView: View {
                 }
 
                 MerchDetailSectionCard(title: "Anzahl", colorScheme: colorScheme) {
-                    HStack(spacing: 14) {
+                    HStack(spacing: SkydownLayout.stackSpacingRelaxed) {
                         Button {
                             if selectedQuantity > 1 { selectedQuantity -= 1 }
                             SkydownHaptics.selection()
@@ -314,7 +314,7 @@ struct MerchandiseDetailView: View {
                         .background(AppColors.secondaryBackground(for: colorScheme))
                         .clipShape(Circle())
 
-                        VStack(spacing: 4) {
+                        VStack(spacing: SkydownLayout.stackSpacingNano) {
                             Text("\(selectedQuantity)")
                                 .font(.title2.weight(.bold))
                                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -384,13 +384,13 @@ struct MerchandiseDetailView: View {
                 .accessibilityIdentifier("shop.merch.detail.close")
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 10) {
+        .safeAreaInset(edge: .bottom, spacing: SkydownLayout.stackSpacingNone) {
+            VStack(spacing: SkydownLayout.stackSpacingPill) {
                 Divider()
                     .overlay(AppColors.accent(for: colorScheme).opacity(0.12))
 
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                         Text("Auswahl")
                             .font(.caption2.weight(.bold))
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -400,7 +400,7 @@ struct MerchandiseDetailView: View {
                             .lineLimit(1)
                     }
                     Spacer(minLength: 0)
-                    VStack(alignment: .trailing, spacing: 2) {
+                    VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingHairline) {
                         Text("Gesamt")
                             .font(.caption2.weight(.bold))
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -432,7 +432,7 @@ struct MerchandiseDetailView: View {
                         : AppColors.secondaryText(for: colorScheme)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                         .stroke(
                             canOrder
                                 ? Color.clear
@@ -440,7 +440,7 @@ struct MerchandiseDetailView: View {
                             lineWidth: 1
                         )
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
                 .disabled(!canOrder)
                 .padding(.horizontal, 20)
 
@@ -590,7 +590,7 @@ private struct MerchDetailHeroCard: View {
     let onOpenFullscreen: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
             ZStack(alignment: .bottomTrailing) {
                 TabView(selection: $selectedImageIndex) {
                     ForEach(Array(imageURLs.enumerated()), id: \.offset) { index, imageURL in
@@ -603,13 +603,13 @@ private struct MerchDetailHeroCard: View {
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .frame(height: 390)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                         .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                 )
 
-                VStack(spacing: 8) {
+                VStack(spacing: SkydownLayout.stackSpacingMicro) {
                     Button(action: onOpenFullscreen) {
                         Image(systemName: "arrow.up.left.and.arrow.down.right")
                             .font(.caption2.weight(.bold))
@@ -622,7 +622,7 @@ private struct MerchDetailHeroCard: View {
                     .skydownTactileAction()
 
                     if imageURLs.count > 1 {
-                        HStack(spacing: 4) {
+                        HStack(spacing: SkydownLayout.stackSpacingNano) {
                             ForEach(imageURLs.indices, id: \.self) { index in
                                 Capsule(style: .continuous)
                                     .fill(index == selectedImageIndex ? Color.white : Color.white.opacity(0.42))
@@ -638,14 +638,14 @@ private struct MerchDetailHeroCard: View {
                 .padding(14)
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 MerchDetailBadge(text: String(format: "EUR %.2f", price), colorScheme: colorScheme)
                 MerchDetailBadge(text: isLoggedIn ? "Konto aktiv" : "Login noetig", colorScheme: colorScheme)
                 MerchDetailBadge(text: storeIsOpen && isAvailable ? "Bereit" : "Prüfen", colorScheme: colorScheme)
             }
 
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingComfortable) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     Text("Merch Drop")
                         .font(.caption.weight(.bold))
                         .tracking(1.2)
@@ -660,7 +660,7 @@ private struct MerchDetailHeroCard: View {
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                    HStack(spacing: 8) {
+                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
                         Text(String(format: "EUR %.2f", price))
                             .font(.title2.weight(.bold))
                             .foregroundColor(AppColors.accent(for: colorScheme))
@@ -687,10 +687,10 @@ private struct MerchDetailHeroCard: View {
             )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 26)
+            RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 26))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
         .animation(.easeInOut(duration: 0.22), value: selectedImageIndex)
     }
 }
@@ -726,7 +726,7 @@ private struct MerchCheckoutConfidenceStrip: View {
     let qualityLine: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             confidenceRow(icon: "shippingbox", text: shippingLine)
             confidenceRow(icon: "lock.shield", text: secureLine)
             confidenceRow(icon: "message", text: supportLine)
@@ -736,14 +736,14 @@ private struct MerchCheckoutConfidenceStrip: View {
         .padding(.vertical, 10)
         .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.72))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
     }
 
     private func confidenceRow(icon: String, text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingMicro) {
             Image(systemName: icon)
                 .font(.caption2.weight(.bold))
                 .foregroundColor(AppColors.accent(for: colorScheme).opacity(0.85))
@@ -776,8 +776,8 @@ private struct MerchFinalConfirmSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                 Text("Kauf bestaetigen")
                     .font(.title3.weight(.bold))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -786,7 +786,7 @@ private struct MerchFinalConfirmSheet: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 detailRow(title: "Artikel", value: itemName)
                 detailRow(title: "Auswahl", value: selectionSummary)
                 detailRow(title: "Stueckpreis", value: unitPriceLabel)
@@ -795,14 +795,14 @@ private struct MerchFinalConfirmSheet: View {
             .padding(14)
             .background(AppColors.secondaryBackground(for: colorScheme))
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                     .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
             if confirmState == .success {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.subheadline.weight(.bold))
                             .foregroundColor(AppColors.accent(for: colorScheme))
@@ -816,7 +816,7 @@ private struct MerchFinalConfirmSheet: View {
                             .scaleEffect(confirmState == .success ? 1.08 : 1.0)
                     }
 
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button("Weiter shoppen") {
                             SkydownHaptics.selection()
                             onContinueShopping()
@@ -826,10 +826,10 @@ private struct MerchFinalConfirmSheet: View {
                         .background(AppColors.cardBackground(for: colorScheme))
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
 
                         Button("Zum Warenkorb") {
                             SkydownHaptics.notification(.success)
@@ -839,28 +839,28 @@ private struct MerchFinalConfirmSheet: View {
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .background(AppColors.accent(for: colorScheme))
                         .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
                     }
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.72))
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous))
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
             if confirmState != .success {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     Button("Abbrechen", action: onCancel)
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity, minHeight: 46)
                         .background(AppColors.secondaryBackground(for: colorScheme))
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                                 .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
                         .disabled(confirmState != .ready)
                         .opacity(confirmState == .ready ? 1.0 : 0.6)
 
@@ -869,14 +869,14 @@ private struct MerchFinalConfirmSheet: View {
                         .frame(maxWidth: .infinity, minHeight: 46)
                         .background(confirmButtonBackground)
                         .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
                         .disabled(confirmState != .ready)
                 }
             }
         }
         .padding(.horizontal, 20)
         .padding(.top, 20)
-        .padding(.bottom, 16)
+        .padding(.bottom, SkydownLayout.cardPadding)
         .background(AppColors.cardBackground(for: colorScheme))
         .animation(.easeInOut(duration: 0.2), value: confirmState)
     }
@@ -974,7 +974,7 @@ private struct MerchDetailHeroImage: View {
     }
 
     private var heroPlaceholder: some View {
-        RoundedRectangle(cornerRadius: 24, style: .continuous)
+        RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
             .fill(AppColors.secondaryBackground(for: colorScheme))
             .overlay {
                 Image(systemName: "photo")
@@ -1060,7 +1060,7 @@ private struct MerchDetailReadinessStrip: View {
     let selectionDetail: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text("Überblick")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1070,13 +1070,13 @@ private struct MerchDetailReadinessStrip: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) {
+                HStack(spacing: SkydownLayout.stackSpacingCompact) {
                     statusCard(title: readinessTitle, detail: readinessDetail, accent: AppColors.accent(for: colorScheme))
                     statusCard(title: accountTitle, detail: accountDetail, accent: AppColors.accentMystic(for: colorScheme))
                     statusCard(title: selectionTitle, detail: selectionDetail, accent: AppColors.accentHighlight(for: colorScheme))
                 }
 
-                VStack(spacing: 12) {
+                VStack(spacing: SkydownLayout.stackSpacingCompact) {
                     statusCard(title: readinessTitle, detail: readinessDetail, accent: AppColors.accent(for: colorScheme))
                     statusCard(title: accountTitle, detail: accountDetail, accent: AppColors.accentMystic(for: colorScheme))
                     statusCard(title: selectionTitle, detail: selectionDetail, accent: AppColors.accentHighlight(for: colorScheme))
@@ -1086,7 +1086,7 @@ private struct MerchDetailReadinessStrip: View {
     }
 
     private func statusCard(title: String, detail: String, accent: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text(title)
                 .font(.headline.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1097,7 +1097,7 @@ private struct MerchDetailReadinessStrip: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 .lineLimit(3)
         }
-        .padding(16)
+        .padding(SkydownLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
@@ -1110,10 +1110,10 @@ private struct MerchDetailReadinessStrip: View {
             )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(accent.opacity(0.20), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -1124,8 +1124,8 @@ private struct MerchDetailTrustModule: View {
     let support: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Text("Trust")
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.accentHighlight(for: colorScheme))
@@ -1147,14 +1147,14 @@ private struct MerchDetailTrustModule: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
     }
 
     private func trustRow(_ icon: String, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingMicro) {
             Image(systemName: icon)
                 .font(.caption.weight(.bold))
                 .foregroundColor(AppColors.accentHighlight(for: colorScheme))
@@ -1173,7 +1173,7 @@ private struct MerchDetailSectionCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
             Text(title)
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1183,10 +1183,10 @@ private struct MerchDetailSectionCard<Content: View>: View {
         .padding(20)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
     }
 }
 

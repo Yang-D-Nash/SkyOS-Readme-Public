@@ -8,7 +8,7 @@ struct OwnerHubView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                     Text(AppLocalized.text("owner.hub.title", fallback: "Owner hub"))
                         .font(.title2.weight(.bold))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -20,10 +20,10 @@ struct OwnerHubView: View {
 
                 LazyVGrid(
                     columns: [
-                        GridItem(.flexible(), spacing: 10),
-                        GridItem(.flexible(), spacing: 10),
+                        GridItem(.flexible(), spacing: SkydownLayout.stackSpacingPill),
+                        GridItem(.flexible(), spacing: SkydownLayout.stackSpacingPill),
                     ],
-                    spacing: 10
+                    spacing: SkydownLayout.stackSpacingPill
                 ) {
                     OwnerHubMetricCard(
                         colorScheme: colorScheme,
@@ -59,7 +59,7 @@ struct OwnerHubView: View {
                     )
                 }
 
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     Text(AppLocalized.text("owner.hub.briefing.title", fallback: "Daily briefing"))
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -83,7 +83,7 @@ struct OwnerHubView: View {
                 .padding(14)
                 .skydownPanelSurface(colorScheme: colorScheme, accent: AppColors.accentMystic(for: colorScheme), shadowRadius: 8, shadowYOffset: 4)
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                     Text(AppLocalized.text("owner.hub.roadmap.title", fallback: "Next on the roadmap"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -144,7 +144,7 @@ private struct OwnerHubMetricCard: View {
     let accent: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text(AppLocalized.text(titleKey, fallback: titleFallback))
                 .font(.caption.weight(.bold))
                 .foregroundColor(accent)
@@ -159,6 +159,6 @@ private struct OwnerHubMetricCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
-        .skydownPanelSurface(colorScheme: colorScheme, accent: accent, cornerRadius: 18, shadowRadius: 7, shadowYOffset: 3)
+        .skydownPanelSurface(colorScheme: colorScheme, accent: accent, cornerRadius: SkydownLayout.messageBubbleRadius, shadowRadius: 7, shadowYOffset: 3)
     }
 }

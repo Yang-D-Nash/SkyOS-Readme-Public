@@ -40,10 +40,10 @@ struct AIConversationSessionStrip: View {
     }
 
     var body: some View {
-        HStack(spacing: 9) {
+        HStack(spacing: SkydownLayout.stackSpacingSnug) {
             Button(action: onOpenSessions) {
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                         Text(title)
                             .font(.subheadline.weight(.bold))
                             .foregroundColor(AppColors.text(for: colorScheme))
@@ -74,10 +74,10 @@ struct AIConversationSessionStrip: View {
                     )
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
                         .stroke(accent.opacity(0.14), lineWidth: 1)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
             }
             .buttonStyle(.plain)
             .disabled(isBusy)
@@ -165,9 +165,9 @@ struct AIConversationSessionsSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
                     Button(action: onCreateNewChat) {
-                        HStack(spacing: 10) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
                             Image(systemName: "plus.circle.fill")
                                 .font(.subheadline.weight(.bold))
                             Text("Neuer Chat")
@@ -178,13 +178,13 @@ struct AIConversationSessionsSheet: View {
                         .padding(15)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(AppColors.secondaryBackground(for: colorScheme))
-                        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .disabled(isBusy)
 
                     if let activeSession {
-                        VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                             Text("Aktiver Chat")
                                 .font(.caption2.weight(.black))
                                 .foregroundColor(accent)
@@ -195,9 +195,9 @@ struct AIConversationSessionsSheet: View {
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
                                 .background(AppColors.secondaryBackground(for: colorScheme))
-                                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
 
-                            HStack(spacing: 10) {
+                            HStack(spacing: SkydownLayout.stackSpacingPill) {
                                 Button(role: .destructive, action: onDeleteActiveSession) {
                                     Text("Loeschen")
                                         .font(.caption.weight(.bold))
@@ -215,7 +215,7 @@ struct AIConversationSessionsSheet: View {
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                         Text("Chats")
                             .font(.caption2.weight(.black))
                             .foregroundColor(accent)
@@ -269,7 +269,7 @@ private struct AIConversationSessionRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
             Text(session.title)
                 .font(.subheadline.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -289,10 +289,10 @@ private struct AIConversationSessionRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             (isSelected ? accent.opacity(0.08) : AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(isSelected ? accent.opacity(0.16) : Color.clear, lineWidth: 1)
         )
     }

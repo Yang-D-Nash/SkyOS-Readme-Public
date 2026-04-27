@@ -43,7 +43,7 @@ struct OrderView: View {
                             icon: "arrow.triangle.2.circlepath.circle.fill",
                             title: "Wird aktualisiert"
                         ) {
-                            VStack(alignment: .leading, spacing: 10) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                                 ProgressView("Bestellungen werden geladen …")
                                     .tint(AppColors.accent(for: colorScheme))
 
@@ -59,7 +59,7 @@ struct OrderView: View {
                             icon: "exclamationmark.triangle.fill",
                             title: "Bestellungen gerade nicht verfuegbar"
                         ) {
-                            VStack(alignment: .leading, spacing: 14) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                                 Text(loadError)
                                     .font(.body)
                                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -87,7 +87,7 @@ struct OrderView: View {
                             icon: "shippingbox",
                             title: "Noch keine Bestellung"
                         ) {
-                            VStack(alignment: .leading, spacing: 10) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                                 Text(
                                     "Neue Bestellungen erscheinen hier automatisch mit aktuellem Status."
                                 )
@@ -196,8 +196,8 @@ private struct OrdersHeroCard: View {
     let completedCount: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: "shippingbox.fill")
                     .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
@@ -211,7 +211,7 @@ private struct OrdersHeroCard: View {
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 OrdersBadge(text: orderCount == 1 ? "1 Bestellung" : "\(orderCount) Bestellungen", colorScheme: colorScheme)
                 OrdersBadge(text: "\(completedCount) erledigt", colorScheme: colorScheme)
                 OrdersBadge(text: "\(max(orderCount - completedCount, 0)) offen", colorScheme: colorScheme)
@@ -220,10 +220,10 @@ private struct OrdersHeroCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
     }
 }
 
@@ -233,7 +233,7 @@ private struct OrdersSectionCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
             Text(title)
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -243,10 +243,10 @@ private struct OrdersSectionCard<Content: View>: View {
         .padding(20)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
     }
 }
 
@@ -257,8 +257,8 @@ private struct OrdersInlineStatusStrip<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Image(systemName: icon)
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
@@ -270,14 +270,14 @@ private struct OrdersInlineStatusStrip<Content: View>: View {
 
             content
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, SkydownLayout.cardPadding)
         .padding(.vertical, 14)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
         .animation(.easeInOut(duration: 0.2), value: title)
     }
 }
@@ -288,8 +288,8 @@ private struct OrdersPostCheckoutStrip: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: "checkmark.shield.fill")
                     .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
@@ -316,10 +316,10 @@ private struct OrdersPostCheckoutStrip: View {
         .padding(.vertical, 12)
         .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.78))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
     }
 }
 
@@ -466,7 +466,7 @@ private struct OrdersOrderCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 OrderMetaBlock(label: "Kontakt", value: contactEmail, colorScheme: colorScheme)
                 if let paymentMethod {
                     OrderMetaBlock(label: "Zahlart", value: paymentMethod, colorScheme: colorScheme)
@@ -484,15 +484,15 @@ private struct OrdersOrderCard: View {
             .padding(12)
             .background(AppColors.secondaryBackground(for: colorScheme))
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                     .stroke(AppColors.accent(for: colorScheme).opacity(0.08), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
-            VStack(spacing: 10) {
+            VStack(spacing: SkydownLayout.stackSpacingPill) {
                 ForEach(order.items) { item in
                     HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                             Text(item.name)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -512,7 +512,7 @@ private struct OrdersOrderCard: View {
 
                         Spacer()
 
-                        VStack(alignment: .trailing, spacing: 4) {
+                        VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingNano) {
                             Text("x\(item.quantity)")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -527,15 +527,15 @@ private struct OrdersOrderCard: View {
                     .padding(12)
                     .background(AppColors.secondaryBackground(for: colorScheme))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                             .stroke(AppColors.accent(for: colorScheme).opacity(0.08), lineWidth: 1)
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
                 }
             }
 
             if order.subtotalAmount != nil || order.totalAmount != nil {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                     Text("Bestellsumme")
                         .font(.caption.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -557,15 +557,15 @@ private struct OrdersOrderCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(AppColors.secondaryBackground(for: colorScheme))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                         .stroke(AppColors.accent(for: colorScheme).opacity(0.08), lineWidth: 1)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
             }
 
             if hasTechnicalDetails {
                 DisclosureGroup(isExpanded: $showTechnicalDetails) {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         if let paymentProvider {
                             OrderMetaBlock(label: "Zahlanbieter", value: paymentProvider, colorScheme: colorScheme)
                         }
@@ -606,10 +606,10 @@ private struct OrdersOrderCard: View {
                     .padding(12)
                     .background(AppColors.secondaryBackground(for: colorScheme))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                             .stroke(AppColors.accent(for: colorScheme).opacity(0.08), lineWidth: 1)
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
                     .padding(.top, 6)
                 } label: {
                     Text("Details anzeigen")
@@ -623,7 +623,7 @@ private struct OrdersOrderCard: View {
             }
 
             if canManageOrders {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     Button(action: onToggleCompleted) {
                         Label(
                             order.isCompleted ? "Bestellung wieder oeffnen" : "Bestellung als erledigt markieren",
@@ -640,7 +640,7 @@ private struct OrdersOrderCard: View {
                     .accessibilityHint(order.isCompleted ? "Markiert die Bestellung wieder als offen" : "Markiert die Bestellung als abgeschlossen")
 
                     ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 10) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
                             if !order.hasFinalPaymentStatus {
                                 Button(action: onConfirmPayment) {
                                     Label(
@@ -671,7 +671,7 @@ private struct OrdersOrderCard: View {
                             .accessibilityHint("Entfernt die Bestellung aus deiner Liste")
                         }
 
-                        VStack(spacing: 8) {
+                        VStack(spacing: SkydownLayout.stackSpacingMicro) {
                             if !order.hasFinalPaymentStatus {
                                 Button(action: onConfirmPayment) {
                                     Label(
@@ -729,7 +729,7 @@ private struct OrderMetaBlock: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingPill) {
             Text(label)
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))

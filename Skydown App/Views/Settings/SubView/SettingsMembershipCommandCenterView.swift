@@ -38,7 +38,7 @@ struct SettingsMembershipCommandCenterView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text(t("settings.membership_ops.title", "Membership Control"))
                 .font(.headline)
             Text(t("settings.membership_ops.subtitle", "Owner area for KPIs, experiments, and learnings."))
@@ -46,7 +46,7 @@ struct SettingsMembershipCommandCenterView: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     ForEach(MembershipOpsTab.allCases) { tab in
                         Button(tab.rawValue) { selectedTab = tab }
                             .buttonStyle(.bordered)
@@ -80,7 +80,7 @@ struct SettingsMembershipCommandCenterView: View {
     }
 
     private var dashboardView: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             let windows = store.dashboard["windows"] as? [String: Any] ?? [:]
             let d7 = windows["d7"] as? [String: Any] ?? [:]
             let alerts = store.dashboard["alerts"] as? [[String: Any]] ?? []
@@ -97,7 +97,7 @@ struct SettingsMembershipCommandCenterView: View {
     }
 
     private var recommendationsView: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             if store.recommendations.isEmpty {
                 Text(t("settings.membership_ops.empty_recommendations", "No open recommendations."))
                     .font(.footnote)
@@ -105,7 +105,7 @@ struct SettingsMembershipCommandCenterView: View {
             } else {
                 ForEach(store.recommendations) { recommendation in
                     SkydownCard {
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                             Text(recommendation.title).font(.subheadline.weight(.semibold))
                             Text(recommendation.summary)
                                 .font(.footnote)
@@ -113,7 +113,7 @@ struct SettingsMembershipCommandCenterView: View {
                             Text("\(t("settings.membership_ops.confidence", "Confidence")) \(Int(recommendation.confidenceScore * 100))% · \(recommendation.severity)")
                                 .font(.caption)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                            HStack(spacing: 8) {
+                            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                 Button(t("settings.membership_ops.start_experiment", "Start experiment")) {
                                     Task {
                                         let result = await store.startExperiment(for: recommendation)
@@ -148,7 +148,7 @@ struct SettingsMembershipCommandCenterView: View {
     }
 
     private var experimentsView: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             SettingsInputField(title: "Lifecycle ID", text: $lifecycleIdDraft, colorScheme: colorScheme, placeholder: "lifecycle_...")
             SettingsInputField(title: "CVR Delta", text: $cvrDeltaDraft, colorScheme: colorScheme, placeholder: "0.02")
             SettingsInputField(title: "Annual Delta", text: $annualDeltaDraft, colorScheme: colorScheme, placeholder: "0.01")
@@ -182,7 +182,7 @@ struct SettingsMembershipCommandCenterView: View {
     }
 
     private var learningsView: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             let insights = store.learnings["insights"] as? [String: Any] ?? [:]
             Text("\(t("settings.membership_ops.data_strength", "Data strength")): \((store.learnings["dataStrength"] as? String) ?? "unknown")")
                 .font(.subheadline.weight(.semibold))
@@ -200,7 +200,7 @@ struct SettingsMembershipCommandCenterView: View {
             }
 
             SkydownCard {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                     Text(t("settings.membership_ops.hygiene.title", "Hygiene controls"))
                         .font(.subheadline.weight(.semibold))
                     Text("\(t("settings.membership_ops.hygiene.profile", "Current profile")): \(hygieneProfileLabel)")
@@ -236,7 +236,7 @@ struct SettingsMembershipCommandCenterView: View {
                         .font(.caption2)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                    HStack(spacing: 8) {
+                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
                         Button(t("common.save", "Save")) {
                             Task {
                                 let payload: [String: Any] = [
@@ -294,8 +294,8 @@ struct SettingsMembershipCommandCenterView: View {
     }
 
     private var timelineView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 ForEach(["7d", "30d", "90d", "all"], id: \.self) { range in
                     Button(range) {
                         timelineRange = range
@@ -320,7 +320,7 @@ struct SettingsMembershipCommandCenterView: View {
             } else {
                 ForEach(Array(entries.prefix(40).enumerated()), id: \.offset) { _, row in
                     SkydownCard {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                             Text("\(row["dateKey"] as? String ?? "-") · \(row["type"] as? String ?? "event")")
                                 .font(.caption)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -365,15 +365,15 @@ private struct SkydownCard<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8, content: content)
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro, content: content)
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                     .fill(Color.primary.opacity(0.05))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                     .stroke(Color.primary.opacity(0.06), lineWidth: 1)
             )
     }
@@ -386,7 +386,7 @@ private struct SettingsInputField: View {
     let placeholder: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))

@@ -298,8 +298,8 @@ struct ProfileView: View {
                     )
                 )
 
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ProfileMetaPill(title: "Rolle", value: roleTitle)
                         .accessibilityIdentifier("profile.role_pill")
                     ProfileMetaPill(title: "Plan", value: planTitle)
@@ -308,7 +308,7 @@ struct ProfileView: View {
 
                 Spacer(minLength: 44)
 
-                HStack(alignment: .bottom, spacing: 16) {
+                HStack(alignment: .bottom, spacing: SkydownLayout.stackSpacingComfortable) {
                     ProfileAvatarView(
                         imageURL: viewModel.currentUser?.profileImageURL,
                         fallbackText: viewModel.currentUser?.username ?? "G",
@@ -316,7 +316,7 @@ struct ProfileView: View {
                         colorScheme: colorScheme
                     )
 
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         Text(viewModel.currentUser?.username ?? "Profil")
                             .font(.system(size: 30, weight: .black, design: .rounded))
                             .foregroundColor(.white)
@@ -334,7 +334,7 @@ struct ProfileView: View {
                                 .lineLimit(3)
                         }
 
-                        HStack(spacing: 8) {
+                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
                             if let instagramURL {
                                 ProfileLinkPill(
                                     title: "Instagram",
@@ -365,7 +365,7 @@ struct ProfileView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ProfileMetaPill(title: "Bilder", value: "\(viewModel.imageCount)")
                     ProfileMetaPill(title: "Links", value: "\(instagramURL == nil ? 0 : 1 + (whatsAppURL == nil ? 0 : 1))")
                     ProfileMetaPill(title: "Status", value: viewModel.canEditCurrentProfile ? "Live" : "Public")
@@ -375,7 +375,7 @@ struct ProfileView: View {
             .frame(maxWidth: .infinity, minHeight: 286, alignment: .bottomLeading)
 
             if viewModel.canEditCurrentProfile {
-                VStack(alignment: .trailing, spacing: 10) {
+                VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingPill) {
                     Button(viewModel.isEditing ? "Fertig" : "Bearbeiten") {
                         viewModel.setEditing(!viewModel.isEditing)
                     }
@@ -465,9 +465,9 @@ struct ProfileView: View {
     private var mediaSection: some View {
         let isUploadingMedia = viewModel.isUploadingMedia
 
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
+        return VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            HStack(alignment: .center, spacing: SkydownLayout.stackSpacingCompact) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text("Galerie")
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -502,8 +502,8 @@ struct ProfileView: View {
                 )
             } else {
                 LazyVGrid(
-                    columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2),
-                    spacing: 12
+                    columns: Array(repeating: GridItem(.flexible(), spacing: SkydownLayout.stackSpacingCompact), count: 2),
+                    spacing: SkydownLayout.stackSpacingCompact
                 ) {
                     ForEach(viewModel.filteredItems) { item in
                         ProfileMediaGridTile(
@@ -533,7 +533,7 @@ struct ProfileView: View {
     }
 
     private var personalDashboardSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text(localized("profile.dashboard.title", "Personal Dashboard"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -541,11 +541,11 @@ struct ProfileView: View {
                 .font(.footnote.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 ProfileMetricCard(title: localized("profile.dashboard.membership", "Membership"), value: membershipStatusTitle, colorScheme: colorScheme)
                 ProfileMetricCard(title: localized("profile.dashboard.ai", "AI"), value: aiSystemStatusTitle, colorScheme: colorScheme)
             }
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 ProfileMetricCard(title: localized("profile.dashboard.gallery", "Gallery"), value: "\(viewModel.imageCount) \(localized("profile.images", "images"))", colorScheme: colorScheme)
                 ProfileMetricCard(title: localized("profile.dashboard.role", "Role"), value: roleTitle, colorScheme: colorScheme)
             }
@@ -561,7 +561,7 @@ struct ProfileView: View {
     }
 
     private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text(localized("profile.quick_actions.title", "Quick Actions"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -569,7 +569,7 @@ struct ProfileView: View {
                 .font(.footnote.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 quickActionButton(
                     title: viewModel.isEditing ? localized("profile.done", "Done") : localized("profile.edit", "Edit profile"),
                     systemImage: "square.and.pencil",
@@ -586,7 +586,7 @@ struct ProfileView: View {
                 }
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 quickActionButton(
                     title: localized("profile.membership", "Membership"),
                     systemImage: "sparkles",
@@ -616,7 +616,7 @@ struct ProfileView: View {
     }
 
     private var personalHistorySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text(localized("profile.history.title", "Personal History"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -639,7 +639,7 @@ struct ProfileView: View {
     }
 
     private var trustSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text(localized("profile.trust.title", "Trust / Account"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -714,8 +714,8 @@ struct ProfileView: View {
     }
 
     private var editSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text("Profil bearbeiten")
                     .font(.headline)
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -724,37 +724,37 @@ struct ProfileView: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
-            VStack(spacing: 12) {
+            VStack(spacing: SkydownLayout.stackSpacingCompact) {
                 TextField("Benutzername", text: $viewModel.usernameDraft)
                     .textInputAutocapitalization(.never)
                     .padding(14)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
                 TextField("Kurzinfo", text: $viewModel.taglineDraft)
                     .padding(14)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
                 TextField("Instagram", text: $viewModel.instagramDraft)
                     .textInputAutocapitalization(.never)
                     .padding(14)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
                 TextField("WhatsApp", text: $viewModel.whatsAppDraft)
                     .padding(14)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
                 TextField("Bio", text: $viewModel.bioDraft, axis: .vertical)
                     .lineLimit(4...6)
                     .padding(14)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
                 Toggle(isOn: $viewModel.aiAccessEnabledDraft) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                         Text("KI fuer mein Konto aktiv")
                             .font(.subheadline.weight(.semibold))
                         Text("Aus = Bot, Visuals, Agent pausiert.")
@@ -764,7 +764,7 @@ struct ProfileView: View {
                 }
                 .padding(14)
                 .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
             }
 
             Button {
@@ -786,7 +786,7 @@ struct ProfileView: View {
                 .padding(.vertical, 14)
                 .background(AppColors.accent(for: colorScheme))
                 .foregroundColor(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
             }
             .buttonStyle(.plain)
             .skydownTactileAction()
@@ -804,7 +804,7 @@ struct ProfileView: View {
     }
 
     private var uiTestActionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text("UI Test")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -813,7 +813,7 @@ struct ProfileView: View {
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Button {
                     Task {
                         await viewModel.uploadAvatar(data: ProfileUITestFixtures.sampleJPEG)
@@ -873,11 +873,11 @@ private struct ProfileUploadStatusCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
+        HStack(alignment: .center, spacing: SkydownLayout.stackSpacingRelaxed) {
             ProgressView()
                 .tint(AppColors.accent(for: colorScheme))
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -905,7 +905,7 @@ private struct ProfileMetricCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -917,7 +917,7 @@ private struct ProfileMetricCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .background(AppColors.cardBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
     }
 }
 
@@ -996,7 +996,7 @@ private struct ProfileMetaPill: View {
     let value: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
             Text(value)
                 .font(.headline.weight(.bold))
                 .foregroundColor(.white)
@@ -1008,9 +1008,9 @@ private struct ProfileMetaPill: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(Color.white.opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
     }
@@ -1030,11 +1030,11 @@ private struct ProfileLinkPill: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                         .fill(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                         .stroke(Color.white.opacity(0.16), lineWidth: 1)
                 )
         }
@@ -1048,7 +1048,7 @@ private struct ProfileActionCapsuleLabel: View {
     let systemImage: String
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: SkydownLayout.stackSpacingPill) {
             Image(systemName: systemImage)
                 .font(.headline.weight(.bold))
             Text(title)
@@ -1064,7 +1064,7 @@ private struct ProfileActionCapsuleModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .foregroundColor(textColor)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, SkydownLayout.cardPadding)
             .padding(.vertical, 12)
             .background(tint)
             .clipShape(Capsule())
@@ -1096,7 +1096,7 @@ private struct ProfileGalleryEmptyState: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: SkydownLayout.stackSpacingPill) {
             Image(systemName: "sparkles.rectangle.stack")
                 .font(.system(size: 26, weight: .bold))
                 .foregroundColor(AppColors.accent(for: colorScheme))
@@ -1110,10 +1110,10 @@ private struct ProfileGalleryEmptyState: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, SkydownLayout.cardPadding)
         .padding(.vertical, 22)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
     }
 }
 
@@ -1130,7 +1130,7 @@ private struct ProfileMediaGridTile: View {
                 onOpen()
             } label: {
                 ZStack(alignment: .bottomLeading) {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                         .fill(AppColors.secondaryBackground(for: colorScheme))
                         .aspectRatio(0.92, contentMode: .fit)
 
@@ -1143,7 +1143,7 @@ private struct ProfileMediaGridTile: View {
                         } placeholder: {
                             tileFallback
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
                     } else {
                         tileFallback
                     }
@@ -1153,11 +1153,11 @@ private struct ProfileMediaGridTile: View {
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
 
-                    HStack(spacing: 6) {
+                    HStack(spacing: SkydownLayout.stackSpacingDense) {
                         Image(systemName: item.mediaType.systemImage)
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                             Text(item.title)
                                 .lineLimit(1)
                             if let caption = item.caption, !caption.isEmpty {
@@ -1195,7 +1195,7 @@ private struct ProfileMediaGridTile: View {
 
     private var tileFallback: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -1238,7 +1238,7 @@ private struct ProfileGalleryMediaViewerSheet: View {
                             .resizable()
                             .scaledToFit()
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, SkydownLayout.cardPadding)
                             .padding(.top, max(proxy.safeAreaInsets.top + 72, 96))
                             .padding(.bottom, max(proxy.safeAreaInsets.bottom + 24, 40))
                     } placeholder: {
@@ -1246,7 +1246,7 @@ private struct ProfileGalleryMediaViewerSheet: View {
                             .tint(.white)
                     }
                 } else {
-                    VStack(spacing: 10) {
+                    VStack(spacing: SkydownLayout.stackSpacingPill) {
                         Image(systemName: "photo")
                             .font(.system(size: 44, weight: .bold))
                             .foregroundColor(.white.opacity(0.74))
@@ -1256,9 +1256,9 @@ private struct ProfileGalleryMediaViewerSheet: View {
                     }
                 }
 
-                VStack(spacing: 10) {
+                VStack(spacing: SkydownLayout.stackSpacingPill) {
                     HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                             Text(item.title)
                                 .font(.headline.weight(.bold))
                                 .foregroundColor(.white)

@@ -244,7 +244,7 @@ struct ShopView: View {
                 .skydownNavigationChrome(colorScheme: colorScheme)
                 .toolbar {
                     ToolbarItem(placement: .principal) {
-                        VStack(spacing: 1) {
+                        VStack(spacing: SkydownLayout.stackSpacingSingle) {
                             Text("Shop")
                                 .font(.headline)
                             Text(AppLocalized.text("shop.topbar.subtitle", fallback: "Curated drops & collections"))
@@ -253,7 +253,7 @@ struct ShopView: View {
                         }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
-                        HStack(spacing: 10) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
                             AppSessionToolbarActions(
                                 onOpenCart: onOpenCart,
                                 onOpenProfile: onOpenProfile,
@@ -358,7 +358,7 @@ private struct ShopHeroCard: View {
             onSurfaceTap: onSurfaceTap
         ) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ShopBadge(
                         text: (isSyncingCatalog || isUpdatingStoreState)
                             ? AppLocalized.text("shop.hero.pill.updating", fallback: "Updating")
@@ -396,7 +396,7 @@ private struct ShopHeroCard: View {
                 }
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 ShopHeroMetricTile(
                     label: AppLocalized.text("shop.hero.metric.catalog", fallback: "Catalog"),
                     value: (isSyncingCatalog || isUpdatingStoreState)
@@ -444,7 +444,7 @@ private struct ShopWelcomeQuickEntryCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             HomeActionButton(
                 title: "Willkommen im Store · Alle Drops",
                 subtitle: "Kompletter Katalog",
@@ -457,7 +457,7 @@ private struct ShopWelcomeQuickEntryCard: View {
                     onOpenLane(lane)
                 }
             }
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 ForEach(quickLanes, id: \.id) { lane in
                     HomeActionButton(
                         title: lane.id == selectedLaneID ? "Aktiv · \(lane.title)" : lane.title,
@@ -501,7 +501,7 @@ private struct ShopCollectionLanePage: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     ShopInfoCard(
                         colorScheme: colorScheme,
                         title: laneTitle,
@@ -514,7 +514,7 @@ private struct ShopCollectionLanePage: View {
                             message: AppLocalized.text("shop.filter.empty.body", fallback: "There is no visible product in this collection right now.")
                         )
                     } else {
-                        LazyVStack(alignment: .leading, spacing: 9) {
+                        LazyVStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSnug) {
                             ForEach(0..<laneItems.count, id: \.self) { index in
                                 let item = laneItems[index]
                                 MerchandiseRowView(
@@ -529,8 +529,8 @@ private struct ShopCollectionLanePage: View {
                         }
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 16)
+                .padding(.horizontal, SkydownLayout.cardPadding)
+                .padding(.vertical, SkydownLayout.cardPadding)
             }
             .background(
                 AppColors.screenGradient(for: colorScheme, secondaryAccent: AppColors.accentMystic(for: colorScheme))
@@ -557,7 +557,7 @@ private struct ShopHeroMetricTile: View {
     let isActive: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSubtle) {
             Text(label.uppercased())
                 .font(.caption2.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -570,7 +570,7 @@ private struct ShopHeroMetricTile: View {
         .padding(.horizontal, 11)
         .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .fill(
                     isActive
                         ? AppColors.cardBackground(for: colorScheme)
@@ -578,7 +578,7 @@ private struct ShopHeroMetricTile: View {
                 )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1)
         )
     }
@@ -593,12 +593,12 @@ private struct ShopAdminControlsPanel: View {
     let onSyncShopify: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.caption.weight(.semibold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
                     Text(AppLocalized.text("shop.admin.title", fallback: "Store control"))
                         .font(AppTypography.sectionHeadline)
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -618,7 +618,7 @@ private struct ShopAdminControlsPanel: View {
                     )
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 HomeActionButton(
                     title: isUpdatingStoreState
                         ? AppLocalized.text("shop.admin.store.updating", fallback: "Updating store…")
@@ -661,7 +661,7 @@ private struct ShopMerchOpeningBlock: View {
     let onOpenItem: (MerchandiseItem) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
             if showFeatured {
                 ShopLandingCuratedModule(
                     colorScheme: colorScheme,
@@ -681,7 +681,7 @@ private struct ShopBrowseEntryHint: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             if showConnectorLine {
                 Spacer()
                     .frame(height: 4)
@@ -719,8 +719,8 @@ private struct ShopInfoCard: View {
     var action: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: "info.circle.fill")
                     .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
@@ -747,7 +747,7 @@ private struct ShopInfoCard: View {
                 HStack {
                     Spacer(minLength: 0)
                     Button(action: action) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: SkydownLayout.stackSpacingDense) {
                             Image(systemName: "arrow.right.circle.fill")
                                 .font(.caption2.weight(.bold))
                             Text(actionTitle)
@@ -774,10 +774,10 @@ private struct ShopInfoCard: View {
         .padding(.vertical, 10)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.085), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
         .transition(.opacity.combined(with: .move(edge: .top)))
         .animation(SkydownMotion.statusTransition, value: message)
     }
@@ -790,9 +790,9 @@ private struct ShopLandingCuratedModule: View {
     let onOpenItem: (MerchandiseItem) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHero) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     Text(AppLocalized.text("shop.featured.chip", fallback: "Staff picks"))
                         .font(.caption2.weight(.bold))
                         .foregroundColor(AppColors.accentHighlight(for: colorScheme))
@@ -827,7 +827,7 @@ private struct ShopLandingCuratedModule: View {
                 Button {
                     onOpenItem(featuredItem)
                 } label: {
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNone) {
                         ZStack(alignment: .bottom) {
                             if let displayImageURL {
                                 AsyncImage(url: displayImageURL) { phase in
@@ -860,7 +860,7 @@ private struct ShopLandingCuratedModule: View {
                             )
                         }
 
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                             Text(AppLocalized.text("shop.featured.badge", fallback: "Highlight"))
                                 .font(.caption.weight(.bold))
                                 .foregroundColor(AppColors.accent(for: colorScheme))
@@ -879,22 +879,22 @@ private struct ShopLandingCuratedModule: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 32, style: .continuous)
+                        RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous)
                             .fill(AppColors.cardBackground(for: colorScheme).opacity(0.32))
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .skydownInteractiveFeedback()
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(spacing: SkydownLayout.stackSpacingCompact) {
                     ForEach(Array(editorialPicks.enumerated()), id: \.offset) { _, item in
                         Button {
                             onOpenItem(item)
                         } label: {
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                                 Text(item.name)
                                     .font(.caption2.weight(.medium))
                                     .foregroundColor(AppColors.text(for: colorScheme).opacity(0.92))
@@ -907,7 +907,7 @@ private struct ShopLandingCuratedModule: View {
                             .padding(.horizontal, 10)
                             .padding(.vertical, 9)
                             .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                                     .fill(AppColors.cardBackground(for: colorScheme).opacity(0.45))
                             )
                         }

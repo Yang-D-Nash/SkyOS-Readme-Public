@@ -8,13 +8,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -27,10 +28,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,9 +39,16 @@ import com.nash.skyos.R
 import com.nash.skyos.data.GoogleSignInManager
 import com.nash.skyos.ui.component.GoogleAuthButton
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownUiTokens
+import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.auth.AuthEntryContext
+import com.nash.skyos.ui.theme.SkydownBodyCaptionTextStyle
+import com.nash.skyos.ui.theme.SkydownEditorialCaptionTextStyle
+import com.nash.skyos.ui.theme.SkydownPanelTitleTextStyle
+import com.nash.skyos.ui.theme.skydownSecondaryText
+import com.nash.skyos.ui.theme.skydownText
 import com.nash.skyos.ui.viewmodel.LoginViewModel
 import com.google.android.gms.common.api.ApiException
 
@@ -111,17 +117,13 @@ fun LoginScreen(
         }
     }
 
+    val colorScheme = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.07f),
-                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f),
-                        MaterialTheme.colorScheme.background,
-                    ),
-                ),
+            .fillMaxSize()
+            .skydownAtmosphereBackground(
+                primaryAlpha = 0.038f,
+                secondaryAlpha = 0.024f,
             ),
     ) {
         Column(
@@ -130,8 +132,8 @@ fun LoginScreen(
                 .navigationBarsPadding()
                 .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = SkydownUiTokens.screenHorizontalPadding, vertical = SkydownUiTokens.screenTopPadding),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.screenSectionSpacing),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -140,57 +142,60 @@ fun LoginScreen(
             ) {
                 Text(
                     text = stringResource(R.string.auth_login_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = SkydownPanelTitleTextStyle,
+                    color = colorScheme.skydownText(),
                 )
                 TextButton(
                     onClick = onClose,
                     enabled = !isAuthBusy,
                 ) {
-                    Text(stringResource(R.string.auth_close))
+                    Text(
+                        stringResource(R.string.auth_close),
+                        style = SkydownBodyCaptionTextStyle,
+                        color = colorScheme.skydownSecondaryText().copy(alpha = 0.88f),
+                    )
                 }
             }
 
-            SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)) {
+            SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(SkydownUiTokens.panelPadding)) {
                 Text(
                     text = stringResource(R.string.auth_login_welcome),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
+                    style = SkydownPanelTitleTextStyle,
+                    color = colorScheme.skydownText(),
                 )
                 Text(
                     text = stringResource(authEntrySubtitleRes(entryContext)),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    modifier = Modifier.padding(top = 8.dp),
+                    style = SkydownBodyCaptionTextStyle,
+                    color = colorScheme.skydownSecondaryText().copy(alpha = 0.78f),
+                    modifier = Modifier.padding(top = 10.dp),
                 )
                 Text(
                     text = stringResource(R.string.feature_status_live_title),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.padding(top = 12.dp),
+                    style = SkydownEditorialCaptionTextStyle,
+                    color = colorScheme.tertiary.copy(alpha = 0.92f),
+                    modifier = Modifier.padding(top = 18.dp),
                 )
                 Text(
                     text = stringResource(R.string.feature_status_live_body),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 4.dp),
+                    color = colorScheme.skydownText().copy(alpha = 0.88f),
+                    modifier = Modifier.padding(top = 6.dp),
                 )
                 Text(
                     text = stringResource(R.string.feature_status_next_title),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 10.dp),
+                    style = SkydownEditorialCaptionTextStyle,
+                    color = colorScheme.primary.copy(alpha = 0.88f),
+                    modifier = Modifier.padding(top = 14.dp),
                 )
                 Text(
                     text = stringResource(R.string.feature_status_next_body),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                    modifier = Modifier.padding(top = 4.dp),
+                    color = colorScheme.skydownSecondaryText().copy(alpha = 0.76f),
+                    modifier = Modifier.padding(top = 6.dp),
                 )
                 Row(
                     modifier = Modifier.padding(top = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     LoginInfoPill(text = stringResource(R.string.auth_login_badge_account))
                     LoginInfoPill(text = stringResource(R.string.auth_login_badge_google))
@@ -198,15 +203,16 @@ fun LoginScreen(
                 }
             }
 
-            SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)) {
+            SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(SkydownUiTokens.panelPadding)) {
                 Text(
                     text = stringResource(R.string.auth_login_email_section_title),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    color = colorScheme.skydownText(),
                 )
                 Text(
                     text = stringResource(R.string.auth_login_email_section_subtitle),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    style = SkydownBodyCaptionTextStyle,
+                    color = colorScheme.skydownSecondaryText().copy(alpha = 0.76f),
                     modifier = Modifier.padding(top = 8.dp),
                 )
                 OutlinedTextField(
@@ -217,7 +223,7 @@ fun LoginScreen(
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = MaterialTheme.shapes.large,
                 )
                 OutlinedTextField(
                     value = uiState.password,
@@ -228,7 +234,7 @@ fun LoginScreen(
                         .padding(top = 12.dp),
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = MaterialTheme.shapes.large,
                 )
                 Button(
                     onClick = { viewModel.signIn(onClose) },
@@ -236,7 +242,7 @@ fun LoginScreen(
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     enabled = !isAuthBusy,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = MaterialTheme.shapes.large,
                 ) {
                     Text(if (uiState.isLoading) stringResource(R.string.auth_login_loading) else stringResource(R.string.auth_sign_in))
                 }
@@ -254,7 +260,7 @@ fun LoginScreen(
                 )
                 Text(
                     text = stringResource(R.string.auth_login_google_hint),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                    color = colorScheme.skydownSecondaryText().copy(alpha = 0.68f),
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 8.dp),
                     maxLines = 2,
@@ -283,7 +289,7 @@ internal fun LoginInfoPill(text: String) {
         modifier = Modifier
             .background(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                shape = RoundedCornerShape(999.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
             )
             .padding(horizontal = 12.dp, vertical = 7.dp),
     ) {

@@ -44,41 +44,40 @@ struct AppColors {
     static func primaryBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 246/255, green: 245/255, blue: 242/255)
+            return Color(red: 247/255, green: 246/255, blue: 243/255)
         case .dark:
-            // Lifted slate: less “crushed black”, more OS-like air.
-            return Color(red: 20/255, green: 26/255, blue: 36/255)
+            return Color(red: 9/255, green: 15/255, blue: 24/255)
         @unknown default:
-            return Color(red: 246/255, green: 245/255, blue: 242/255)
+            return Color(red: 247/255, green: 246/255, blue: 243/255)
         }
     }
 
     static func secondaryBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 237/255, green: 239/255, blue: 242/255)
+            return Color(red: 236/255, green: 238/255, blue: 241/255)
         case .dark:
-            return Color(red: 28/255, green: 36/255, blue: 48/255)
+            return Color(red: 19/255, green: 28/255, blue: 41/255)
         @unknown default:
-            return Color(red: 237/255, green: 239/255, blue: 242/255)
+            return Color(red: 236/255, green: 238/255, blue: 241/255)
         }
     }
 
     static func cardBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 255/255, green: 252/255, blue: 247/255)
+            return Color(red: 255/255, green: 251/255, blue: 248/255)
         case .dark:
-            return Color(red: 34/255, green: 42/255, blue: 54/255).opacity(0.94)
+            return Color(red: 26/255, green: 37/255, blue: 52/255).opacity(0.97)
         @unknown default:
-            return Color(red: 255/255, green: 252/255, blue: 247/255)
+            return Color(red: 255/255, green: 251/255, blue: 248/255)
         }
     }
 
     static func text(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:
-            return Color(red: 15/255, green: 22/255, blue: 31/255)
+            return Color(red: 14/255, green: 20/255, blue: 28/255)
         case .dark:
             return Color(red: 247/255, green: 243/255, blue: 236/255)
         @unknown default:

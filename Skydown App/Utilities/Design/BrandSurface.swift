@@ -138,7 +138,7 @@ struct BrandHeroSurface<Footer: View>: View {
         VStack(alignment: .leading, spacing: isCompactHero ? 11 : 14) {
             HStack(alignment: .top, spacing: isCompactHero ? 10 : 14) {
                 VStack(alignment: .leading, spacing: isCompactHero ? 6 : 8) {
-                    HStack(alignment: .center, spacing: 8) {
+                    HStack(alignment: .center, spacing: SkydownLayout.stackSpacingMicro) {
                         if shouldShowEyebrow {
                             Text(eyebrow.uppercased())
                                 .font(AppTypography.heroEyebrow)
@@ -188,7 +188,7 @@ struct BrandHeroSurface<Footer: View>: View {
                 }
 
                 if !marks.isEmpty && !isCompactHero {
-                    VStack(spacing: 8) {
+                    VStack(spacing: SkydownLayout.stackSpacingMicro) {
                         ForEach(marks.prefix(2)) { mark in
                             BrandMarkTile(
                                 mark: mark,
@@ -207,7 +207,7 @@ struct BrandHeroSurface<Footer: View>: View {
             footer
                 .padding(.top, isCompactHero ? 2 : 4)
         }
-        .padding(.horizontal, isCompactHero ? 16 : SkydownLayout.heroPadding)
+        .padding(.horizontal, isCompactHero ? SkydownLayout.cardPadding : SkydownLayout.heroPadding)
         .padding(.vertical, isCompactHero ? 15 : (SkydownLayout.heroPadding + 1))
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
@@ -426,7 +426,7 @@ struct BrandHeroPill: View {
     }
 
     private var pillContent: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: SkydownLayout.stackSpacingMicro) {
             Text(text)
                 .font(AppTypography.editorialCaption)
                 .tracking(0.35)
@@ -452,7 +452,7 @@ struct SkydownMetaLabel: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 6) {
+            HStack(spacing: SkydownLayout.stackSpacingDense) {
                 Capsule(style: .continuous)
                     .fill(
                         LinearGradient(
@@ -485,7 +485,7 @@ private struct BrandMarkTile: View {
     let isFeatured: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
             Image(mark.imageName)
                 .resizable()
                 .renderingMode(.original)

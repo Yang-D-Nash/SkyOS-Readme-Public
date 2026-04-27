@@ -219,11 +219,11 @@ fun OriginalVideoViewerDialog(
                     .statusBarsPadding()
                     .padding(horizontal = 18.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingComfortable),
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick),
                 ) {
                     Text(
                         text = title.ifBlank { stringResource(R.string.video_original_title) },
@@ -283,15 +283,15 @@ fun OriginalVideoViewerDialog(
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
                         .padding(horizontal = 18.dp, vertical = 18.dp)
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                         .background(Color.Black.copy(alpha = 0.58f))
                         .border(
                             width = 1.dp,
                             color = Color.White.copy(alpha = 0.20f),
-                            shape = RoundedCornerShape(999.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                         )
                         .padding(6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     SkydownFullscreenChromeIconButton(
@@ -352,15 +352,15 @@ internal fun SkydownFullscreenVideoControlBar(
 ) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(Color.Black.copy(alpha = 0.58f))
             .border(
                 width = 1.dp,
                 color = Color.White.copy(alpha = 0.20f),
-                shape = RoundedCornerShape(999.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
             )
             .padding(6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (showsClipNavigation) {

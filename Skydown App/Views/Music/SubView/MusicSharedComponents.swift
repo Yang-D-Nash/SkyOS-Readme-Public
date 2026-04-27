@@ -40,7 +40,7 @@ struct MusicBadge: View {
     }
 
     private var badgeContent: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: SkydownLayout.stackSpacingSubtle) {
             Text(text)
                 .font(.caption.weight(.semibold))
             Image(systemName: "arrow.right")
@@ -68,7 +68,7 @@ struct MusicInstagramHubCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             Text("Instagram")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -80,7 +80,7 @@ struct MusicInstagramHubCard: View {
             ForEach(destinations) { destination in
                 if let url = destination.url {
                     Link(destination: url) {
-                        HStack(spacing: 12) {
+                        HStack(spacing: SkydownLayout.stackSpacingCompact) {
                             ZStack {
                                 Circle()
                                     .fill(
@@ -100,7 +100,7 @@ struct MusicInstagramHubCard: View {
                                     .foregroundColor(.white)
                             }
 
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                                 Text(destination.title)
                                     .font(.headline)
                                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -127,10 +127,10 @@ struct MusicInstagramHubCard: View {
                             )
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 18)
+                            RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                                 .stroke(AppColors.instagramStart(for: colorScheme).opacity(0.22), lineWidth: 1)
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .skydownTactileAction()
@@ -140,11 +140,11 @@ struct MusicInstagramHubCard: View {
         .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.instagramStart(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
     }
@@ -155,7 +155,7 @@ struct NicmaProducerPriceCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
             HStack(alignment: .top) {
                 Text(package.title)
                     .font(.headline)
@@ -175,7 +175,7 @@ struct NicmaProducerPriceCard: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
     }
 }
 
@@ -187,7 +187,7 @@ struct NicmaUploadField: View {
     var autocapitalization: TextInputAutocapitalization = .sentences
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -198,9 +198,9 @@ struct NicmaUploadField: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 14)
                 .background(AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18)
+                    RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                         .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                 )
         }
@@ -213,7 +213,7 @@ struct NicmaSelectedFileRow: View {
     let onRemove: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: SkydownLayout.stackSpacingCompact) {
             ZStack {
                 Circle()
                     .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
@@ -223,7 +223,7 @@ struct NicmaSelectedFileRow: View {
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text(file.fileName)
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -243,7 +243,7 @@ struct NicmaSelectedFileRow: View {
         }
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
     }
 }
 

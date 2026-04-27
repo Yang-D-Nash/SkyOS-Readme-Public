@@ -344,7 +344,7 @@ fun AiScreen(
                             end = SkydownUiTokens.screenHorizontalPadding,
                             bottom = innerPadding.calculateBottomPadding() + 92.dp,
                         ),
-                        verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (compactLayout) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingPill),
                     ) {
                         if (!uiState.isAiEnabled) {
                             item {
@@ -542,16 +542,16 @@ private fun AiEmptyStateHeader(
                 shape = shape,
             )
             .padding(if (compactVisualDensity) 14.dp else 16.dp),
-        verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 12.dp else 14.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) SkydownUiTokens.stackSpacingCompact else SkydownUiTokens.stackSpacingRelaxed),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             verticalAlignment = Alignment.Top,
         ) {
             Box(
                 modifier = Modifier
                     .size(if (compactVisualDensity) 48.dp else 54.dp)
-                    .clip(RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
@@ -572,7 +572,7 @@ private fun AiEmptyStateHeader(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(5.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSubtle),
             ) {
                 Text(
                     text = stringResource(R.string.ai_brand_title),
@@ -602,7 +602,7 @@ private fun AiEmptyStateHeader(
             )
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             BrandStatusChip(text = stringResource(R.string.ai_chip_text), accent = MaterialTheme.colorScheme.primary, isActive = true)
             BrandStatusChip(text = stringResource(R.string.ai_chip_visual), accent = MaterialTheme.colorScheme.tertiary, isActive = true)
             BrandStatusChip(text = stringResource(R.string.ai_chip_memory), accent = MaterialTheme.colorScheme.secondary, isActive = true)
@@ -620,13 +620,13 @@ private fun AiPromptFab(
         modifier = Modifier
             .widthIn(min = 132.dp)
             .height(58.dp),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(SkydownUiTokens.sheetHeroRadius),
         containerColor = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSnug),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (isWorking) {
@@ -689,17 +689,17 @@ private fun AiPromptComposerSheet(
             .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars).only(WindowInsetsSides.Bottom))
             .padding(horizontal = 18.dp)
             .padding(top = 8.dp, bottom = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
                     .background(composerAccent.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -713,7 +713,7 @@ private fun AiPromptComposerSheet(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick),
             ) {
                 Text(
                     text = stringResource(R.string.ai_composer_new_request_title),
@@ -766,7 +766,7 @@ private fun AiPromptComposerSheet(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             BrandActionButton(
                 text = stringResource(R.string.ai_chip_text),
@@ -789,8 +789,8 @@ private fun AiPromptComposerSheet(
         if (composerMode == AiComposerMode.Text) {
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             ) {
                 AiTextMode.entries.forEach { mode ->
                     val isSelected = mode == textMode
@@ -806,8 +806,8 @@ private fun AiPromptComposerSheet(
 
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             AiExperienceLevel.entries.forEach { level ->
                 val isSelected = level == selectedLevel
@@ -871,7 +871,7 @@ private fun AiPromptComposerSheet(
             maxLines = 8,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { onSend() }),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = composerAccent.copy(alpha = 0.72f),
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
@@ -883,7 +883,7 @@ private fun AiPromptComposerSheet(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedButton(
@@ -974,7 +974,7 @@ private fun AiRevenueUsageCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 modifier = Modifier
                     .padding(top = 6.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
                     .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f))
                     .padding(horizontal = 10.dp, vertical = 7.dp),
             )
@@ -1002,7 +1002,7 @@ private fun AiRevenueUsageCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                 modifier = Modifier
                     .padding(top = 3.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
                     .padding(horizontal = 10.dp, vertical = 7.dp),
             )
@@ -1031,7 +1031,7 @@ private fun AiDecisionCard(
     decision: com.nash.skyos.data.AiBotDecision,
 ) {
     SkydownCard(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro), verticalAlignment = Alignment.CenterVertically) {
             BrandStatusChip(text = stringResource(R.string.ai_decision_route), accent = MaterialTheme.colorScheme.tertiary, isActive = true)
             BrandStatusChip(
                 text = when (decision.state) {
@@ -1123,7 +1123,7 @@ private fun AiMembershipSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             Text(stringResource(R.string.ai_membership_sheet_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
             Text(stringResource(R.string.ai_membership_sheet_subtitle), style = MaterialTheme.typography.bodyMedium)
@@ -1135,7 +1135,7 @@ private fun AiMembershipSheet(
             Text(stringResource(R.string.ai_membership_free_detail), style = MaterialTheme.typography.labelMedium)
             Text(stringResource(R.string.ai_membership_pro_detail), style = MaterialTheme.typography.labelMedium)
             Text(stringResource(R.string.ai_membership_creator_detail), style = MaterialTheme.typography.labelMedium)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                 Text(stringResource(R.string.membership_annual_option), style = MaterialTheme.typography.labelMedium)
                 androidx.compose.material3.Switch(
                     checked = state.selectedAnnual,
@@ -1194,14 +1194,14 @@ private fun LinearUsageBar(
     Box(
         modifier = modifier
             .height(8.dp)
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth(progress)
-                .clip(RoundedCornerShape(999.dp))
+                .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                 .background(if (isCritical) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary),
         )
     }
@@ -1211,7 +1211,7 @@ private fun LinearUsageBar(
 private fun AiCommandHeroCard(
     compactVisualDensity: Boolean,
 ) {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1223,10 +1223,10 @@ private fun AiCommandHeroCard(
                 shape = shape,
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 8.dp else 10.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingPill),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -1248,7 +1248,7 @@ private fun AiCommandHeroCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             BrandStatusChip(text = stringResource(R.string.ai_chip_private), accent = MaterialTheme.colorScheme.primary, isActive = true)
             BrandStatusChip(text = stringResource(R.string.ai_chip_visual), accent = MaterialTheme.colorScheme.tertiary, isActive = true)
             BrandStatusChip(text = stringResource(R.string.ai_chip_memory), accent = MaterialTheme.colorScheme.secondary, isActive = true)
@@ -1270,7 +1270,7 @@ private fun AiOverviewCard(
         )
         Row(
             modifier = Modifier.padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             BrandHeroMetricCard(
                 label = stringResource(R.string.ai_overview_metric_output),
@@ -1289,7 +1289,7 @@ private fun AiOverviewCard(
         }
         Row(
             modifier = Modifier.padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             BrandStatusChip(
                 text = stringResource(R.string.ai_chip_private),
@@ -1306,7 +1306,7 @@ private fun AiOverviewCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp)
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius))
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
@@ -1325,7 +1325,7 @@ private fun AiOverviewCard(
                             MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
                         ),
                     ),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius),
                 )
                 .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
@@ -1345,7 +1345,7 @@ private fun AiSessionStrip(
     messageCount: Int,
     compactVisualDensity: Boolean,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) 8.dp else 10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(if (compactVisualDensity) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingPill)) {
         BrandSectionBanner(
             title = stringResource(R.string.ai_session_title),
             subtitle = stringResource(R.string.ai_session_subtitle),
@@ -1357,7 +1357,7 @@ private fun AiSessionStrip(
             },
         )
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
             item {
@@ -1405,7 +1405,7 @@ private fun AiSessionSignalCard(
 ) {
     Column(
         modifier = Modifier.widthIn(min = if (compactVisualDensity) 148.dp else 164.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
     ) {
         BrandHeroMetricCard(
             label = title.uppercase(),
@@ -1424,7 +1424,7 @@ private fun AiSessionSignalCard(
 
 @Composable
 private fun AiDisabledCard() {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1436,10 +1436,10 @@ private fun AiDisabledCard() {
                 shape = shape,
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -1475,9 +1475,9 @@ private fun QuickPromptCard(
     onPromptSelected: (String) -> Unit,
     compactLayout: Boolean,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(if (compactLayout) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingPill)) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BrandStatusChip(
@@ -1485,7 +1485,7 @@ private fun QuickPromptCard(
                 accent = MaterialTheme.colorScheme.primary,
                 isActive = true,
             )
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline)) {
                 Text(
                     text = stringResource(R.string.ai_prompt_library_title),
                     style = MaterialTheme.typography.titleSmall,
@@ -1499,7 +1499,7 @@ private fun QuickPromptCard(
             }
         }
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) SkydownUiTokens.stackSpacingDense else SkydownUiTokens.stackSpacingMicro),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
             items(prompts) { prompt ->
@@ -1523,10 +1523,10 @@ private fun VisualPromptCard(
 ) {
     Column(
         modifier = Modifier.testTag("ai.visual.prompt.card"),
-        verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compactLayout) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingPill),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BrandStatusChip(
@@ -1534,7 +1534,7 @@ private fun VisualPromptCard(
                 accent = MaterialTheme.colorScheme.tertiary,
                 isActive = true,
             )
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline)) {
                 Text(
                     text = stringResource(R.string.ai_visual_deck_title),
                     style = MaterialTheme.typography.titleSmall,
@@ -1548,7 +1548,7 @@ private fun VisualPromptCard(
             }
         }
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) SkydownUiTokens.stackSpacingDense else SkydownUiTokens.stackSpacingMicro),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
             items(prompts, key = { it.label }) { prompt ->
@@ -1609,7 +1609,7 @@ private fun AiPromptActionCard(
                 horizontal = if (compactLayout) 12.dp else 14.dp,
                 vertical = if (compactLayout) 11.dp else 12.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(if (compactLayout) 6.dp else 8.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compactLayout) SkydownUiTokens.stackSpacingDense else SkydownUiTokens.stackSpacingMicro),
         ) {
             Text(
                 text = eyebrow,
@@ -1713,7 +1713,7 @@ fun AiMessageBubble(
             if (message.isStreaming && message.text.isBlank()) {
                 Row(
                     modifier = Modifier.padding(top = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     CircularProgressIndicator(
@@ -1750,7 +1750,7 @@ fun AiMessageBubble(
                             .semantics(mergeDescendants = true) {
                                 contentDescription = generatedVisualContentDescription
                             }
-                            .clip(RoundedCornerShape(22.dp)),
+                            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius)),
                     ) {
                         Image(
                             bitmap = generatedBitmap.asImageBitmap(),
@@ -1766,8 +1766,8 @@ fun AiMessageBubble(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     ) {
                         BrandStatusChip(
                                 text = stringResource(R.string.ai_action_copy),

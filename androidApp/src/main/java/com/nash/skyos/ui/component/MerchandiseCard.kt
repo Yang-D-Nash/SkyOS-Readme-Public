@@ -92,7 +92,7 @@ fun MerchandiseCard(
                     Modifier.border(
                         width = 1.5.dp,
                         color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.32f),
-                        shape = RoundedCornerShape(26.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.sheetHeroRadius),
                     )
                 } else {
                     Modifier
@@ -114,7 +114,7 @@ fun MerchandiseCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onTap(item) },
-            horizontalArrangement = Arrangement.spacedBy(if (shelfSettled) 8.dp else 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (shelfSettled) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingCompact),
             verticalAlignment = Alignment.Top,
         ) {
             Box(
@@ -153,7 +153,7 @@ fun MerchandiseCard(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                     ) {
                         repeat(safeImageUrls.size) { index ->
                             Box(
@@ -175,11 +175,11 @@ fun MerchandiseCard(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(7.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingChrome),
             ) {
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     MerchStatePill(
                         text = if (item.available) {
@@ -300,10 +300,10 @@ private fun MerchStatePill(
 
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(backgroundColor)
             .padding(horizontal = 10.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

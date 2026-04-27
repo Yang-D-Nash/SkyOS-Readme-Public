@@ -41,7 +41,7 @@ fun EditableVideoFieldCard(
     val resolvedUploadStatusText = uploadStatusText.ifBlank { stringResource(R.string.artist_hero_video_upload_status) }
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
         Text(
             text = title,
@@ -53,7 +53,7 @@ fun EditableVideoFieldCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(148.dp)
-                .clip(RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
@@ -69,7 +69,7 @@ fun EditableVideoFieldCard(
                     .align(Alignment.Center)
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             ) {
                 androidx.compose.material3.Icon(
                     imageVector = Icons.Default.Movie,
@@ -109,7 +109,7 @@ fun EditableVideoFieldCard(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     Text(

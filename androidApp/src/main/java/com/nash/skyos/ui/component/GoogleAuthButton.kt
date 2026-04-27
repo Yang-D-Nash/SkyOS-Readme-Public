@@ -53,7 +53,7 @@ fun GoogleAuthButton(
         Row(
             modifier = Modifier.padding(vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             if (isLoading) {
                 CircularProgressIndicator(

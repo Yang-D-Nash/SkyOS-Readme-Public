@@ -140,11 +140,11 @@ struct AgentView: View {
                             showingPromptComposer = true
                         }
                     } label: {
-                        HStack(spacing: 10) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
                             Image(systemName: "wand.and.stars.inverse")
                                 .font(.subheadline.weight(.bold))
                                 .foregroundColor(AppColors.accentHighlight(for: colorScheme))
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                                 Text(AppLocalized.text("home.quick.create_task", fallback: "Create Task"))
                                     .font(.subheadline.weight(.bold))
                                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -162,10 +162,10 @@ struct AgentView: View {
                         .padding(.vertical, 10)
                         .background(AppColors.cardBackground(for: colorScheme))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.22), lineWidth: 1)
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -222,11 +222,11 @@ struct AgentView: View {
                             showingPromptComposer = true
                         }
                     } label: {
-                        HStack(spacing: 10) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
                             Image(systemName: "sparkles")
                                 .font(.subheadline.weight(.bold))
                                 .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                                 Text(AppLocalized.text("home.quick.create_note", fallback: "Create Note"))
                                     .font(.subheadline.weight(.bold))
                                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -244,10 +244,10 @@ struct AgentView: View {
                         .padding(.vertical, 10)
                         .background(AppColors.cardBackground(for: colorScheme))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.22), lineWidth: 1)
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -405,7 +405,7 @@ struct AgentView: View {
         )
 
         return ZStack(alignment: .bottom) {
-            VStack(spacing: 0) {
+            VStack(spacing: SkydownLayout.stackSpacingNone) {
                 if featureFlags.isAIEnabled {
                     pinnedSessionStrip
                         .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -455,8 +455,8 @@ struct AgentView: View {
                             } ?? "agent-chat-empty"
 
                             ScrollView {
-                                LazyVStack(alignment: .leading, spacing: 10) {
-                                    VStack(alignment: .leading, spacing: 10) {
+                                LazyVStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                                         ForEach(viewModel.messages) { message in
                                             AgentMessageBubble(
                                                 message: message,
@@ -499,7 +499,7 @@ struct AgentView: View {
                     }
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .safeAreaInset(edge: .bottom, spacing: SkydownLayout.stackSpacingNone) {
                 Color.clear
                     .frame(height: composerReservedBottomSpace)
                     .allowsHitTesting(false)
@@ -582,7 +582,7 @@ private struct AgentPlanPreviewCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text(AppLocalized.text("ai.membership.plans.title_short", fallback: "AI Membership"))
                 .font(.caption2.weight(.bold))
                 .foregroundColor(AppColors.accentMystic(for: colorScheme))
@@ -596,10 +596,10 @@ private struct AgentPlanPreviewCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.16), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -613,7 +613,7 @@ private struct AgentRevenueUsageCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             HStack {
                 Text("\(AppLocalized.text("ai.membership.current_plan", fallback: "Plan")): \(usage.planTitle)")
                     .font(.caption.weight(.bold))
@@ -657,10 +657,10 @@ private struct AgentRevenueUsageCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.15), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -677,10 +677,10 @@ private struct CalmUpgradeCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.accent(for: colorScheme).opacity(0.06))
             .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                     .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -696,7 +696,7 @@ private struct LowerCostOptionCard: View {
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.accentHighlight(for: colorScheme).opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -712,7 +712,7 @@ private struct RetryLaterCard: View {
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.72))
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -727,7 +727,7 @@ struct AgentMembershipSheet: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 Text(AppLocalized.text("ai.membership.sheet.title", fallback: "SkyOS AI Membership"))
                     .font(.title3.weight(.black))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -772,7 +772,7 @@ private struct AgentPlanTile: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
             Text(title)
                 .font(.subheadline.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -783,7 +783,7 @@ private struct AgentPlanTile: View {
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -850,14 +850,14 @@ private struct AgentProductivityDockCard: View {
     let onOpenNotes: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             Text(AppLocalized.text("agent.productivity.header", fallback: "Productivity surfaces"))
                 .font(.subheadline.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Button(action: onOpenTasks) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                         Text(AppLocalized.text("tasks.title", fallback: "Tasks"))
                             .font(.caption.weight(.semibold))
                         Text(String(openTaskCount))
@@ -866,12 +866,12 @@ private struct AgentProductivityDockCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
 
                 Button(action: onOpenNotes) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                         Text(AppLocalized.text("notes.title", fallback: "Notes"))
                             .font(.caption.weight(.semibold))
                         Text(String(noteCount))
@@ -880,7 +880,7 @@ private struct AgentProductivityDockCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous))
                 }
                 .buttonStyle(.plain)
             }
@@ -888,10 +888,10 @@ private struct AgentProductivityDockCard: View {
         .padding(10)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -899,7 +899,7 @@ private struct AgentFeatureStatusCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text(AppLocalized.text("agent.feature_status.live_title", fallback: "LIVE TODAY"))
                 .font(.caption2.weight(.black))
                 .foregroundColor(AppColors.accentMystic(for: colorScheme))
@@ -918,10 +918,10 @@ private struct AgentFeatureStatusCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -943,7 +943,7 @@ private struct AgentTaskSectionCard: View {
     }()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             HStack {
                 Text(AppLocalized.text("tasks.title", fallback: "Tasks"))
                     .font(.subheadline.weight(.bold))
@@ -958,7 +958,7 @@ private struct AgentTaskSectionCard: View {
                 .buttonStyle(.plain)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                 Text(AppLocalized.text("tasks.create_with_ai", fallback: "Create tasks with AI"))
                     .font(.caption2.weight(.semibold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -969,7 +969,7 @@ private struct AgentTaskSectionCard: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
 
                 TextField(
                     AppLocalized.text("tasks.input.details_hint", fallback: "Optional details"),
@@ -978,7 +978,7 @@ private struct AgentTaskSectionCard: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
 
                 Button(AppLocalized.text("tasks.input.add", fallback: "Add task")) {
                     let title = createTitle.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -995,7 +995,7 @@ private struct AgentTaskSectionCard: View {
             }
 
             if tasks.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(AppLocalized.text("tasks.empty", fallback: "No tasks yet"))
                         .font(.footnote.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1006,8 +1006,8 @@ private struct AgentTaskSectionCard: View {
             } else {
                 List {
                     ForEach(tasks.prefix(8)) { task in
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
+                            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                 Circle()
                                     .fill(task.status == .completed ? AppColors.accentMystic(for: colorScheme) : AppColors.accentHighlight(for: colorScheme))
                                     .frame(width: 8, height: 8)
@@ -1027,7 +1027,7 @@ private struct AgentTaskSectionCard: View {
                                     .lineLimit(2)
                             }
 
-                            HStack(spacing: 10) {
+                            HStack(spacing: SkydownLayout.stackSpacingPill) {
                                 if let dueAt = task.dueAt {
                                     Text(Self.dateFormatter.string(from: dueAt))
                                         .font(.caption2)
@@ -1064,10 +1064,10 @@ private struct AgentTaskSectionCard: View {
         .padding(10)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -1098,7 +1098,7 @@ private struct AgentNoteSectionCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             HStack {
                 Text(AppLocalized.text("notes.title", fallback: "Notes"))
                     .font(.subheadline.weight(.bold))
@@ -1113,7 +1113,7 @@ private struct AgentNoteSectionCard: View {
                 .buttonStyle(.plain)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                 Text(AppLocalized.text("notes.create_with_ai", fallback: "Create notes with AI"))
                     .font(.caption2.weight(.semibold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1124,7 +1124,7 @@ private struct AgentNoteSectionCard: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
 
                 TextField(
                     AppLocalized.text("notes.input.content_hint", fallback: "Write a quick note..."),
@@ -1135,7 +1135,7 @@ private struct AgentNoteSectionCard: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
 
                 Button(AppLocalized.text("notes.input.add", fallback: "Add note")) {
                     let title = createTitle.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1159,10 +1159,10 @@ private struct AgentNoteSectionCard: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
 
             if filteredNotes.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(AppLocalized.text("notes.empty", fallback: "No notes yet"))
                         .font(.footnote.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1173,7 +1173,7 @@ private struct AgentNoteSectionCard: View {
             } else {
                 List {
                     ForEach(filteredNotes.prefix(10)) { note in
-                        VStack(alignment: .leading, spacing: 5) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSubtle) {
                             Text(note.title)
                                 .font(.footnote.weight(.semibold))
                                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1213,10 +1213,10 @@ private struct AgentNoteSectionCard: View {
         .padding(10)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -1230,18 +1230,18 @@ private struct AgentNoteDetailSheet: View {
     @State private var contentText: String = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text(AppLocalized.text("notes.title", fallback: "Notes"))
                 .font(.headline.weight(.bold))
             TextField(AppLocalized.text("notes.field.title", fallback: "Title"), text: $titleText)
                 .padding(10)
                 .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
             TextField(AppLocalized.text("notes.field.content", fallback: "Content"), text: $contentText, axis: .vertical)
                 .lineLimit(6...12)
                 .padding(10)
                 .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
             HStack {
                 Button(AppLocalized.text("common.delete", fallback: "Delete"), role: .destructive) {
                     Task {
@@ -1271,8 +1271,8 @@ private struct AgentDisabledCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: "lock.fill")
                     .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
@@ -1299,10 +1299,10 @@ private struct AgentDisabledCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
         .transition(.opacity.combined(with: .move(edge: .top)))
         .animation(SkydownMotion.statusTransition, value: colorScheme)
     }
@@ -1363,7 +1363,7 @@ private struct AgentPromptFab: View {
 
     var body: some View {
         Button(action: onOpen) {
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 ZStack {
                     Circle()
                         .fill(.thinMaterial)
@@ -1392,10 +1392,10 @@ private struct AgentPromptFab: View {
             .frame(height: 58)
             .background(.ultraThinMaterial)
             .overlay(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
                     .stroke(.white.opacity(0.18), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
             .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 10)
         }
         .buttonStyle(.plain)
@@ -1428,10 +1428,10 @@ private struct AgentPromptComposerSheet: View {
 
     var body: some View {
         ScrollView {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            HStack(alignment: .center, spacing: SkydownLayout.stackSpacingCompact) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                         .fill(AppColors.accentMystic(for: colorScheme).opacity(0.14))
                     Image(systemName: "wand.and.stars")
                         .font(.headline.weight(.black))
@@ -1439,7 +1439,7 @@ private struct AgentPromptComposerSheet: View {
                 }
                 .frame(width: 48, height: 48)
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
                     Text("Neue Agent-Anfrage")
                         .font(.title3.weight(.black))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -1479,7 +1479,7 @@ private struct AgentPromptComposerSheet: View {
                 .font(.caption2.weight(.black))
                 .foregroundColor(AppColors.accentMystic(for: colorScheme))
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Menu {
                     ForEach(AgentExecutionMode.allCases) { mode in
                         Button(mode.title) { selectedMode = mode }
@@ -1502,7 +1502,7 @@ private struct AgentPromptComposerSheet: View {
                     .disabled(interactionPhase.shouldBlockComposerChrome)
 
                     Button { shouldTriggerAutomation.toggle() } label: {
-                        HStack(spacing: 7) {
+                        HStack(spacing: SkydownLayout.stackSpacingChrome) {
                             Image(systemName: shouldTriggerAutomation ? "play.circle.fill" : "play.circle")
                                 .font(.subheadline.weight(.black))
                             Text(shouldTriggerAutomation ? "Workflow aktiv" : "Workflow")
@@ -1553,10 +1553,10 @@ private struct AgentPromptComposerSheet: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
                 .background(AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Button(action: onAddFiles) {
                     Image(systemName: "paperclip")
                         .font(.subheadline.weight(.bold))
@@ -1571,9 +1571,9 @@ private struct AgentPromptComposerSheet: View {
             }
 
             if !attachments.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                     ForEach(attachments) { attachment in
-                        HStack(spacing: 8) {
+                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
                             Image(systemName: attachment.kind.iconName)
                                 .font(.caption.weight(.bold))
                                 .foregroundColor(AppColors.accent(for: colorScheme))
@@ -1591,7 +1591,7 @@ private struct AgentPromptComposerSheet: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
                         .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.78))
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
                     }
 
                     Button("Alle entfernen", action: onClearAttachments)
@@ -1600,7 +1600,7 @@ private struct AgentPromptComposerSheet: View {
                 }
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Spacer(minLength: 0)
                 Button("Neuer Chat", action: onCreateNewChat)
                     .font(.caption.weight(.bold))
@@ -1639,8 +1639,8 @@ private struct AgentQuickPromptCard: View {
     let onPromptSelected: (String) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 AgentStatusChip(
                     text: "Prompts",
                     accent: AppColors.accentMystic(for: colorScheme),
@@ -1653,7 +1653,7 @@ private struct AgentQuickPromptCard: View {
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ForEach(prompts, id: \.self) { prompt in
                         Button(action: { onPromptSelected(prompt) }, label: {
                             Text(prompt)
@@ -1672,10 +1672,10 @@ private struct AgentQuickPromptCard: View {
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
-                                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                                            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
                                 )
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                    RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                                         .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
                                 )
                         })
@@ -1755,13 +1755,13 @@ private struct AgentMessageBubble: View {
         HStack {
             if isUser { Spacer(minLength: 48) }
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 Text(isUser ? "Du" : "SkyOS Agent")
                     .font(.caption.weight(.bold))
                     .foregroundColor(isUser ? .white.opacity(0.9) : AppColors.accentMystic(for: colorScheme))
 
                 if message.resultType == .progress {
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         ProgressView()
                             .tint(AppColors.accentMystic(for: colorScheme))
 
@@ -1797,7 +1797,7 @@ private struct AgentMessageBubble: View {
                     }
 
                     if !isUser {
-                        HStack(spacing: 10) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
                             Button(copyLabel) {
                                 UIPasteboard.general.string = message.text
                                 copyLabel = "Kopiert"
@@ -1818,13 +1818,13 @@ private struct AgentMessageBubble: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, SkydownLayout.cardPadding)
             .padding(.vertical, 14)
             .frame(maxWidth: 360, alignment: .leading)
             .background(bubbleBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
                     .stroke(
                         isUser
                             ? Color.clear
@@ -1878,7 +1878,7 @@ private struct AgentStructuredResultsView: View {
 
     var body: some View {
         if !visibleResults.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 ForEach(visibleResults) { result in
                     switch result.agentOutputKind {
                     case "image":
@@ -1927,8 +1927,8 @@ private struct AgentResultCard<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 9) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(spacing: SkydownLayout.stackSpacingSnug) {
                 Image(systemName: systemImage)
                     .font(.caption.weight(.black))
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
@@ -1936,7 +1936,7 @@ private struct AgentResultCard<Content: View>: View {
                     .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
                     .clipShape(Circle())
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                     Text(title)
                         .font(.caption.weight(.bold))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -1956,9 +1956,9 @@ private struct AgentResultCard<Content: View>: View {
         }
         .padding(10)
         .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.9))
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
     }
@@ -1995,7 +1995,7 @@ private struct AgentImageResultCard: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 190)
                 .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
             } else {
                 AgentFallbackResultText(result: result, colorScheme: colorScheme)
             }
@@ -2018,7 +2018,7 @@ private struct AgentVideoResultCard: View {
                 AgentInlineVideoPlayer(url: url)
                     .frame(maxWidth: .infinity)
                     .frame(height: 210)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
             } else {
                 AgentFallbackResultText(result: result, colorScheme: colorScheme)
             }
@@ -2079,7 +2079,7 @@ private struct AgentInlineAudioPlayer: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: SkydownLayout.stackSpacingCompact) {
             Button {
                 if isPlaying {
                     player.pause()
@@ -2098,7 +2098,7 @@ private struct AgentInlineAudioPlayer: View {
             .buttonStyle(.plain)
             .skydownTactileAction()
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
                 Text(title)
                     .font(.subheadline.weight(.bold))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -2112,7 +2112,7 @@ private struct AgentInlineAudioPlayer: View {
         }
         .padding(10)
         .background(AppColors.cardBackground(for: colorScheme).opacity(0.76))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
         .onDisappear {
             player.pause()
             isPlaying = false
@@ -2165,7 +2165,7 @@ private struct AgentOpenResultButton: View {
                 openURL(url)
             }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Text(title)
                     .font(.caption.weight(.bold))
                     .lineLimit(1)
@@ -2209,15 +2209,15 @@ private struct AgentTableResultCard: View {
         ) {
             if !result.rows.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNone) {
                         AgentTableRow(cells: columns, isHeader: true, colorScheme: colorScheme)
                         ForEach(Array(result.rows.enumerated()), id: \.offset) { _, row in
                             AgentTableRow(cells: row, isHeader: false, colorScheme: colorScheme)
                         }
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                             .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.1), lineWidth: 1)
                     )
                 }
@@ -2234,7 +2234,7 @@ private struct AgentTableRow: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: SkydownLayout.stackSpacingNone) {
             ForEach(Array(cells.enumerated()), id: \.offset) { _, cell in
                 Text(cell.isEmpty ? "-" : cell)
                     .font(isHeader ? .caption.weight(.black) : .caption.weight(.semibold))
@@ -2269,7 +2269,7 @@ private struct AgentHTMLResultCard: View {
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(AppColors.cardBackground(for: colorScheme).opacity(0.76))
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
             } else {
                 AgentFallbackResultText(result: result, colorScheme: colorScheme)
             }
@@ -2352,7 +2352,7 @@ private struct AgentFallbackResultText: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
             .background(AppColors.cardBackground(for: colorScheme).opacity(0.76))
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
     }
 }
 
@@ -2431,8 +2431,8 @@ private struct AgentWorkflowResultCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                     .font(.caption.weight(.bold))
                     .foregroundColor(isError ? .red : AppColors.accentMystic(for: colorScheme))
@@ -2447,7 +2447,7 @@ private struct AgentWorkflowResultCard: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             if let progress = summary.progressPercent {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
                             Capsule()
@@ -2500,9 +2500,9 @@ private struct AgentWorkflowResultCard: View {
         .padding(10)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }

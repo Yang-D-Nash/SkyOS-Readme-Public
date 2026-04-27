@@ -68,6 +68,7 @@ fun SkydownTheme(
     MaterialTheme(
         colorScheme = colors,
         typography = Typography,
+        shapes = SkydownShapes,
         content = content,
     )
 }

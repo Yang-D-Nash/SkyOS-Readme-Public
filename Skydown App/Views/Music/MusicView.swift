@@ -148,7 +148,7 @@ struct MusicView: View {
 
             NavigationStack {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
                         catalogHeroBanner
                         artistsCard
                     }
@@ -337,7 +337,7 @@ struct MusicView: View {
                     : nil
             ) {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
                         MusicBadge(
                             text: selectedArtist,
                             isAccent: true,
@@ -363,7 +363,7 @@ struct MusicView: View {
         if brand.showsArtistPages {
             artistEinstiegSection
         } else {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 Text("Kuenstler")
                     .font(.headline)
 
@@ -389,7 +389,7 @@ struct MusicView: View {
     }
 
     private var artistEinstiegSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text("Direkter Einstieg")
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -399,7 +399,7 @@ struct MusicView: View {
                     .spring(response: 0.44, dampingFraction: 0.9),
                     value: listMotionRevealed
                 )
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 ForEach(Array(artists.enumerated()), id: \.element) { index, artist in
                     artistToPageButton(artist: artist, rowIndex: index)
                 }
@@ -434,7 +434,7 @@ struct MusicView: View {
             }
             presentSheet(.artistPage)
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: isSelected ? "arrow.up.right.circle.fill" : "arrow.up.right")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(
@@ -453,7 +453,7 @@ struct MusicView: View {
             .padding(.vertical, 11)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                     .fill(
                         isSelected
                         ? accent.opacity(colorScheme == .dark ? 0.22 : 0.14)
@@ -461,13 +461,13 @@ struct MusicView: View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                     .stroke(
                         accent.opacity(isSelected ? 0.55 : 0.35),
                         lineWidth: 1
                     )
             )
-            .skydownLuminousSweep(cornerRadius: 14, accent: accent, alpha: colorScheme == .dark ? 0.1 : 0.07)
+            .skydownLuminousSweep(cornerRadius: SkydownLayout.compactRadius, accent: accent, alpha: colorScheme == .dark ? 0.1 : 0.07)
         }
         .buttonStyle(.plain)
         .skydownTactileAction()
@@ -489,11 +489,11 @@ struct MusicView: View {
         return Button {
             selectedArtist = artist
         } label: {
-            HStack(spacing: 12) {
+            HStack(spacing: SkydownLayout.stackSpacingCompact) {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "music.mic")
                     .font(.title3)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                     Text(artist)
                         .font(.headline)
                         .lineLimit(1)
@@ -513,7 +513,7 @@ struct MusicView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 13)
             .background(
-                RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
+                RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
                     .fill(
                         isSelected
                         ? AppColors.accent(for: colorScheme)
@@ -521,7 +521,7 @@ struct MusicView: View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius)
+                RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
                     .stroke(
                         isSelected
                         ? AppColors.accent(for: colorScheme)

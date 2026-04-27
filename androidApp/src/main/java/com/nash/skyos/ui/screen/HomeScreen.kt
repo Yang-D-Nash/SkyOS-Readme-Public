@@ -8,8 +8,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -138,6 +136,8 @@ import com.nash.skyos.ui.component.OriginalVideoViewerDialog
 import com.nash.skyos.ui.component.SkydownHapticKind
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownMotionTokens
+import com.nash.skyos.ui.component.skydownExitTween
+import com.nash.skyos.ui.component.skydownTween
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.performSkydownHaptic
@@ -341,7 +341,7 @@ fun HomeScreen(
                         val interactionSource = remember { MutableInteractionSource() }
                         Surface(
                             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.68f),
-                            shape = RoundedCornerShape(999.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
                             tonalElevation = 4.dp,
                             modifier = Modifier.skydownPressable(interactionSource),
@@ -440,7 +440,7 @@ fun HomeScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(top = 8.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                                     ) {
                                         heroPillOrder.forEachIndexed { index, slot ->
                                             val weight = if (index == 0) 1.3f else 1f
@@ -534,7 +534,7 @@ fun HomeScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 2.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                         ) {
                             Text(
                                 text = stringResource(R.string.home_section_current),
@@ -646,8 +646,8 @@ fun HomeScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                            .padding(horizontal = SkydownUiTokens.cardPadding, vertical = SkydownUiTokens.stackSpacingCompact),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     ) {
                         when (sheetType) {
                             "reminder" -> {
@@ -664,7 +664,7 @@ fun HomeScreen(
                             "reminder_manage" -> {
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                                 ) {
                                     Text(
                                         text = stringResource(R.string.home_manager_reminders_title),
@@ -718,7 +718,7 @@ fun HomeScreen(
                             "task_manage" -> {
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                                 ) {
                                     Text(
                                         text = stringResource(R.string.tasks_title),
@@ -739,7 +739,7 @@ fun HomeScreen(
                             "note_manage" -> {
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                                 ) {
                                     Text(
                                         text = stringResource(R.string.notes_title),
@@ -818,7 +818,7 @@ private fun HomeManageableItemCard(
                 shadowYOffset = 4.dp,
             )
             .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -827,7 +827,7 @@ private fun HomeManageableItemCard(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
             ) {
                 Text(
                     text = title,
@@ -863,10 +863,10 @@ private fun HomeManageableItemCard(
         }
         AnimatedVisibility(
             visible = isEditing,
-            enter = fadeIn(tween(220, easing = FastOutSlowInEasing)) + expandVertically(),
-            exit = fadeOut(tween(140)) + shrinkVertically(),
+            enter = fadeIn(skydownTween<Float>(SkydownMotionTokens.contentRevealEnterMillis)) + expandVertically(),
+            exit = fadeOut(skydownExitTween<Float>(SkydownMotionTokens.contentRevealExitMillis)) + shrinkVertically(),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                 OutlinedTextField(
                     value = draftTitle,
                     onValueChange = onDraftTitleChange,
@@ -909,7 +909,7 @@ private fun HomeReminderManagerSheet(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
     ) {
         reminders.forEach { reminder ->
             HomeManageableItemCard(
@@ -956,7 +956,7 @@ private fun HomeTaskManagerSheet(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
     ) {
         tasks.forEach { task ->
             HomeManageableItemCard(
@@ -1006,7 +1006,7 @@ private fun HomeNoteManagerSheet(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
     ) {
         notes.forEach { note ->
             HomeManageableItemCard(
@@ -1073,7 +1073,7 @@ private fun HomeReminderCaptureSheet(
     )
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
         TextButton(
             onClick = { showDatePicker = true },
@@ -1202,7 +1202,7 @@ private fun HomeUtilityRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
         Text(
             text = stringResource(R.string.home_explore_title),
@@ -1211,7 +1211,7 @@ private fun HomeUtilityRow(
             color = colorScheme.onSurface.copy(alpha = 0.50f),
         )
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             items(items) { item ->
                 val tint = utilityTint(item.id)
@@ -1220,13 +1220,13 @@ private fun HomeUtilityRow(
                         view.performSkydownHaptic(SkydownHapticKind.Selection)
                         item.action()
                     },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
                     color = colorScheme.skydownSecondaryBackground().copy(alpha = 0.72f),
                     border = BorderStroke(1.dp, tint.copy(alpha = 0.22f)),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(
@@ -1340,7 +1340,7 @@ private fun HomeProductivityOverviewCard(
             color = colorScheme.onSurface.copy(alpha = 0.52f),
         )
         Spacer(modifier = Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             HomeQuickActionChip(
                 text = stringResource(R.string.home_quick_create_reminder),
                 onClick = onCreateReminder,
@@ -1376,13 +1376,13 @@ private fun HomeOwnerWorkflowRow(
     noteCount: Int,
     onOpenWorkflowWithPrompt: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
         Text(
             text = "Owner workflows",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             HomeQuickActionChip(
                 text = "Plan",
                 countBadge = taskCount,
@@ -1421,9 +1421,9 @@ private fun HomeProductivityListRow(
 ) {
     val maxVisibleItems = 2
     var isExpanded by rememberSaveable(title, items.size) { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick)) {
         TextButton(onClick = onOpen, contentPadding = PaddingValues(0.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense), verticalAlignment = Alignment.CenterVertically) {
                 Text(text = title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 HomeCountBadge(count = count)
                 Icon(
@@ -1468,7 +1468,7 @@ private fun HomeProductivityListRow(
 @Composable
 private fun HomeCountBadge(count: Int) {
     Surface(
-        shape = RoundedCornerShape(999.dp),
+        shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f),
     ) {
         Text(
@@ -1490,7 +1490,7 @@ private fun HomeQuickActionChip(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(SkydownUiTokens.pillSoftRadius),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
         onClick = onClick,
     ) {
@@ -1498,7 +1498,7 @@ private fun HomeQuickActionChip(
             text = text,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = SkydownUiTokens.stackSpacingMicro, vertical = SkydownUiTokens.stackSpacingMicro),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             color = MaterialTheme.colorScheme.onSurface,
@@ -1512,7 +1512,7 @@ private fun HomeQuickActionChip(
             ) {
                 Box(
                     modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
                     .padding(horizontal = 5.dp, vertical = 1.dp),
                 ) {
@@ -1577,7 +1577,7 @@ private fun HomeLiveSignalSurface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 2.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
     ) {
         Text(
             text = stringResource(R.string.home_status_signals),
@@ -1613,7 +1613,7 @@ private fun HomeMediaCluster(
     onOpenOriginal: (FeaturedVideoHighlight) -> Unit,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
     ) {
         HomeLatestReleaseCard(
             uiState = uiState,
@@ -1685,10 +1685,10 @@ private fun HomeDailyOpsStrip(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -1783,10 +1783,10 @@ private fun HomeCommandDockStrip(
     Column(
         modifier = Modifier
             .fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(5.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSubtle),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -1809,7 +1809,7 @@ private fun HomeCommandDockStrip(
             color = colorScheme.onSurface.copy(alpha = 0.52f),
         )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BrandActionButton(
@@ -1859,10 +1859,7 @@ private fun HomeAnimatedItem(
         visible = true
     }
 
-    val fadeSpec = tween<Float>(
-        durationMillis = SkydownMotionTokens.contentRevealEnterMillis,
-        easing = FastOutSlowInEasing,
-    )
+    val fadeSpec = skydownTween<Float>(SkydownMotionTokens.contentRevealEnterMillis)
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(animationSpec = fadeSpec),
@@ -1959,15 +1956,15 @@ private fun HomeSectionBanner(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f))
             .border(
                 width = 1.dp,
                 color = accent.copy(alpha = 0.16f),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
             )
             .padding(horizontal = 10.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -1986,7 +1983,7 @@ private fun HomeSectionBanner(
         }
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
         ) {
             Text(
                 text = title,
@@ -2042,7 +2039,7 @@ private fun HomeLatestReleaseCard(
 
         Row(
             modifier = Modifier.padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BrandPreviewFrame(
@@ -2060,7 +2057,7 @@ private fun HomeLatestReleaseCard(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
             ) {
                 Text(
                     text = track.trackName,
@@ -2102,7 +2099,7 @@ private fun HomeLatestReleaseCard(
 
         Column(
             modifier = Modifier.padding(top = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             if (hasPreview) {
                 HomeMediaActionButton(
@@ -2167,7 +2164,7 @@ private fun HomeLatestVideoCard(
 
         Row(
             modifier = Modifier.padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
             verticalAlignment = Alignment.Top,
         ) {
             BrandPreviewFrame(
@@ -2192,7 +2189,7 @@ private fun HomeLatestVideoCard(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
             ) {
                 Text(
                     text = video.title,

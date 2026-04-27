@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nash.skyos.ui.theme.SkydownBodyCaptionTextStyle
@@ -38,13 +37,16 @@ fun SectionHeader(
     val resolvedAccent = accent ?: colorScheme.skydownAccent()
 
     Row(
-        modifier = modifier.padding(top = 2.dp, bottom = 3.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier.padding(
+            top = SkydownUiTokens.stackSpacingHairline,
+            bottom = SkydownUiTokens.stackSpacingTick,
+        ),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .width(3.dp)
+                .width(SkydownUiTokens.stackSpacingTick)
                 .height(if (subtitle.isNullOrBlank()) 24.dp else 36.dp)
                 .background(
                     Brush.verticalGradient(
@@ -53,18 +55,17 @@ fun SectionHeader(
                             resolvedAccent.copy(alpha = if (isDarkPalette) 0.28f else 0.20f),
                         ),
                     ),
-                    RoundedCornerShape(999.dp),
+                    RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                 ),
         )
 
         Column(
-            verticalArrangement = Arrangement.spacedBy(if (subtitle.isNullOrBlank()) 0.dp else 3.dp),
+            verticalArrangement = Arrangement.spacedBy(if (subtitle.isNullOrBlank()) SkydownUiTokens.stackSpacingNone else SkydownUiTokens.stackSpacingTick),
         ) {
             Text(
                 text = title.uppercase(),
                 style = SkydownHeroEyebrowTextStyle,
                 color = colorScheme.skydownText().copy(alpha = 0.94f),
-                fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

@@ -34,13 +34,13 @@ struct EditableVideoField: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
@@ -54,7 +54,7 @@ struct EditableVideoField: View {
                     )
                     .frame(height: 148)
 
-                VStack(spacing: 10) {
+                VStack(spacing: SkydownLayout.stackSpacingPill) {
                     Image(systemName: "play.rectangle.fill")
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -73,10 +73,10 @@ struct EditableVideoField: View {
                 }
 
                 if isUploading {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                         .fill(Color.black.opacity(0.62))
 
-                    VStack(spacing: 10) {
+                    VStack(spacing: SkydownLayout.stackSpacingPill) {
                         ProgressView()
                             .tint(.white)
                         Text(uploadStatusText)

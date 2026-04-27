@@ -11,7 +11,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -128,7 +127,9 @@ import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.ConnectivityStatusBanner
 import com.nash.skyos.ui.component.AppTopBarSessionActions
 import com.nash.skyos.ui.component.LocalSessionUser
+import com.nash.skyos.ui.component.SkydownExitEasing
 import com.nash.skyos.ui.component.SkydownMotionTokens
+import com.nash.skyos.ui.component.SkydownStandardEasing
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.rememberIsCompactAppLayout
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
@@ -696,7 +697,7 @@ private fun SkydownFloatingBottomDock(
         targetValue = selectedAccentTarget,
         animationSpec = tween(
             durationMillis = SkydownMotionTokens.premiumAccentTransitionMillis,
-            easing = FastOutSlowInEasing,
+            easing = SkydownStandardEasing,
         ),
         label = "bottomDockAccent",
     )
@@ -708,7 +709,7 @@ private fun SkydownFloatingBottomDock(
         ),
         animationSpec = tween(
             durationMillis = SkydownMotionTokens.premiumAccentTransitionMillis,
-            easing = FastOutSlowInEasing,
+            easing = SkydownStandardEasing,
         ),
         label = "bottomDockBorder",
     )
@@ -716,18 +717,22 @@ private fun SkydownFloatingBottomDock(
         targetValue = selectedAccent.copy(alpha = if (isDarkPalette) 0.075f else 0.055f),
         animationSpec = tween(
             durationMillis = SkydownMotionTokens.premiumAccentTransitionMillis,
-            easing = FastOutSlowInEasing,
+            easing = SkydownStandardEasing,
         ),
         label = "bottomDockGlow",
     )
-    val dockShape = RoundedCornerShape(if (isCompactLayout) 28.dp else 32.dp)
+    val dockShape = RoundedCornerShape(
+        if (isCompactLayout) SkydownUiTokens.spotlightRadius else SkydownUiTokens.heroCornerRadius,
+    )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = if (isCompactLayout) 16.dp else 22.dp)
-            .padding(top = 4.dp, bottom = skydownDockBottomSpacing()),
+            .padding(
+                horizontal = if (isCompactLayout) SkydownUiTokens.cardPadding else SkydownUiTokens.cardCornerRadius,
+            )
+            .padding(top = SkydownUiTokens.nanoCorner, bottom = skydownDockBottomSpacing()),
         contentAlignment = Alignment.Center,
     ) {
         Surface(
@@ -737,7 +742,7 @@ private fun SkydownFloatingBottomDock(
             shape = dockShape,
             color = colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.40f else 0.68f),
             tonalElevation = 0.dp,
-            shadowElevation = if (isCompactLayout) 8.dp else 10.dp,
+            shadowElevation = if (isCompactLayout) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingPill,
             border = BorderStroke(
                 width = 0.6.dp,
                 color = dockBorder,
@@ -801,18 +806,18 @@ private fun SkydownFloatingBottomDock(
                             horizontal = if (isCompactLayout) 5.dp else 8.dp,
                             vertical = 4.dp,
                         ),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     val dockIconMotion = remember {
                         tween<Float>(
                             durationMillis = SkydownMotionTokens.dockSelectionDurationMillis,
-                            easing = FastOutSlowInEasing,
+                            easing = SkydownStandardEasing,
                         )
                     }
                     destinations.forEach { destination ->
                         val selected = isSelected(destination)
-                        val itemShape = RoundedCornerShape(22.dp)
+                        val itemShape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
                         val itemInteractionSource = remember(destination.route) { MutableInteractionSource() }
                         val iconScale by animateFloatAsState(
                             targetValue = if (selected) 1f else 0.94f,
@@ -828,7 +833,7 @@ private fun SkydownFloatingBottomDock(
                             targetValue = if (selected) 0.98f else 0.72f,
                             animationSpec = tween(
                                 durationMillis = SkydownMotionTokens.premiumLabelTransitionMillis,
-                                easing = FastOutSlowInEasing,
+                                easing = SkydownStandardEasing,
                             ),
                             label = "bottomNavLabelAlpha_${destination.route}",
                         )
@@ -840,7 +845,7 @@ private fun SkydownFloatingBottomDock(
                             },
                             animationSpec = tween(
                                 durationMillis = SkydownMotionTokens.premiumLabelTransitionMillis,
-                                easing = FastOutSlowInEasing,
+                                easing = SkydownStandardEasing,
                             ),
                             label = "bottomNavBorderAlpha_${destination.route}",
                         )
@@ -893,7 +898,7 @@ private fun SkydownFloatingBottomDock(
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -1046,9 +1051,10 @@ private fun skydownShouldShowDock(currentRoute: String?): Boolean {
     return !WindowInsets.isImeVisible && currentRoute != "ai"
 }
 
-private fun skydownDockOverlayPadding(isCompactLayout: Boolean) = if (isCompactLayout) 28.dp else 32.dp
+private fun skydownDockOverlayPadding(isCompactLayout: Boolean) =
+    if (isCompactLayout) SkydownUiTokens.spotlightRadius else SkydownUiTokens.heroCornerRadius
 
-private fun skydownDockBottomSpacing() = 8.dp
+private fun skydownDockBottomSpacing() = SkydownUiTokens.stackSpacingMicro
 
 private fun skydownPrimaryRouteIndex(route: String?): Int = skydownPrimaryRoutes.indexOf(route)
 
@@ -1067,15 +1073,15 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransi
             }
             fadeIn(
                 animationSpec = tween(
-                    durationMillis = 210,
-                    delayMillis = 18,
+                    durationMillis = 220,
+                    delayMillis = SkydownMotionTokens.navFadeLeadMillis,
                     easing = LinearOutSlowInEasing,
                 ),
             ) + slideIntoContainer(
                 towards = direction,
                 animationSpec = tween(
                     durationMillis = SkydownMotionTokens.primaryEnterDurationMillis,
-                    easing = FastOutSlowInEasing,
+                    easing = SkydownStandardEasing,
                 ),
                 initialOffset = { fullSize -> (fullSize * 0.038f).toInt() },
             )
@@ -1084,15 +1090,15 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransi
         targetRoute in skydownOverlayRoutes -> {
             fadeIn(
                 animationSpec = tween(
-                    durationMillis = 200,
-                    delayMillis = 14,
+                    durationMillis = 210,
+                    delayMillis = 16,
                     easing = LinearOutSlowInEasing,
                 ),
             ) + slideIntoContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.Up,
                 animationSpec = tween(
                     durationMillis = SkydownMotionTokens.overlayEnterDurationMillis,
-                    easing = FastOutSlowInEasing,
+                    easing = SkydownStandardEasing,
                 ),
                 initialOffset = { fullSize -> (fullSize * 0.055f).toInt() },
             )
@@ -1101,8 +1107,8 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransi
         else -> {
             fadeIn(
                 animationSpec = tween(
-                    durationMillis = 190,
-                    delayMillis = 10,
+                    durationMillis = 200,
+                    delayMillis = 12,
                     easing = LinearOutSlowInEasing,
                 ),
             )
@@ -1125,14 +1131,14 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransit
             }
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 160,
-                    easing = FastOutSlowInEasing,
+                    durationMillis = 170,
+                    easing = SkydownExitEasing,
                 ),
             ) + slideOutOfContainer(
                 towards = direction,
                 animationSpec = tween(
                     durationMillis = SkydownMotionTokens.primaryExitDurationMillis,
-                    easing = FastOutSlowInEasing,
+                    easing = SkydownExitEasing,
                 ),
                 targetOffset = { fullSize -> (fullSize * 0.026f).toInt() },
             )
@@ -1141,8 +1147,8 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransit
         targetRoute in skydownOverlayRoutes -> {
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 140,
-                    easing = FastOutSlowInEasing,
+                    durationMillis = 150,
+                    easing = SkydownExitEasing,
                 ),
             )
         }
@@ -1150,14 +1156,14 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransit
         initialRoute in skydownOverlayRoutes -> {
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 155,
-                    easing = FastOutSlowInEasing,
+                    durationMillis = 165,
+                    easing = SkydownExitEasing,
                 ),
             ) + slideOutOfContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.Down,
                 animationSpec = tween(
                     durationMillis = SkydownMotionTokens.overlayExitDurationMillis,
-                    easing = FastOutSlowInEasing,
+                    easing = SkydownExitEasing,
                 ),
                 targetOffset = { fullSize -> (fullSize * 0.05f).toInt() },
             )
@@ -1166,8 +1172,8 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransit
         else -> {
             fadeOut(
                 animationSpec = tween(
-                    durationMillis = 130,
-                    easing = FastOutSlowInEasing,
+                    durationMillis = 140,
+                    easing = SkydownExitEasing,
                 ),
             )
         }
@@ -1253,7 +1259,7 @@ private fun LaunchLandingScreen(
                             Color.Transparent,
                         ),
                     ),
-                    RoundedCornerShape(999.dp),
+                    RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                 )
                 .blur(if (isThreeColumnLayout) 36.dp else 28.dp),
         )
@@ -1273,7 +1279,7 @@ private fun LaunchLandingScreen(
                             Color.Transparent,
                         ),
                     ),
-                    RoundedCornerShape(999.dp),
+                    RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                 )
                 .blur(if (isWideLayout) 34.dp else 26.dp),
         )
@@ -1290,10 +1296,10 @@ private fun LaunchLandingScreen(
                 modifier = Modifier
                     .widthIn(max = contentMaxWidth)
                     .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNone),
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     LaunchLandingMetaPill(
@@ -1327,7 +1333,7 @@ private fun LaunchLandingScreen(
                     edgeToEdge = true,
                     onSurfaceClick = onOpenHome,
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(if (isTightPhoneLanding) 4.dp else 8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(if (isTightPhoneLanding) SkydownUiTokens.stackSpacingNano else SkydownUiTokens.stackSpacingMicro)) {
                         Text(
                             text = stringResource(R.string.landing_home_recommended),
                             style = MaterialTheme.typography.labelLarge,
@@ -1342,7 +1348,7 @@ private fun LaunchLandingScreen(
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(if (isTightPhoneLanding) 6.dp else 10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(if (isTightPhoneLanding) SkydownUiTokens.stackSpacingDense else SkydownUiTokens.stackSpacingPill)) {
                     LaunchLandingActionButton(
                         title = stringResource(R.string.landing_home_open),
                         icon = Icons.Default.Home,
@@ -1350,7 +1356,7 @@ private fun LaunchLandingScreen(
                         minHeight = if (isTightPhoneLanding) 44.dp else 50.dp,
                         onClick = onOpenHome,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(if (isTightPhoneLanding) 8.dp else 10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(if (isTightPhoneLanding) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingPill)) {
                         LaunchLandingActionButton(
                             title = stringResource(R.string.tabs_music),
                             icon = Icons.Default.GraphicEq,
@@ -1384,7 +1390,7 @@ private fun LaunchLandingScreen(
                 Spacer(modifier = Modifier.height(cardsTopSpacer))
 
                 if (isThreeColumnLayout) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
                         LaunchLandingChoiceCard(
                             eyebrow = stringResource(R.string.landing_eyebrow_music),
                             title = stringResource(R.string.tabs_music),
@@ -1443,7 +1449,7 @@ private fun LaunchLandingScreen(
                         emphasized = true,
                         pathTier = LaunchLandingPathTier.Primary,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill)) {
                         LaunchLandingChoiceCard(
                             eyebrow = stringResource(R.string.landing_eyebrow_video),
                             title = stringResource(R.string.tabs_videos),
@@ -1486,7 +1492,7 @@ private fun LaunchLandingScreen(
                         emphasized = true,
                         pathTier = LaunchLandingPathTier.Primary,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill)) {
                         LaunchLandingChoiceCard(
                             eyebrow = stringResource(R.string.landing_eyebrow_video),
                             title = stringResource(R.string.tabs_videos),
@@ -1581,16 +1587,16 @@ private fun LaunchLandingActionButton(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = minHeight)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
             .skydownPressable(interaction)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
         color = bg,
         border = BorderStroke(1.dp, border),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -1617,7 +1623,7 @@ private fun MusicHubQuickActions(
     activeSocialTitle: String,
     onOpenSocialLink: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
         Text(
             text = stringResource(R.string.music_hub_quick_access_title),
             style = MaterialTheme.typography.labelMedium,
@@ -1631,7 +1637,7 @@ private fun MusicHubQuickActions(
             modifier = Modifier.testTag("music.hub.songs.open"),
             onClick = onOpenCatalog,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             LaunchLandingActionButton(
                 title = stringResource(R.string.music_hub_studio_title),
                 icon = Icons.Default.AutoAwesome,
@@ -1640,14 +1646,14 @@ private fun MusicHubQuickActions(
                 onClick = onOpenStudio,
             )
         }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense)) {
             Text(
                 text = stringResource(R.string.music_hub_artist_links_title),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
                 fontWeight = FontWeight.SemiBold,
             )
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense)) {
                 musicHubInstagramQuickLinks.forEach { link ->
                     MusicHubSocialLinkButton(
                         title = link.title,
@@ -1710,7 +1716,7 @@ private fun MusicHubSocialLinkButton(
 
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.tightRadius))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -1726,7 +1732,7 @@ private fun MusicHubSocialLinkButton(
             .border(
                 width = 1.dp,
                 color = accent.copy(alpha = 0.30f),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
             )
             .border(
                 width = if (isActive) 1.6.dp else 1.dp,
@@ -1737,7 +1743,7 @@ private fun MusicHubSocialLinkButton(
                     start = Offset.Zero,
                     end = Offset.Infinite,
                 ),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
             )
             .skydownPressable(interactionSource)
             .clickable(
@@ -1746,13 +1752,13 @@ private fun MusicHubSocialLinkButton(
                 onClick = onClick,
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
                 .size(24.dp)
-                .clip(RoundedCornerShape(999.dp))
+                .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                 .background(accent.copy(alpha = if (isActive) 0.34f else 0.20f)),
             contentAlignment = Alignment.Center,
         ) {
@@ -1765,7 +1771,7 @@ private fun MusicHubSocialLinkButton(
         }
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(1.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSingle),
         ) {
             Text(
                 text = title,
@@ -1790,7 +1796,7 @@ private fun MusicHubSocialLinkButton(
                 color = accent.copy(alpha = 0.96f),
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                     .background(accent.copy(alpha = 0.16f))
                     .padding(horizontal = 7.dp, vertical = 4.dp),
             )
@@ -1953,7 +1959,7 @@ private fun ZweizweiMusicLaneScreen(
                                     destination = ZweizweiMusicDestination.Catalog
                                 },
                             ) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                                     BrandPill(
                                         text = stringResource(R.string.music_hub_catalog_title),
                                         tint = MaterialTheme.colorScheme.primary,
@@ -2083,31 +2089,31 @@ private fun HubEntryCard(
     val isSecondary = pathTier == LaunchLandingPathTier.Secondary
     val cardShape = RoundedCornerShape(
         if (isSecondary) {
-            if (compactVisualDensity) 20.dp else 22.dp
+            if (compactVisualDensity) SkydownUiTokens.heroPadding else SkydownUiTokens.cardCornerRadius
         } else if (compactVisualDensity) {
-            26.dp
+            SkydownUiTokens.sheetHeroRadius
         } else {
-            28.dp
+            SkydownUiTokens.spotlightRadius
         },
     )
     val panelShadowRadius = if (isSecondary) {
         2.dp
     } else {
         when {
-            emphasized && compactVisualDensity -> 16.dp
-            emphasized -> 19.dp
-            compactVisualDensity -> 13.dp
-            else -> 16.dp
+            emphasized && compactVisualDensity -> SkydownUiTokens.denseRadius
+            emphasized -> SkydownUiTokens.layoutProminentInset
+            compactVisualDensity -> SkydownUiTokens.stackSpacingDockRow
+            else -> SkydownUiTokens.denseRadius
         }
     }
     val panelShadowYOffset = if (isSecondary) {
         1.dp
     } else {
         when {
-            emphasized && compactVisualDensity -> 9.dp
-            emphasized -> 11.dp
-            compactVisualDensity -> 7.dp
-            else -> 9.dp
+            emphasized && compactVisualDensity -> SkydownUiTokens.stackSpacingSnug
+            emphasized -> SkydownUiTokens.stackSpacingToast
+            compactVisualDensity -> SkydownUiTokens.stackSpacingChrome
+            else -> SkydownUiTokens.stackSpacingSnug
         }
     }
     val iconTileSize = when {
@@ -2265,7 +2271,7 @@ private fun HubEntryCard(
                         .align(Alignment.TopEnd)
                         .size(if (compactVisualDensity) 116.dp else 132.dp)
                         .offset(x = 24.dp, y = (-24).dp)
-                        .background(accentColor.copy(alpha = if (isDarkPalette) 0.16f else 0.10f), RoundedCornerShape(999.dp))
+                        .background(accentColor.copy(alpha = if (isDarkPalette) 0.16f else 0.10f), RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                         .blur(34.dp),
                 )
             }
@@ -2273,7 +2279,10 @@ private fun HubEntryCard(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(start = if (isSecondary) 16.dp else 22.dp, top = if (isSecondary) 14.dp else 20.dp)
+                    .padding(
+                        start = if (isSecondary) SkydownUiTokens.cardPadding else SkydownUiTokens.cardCornerRadius,
+                        top = if (isSecondary) SkydownUiTokens.compactRadius else SkydownUiTokens.heroPadding,
+                    )
                     .width(if (isSecondary) 40.dp else 74.dp)
                     .height(if (isSecondary) 2.dp else 3.dp)
                     .background(
@@ -2284,7 +2293,7 @@ private fun HubEntryCard(
                                 accentColor.copy(alpha = 0.06f),
                             ),
                         ),
-                        RoundedCornerShape(999.dp),
+                        RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                     ),
             )
 
@@ -2293,30 +2302,35 @@ private fun HubEntryCard(
                     .fillMaxWidth()
                     .padding(
                         horizontal = if (isSecondary) {
-                            if (compactVisualDensity) 14.dp else 16.dp
+                            if (compactVisualDensity) SkydownUiTokens.compactRadius else SkydownUiTokens.cardPadding
                         } else if (compactVisualDensity) {
-                            18.dp
+                            SkydownUiTokens.stackSpacingSection
                         } else {
-                            22.dp
+                            SkydownUiTokens.cardCornerRadius
                         },
                         vertical = if (isSecondary) {
-                            if (compactVisualDensity) 14.dp else 16.dp
+                            if (compactVisualDensity) SkydownUiTokens.compactRadius else SkydownUiTokens.cardPadding
                         } else if (compactVisualDensity) {
-                            19.dp
+                            SkydownUiTokens.layoutProminentInset
                         } else {
-                            22.dp
+                            SkydownUiTokens.cardCornerRadius
                         },
                     ),
                 verticalArrangement = Arrangement.spacedBy(
                     when {
-                        isSecondary -> if (compactVisualDensity) 10.dp else 12.dp
-                        compactVisualDensity -> 14.dp
-                        else -> 16.dp
+                        isSecondary ->
+                            if (compactVisualDensity) {
+                                SkydownUiTokens.stackSpacingPill
+                            } else {
+                                SkydownUiTokens.stackSpacingCompact
+                            }
+                        compactVisualDensity -> SkydownUiTokens.stackSpacingRelaxed
+                        else -> SkydownUiTokens.stackSpacingComfortable
                     },
                 ),
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(13.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDockRow),
                     verticalAlignment = Alignment.Top,
                 ) {
                     Box(
@@ -2325,12 +2339,12 @@ private fun HubEntryCard(
                             .then(
                                 if (isSecondary) {
                                     Modifier
-                                        .clip(RoundedCornerShape(14.dp))
+                                        .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
                                         .background(colorScheme.surface.copy(alpha = if (isDarkPalette) 0.14f else 0.20f))
                                         .border(
                                             width = 0.5.dp,
                                             color = accentColor.copy(alpha = 0.12f),
-                                            shape = RoundedCornerShape(14.dp),
+                                            shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                                         )
                                 } else {
                                     Modifier.skydownPanelSurface(
@@ -2364,7 +2378,7 @@ private fun HubEntryCard(
 
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                     ) {
                         if (shouldShowEyebrow) {
                             if (isSecondary) {
@@ -2441,7 +2455,7 @@ private fun HubEntryCard(
                 }
 
                 if (chipsToShow.isNotEmpty()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense)) {
                         chipsToShow.forEach { chip ->
                             Text(
                                 text = chip,
@@ -2449,9 +2463,12 @@ private fun HubEntryCard(
                                 color = accentColor.copy(alpha = if (isSecondary) 0.42f else 0.78f),
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(999.dp))
+                                    .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                                     .background(colorScheme.onSurface.copy(alpha = if (isSecondary) 0.06f else 0.04f))
-                                    .padding(horizontal = if (isSecondary) 8.dp else 10.dp, vertical = if (isSecondary) 4.dp else 6.dp),
+                                    .padding(
+                                        horizontal = if (isSecondary) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingPill,
+                                        vertical = if (isSecondary) SkydownUiTokens.stackSpacingNano else SkydownUiTokens.stackSpacingDense,
+                                    ),
                             )
                         }
                     }
@@ -2459,7 +2476,7 @@ private fun HubEntryCard(
 
                 if (!isSecondary) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -2470,7 +2487,7 @@ private fun HubEntryCard(
                             modifier = Modifier.weight(1f),
                         )
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                             verticalAlignment = Alignment.CenterVertically,
                         )
                         {
@@ -2583,8 +2600,8 @@ private fun HubSignalCard(
         ),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(SkydownUiTokens.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             Text(
                 text = title.uppercase(),
@@ -2613,7 +2630,7 @@ private fun HubSignalCard(
                             accentColor.copy(alpha = 0.08f),
                         ),
                     ),
-                    RoundedCornerShape(999.dp),
+                    RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                 ),
         )
     }

@@ -164,7 +164,7 @@ struct AIView: View {
         )
 
         return ZStack(alignment: .bottom) {
-            VStack(spacing: 0) {
+            VStack(spacing: SkydownLayout.stackSpacingNone) {
                 if featureFlags.isAIEnabled {
                     pinnedSessionStrip
                         .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
@@ -182,7 +182,7 @@ struct AIView: View {
                             } ?? "chat-empty"
 
                             ScrollView {
-                                LazyVStack(alignment: .leading, spacing: 10) {
+                                LazyVStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                                     ForEach(viewModel.messages) { message in
                                         AIMessageBubble(
                                             message: message,
@@ -225,14 +225,14 @@ struct AIView: View {
                     }
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .safeAreaInset(edge: .bottom, spacing: SkydownLayout.stackSpacingNone) {
                 Color.clear
                     .frame(height: featureFlags.isAIEnabled ? 86 : 0)
                     .allowsHitTesting(false)
             }
 
             if featureFlags.isAIEnabled {
-                VStack(alignment: .trailing, spacing: 12) {
+                VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingCompact) {
                     AIInlineNotice(
                         isPresented: $viewModel.showToast,
                         message: viewModel.toastMessage,
@@ -275,7 +275,7 @@ struct AIView: View {
 
     private var aiSessionDeck: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 AISessionSignalCard(
                     title: "Mode",
                     value: viewModel.composerMode.title,
@@ -321,7 +321,7 @@ private struct AIPlanPreviewCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text(AppLocalized.text("ai.membership.plans.title", fallback: "SkyOS AI plans"))
                 .font(.caption2.weight(.bold))
                 .foregroundColor(AppColors.accent(for: colorScheme))
@@ -335,10 +335,10 @@ private struct AIPlanPreviewCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.16), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -352,7 +352,7 @@ private struct AIRevenueUsageCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             HStack {
                 Text("\(AppLocalized.text("ai.membership.current_plan", fallback: "Plan")): \(usage.planTitle)")
                     .font(.caption.weight(.bold))
@@ -403,10 +403,10 @@ private struct AIRevenueUsageCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.15), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -430,8 +430,8 @@ private struct AIDecisionTransparencyCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Text("Why")
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
@@ -488,7 +488,7 @@ private struct AIDecisionTransparencyCard: View {
             }
 
             if !decision.trace.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     ForEach(decision.trace.prefix(3), id: \.self) { item in
                         Text(item)
                             .font(.caption2)
@@ -500,10 +500,10 @@ private struct AIDecisionTransparencyCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -520,10 +520,10 @@ private struct CalmUpgradeCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.accent(for: colorScheme).opacity(0.06))
             .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                     .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -539,7 +539,7 @@ private struct LowerCostOptionCard: View {
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.accentMystic(for: colorScheme).opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -555,7 +555,7 @@ private struct RetryLaterCard: View {
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.72))
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -570,7 +570,7 @@ struct AIMembershipSheet: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 Text(AppLocalized.text("ai.membership.sheet.title", fallback: "SkyOS AI Membership"))
                     .font(.title3.weight(.black))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -625,7 +625,7 @@ private struct AIPlanTile: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
             Text(title)
                 .font(.subheadline.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -633,10 +633,10 @@ private struct AIPlanTile: View {
                 .font(.caption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
-        .padding(10)
+        .padding(SkydownLayout.stackSpacingPill)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -648,10 +648,10 @@ private struct AIEmptyStateHeader: View {
         let accent = AppColors.accent(for: colorScheme)
         let mystic = AppColors.accentMystic(for: colorScheme)
 
-        VStack(alignment: .leading, spacing: isCompact ? 12 : 14) {
-            HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: isCompact ? SkydownLayout.stackSpacingCompact : SkydownLayout.stackSpacingRelaxed) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                         .fill(
                             LinearGradient(
                                 colors: [
@@ -670,7 +670,7 @@ private struct AIEmptyStateHeader: View {
                 .frame(width: isCompact ? 48 : 54, height: isCompact ? 48 : 54)
                 .shadow(color: accent.opacity(0.22), radius: 14, y: 8)
 
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSubtle) {
                     Text("SkyOS AI")
                         .font(
                             isCompact
@@ -694,13 +694,13 @@ private struct AIEmptyStateHeader: View {
                 )
             }
 
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 AIStatusChip(text: "Text", accent: accent, colorScheme: colorScheme)
                 AIStatusChip(text: "Visual", accent: mystic, colorScheme: colorScheme)
                 AIStatusChip(text: "Memory", accent: AppColors.spotify(for: colorScheme), colorScheme: colorScheme)
             }
         }
-        .padding(isCompact ? 14 : 16)
+        .padding(isCompact ? SkydownLayout.compactRadius : SkydownLayout.cardPadding)
         .background(
             LinearGradient(
                 colors: [
@@ -713,7 +713,7 @@ private struct AIEmptyStateHeader: View {
             )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.spotlightRadius, style: .continuous)
                 .stroke(
                     LinearGradient(
                         colors: [
@@ -727,7 +727,7 @@ private struct AIEmptyStateHeader: View {
                     lineWidth: 1
                 )
         )
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.spotlightRadius, style: .continuous))
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.06), radius: 18, y: 10)
     }
 }
@@ -760,8 +760,8 @@ private struct AIDisabledCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: "lock.fill")
                     .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
@@ -788,10 +788,10 @@ private struct AIDisabledCard: View {
         .padding(12)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
         .transition(.opacity.combined(with: .move(edge: .top)))
         .animation(SkydownMotion.statusTransition, value: colorScheme)
     }
@@ -803,14 +803,14 @@ private struct AIQuickPromptCard: View {
     let onPromptSelected: (String) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 AIStatusChip(
                     text: "Text",
                     accent: AppColors.accent(for: colorScheme),
                     colorScheme: colorScheme
                 )
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                     Text("Prompts")
                         .font(.subheadline.weight(.bold))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -821,7 +821,7 @@ private struct AIQuickPromptCard: View {
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ForEach(prompts, id: \.self) { prompt in
                         Button(action: { onPromptSelected(prompt) }, label: {
                             Text(prompt)
@@ -840,10 +840,10 @@ private struct AIQuickPromptCard: View {
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
-                                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
                                 )
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                    RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                                         .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                                 )
                         })
@@ -863,14 +863,14 @@ private struct AIVisualPromptCard: View {
     let onPromptSelected: (String) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 AIStatusChip(
                     text: "Visual",
                     accent: AppColors.accentHighlight(for: colorScheme),
                     colorScheme: colorScheme
                 )
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                     Text("Visuals")
                         .font(.subheadline.weight(.bold))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -881,7 +881,7 @@ private struct AIVisualPromptCard: View {
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ForEach(prompts) { prompt in
                         Button(action: { onPromptSelected(prompt.prompt) }, label: {
                             Text(prompt.label)
@@ -900,10 +900,10 @@ private struct AIVisualPromptCard: View {
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
-                                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
                                 )
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                    RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                                         .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
                                 )
                         })
@@ -932,13 +932,13 @@ private struct AIMessageBubble: View {
         HStack {
             if isUser { Spacer(minLength: 48) }
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 Text(isUser ? "Du" : "SkyOS Bot")
                     .font(.caption.weight(.bold))
                     .foregroundColor(isUser ? .white.opacity(0.9) : AppColors.accent(for: colorScheme))
 
                 if message.isStreaming && message.text.isEmpty {
-                    HStack(spacing: 10) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                         ProgressView()
                             .tint(AppColors.accent(for: colorScheme))
 
@@ -958,12 +958,12 @@ private struct AIMessageBubble: View {
                             .scaledToFill()
                             .frame(maxWidth: .infinity)
                             .frame(height: 220)
-                            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
                             .padding(.top, 4)
                     }
 
                     if !isUser {
-                        HStack(spacing: 10) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
                             Button(copyLabel) {
                                 UIPasteboard.general.string = message.text
                                 copyLabel = "Kopiert"
@@ -985,13 +985,13 @@ private struct AIMessageBubble: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, SkydownLayout.cardPadding)
             .padding(.vertical, 14)
             .frame(maxWidth: 360, alignment: .leading)
             .background(bubbleBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
                     .stroke(
                         isUser
                             ? Color.clear
@@ -1047,7 +1047,7 @@ private struct AIPromptFab: View {
 
     var body: some View {
         Button(action: onOpen) {
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 ZStack {
                     Circle()
                         .fill(.thinMaterial)
@@ -1076,10 +1076,10 @@ private struct AIPromptFab: View {
             .frame(height: 58)
             .background(.ultraThinMaterial)
             .overlay(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
                     .stroke(.white.opacity(0.18), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
             .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 10)
         }
         .buttonStyle(.plain)
@@ -1097,7 +1097,7 @@ private struct AIInlineNotice: View {
     var body: some View {
         Group {
             if isPresented && !message.isEmpty {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     Image(systemName: style.icon)
                         .font(.subheadline.weight(.black))
                         .foregroundColor(style.color)
@@ -1107,7 +1107,7 @@ private struct AIInlineNotice: View {
                                 .fill(style.color.opacity(0.12))
                         )
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                         Text(style.title)
                             .font(.caption2.weight(.black))
                             .foregroundColor(style.color)
@@ -1125,10 +1125,10 @@ private struct AIInlineNotice: View {
                 .frame(maxWidth: 330, alignment: .leading)
                 .background(.ultraThinMaterial)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                         .stroke(style.color.opacity(0.22), lineWidth: 1)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
                 .shadow(color: style.color.opacity(0.16), radius: 18, y: 8)
                 .transition(
                     .move(edge: .bottom)
@@ -1190,10 +1190,10 @@ private struct AIPromptComposerSheet: View {
 
     var body: some View {
         ScrollView {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            HStack(alignment: .center, spacing: SkydownLayout.stackSpacingCompact) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                         .fill(composerAccent.opacity(0.14))
                     Image(systemName: composerMode == .visual ? "camera.aperture" : "text.bubble.fill")
                         .font(.headline.weight(.black))
@@ -1201,7 +1201,7 @@ private struct AIPromptComposerSheet: View {
                 }
                 .frame(width: 48, height: 48)
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
                     Text("Neue AI-Anfrage")
                         .font(.title3.weight(.black))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -1252,7 +1252,7 @@ private struct AIPromptComposerSheet: View {
 
             if composerMode == .text {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
                         ForEach(AITextMode.allCases) { mode in
                             Button {
                                 textMode = mode
@@ -1275,7 +1275,7 @@ private struct AIPromptComposerSheet: View {
                 .skydownSelectionFeedback(trigger: textMode)
             }
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSubtle) {
                 Picker(AppLocalized.text("ai.level.picker.title", fallback: "AI Level"), selection: $selectedLevel) {
                     ForEach(AIExperienceLevel.allCases) { level in
                         Text(level.title).tag(level)
@@ -1331,12 +1331,12 @@ private struct AIPromptComposerSheet: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                     .fill(AppColors.secondaryBackground(for: colorScheme))
             )
             .foregroundColor(AppColors.text(for: colorScheme))
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Spacer(minLength: 0)
                 Button("Neuer Chat", action: onCreateNewChat)
                     .font(.caption.weight(.bold))
@@ -1389,7 +1389,7 @@ private struct AISessionSignalCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSubtle) {
             Text(title.uppercased())
                 .font(.caption2.weight(.bold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1408,11 +1408,11 @@ private struct AISessionSignalCard: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 11)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .fill(AppColors.secondaryBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(accent.opacity(0.16), lineWidth: 1)
         )
     }

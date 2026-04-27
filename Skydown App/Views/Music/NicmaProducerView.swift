@@ -100,12 +100,12 @@ struct NicmaProducerView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
                 heroCard
                 pricingCard
                 contactCard
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, SkydownLayout.cardPadding)
             .padding(.vertical, 14)
         }
         .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
@@ -145,8 +145,8 @@ struct NicmaProducerView: View {
     }
 
     private var heroCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 nicmaProfileSwitchButton(title: "NICMA MUSIC")
                 nicmaProfileSwitchButton(title: "NICMA STUDIO")
             }
@@ -158,7 +158,7 @@ struct NicmaProducerView: View {
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 if isStudioProfile {
                     MusicBadge(text: "Mix", isAccent: true)
                     MusicBadge(text: "Master", isAccent: false)
@@ -173,21 +173,21 @@ struct NicmaProducerView: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 26)
+            RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 26)
+            RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
-        .contentShape(RoundedRectangle(cornerRadius: 26))
+        .contentShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
         .onTapGesture {
             openNicmaPage = selectedProfile
         }
     }
 
     private var pricingCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             Text("Preisliste")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -202,17 +202,17 @@ struct NicmaProducerView: View {
         .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
     }
 
     private var contactCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text("Links")
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -235,20 +235,20 @@ struct NicmaProducerView: View {
                 .foregroundColor(AppColors.text(for: colorScheme))
                 .background(AppColors.secondaryBackground(for: colorScheme))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18)
+                    RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                         .stroke(link.tint.opacity(0.18), lineWidth: 1)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
             }
         }
         .padding(SkydownLayout.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .fill(AppColors.cardBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
         )
     }

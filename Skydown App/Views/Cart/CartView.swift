@@ -161,7 +161,7 @@ struct CartView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
                     CartHeroCard(
                         colorScheme: colorScheme,
                         itemCount: cartVM.items.count,
@@ -212,7 +212,7 @@ struct CartView: View {
                             colorScheme: colorScheme
                         ) {
                             if cartVM.items.isEmpty {
-                                VStack(alignment: .leading, spacing: 10) {
+                                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                                     Text("Dein Warenkorb ist noch leer.")
                                         .font(.body.weight(.semibold))
                                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -259,8 +259,8 @@ struct CartView: View {
                             title: "Kontaktdaten",
                             colorScheme: colorScheme
                         ) {
-                            VStack(spacing: 10) {
-                                HStack(spacing: 10) {
+                            VStack(spacing: SkydownLayout.stackSpacingPill) {
+                                HStack(spacing: SkydownLayout.stackSpacingPill) {
                                     CartInputField(
                                         title: "Name*",
                                         text: $name,
@@ -301,13 +301,13 @@ struct CartView: View {
                             title: "Lieferadresse",
                             colorScheme: colorScheme
                         ) {
-                            VStack(spacing: 10) {
+                            VStack(spacing: SkydownLayout.stackSpacingPill) {
                                 CartInputField(
                                     title: "Strasse, Hausnr.*",
                                     text: $shippingStreet,
                                     colorScheme: colorScheme
                                 )
-                                HStack(spacing: 10) {
+                                HStack(spacing: SkydownLayout.stackSpacingPill) {
                                     CartInputField(
                                         title: "PLZ*",
                                         text: $shippingPostalCode,
@@ -352,12 +352,12 @@ struct CartView: View {
                                 icon: "pause.circle.fill",
                                 title: "Checkout pausiert"
                             ) {
-                                VStack(alignment: .leading, spacing: 8) {
+                                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                                     Text("Der Checkout ist kurz pausiert. Deine Auswahl bleibt sicher gespeichert.")
                                         .font(.footnote.weight(.medium))
                                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                                         .fixedSize(horizontal: false, vertical: true)
-                                    HStack(spacing: 8) {
+                                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                         Button("Einstellungen") {
                                             SkydownHaptics.selection()
                                             onOpenSettings()
@@ -411,9 +411,9 @@ struct CartView: View {
                                     .frame(minHeight: 108)
                                     .padding(14)
                                     .background(AppColors.secondaryBackground(for: colorScheme))
-                                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 20)
+                                        RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                                             .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                                     )
                                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -462,7 +462,7 @@ struct CartView: View {
                     )
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .safeAreaInset(edge: .bottom, spacing: SkydownLayout.stackSpacingNone) {
                 if authManager.userSession != nil {
                     CartSubmitBar(
                         colorScheme: colorScheme,
@@ -777,7 +777,7 @@ private struct PricingSummaryCard: View {
     let companyName: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             pricingLine("Zwischensumme", summary.subtotal)
             pricingTextLine("Versandzone", summary.zoneLabel)
             pricingLine("Versand", summary.shipping)
@@ -788,7 +788,7 @@ private struct PricingSummaryCard: View {
             pricingLine("Gesamt", summary.total, isEmphasized: true)
 
             if let shippingError = summary.shippingError {
-                HStack(alignment: .top, spacing: 8) {
+                HStack(alignment: .top, spacing: SkydownLayout.stackSpacingMicro) {
                     Image(systemName: "info.circle.fill")
                         .font(.caption.weight(.bold))
                         .foregroundColor(AppColors.accentHighlight(for: colorScheme))
@@ -846,8 +846,8 @@ private struct PaymentMethodSelectionCard: View {
     let isZeroCostOrder: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: "lock.shield")
                     .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
@@ -857,9 +857,9 @@ private struct PaymentMethodSelectionCard: View {
             }
 
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 132), spacing: 12, alignment: .leading)],
+                columns: [GridItem(.adaptive(minimum: 132), spacing: SkydownLayout.stackSpacingCompact, alignment: .leading)],
                 alignment: .leading,
-                spacing: 12
+                spacing: SkydownLayout.stackSpacingCompact
             ) {
                 ForEach(methods, id: \.self) { method in
                     Button {
@@ -869,8 +869,8 @@ private struct PaymentMethodSelectionCard: View {
                         SkydownHaptics.selection()
                     } label: {
                         let isSelected = selectedMethod == method
-                        VStack(alignment: .leading, spacing: 9) {
-                            HStack(alignment: .top, spacing: 8) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSnug) {
+                            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingMicro) {
                                 Image(systemName: isSelected ? "checkmark.seal.fill" : "circle")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundColor(isSelected ? AppColors.accent(for: colorScheme) : AppColors.secondaryText(for: colorScheme))
@@ -899,7 +899,7 @@ private struct PaymentMethodSelectionCard: View {
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
-                            RoundedRectangle(cornerRadius: 20)
+                            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                                 .fill(
                                     isSelected
                                         ? AppColors.accent(for: colorScheme).opacity(0.14)
@@ -907,7 +907,7 @@ private struct PaymentMethodSelectionCard: View {
                                 )
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 20)
+                            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                                 .stroke(
                                     isSelected
                                         ? AppColors.accent(for: colorScheme)
@@ -959,8 +959,8 @@ private struct SelectedPaymentMethodInfoCard: View {
     let isZeroCostOrder: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: "checkmark.shield")
                     .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
@@ -988,7 +988,7 @@ private struct SelectedPaymentMethodInfoCard: View {
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                     if !settings.bankTransfer.accountHolder.isEmpty {
                         paymentInfoLine("Kontoinhaber", settings.bankTransfer.accountHolder)
                     }
@@ -1046,7 +1046,7 @@ private struct SelectedPaymentMethodInfoCard: View {
 
     @ViewBuilder
     private func paymentInfoLine(_ title: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1115,8 +1115,8 @@ private struct CartHeroCard: View {
     let isLoggedIn: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 10) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingComfortable) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 Text("Warenkorb")
                     .font(.largeTitle)
                     .fontWeight(.bold)
@@ -1128,7 +1128,7 @@ private struct CartHeroCard: View {
             }
 
             ZStack {
-                RoundedRectangle(cornerRadius: 20)
+                RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                     .fill(AppColors.accent(for: colorScheme).opacity(0.16))
                     .frame(width: 58, height: 58)
 
@@ -1140,13 +1140,13 @@ private struct CartHeroCard: View {
         .padding(20)
         .background(cardBackground)
         .overlay(
-            RoundedRectangle(cornerRadius: 26)
+            RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 26))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.14 : 0.08), radius: 12, y: 5)
         .overlay(alignment: .bottomLeading) {
-            HStack(spacing: 12) {
+            HStack(spacing: SkydownLayout.stackSpacingCompact) {
                 CartBadge(text: "\(itemCount) Artikel", colorScheme: colorScheme)
                 CartBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
                 if itemCount > 0 {
@@ -1176,12 +1176,12 @@ private struct CartHandoverStrip: View {
     let variantSummary: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingPill) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.subheadline.weight(.bold))
                 .foregroundColor(AppColors.accent(for: colorScheme))
                 .padding(.top, 1)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text("Gerade hinzugefuegt")
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1200,10 +1200,10 @@ private struct CartHandoverStrip: View {
         .padding(.vertical, 12)
         .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.78))
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
     }
 }
 
@@ -1213,7 +1213,7 @@ private struct CartSectionCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
             Text(title)
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1223,10 +1223,10 @@ private struct CartSectionCard<Content: View>: View {
         .padding(20)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
     }
 }
 
@@ -1237,8 +1237,8 @@ private struct CartInlineStatusStrip<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Image(systemName: icon)
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
@@ -1250,14 +1250,14 @@ private struct CartInlineStatusStrip<Content: View>: View {
 
             content
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, SkydownLayout.cardPadding)
         .padding(.vertical, 14)
         .background(AppColors.secondaryBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
         .animation(.easeInOut(duration: 0.2), value: title)
     }
 }
@@ -1269,15 +1269,15 @@ private struct CartItemCard: View {
     let onRemove: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                     Text(cartItem.item.name)
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .lineLimit(2)
 
-                    HStack(spacing: 8) {
+                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
                         CartBadge(text: cartItem.size, colorScheme: colorScheme)
                         if let color = cartItem.color?.takeIfNotBlank() {
                             CartBadge(text: color, colorScheme: colorScheme)
@@ -1288,7 +1288,7 @@ private struct CartItemCard: View {
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 4) {
+                VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingNano) {
                     Text(String(format: "EUR %.2f", cartItem.effectiveUnitPrice * Double(cartItem.quantity)))
                         .font(.headline.weight(.bold))
                         .foregroundColor(AppColors.accent(for: colorScheme))
@@ -1298,7 +1298,7 @@ private struct CartItemCard: View {
                 }
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 quantityStepperButton(systemName: "minus") {
                     onQuantityChange(-1)
                 }
@@ -1323,9 +1323,9 @@ private struct CartItemCard: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .background(AppColors.secondaryBackground(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.08), lineWidth: 1)
         )
     }
@@ -1359,7 +1359,7 @@ private struct CartInputField: View {
     var autocapitalization: TextInputAutocapitalization = .sentences
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1369,9 +1369,9 @@ private struct CartInputField: View {
                 .textInputAutocapitalization(autocapitalization)
                 .padding(14)
                 .background(AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                         .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                 )
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1398,8 +1398,8 @@ private struct CartCheckoutConfirmSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                 Text("Bestellung bestaetigen")
                     .font(.title3.weight(.bold))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -1412,7 +1412,7 @@ private struct CartCheckoutConfirmSheet: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 HStack {
                     Text("\(items.count) Artikel")
                     Spacer()
@@ -1422,7 +1422,7 @@ private struct CartCheckoutConfirmSheet: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                 ForEach(summaryItems) { item in
-                    HStack(alignment: .top, spacing: 8) {
+                    HStack(alignment: .top, spacing: SkydownLayout.stackSpacingMicro) {
                         Text(item.item.name)
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(AppColors.text(for: colorScheme))
@@ -1456,26 +1456,26 @@ private struct CartCheckoutConfirmSheet: View {
             .padding(14)
             .background(AppColors.secondaryBackground(for: colorScheme))
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                     .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
             Text("Sicherer Ablauf, klare Rueckmeldung und Support bei Bedarf.")
                 .font(.caption.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Button("Abbrechen", action: onCancel)
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity, minHeight: 46)
                     .background(AppColors.secondaryBackground(for: colorScheme))
                     .foregroundColor(AppColors.text(for: colorScheme))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                             .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
                     .disabled(isSubmitting)
 
                 Button(action: onConfirm) {
@@ -1495,13 +1495,13 @@ private struct CartCheckoutConfirmSheet: View {
                 }
                 .background(AppColors.accent(for: colorScheme))
                 .foregroundColor(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
                 .disabled(isSubmitting)
             }
         }
         .padding(.horizontal, 20)
         .padding(.top, 20)
-        .padding(.bottom, 16)
+        .padding(.bottom, SkydownLayout.cardPadding)
         .background(AppColors.cardBackground(for: colorScheme))
     }
 }
@@ -1511,7 +1511,7 @@ private struct CartCheckoutSafetyZone: View {
     let supportMailbox: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSnug) {
             safetyLine("lock.shield.fill", "Sichere Zahlwege und klare Weiterleitung im naechsten Schritt.")
             safetyLine("doc.text.magnifyingglass", "Daten und Gesamtpreis pruefen wir vor dem Senden noch einmal.")
             safetyLine(
@@ -1521,7 +1521,7 @@ private struct CartCheckoutSafetyZone: View {
                     fallback: "Binding terms, cancellation and returns follow the information shown in checkout and the legal documents in Settings."
                 )
             )
-            HStack(alignment: .top, spacing: 8) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: "message.badge.fill")
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
@@ -1537,14 +1537,14 @@ private struct CartCheckoutSafetyZone: View {
         .padding(.vertical, 12)
         .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.74))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
     }
 
     private func safetyLine(_ icon: String, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingMicro) {
             Image(systemName: icon)
                 .font(.caption2.weight(.bold))
                 .foregroundColor(AppColors.accent(for: colorScheme))
@@ -1570,12 +1570,12 @@ private struct CartSubmitBar: View {
     let onSubmit: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: SkydownLayout.stackSpacingCompact) {
             Divider()
                 .overlay(AppColors.accent(for: colorScheme).opacity(0.12))
 
-            HStack(alignment: .top, spacing: 10) {
-                VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingPill) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSubtle) {
                     Text("Checkout")
                         .font(.caption2.weight(.bold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1594,7 +1594,7 @@ private struct CartSubmitBar: View {
 
                 Button(action: onSubmit) {
                     if isSubmitting {
-                        HStack(spacing: 8) {
+                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
                             ProgressView()
                                 .tint(.white)
                                 .scaleEffect(0.9)
@@ -1614,14 +1614,14 @@ private struct CartSubmitBar: View {
                 .tint(AppColors.accent(for: colorScheme))
                 .disabled(!isReady || isSubmitting)
                 .controlSize(.large)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
                 .animation(.easeInOut(duration: 0.2), value: isSubmitting)
                 .accessibilityLabel(isSubmitting ? "Checkout wird vorbereitet" : buttonTitle)
                 .accessibilityHint(isSubmitting ? "Bitte kurz warten" : "Oeffnet die finale Bestaetigung")
             }
             .padding(.horizontal, 20)
 
-            HStack(spacing: 6) {
+            HStack(spacing: SkydownLayout.stackSpacingDense) {
                 Image(systemName: "checkmark.shield.fill")
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.accent(for: colorScheme))

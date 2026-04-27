@@ -44,7 +44,7 @@ fun EditableImageFieldCard(
     val resolvedUploadStatusText = uploadStatusText.ifBlank { stringResource(R.string.editable_image_uploading) }
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
         Text(
             text = title,
@@ -56,7 +56,7 @@ fun EditableImageFieldCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(136.dp)
-                .clip(RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f)),
         ) {
             if (imageUrl.isNotBlank()) {
@@ -82,7 +82,7 @@ fun EditableImageFieldCard(
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Default.Photo,
@@ -100,7 +100,7 @@ fun EditableImageFieldCard(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
             ) {
                 Text(
                     text = if (isUploading) {
@@ -139,7 +139,7 @@ fun EditableImageFieldCard(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     Text(

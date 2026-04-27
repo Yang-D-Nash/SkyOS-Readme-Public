@@ -362,15 +362,15 @@ fun BrandHeroCard(
                                 Modifier
                             },
                         ),
-                    horizontalArrangement = Arrangement.spacedBy(if (autoCompactDensity) 10.dp else 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (autoCompactDensity) SkydownUiTokens.stackSpacingPill else SkydownUiTokens.stackSpacingRelaxed),
                     verticalAlignment = Alignment.Top,
                 ) {
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(if (autoCompactDensity) 6.dp else 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (autoCompactDensity) SkydownUiTokens.stackSpacingDense else SkydownUiTokens.stackSpacingMicro),
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             if (shouldShowEyebrow) {
@@ -394,7 +394,7 @@ fun BrandHeroCard(
                                                 secondaryAccent.copy(alpha = 0.30f),
                                             ),
                                         ),
-                                        shape = RoundedCornerShape(999.dp),
+                                        shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                                     ),
                             )
                         }
@@ -437,7 +437,7 @@ fun BrandHeroCard(
                                 .width(
                                     if (marks.size == 1) 118.dp else 96.dp,
                                 ),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         ) {
                             marks.take(2).forEach { mark ->
                                 BrandArtworkTile(
@@ -484,11 +484,11 @@ fun BrandHeroMetricCard(
                 shadowYOffset = 5.dp,
             )
             .padding(horizontal = 11.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
     ) {
         if (icon != null) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
@@ -547,7 +547,7 @@ fun BrandSectionBanner(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(11.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingToast),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
@@ -573,7 +573,7 @@ fun BrandSectionBanner(
 
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
         ) {
             Text(
                 text = title,
@@ -646,7 +646,7 @@ fun BrandStatusChip(
                 accent = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
             )
             .padding(horizontal = 13.dp, vertical = 9.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
@@ -866,7 +866,7 @@ fun BrandPill(
 
     Box(
         modifier = pillModifier
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -884,7 +884,7 @@ fun BrandPill(
                         tint.copy(alpha = 0.28f),
                     ),
                 ),
-                shape = RoundedCornerShape(999.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
             )
             .padding(
                 horizontal = if (interactive) 14.dp else 12.dp,
@@ -892,7 +892,7 @@ fun BrandPill(
             ),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (interactive) {
@@ -971,7 +971,7 @@ private fun BrandArtworkTile(
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             Image(
                 painter = painterResource(id = mark.drawableRes),

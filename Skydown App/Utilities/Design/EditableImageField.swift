@@ -31,13 +31,13 @@ struct EditableImageField: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             ZStack(alignment: .bottomLeading) {
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                     .fill(AppColors.secondaryBackground(for: colorScheme))
                     .frame(height: 140)
 
@@ -58,7 +58,7 @@ struct EditableImageField: View {
                     .frame(height: 140)
                     .frame(maxWidth: .infinity)
                     .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
                     .overlay(
                         LinearGradient(
                             colors: [
@@ -68,13 +68,13 @@ struct EditableImageField: View {
                             startPoint: .top,
                             endPoint: .bottom
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
                     )
                 } else {
                     placeholder
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(isUploading ? "Upload laeuft" : imageURL.isEmpty ? "Noch kein Bild" : "Bild aktiv")
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.white.opacity(0.92))
@@ -91,10 +91,10 @@ struct EditableImageField: View {
                 .padding(12)
 
                 if isUploading {
-                    RoundedRectangle(cornerRadius: 18)
+                    RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                         .fill(Color.black.opacity(0.62))
 
-                    VStack(spacing: 10) {
+                    VStack(spacing: SkydownLayout.stackSpacingPill) {
                         ProgressView()
                             .tint(.white)
                         Text(uploadStatusText)
@@ -107,7 +107,7 @@ struct EditableImageField: View {
                 }
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Button(action: onPickImage) {
                     Label(buttonTitle, systemImage: "photo.badge.plus")
                         .frame(maxWidth: .infinity)
@@ -133,7 +133,7 @@ struct EditableImageField: View {
 
     @ViewBuilder
     private var placeholder: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: SkydownLayout.stackSpacingPill) {
             Image(systemName: "photo")
                 .font(.system(size: 28, weight: .semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))

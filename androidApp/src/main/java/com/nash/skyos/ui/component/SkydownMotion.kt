@@ -1,7 +1,8 @@
 package com.nash.skyos.ui.component
 
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,34 +16,56 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 
 /**
- * Calm “premium” motion language aligned with iOS `SkydownMotion`: ease-out, ~150–250ms,
+ * Calm “premium” motion language aligned with iOS `SkydownMotion`: ease-out, ~150–280ms,
  * no bouncy springs for standard UI.
  */
 object SkydownMotionTokens {
-    const val primaryEnterDurationMillis = 250
-    const val primaryExitDurationMillis = 200
-    const val overlayEnterDurationMillis = 240
-    const val overlayExitDurationMillis = 200
-    const val statusEnterDurationMillis = 220
-    const val statusExitDurationMillis = 170
+    const val primaryEnterDurationMillis = 270
+    const val primaryExitDurationMillis = 210
+    const val overlayEnterDurationMillis = 260
+    const val overlayExitDurationMillis = 220
+    const val statusEnterDurationMillis = 230
+    const val statusExitDurationMillis = 180
     /// Subtle stagger for first-paint reveals (keep short; no “cascade” feel).
-    const val staggerStepMillis = 8
-    const val premiumAccentTransitionMillis = 240
-    const val premiumLabelTransitionMillis = 200
-    const val dockSelectionDurationMillis = 200
-    const val pressDurationMillis = 180
-    const val selectionCrossFadeMillis = 200
-    const val contentRevealEnterMillis = 220
+    const val staggerStepMillis = 10
+    const val premiumAccentTransitionMillis = 260
+    const val premiumLabelTransitionMillis = 220
+    const val dockSelectionDurationMillis = 220
+    const val pressDurationMillis = 200
+    const val selectionCrossFadeMillis = 220
+    const val contentRevealEnterMillis = 240
+    const val contentRevealExitMillis = 170
+    /// Nav fade-in lead (works with [LinearOutSlowInEasing]).
+    const val navFadeLeadMillis = 22
 }
 
-/** Default ease-out spec for float/color motion (matches iOS ease-out curves). */
+/**
+ * Signature settle curve: quick start, long controlled deceleration — not Material default,
+ * not elastic.
+ */
+val SkydownStandardEasing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
+
+/** Crisp departures for dismissals and route exits. */
+val SkydownExitEasing = CubicBezierEasing(0.4f, 0f, 1f, 1f)
+
+/** Default spec for float/color/size motion. */
 fun <T> skydownTween(
     durationMillis: Int,
     delayMillis: Int = 0,
-): AnimationSpec<T> = tween(
+): FiniteAnimationSpec<T> = tween(
     durationMillis = durationMillis,
     delayMillis = delayMillis,
-    easing = FastOutSlowInEasing,
+    easing = SkydownStandardEasing,
+)
+
+/** Spec tuned for overlays and leaves (slightly faster than enter). */
+fun <T> skydownExitTween(
+    durationMillis: Int,
+    delayMillis: Int = 0,
+): FiniteAnimationSpec<T> = tween(
+    durationMillis = durationMillis,
+    delayMillis = delayMillis,
+    easing = SkydownExitEasing,
 )
 
 @Composable

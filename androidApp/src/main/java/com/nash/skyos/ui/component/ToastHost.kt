@@ -2,7 +2,6 @@ package com.nash.skyos.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -60,7 +59,7 @@ fun ToastHost(
     type: ToastType = ToastType.Info,
 ) {
     val view = LocalView.current
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
 
     LaunchedEffect(message, type) {
         if (!message.isNullOrBlank()) {
@@ -92,18 +91,18 @@ fun ToastHost(
             targetOffsetY = { it / 2 },
             animationSpec = tween(
                 durationMillis = SkydownMotionTokens.statusExitDurationMillis,
-                easing = FastOutSlowInEasing,
+                easing = SkydownExitEasing,
             ),
         ) + fadeOut(
             animationSpec = tween(
                 durationMillis = SkydownMotionTokens.statusExitDurationMillis,
-                easing = FastOutSlowInEasing,
+                easing = SkydownExitEasing,
             ),
         ) + scaleOut(
             targetScale = 0.97f,
             animationSpec = tween(
                 durationMillis = SkydownMotionTokens.statusExitDurationMillis,
-                easing = FastOutSlowInEasing,
+                easing = SkydownExitEasing,
             ),
         ),
         modifier = modifier,
@@ -111,7 +110,7 @@ fun ToastHost(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(SkydownUiTokens.cardPadding)
                 .shadow(
                     elevation = 14.dp,
                     shape = shape,
@@ -122,7 +121,7 @@ fun ToastHost(
                 .animateContentSize(
                     animationSpec = tween(
                         durationMillis = SkydownMotionTokens.contentRevealEnterMillis,
-                        easing = FastOutSlowInEasing,
+                        easing = SkydownStandardEasing,
                     ),
                 )
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.99f))
@@ -145,14 +144,14 @@ fun ToastHost(
                 }
                 .padding(horizontal = 12.dp, vertical = 11.dp)
                 .height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(11.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingToast),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
                     .width(3.dp)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
@@ -166,12 +165,12 @@ fun ToastHost(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
                     .background(type.accent.copy(alpha = 0.13f))
                     .border(
                         width = 1.dp,
                         color = type.accent.copy(alpha = 0.20f),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                     ),
             ) {
                 Icon(
@@ -186,7 +185,7 @@ fun ToastHost(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick),
             ) {
                 Text(
                     text = stringResource(type.titleRes),

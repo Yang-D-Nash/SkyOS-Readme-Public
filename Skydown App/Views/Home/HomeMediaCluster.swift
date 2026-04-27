@@ -10,7 +10,7 @@ struct HomeMediaCluster: View {
     let onOpenOriginal: (FeaturedHomeVideo) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.tightRadius) {
             HomeLatestReleaseCard(viewModel: viewModel, playbackManager: playbackManager, colorScheme: colorScheme) { track in
                 videoPlaybackManager.stop()
                 playbackManager.playPreview(for: track)
@@ -42,7 +42,7 @@ private struct HomeLatestReleaseCard: View {
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.compactRadius) {
             HomeSectionBanner(
                 title: AppLocalized.text("home.media.music.title", fallback: "Music"),
                 subtitle: AppLocalized.text("home.media.music.subtitle", fallback: "Latest release"),
@@ -53,14 +53,16 @@ private struct HomeLatestReleaseCard: View {
             if let track = viewModel.featuredTrack {
                 let hasPreview = !(track.previewUrl?.isEmpty ?? true)
                 let hasSpotifyTarget = homeSpotifyTargetURL(for: track) != nil
-                HStack(spacing: 14) {
+                HStack(spacing: SkydownLayout.compactRadius) {
                     AsyncImage(url: URL(string: track.artworkUrl100 ?? "")) { image in image.resizable().scaledToFill() } placeholder: {
-                        RoundedRectangle(cornerRadius: 22).fill(AppColors.secondaryBackground(for: colorScheme))
+                        RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
+                            .fill(AppColors.secondaryBackground(for: colorScheme))
                     }
-                    .frame(width: 82, height: 82).clipShape(RoundedRectangle(cornerRadius: 22))
-                    VStack(alignment: .leading, spacing: 6) {
+                    .frame(width: 82, height: 82)
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                         Text(track.trackName).font(.headline).foregroundColor(AppColors.text(for: colorScheme))
-                        Text(track.artistName ?? "22").font(.subheadline).foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        Text(track.artistName ?? "—").font(.subheadline).foregroundColor(AppColors.secondaryText(for: colorScheme))
                         Text(homeReleaseLine(for: track)).font(.caption).foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
                     Spacer()
@@ -73,7 +75,7 @@ private struct HomeLatestReleaseCard: View {
                             : AppLocalized.text("home.track.ready", fallback: "Latest track."))
                 )
                     .font(.caption).foregroundColor(AppColors.secondaryText(for: colorScheme))
-                VStack(spacing: 10) {
+                VStack(spacing: SkydownLayout.pillSoftRadius) {
                     if hasPreview {
                         HomeActionButton(
                             title: playbackManager.currentlyPlayingId == track.trackId
@@ -110,7 +112,7 @@ private struct HomeLatestVideoCard: View {
     let onOpenOriginal: (FeaturedHomeVideo) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.compactRadius) {
             HomeSectionBanner(
                 title: AppLocalized.text("home.media.video.title", fallback: "Videos"),
                 subtitle: AppLocalized.text("home.media.video.subtitle", fallback: "Latest clip"),
@@ -121,9 +123,14 @@ private struct HomeLatestVideoCard: View {
             if let video = viewModel.featuredVideo {
                 Text(video.title).font(.headline).foregroundColor(AppColors.text(for: colorScheme))
                 if video.usesEmbeddedPreview {
-                    ExternalVideoEmbedSurface(urlString: video.embedURL).frame(height: 220).clipShape(RoundedRectangle(cornerRadius: 20))
+                    ExternalVideoEmbedSurface(urlString: video.embedURL)
+                        .frame(height: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
                 } else if !video.nativePlaybackURLString.isEmpty {
-                    VideoPlayer(player: playbackManager.player).frame(height: 220).allowsHitTesting(false).clipShape(RoundedRectangle(cornerRadius: 20))
+                    VideoPlayer(player: playbackManager.player)
+                        .frame(height: 220)
+                        .allowsHitTesting(false)
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
                         .onAppear { playbackManager.prepare(video: video) }
                         .onChange(of: video.id) { _, _ in playbackManager.prepare(video: video) }
                 }
@@ -203,11 +210,11 @@ struct HomeActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingPill) {
                 if let icon {
-                    Image(systemName: icon).font(.footnote.weight(.bold)).foregroundColor(isPrimary ? .white : AppColors.accent(for: colorScheme)).frame(width: 18, height: 18).padding(8).background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(isPrimary ? 0.16 : 0.08)))
+                    Image(systemName: icon).font(.footnote.weight(.bold)).foregroundColor(isPrimary ? .white : AppColors.accent(for: colorScheme)).frame(width: 18, height: 18).padding(8).background(RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous).fill(Color.white.opacity(isPrimary ? 0.16 : 0.08)))
                 }
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(title).font(AppTypography.buttonLabel)
                     if let subtitle, !subtitle.isEmpty {
                         Text(subtitle).font(AppTypography.bodyCaption).foregroundColor(isPrimary ? Color.white.opacity(0.82) : AppColors.secondaryText(for: colorScheme))
@@ -217,7 +224,7 @@ struct HomeActionButton: View {
             }
             .foregroundColor(isPrimary ? .white : AppColors.text(for: colorScheme))
             .padding(.horizontal, 13).padding(.vertical, 12).frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 16).fill(isPrimary ? AppColors.accent(for: colorScheme) : AppColors.cardBackground(for: colorScheme)))
+            .background(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous).fill(isPrimary ? AppColors.accent(for: colorScheme) : AppColors.cardBackground(for: colorScheme)))
         }
         .buttonStyle(.plain)
         .skydownTactileAction()

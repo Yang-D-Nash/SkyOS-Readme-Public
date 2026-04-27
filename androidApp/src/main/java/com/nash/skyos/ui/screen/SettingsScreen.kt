@@ -121,6 +121,7 @@ import com.nash.skyos.ui.component.EditableImageFieldCard
 import com.nash.skyos.ui.component.SectionHeader
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownTopBarTitle
+import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
@@ -886,7 +887,7 @@ fun SettingsScreen(
 
                 LazyRow(
                     modifier = Modifier.padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     item {
                         SettingsBadge(
@@ -926,7 +927,7 @@ fun SettingsScreen(
                 } else {
                     Column(
                         modifier = Modifier.padding(top = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                     ) {
                         uiState.managedUsers.forEach { managedUser ->
                             AdminManagedUserCard(
@@ -948,7 +949,7 @@ fun SettingsScreen(
 
                 LazyRow(
                     modifier = Modifier.padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     item {
                         SettingsBadge(
@@ -977,7 +978,7 @@ fun SettingsScreen(
 
                 Column(
                     modifier = Modifier.padding(top = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                 ) {
                     for (page in managedShowcasePages) {
                         ArtistPageAdminCard(
@@ -1012,7 +1013,7 @@ fun SettingsScreen(
 
                 LazyRow(
                     modifier = Modifier.padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     item {
                         SettingsBadge(
@@ -1364,7 +1365,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 ) {
                     Text(stringResource(R.string.settings_save_header))
                 }
@@ -1420,7 +1421,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     enabled = !uiState.isLoadingShopifyCollections,
                 ) {
                     Text(
@@ -1452,7 +1453,7 @@ fun SettingsScreen(
                     )
 
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         modifier = Modifier.padding(top = 8.dp),
                     ) {
                         val selectedHandles = shopifyCollectionHandlesDraft
@@ -1492,7 +1493,7 @@ fun SettingsScreen(
                                     shopifyCollectionHandlesDraft = updatedHandles.joinToString(", ")
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     containerColor = if (isSelected) {
                                         MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
@@ -1508,7 +1509,7 @@ fun SettingsScreen(
                                 ) {
                                     Column(
                                         modifier = Modifier.weight(1f),
-                                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
                                     ) {
                                         Text(
                                             text = collection.displayTitle,
@@ -1522,7 +1523,7 @@ fun SettingsScreen(
                                     }
 
                                     Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         collection.productCount?.let { count ->
@@ -1594,7 +1595,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 ) {
                     Text(stringResource(R.string.settings_save_shopify))
                 }
@@ -1881,7 +1882,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 ) {
                     Text(stringResource(R.string.settings_save_shipping_invoice))
                 }
@@ -1978,12 +1979,12 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     ) {
                         OutlinedButton(
                             onClick = { automationProviderDraft = "activepieces" },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             border = BorderStroke(
                                 width = 1.dp,
                                 color = if (automationProviderDraft == "activepieces") {
@@ -1998,7 +1999,7 @@ fun SettingsScreen(
                         OutlinedButton(
                             onClick = { automationProviderDraft = "n8n" },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             border = BorderStroke(
                                 width = 1.dp,
                                 color = if (automationProviderDraft == "n8n") {
@@ -2021,7 +2022,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_automation_workflow_name)) },
                     placeholder = { Text(stringResource(R.string.settings_automation_workflow_name_placeholder)) },
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 )
                 OutlinedTextField(
                     value = automationBaseUrlDraft,
@@ -2032,7 +2033,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_automation_activepieces_base_url)) },
                     placeholder = { Text(stringResource(R.string.settings_automation_activepieces_base_url_placeholder)) },
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 )
                 OutlinedTextField(
                     value = automationWebhookPathDraft,
@@ -2043,7 +2044,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_automation_webhook_path)) },
                     placeholder = { Text(stringResource(R.string.settings_automation_webhook_path_placeholder)) },
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 )
                 OutlinedTextField(
                     value = automationAuthHeaderNameDraft,
@@ -2054,7 +2055,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_automation_auth_header_name)) },
                     placeholder = { Text(stringResource(R.string.settings_automation_auth_header_name_placeholder)) },
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 )
                 OutlinedTextField(
                     value = automationAuthHeaderValueDraft,
@@ -2065,7 +2066,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_automation_auth_header_value)) },
                     placeholder = { Text(stringResource(R.string.settings_automation_optional)) },
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 )
                 OutlinedTextField(
                     value = automationKnowledgeContextDraft,
@@ -2078,7 +2079,7 @@ fun SettingsScreen(
                         Text(stringResource(R.string.settings_automation_knowledge_context_placeholder))
                     },
                     minLines = 3,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 )
 
                 val resolvedWebhookUrl = resolveAutomationDraftWebhookUrl(
@@ -2103,7 +2104,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
                     val updatedAutomationSettings = uiState.workflowAutomationSettings.copy(
                         provider = if (!uiState.isOwner && automationProviderDraft == "n8n") "n8n" else "activepieces",
@@ -2123,7 +2124,7 @@ fun SettingsScreen(
                             viewModel.saveWorkflowAutomationSettings(updatedAutomationSettings)
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     ) {
                         Text(stringResource(R.string.settings_automation_save_flow))
                     }
@@ -2132,7 +2133,7 @@ fun SettingsScreen(
                         onClick = { viewModel.testWorkflowAutomationSettings(updatedAutomationSettings) },
                         modifier = Modifier.weight(1f),
                         enabled = automationEnabledDraft && resolvedWebhookUrl != null,
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     ) {
                         Text(stringResource(R.string.settings_automation_send_test))
                     }
@@ -2155,7 +2156,7 @@ fun SettingsScreen(
 
                 Row(
                     modifier = Modifier.padding(top = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     SettingsBadge(
                         text = if (uiState.manusByosSettings.hasApiKey) {
@@ -2215,7 +2216,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
                     Button(
                         onClick = {
@@ -2225,7 +2226,7 @@ fun SettingsScreen(
                             )
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     ) {
                         Text(stringResource(R.string.settings_manus_save))
                     }
@@ -2237,7 +2238,7 @@ fun SettingsScreen(
                         },
                         modifier = Modifier.weight(1f),
                         enabled = uiState.manusByosSettings.hasApiKey || manusByosApiKeyDraft.isNotBlank(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     ) {
                         Text(stringResource(R.string.settings_manus_remove_key))
                     }
@@ -2248,7 +2249,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                     enabled = manusByosApiKeyDraft.isNotBlank() || uiState.manusByosSettings.hasApiKey,
                 ) {
                     Text(stringResource(R.string.settings_manus_validate))
@@ -2343,7 +2344,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 ) {
                     Text(stringResource(R.string.settings_agent_save_profile))
                 }
@@ -2358,7 +2359,7 @@ fun SettingsScreen(
 
                 LazyRow(
                     modifier = Modifier.padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     item {
                         SettingsBadge(
@@ -2502,7 +2503,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 ) {
                     Text(stringResource(R.string.settings_ai_save_instructions))
                 }
@@ -2561,7 +2562,7 @@ fun SettingsScreen(
                 } else {
                     LazyRow(
                         modifier = Modifier.padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     ) {
                         item {
                             SettingsBadge(
@@ -2639,7 +2640,7 @@ fun SettingsScreen(
                                 .fillMaxWidth()
                                 .padding(top = 8.dp),
                         ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
                                 Text(
                                     text = insight.title,
                                     style = MaterialTheme.typography.bodyMedium,
@@ -2665,7 +2666,7 @@ fun SettingsScreen(
                                 .fillMaxWidth()
                                 .padding(top = 8.dp),
                         ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
                                 Text(
                                     text = recommendation.title,
                                     style = MaterialTheme.typography.bodyMedium,
@@ -2687,7 +2688,7 @@ fun SettingsScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                                 )
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                                 ) {
                                     OutlinedButton(
                                         onClick = {
@@ -2699,7 +2700,7 @@ fun SettingsScreen(
                                                 feedbackType = if (preview.status == "blocked") ToastType.Warning else ToastType.Info
                                             }
                                         },
-                                        shape = RoundedCornerShape(12.dp),
+                                        shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
                                     ) {
                                         Text(stringResource(R.string.settings_ai_preview))
                                     }
@@ -2716,7 +2717,7 @@ fun SettingsScreen(
                                                 }
                                             }
                                         },
-                                        shape = RoundedCornerShape(12.dp),
+                                        shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
                                     ) {
                                         Text(stringResource(R.string.settings_ai_apply))
                                     }
@@ -2737,7 +2738,7 @@ fun SettingsScreen(
                             }
                         },
                         modifier = Modifier.padding(top = 8.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
                     ) {
                         Text(stringResource(R.string.settings_ai_revert_last))
                     }
@@ -2745,7 +2746,7 @@ fun SettingsScreen(
 
                 LazyRow(
                     modifier = Modifier.padding(top = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     item {
                         SettingsBadge(
@@ -2851,7 +2852,7 @@ fun SettingsScreen(
                 )
                 LazyRow(
                     modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     listOf(
                         "balanced" to R.string.settings_ai_label_quality_balanced,
@@ -2865,7 +2866,7 @@ fun SettingsScreen(
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
                                 ),
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                             ) { Text(label) }
                         }
                     }
@@ -2879,7 +2880,7 @@ fun SettingsScreen(
                 )
                 LazyRow(
                     modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     listOf(
                         "off" to R.string.settings_ai_label_faq_off,
@@ -2894,7 +2895,7 @@ fun SettingsScreen(
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
                                 ),
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                             ) { Text(label) }
                         }
                     }
@@ -2908,7 +2909,7 @@ fun SettingsScreen(
                 )
                 LazyRow(
                     modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     listOf(
                         "standard" to R.string.settings_ai_label_owner_standard,
@@ -2922,7 +2923,7 @@ fun SettingsScreen(
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
                                 ),
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                             ) { Text(label) }
                         }
                     }
@@ -2936,7 +2937,7 @@ fun SettingsScreen(
                 )
                 LazyRow(
                     modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     listOf(
                         "adaptive" to R.string.settings_ai_label_answer_adaptive,
@@ -2951,7 +2952,7 @@ fun SettingsScreen(
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
                                 ),
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                             ) { Text(label) }
                         }
                     }
@@ -2965,7 +2966,7 @@ fun SettingsScreen(
                 )
                 LazyRow(
                     modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     listOf(
                         "off" to R.string.settings_ai_label_diag_off,
@@ -2980,7 +2981,7 @@ fun SettingsScreen(
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
                                 ),
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                             ) { Text(label) }
                         }
                     }
@@ -3192,7 +3193,7 @@ fun SettingsScreen(
                 )
                 LazyRow(
                     modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     listOf(
                         "live_owner_generic" to R.string.settings_ai_label_faq_priority_live_owner,
@@ -3207,7 +3208,7 @@ fun SettingsScreen(
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
                                 ),
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                             ) { Text(label) }
                         }
                     }
@@ -3290,7 +3291,7 @@ fun SettingsScreen(
 
                 LazyRow(
                     modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     items(AiRuntimeAgentProvider.entries, key = { it.rawValue }) { provider ->
                         val isSelected = aiAgentProviderDraft == provider.rawValue
@@ -3303,7 +3304,7 @@ fun SettingsScreen(
                                     MaterialTheme.colorScheme.surface
                                 },
                             ),
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                         ) {
                             Text(provider.displayTitle)
                         }
@@ -3319,7 +3320,7 @@ fun SettingsScreen(
 
                 LazyRow(
                     modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     items(AiRuntimeAgentProvider.entries, key = { it.rawValue }) { provider ->
                         val isSelected = aiFallbackAgentProviderDraft == provider.rawValue
@@ -3332,7 +3333,7 @@ fun SettingsScreen(
                                     MaterialTheme.colorScheme.surface
                                 },
                             ),
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                         ) {
                             Text(provider.displayTitle)
                         }
@@ -3620,7 +3621,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 ) {
                     Text(stringResource(R.string.settings_ai_runtime_save))
                 }
@@ -3644,13 +3645,13 @@ fun SettingsScreen(
 
                 LazyRow(
                     modifier = Modifier.padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     items(MembershipOpsTab.entries.toList()) { tab ->
                         val selected = membershipOpsTab == tab.name
                         OutlinedButton(
                             onClick = { membershipOpsTab = tab.name },
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = if (selected) {
                                     MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
@@ -3668,7 +3669,7 @@ fun SettingsScreen(
                 if (membershipOpsLoading) {
                     Row(
                         modifier = Modifier.padding(top = 14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -3713,7 +3714,7 @@ fun SettingsScreen(
                             } else {
                                 Column(
                                     modifier = Modifier.padding(top = 12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                                 ) {
                                     membershipRecommendations.forEach { recommendation ->
                                         SkydownCard {
@@ -3736,7 +3737,7 @@ fun SettingsScreen(
                                             )
                                             Row(
                                                 modifier = Modifier.padding(top = 10.dp),
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                                             ) {
                                                 Button(
                                                     onClick = {
@@ -3756,7 +3757,7 @@ fun SettingsScreen(
                                                             feedbackType = ToastType.Success
                                                         }
                                                     },
-                                                    shape = RoundedCornerShape(12.dp),
+                                                    shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
                                                 ) { Text(stringResource(R.string.settings_membership_ops_start_experiment)) }
                                                 OutlinedButton(
                                                     onClick = {
@@ -3770,7 +3771,7 @@ fun SettingsScreen(
                                                             feedbackType = ToastType.Warning
                                                         }
                                                     },
-                                                    shape = RoundedCornerShape(12.dp),
+                                                    shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
                                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                                 ) { Text(stringResource(R.string.settings_membership_ops_reject)) }
                                             }
@@ -3802,11 +3803,11 @@ fun SettingsScreen(
                                 minLines = 2,
                                 maxLines = 5,
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro), modifier = Modifier.padding(top = 10.dp)) {
                                 OutlinedTextField(value = experimentCvrDeltaDraft, onValueChange = { experimentCvrDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_cvr_delta)) }, singleLine = true)
                                 OutlinedTextField(value = experimentAnnualDeltaDraft, onValueChange = { experimentAnnualDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_annual_delta)) }, singleLine = true)
                             }
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro), modifier = Modifier.padding(top = 10.dp)) {
                                 OutlinedTextField(value = experimentCreatorDeltaDraft, onValueChange = { experimentCreatorDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_creator_delta)) }, singleLine = true)
                                 OutlinedTextField(value = experimentCancelDeltaDraft, onValueChange = { experimentCancelDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_cancel_delta)) }, singleLine = true)
                             }
@@ -3842,7 +3843,7 @@ fun SettingsScreen(
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                             ) {
                                 Text(stringResource(R.string.settings_membership_ops_complete_experiment))
                             }
@@ -3947,7 +3948,7 @@ fun SettingsScreen(
                                 )
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                                 ) {
                                     Button(
                                         onClick = {
@@ -3975,7 +3976,7 @@ fun SettingsScreen(
                                             }
                                         },
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(12.dp),
+                                        shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
                                     ) { Text(stringResource(R.string.common_save)) }
                                     OutlinedButton(
                                         onClick = {
@@ -4005,7 +4006,7 @@ fun SettingsScreen(
                                             }
                                         },
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(12.dp),
+                                        shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                     ) { Text(stringResource(R.string.settings_membership_ops_reset_defaults)) }
                                 }
@@ -4015,7 +4016,7 @@ fun SettingsScreen(
                         MembershipOpsTab.Timeline -> {
                             LazyRow(
                                 modifier = Modifier.padding(top = 12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                             ) {
                                 items(listOf("7d", "30d", "90d", "all")) { range ->
                                     val selected = membershipTimelineRange == range
@@ -4033,7 +4034,7 @@ fun SettingsScreen(
                                                 }
                                             }
                                         },
-                                        shape = RoundedCornerShape(14.dp),
+                                        shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                                         colors = ButtonDefaults.outlinedButtonColors(
                                             containerColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
                                         ),
@@ -4052,7 +4053,7 @@ fun SettingsScreen(
                             } else {
                                 Column(
                                     modifier = Modifier.padding(top = 12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                                 ) {
                                     entries.take(40).forEach { row ->
                                         val item = row as? Map<*, *> ?: emptyMap<Any, Any>()
@@ -4087,7 +4088,7 @@ fun SettingsScreen(
                                                         membershipOpsTab = MembershipOpsTab.Experiments.name
                                                     },
                                                     modifier = Modifier.padding(top = 10.dp),
-                                                    shape = RoundedCornerShape(12.dp),
+                                                    shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
                                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                                 ) {
                                                     Text(stringResource(R.string.settings_membership_ops_rerun))
@@ -4202,7 +4203,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             ) {
                                 Text(stringResource(R.string.settings_open_edit_profile))
                             }
@@ -4223,7 +4224,7 @@ fun SettingsScreen(
                                     !uiState.isSigningOut &&
                                     !uiState.isDeletingAccount &&
                                     profileAiAccessEnabledDraft != uiState.aiAccessEnabled,
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             ) {
                                 Text(stringResource(R.string.settings_save_ai_consent))
                             }
@@ -4231,13 +4232,13 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                             ) {
                                 Button(
                                     onClick = { viewModel.signOut() },
                                     modifier = Modifier.fillMaxWidth(),
                                     enabled = !uiState.isSigningOut && !uiState.isDeletingAccount,
-                                    shape = RoundedCornerShape(18.dp),
+                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                                 ) {
                                     Text(
                                         if (uiState.isSigningOut) {
@@ -4251,7 +4252,7 @@ fun SettingsScreen(
                                     onClick = { viewModel.signOut(onOpenLogin) },
                                     modifier = Modifier.fillMaxWidth(),
                                     enabled = !uiState.isSigningOut && !uiState.isDeletingAccount,
-                                    shape = RoundedCornerShape(18.dp),
+                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                                 ) {
                                     Text(stringResource(R.string.settings_use_other_account))
                                 }
@@ -4259,7 +4260,7 @@ fun SettingsScreen(
                                     onClick = { showDeleteAccountDialog.value = true },
                                     modifier = Modifier.fillMaxWidth(),
                                     enabled = !uiState.isSigningOut && !uiState.isDeletingAccount,
-                                    shape = RoundedCornerShape(18.dp),
+                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                                     colors = ButtonDefaults.outlinedButtonColors(
                                         contentColor = MaterialTheme.colorScheme.error,
                                     ),
@@ -4285,19 +4286,19 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                             ) {
                                 Button(
                                     onClick = onOpenLogin,
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(18.dp),
+                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                                 ) {
                                     Text(stringResource(R.string.auth_sign_in))
                                 }
                                 OutlinedButton(
                                     onClick = onOpenRegistration,
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(18.dp),
+                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                                 ) {
                                     Text(stringResource(R.string.settings_register))
                                 }
@@ -4328,7 +4329,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                             ) {
                                 OutlinedButton(
                                     onClick = {
@@ -4345,7 +4346,7 @@ fun SettingsScreen(
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(18.dp),
+                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                                 ) {
                                     Text(
                                         if (uiState.isOwner) {
@@ -4365,7 +4366,7 @@ fun SettingsScreen(
                                         )
                                     },
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(18.dp),
+                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                                 ) {
                                     Text(stringResource(R.string.settings_check_restore))
                                 }
@@ -4376,7 +4377,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             ) {
                                 Text(stringResource(R.string.auth_sign_in))
                             }
@@ -4399,7 +4400,7 @@ fun SettingsScreen(
                                     .fillMaxWidth()
                                     .padding(top = 12.dp)
                                     .testTag("settings.open_owner_hub"),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             ) {
                                 Text(stringResource(R.string.settings_open_owner_hub))
                             }
@@ -4439,7 +4440,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             ) {
                                 Text(stringResource(R.string.settings_all_admin_sections))
                             }
@@ -4448,7 +4449,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             ) {
                                 Text(stringResource(R.string.settings_open_orders))
                             }
@@ -4462,7 +4463,7 @@ fun SettingsScreen(
                             SectionHeader(stringResource(R.string.settings_section_ai_agent))
                             Row(
                                 modifier = Modifier.padding(top = 12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                             ) {
                                 SettingsBadge(
                                     text = if (uiState.workflowAutomationSettings.isPrepared) {
@@ -4525,7 +4526,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             ) {
                                 Text(stringResource(R.string.settings_manage_agent_service))
                             }
@@ -4626,7 +4627,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 12.dp),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                         ) {
                             Text(stringResource(R.string.settings_legal_faq_guide))
                         }
@@ -4637,7 +4638,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                         ) {
                             Text(stringResource(R.string.settings_legal_terms_agb))
                         }
@@ -4648,7 +4649,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                         ) {
                             Text(stringResource(R.string.settings_legal_privacy))
                         }
@@ -4659,7 +4660,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                         ) {
                             Text(stringResource(R.string.settings_legal_terms_of_use))
                         }
@@ -4670,7 +4671,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                         ) {
                             Text(stringResource(R.string.settings_legal_subscription))
                         }
@@ -4681,7 +4682,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                         ) {
                             Text(stringResource(R.string.settings_legal_ai_usage))
                         }
@@ -4692,7 +4693,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                         ) {
                             Text(stringResource(R.string.settings_legal_imprint))
                         }
@@ -4713,7 +4714,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 12.dp),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                         ) {
                             Text(stringResource(R.string.settings_legal_support_cta))
                         }
@@ -4875,7 +4876,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             ) {
                                 Text(stringResource(R.string.settings_legal_save))
                             }
@@ -4911,7 +4912,7 @@ fun SettingsScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 20.dp, vertical = 12.dp)
                         .padding(bottom = if (!feedbackMessage.isNullOrBlank()) 84.dp else 0.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
                 ) {
                     Text(
                         text = stringResource(activeAdminWorkspace.titleRes),
@@ -5002,7 +5003,7 @@ private fun PaymentProviderAdminCard(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
             ) {
                 Text(
                     text = title,
@@ -5062,11 +5063,11 @@ private fun PaymentProviderAdminCard(
 
         Row(
             modifier = Modifier.padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             Button(
                 onClick = onSaveConnection,
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
             ) {
                 Text(
                     when (providerKind) {
@@ -5086,7 +5087,7 @@ private fun PaymentProviderAdminCard(
             onDisconnect?.let { disconnect ->
                 OutlinedButton(
                     onClick = disconnect,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 ) {
                     Text(
                         if (providerKind == PaymentProviderKind.PayPal) {
@@ -5121,7 +5122,7 @@ private fun StripeBackendSecretsAdminCard(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
             ) {
                 Text(
                     text = stringResource(R.string.settings_payments_stripe_heading),
@@ -5154,7 +5155,7 @@ private fun StripeBackendSecretsAdminCard(
 
         Row(
             modifier = Modifier.padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             SettingsBadge(
                 text = if (status.hasSecretKey) {
@@ -5209,7 +5210,7 @@ private fun StripeBackendSecretsAdminCard(
         Button(
             onClick = onSave,
             modifier = Modifier.padding(top = 12.dp),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
         ) {
             Text(stringResource(R.string.settings_payments_save_securely))
         }
@@ -5244,7 +5245,7 @@ private fun BankTransferAdminCard(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
             ) {
                 Text(
                     text = stringResource(R.string.settings_payments_bank_transfer_heading),
@@ -5334,7 +5335,7 @@ private fun BankTransferAdminCard(
         Button(
             onClick = onSave,
             modifier = Modifier.padding(top = 12.dp),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
         ) {
             Text(
                 if (configured) {
@@ -5362,15 +5363,15 @@ private fun ProfileEditorCard(
     onInstagramHandleChange: (String) -> Unit,
     onSave: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
                     .size(46.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -5381,7 +5382,7 @@ private fun ProfileEditorCard(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
                 Text(
                     text = stringResource(R.string.settings_profile_inline_heading),
                     style = MaterialTheme.typography.titleMedium,
@@ -5435,7 +5436,7 @@ private fun ProfileEditorCard(
             onClick = onSave,
             modifier = Modifier.fillMaxWidth(),
             enabled = !isSaving,
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
         ) {
             Text(if (isSaving) "Profil wird gespeichert..." else "Profil speichern")
         }
@@ -5451,7 +5452,7 @@ private fun SettingsUtilityRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
         SettingsUtilityChip(
             label = if (isOwner) stringResource(R.string.settings_utility_payments) else stringResource(R.string.settings_utility_support),
@@ -5485,7 +5486,7 @@ private fun SettingsUtilityChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(999.dp)
+    val shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius)
     OutlinedButton(
         onClick = onClick,
         modifier = modifier,
@@ -5527,7 +5528,7 @@ private fun OwnerCommandCenterCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius))
             .background(
                 Brush.linearGradient(
                     listOf(
@@ -5537,9 +5538,9 @@ private fun OwnerCommandCenterCard(
                     ),
                 ),
             )
-            .padding(16.dp),
+            .padding(SkydownUiTokens.cardPadding),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -5547,7 +5548,7 @@ private fun OwnerCommandCenterCard(
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                 ) {
                     Text(
                         text = if (isOwner) {
@@ -5581,7 +5582,7 @@ private fun OwnerCommandCenterCard(
             }
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 OwnerCommandSignalButton(
@@ -5602,7 +5603,7 @@ private fun OwnerCommandCenterCard(
                 )
             }
             Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 OwnerCommandSignalButton(
@@ -5637,7 +5638,7 @@ private fun OwnerCommandSignalButton(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
             .background(MaterialTheme.colorScheme.surface.copy(alpha = if (enabled) 0.9f else 0.46f))
             .clickable(
                 enabled = enabled,
@@ -5645,7 +5646,7 @@ private fun OwnerCommandSignalButton(
                 onClick = onClick,
             )
             .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(9.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSnug),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -5698,7 +5699,7 @@ private fun SettingsLegalDocumentSheet(
                 end = 20.dp,
                 bottom = 36.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
         ) {
             item {
                 Text(
@@ -5709,7 +5710,7 @@ private fun SettingsLegalDocumentSheet(
                 )
             }
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                     Text(
                         text = document.title,
                         style = MaterialTheme.typography.headlineSmall,
@@ -5774,7 +5775,7 @@ private fun SettingsToggleRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -5782,7 +5783,7 @@ private fun SettingsToggleRow(
     ) {
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
         ) {
             Text(
                 text = title,
@@ -5812,7 +5813,7 @@ private fun AppearanceChoiceRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
             .background(
                 if (selected) {
                     MaterialTheme.colorScheme.primaryContainer
@@ -5878,10 +5879,10 @@ private fun SettingsBadge(
 
     Row(
         modifier = badgeModifier
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(backgroundColor)
             .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -5914,10 +5915,10 @@ private fun SettingsLockedHint(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
             .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.68f))
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -6080,7 +6081,7 @@ private fun AdminWorkspaceListRow(
     Button(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.surface,
@@ -6089,13 +6090,13 @@ private fun AdminWorkspaceListRow(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(SkydownUiTokens.denseRadius))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -6109,7 +6110,7 @@ private fun AdminWorkspaceListRow(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
             ) {
                 Text(
                     text = stringResource(section.titleRes),
@@ -6125,7 +6126,7 @@ private fun AdminWorkspaceListRow(
 
             Column(
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
             ) {
                 Text(
                     text = detailText,
@@ -6150,7 +6151,7 @@ private fun AdminWorkspaceChip(
 ) {
     Button(
         onClick = onClick,
-        shape = RoundedCornerShape(999.dp),
+        shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = if (selected) {
@@ -6191,7 +6192,7 @@ private fun AdminWorkspaceRailButton(
         modifier = modifier
             .fillMaxWidth()
             .skydownPressable(interactionSource, pressedScale = 0.982f),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
         interactionSource = interactionSource,
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
         colors = ButtonDefaults.buttonColors(
@@ -6209,7 +6210,7 @@ private fun AdminWorkspaceRailButton(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -6233,10 +6234,10 @@ private fun AdminWorkspaceSummaryCard(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 14.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(
@@ -6245,7 +6246,7 @@ private fun AdminWorkspaceSummaryCard(
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(20.dp),
         )
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense)) {
             Text(
                 text = stringResource(section.titleRes),
                 style = MaterialTheme.typography.titleMedium,
@@ -6274,11 +6275,11 @@ private fun AdminUserRoleGuideCard(
         )
         Column(
             modifier = Modifier.padding(top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             UserRole.entries.forEach { role ->
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                 ) {
                     Text(
                         text = role.displayTitle,
@@ -6313,15 +6314,15 @@ private fun ArtistPageAdminCard(
     }
 
     SkydownCard {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                 verticalAlignment = Alignment.Top,
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                 ) {
                     Text(
                         text = page.artistName,
@@ -6341,7 +6342,7 @@ private fun ArtistPageAdminCard(
 
                 Column(
                     horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                 ) {
                     SettingsBadge(
                         text = if (page.hasCustomPresentation) "Live" else "Platzhalter",
@@ -6373,7 +6374,7 @@ private fun ArtistPageAdminCard(
                     fontWeight = FontWeight.SemiBold,
                 )
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                     users.forEach { user ->
                         val userId = user.id.orEmpty()
                         val isSelected = selectedEditorUids.contains(userId)
@@ -6387,7 +6388,7 @@ private fun ArtistPageAdminCard(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (isSelected) {
                                     MaterialTheme.colorScheme.primary
@@ -6429,7 +6430,7 @@ private fun ArtistPageAdminCard(
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
             ) {
                 Text(stringResource(R.string.settings_save_editors))
             }
@@ -6556,7 +6557,7 @@ private fun AdminManagedUserCard(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
             ) {
                 Text(
                     text = user.username,
@@ -6572,7 +6573,7 @@ private fun AdminManagedUserCard(
 
             Column(
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
             ) {
                 SettingsBadge(
                     text = resolvedRole.displayTitle,
@@ -6588,7 +6589,7 @@ private fun AdminManagedUserCard(
                 }
                 if (isSaving) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         androidx.compose.material3.CircularProgressIndicator(
@@ -6626,7 +6627,7 @@ private fun AdminManagedUserCard(
 
         LazyRow(
             modifier = Modifier.padding(top = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             items(UserRole.entries.toList()) { role ->
                 val selected = resolvedRole == role
@@ -6636,7 +6637,7 @@ private fun AdminManagedUserCard(
                 if (selected) {
                     Button(
                         onClick = { selectedRole = role.rawValue },
-                        shape = RoundedCornerShape(999.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                     ) {
                         Text(role.displayTitle)
@@ -6645,11 +6646,11 @@ private fun AdminManagedUserCard(
                     OutlinedButton(
                         onClick = { selectedRole = role.rawValue },
                         enabled = roleSelectionEnabled,
-                        shape = RoundedCornerShape(999.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             if (!roleSelectionEnabled) {
@@ -6752,14 +6753,14 @@ private fun AdminManagedUserCard(
                 } else {
                     LazyRow(
                         modifier = Modifier.padding(top = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     ) {
                         items(listOf(UserQuotaPlan.Creator, UserQuotaPlan.Studio)) { plan ->
                             val isSelected = resolvedQuotaPlan == plan
                             if (isSelected) {
                                 Button(
                                     onClick = { selectedQuotaPlan = plan.rawValue },
-                                    shape = RoundedCornerShape(999.dp),
+                                    shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                                 ) {
                                     Text(plan.displayTitle)
@@ -6767,7 +6768,7 @@ private fun AdminManagedUserCard(
                             } else {
                                 OutlinedButton(
                                     onClick = { selectedQuotaPlan = plan.rawValue },
-                                    shape = RoundedCornerShape(999.dp),
+                                    shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                                 ) {
                                     Text(plan.displayTitle)
@@ -6838,14 +6839,14 @@ private fun AdminManagedUserCard(
 
         LazyRow(
             modifier = Modifier.padding(top = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             items(listOf(1, 3, 7, 30)) { option ->
                 val isSelected = historyRetentionDays == option
                 if (isSelected) {
                     Button(
                         onClick = { historyRetentionDays = option },
-                        shape = RoundedCornerShape(999.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                     ) {
                         Text(historyOptionLabel(option))
@@ -6853,7 +6854,7 @@ private fun AdminManagedUserCard(
                 } else {
                     OutlinedButton(
                         onClick = { historyRetentionDays = option },
-                        shape = RoundedCornerShape(999.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                     ) {
                         Text(historyOptionLabel(option))
@@ -6883,11 +6884,11 @@ private fun AdminManagedUserCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
             enabled = !isSaving && hasPendingChanges,
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (isSaving) {

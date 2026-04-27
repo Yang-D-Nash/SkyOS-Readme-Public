@@ -335,7 +335,7 @@ private fun AiHubCompactHeader(
     compactVisualDensity: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val shellShape = RoundedCornerShape(18.dp)
+    val shellShape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius)
     val accent = if (mode == AiHubMode.Agent) {
         MaterialTheme.colorScheme.tertiary
     } else {
@@ -367,11 +367,11 @@ private fun AiHubCompactHeader(
                 shape = shellShape,
             )
             .padding(7.dp),
-        verticalArrangement = Arrangement.spacedBy(7.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingChrome),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingChrome),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AiHubModeButton(
@@ -431,7 +431,7 @@ private fun WorkflowWorkspaceCard(
 
         Column(
             modifier = Modifier.padding(top = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             WorkflowSignalRow(
                 index = "01",
@@ -452,7 +452,7 @@ private fun WorkflowWorkspaceCard(
 
         Row(
             modifier = Modifier.padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             AiHubBadge(text = stringResource(R.string.ai_hub_badge_n8n), accent = MaterialTheme.colorScheme.secondary)
             AiHubBadge(text = stringResource(R.string.ai_hub_badge_agent), accent = MaterialTheme.colorScheme.primary)
@@ -486,7 +486,7 @@ private fun WorkflowSignalRow(
     body: String,
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -503,7 +503,7 @@ private fun WorkflowSignalRow(
                 color = MaterialTheme.colorScheme.secondary,
             )
         }
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
@@ -529,7 +529,7 @@ private fun AiHubModeButton(
     val accent = if (mode == AiHubMode.Agent) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
     val icon = if (mode == AiHubMode.Agent) Icons.Default.Bolt else Icons.Default.AutoAwesome
     val label = if (mode == AiHubMode.Agent) "Agent" else "Bot"
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(SkydownUiTokens.denseRadius)
     val backgroundColor = if (isSelected) accent else MaterialTheme.colorScheme.surface.copy(alpha = 0.84f)
     val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
     val horizontalPadding = if (compactVisualDensity) 10.dp else 12.dp
@@ -578,7 +578,7 @@ private fun AiHubWorkflowButton(
     modifier: Modifier = Modifier,
 ) {
     val accent = MaterialTheme.colorScheme.secondary
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(SkydownUiTokens.denseRadius)
     val horizontalPadding = if (compactVisualDensity) 10.dp else 12.dp
 
     Row(
@@ -627,7 +627,7 @@ private fun AiHubBadge(
 ) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(accent.copy(alpha = 0.12f))
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {

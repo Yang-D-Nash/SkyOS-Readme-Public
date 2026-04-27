@@ -38,7 +38,7 @@ struct SubmitSectionView: View {
                             : AppColors.secondaryText(for: colorScheme)
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                             .stroke(
                                 submitEnabled
                                     ? Color.clear
@@ -46,7 +46,7 @@ struct SubmitSectionView: View {
                                 lineWidth: 1
                             )
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
             }
             .disabled(!isFormValid || isSubmitting)
             .confirmationDialog(

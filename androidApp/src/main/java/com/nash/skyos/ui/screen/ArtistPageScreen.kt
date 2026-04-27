@@ -80,6 +80,7 @@ import com.nash.skyos.ui.component.EditableImageFieldCard
 import com.nash.skyos.ui.component.EditableVideoFieldCard
 import com.nash.skyos.ui.component.LocalSessionUser
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
@@ -600,7 +601,6 @@ fun ArtistPageScreen(
                     },
                 )
         ) {
-            val nicmaHubSpacing = 16.dp
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -608,7 +608,7 @@ fun ArtistPageScreen(
                     .padding(horizontal = 0.dp),
                 contentPadding = skydownContentPadding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(
-                    if (isNicmaStudioPage) nicmaHubSpacing else sectionSpacing,
+                    if (isNicmaStudioPage) SkydownUiTokens.stackSpacingComfortable else sectionSpacing,
                 ),
             ) {
                 if (isNicmaStudioPage) {
@@ -756,7 +756,7 @@ fun ArtistPageScreen(
                     item {
                         SkydownCard {
                             if (isNicmaStudioPage) {
-                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
                                     BrandSectionBanner(
                                         title = stringResource(R.string.artist_studio_editor_title),
                                         subtitle = stringResource(R.string.artist_studio_editor_subtitle),
@@ -805,7 +805,7 @@ fun ArtistPageScreen(
                                     ArtistPageInput(title = stringResource(R.string.social_youtube), value = youtubeDraft, onValueChange = { youtubeDraft = it })
                                 }
                             } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
                                     BrandSectionBanner(
                                         title = stringResource(R.string.artist_editor_title),
                                         subtitle = stringResource(R.string.artist_editor_subtitle),
@@ -987,7 +987,7 @@ private fun ArtistPageHeroCard(
         compactVisualDensity = compactVisualDensity,
         onSurfaceClick = onSurfaceClick,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
             ArtistPageHeroMotionStage(
                 page = page,
                 heroVideoPlayer = heroVideoPlayer,
@@ -1012,7 +1012,7 @@ private fun ArtistPageLinksCard(
     val links = artistConnectLinks(page)
 
     SkydownCard {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
             BrandSectionBanner(
                 title = stringResource(R.string.artist_connect_title),
                 subtitle = stringResource(R.string.artist_connect_subtitle),
@@ -1048,7 +1048,7 @@ private fun ArtistPageLinksCard(
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = link.backgroundColor,
                             contentColor = link.foregroundColor,
@@ -1060,7 +1060,7 @@ private fun ArtistPageLinksCard(
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(start = 10.dp),
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
                         ) {
                             Text(
                                 text = link.title,
@@ -1088,7 +1088,7 @@ private fun ArtistPageSpotlightCard(
 ) {
     val haptics = LocalHapticFeedback.current
     SkydownCard {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
             BrandSectionBanner(
                 title = stringResource(R.string.artist_spotlight_title),
                 subtitle = if (spotlightTrack != null) {
@@ -1114,13 +1114,13 @@ private fun ArtistPageSpotlightCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(SkydownUiTokens.nanoCorner))
                         .clickable {
                             haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onSelectTrack(track.trackId)
                         }
                         .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                     verticalAlignment = Alignment.Top,
                 ) {
                     AsyncImage(
@@ -1128,11 +1128,11 @@ private fun ArtistPageSpotlightCard(
                         contentDescription = null,
                         modifier = Modifier
                             .size(64.dp)
-                            .clip(RoundedCornerShape(8.dp)),
+                            .clip(RoundedCornerShape(SkydownUiTokens.microCorner)),
                         contentScale = ContentScale.Crop,
                     )
 
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline)) {
                         Text(
                             text = track.trackName,
                             style = MaterialTheme.typography.titleMedium,
@@ -1167,7 +1167,7 @@ private fun ArtistPageTracksCard(
     onPlayToggle: (Track) -> Unit,
 ) {
     SkydownCard {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
             BrandSectionBanner(
                 title = stringResource(R.string.artist_top_songs_title),
                 subtitle = when {
@@ -1209,7 +1209,7 @@ private fun ArtistPageTracksCard(
                 }
 
                 else -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
                         tracks.forEachIndexed { index, track ->
                             val presentation = when (index) {
                                 0 -> TrackRowPresentation.Featured
@@ -1244,7 +1244,7 @@ private fun ArtistPageHeroMotionStage(
         modifier = Modifier
             .fillMaxWidth()
             .height(200.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.tightRadius))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
     ) {
         when {
@@ -1340,7 +1340,7 @@ private fun ArtistPageSupportMessage(
         text = message,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
             .background(accent.copy(alpha = 0.10f))
             .padding(horizontal = 14.dp, vertical = 14.dp),
         style = MaterialTheme.typography.bodyMedium,
@@ -1496,7 +1496,7 @@ private fun ArtistPageInput(
         label = { Text(title) },
         singleLine = singleLine,
         minLines = if (singleLine) 1 else 4,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
     )
 }
 

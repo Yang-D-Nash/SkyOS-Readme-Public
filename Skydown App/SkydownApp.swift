@@ -67,7 +67,7 @@ struct SkydownApp: App {
                             fallback: "No connection. You are seeing cached content and can continue navigating."
                         )
                     )
-                    .padding(.top, 10)
+                    .padding(.top, SkydownLayout.stackSpacingPill)
                     .transition(
                         .move(edge: .top)
                         .combined(with: .opacity)
@@ -115,10 +115,10 @@ private struct ConnectivityStatusBanner: View {
     let message: String
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: SkydownLayout.stackSpacingPill) {
             Image(systemName: "wifi.slash")
                 .font(.headline)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                 Text(title)
                     .font(.caption.bold())
                 Text(message)
@@ -140,14 +140,14 @@ private struct ConnectivityStatusBanner: View {
                 endPoint: .bottomTrailing
             )
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.16), lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.16), radius: 18, y: 8)
         .skydownLuminousSweep(
-            cornerRadius: 14,
+            cornerRadius: SkydownLayout.compactRadius,
             accent: Color(red: 1.0, green: 0.78, blue: 0.42),
             alpha: 0.16
         )

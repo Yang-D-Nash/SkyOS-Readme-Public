@@ -382,7 +382,7 @@ private struct DeferredSettingsPresentation: View {
                     )
                     .ignoresSafeArea()
 
-                    VStack(spacing: 14) {
+                    VStack(spacing: SkydownLayout.stackSpacingRelaxed) {
                         ProgressView()
                             .progressViewStyle(.circular)
                             .tint(AppColors.accent(for: effectiveColorScheme))
@@ -462,9 +462,9 @@ struct AppSessionToolbarActions: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: SkydownLayout.stackSpacingPill) {
             Button(action: authManager.userSession == nil ? onOpenSettings : (onOpenProfile ?? onOpenSettings)) {
-                HStack(spacing: 10) {
+                HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ZStack(alignment: .bottomTrailing) {
                         if let profileImageURL = authManager.userSession?.profileImageURL,
                            let url = URL(string: profileImageURL) {
@@ -708,7 +708,7 @@ private struct ZweizweiTabView: View {
                                         }
                                     }
                                 ) {
-                                    HStack(spacing: 10) {
+                                    HStack(spacing: SkydownLayout.stackSpacingPill) {
                                         BrandHeroPill(
                                             text: "Katalog",
                                             colorScheme: colorScheme,
@@ -735,7 +735,7 @@ private struct ZweizweiTabView: View {
                                 }
 
                                 if layout.prefersThreeColumn && !isShortHubHeight {
-                                    HStack(spacing: 12) {
+                                    HStack(spacing: SkydownLayout.stackSpacingCompact) {
                                         MusicHubStatusCard(
                                             title: "Katalog",
                                             value: "Artists · Tracks · Pages",
@@ -749,7 +749,7 @@ private struct ZweizweiTabView: View {
                                     }
                                 }
 
-                                VStack(alignment: .leading, spacing: 8) {
+                                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                                     Text("Direkter Einstieg")
                                         .font(.caption.weight(.semibold))
                                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -764,7 +764,7 @@ private struct ZweizweiTabView: View {
                                             destination = .catalog
                                         }
                                     }
-                                    HStack(spacing: 8) {
+                                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                         compactMusicHubAction(
                                             title: "Studio",
                                             systemImage: "sparkles",
@@ -775,11 +775,11 @@ private struct ZweizweiTabView: View {
                                             }
                                         }
                                     }
-                                    VStack(alignment: .leading, spacing: 6) {
+                                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                                         Text("Artist Links")
                                             .font(.caption2.weight(.semibold))
                                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                                        VStack(alignment: .leading, spacing: 6) {
+                                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                                             ForEach(musicHubSocialDestinations, id: \.id) { destination in
                                                 compactMusicHubSocialLink(destination: destination)
                                             }
@@ -861,7 +861,7 @@ private struct ZweizweiTabView: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: systemImage)
                     .font(.footnote.weight(.semibold))
                 Text(title)
@@ -873,11 +873,11 @@ private struct ZweizweiTabView: View {
             .padding(.vertical, 11)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                     .fill(AppColors.secondaryBackground(for: colorScheme))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                     .stroke(accent.opacity(0.35), lineWidth: 1)
             )
         }
@@ -930,7 +930,7 @@ private struct ZweizweiTabView: View {
             guard let url = destination.url else { return }
             openURL(url)
         } label: {
-            HStack(alignment: .center, spacing: 10) {
+            HStack(alignment: .center, spacing: SkydownLayout.stackSpacingPill) {
                 ZStack {
                     Circle()
                         .fill(accent.opacity(isActive ? 0.34 : 0.20))
@@ -940,7 +940,7 @@ private struct ZweizweiTabView: View {
                 }
                 .frame(width: 24, height: 24)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                     Text(destination.title)
                         .font(.caption.weight(.semibold))
                         .foregroundColor(AppColors.text(for: colorScheme))
@@ -972,7 +972,7 @@ private struct ZweizweiTabView: View {
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
@@ -987,11 +987,11 @@ private struct ZweizweiTabView: View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
                     .stroke(accent.opacity(isActive ? 0.58 : 0.32), lineWidth: isActive ? 1.4 : 1)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
                     .stroke(
                         LinearGradient(
                             colors: instagramGradientColors.map { $0.opacity(isActive ? 0.55 : 0.28) },
@@ -1043,10 +1043,10 @@ private struct ShellActionCard: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
+                HStack(alignment: .top, spacing: SkydownLayout.stackSpacingRelaxed) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                             .fill(
                                 LinearGradient(
                                     colors: [
@@ -1064,7 +1064,7 @@ private struct ShellActionCard: View {
                     }
                     .frame(width: 54, height: 54)
 
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                         Text(eyebrow.uppercased())
                             .font(AppTypography.heroEyebrow)
                             .tracking(1.1)
@@ -1097,7 +1097,7 @@ private struct ShellActionCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .multilineTextAlignment(.leading)
 
-                HStack(spacing: 8) {
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     ForEach(badges, id: \.self) { badge in
                         Text(badge)
                             .font(.caption.weight(.semibold))
@@ -1130,7 +1130,7 @@ private struct MusicHubStatusCard: View {
     let accent: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text(title.uppercased())
                 .font(AppTypography.heroEyebrow)
                 .tracking(1.1)
@@ -1141,12 +1141,12 @@ private struct MusicHubStatusCard: View {
                 .foregroundColor(AppColors.text(for: colorScheme))
                 .multilineTextAlignment(.leading)
         }
-        .padding(16)
+        .padding(SkydownLayout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .skydownPanelSurface(
             colorScheme: colorScheme,
             accent: accent,
-            cornerRadius: 20,
+            cornerRadius: SkydownLayout.cardCornerRadius,
             shadowRadius: 10,
             shadowYOffset: 6
         )
@@ -1250,7 +1250,7 @@ private struct AIHubView: View {
                     ? AppLocalized.text("auth.ai.login.hint_signed_in", fallback: "Save workflows and return to the same thread without losing context.")
                     : featureFlags.aiAccessMessage(for: nil)
 
-                VStack(spacing: 10) {
+                VStack(spacing: SkydownLayout.stackSpacingPill) {
                     if authManager.userSession == nil {
                         AIHubLoginCard(
                             colorScheme: colorScheme,
@@ -1605,7 +1605,7 @@ private struct AIHubLoginCard: View {
     let onOpenLogin: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             Text(title)
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1614,7 +1614,7 @@ private struct AIHubLoginCard: View {
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 AIHubBadge(text: "Bot", color: AppColors.accent(for: colorScheme))
                 AIHubBadge(text: "Agent", color: AppColors.accentMystic(for: colorScheme))
                 AIHubBadge(text: "Visuals", color: AppColors.accentHighlight(for: colorScheme))
@@ -1632,10 +1632,10 @@ private struct AIHubLoginCard: View {
         .padding(SkydownLayout.cardPadding)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -1645,7 +1645,7 @@ private struct AIHubRestrictedCard: View {
     let onOpenSettings: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             Text("KI derzeit gesperrt")
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1654,7 +1654,7 @@ private struct AIHubRestrictedCard: View {
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 AIHubBadge(text: "Bot", color: AppColors.accent(for: colorScheme))
                 AIHubBadge(text: "Agent", color: AppColors.accentHighlight(for: colorScheme))
                 AIHubBadge(text: "Visuals", color: AppColors.accentMystic(for: colorScheme))
@@ -1672,10 +1672,10 @@ private struct AIHubRestrictedCard: View {
         .padding(SkydownLayout.cardPadding)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -1697,13 +1697,13 @@ private struct AIHubCompactHeader: View {
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 7) {
+            HStack(spacing: SkydownLayout.stackSpacingChrome) {
                 modeSelectionStrip
                 workflowToggleButton
                     .fixedSize(horizontal: true, vertical: false)
             }
 
-            VStack(spacing: 7) {
+            VStack(spacing: SkydownLayout.stackSpacingChrome) {
                 modeSelectionStrip
                 workflowToggleButton
                     .frame(maxWidth: .infinity)
@@ -1713,19 +1713,19 @@ private struct AIHubCompactHeader: View {
         .skydownPanelSurface(
             colorScheme: colorScheme,
             accent: accent,
-            cornerRadius: 18,
+            cornerRadius: SkydownLayout.messageBubbleRadius,
             shadowRadius: 10,
             shadowYOffset: 6
         )
     }
 
     private var modeSelectionStrip: some View {
-        HStack(spacing: 7) {
+        HStack(spacing: SkydownLayout.stackSpacingChrome) {
             ForEach(AIHubMode.allCases) { currentMode in
                 Button {
                     onSelectMode(currentMode)
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: SkydownLayout.stackSpacingDense) {
                         Image(systemName: currentMode.iconName)
                         Text(currentMode.rawValue)
                             .fontWeight(.semibold)
@@ -1733,7 +1733,7 @@ private struct AIHubCompactHeader: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 9)
                     .background(
-                        RoundedRectangle(cornerRadius: 16)
+                        RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                             .fill(
                                 mode == currentMode
                                 ? accent
@@ -1754,7 +1754,7 @@ private struct AIHubCompactHeader: View {
 
     private var workflowToggleButton: some View {
         Button(action: onToggleWorkflow) {
-            HStack(spacing: 6) {
+            HStack(spacing: SkydownLayout.stackSpacingDense) {
                 Image(systemName: showsWorkflowWorkspace ? "xmark.circle.fill" : "bolt.horizontal.circle.fill")
                     .font(.headline)
                 Text(showsWorkflowWorkspace ? "Zur AI" : "Automation")
@@ -1764,7 +1764,7 @@ private struct AIHubCompactHeader: View {
             .padding(.horizontal, 12)
             .frame(height: 42)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
@@ -1777,7 +1777,7 @@ private struct AIHubCompactHeader: View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                     .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.22), lineWidth: 1)
             )
         }
@@ -1791,7 +1791,7 @@ private struct AIWorkflowWorkspaceCard: View {
     let onClose: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             Text("Automation")
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1800,13 +1800,13 @@ private struct AIWorkflowWorkspaceCard: View {
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 AIWorkflowStepRow(index: "01", title: "Briefing", detail: "Der Agent macht aus einer Idee einen klaren Plan.", colorScheme: colorScheme)
                 AIWorkflowStepRow(index: "02", title: "Aktion", detail: "Optional wird dein Automationsservice mit Nutzerkontext gestartet.", colorScheme: colorScheme)
                 AIWorkflowStepRow(index: "03", title: "Rueckweg", detail: "Du bleibst in der App und kannst direkt weiterarbeiten.", colorScheme: colorScheme)
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
                 AIHubBadge(text: "n8n", color: AppColors.accentHighlight(for: colorScheme))
                 AIHubBadge(text: "Agent", color: AppColors.accent(for: colorScheme))
                 AIHubBadge(text: "Kontext", color: AppColors.accentMystic(for: colorScheme))
@@ -1833,10 +1833,10 @@ private struct AIWorkflowWorkspaceCard: View {
         .padding(SkydownLayout.cardPadding)
         .background(AppColors.cardBackground(for: colorScheme))
         .overlay(
-            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
     }
 }
 
@@ -1847,7 +1847,7 @@ private struct AIWorkflowStepRow: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
             Text(index)
                 .font(.caption.weight(.bold))
                 .foregroundColor(AppColors.accentHighlight(for: colorScheme))
@@ -1857,7 +1857,7 @@ private struct AIWorkflowStepRow: View {
                         .fill(AppColors.accentHighlight(for: colorScheme).opacity(0.12))
                 )
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
                 Text(title)
                     .font(.subheadline.weight(.bold))
                     .foregroundColor(AppColors.text(for: colorScheme))

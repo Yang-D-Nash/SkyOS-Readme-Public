@@ -29,7 +29,7 @@ struct MerchandiseRowView: View {
             .padding(edgePadding)
             .opacity(shelfSettled ? 0.95 : 1)
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
                 .stroke(
                     AppColors.accentHighlight(for: environmentColorScheme)
                         .opacity(shelfSpotlight ? 0.3 : 0),
@@ -39,7 +39,7 @@ struct MerchandiseRowView: View {
         .skydownPanelSurface(
             colorScheme: environmentColorScheme,
             accent: AppColors.accentHighlight(for: environmentColorScheme),
-            cornerRadius: 22,
+            cornerRadius: SkydownLayout.cardCornerRadius,
             shadowRadius: shelfSpotlight ? 12 : (shelfSettled ? 7 : 9),
             shadowYOffset: shelfSpotlight ? 6 : (shelfSettled ? 3 : 5)
         )

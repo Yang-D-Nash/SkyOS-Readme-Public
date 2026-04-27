@@ -218,7 +218,7 @@ struct ArtistPageView: View {
                 if canEdit {
                     ToolbarItem(placement: .topBarTrailing) {
                         if isEditing {
-                            HStack(spacing: 10) {
+                            HStack(spacing: SkydownLayout.stackSpacingPill) {
                                 Button("Abbrechen") {
                                     discardEditing()
                                 }
@@ -509,7 +509,7 @@ struct ArtistPageView: View {
     }
 
     private var heroCard: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
             ZStack(alignment: .bottomLeading) {
                 heroVisual
                     .frame(height: 286)
@@ -526,7 +526,7 @@ struct ArtistPageView: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.heroCornerRadius, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
                     Text(heroMetaLine)
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.white.opacity(0.88))
@@ -534,7 +534,7 @@ struct ArtistPageView: View {
 
                     Spacer(minLength: 0)
 
-                    HStack(alignment: .bottom, spacing: 16) {
+                    HStack(alignment: .bottom, spacing: SkydownLayout.stackSpacingComfortable) {
                         ArtistPageAvatar(
                             imageURL: displayPage.profileImageURL,
                             fallbackText: displayPage.artistName,
@@ -543,7 +543,7 @@ struct ArtistPageView: View {
                         )
                         .shadow(color: .black.opacity(0.22), radius: 18, y: 10)
 
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                             Text(displayPage.artistName)
                                 .font(.system(size: 30, weight: .black, design: .rounded))
                                 .foregroundColor(.white)
@@ -568,7 +568,7 @@ struct ArtistPageView: View {
                 .padding(20)
             }
 
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                 Text(displayPage.bio ?? "Noch keine Beschreibung.")
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -647,7 +647,7 @@ struct ArtistPageView: View {
         }
         .frame(height: 200)
         .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous))
     }
 
     private var fallbackHero: some View {
@@ -663,7 +663,7 @@ struct ArtistPageView: View {
     }
 
     private var artistSessionDeck: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
+        HStack(alignment: .firstTextBaseline, spacing: SkydownLayout.stackSpacingDense) {
             Text(artistStateLabel)
             Text("·")
             Text(artistSoundLabel)
@@ -678,7 +678,7 @@ struct ArtistPageView: View {
     }
 
     private var spotlightCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             ArtistSectionBanner(
                 title: "Spotlight",
                 subtitle: spotlightTrack == nil
@@ -695,19 +695,19 @@ struct ArtistPageView: View {
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             if let spotlightTrack {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
                     AsyncImage(url: URL(string: spotlightTrack.artworkUrl100 ?? "")) { image in
                         image
                             .resizable()
                             .scaledToFill()
                     } placeholder: {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        RoundedRectangle(cornerRadius: SkydownLayout.microCorner, style: .continuous)
                             .fill(AppColors.secondaryBackground(for: colorScheme))
                     }
                     .frame(width: 64, height: 64)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.microCorner, style: .continuous))
 
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                         Text(spotlightTrack.trackName)
                             .font(.headline.weight(.semibold))
                             .foregroundColor(AppColors.text(for: colorScheme))
@@ -742,7 +742,7 @@ struct ArtistPageView: View {
     }
 
     private var topTracksCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             ArtistSectionBanner(
                 title: "Top Songs",
                 subtitle: topSongsBannerSubtitle,
@@ -793,7 +793,7 @@ struct ArtistPageView: View {
     }
 
     private var linksCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             ArtistSectionBanner(
                 title: "Connect",
                 subtitle: "Instagram, Spotify, YouTube",
@@ -823,13 +823,13 @@ struct ArtistPageView: View {
                             openURL(url)
                         }
                     } label: {
-                        HStack(spacing: 12) {
+                        HStack(spacing: SkydownLayout.stackSpacingCompact) {
                             Image(systemName: link.systemImage)
                                 .font(.headline.weight(.bold))
                                 .foregroundColor(link.tint)
                                 .frame(width: 28)
 
-                            VStack(alignment: .leading, spacing: 3) {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
                                 Text(link.title)
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -851,10 +851,10 @@ struct ArtistPageView: View {
                     .padding(14)
                     .background(link.backgroundColor.opacity(colorScheme == .dark ? 0.18 : 0.12))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
                             .stroke(link.tint.opacity(0.18), lineWidth: 1)
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
                 }
             }
         }
@@ -867,7 +867,7 @@ struct ArtistPageView: View {
     }
 
     private var editorCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             ArtistSectionBanner(
                 title: "Artist Page bearbeiten",
                 subtitle: "Vorschau bis Speichern",
@@ -1247,9 +1247,9 @@ private struct ArtistSectionBanner: View {
     let tag: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
             ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                     .fill(accent.opacity(colorScheme == .dark ? 0.20 : 0.14))
                     .frame(width: 44, height: 44)
 
@@ -1258,7 +1258,7 @@ private struct ArtistSectionBanner: View {
                     .foregroundColor(accent)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text(title)
                     .font(.title3.weight(.black))
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -1286,7 +1286,7 @@ private struct ArtistSupportMessage: View {
     let accent: Color
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
             Circle()
                 .fill(accent.opacity(colorScheme == .dark ? 0.24 : 0.16))
                 .frame(width: 34, height: 34)
@@ -1296,7 +1296,7 @@ private struct ArtistSupportMessage: View {
                         .foregroundColor(accent)
                 )
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSubtle) {
                 Text("In Arbeit")
                     .font(.caption.weight(.bold))
                     .foregroundColor(accent)
@@ -1312,11 +1312,11 @@ private struct ArtistSupportMessage: View {
         }
         .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .fill(AppColors.secondaryBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(accent.opacity(0.18), lineWidth: 1)
         )
     }
@@ -1353,7 +1353,7 @@ private struct ArtistInfoMetric: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
             Text(title.uppercased())
                 .font(.caption2.weight(.bold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1367,7 +1367,7 @@ private struct ArtistInfoMetric: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 11)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
                 .fill(AppColors.secondaryBackground(for: colorScheme))
         )
     }
@@ -1380,7 +1380,7 @@ private struct ArtistPageInputField: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1390,7 +1390,7 @@ private struct ArtistPageInputField: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 14)
                 .background(AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
         }
     }
 }
@@ -1402,7 +1402,7 @@ private struct ArtistPageMultilineInput: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
@@ -1413,7 +1413,7 @@ private struct ArtistPageMultilineInput: View {
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .padding(.horizontal, 18)
-                        .padding(.vertical, 16)
+                        .padding(.vertical, SkydownLayout.cardPadding)
                 }
 
                 TextEditor(text: $text)
@@ -1422,7 +1422,7 @@ private struct ArtistPageMultilineInput: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(AppColors.secondaryBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
             }
         }
     }

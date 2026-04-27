@@ -95,7 +95,7 @@ struct HomeHeroIntroCard: View {
             edgeToEdge: true,
             onSurfaceTap: onOpenProfile
         ) {
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .top, spacing: SkydownLayout.stackSpacingPill) {
                 ForEach(Array(heroPillOrder.enumerated()), id: \.offset) { index, target in
                     let weight: CGFloat = index == 0 ? 1.3 : 1.0
                     Group {
@@ -118,10 +118,10 @@ struct HomeHeroIntroCard: View {
                     }
                     .frame(maxWidth: .infinity)
                     .layoutPriority(weight)
-                    .padding(.trailing, index == 0 ? 3 : 0)
+                    .padding(.trailing, index == 0 ? SkydownLayout.stackSpacingTick : SkydownLayout.stackSpacingNone)
                 }
             }
-            .padding(.top, 8)
+            .padding(.top, SkydownLayout.stackSpacingMicro)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

@@ -47,7 +47,7 @@ private struct DesktopAIShareSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
                 Text("Teilen")
                     .font(.title2.weight(.bold))
 

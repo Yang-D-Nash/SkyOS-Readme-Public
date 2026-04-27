@@ -53,6 +53,7 @@ import com.nash.skyos.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
@@ -89,7 +90,7 @@ fun OrderScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline)) {
                         Text(
                             text = stringResource(R.string.order_topbar_title),
                             fontWeight = FontWeight.Bold,
@@ -177,7 +178,7 @@ fun OrderScreen(
                             OutlinedButton(
                                 onClick = viewModel::refreshOrders,
                                 modifier = Modifier.padding(top = 12.dp),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
                             ) {
                                 Text(stringResource(R.string.order_action_reload))
                             }
@@ -258,7 +259,7 @@ private fun OrdersOverviewCard(
         orderCount,
     )
     val openCount = (orderCount - completedOrders).coerceAtLeast(0)
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(SkydownUiTokens.denseRadius)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -270,10 +271,10 @@ private fun OrdersOverviewCard(
                 shape = shape,
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(9.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSnug),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             androidx.compose.material3.Icon(
@@ -293,7 +294,7 @@ private fun OrdersOverviewCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             OrderStatusPill(text = countLabel)
             OrderStatusPill(
                 text = stringResource(R.string.order_pill_done, completedOrders),
@@ -316,14 +317,14 @@ private fun OrdersInlineStatusStrip(
             .fillMaxWidth()
             .background(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-                RoundedCornerShape(20.dp),
+                RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
             )
             .animateContentSize()
             .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             androidx.compose.material3.Icon(
@@ -383,7 +384,7 @@ private fun OrderCard(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
             ) {
                 Text(
                     text = title,
@@ -404,7 +405,7 @@ private fun OrderCard(
 
         Row(
             modifier = Modifier.padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         ) {
             OrderStatusPill(
                 text = if (order.isCompleted) {
@@ -428,7 +429,7 @@ private fun OrderCard(
 
         Column(
             modifier = Modifier.padding(top = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             OrderMetaRow(
                 label = stringResource(R.string.order_label_contact),
@@ -553,10 +554,10 @@ private fun OrderCard(
                         .fillMaxWidth()
                         .background(
                             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            RoundedCornerShape(20.dp),
+                            RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                         )
                         .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     Text(
                         text = stringResource(R.string.order_message),
@@ -582,10 +583,10 @@ private fun OrderCard(
                         .fillMaxWidth()
                         .background(
                             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            RoundedCornerShape(20.dp),
+                            RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                         )
                         .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
                     Text(
                         text = stringResource(R.string.order_sum_title),
@@ -637,7 +638,7 @@ private fun OrderCard(
 
         Column(
             modifier = Modifier.padding(top = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             order.items.forEach { item ->
                 Row(
@@ -647,7 +648,7 @@ private fun OrderCard(
                 ) {
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                     ) {
                         Text(
                             text = item.name,
@@ -669,7 +670,7 @@ private fun OrderCard(
                     }
                     Column(
                         horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                     ) {
                         Text(
                             text = stringResource(R.string.order_item_qty, item.quantity),
@@ -701,14 +702,14 @@ private fun OrderCard(
                 if (compactActions) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     ) {
                         if (!order.paymentStatus.hasFinalPaymentStatus()) {
                             FilledTonalButton(
                                 onClick = onConfirmPayment,
                                 modifier = Modifier.fillMaxWidth(),
                                 enabled = hasActionableId && !isConfirmingPayment,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             ) {
                                 Text(
                                     text = if (isConfirmingPayment) {
@@ -724,7 +725,7 @@ private fun OrderCard(
                             onClick = onToggleCompleted,
                             modifier = Modifier.fillMaxWidth(),
                             enabled = hasActionableId,
-                            shape = RoundedCornerShape(20.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                         ) {
                             androidx.compose.material3.Icon(
                                 imageVector = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
@@ -751,14 +752,14 @@ private fun OrderCard(
                 } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
                     ) {
                         if (!order.paymentStatus.hasFinalPaymentStatus()) {
                             FilledTonalButton(
                                 onClick = onConfirmPayment,
                                 modifier = Modifier.weight(1f),
                                 enabled = hasActionableId && !isConfirmingPayment,
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                             ) {
                                 Text(
                                     text = if (isConfirmingPayment) {
@@ -774,7 +775,7 @@ private fun OrderCard(
                             onClick = onToggleCompleted,
                             modifier = Modifier.weight(1f),
                             enabled = hasActionableId,
-                            shape = RoundedCornerShape(20.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
                         ) {
                             androidx.compose.material3.Icon(
                                 imageVector = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
@@ -813,10 +814,10 @@ private fun OrderMetaRow(
             .fillMaxWidth()
             .background(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-                RoundedCornerShape(20.dp),
+                RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
             )
             .padding(horizontal = 16.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
         verticalAlignment = Alignment.Top,
     ) {
         Text(
@@ -851,7 +852,7 @@ private fun OrderStatusPill(
 
     Box(
         modifier = Modifier
-            .background(background, RoundedCornerShape(999.dp))
+            .background(background, RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .animateContentSize()
             .padding(horizontal = 13.dp, vertical = 8.dp),
     ) {

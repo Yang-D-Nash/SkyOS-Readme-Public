@@ -45,7 +45,7 @@ fun YouTubePlayerDialog(
         SkydownCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = SkydownUiTokens.screenHorizontalPadding),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -54,12 +54,12 @@ fun YouTubePlayerDialog(
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                 ) {
                     Text(
                         text = item.title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                     )
                     if (item.highlight.isNotBlank()) {
                         Text(
@@ -92,7 +92,7 @@ fun YouTubePlayerDialog(
                         .fillMaxWidth()
                         .height(420.dp)
                         .padding(top = 12.dp)
-                        .clip(RoundedCornerShape(22.dp)),
+                        .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius)),
                 )
             } else {
                 Text(
@@ -107,7 +107,7 @@ fun YouTubePlayerDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             ) {
                 FilledTonalButton(
                     onClick = { onOpenExternal(externalUrl) },

@@ -11,18 +11,75 @@ import UIKit
 #endif
 
 enum SkydownLayout {
-    static let screenHorizontalPadding: CGFloat = 16
-    static let screenTopPadding: CGFloat = 12
-    static let screenBottomPadding: CGFloat = 16
-    /// Abstand zwischen vertikalen Sektionen (Feed-/Screen-Rhythmus), aligned mit Android `screenSectionSpacing`.
-    static let sectionSpacing: CGFloat = 14
-    static let cardPadding: CGFloat = 12
-    /// Innenabstand für größere Karten/Module (Home, Music, Video, Merch) — einheitlich statt Magic `18`.
-    static let panelPadding: CGFloat = 18
-    static let heroPadding: CGFloat = 17
-    static let cardCornerRadius: CGFloat = 20
-    static let heroCornerRadius: CGFloat = 30
-    static let buttonCornerRadius: CGFloat = 16
+    /// Parität mit Android `SkydownUiTokens.screenHorizontalPadding`.
+    static let screenHorizontalPadding: CGFloat = 20
+    static let screenTopPadding: CGFloat = 16
+    /// Mehr Luft über Tab Bar / Home Indicator (Android nutzt 48dp Content-Padding).
+    static let screenBottomPadding: CGFloat = 32
+    /// Abstand zwischen vertikalen Sektionen — Android `screenSectionSpacing`.
+    static let sectionSpacing: CGFloat = 18
+    static let cardPadding: CGFloat = 16
+    /// Abstand in `VStack`/`HStack`, wenn Module wie Karten-Inhalt wirken — gleicher Rhythmus wie `cardPadding`.
+    static var stackSpacingComfortable: CGFloat { cardPadding }
+    /// Größere Karten/Module — Android `panelPadding`.
+    static let panelPadding: CGFloat = 20
+    static let heroPadding: CGFloat = 20
+    static let cardCornerRadius: CGFloat = 22
+    static let heroCornerRadius: CGFloat = 32
+    static let buttonCornerRadius: CGFloat = 14
+    /// Android `compactRadius` / `tightRadius` / `microCorner` / `nanoCorner`.
+    static let compactRadius: CGFloat = 14
+    static let tightRadius: CGFloat = 12
+    /// Engerer Stack-/Grid-Rhythmus — gleich `tightRadius` (12).
+    static var stackSpacingCompact: CGFloat { tightRadius }
+    /// Sekundäre Zeilen / kompakte Gruppen — gleich `microCorner` (8).
+    static var stackSpacingMicro: CGFloat { microCorner }
+    /// Chip- und Badge-Raster — gleich `pillSoftRadius` (10).
+    static var stackSpacingPill: CGFloat { pillSoftRadius }
+    /// Zwischen kompakt und Sektion — gleich `compactRadius` (14).
+    static var stackSpacingRelaxed: CGFloat { compactRadius }
+    /// Sektions-Rhythmus — gleich `sectionSpacing` (18).
+    static var stackSpacingSection: CGFloat { sectionSpacing }
+    /// Kein Zwischenraum (`VStack`/`HStack`/`safeAreaInset`-`spacing`).
+    static let stackSpacingNone: CGFloat = 0
+    /// Haarlinie-plus (1 pt, z. B. Raster-Zellen).
+    static let stackSpacingSingle: CGFloat = 1
+    /// Haarlinie zwischen Mini-Zeilchen.
+    static let stackSpacingHairline: CGFloat = 2
+    /// Mini-Zwischenraum — gleich `microTickRadius` (3).
+    static var stackSpacingTick: CGFloat { microTickRadius }
+    /// Enge Text-/Tag-Gruppen — gleich `nanoCorner` (4).
+    static var stackSpacingNano: CGFloat { nanoCorner }
+    static let stackSpacingSubtle: CGFloat = 5
+    static let stackSpacingDense: CGFloat = 6
+    /// Dock / kompakte Chrome (z. B. AI-Hub-Zeilen).
+    static let stackSpacingChrome: CGFloat = 7
+    static let stackSpacingSnug: CGFloat = 9
+    static let stackSpacingToast: CGFloat = 11
+    /// Großzügiger Rhythmus unterhalb Karten-Spacing (z. B. Login).
+    static let stackSpacingLoft: CGFloat = 15
+    /// Großzügige vertikale Module — gleich `heroPadding` (20).
+    static var stackSpacingHero: CGFloat { heroPadding }
+    /// Dock- oder Multi-Icon-Zeile (13 pt).
+    static let stackSpacingDockRow: CGFloat = 13
+    /// Rhythmus zwischen Kartenfüllung (16) und Kartenradius (22) — z. B. Dock-Vertikal, Schattenradius.
+    static let layoutProminentInset: CGFloat = 19
+    static let microCorner: CGFloat = 8
+    static let nanoCorner: CGFloat = 4
+    static let catalogCornerRadius: CGFloat = 17
+    static let pillSoftRadius: CGFloat = 10
+    static let denseRadius: CGFloat = 16
+    static let messageBubbleRadius: CGFloat = 18
+    static let elevatedPanelRadius: CGFloat = 24
+    static let sheetHeroRadius: CGFloat = 26
+    static let spotlightRadius: CGFloat = 28
+    static let sheetDragHandleRadius: CGFloat = 99
+    /// Volle Pille in `RoundedRectangle`-Form (SwiftUI).
+    static let fullCapsuleRadius: CGFloat = 999
+    /// Launch / Marketing große Kreis- oder Kartenform.
+    static let launchOrbRadius: CGFloat = 44
+    /// Sehr kleine UI-Ecke (z. B. Mini-Tick).
+    static let microTickRadius: CGFloat = 3
 }
 
 /// Calm, single motion language: ease-out, ~150–250ms — no bouncy springs for UI chrome.
@@ -510,7 +567,7 @@ private struct SkydownTabBarAppearanceView: UIViewRepresentable {
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { _ in
             let rect = CGRect(origin: .zero, size: size).insetBy(dx: 3, dy: 3)
-            let path = UIBezierPath(roundedRect: rect, cornerRadius: 20)
+            let path = UIBezierPath(roundedRect: rect, cornerRadius: SkydownLayout.cardCornerRadius)
             guard let context = UIGraphicsGetCurrentContext() else { return }
             context.saveGState()
             path.addClip()

@@ -12,7 +12,7 @@ struct ToastView: View {
     let style: ToastStyle
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
+        HStack(alignment: .center, spacing: SkydownLayout.stackSpacingRelaxed) {
             ZStack {
                 Circle()
                     .fill(
@@ -32,7 +32,7 @@ struct ToastView: View {
             }
             .frame(width: 42, height: 42)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text(style.title)
                     .font(.caption.weight(.bold))
                     .textCase(.uppercase)
@@ -48,11 +48,11 @@ struct ToastView: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, SkydownLayout.cardPadding)
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -66,7 +66,7 @@ struct ToastView: View {
                 )
         }
         .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 999, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.fullCapsuleRadius, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [style.color, style.color.opacity(0.14)],
@@ -95,15 +95,15 @@ struct ToastView: View {
                     )
                 )
                 .frame(height: 3)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, SkydownLayout.cardPadding)
                 .padding(.bottom, 8)
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                 .stroke(style.color.opacity(0.24), lineWidth: 1)
         }
         .shadow(color: style.color.opacity(0.18), radius: 20, y: 10)
-        .skydownLuminousSweep(cornerRadius: 22, accent: style.color, alpha: 0.18)
+        .skydownLuminousSweep(cornerRadius: SkydownLayout.cardCornerRadius, accent: style.color, alpha: 0.18)
         .accessibilityElement(children: .combine)
     }
 }

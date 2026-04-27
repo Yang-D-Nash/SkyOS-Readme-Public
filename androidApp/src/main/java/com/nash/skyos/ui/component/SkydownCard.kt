@@ -1,8 +1,6 @@
 package com.nash.skyos.ui.component
 
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -146,7 +144,7 @@ fun Modifier.skydownPanelSurface(
 @Composable
 fun Modifier.skydownCapsuleSurface(
     accent: Color? = null,
-    shape: Shape = RoundedCornerShape(999.dp),
+    shape: Shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
 ): Modifier = composed {
     val colorScheme = MaterialTheme.colorScheme
     val isDarkPalette = colorScheme.skydownIsDarkPalette()
@@ -213,10 +211,7 @@ fun Modifier.skydownPressable(
     val isPressed by interactionSource.collectIsPressedAsState()
     val view = LocalView.current
     var emittedPressHaptic by remember(interactionSource) { mutableStateOf(false) }
-    val pressSpec = tween<Float>(
-        durationMillis = SkydownMotionTokens.pressDurationMillis,
-        easing = FastOutSlowInEasing,
-    )
+    val pressSpec = skydownTween<Float>(SkydownMotionTokens.pressDurationMillis)
     val animatedScale by animateFloatAsState(
         targetValue = if (isPressed) pressedScale else 1f,
         animationSpec = pressSpec,

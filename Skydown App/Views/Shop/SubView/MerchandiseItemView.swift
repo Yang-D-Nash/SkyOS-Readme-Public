@@ -49,7 +49,7 @@ struct MerchandiseItemView: View {
         HStack(alignment: .top, spacing: rowHSpacing) {
             imagePager
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 badgeStrip
 
                 Text(item.name)
@@ -69,7 +69,7 @@ struct MerchandiseItemView: View {
                         .lineLimit(2)
                 }
 
-                HStack(spacing: 8) {
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     Text(item.hasCuratedMerchCategory ? item.merchCategorySubtitle : "House line")
                         .font(AppTypography.listMeta)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -141,7 +141,7 @@ struct MerchandiseItemView: View {
             .clipShape(RoundedRectangle(cornerRadius: imageCorner, style: .continuous))
 
             if safeImageURLs.count > 1 {
-                HStack(spacing: 4) {
+                HStack(spacing: SkydownLayout.stackSpacingNano) {
                     ForEach(safeImageURLs.indices, id: \.self) { index in
                         Capsule(style: .continuous)
                             .fill(index == selectedImageIndex ? Color.white : Color.white.opacity(0.42))
@@ -172,7 +172,7 @@ struct MerchandiseItemView: View {
 
     private var badgeStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 MerchInfoBadge(
                     text: item.available ? "Drop live" : "Sold out",
                     colorScheme: colorScheme,
@@ -245,7 +245,7 @@ private struct MerchCatalogThumbImage: View {
     }
 
     private var thumbPlaceholder: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
             .fill(AppColors.secondaryBackground(for: colorScheme))
             .overlay {
                 Image(systemName: "photo")
@@ -274,7 +274,7 @@ private struct MerchGalleryImage: View {
                             .resizable()
                             .scaledToFit()
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, SkydownLayout.cardPadding)
                             .padding(.vertical, 40)
                     case .failure:
                         galleryPlaceholder
@@ -320,7 +320,7 @@ private struct MerchandiseFullscreenGalleryView: View {
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .automatic))
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .safeAreaInset(edge: .bottom, spacing: SkydownLayout.stackSpacingNone) {
             HStack {
                 Text(itemName)
                     .font(.subheadline.weight(.semibold))
