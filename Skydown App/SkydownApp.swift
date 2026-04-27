@@ -19,7 +19,11 @@ func skydownDebugLog(_ items: Any..., separator: String = " ", terminator: Strin
     #endif
 }
 
-final class SkydownApplicationDelegate: NSObject, UIApplicationDelegate {}
+final class SkydownApplicationDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        PushTokenSyncService.shared.cacheAPNSToken(deviceToken)
+    }
+}
 
 @main
 struct SkydownApp: App {

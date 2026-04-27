@@ -5,6 +5,7 @@ const logger = require("firebase-functions/logger");
 const functionsV1 = require("firebase-functions/v1");
 const {onDocumentCreated, onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onMessagePublished} = require("firebase-functions/v2/pubsub");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {enableFirebaseTelemetry} = require("@genkit-ai/firebase");
 const {onCall, onRequest, HttpsError} = require("firebase-functions/v2/https");
 const {defineSecret} = require("firebase-functions/params");
@@ -90,6 +91,16 @@ const AI_PROMPT_SETTINGS_COLLECTION = "adminConfig";
 const AI_PROMPT_SETTINGS_DOCUMENT = "aiPromptSettings";
 const STRIPE_SECRET_STATUS_COLLECTION = "adminConfig";
 const STRIPE_SECRET_STATUS_DOCUMENT = "stripeCheckoutSecrets";
+const REMINDER_STATUSES = Object.freeze({
+  scheduled: "scheduled",
+  completed: "completed",
+  cancelled: "cancelled",
+});
+const REMINDER_SOURCES = Object.freeze({
+  agent: "agent",
+  workflow: "workflow",
+  manual: "manual",
+});
 const SHOPIFY_VARIANT_OPTION_KEYS = {
   size: ["size", "groesse", "größe"],
   color: ["color", "colour", "farbe"],
@@ -2475,6 +2486,84 @@ function assertAuthenticatedUser(auth, message = "Bitte melde dich an.") {
   }
 
   return uid;
+}
+
+async function assertUidAccess(auth, requestedUid, {allowStaffOverride = false} = {}) {
+  const authUid = assertAuthenticatedUser(auth, "Bitte melde dich an.");
+  const normalizedRequestedUid = nonEmptyString(requestedUid) || authUid;
+  if (normalizedRequestedUid === authUid) {
+    return normalizedRequestedUid;
+  }
+  if (allowStaffOverride && await isStaffAuth(auth)) {
+    return normalizedRequestedUid;
+  }
+  throw new HttpsError("permission-denied", "Du darfst nur eigene Daten veraendern.");
+}
+
+function normalizeReminderStatus(value, fallback = REMINDER_STATUSES.scheduled) {
+  const normalized = nonEmptyString(value)?.toLowerCase();
+  if (!normalized) {
+    return fallback;
+  }
+  return Object.values(REMINDER_STATUSES).includes(normalized) ? normalized : fallback;
+}
+
+function normalizeReminderSource(value, fallback = REMINDER_SOURCES.manual) {
+  const normalized = nonEmptyString(value)?.toLowerCase();
+  if (!normalized) {
+    return fallback;
+  }
+  return Object.values(REMINDER_SOURCES).includes(normalized) ? normalized : fallback;
+}
+
+function parseReminderScheduledAtTimestamp(value) {
+  const raw = nonEmptyString(value);
+  if (!raw) {
+    throw new HttpsError("invalid-argument", "scheduledAt fehlt.");
+  }
+  const parsedMs = Date.parse(raw);
+  if (!Number.isFinite(parsedMs)) {
+    throw new HttpsError("invalid-argument", "scheduledAt ist ungueltig.");
+  }
+  return admin.firestore.Timestamp.fromDate(new Date(parsedMs));
+}
+
+function formatReminderResultLine({title = "", scheduledAt = null, timezone = "UTC"}) {
+  const normalizedTitle = nonEmptyString(title) || "Erinnerung";
+  const date = scheduledAt instanceof admin.firestore.Timestamp ?
+    scheduledAt.toDate() :
+    new Date();
+  const formatter = new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: nonEmptyString(timezone) || "UTC",
+  });
+  return `${normalizedTitle} - ${formatter.format(date).replace(",", " um")}`;
+}
+
+function buildSkyosWorkflowResponse({
+  message = "Erledigt.",
+  workflowStatus = "completed",
+  text = "",
+  schemaVersion = "v1",
+  extraResults = [],
+}) {
+  const resultText = nonEmptyString(text) || nonEmptyString(message) || "Erledigt.";
+  return {
+    message: nonEmptyString(message) || "Erledigt.",
+    workflowStatus: nonEmptyString(workflowStatus) || "completed",
+    schemaVersion: nonEmptyString(schemaVersion) || "v1",
+    results: [
+      {
+        type: "text",
+        text: resultText,
+      },
+      ...(Array.isArray(extraResults) ? extraResults : []),
+    ],
+  };
 }
 
 function assertRecentAccountDeletionAuth(auth) {
@@ -12516,6 +12605,149 @@ function waitForMs(durationMs) {
   return new Promise((resolve) => setTimeout(resolve, durationMs));
 }
 
+function extractMemoryWriteCandidate(promptText) {
+  const prompt = nonEmptyString(promptText)?.trim() || "";
+  if (!prompt || prompt.length < 6) {
+    return "";
+  }
+  const memorySignals = [
+    /\bmerk dir\b/i,
+    /\bmerke dir\b/i,
+    /\bnotier(?:e)? dir\b/i,
+    /\bremember\b/i,
+    /\bnote this\b/i,
+    /\bmy goal is\b/i,
+    /\bmein ziel ist\b/i,
+    /\bich will\b/i,
+  ];
+  const isMemoryPrompt = memorySignals.some((pattern) => pattern.test(prompt));
+  return isMemoryPrompt ? trimTextMax(prompt, 500) : "";
+}
+
+function containsSensitiveMemoryContent(text) {
+  const value = nonEmptyString(text) || "";
+  if (!value) {
+    return false;
+  }
+  const sensitivePatterns = [
+    /\bpasswort\b/i,
+    /\bpassword\b/i,
+    /\botp\b/i,
+    /\b2fa\b/i,
+    /\bpin\b/i,
+    /\bapi[\s-_]?key\b/i,
+    /\bsecret\b/i,
+    /\btoken\b/i,
+    /\bkreditkarte\b/i,
+    /\bcredit card\b/i,
+    /\biban\b/i,
+    /\bwallet\b/i,
+    /\bseed phrase\b/i,
+  ];
+  if (sensitivePatterns.some((pattern) => pattern.test(value))) {
+    return true;
+  }
+  const longDigitChunks = value.match(/\d{12,19}/g) || [];
+  return longDigitChunks.length > 0;
+}
+
+async function maybePersistUserMemorySignal({auth, prompt, mode = ""}) {
+  if (!auth?.uid) {
+    return {stored: false, reason: "no_uid"};
+  }
+  const candidate = extractMemoryWriteCandidate(prompt);
+  if (!candidate) {
+    return {stored: false, reason: "no_signal"};
+  }
+  if (containsSensitiveMemoryContent(candidate)) {
+    return {stored: false, reason: "sensitive_content"};
+  }
+
+  const profileRef = admin.firestore()
+      .collection("users")
+      .doc(auth.uid)
+      .collection("memoryProfile")
+      .doc("main");
+
+  try {
+    const snapshot = await profileRef.get().catch(() => null);
+    const existingData = snapshot?.exists ? (snapshot.data() || {}) : {};
+    const existingNotes = Array.isArray(existingData.memoryNotes) ?
+      existingData.memoryNotes
+          .filter((item) => typeof item === "string")
+          .map((item) => trimTextMax(item, 500))
+          .filter(Boolean) :
+      [];
+    const nextNotes = [candidate, ...existingNotes.filter((item) => item !== candidate)]
+        .slice(0, 20);
+
+    await profileRef.set({
+      memoryNotes: nextNotes,
+      lastUserMemoryNote: candidate,
+      lastUserMemoryNoteAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastMemorySource: "agent_prompt",
+      lastMemoryMode: trimTextMax(nonEmptyString(mode) || "", 40),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+    return {stored: true, note: candidate};
+  } catch (error) {
+    logger.warn("Auto memory write skipped.", {
+      uid: auth.uid,
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+    return {stored: false, reason: "write_failed"};
+  }
+}
+
+async function loadUserMemorySnapshot(uid) {
+  if (!uid) {
+    return {
+      profileSummary: "",
+      goals: [],
+      habits: [],
+      moodLogs: [],
+    };
+  }
+  const userRef = admin.firestore().collection("users").doc(uid);
+  const profileSnap = await userRef.collection("memoryProfile").doc("main").get().catch(() => null);
+  const goalsSnap = await userRef
+      .collection("goals")
+      .orderBy("updatedAt", "desc")
+      .limit(3)
+      .get()
+      .catch(() => null);
+  const habitsSnap = await userRef
+      .collection("habits")
+      .orderBy("updatedAt", "desc")
+      .limit(3)
+      .get()
+      .catch(() => null);
+  const moodLogsSnap = await userRef
+      .collection("moodLogs")
+      .orderBy("createdAt", "desc")
+      .limit(3)
+      .get()
+      .catch(() => null);
+
+  const profileData = profileSnap?.exists ? (profileSnap.data() || {}) : {};
+  const goals = Array.isArray(goalsSnap?.docs) ?
+    goalsSnap.docs.map((doc) => trimTextMax(JSON.stringify(doc.data() || {}), 420)) :
+    [];
+  const habits = Array.isArray(habitsSnap?.docs) ?
+    habitsSnap.docs.map((doc) => trimTextMax(JSON.stringify(doc.data() || {}), 420)) :
+    [];
+  const moodLogs = Array.isArray(moodLogsSnap?.docs) ?
+    moodLogsSnap.docs.map((doc) => trimTextMax(JSON.stringify(doc.data() || {}), 420)) :
+    [];
+
+  return {
+    profileSummary: Object.keys(profileData).length > 0 ? trimTextMax(JSON.stringify(profileData), 1200) : "",
+    goals,
+    habits,
+    moodLogs,
+  };
+}
+
 async function loadAgentWorkspaceContext(auth, promptSettings, personalAgentProfile = DEFAULT_PERSONAL_AGENT_PROFILE_SETTINGS) {
   const lines = [];
 
@@ -12560,6 +12792,22 @@ async function loadAgentWorkspaceContext(auth, promptSettings, personalAgentProf
         lines.push(`Skills-Profil: ${trimTextMax(personalAgentProfile.skillProfile, 320)}`);
       }
     }
+
+    const memorySnapshot = await loadUserMemorySnapshot(auth.uid).catch(() => null);
+    if (memorySnapshot) {
+      if (memorySnapshot.profileSummary) {
+        lines.push(`Memory-Profil: ${memorySnapshot.profileSummary}`);
+      }
+      if (memorySnapshot.goals.length > 0) {
+        lines.push(`Memory-Goals: ${memorySnapshot.goals.join(" | ")}`);
+      }
+      if (memorySnapshot.habits.length > 0) {
+        lines.push(`Memory-Habits: ${memorySnapshot.habits.join(" | ")}`);
+      }
+      if (memorySnapshot.moodLogs.length > 0) {
+        lines.push(`Memory-Mood: ${memorySnapshot.moodLogs.join(" | ")}`);
+      }
+    }
   }
 
   const shopifyConfig = await loadShopifyAdminConfig().catch(() => null);
@@ -12596,6 +12844,7 @@ async function maybeTriggerAgentAutomation({
   }
 
   try {
+    const memorySnapshot = await loadUserMemorySnapshot(auth.uid).catch(() => null);
     const automationResult = await triggerWorkflowAutomationWebhook({
       trigger: `agent_${mode}`,
       source: "agent",
@@ -12609,6 +12858,12 @@ async function maybeTriggerAgentAutomation({
         history: history.slice(-8),
         automationScope,
         attachments: Array.isArray(attachments) ? attachments : [],
+        memory: memorySnapshot || {
+          profileSummary: "",
+          goals: [],
+          habits: [],
+          moodLogs: [],
+        },
       },
     });
 
@@ -13354,6 +13609,11 @@ exports.skydownAgent = onCall({
       }),
     };
   }
+  const memoryWrite = await maybePersistUserMemorySignal({
+    auth: request.auth,
+    prompt: agentInput.prompt,
+    mode: agentInput.mode,
+  });
   const workspaceContext = await loadAgentWorkspaceContext(
       request.auth,
       promptSettings,
@@ -13560,6 +13820,7 @@ exports.skydownAgent = onCall({
       effectiveEntitlement: usage.effectiveEntitlement || null,
       decision: usage.decision || null,
     },
+    memoryUpdated: memoryWrite.stored === true,
     agentDecision: buildAgentDecision({
       state: agentInput.executeAutomation ?
         (resolvedWorkflowStatus === "queued" ?
@@ -13691,6 +13952,547 @@ exports.setRuntimeLockdown = onCall({
     userWritesEnabled: enabled ? false : true,
     lastLockdownReason: reason,
   }, source);
+});
+
+exports.createReminder = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "createReminder");
+  const targetUid = await assertUidAccess(request.auth, request.data?.uid, {allowStaffOverride: true});
+  const title = nonEmptyString(request.data?.title);
+  if (!title) {
+    throw new HttpsError("invalid-argument", "title fehlt.");
+  }
+  const body = nonEmptyString(request.data?.body) || "";
+  const timezone = nonEmptyString(request.data?.timezone) || "UTC";
+  const scheduledAt = parseReminderScheduledAtTimestamp(request.data?.scheduledAt);
+  const source = normalizeReminderSource(request.data?.source, REMINDER_SOURCES.manual);
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  const reminderRef = admin.firestore()
+      .collection("users")
+      .doc(targetUid)
+      .collection("reminders")
+      .doc();
+
+  await reminderRef.set({
+    title: trimTextMax(title, 180),
+    body: trimTextMax(body, 2000),
+    scheduledAt,
+    timezone: trimTextMax(timezone, 80),
+    status: REMINDER_STATUSES.scheduled,
+    source,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return {
+    reminderId: reminderRef.id,
+    uid: targetUid,
+    ...buildSkyosWorkflowResponse({
+      message: "Erinnerung wurde erstellt.",
+      workflowStatus: "completed",
+      schemaVersion: "v1",
+      text: formatReminderResultLine({
+        title,
+        scheduledAt,
+        timezone,
+      }),
+    }),
+  };
+});
+
+exports.listReminders = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "listReminders");
+  const targetUid = await assertUidAccess(request.auth, request.data?.uid, {allowStaffOverride: true});
+  const limit = clampIntegerSetting(request.data?.limit, 25, 1, 100);
+  const statusFilter = nonEmptyString(request.data?.status);
+  let query = admin.firestore()
+      .collection("users")
+      .doc(targetUid)
+      .collection("reminders");
+  if (statusFilter) {
+    query = query.where("status", "==", normalizeReminderStatus(statusFilter));
+  }
+  const snapshot = await query
+      .orderBy("scheduledAt", "asc")
+      .limit(limit)
+      .get();
+  const reminders = snapshot.docs.map((doc) => {
+    const data = doc.data() || {};
+    return {
+      id: doc.id,
+      title: nonEmptyString(data.title) || "",
+      body: nonEmptyString(data.body) || "",
+      timezone: nonEmptyString(data.timezone) || "UTC",
+      status: normalizeReminderStatus(data.status),
+      source: normalizeReminderSource(data.source),
+      scheduledAt: data.scheduledAt instanceof admin.firestore.Timestamp ?
+        data.scheduledAt.toDate().toISOString() :
+        "",
+      createdAt: data.createdAt instanceof admin.firestore.Timestamp ?
+        data.createdAt.toDate().toISOString() :
+        "",
+      updatedAt: data.updatedAt instanceof admin.firestore.Timestamp ?
+        data.updatedAt.toDate().toISOString() :
+        "",
+    };
+  });
+  return {
+    reminders,
+    ...buildSkyosWorkflowResponse({
+      message: reminders.length > 0 ?
+        `${reminders.length} Erinnerung(en) geladen.` :
+        "Keine Erinnerungen gefunden.",
+      workflowStatus: "completed",
+      schemaVersion: "v1",
+      text: reminders.length > 0 ?
+        `${reminders.length} Erinnerung(en) geladen.` :
+        "Keine Erinnerungen gefunden.",
+    }),
+  };
+});
+
+exports.completeReminder = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "completeReminder");
+  const targetUid = await assertUidAccess(request.auth, request.data?.uid, {allowStaffOverride: true});
+  const reminderId = nonEmptyString(request.data?.reminderId);
+  if (!reminderId) {
+    throw new HttpsError("invalid-argument", "reminderId fehlt.");
+  }
+  const reminderRef = admin.firestore()
+      .collection("users")
+      .doc(targetUid)
+      .collection("reminders")
+      .doc(reminderId);
+  const snapshot = await reminderRef.get();
+  if (!snapshot.exists) {
+    throw new HttpsError("not-found", "Erinnerung wurde nicht gefunden.");
+  }
+  await reminderRef.set({
+    status: REMINDER_STATUSES.completed,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+  return {
+    reminderId,
+    ...buildSkyosWorkflowResponse({
+      message: "Erinnerung wurde abgeschlossen.",
+      workflowStatus: "completed",
+      schemaVersion: "v1",
+      text: "Erinnerung wurde abgeschlossen.",
+    }),
+  };
+});
+
+exports.updateMemoryProfile = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "updateMemoryProfile");
+  const targetUid = await assertUidAccess(request.auth, request.data?.uid, {allowStaffOverride: true});
+  const profileData = request.data?.data;
+  if (!profileData || typeof profileData !== "object" || Array.isArray(profileData)) {
+    throw new HttpsError("invalid-argument", "data fuer memoryProfile fehlt.");
+  }
+  const profileRef = admin.firestore()
+      .collection("users")
+      .doc(targetUid)
+      .collection("memoryProfile")
+      .doc("main");
+  await profileRef.set({
+    ...profileData,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+  return buildSkyosWorkflowResponse({
+    message: "Memory-Profil wurde aktualisiert.",
+    workflowStatus: "completed",
+    schemaVersion: "v1",
+    text: "Memory-Profil wurde aktualisiert.",
+  });
+});
+
+exports.upsertPushToken = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "upsertPushToken");
+  const targetUid = await assertUidAccess(request.auth, request.data?.uid, {allowStaffOverride: true});
+  const token = nonEmptyString(request.data?.token);
+  if (!token) {
+    throw new HttpsError("invalid-argument", "token fehlt.");
+  }
+  const platformRaw = nonEmptyString(request.data?.platform)?.toLowerCase() || "";
+  const platform = ["ios", "android", "web"].includes(platformRaw) ? platformRaw : "";
+  if (!platform) {
+    throw new HttpsError("invalid-argument", "platform ist ungueltig.");
+  }
+  const appVersion = nonEmptyString(request.data?.appVersion) || "";
+  const tokenId = nonEmptyString(request.data?.tokenId) ||
+    crypto.createHash("sha256").update(`${platform}:${token}`, "utf8").digest("hex");
+  const pushTokenRef = admin.firestore()
+      .collection("users")
+      .doc(targetUid)
+      .collection("pushTokens")
+      .doc(tokenId);
+  await pushTokenRef.set({
+    token: trimTextMax(token, 4096),
+    platform,
+    appVersion: trimTextMax(appVersion, 64),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+  return {
+    tokenId,
+    uid: targetUid,
+    ...buildSkyosWorkflowResponse({
+      message: "Push-Token wurde gespeichert.",
+      workflowStatus: "completed",
+      schemaVersion: "v1",
+      text: `Push-Token (${platform}) wurde gespeichert.`,
+    }),
+  };
+});
+
+exports.handleAutomationIntent = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "handleAutomationIntent");
+  const intent = nonEmptyString(request.data?.intent)?.toLowerCase() || "";
+  if (!intent) {
+    throw new HttpsError("invalid-argument", "Unbekannter intent.");
+  }
+  const targetUid = await assertUidAccess(
+      request.auth,
+      request.data?.uid || request.data?.data?.uid,
+      {allowStaffOverride: true},
+  );
+  const payload = request.data?.data && typeof request.data.data === "object" && !Array.isArray(request.data.data) ?
+    request.data.data :
+    {};
+  const remindersCollection = admin.firestore()
+      .collection("users")
+      .doc(targetUid)
+      .collection("reminders");
+
+  if (intent === "create_reminder") {
+    const title = nonEmptyString(payload.title);
+    if (!title) {
+      throw new HttpsError("invalid-argument", "title fehlt.");
+    }
+    const body = nonEmptyString(payload.body) || "";
+    const timezone = nonEmptyString(payload.timezone) || "UTC";
+    const scheduledAt = parseReminderScheduledAtTimestamp(payload.scheduledAt);
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const reminderRef = remindersCollection.doc();
+    await reminderRef.set({
+      title: trimTextMax(title, 180),
+      body: trimTextMax(body, 2000),
+      scheduledAt,
+      timezone: trimTextMax(timezone, 80),
+      status: REMINDER_STATUSES.scheduled,
+      source: REMINDER_SOURCES.workflow,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return {
+      reminderId: reminderRef.id,
+      uid: targetUid,
+      ...buildSkyosWorkflowResponse({
+        message: "Erinnerung wurde erstellt.",
+        workflowStatus: "completed",
+        schemaVersion: "v1",
+        text: formatReminderResultLine({
+          title,
+          scheduledAt,
+          timezone,
+        }),
+      }),
+    };
+  }
+
+  if (intent === "list_reminders") {
+    const limit = clampIntegerSetting(payload.limit, 25, 1, 100);
+    const statusFilter = nonEmptyString(payload.status);
+    let query = remindersCollection;
+    if (statusFilter) {
+      query = query.where("status", "==", normalizeReminderStatus(statusFilter));
+    }
+    const snapshot = await query
+        .orderBy("scheduledAt", "asc")
+        .limit(limit)
+        .get();
+    const reminders = snapshot.docs.map((doc) => {
+      const reminder = doc.data() || {};
+      return {
+        id: doc.id,
+        title: nonEmptyString(reminder.title) || "",
+        body: nonEmptyString(reminder.body) || "",
+        timezone: nonEmptyString(reminder.timezone) || "UTC",
+        status: normalizeReminderStatus(reminder.status),
+        source: normalizeReminderSource(reminder.source),
+        scheduledAt: reminder.scheduledAt instanceof admin.firestore.Timestamp ?
+          reminder.scheduledAt.toDate().toISOString() :
+          "",
+      };
+    });
+    return {
+      uid: targetUid,
+      reminders,
+      ...buildSkyosWorkflowResponse({
+        message: reminders.length > 0 ?
+          `${reminders.length} Erinnerung(en) geladen.` :
+          "Keine Erinnerungen gefunden.",
+        workflowStatus: "completed",
+        schemaVersion: "v1",
+        text: reminders.length > 0 ?
+          `${reminders.length} Erinnerung(en) geladen.` :
+          "Keine Erinnerungen gefunden.",
+      }),
+    };
+  }
+
+  if (intent === "complete_reminder") {
+    const reminderId = nonEmptyString(payload.reminderId);
+    if (!reminderId) {
+      throw new HttpsError("invalid-argument", "reminderId fehlt.");
+    }
+    const reminderRef = remindersCollection.doc(reminderId);
+    const snapshot = await reminderRef.get();
+    if (!snapshot.exists) {
+      throw new HttpsError("not-found", "Erinnerung wurde nicht gefunden.");
+    }
+    await reminderRef.set({
+      status: REMINDER_STATUSES.completed,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+    return {
+      uid: targetUid,
+      reminderId,
+      ...buildSkyosWorkflowResponse({
+        message: "Erinnerung wurde abgeschlossen.",
+        workflowStatus: "completed",
+        schemaVersion: "v1",
+        text: "Erinnerung wurde abgeschlossen.",
+      }),
+    };
+  }
+
+  if (intent === "update_memory_profile") {
+    if (typeof payload !== "object" || Array.isArray(payload) || Object.keys(payload).length === 0) {
+      throw new HttpsError("invalid-argument", "data fuer memoryProfile fehlt.");
+    }
+    const profileRef = admin.firestore()
+        .collection("users")
+        .doc(targetUid)
+        .collection("memoryProfile")
+        .doc("main");
+    await profileRef.set({
+      ...payload,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+    return {
+      uid: targetUid,
+      ...buildSkyosWorkflowResponse({
+        message: "Memory-Profil wurde aktualisiert.",
+        workflowStatus: "completed",
+        schemaVersion: "v1",
+        text: "Memory-Profil wurde aktualisiert.",
+      }),
+    };
+  }
+
+  throw new HttpsError("invalid-argument", "Unbekannter intent.");
+});
+
+async function loadUserPushTokenEntries(uid) {
+  if (!uid) {
+    return [];
+  }
+  const snapshot = await admin.firestore()
+      .collection("users")
+      .doc(uid)
+      .collection("pushTokens")
+      .limit(500)
+      .get();
+  return snapshot.docs
+      .map((doc) => {
+        const data = doc.data() || {};
+        const token = nonEmptyString(data.token);
+        if (!token) {
+          return null;
+        }
+        return {
+          tokenId: doc.id,
+          token: token.trim(),
+          platform: nonEmptyString(data.platform) || "",
+        };
+      })
+      .filter(Boolean);
+}
+
+function isInvalidPushTokenError(errorCode = "") {
+  return [
+    "messaging/invalid-registration-token",
+    "messaging/registration-token-not-registered",
+  ].includes(errorCode);
+}
+
+async function sendPushToUser({
+  uid,
+  title,
+  body,
+  reminderId,
+}) {
+  const tokenEntries = await loadUserPushTokenEntries(uid);
+  if (tokenEntries.length === 0) {
+    return {
+      sentCount: 0,
+      failedCount: 0,
+      invalidTokenIds: [],
+      noTokens: true,
+    };
+  }
+
+  const tokens = tokenEntries.map((entry) => entry.token).slice(0, 500);
+  const fallbackTitle = "Erinnerung faellig";
+  const fallbackBody = "Deine Erinnerung ist jetzt faellig. Oeffne SkyOS fuer Details.";
+  const response = await admin.messaging().sendEachForMulticast({
+    tokens,
+    notification: {
+      title: trimTextMax(nonEmptyString(title) || fallbackTitle, 120),
+      body: trimTextMax(nonEmptyString(body) || fallbackBody, 240),
+    },
+    data: {
+      type: "reminder",
+      reminderId: nonEmptyString(reminderId) || "",
+      uid: nonEmptyString(uid) || "",
+    },
+    android: {
+      priority: "high",
+    },
+    apns: {
+      headers: {
+        "apns-priority": "10",
+      },
+      payload: {
+        aps: {
+          sound: "default",
+        },
+      },
+    },
+  });
+
+  const invalidTokenIds = [];
+  response.responses.forEach((sendResult, index) => {
+    if (!sendResult.success && isInvalidPushTokenError(sendResult.error?.code || "")) {
+      const tokenEntry = tokenEntries[index];
+      if (tokenEntry?.tokenId) {
+        invalidTokenIds.push(tokenEntry.tokenId);
+      }
+    }
+  });
+
+  if (invalidTokenIds.length > 0) {
+    const batch = admin.firestore().batch();
+    for (const tokenId of invalidTokenIds) {
+      const tokenRef = admin.firestore()
+          .collection("users")
+          .doc(uid)
+          .collection("pushTokens")
+          .doc(tokenId);
+      batch.delete(tokenRef);
+    }
+    await batch.commit();
+  }
+
+  return {
+    sentCount: response.successCount || 0,
+    failedCount: response.failureCount || 0,
+    invalidTokenIds,
+    noTokens: false,
+  };
+}
+
+exports.processDueReminders = onSchedule({
+  region: "us-central1",
+  schedule: "every 5 minutes",
+  timeZone: "Etc/UTC",
+  timeoutSeconds: 120,
+}, async () => {
+  const now = admin.firestore.Timestamp.now();
+  const dueSnapshot = await admin.firestore()
+      .collectionGroup("reminders")
+      .where("status", "==", REMINDER_STATUSES.scheduled)
+      .where("scheduledAt", "<=", now)
+      .limit(200)
+      .get();
+
+  if (dueSnapshot.empty) {
+    logger.info("No due reminders found.");
+    return;
+  }
+
+  for (const doc of dueSnapshot.docs) {
+    const reminder = doc.data() || {};
+    const uid = doc.ref.parent.parent?.id || "";
+    const title = nonEmptyString(reminder.title) || "Erinnerung faellig";
+    const body = nonEmptyString(reminder.body) || `Deine Erinnerung "${title}" ist jetzt faellig.`;
+    if (!uid) {
+      await doc.ref.set({
+        status: REMINDER_STATUSES.completed,
+        notificationStatus: "failed_missing_uid",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      continue;
+    }
+
+    try {
+      const pushResult = await sendPushToUser({
+        uid,
+        title,
+        body,
+        reminderId: doc.id,
+      });
+      const notificationStatus = pushResult.noTokens ?
+        "failed_no_tokens" :
+        (pushResult.sentCount > 0 ? "sent" : "failed_delivery");
+      await doc.ref.set({
+        status: REMINDER_STATUSES.completed,
+        notificationStatus,
+        notificationSentCount: pushResult.sentCount,
+        notificationFailedCount: pushResult.failedCount,
+        invalidPushTokenCount: pushResult.invalidTokenIds.length,
+        notifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      logger.info("Processed due reminder notification.", {
+        uid,
+        reminderId: doc.id,
+        notificationStatus,
+        sentCount: pushResult.sentCount,
+        failedCount: pushResult.failedCount,
+        invalidPushTokenCount: pushResult.invalidTokenIds.length,
+      });
+    } catch (error) {
+      await doc.ref.set({
+        status: REMINDER_STATUSES.completed,
+        notificationStatus: "failed_exception",
+        notificationError: trimTextMax(error instanceof Error ? error.message : `${error}`, 500),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      logger.error("Failed to send reminder push notification.", {
+        uid,
+        reminderId: doc.id,
+        error: error instanceof Error ? error.message : `${error}`,
+      });
+    }
+  }
 });
 
 exports.applyBudgetLockdown = onMessagePublished({

@@ -746,6 +746,52 @@ service cloud.firestore {
       && request.resource.data.createdAt is timestamp;
     }
 
+    function validReminderStatus(value) {
+      return value in ["scheduled", "completed", "cancelled"];
+    }
+
+    function validReminderSource(value) {
+      return value in ["agent", "workflow", "manual"];
+    }
+
+    function validReminderPayload() {
+      return request.resource.data.keys().hasOnly([
+        "title",
+        "body",
+        "scheduledAt",
+        "timezone",
+        "status",
+        "source",
+        "createdAt",
+        "updatedAt"
+      ])
+      && requiredString(request.resource.data.title, 1, 180)
+      && optionalMapString(request.resource.data, "body", 2000)
+      && request.resource.data.scheduledAt is timestamp
+      && requiredString(request.resource.data.timezone, 1, 80)
+      && validReminderStatus(request.resource.data.status)
+      && validReminderSource(request.resource.data.source)
+      && request.resource.data.createdAt is timestamp
+      && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validPushTokenPlatform(value) {
+      return value in ["ios", "android", "web"];
+    }
+
+    function validPushTokenPayload() {
+      return request.resource.data.keys().hasOnly([
+        "token",
+        "platform",
+        "appVersion",
+        "updatedAt"
+      ])
+      && requiredString(request.resource.data.token, 8, 4096)
+      && validPushTokenPlatform(request.resource.data.platform)
+      && optionalMapString(request.resource.data, "appVersion", 64)
+      && request.resource.data.updatedAt is timestamp;
+    }
+
     function validGalleryMetaPayload(uid) {
       return request.resource.data.keys().hasOnly([
         "ownerUid",
@@ -916,6 +962,44 @@ service cloud.firestore {
     match /users/{uid}/agentRuns/{runId} {
       allow read: if isSelf(uid) || isAdmin();
       allow create, update, delete: if false;
+    }
+
+    match /users/{uid}/reminders/{reminderId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update: if (
+        (isSelf(uid) && regularUserWriteAllowed())
+        || isOwner()
+      ) && validReminderPayload();
+      allow delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+    }
+
+    match /users/{uid}/pushTokens/{tokenId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update: if (
+        (isSelf(uid) && regularUserWriteAllowed())
+        || isOwner()
+      ) && validPushTokenPayload();
+      allow delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+    }
+
+    match /users/{uid}/memoryProfile/{documentId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update, delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+    }
+
+    match /users/{uid}/goals/{goalId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update, delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+    }
+
+    match /users/{uid}/habits/{habitId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update, delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+    }
+
+    match /users/{uid}/moodLogs/{logId} {
+      allow read: if isSelf(uid) || isOwner();
+      allow create, update, delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
     }
 
     match /userProfiles/{uid} {

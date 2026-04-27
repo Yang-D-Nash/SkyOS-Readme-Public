@@ -13,9 +13,14 @@ class AuthManager: ObservableObject {
     private let authService: AuthServicing
     private var authStateCancellation: (() -> Void)?
     private let sessionCache = CachedAuthSessionStore()
+    private let pushTokenSyncService: PushTokenSyncServicing
 
-    init(authService: AuthServicing = FirebaseAuthService()) {
+    init(
+        authService: AuthServicing = FirebaseAuthService(),
+        pushTokenSyncService: PushTokenSyncServicing = PushTokenSyncService.shared
+    ) {
         self.authService = authService
+        self.pushTokenSyncService = pushTokenSyncService
         self.userSession = sessionCache.load()
         observeAuthState()
     }
@@ -28,6 +33,9 @@ class AuthManager: ObservableObject {
         authStateCancellation = authService.observeAuthState { [weak self] user in
             self?.userSession = user
             self?.sessionCache.store(user)
+            Task { @MainActor [weak self] in
+                await self?.pushTokenSyncService.syncIfPossible(userID: user?.id)
+            }
         }
     }
 
@@ -52,6 +60,7 @@ class AuthManager: ObservableObject {
         do {
             userSession = try await authService.fetchCurrentUser()
             sessionCache.store(userSession)
+            await pushTokenSyncService.syncIfPossible(userID: userSession?.id)
             return userSession
         } catch {
             skydownDebugLog("Fehler beim Laden des Profils: \(error.localizedDescription)")

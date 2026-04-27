@@ -14,6 +14,7 @@ import com.nash.skyos.data.AppNetworkMonitor
 import com.nash.skyos.data.AppTextResolver
 import com.nash.skyos.data.AgentPendingQueueStore
 import com.nash.skyos.data.ManusByosPreferences
+import com.nash.skyos.data.PushTokenRegistry
 
 class SkydownApplication : Application() {
     override fun onCreate() {
@@ -22,6 +23,7 @@ class SkydownApplication : Application() {
         AppTextResolver.initialize(this)
         AgentPendingQueueStore.initialize(this)
         ManusByosPreferences.initialize(this)
+        PushTokenRegistry.initialize(this)
         runCatching {
             if (FirebaseApp.getApps(this).isEmpty()) {
                 FirebaseApp.initializeApp(this)

@@ -2,6 +2,7 @@ import Foundation
 import Network
 import UIKit
 import UserNotifications
+import FirebaseFunctions
 
 @MainActor
 final class AppServices: ObservableObject {
@@ -16,6 +17,7 @@ final class AppServices: ObservableObject {
     let aiSubscriptionStore: NativeAISubscriptionStore
     let networkStatusMonitor: NetworkStatusMonitor
     let notificationPermissionStore: NotificationPermissionStore
+    let pushTokenSyncService: PushTokenSyncServicing
 
     let authManager: AuthManager
     let cartViewModel: CartViewModel
@@ -52,6 +54,7 @@ final class AppServices: ObservableObject {
         self.hostedCheckoutRedirectStore = HostedCheckoutRedirectStore()
         self.networkStatusMonitor = NetworkStatusMonitor.shared
         self.notificationPermissionStore = NotificationPermissionStore.shared
+        self.pushTokenSyncService = PushTokenSyncService.shared
 
         let authManager = AuthManager(authService: resolvedAuthService)
         self.authManager = authManager
@@ -131,20 +134,31 @@ final class NotificationPermissionStore: ObservableObject {
 
     func requestAuthorizationIfNeededOnLaunch() async {
         await refresh()
-        guard authorizationStatus == .notDetermined else { return }
-        guard defaults.bool(forKey: promptedAtLaunchKey) == false else { return }
-        _ = await requestAuthorization()
+        if authorizationStatus == .notDetermined {
+            guard defaults.bool(forKey: promptedAtLaunchKey) == false else { return }
+            _ = await requestAuthorization()
+            defaults.set(true, forKey: promptedAtLaunchKey)
+            return
+        }
+        if notificationsEnabled {
+            await MainActor.run {
+                UIApplication.shared.registerForRemoteNotifications()
+            }
+        }
     }
 
     @discardableResult
     func requestAuthorization() async -> Bool {
         do {
             let granted = try await center.requestAuthorization(options: [.alert, .badge, .sound])
-            defaults.set(true, forKey: promptedAtLaunchKey)
             await refresh()
+            if granted {
+                await MainActor.run {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            }
             return granted
         } catch {
-            defaults.set(true, forKey: promptedAtLaunchKey)
             await refresh()
             return false
         }
@@ -153,6 +167,56 @@ final class NotificationPermissionStore: ObservableObject {
     func openSystemSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
+    }
+}
+
+protocol PushTokenSyncServicing {
+    func cacheAPNSToken(_ tokenData: Data)
+    func syncIfPossible(userID: String?) async
+}
+
+final class PushTokenSyncService: PushTokenSyncServicing {
+    static let shared = PushTokenSyncService()
+
+    private let functions: Functions
+    private let defaults: UserDefaults
+    private let tokenDefaultsKey = "skydown.push.apns.token"
+    private var lastSyncedFingerprint: String?
+
+    init(
+        functions: Functions = Functions.functions(region: "us-central1"),
+        defaults: UserDefaults = .standard
+    ) {
+        self.functions = functions
+        self.defaults = defaults
+    }
+
+    func cacheAPNSToken(_ tokenData: Data) {
+        let tokenHex = tokenData.map { String(format: "%02x", $0) }.joined()
+        guard !tokenHex.isEmpty else { return }
+        defaults.set(tokenHex, forKey: tokenDefaultsKey)
+        lastSyncedFingerprint = nil
+    }
+
+    func syncIfPossible(userID: String?) async {
+        let uid = userID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !uid.isEmpty else { return }
+        let token = defaults.string(forKey: tokenDefaultsKey)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !token.isEmpty else { return }
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        let fingerprint = "\(uid)|\(token)|\(appVersion)"
+        guard fingerprint != lastSyncedFingerprint else { return }
+        do {
+            _ = try await functions.invokeCallable("upsertPushToken", payload: [
+                "uid": uid,
+                "token": token,
+                "platform": "ios",
+                "appVersion": appVersion
+            ])
+            lastSyncedFingerprint = fingerprint
+        } catch {
+            // Keep silent; next session refresh retries.
+        }
     }
 }
 

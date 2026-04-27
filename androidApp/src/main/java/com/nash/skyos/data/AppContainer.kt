@@ -40,6 +40,7 @@ object AppContainer {
     val aiImageClient: AiImageClient
         get() = aiImageClientOverride ?: defaultAiImageClient
     val aiUsageAuthorizationClient: AiUsageAuthorizationClient by lazy { AiUsageAuthorizationClient() }
+    private val pushTokenSyncClient: PushTokenSyncClient by lazy { PushTokenSyncClient() }
     val agentClient: AgentClient by lazy { AgentClient() }
     val shopifyMerchSyncClient: ShopifyMerchSyncClient by lazy { ShopifyMerchSyncClient() }
     val shopifyPublicCatalogClient: ShopifyPublicCatalogClient by lazy { ShopifyPublicCatalogClient() }
@@ -122,10 +123,24 @@ object AppContainer {
     suspend fun refreshCurrentUser() {
         currentUserOverride?.let {
             AppSessionStore.update(it)
+            runCatchingSyncPushToken(it.id)
             return
         }
 
-        runCatching { authService.currentUser() }
-            .onSuccess(AppSessionStore::update)
+        val user = try {
+            authService.currentUser()
+        } catch (_: Throwable) {
+            null
+        }
+        AppSessionStore.update(user)
+        runCatchingSyncPushToken(user?.id)
+    }
+
+    private suspend fun runCatchingSyncPushToken(uid: String?) {
+        try {
+            pushTokenSyncClient.syncIfPossible(uid)
+        } catch (_: Throwable) {
+            // Silent by design; token sync should not block session bootstrap.
+        }
     }
 }
