@@ -211,7 +211,7 @@ fun ToastHost(
 enum class ToastType(
     val accent: Color,
     val icon: ImageVector,
-    @StringRes val titleRes: Int,
+    @param:StringRes val titleRes: Int,
     val hapticKind: SkydownHapticKind,
 ) {
     Success(

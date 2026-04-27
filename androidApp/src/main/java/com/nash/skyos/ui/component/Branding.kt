@@ -624,7 +624,7 @@ fun BrandStatusChip(
     val interactive = onClick != null
     val clickHandler = onClick
     val interactionSource = remember { MutableInteractionSource() }
-    val chipModifier = if (interactive && clickHandler != null) {
+    val chipModifier = if (clickHandler != null) {
         modifier
             .skydownPressable(
                 interactionSource = interactionSource,
@@ -848,7 +848,7 @@ fun BrandPill(
     val interactive = onClick != null
     val clickHandler = onClick
     val interactionSource = remember { MutableInteractionSource() }
-    val pillModifier = if (interactive && clickHandler != null) {
+    val pillModifier = if (clickHandler != null) {
         Modifier
             .skydownPressable(
                 interactionSource = interactionSource,
