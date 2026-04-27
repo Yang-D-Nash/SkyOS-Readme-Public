@@ -206,16 +206,7 @@ class AgentViewModel : ViewModel() {
 
     fun sendPrompt(prompt: String) {
         val trimmedPrompt = prompt.trim()
-        if (!AppFeatureFlagsStore.allowsAiAccess(AppContainer.currentUser.value)) {
-            _uiState.update {
-                it.copy(errorMessage = AppFeatureFlagsStore.accessDeniedMessage(AppContainer.currentUser.value))
-            }
-            return
-        }
-        if (!_uiState.value.isAgentEnabled) {
-            _uiState.update { it.copy(errorMessage = "Der SkyOS Agent ist gerade pausiert.") }
-            return
-        }
+        if (!isAgentRequestAllowed()) return
         if (trimmedPrompt.isBlank() || _uiState.value.agentPhase.shouldBlockSend) return
 
         val levelAtSend = _uiState.value.selectedLevel
@@ -1053,6 +1044,19 @@ class AgentViewModel : ViewModel() {
         }
         else -> error.message?.takeIf { it.isNotBlank() }
             ?: "Der SkyOS Agent ist gerade kurz pausiert."
+    }
+
+    private fun isAgentRequestAllowed(): Boolean {
+        val currentUser = AppContainer.currentUser.value
+        if (!AppFeatureFlagsStore.allowsAiAccess(currentUser)) {
+            _uiState.update { it.copy(errorMessage = AppFeatureFlagsStore.accessDeniedMessage(currentUser)) }
+            return false
+        }
+        if (!_uiState.value.isAgentEnabled) {
+            _uiState.update { it.copy(errorMessage = "Der SkyOS Agent ist gerade pausiert.") }
+            return false
+        }
+        return true
     }
 }
 

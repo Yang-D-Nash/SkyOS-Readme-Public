@@ -97,13 +97,7 @@ class VideoHubViewModel(
         uris: List<android.net.Uri>,
     ) {
         if (!_uiState.value.isAdmin) {
-            _uiState.update {
-                it.copy(
-                    validationMessage = "Nur Admins koennen Videos hochladen.",
-                    feedbackMessage = "Uploads sind nur fuer Admins verfuegbar.",
-                    feedbackIsError = true,
-                )
-            }
+            showAdminOnlyUploadError()
             return
         }
 
@@ -147,13 +141,7 @@ class VideoHubViewModel(
     fun upload(context: Context) {
         val currentState = _uiState.value
         if (!currentState.isAdmin) {
-            _uiState.update {
-                it.copy(
-                    validationMessage = "Nur Admins koennen Videos hochladen.",
-                    feedbackMessage = "Uploads sind nur fuer Admins verfuegbar.",
-                    feedbackIsError = true,
-                )
-            }
+            showAdminOnlyUploadError()
             return
         }
 
@@ -186,13 +174,7 @@ class VideoHubViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isUploading = true,
-                    validationMessage = null,
-                    feedbackMessage = null,
-                )
-            }
+            setUploadInProgress()
 
             runCatching {
                 videoHubService.uploadVideos(
@@ -235,13 +217,7 @@ class VideoHubViewModel(
     fun addExternalVideo() {
         val currentState = _uiState.value
         if (!currentState.isAdmin) {
-            _uiState.update {
-                it.copy(
-                    validationMessage = "Nur Admins koennen externe Videos freigeben.",
-                    feedbackMessage = "Externe Reels sind nur fuer Admins verfuegbar.",
-                    feedbackIsError = true,
-                )
-            }
+            showAdminOnlyExternalError()
             return
         }
 
@@ -275,13 +251,7 @@ class VideoHubViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isUploading = true,
-                    validationMessage = null,
-                    feedbackMessage = null,
-                )
-            }
+            setUploadInProgress()
 
             runCatching {
                 videoHubService.addExternalVideo(
@@ -682,6 +652,36 @@ class VideoHubViewModel(
                     )
                 }
             }
+        }
+    }
+
+    private fun setUploadInProgress() {
+        _uiState.update {
+            it.copy(
+                isUploading = true,
+                validationMessage = null,
+                feedbackMessage = null,
+            )
+        }
+    }
+
+    private fun showAdminOnlyUploadError() {
+        _uiState.update {
+            it.copy(
+                validationMessage = "Nur Admins koennen Videos hochladen.",
+                feedbackMessage = "Uploads sind nur fuer Admins verfuegbar.",
+                feedbackIsError = true,
+            )
+        }
+    }
+
+    private fun showAdminOnlyExternalError() {
+        _uiState.update {
+            it.copy(
+                validationMessage = "Nur Admins koennen externe Videos freigeben.",
+                feedbackMessage = "Externe Reels sind nur fuer Admins verfuegbar.",
+                feedbackIsError = true,
+            )
         }
     }
 }

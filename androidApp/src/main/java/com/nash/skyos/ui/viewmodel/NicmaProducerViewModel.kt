@@ -94,13 +94,7 @@ class NicmaProducerViewModel(
         uris: List<android.net.Uri>,
     ) {
         if (!_uiState.value.isAdmin) {
-            _uiState.update {
-                it.copy(
-                    validationMessage = AppTextResolver.string(R.string.nicma_upload_admin_only),
-                    feedbackMessage = AppTextResolver.string(R.string.nicma_upload_admin_only_detail),
-                    feedbackIsError = true,
-                )
-            }
+            showAdminOnlyUploadError()
             return
         }
 
@@ -200,13 +194,7 @@ class NicmaProducerViewModel(
     fun upload(context: Context) {
         val currentState = _uiState.value
         if (!currentState.isAdmin) {
-            _uiState.update {
-                it.copy(
-                    validationMessage = AppTextResolver.string(R.string.nicma_upload_admin_only),
-                    feedbackMessage = AppTextResolver.string(R.string.nicma_upload_admin_only_detail),
-                    feedbackIsError = true,
-                )
-            }
+            showAdminOnlyUploadError()
             return
         }
 
@@ -239,13 +227,7 @@ class NicmaProducerViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isUploading = true,
-                    validationMessage = null,
-                    feedbackMessage = null,
-                )
-            }
+            setUploadInProgress()
 
             runCatching {
                 beatHubService.uploadBeats(
@@ -291,13 +273,7 @@ class NicmaProducerViewModel(
     fun addExternalBeat() {
         val currentState = _uiState.value
         if (!currentState.isAdmin) {
-            _uiState.update {
-                it.copy(
-                    validationMessage = AppTextResolver.string(R.string.nicma_external_admin_only),
-                    feedbackMessage = AppTextResolver.string(R.string.nicma_external_admin_only_detail),
-                    feedbackIsError = true,
-                )
-            }
+            showAdminOnlyExternalError()
             return
         }
 
@@ -331,13 +307,7 @@ class NicmaProducerViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isUploading = true,
-                    validationMessage = null,
-                    feedbackMessage = null,
-                )
-            }
+            setUploadInProgress()
 
             runCatching {
                 beatHubService.addExternalBeat(
@@ -414,6 +384,36 @@ class NicmaProducerViewModel(
             it.copy(
                 beats = visibleBeats,
                 isLoadingBeats = false,
+            )
+        }
+    }
+
+    private fun setUploadInProgress() {
+        _uiState.update {
+            it.copy(
+                isUploading = true,
+                validationMessage = null,
+                feedbackMessage = null,
+            )
+        }
+    }
+
+    private fun showAdminOnlyUploadError() {
+        _uiState.update {
+            it.copy(
+                validationMessage = AppTextResolver.string(R.string.nicma_upload_admin_only),
+                feedbackMessage = AppTextResolver.string(R.string.nicma_upload_admin_only_detail),
+                feedbackIsError = true,
+            )
+        }
+    }
+
+    private fun showAdminOnlyExternalError() {
+        _uiState.update {
+            it.copy(
+                validationMessage = AppTextResolver.string(R.string.nicma_external_admin_only),
+                feedbackMessage = AppTextResolver.string(R.string.nicma_external_admin_only_detail),
+                feedbackIsError = true,
             )
         }
     }
