@@ -32,14 +32,15 @@ if [[ "$RUN_SHARED" == true ]]; then
 fi
 
 if [[ "$RUN_ANDROID" == true ]]; then
-  echo "[android] Running :androidApp:lintDebug :shared:compileKotlinMetadata"
-  ./gradlew :androidApp:lintDebug :shared:compileKotlinMetadata --no-daemon
+  echo "[android] Running :androidApp:lintDebug, detektAll, :shared:compileKotlinMetadata"
+  ./gradlew :androidApp:lintDebug detektAll :shared:compileKotlinMetadata --no-daemon
   echo
 fi
 
 if [[ "$RUN_FUNCTIONS" == true ]]; then
-  echo "[functions] Running npm ci && npm test"
+  echo "[functions] Running npm ci, build (syntax), and test"
   npm ci --prefix functions
+  npm run build --prefix functions
   npm test --prefix functions
   echo
 fi

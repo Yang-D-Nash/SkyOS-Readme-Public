@@ -30,6 +30,7 @@ workflow surface; longer-lived memory and deeper follow-up automations remain co
 store rollout still depends on store-console, legal, URL, asset upload/mapping, and real-device
 smoke items outside the repo.
 
+- [release/app-release-workflow.md](release/app-release-workflow.md) - **step-by-step App Store release** (iOS/Android/backend scope); **maintain this file** when the release process changes
 - [release/store-upload-runbook.md](release/store-upload-runbook.md) - current build identity, upload state, blockers, hashes, and next console clicks
 - [release-checklist.md](release-checklist.md) - generic go/no-go checklist for every release candidate
 - [../manual-test-checklist.md](../manual-test-checklist.md) - role and platform smoke matrix for manual release validation

@@ -104,9 +104,10 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Run Android lint, compile checks, and shared metadata compile
+      - name: Run Android lint, detekt, compile checks, and shared metadata compile
         run: |
           ./gradlew :androidApp:lintDebug \
+            detektAll \
             :androidApp:compileDebugKotlin \
             :androidApp:compileDebugAndroidTestKotlin \
             :shared:compileKotlinMetadata \
@@ -173,8 +174,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test
+      - name: Syntax check and tests
+        run: |
+          npm run build
+          npm test
 
   # Final gate summary always runs to provide a single PR-facing status view.
   ci-summary:
@@ -184,6 +187,7 @@ jobs:
       - changes
       - shared-tests
       - android-lint
+      - ios-build
       - functions-tests
     if: always()
     steps:
@@ -201,5 +205,6 @@ jobs:
             echo "### Job outcomes"
             echo "- shared-tests: \`${{ needs.shared-tests.result }}\`"
             echo "- android-lint: \`${{ needs.android-lint.result }}\`"
+            echo "- ios-build: \`${{ needs.ios-build.result }}\`"
             echo "- functions-tests: \`${{ needs.functions-tests.result }}\`"
           } >> "$GITHUB_STEP_SUMMARY"

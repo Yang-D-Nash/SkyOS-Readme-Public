@@ -36,6 +36,7 @@ import com.nash.skyos.ui.model.agentQuickPromptsFor
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserQuotaPlan
 import com.skydown.shared.model.UserRole
+import com.skydown.shared.model.isPlatformOwner
 import com.skydown.shared.model.resolvedAiHistoryRetentionDays
 import com.skydown.shared.model.resolvedQuotaPlan
 import kotlinx.coroutines.CancellationException

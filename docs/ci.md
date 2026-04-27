@@ -25,6 +25,7 @@ Detects changed areas using `dorny/paths-filter@v3` and exports booleans:
 
 - `shared`
 - `android`
+- `ios`
 - `functions`
 
 These outputs gate all downstream jobs.
@@ -49,22 +50,44 @@ Purpose:
 
 Runs only when `android == true`.
 
-Command:
+Command (see workflow for exact task list):
 
 ```bash
-./gradlew :androidApp:lintDebug :shared:compileKotlinMetadata --no-daemon
+./gradlew :androidApp:lintDebug \
+  detektAll \
+  :androidApp:compileDebugKotlin \
+  :androidApp:compileDebugAndroidTestKotlin \
+  :shared:compileKotlinMetadata \
+  --no-daemon
 ```
 
 Purpose:
 
-- enforce Android lint quality
+- enforce Android lint and detekt static analysis
+- compile debug + AndroidTest Kotlin to catch API drift
 - ensure shared metadata compilation remains valid for Android integration
 
 Artifacts:
 
 - uploads `androidApp/build/reports/lint-results-debug.*` on every run (`if: always()`)
 
-### 4) `functions-tests` (conditional)
+### 4) `ios-build` (conditional)
+
+Runs only when `ios == true`.
+
+Command:
+
+```bash
+xcodebuild -project "Skydown App.xcodeproj" -scheme "Skydown App" \
+  -destination "generic/platform=iOS Simulator" -configuration Debug \
+  -sdk iphonesimulator -quiet CODE_SIGNING_ALLOWED=NO build
+```
+
+Purpose:
+
+- catch Swift compile failures on pull requests that touch the Xcode project
+
+### 5) `functions-tests` (conditional)
 
 Runs only when `functions == true`.
 
@@ -72,19 +95,21 @@ Commands (in `functions/`):
 
 ```bash
 npm ci
+npm run build
 npm test
 ```
 
 Purpose:
 
-- enforce backend test health for Firebase Functions
+- `npm run build` runs `node --check index.js` (syntax / parse errors)
+- enforce backend test health for Firebase Functions and Firestore/Storage rules (emulator)
 
-### 5) `ci-summary` (always)
+### 6) `ci-summary` (always)
 
 Runs with `if: always()` after all gates and writes a compact summary to the workflow UI:
 
-- changed-area booleans (`shared/android/functions`)
-- resulting job outcomes (`success/skipped/failure`)
+- changed-area booleans (`shared/android/ios/functions`)
+- resulting job outcomes (`success/skipped/failure`) for `shared-tests`, `android-lint`, `ios-build`, and `functions-tests`
 
 ## Path Filters
 
@@ -103,6 +128,10 @@ Current filter rules:
   - `settings.gradle.kts`
   - `gradle/**`
   - `gradle.properties`
+- `ios`:
+  - `Skydown App/**`
+  - `Skydown App.xcodeproj/**`
+  - `Skydown AppUITests/**`
 - `functions`:
   - `functions/**`
 
