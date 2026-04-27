@@ -6,7 +6,6 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.AppCartStore
 import com.nash.skyos.data.AppTextResolver
-import com.nash.skyos.data.MerchStoreStatusRepository
 import com.nash.skyos.data.toAppCheckVerificationMessage
 import com.nash.skyos.R
 import com.nash.skyos.ui.model.ShopUiState
@@ -23,7 +22,7 @@ import kotlinx.coroutines.launch
 
 class ShopViewModel : ViewModel() {
     private val merchandiseService = AppContainer.merchandiseService
-    private val merchStoreStatusRepository = MerchStoreStatusRepository()
+    private val merchStoreStatusRepository = AppContainer.merchStoreStatusRepository
     private val shopifyMerchSyncClient = AppContainer.shopifyMerchSyncClient
     private val shopifyPublicCatalogClient = AppContainer.shopifyPublicCatalogClient
     private val _uiState = MutableStateFlow(
@@ -54,12 +53,7 @@ class ShopViewModel : ViewModel() {
 
     fun toggleStoreOpen() {
         if (!_uiState.value.isAdmin) {
-            _uiState.update {
-                it.copy(
-                    toastMessage = AppTextResolver.string(R.string.shop_toast_owner_only_store_toggle),
-                    isErrorToast = true,
-                )
-            }
+            postErrorToast(AppTextResolver.string(R.string.shop_toast_owner_only_store_toggle))
             return
         }
 
@@ -69,26 +63,20 @@ class ShopViewModel : ViewModel() {
             val result = merchStoreStatusRepository.updateStoreOpen(nextState)
 
             if (result.isSuccess) {
-                _uiState.update {
-                    it.copy(
-                        isUpdatingStoreState = false,
-                        toastMessage = if (nextState) {
-                            AppTextResolver.string(R.string.shop_toast_store_opened)
-                        } else {
-                            AppTextResolver.string(R.string.shop_toast_store_closed)
-                        },
-                        isErrorToast = false,
-                    )
-                }
+                postSuccessToast(
+                    if (nextState) {
+                        AppTextResolver.string(R.string.shop_toast_store_opened)
+                    } else {
+                        AppTextResolver.string(R.string.shop_toast_store_closed)
+                    },
+                    isUpdatingStoreState = false,
+                )
             } else {
-                _uiState.update {
-                    it.copy(
-                        isUpdatingStoreState = false,
-                        toastMessage = result.exceptionOrNull()?.message
-                            ?: AppTextResolver.string(R.string.shop_error_store_status_update_failed),
-                        isErrorToast = true,
-                    )
-                }
+                postErrorToast(
+                    result.exceptionOrNull()?.message
+                        ?: AppTextResolver.string(R.string.shop_error_store_status_update_failed),
+                    isUpdatingStoreState = false,
+                )
             }
         }
     }
@@ -102,37 +90,27 @@ class ShopViewModel : ViewModel() {
     }
 
     fun clearError() {
-        _uiState.update { it.copy(errorMessage = null) }
+        clearTransientMessages(clearError = true, clearToast = false)
     }
 
     fun clearToast() {
-        _uiState.update { it.copy(toastMessage = null) }
+        clearTransientMessages(clearError = false, clearToast = true)
     }
 
     fun syncShopifyCatalog() {
         if (!_uiState.value.isAdmin) {
-            _uiState.update {
-                it.copy(
-                    toastMessage = AppTextResolver.string(R.string.shop_toast_owner_only_sync),
-                    isErrorToast = true,
-                )
-            }
+            postErrorToast(AppTextResolver.string(R.string.shop_toast_owner_only_sync))
             return
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSyncingCatalog = true) }
+            setSyncInProgress(isCatalogLoading = false)
             val result = shopifyMerchSyncClient.triggerSync()
-            _uiState.update {
-                it.copy(
-                    isSyncingCatalog = false,
-                    toastMessage = result.getOrElse { error ->
-                        error.toAppCheckVerificationMessage("den Shopify-Sync erneut starten")
-                            ?: error.message
-                            ?: AppTextResolver.string(R.string.shop_error_sync_failed)
-                    },
-                    isErrorToast = result.isFailure,
-                )
+            val toastMessage = result.getOrElse(::resolveSyncErrorMessage)
+            if (result.isSuccess) {
+                postSuccessToast(toastMessage, isSyncingCatalog = false)
+            } else {
+                postErrorToast(toastMessage, isSyncingCatalog = false)
             }
             if (result.isSuccess) {
                 refreshState()
@@ -170,19 +148,9 @@ class ShopViewModel : ViewModel() {
                 )
             }
 
-            _uiState.update {
-                it.copy(
-                    toastMessage = AppTextResolver.string(R.string.shop_toast_added_to_cart),
-                    isErrorToast = false,
-                )
-            }
+            postSuccessToast(AppTextResolver.string(R.string.shop_toast_added_to_cart))
         }.onFailure { error ->
-            _uiState.update {
-                it.copy(
-                    toastMessage = error.message ?: AppTextResolver.string(R.string.shop_error_variant_add_failed),
-                    isErrorToast = true,
-                )
-            }
+            postErrorToast(error.message ?: AppTextResolver.string(R.string.shop_error_variant_add_failed))
         }
     }
 
@@ -248,12 +216,7 @@ class ShopViewModel : ViewModel() {
             result.onSuccess { status ->
                 _uiState.update { it.copy(isStoreOpen = status.isOpen) }
             }.onFailure { error ->
-                _uiState.update {
-                    it.copy(
-                        toastMessage = error.message ?: AppTextResolver.string(R.string.shop_error_store_status_load_failed),
-                        isErrorToast = true,
-                    )
-                }
+                postErrorToast(error.message ?: AppTextResolver.string(R.string.shop_error_store_status_load_failed))
             }
         }
     }
@@ -310,14 +273,10 @@ class ShopViewModel : ViewModel() {
         }
 
         hasAttemptedAutomaticShopifySync = true
-        _uiState.update {
-            it.copy(
-                isSyncingCatalog = true,
-                isCatalogLoading = true,
-                toastMessage = AppTextResolver.string(R.string.shop_toast_sync_loading),
-                isErrorToast = false,
-            )
-        }
+        setSyncInProgress(
+            isCatalogLoading = true,
+            loadingToast = AppTextResolver.string(R.string.shop_toast_sync_loading),
+        )
 
         val syncResult = shopifyMerchSyncClient.triggerSync()
         if (syncResult.isSuccess) {
@@ -325,12 +284,13 @@ class ShopViewModel : ViewModel() {
             val user = AppContainer.currentUser.value
             val resolvedItems = itemsResult.getOrDefault(emptyList())
             allItems = resolvedItems
+            val isAdmin = user?.isPlatformOwner == true
             _uiState.update {
                 it.copy(
-                    items = filterVisibleItems(resolvedItems, isAdmin = user?.isPlatformOwner == true),
+                    items = filterVisibleItems(resolvedItems, isAdmin = isAdmin),
                     isCatalogLoading = false,
                     isLoggedIn = user != null,
-                    isAdmin = user?.isPlatformOwner == true,
+                    isAdmin = isAdmin,
                     errorMessage = if (resolvedItems.isNotEmpty()) null else itemsResult.exceptionOrNull()?.message,
                     isSyncingCatalog = false,
                     toastMessage = AppTextResolver.string(R.string.shop_toast_sync_reloaded),
@@ -339,6 +299,7 @@ class ShopViewModel : ViewModel() {
             }
         } else {
             val fallbackItems = shopifyPublicCatalogClient.fetchCatalog().getOrDefault(emptyList())
+            val syncErrorMessage = resolveSyncErrorMessage(syncResult.exceptionOrNull())
             _uiState.update {
                 it.copy(
                     isCatalogLoading = false,
@@ -353,14 +314,68 @@ class ShopViewModel : ViewModel() {
                     toastMessage = if (fallbackItems.isNotEmpty()) {
                         AppTextResolver.string(R.string.shop_toast_sync_loaded_from_store)
                     } else {
-                        syncResult.exceptionOrNull()
-                            ?.toAppCheckVerificationMessage("den Shopify-Sync erneut starten")
-                            ?: syncResult.exceptionOrNull()?.message
-                            ?: AppTextResolver.string(R.string.shop_error_sync_failed)
+                        syncErrorMessage
                     },
                     isErrorToast = fallbackItems.isEmpty(),
                 )
             }
         }
+    }
+
+    private fun postSuccessToast(
+        message: String,
+        isUpdatingStoreState: Boolean? = null,
+        isSyncingCatalog: Boolean? = null,
+    ) {
+        _uiState.update { state ->
+            state.copy(
+                toastMessage = message,
+                isErrorToast = false,
+                isUpdatingStoreState = isUpdatingStoreState ?: state.isUpdatingStoreState,
+                isSyncingCatalog = isSyncingCatalog ?: state.isSyncingCatalog,
+            )
+        }
+    }
+
+    private fun postErrorToast(
+        message: String,
+        isUpdatingStoreState: Boolean? = null,
+        isSyncingCatalog: Boolean? = null,
+    ) {
+        _uiState.update { state ->
+            state.copy(
+                toastMessage = message,
+                isErrorToast = true,
+                isUpdatingStoreState = isUpdatingStoreState ?: state.isUpdatingStoreState,
+                isSyncingCatalog = isSyncingCatalog ?: state.isSyncingCatalog,
+            )
+        }
+    }
+
+    private fun clearTransientMessages(clearError: Boolean, clearToast: Boolean) {
+        _uiState.update { state ->
+            state.copy(
+                errorMessage = if (clearError) null else state.errorMessage,
+                toastMessage = if (clearToast) null else state.toastMessage,
+            )
+        }
+    }
+
+    private fun setSyncInProgress(isCatalogLoading: Boolean, loadingToast: String? = null) {
+        _uiState.update {
+            it.copy(
+                isSyncingCatalog = true,
+                isCatalogLoading = isCatalogLoading,
+                toastMessage = loadingToast ?: it.toastMessage,
+                isErrorToast = false,
+            )
+        }
+    }
+
+    private fun resolveSyncErrorMessage(error: Throwable?): String {
+        return error
+            ?.toAppCheckVerificationMessage("den Shopify-Sync erneut starten")
+            ?: error?.message
+            ?: AppTextResolver.string(R.string.shop_error_sync_failed)
     }
 }

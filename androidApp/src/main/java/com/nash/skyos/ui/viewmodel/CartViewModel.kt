@@ -174,52 +174,19 @@ class CartViewModel : ViewModel() {
 
     suspend fun submitOrder(): Result<Unit> {
         val state = _uiState.value
-        if (!state.isStoreOpen && !state.isAdmin) {
-            _uiState.update {
-                it.copy(
-                    errorMessage = AppTextResolver.string(R.string.cart_error_store_paused),
-                    successMessage = null,
-                )
-            }
-            return Result.failure(IllegalStateException(AppTextResolver.string(R.string.cart_error_store_paused_short)))
-        }
-        val mixedFulfillmentError = mixedFulfillmentError(state)
-        if (mixedFulfillmentError != null) {
-            _uiState.update {
-                it.copy(
-                    errorMessage = mixedFulfillmentError,
-                    successMessage = null,
-                )
-            }
-            return Result.failure(IllegalStateException(mixedFulfillmentError))
+        checkoutPreconditionFailure(state)?.let { failure ->
+            return failAndReportPrecondition(failure)
         }
         _uiState.update { it.copy(isSubmitting = true, errorMessage = null, successMessage = null) }
         val shippingAddress = composeShippingAddress(state)
-        val pricing = pricingSummary(state).getOrElse { error ->
-            _uiState.update {
-                it.copy(
-                    isSubmitting = false,
-                    errorMessage = error.message,
-                    successMessage = null,
-                )
-            }
-            return Result.failure(error)
-        }
+        val pricing = pricingSummary(state).getOrElse { error -> return failAndReportSubmission(error) }
         val isZeroCostOrder = pricing.total <= 0.01
         val paymentLine = state.selectedPaymentMethod
-            ?.takeIf { !isZeroCostOrder && it.isNotBlank() }
+            .takeIf { !isZeroCostOrder && it.isNotBlank() }
             ?.let { AppTextResolver.string(R.string.cart_payment_method_line, it) }
             .orEmpty()
-        val countryCode = ShippingService.resolveCountryCode(state.shippingCountry).getOrElse { error ->
-            _uiState.update {
-                it.copy(
-                    isSubmitting = false,
-                    errorMessage = error.message,
-                    successMessage = null,
-                )
-            }
-            return Result.failure(error)
-        }
+        val countryCode = ShippingService.resolveCountryCode(state.shippingCountry)
+            .getOrElse { error -> return failAndReportSubmission(error) }
         val submission = buildOrderSubmission(
             state = state,
             shippingAddress = shippingAddress,
@@ -232,73 +199,31 @@ class CartViewModel : ViewModel() {
             pendingHostedCheckoutItems = null
             AppCartStore.clear()
         }
-        _uiState.update {
-            it.copy(
-                isSubmitting = false,
-                items = if (result.isSuccess) emptyList() else it.items,
-                selectedPaymentMethod = if (result.isSuccess) {
-                    it.paymentMethods.checkoutMethodLabels.firstOrNull().orEmpty()
-                } else {
-                    it.selectedPaymentMethod
-                },
-                errorMessage = result.exceptionOrNull()?.message,
-                successMessage = if (result.isSuccess) {
-                    if (isZeroCostOrder) {
-                        AppTextResolver.string(R.string.cart_success_order_confirmed)
-                    } else {
-                        AppTextResolver.string(R.string.cart_success_order_submitted)
-                    }
-                } else {
-                    null
-                },
-            )
-        }
+        finalizeCheckoutState(
+            result = result,
+            successMessage = if (isZeroCostOrder) {
+                AppTextResolver.string(R.string.cart_success_order_confirmed)
+            } else {
+                AppTextResolver.string(R.string.cart_success_order_submitted)
+            },
+        )
         return result.map { }
     }
 
     suspend fun startHostedCheckout(): Result<HostedCheckoutSession> {
         val state = _uiState.value
-        if (!state.isStoreOpen && !state.isAdmin) {
-            _uiState.update {
-                it.copy(
-                    errorMessage = AppTextResolver.string(R.string.cart_error_store_paused),
-                    successMessage = null,
-                )
-            }
-            return Result.failure(IllegalStateException(AppTextResolver.string(R.string.cart_error_store_paused_short)))
-        }
-        val mixedFulfillmentError = mixedFulfillmentError(state)
-        if (mixedFulfillmentError != null) {
-            _uiState.update {
-                it.copy(
-                    errorMessage = mixedFulfillmentError,
-                    successMessage = null,
-                )
-            }
-            return Result.failure(IllegalStateException(mixedFulfillmentError))
+        checkoutPreconditionFailure(state)?.let { failure ->
+            return failAndReportPrecondition(failure)
         }
         _uiState.update { it.copy(isSubmitting = true, errorMessage = null, successMessage = null) }
         val shippingAddress = composeShippingAddress(state)
-        val pricing = pricingSummary(state).getOrElse { error ->
-            _uiState.update {
-                it.copy(
-                    isSubmitting = false,
-                    errorMessage = error.message,
-                    successMessage = null,
-                )
-            }
-            return Result.failure(error)
-        }
+        val pricing = pricingSummary(state).getOrElse { error -> return failAndReportSubmission(error) }
         val paymentMethod = state.selectedPaymentMethod.takeIf { it.isNotBlank() }.orEmpty()
         if (paymentMethod !in setOf("Stripe", "Klarna")) {
-            _uiState.update {
-                it.copy(
-                    isSubmitting = false,
-                    errorMessage = AppTextResolver.string(R.string.cart_error_hosted_checkout_unavailable),
-                    successMessage = null,
-                )
-            }
-            return Result.failure(IllegalArgumentException(AppTextResolver.string(R.string.cart_error_checkout_unavailable_short)))
+            return failAndReportSubmission(
+                IllegalArgumentException(AppTextResolver.string(R.string.cart_error_checkout_unavailable_short)),
+                uiMessage = AppTextResolver.string(R.string.cart_error_hosted_checkout_unavailable),
+            )
         }
         val isZeroCostOrder = pricing.total <= 0.01
         val paymentLine = if (isZeroCostOrder) {
@@ -306,16 +231,8 @@ class CartViewModel : ViewModel() {
         } else {
             AppTextResolver.string(R.string.cart_payment_method_line, paymentMethod)
         }
-        val countryCode = ShippingService.resolveCountryCode(state.shippingCountry).getOrElse { error ->
-            _uiState.update {
-                it.copy(
-                    isSubmitting = false,
-                    errorMessage = error.message,
-                    successMessage = null,
-                )
-            }
-            return Result.failure(error)
-        }
+        val countryCode = ShippingService.resolveCountryCode(state.shippingCountry)
+            .getOrElse { error -> return failAndReportSubmission(error) }
         val submission = buildOrderSubmission(
             state = state,
             shippingAddress = shippingAddress,
@@ -332,27 +249,14 @@ class CartViewModel : ViewModel() {
             pendingHostedCheckoutItems = state.items
             AppCartStore.clear()
         }
-        _uiState.update {
-            it.copy(
-                isSubmitting = false,
-                items = if (result.isSuccess) emptyList() else it.items,
-                selectedPaymentMethod = if (result.isSuccess) {
-                    it.paymentMethods.checkoutMethodLabels.firstOrNull().orEmpty()
-                } else {
-                    it.selectedPaymentMethod
-                },
-                errorMessage = result.exceptionOrNull()?.message,
-                successMessage = if (result.isSuccess) {
-                    if (isZeroCostOrder) {
-                        AppTextResolver.string(R.string.cart_success_order_confirmed)
-                    } else {
-                        AppTextResolver.string(R.string.cart_success_checkout_opened)
-                    }
-                } else {
-                    null
-                },
-            )
-        }
+        finalizeCheckoutState(
+            result = result,
+            successMessage = if (isZeroCostOrder) {
+                AppTextResolver.string(R.string.cart_success_order_confirmed)
+            } else {
+                AppTextResolver.string(R.string.cart_success_checkout_opened)
+            },
+        )
         return result
     }
 
@@ -488,6 +392,60 @@ class CartViewModel : ViewModel() {
         }
         return null
     }
+
+    private fun checkoutPreconditionFailure(state: CartUiState): CheckoutPreconditionFailure? {
+        if (!state.isStoreOpen && !state.isAdmin) {
+            return CheckoutPreconditionFailure(
+                uiMessage = AppTextResolver.string(R.string.cart_error_store_paused),
+                throwableMessage = AppTextResolver.string(R.string.cart_error_store_paused_short),
+            )
+        }
+        val mixedFulfillmentError = mixedFulfillmentError(state)
+        if (mixedFulfillmentError != null) {
+            return CheckoutPreconditionFailure(
+                uiMessage = mixedFulfillmentError,
+                throwableMessage = mixedFulfillmentError,
+            )
+        }
+        return null
+    }
+
+    private fun <T> failAndReportPrecondition(failure: CheckoutPreconditionFailure): Result<T> {
+        _uiState.update {
+            it.copy(
+                errorMessage = failure.uiMessage,
+                successMessage = null,
+            )
+        }
+        return Result.failure(IllegalStateException(failure.throwableMessage))
+    }
+
+    private fun <T> failAndReportSubmission(error: Throwable, uiMessage: String? = error.message): Result<T> {
+        _uiState.update {
+            it.copy(
+                isSubmitting = false,
+                errorMessage = uiMessage,
+                successMessage = null,
+            )
+        }
+        return Result.failure(error)
+    }
+
+    private fun <T> finalizeCheckoutState(result: Result<T>, successMessage: String) {
+        _uiState.update { state ->
+            state.copy(
+                isSubmitting = false,
+                items = if (result.isSuccess) emptyList() else state.items,
+                selectedPaymentMethod = if (result.isSuccess) {
+                    state.paymentMethods.checkoutMethodLabels.firstOrNull().orEmpty()
+                } else {
+                    state.selectedPaymentMethod
+                },
+                errorMessage = result.exceptionOrNull()?.message,
+                successMessage = if (result.isSuccess) successMessage else null,
+            )
+        }
+    }
 }
 
 private data class CartPricingSummary(
@@ -498,4 +456,9 @@ private data class CartPricingSummary(
     val total: Double,
     val zone: com.nash.skyos.data.ShippingZone,
     val countryCode: String,
+)
+
+private data class CheckoutPreconditionFailure(
+    val uiMessage: String,
+    val throwableMessage: String,
 )

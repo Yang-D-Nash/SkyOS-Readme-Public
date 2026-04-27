@@ -27,7 +27,7 @@ class LoginViewModel : ViewModel() {
     fun signIn(onSuccess: () -> Unit) {
         val current = _uiState.value
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            setEmailSignInLoading()
 
             val result = authService.signIn(
                 LoginInput(
@@ -37,21 +37,16 @@ class LoginViewModel : ViewModel() {
             )
 
             if (result.isSuccess) {
-                _uiState.update { it.copy(isLoading = false) }
+                finalizeEmailSignIn()
                 onSuccess()
             } else {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = result.exceptionOrNull()?.message,
-                    )
-                }
+                failEmailSignIn(result.exceptionOrNull()?.message)
             }
         }
     }
 
     fun beginGoogleSignIn() {
-        _uiState.update { it.copy(isGoogleLoading = true, errorMessage = null) }
+        setGoogleSignInLoading()
     }
 
     fun signInWithGoogle(idToken: String, onSuccess: () -> Unit) {
@@ -59,20 +54,44 @@ class LoginViewModel : ViewModel() {
             val result = authService.signInWithGoogle(idToken)
 
             if (result.isSuccess) {
-                _uiState.update { it.copy(isGoogleLoading = false) }
+                finalizeGoogleSignIn()
                 onSuccess()
             } else {
-                _uiState.update {
-                    it.copy(
-                        isGoogleLoading = false,
-                        errorMessage = result.exceptionOrNull()?.message,
-                    )
-                }
+                failGoogleSignIn(result.exceptionOrNull()?.message)
             }
         }
     }
 
     fun onGoogleSignInCancelled(message: String = "Google-Anmeldung wurde abgebrochen.") {
+        failGoogleSignIn(message)
+    }
+
+    private fun setEmailSignInLoading() {
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+    }
+
+    private fun finalizeEmailSignIn() {
+        _uiState.update { it.copy(isLoading = false) }
+    }
+
+    private fun failEmailSignIn(message: String?) {
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                errorMessage = message,
+            )
+        }
+    }
+
+    private fun setGoogleSignInLoading() {
+        _uiState.update { it.copy(isGoogleLoading = true, errorMessage = null) }
+    }
+
+    private fun finalizeGoogleSignIn() {
+        _uiState.update { it.copy(isGoogleLoading = false) }
+    }
+
+    private fun failGoogleSignIn(message: String?) {
         _uiState.update {
             it.copy(
                 isGoogleLoading = false,

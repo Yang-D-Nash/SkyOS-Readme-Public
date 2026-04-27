@@ -16,6 +16,7 @@ class RegistrationViewModel : ViewModel() {
     private val authService = AppContainer.authService
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+    private val consentRequiredMessage = "Bitte akzeptiere AGB und Datenschutz, um fortzufahren."
 
     fun updateUsername(value: String) {
         _uiState.update { it.copy(username = value, errorMessage = null) }
@@ -51,14 +52,12 @@ class RegistrationViewModel : ViewModel() {
 
     fun register(onSuccess: () -> Unit) {
         val current = _uiState.value
-        if (!current.acceptedTerms || !current.acceptedPrivacyPolicy) {
-            _uiState.update {
-                it.copy(errorMessage = "Bitte akzeptiere AGB und Datenschutz, um fortzufahren.")
-            }
+        if (!hasRequiredConsent(current)) {
+            failEmailSignUp(consentRequiredMessage)
             return
         }
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            setEmailSignUpLoading()
 
             val result = authService.register(
                 RegistrationInput(
@@ -78,33 +77,23 @@ class RegistrationViewModel : ViewModel() {
             )
 
             if (result.isSuccess) {
-                _uiState.update { it.copy(isLoading = false) }
+                finalizeEmailSignUp()
                 onSuccess()
             } else {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = result.exceptionOrNull()?.message,
-                    )
-                }
+                failEmailSignUp(result.exceptionOrNull()?.message)
             }
         }
     }
 
     fun beginGoogleSignIn() {
-        _uiState.update { it.copy(isGoogleLoading = true, errorMessage = null) }
+        setGoogleSignInLoading()
     }
 
     fun signInWithGoogle(idToken: String, onSuccess: () -> Unit) {
         val preferredUsername = _uiState.value.username.trim().ifBlank { null }
         val current = _uiState.value
-        if (!current.acceptedTerms || !current.acceptedPrivacyPolicy) {
-            _uiState.update {
-                it.copy(
-                    isGoogleLoading = false,
-                    errorMessage = "Bitte akzeptiere AGB und Datenschutz, um fortzufahren.",
-                )
-            }
+        if (!hasRequiredConsent(current)) {
+            failGoogleSignIn(consentRequiredMessage)
             return
         }
         viewModelScope.launch {
@@ -121,20 +110,48 @@ class RegistrationViewModel : ViewModel() {
             )
 
             if (result.isSuccess) {
-                _uiState.update { it.copy(isGoogleLoading = false) }
+                finalizeGoogleSignIn()
                 onSuccess()
             } else {
-                _uiState.update {
-                    it.copy(
-                        isGoogleLoading = false,
-                        errorMessage = result.exceptionOrNull()?.message,
-                    )
-                }
+                failGoogleSignIn(result.exceptionOrNull()?.message)
             }
         }
     }
 
     fun onGoogleSignInCancelled(message: String = "Google-Anmeldung wurde abgebrochen.") {
+        failGoogleSignIn(message)
+    }
+
+    private fun hasRequiredConsent(state: AuthUiState): Boolean {
+        return state.acceptedTerms && state.acceptedPrivacyPolicy
+    }
+
+    private fun setEmailSignUpLoading() {
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+    }
+
+    private fun finalizeEmailSignUp() {
+        _uiState.update { it.copy(isLoading = false) }
+    }
+
+    private fun failEmailSignUp(message: String?) {
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                errorMessage = message,
+            )
+        }
+    }
+
+    private fun setGoogleSignInLoading() {
+        _uiState.update { it.copy(isGoogleLoading = true, errorMessage = null) }
+    }
+
+    private fun finalizeGoogleSignIn() {
+        _uiState.update { it.copy(isGoogleLoading = false) }
+    }
+
+    private fun failGoogleSignIn(message: String?) {
         _uiState.update {
             it.copy(
                 isGoogleLoading = false,

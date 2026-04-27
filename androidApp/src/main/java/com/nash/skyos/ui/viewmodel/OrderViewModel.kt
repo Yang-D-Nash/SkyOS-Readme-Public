@@ -7,6 +7,7 @@ import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.AppSessionStore
 import com.nash.skyos.data.repository.AndroidOrderRepository
 import com.nash.skyos.ui.model.OrderUiState
+import com.skydown.shared.model.Order
 import com.skydown.shared.model.isPlatformOwner
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,15 +38,10 @@ class OrderViewModel : ViewModel() {
             val currentOrder = _uiState.value.orders.firstOrNull { it.id == orderId } ?: return@launch
             val result = orderService.toggleCompleted(orderId, currentOrder.isCompleted)
             if (result.isFailure) {
-                _uiState.update { it.copy(errorMessage = result.exceptionOrNull()?.message) }
+                postError(result.exceptionOrNull()?.message)
                 return@launch
             }
-            _uiState.update {
-                it.copy(
-                    errorMessage = null,
-                    successMessage = if (currentOrder.isCompleted) "Markiert als offen" else "Markiert als erledigt",
-                )
-            }
+            postSuccess(if (currentOrder.isCompleted) "Markiert als offen" else "Markiert als erledigt")
             loadOrders()
         }
     }
@@ -54,15 +50,10 @@ class OrderViewModel : ViewModel() {
         viewModelScope.launch {
             val result = orderService.deleteOrder(orderId)
             if (result.isFailure) {
-                _uiState.update { it.copy(errorMessage = result.exceptionOrNull()?.message) }
+                postError(result.exceptionOrNull()?.message)
                 return@launch
             }
-            _uiState.update {
-                it.copy(
-                    errorMessage = null,
-                    successMessage = "Bestellung geloescht",
-                )
-            }
+            postSuccess("Bestellung geloescht")
             loadOrders()
         }
     }
@@ -71,12 +62,7 @@ class OrderViewModel : ViewModel() {
         viewModelScope.launch {
             val currentOrder = _uiState.value.orders.firstOrNull { it.id == orderId } ?: return@launch
             if (currentOrder.paymentStatus == "confirmed") {
-                _uiState.update {
-                    it.copy(
-                        errorMessage = null,
-                        successMessage = "Diese Bestellung ist bereits als bezahlt markiert.",
-                    )
-                }
+                postSuccess("Diese Bestellung ist bereits als bezahlt markiert.")
                 return@launch
             }
 
@@ -113,32 +99,18 @@ class OrderViewModel : ViewModel() {
 
     private suspend fun loadOrders() {
         val canManageOrders = AppSessionStore.currentUser.value?.isPlatformOwner == true
-        _uiState.update { it.copy(isLoading = true, canManageOrders = canManageOrders) }
+        setOrdersLoading(canManageOrders)
         val result = orderService.loadOrders()
-        _uiState.update {
-            it.copy(
-                isLoading = false,
-                orders = result.getOrDefault(emptyList()),
-                canManageOrders = canManageOrders,
-                errorMessage = result.exceptionOrNull()?.message,
-            )
-        }
+        applyOrdersResult(result, canManageOrders)
     }
 
     private fun observeOrders() {
         ordersListener?.remove()
         val canManageOrders = AppSessionStore.currentUser.value?.isPlatformOwner == true
-        _uiState.update { it.copy(isLoading = true, canManageOrders = canManageOrders, errorMessage = null) }
+        setOrdersLoading(canManageOrders)
         ordersListener = liveOrderRepository?.observeOrders { result ->
             val currentCanManageOrders = AppSessionStore.currentUser.value?.isPlatformOwner == true
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    orders = result.getOrDefault(emptyList()),
-                    canManageOrders = currentCanManageOrders,
-                    errorMessage = result.exceptionOrNull()?.message,
-                )
-            }
+            applyOrdersResult(result, currentCanManageOrders)
         }
     }
 
@@ -156,5 +128,44 @@ class OrderViewModel : ViewModel() {
         ordersListener?.remove()
         ordersListener = null
         super.onCleared()
+    }
+
+    private fun postError(message: String?) {
+        _uiState.update {
+            it.copy(
+                errorMessage = message,
+                successMessage = null,
+            )
+        }
+    }
+
+    private fun postSuccess(message: String) {
+        _uiState.update {
+            it.copy(
+                errorMessage = null,
+                successMessage = message,
+            )
+        }
+    }
+
+    private fun setOrdersLoading(canManageOrders: Boolean) {
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                canManageOrders = canManageOrders,
+                errorMessage = null,
+            )
+        }
+    }
+
+    private fun applyOrdersResult(result: Result<List<Order>>, canManageOrders: Boolean) {
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                orders = result.getOrDefault(emptyList()),
+                canManageOrders = canManageOrders,
+                errorMessage = result.exceptionOrNull()?.message,
+            )
+        }
     }
 }
