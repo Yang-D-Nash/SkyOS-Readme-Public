@@ -8,6 +8,7 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
+import com.nash.skyos.R
 import com.nash.skyos.ui.model.NicmaBeatHubItem
 import com.nash.skyos.ui.model.NicmaSelectedBeatFile
 import com.skydown.shared.model.User
@@ -81,7 +82,7 @@ class NicmaBeatUploadService(
         currentUser: User?,
     ) {
         val source = resolveExternalAudioSource(request.externalUrl)
-            ?: error("Externer Beat-Link konnte nicht erkannt werden.")
+            ?: error(AppTextResolver.string(R.string.nicma_external_link_parse_failed))
         val trimmedTitle = request.beatTitle.trim()
         val beatTitle = trimmedTitle.ifBlank {
             "${request.artistName.trim().ifBlank { "Beat" }} Beat"

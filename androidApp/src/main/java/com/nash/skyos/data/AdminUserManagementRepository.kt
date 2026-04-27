@@ -7,6 +7,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
+import com.nash.skyos.R
 import com.nash.skyos.data.repository.toSharedUser
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserRole
@@ -49,7 +50,7 @@ class AdminUserManagementRepository(
     suspend fun updateUser(user: User): Result<Unit> {
         return runCatching {
             val userId = user.id?.takeIf { it.isNotBlank() }
-                ?: error("Dieses Konto hat keine gueltige Benutzer-ID.")
+                ?: error(AppTextResolver.string(R.string.admin_user_error_invalid_user_id))
             val requestedRole = user.resolvedRole
             val canonicalTarget = try {
                 val response = functions

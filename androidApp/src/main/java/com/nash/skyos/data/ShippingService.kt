@@ -1,6 +1,7 @@
 package com.nash.skyos.data
 
 import com.skydown.shared.model.CartItem
+import com.nash.skyos.R
 
 enum class ShippingZone {
     DE,
@@ -121,7 +122,7 @@ object ShippingService {
     fun resolveCountryCode(input: String): Result<String> {
         val trimmed = input.trim()
         if (trimmed.isBlank()) {
-            return Result.failure(IllegalArgumentException("Bitte gib ein Lieferland an."))
+            return Result.failure(IllegalArgumentException(AppTextResolver.string(R.string.shipping_error_country_required)))
         }
 
         if (trimmed.length == 2 && trimmed.all { it.isLetter() }) {
@@ -131,14 +132,14 @@ object ShippingService {
         return aliases[trimmed.lowercase()]
             ?.let { Result.success(it) }
             ?: Result.failure(
-                IllegalArgumentException("Das Lieferland $trimmed konnte nicht erkannt werden."),
+                IllegalArgumentException(AppTextResolver.string(R.string.shipping_error_country_unrecognized, trimmed)),
             )
     }
 
     fun resolveShippingZone(countryCode: String): Result<ShippingZone> {
         val normalized = countryCode.trim().uppercase()
         if (normalized.isBlank()) {
-            return Result.failure(IllegalArgumentException("Der Laendercode fehlt."))
+            return Result.failure(IllegalArgumentException(AppTextResolver.string(R.string.shipping_error_country_code_missing)))
         }
 
         return Result.success(
@@ -157,7 +158,7 @@ object ShippingService {
         subtotal: Double,
     ): Result<ShippingQuote> {
         if (items.isEmpty()) {
-            return Result.failure(IllegalArgumentException("Es sind keine Artikel fuer den Versand ausgewaehlt."))
+            return Result.failure(IllegalArgumentException(AppTextResolver.string(R.string.shipping_error_items_missing)))
         }
 
         val zone = resolveShippingZone(countryCode).getOrElse { return Result.failure(it) }

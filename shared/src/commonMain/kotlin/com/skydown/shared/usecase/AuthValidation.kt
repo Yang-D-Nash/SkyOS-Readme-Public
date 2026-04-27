@@ -3,21 +3,22 @@ package com.skydown.shared.usecase
 import com.skydown.shared.model.LoginInput
 import com.skydown.shared.model.RegistrationConsentInput
 import com.skydown.shared.model.RegistrationInput
+import com.skydown.shared.text.SharedText
 
 object AuthValidation {
     fun validateLogin(input: LoginInput): String? {
         if (input.email.isBlank() || input.password.isBlank()) {
-            return "Bitte E-Mail und Passwort ausfuellen."
+            return SharedText.AUTH_LOGIN_EMAIL_PASSWORD_REQUIRED
         }
         return null
     }
 
     fun validateRegistration(input: RegistrationInput): String? {
         if (input.email.isBlank() || input.password.isBlank() || input.confirmPassword.isBlank()) {
-            return "Bitte alle Pflichtfelder ausfuellen."
+            return SharedText.AUTH_REGISTER_REQUIRED_FIELDS
         }
         if (input.password != input.confirmPassword) {
-            return "Passwoerter stimmen nicht ueberein."
+            return SharedText.AUTH_REGISTER_PASSWORD_MISMATCH
         }
         val consentError = validateRegistrationConsent(input.consent)
         if (consentError != null) {
@@ -28,15 +29,15 @@ object AuthValidation {
 
     fun validateRegistrationConsent(consent: RegistrationConsentInput): String? {
         if (!consent.acceptedTerms || !consent.acceptedPrivacyPolicy) {
-            return "Bitte akzeptiere AGB und Datenschutz, um fortzufahren."
+            return SharedText.AUTH_REGISTER_CONSENT_REQUIRED
         }
 
         if (consent.legalVersionLabel.isBlank()) {
-            return "Die Rechtsversion konnte nicht geladen werden. Bitte versuche es erneut."
+            return SharedText.AUTH_REGISTER_LEGAL_VERSION_MISSING
         }
 
         if (consent.consentSource.isBlank()) {
-            return "Die Zustimmung konnte nicht korrekt zugeordnet werden."
+            return SharedText.AUTH_REGISTER_CONSENT_SOURCE_MISSING
         }
 
         return null

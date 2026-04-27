@@ -46,7 +46,12 @@ class HomeViewModel(
                 if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
                     return HomeViewModel(app) as T
                 }
-                throw IllegalArgumentException("Unknown ViewModel class: $modelClass")
+                throw IllegalArgumentException(
+                    app.getString(
+                        R.string.home_error_unknown_viewmodel_class,
+                        modelClass,
+                    ),
+                )
             }
         }
     }
@@ -147,7 +152,7 @@ class HomeViewModel(
             val usageData = usageSnapshot.documents.firstOrNull()?.data.orEmpty()
             val warningLevel = (usageData["warningLevel"] as? String).orEmpty().lowercase()
             if (warningLevel == "critical" || warningLevel == "warning") {
-                aiUsageWarning = "Usage level: ${warningLevel.uppercase()}."
+                aiUsageWarning = resString(R.string.home_signal_usage_level, warningLevel.uppercase())
             }
             val remaining = (usageData["remainingForKind"] as? Number)?.toInt() ?: -1
             val limit = (usageData["limitForKind"] as? Number)?.toInt() ?: -1
@@ -181,9 +186,9 @@ class HomeViewModel(
                 val paymentStatus = (orderData["paymentStatus"] as? String).orEmpty()
                 val fulfillmentStatus = (orderData["fulfillmentStatus"] as? String).orEmpty()
                 commerceSignal = when {
-                    paymentStatus.equals("pending", ignoreCase = true) -> "Open payment requires review."
-                    fulfillmentStatus.isNotBlank() -> "Shipping update: $fulfillmentStatus"
-                    orderData.isNotEmpty() -> "New order activity available."
+                    paymentStatus.equals("pending", ignoreCase = true) -> resString(R.string.home_signal_open_payment_review)
+                    fulfillmentStatus.isNotBlank() -> resString(R.string.home_signal_shipping_update, fulfillmentStatus)
+                    orderData.isNotEmpty() -> resString(R.string.home_signal_new_order_activity)
                     else -> null
                 }
             }
@@ -198,7 +203,7 @@ class HomeViewModel(
             val featurePausedCount = listOf(uploadsEnabled, userWritesEnabled, registrationsEnabled).count { !it }
             newDataAvailable = !lockdown && featurePausedCount == 0
             if (featurePausedCount > 0) {
-                recoverableError = "System in reduced mode."
+                recoverableError = resString(R.string.home_signal_system_reduced_mode)
             }
         }
 
@@ -327,7 +332,7 @@ class HomeViewModel(
         return FeaturedVideoHighlight(
             id = document.id,
             title = title,
-            projectName = document.getString("projectName").orEmpty().ifBlank { "Skydown Visual" },
+            projectName = document.getString("projectName").orEmpty().ifBlank { resString(R.string.home_video_project_fallback) },
             notes = document.getString("notes").orEmpty(),
             downloadUrl = document.getString("downloadURL").orEmpty(),
             externalUrl = document.getString("externalURL").orEmpty(),

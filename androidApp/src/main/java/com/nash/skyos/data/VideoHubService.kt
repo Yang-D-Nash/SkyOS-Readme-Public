@@ -9,6 +9,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
+import com.nash.skyos.R
 import com.nash.skyos.ui.model.SelectedVideoFile
 import com.nash.skyos.ui.model.ProducedWithArtist
 import com.nash.skyos.ui.model.VideoEquipmentItem
@@ -112,7 +113,7 @@ open class VideoHubService(
         currentUser: User?,
     ) {
         val source = resolveExternalVideoSource(request.externalUrl)
-            ?: error("Externer Video-Link konnte nicht erkannt werden.")
+            ?: error(AppTextResolver.string(R.string.video_external_link_parse_failed))
         val trimmedTitle = request.title.trim()
         val title = trimmedTitle.ifBlank {
             "${request.projectName.trim().ifBlank { "Video" }} Clip"

@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import com.nash.skyos.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -83,10 +84,10 @@ object SpotifyAuthManager {
         require(expectedState != null && expectedState == receivedState) { "Spotify-Callback ist ungueltig." }
 
         val code = uri.getQueryParameter("code")
-            ?: error("Spotify hat keinen Code geliefert.")
+            ?: error(AppTextResolver.string(R.string.spotify_error_code_missing))
 
         val verifier = protectedStringOrNull(keyVerifier)
-            ?: error("Spotify-PKCE-Verifier fehlt.")
+            ?: error(AppTextResolver.string(R.string.spotify_error_pkce_verifier_missing))
 
         val tokenResponse = exchangeCodeForToken(code, verifier)
         saveTokenResponse(tokenResponse)

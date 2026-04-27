@@ -207,7 +207,7 @@ fun NicmaPriceListCard(
     priceList: List<NicmaProducerPackage>,
 ) {
     SkydownCard {
-        SectionHeader("Preisliste")
+        SectionHeader(stringResource(R.string.nicma_price_list_title))
         Column(
             modifier = Modifier.padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -228,7 +228,7 @@ fun NicmaPriceListEditorCard(
     onDelete: (Int) -> Unit,
 ) {
     SkydownCard {
-        SectionHeader("Preisliste")
+        SectionHeader(stringResource(R.string.nicma_price_list_title))
         if (items.isEmpty()) {
             Text(
                 text = stringResource(R.string.nicma_price_list_empty),
@@ -312,7 +312,7 @@ fun NicmaPriceListEditorCard(
                 modifier = Modifier.size(18.dp),
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Eintrag hinzufuegen")
+            Text(stringResource(R.string.nicma_price_entry_add))
         }
     }
 }
@@ -341,21 +341,27 @@ fun StudioPriceItemEditorDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(if (isAdd) "Neuer Preis" else "Preis bearbeiten")
+            Text(
+                if (isAdd) {
+                    stringResource(R.string.nicma_price_dialog_new_title)
+                } else {
+                    stringResource(R.string.nicma_price_dialog_edit_title)
+                },
+            )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = titleField,
                     onValueChange = { titleField = it },
-                    label = { Text("Titel") },
+                    label = { Text(stringResource(R.string.nicma_price_dialog_label_title)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = detailField,
                     onValueChange = { detailField = it },
-                    label = { Text("Details") },
+                    label = { Text(stringResource(R.string.nicma_price_dialog_label_details)) },
                     minLines = 1,
                     maxLines = 3,
                     modifier = Modifier.fillMaxWidth(),
@@ -363,7 +369,7 @@ fun StudioPriceItemEditorDialog(
                 OutlinedTextField(
                     value = priceField,
                     onValueChange = { priceField = it },
-                    label = { Text("Preis (z. B. 150 €)") },
+                    label = { Text(stringResource(R.string.nicma_price_dialog_label_price)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -382,12 +388,12 @@ fun StudioPriceItemEditorDialog(
                 },
                 enabled = canSave,
             ) {
-                Text("Uebernehmen")
+                Text(stringResource(R.string.common_apply))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
+                Text(stringResource(R.string.common_cancel))
             }
         },
     )
@@ -477,7 +483,7 @@ fun NicmaContactCard(
     onOpenLink: (String) -> Unit,
 ) {
     SkydownCard {
-        SectionHeader("Links")
+        SectionHeader(stringResource(R.string.nicma_links_title))
         Text(
             text = stringResource(R.string.nicma_contact_platforms),
             style = MaterialTheme.typography.bodyMedium,
@@ -492,7 +498,7 @@ fun NicmaContactCard(
                 .padding(top = 16.dp),
             shape = RoundedCornerShape(18.dp),
         ) {
-            Text("NICMA MUSIC auf Instagram")
+            Text(stringResource(R.string.nicma_instagram_label))
         }
 
         spotifyUrl?.takeIf { it.isNotBlank() }?.let { url ->
@@ -503,7 +509,7 @@ fun NicmaContactCard(
                     .padding(top = 10.dp),
                 shape = RoundedCornerShape(18.dp),
             ) {
-                Text("Spotify")
+                Text(stringResource(R.string.common_spotify))
             }
         }
 
@@ -515,7 +521,7 @@ fun NicmaContactCard(
                     .padding(top = 10.dp),
                 shape = RoundedCornerShape(18.dp),
             ) {
-                Text("YouTube")
+                Text(stringResource(R.string.common_youtube))
             }
         }
     }

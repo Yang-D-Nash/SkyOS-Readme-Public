@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.AppCartStore
+import com.nash.skyos.data.AppTextResolver
 import com.nash.skyos.data.HostedCheckoutSession
 import com.nash.skyos.data.ShippingService
+import com.nash.skyos.R
 import com.nash.skyos.ui.model.CartUiState
 import com.google.firebase.firestore.ListenerRegistration
 import com.skydown.shared.model.CartItem
@@ -48,7 +50,11 @@ class CartViewModel : ViewModel() {
                         name = user?.username.orEmpty(),
                         email = user?.email.orEmpty(),
                         whatsApp = user?.whatsApp.orEmpty(),
-                        shippingCountry = if (it.shippingCountry.isBlank()) "Deutschland" else it.shippingCountry,
+                        shippingCountry = if (it.shippingCountry.isBlank()) {
+                            AppTextResolver.string(R.string.cart_default_country)
+                        } else {
+                            it.shippingCountry
+                        },
                     )
                 }
             }
@@ -65,7 +71,7 @@ class CartViewModel : ViewModel() {
                 _uiState.update { it.copy(commerceSettings = settings) }
             }.onFailure { error ->
                 _uiState.update {
-                    it.copy(errorMessage = error.message ?: "Commerce-Einstellungen konnten nicht geladen werden.")
+                    it.copy(errorMessage = error.message ?: AppTextResolver.string(R.string.cart_error_commerce_settings_load_failed))
                 }
             }
         }
@@ -75,7 +81,7 @@ class CartViewModel : ViewModel() {
                 _uiState.update { it.copy(isStoreOpen = status.isOpen) }
             }.onFailure { error ->
                 _uiState.update {
-                    it.copy(errorMessage = error.message ?: "Store-Status konnte nicht geladen werden.")
+                    it.copy(errorMessage = error.message ?: AppTextResolver.string(R.string.cart_error_store_status_load_failed))
                 }
             }
         }
@@ -171,11 +177,11 @@ class CartViewModel : ViewModel() {
         if (!state.isStoreOpen && !state.isAdmin) {
             _uiState.update {
                 it.copy(
-                    errorMessage = "Der Merchandise-Store ist gerade pausiert.",
+                    errorMessage = AppTextResolver.string(R.string.cart_error_store_paused),
                     successMessage = null,
                 )
             }
-            return Result.failure(IllegalStateException("Store pausiert."))
+            return Result.failure(IllegalStateException(AppTextResolver.string(R.string.cart_error_store_paused_short)))
         }
         val mixedFulfillmentError = mixedFulfillmentError(state)
         if (mixedFulfillmentError != null) {
@@ -202,7 +208,7 @@ class CartViewModel : ViewModel() {
         val isZeroCostOrder = pricing.total <= 0.01
         val paymentLine = state.selectedPaymentMethod
             ?.takeIf { !isZeroCostOrder && it.isNotBlank() }
-            ?.let { "Gewuenschte Zahlart: $it\n\n" }
+            ?.let { AppTextResolver.string(R.string.cart_payment_method_line, it) }
             .orEmpty()
         val countryCode = ShippingService.resolveCountryCode(state.shippingCountry).getOrElse { error ->
             _uiState.update {
@@ -237,7 +243,11 @@ class CartViewModel : ViewModel() {
                 },
                 errorMessage = result.exceptionOrNull()?.message,
                 successMessage = if (result.isSuccess) {
-                    if (isZeroCostOrder) "Bestellung bestaetigt." else "Bestellung erfolgreich abgeschickt!"
+                    if (isZeroCostOrder) {
+                        AppTextResolver.string(R.string.cart_success_order_confirmed)
+                    } else {
+                        AppTextResolver.string(R.string.cart_success_order_submitted)
+                    }
                 } else {
                     null
                 },
@@ -251,11 +261,11 @@ class CartViewModel : ViewModel() {
         if (!state.isStoreOpen && !state.isAdmin) {
             _uiState.update {
                 it.copy(
-                    errorMessage = "Der Merchandise-Store ist gerade pausiert.",
+                    errorMessage = AppTextResolver.string(R.string.cart_error_store_paused),
                     successMessage = null,
                 )
             }
-            return Result.failure(IllegalStateException("Store pausiert."))
+            return Result.failure(IllegalStateException(AppTextResolver.string(R.string.cart_error_store_paused_short)))
         }
         val mixedFulfillmentError = mixedFulfillmentError(state)
         if (mixedFulfillmentError != null) {
@@ -284,14 +294,18 @@ class CartViewModel : ViewModel() {
             _uiState.update {
                 it.copy(
                     isSubmitting = false,
-                    errorMessage = "Hosted Checkout ist nur fuer Stripe oder Klarna verfuegbar.",
+                    errorMessage = AppTextResolver.string(R.string.cart_error_hosted_checkout_unavailable),
                     successMessage = null,
                 )
             }
-            return Result.failure(IllegalArgumentException("Checkout nicht verfuegbar."))
+            return Result.failure(IllegalArgumentException(AppTextResolver.string(R.string.cart_error_checkout_unavailable_short)))
         }
         val isZeroCostOrder = pricing.total <= 0.01
-        val paymentLine = if (isZeroCostOrder) "" else "Gewuenschte Zahlart: $paymentMethod\n\n"
+        val paymentLine = if (isZeroCostOrder) {
+            ""
+        } else {
+            AppTextResolver.string(R.string.cart_payment_method_line, paymentMethod)
+        }
         val countryCode = ShippingService.resolveCountryCode(state.shippingCountry).getOrElse { error ->
             _uiState.update {
                 it.copy(
@@ -329,7 +343,11 @@ class CartViewModel : ViewModel() {
                 },
                 errorMessage = result.exceptionOrNull()?.message,
                 successMessage = if (result.isSuccess) {
-                    if (isZeroCostOrder) "Bestellung bestaetigt." else "Checkout geoeffnet."
+                    if (isZeroCostOrder) {
+                        AppTextResolver.string(R.string.cart_success_order_confirmed)
+                    } else {
+                        AppTextResolver.string(R.string.cart_success_checkout_opened)
+                    }
                 } else {
                     null
                 },
@@ -352,14 +370,14 @@ class CartViewModel : ViewModel() {
                 items = if (restoredItems != null && it.items.isEmpty()) restoredItems else it.items,
                 errorMessage = when (status) {
                     com.nash.skyos.data.CheckoutRedirectStatus.Cancel -> if (restoredItems != null) {
-                        "Checkout abgebrochen. Dein Warenkorb wurde wiederhergestellt."
+                        AppTextResolver.string(R.string.cart_error_checkout_cancelled_restored)
                     } else {
-                        "Checkout abgebrochen. Die Bestellung bleibt unbezahlt."
+                        AppTextResolver.string(R.string.cart_error_checkout_cancelled_unpaid)
                     }
                     com.nash.skyos.data.CheckoutRedirectStatus.Success -> null
                 },
                 successMessage = when (status) {
-                    com.nash.skyos.data.CheckoutRedirectStatus.Success -> "Checkout abgeschlossen. Wir pruefen jetzt die Zahlungsbestaetigung und aktualisieren den Status hier."
+                    com.nash.skyos.data.CheckoutRedirectStatus.Success -> AppTextResolver.string(R.string.cart_success_checkout_completed)
                     com.nash.skyos.data.CheckoutRedirectStatus.Cancel -> null
                 },
             )
@@ -388,7 +406,7 @@ class CartViewModel : ViewModel() {
             state.shippingPostalCode.trim(),
             state.shippingCity.trim(),
         ).filter { it.isNotBlank() }.joinToString(" ")
-        val country = state.shippingCountry.trim().ifBlank { "Deutschland" }
+        val country = state.shippingCountry.trim().ifBlank { AppTextResolver.string(R.string.cart_default_country) }
 
         return listOf(topLine, extraLine, postalAndCity, country)
             .filter { it.isNotBlank() }
@@ -466,7 +484,7 @@ class CartViewModel : ViewModel() {
         val hasShopifyItems = state.items.any { !it.shopifyVariantId.isNullOrBlank() }
         val hasLegacyItems = state.items.any { it.shopifyVariantId.isNullOrBlank() }
         if (hasShopifyItems && hasLegacyItems) {
-            return "Bitte trenne Shopify-Merch und interne Legacy-Artikel in zwei Bestellungen."
+            return AppTextResolver.string(R.string.cart_error_mixed_fulfillment)
         }
         return null
     }

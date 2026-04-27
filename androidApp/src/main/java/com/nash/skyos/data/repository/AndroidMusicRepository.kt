@@ -2,6 +2,8 @@ package com.nash.skyos.data.repository
 
 import android.net.Uri
 import android.util.Log
+import com.nash.skyos.R
+import com.nash.skyos.data.AppTextResolver
 import com.nash.skyos.data.SpotifyAuthManager
 import com.skydown.shared.model.Track
 import com.skydown.shared.repository.MusicRepository
@@ -89,7 +91,7 @@ class AndroidMusicRepository : MusicRepository {
 
         val accessToken = SpotifyAuthManager.validAccessToken()
         if (accessToken.isNullOrBlank()) {
-            apiError = IllegalStateException("Spotify access token missing.")
+            apiError = IllegalStateException(AppTextResolver.string(R.string.spotify_error_access_token_missing))
         } else {
             try {
                 apiTracks = fetchKnownArtistTracks(
@@ -115,7 +117,7 @@ class AndroidMusicRepository : MusicRepository {
             return emptyList()
         }
 
-        throw publicError ?: apiError ?: IllegalStateException("Tracks konnten gerade nicht geladen werden.")
+        throw publicError ?: apiError ?: IllegalStateException(AppTextResolver.string(R.string.music_error_tracks_load_failed))
     }
 
     private fun fetchSpotifyTracks(
@@ -192,7 +194,7 @@ class AndroidMusicRepository : MusicRepository {
         }
 
         if (resultsByKey.isEmpty()) {
-            error("Tracks konnten gerade nicht geladen werden.")
+            error(AppTextResolver.string(R.string.music_error_tracks_load_failed))
         }
 
         return resultsByKey.values
@@ -229,9 +231,9 @@ class AndroidMusicRepository : MusicRepository {
             .jsonObject("entities")
             ?.jsonObject("items")
             ?.jsonObject("spotify:artist:$artistId")
-            ?: error("Spotify Artist Daten fehlen.")
+            ?: error(AppTextResolver.string(R.string.spotify_error_artist_data_missing))
         val discography = artistEntity.jsonObject("discography")
-            ?: error("Spotify Discography fehlt.")
+            ?: error(AppTextResolver.string(R.string.spotify_error_discography_missing))
 
         val releaseDatesByAlbumUri = mutableMapOf<String, String>()
         appendReleaseDates(
@@ -515,7 +517,13 @@ class AndroidMusicRepository : MusicRepository {
 
             if (response.responseCode !in 200..299) {
                 Log.w(logTag, "Spotify artist albums request failed with code ${response.responseCode}.")
-                error("Spotify API Fehler ${response.responseCode}: ${response.payload}")
+                error(
+                    AppTextResolver.string(
+                        R.string.spotify_error_api_with_code_payload,
+                        response.responseCode,
+                        response.payload,
+                    ),
+                )
             }
 
             val page = json.decodeFromString(SpotifyArtistAlbumsResponse.serializer(), response.payload).items
@@ -545,7 +553,13 @@ class AndroidMusicRepository : MusicRepository {
 
             if (response.responseCode !in 200..299) {
                 Log.w(logTag, "Spotify album tracks request failed with code ${response.responseCode}.")
-                error("Spotify API Fehler ${response.responseCode}: ${response.payload}")
+                error(
+                    AppTextResolver.string(
+                        R.string.spotify_error_api_with_code_payload,
+                        response.responseCode,
+                        response.payload,
+                    ),
+                )
             }
 
             val page = json.decodeFromString(SpotifyAlbumTracksResponse.serializer(), response.payload).items
@@ -577,7 +591,11 @@ class AndroidMusicRepository : MusicRepository {
                 return SearchResult(
                     items = emptyList(),
                     responseCode = response.responseCode,
-                    errorMessage = "Spotify API Fehler ${response.responseCode}: ${response.payload}",
+                    errorMessage = AppTextResolver.string(
+                        R.string.spotify_error_api_with_code_payload,
+                        response.responseCode,
+                        response.payload,
+                    ),
                 )
             }
 

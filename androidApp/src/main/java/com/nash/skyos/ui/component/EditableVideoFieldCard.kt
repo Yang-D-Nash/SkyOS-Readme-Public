@@ -19,9 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.nash.skyos.R
 
 @Composable
 fun EditableVideoFieldCard(
@@ -30,11 +32,13 @@ fun EditableVideoFieldCard(
     onPickVideo: () -> Unit,
     modifier: Modifier = Modifier,
     onRemoveVideo: (() -> Unit)? = null,
-    buttonLabel: String = "Video vom Handy waehlen",
+    buttonLabel: String = "",
     isUploading: Boolean = false,
     enabled: Boolean = true,
-    uploadStatusText: String = "Video wird vorbereitet und hochgeladen.",
+    uploadStatusText: String = "",
 ) {
+    val resolvedButtonLabel = buttonLabel.ifBlank { stringResource(R.string.artist_hero_video_pick_button) }
+    val resolvedUploadStatusText = uploadStatusText.ifBlank { stringResource(R.string.artist_hero_video_upload_status) }
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -73,16 +77,20 @@ fun EditableVideoFieldCard(
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
                 )
                 Text(
-                    text = if (videoUrl.isBlank()) "Noch kein Hero-Video" else "Hero-Video aktiv",
+                    text = if (videoUrl.isBlank()) {
+                        stringResource(R.string.artist_hero_video_empty_title)
+                    } else {
+                        stringResource(R.string.artist_hero_video_active_title)
+                    },
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = if (videoUrl.isBlank()) {
-                        "Ein kurzes Motion-Video macht die Artist-Stage deutlich lebendiger."
+                        stringResource(R.string.artist_hero_video_empty_hint)
                     } else {
-                        "Das Video wird auf der Artist-Seite direkt als Motion-Stage abgespielt."
+                        stringResource(R.string.artist_hero_video_active_hint)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -105,7 +113,7 @@ fun EditableVideoFieldCard(
                 ) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     Text(
-                        text = uploadStatusText,
+                        text = resolvedUploadStatusText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
@@ -118,7 +126,7 @@ fun EditableVideoFieldCard(
             modifier = Modifier.fillMaxWidth(),
             enabled = enabled && !isUploading,
         ) {
-            Text(buttonLabel)
+            Text(resolvedButtonLabel)
         }
 
         if (videoUrl.isNotBlank()) {
@@ -127,7 +135,7 @@ fun EditableVideoFieldCard(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = enabled && !isUploading,
             ) {
-                Text("Video entfernen")
+                Text(stringResource(R.string.common_remove))
             }
         }
     }

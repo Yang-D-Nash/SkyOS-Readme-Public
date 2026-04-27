@@ -3,6 +3,7 @@ package com.skydown.shared.usecase
 import com.skydown.shared.model.CartItem
 import com.skydown.shared.model.ContactRequest
 import com.skydown.shared.model.MerchandiseItem
+import com.skydown.shared.text.SharedText
 
 object CartUseCase {
     fun addItem(
@@ -51,12 +52,12 @@ object CartUseCase {
 
     fun buildContactMessage(itemName: String, size: String, color: String?, quantity: Int): String {
         val colorPart = color?.takeIf { it.isNotBlank() }?.let { " in $it" }.orEmpty()
-        return "Hallo, ich bin an '$itemName' in Groesse $size$colorPart x$quantity interessiert."
+        return SharedText.CART_CONTACT_MESSAGE_TEMPLATE.format(itemName, size, colorPart, quantity)
     }
 
     fun validateContact(request: ContactRequest): String? {
         if (request.name.isBlank() || request.email.isBlank()) {
-            return "Bitte Name und E-Mail ausfuellen."
+            return SharedText.CART_CONTACT_NAME_EMAIL_REQUIRED
         }
         return null
     }

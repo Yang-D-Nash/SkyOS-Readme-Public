@@ -7,6 +7,8 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.functions.FirebaseFunctions
+import com.nash.skyos.R
+import com.nash.skyos.data.AppTextResolver
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.skydown.shared.model.UserRole
@@ -26,7 +28,11 @@ class AndroidOrderRepository(
     fun observeOrders(onChange: (Result<List<Order>>) -> Unit): ListenerRegistration? {
         val currentUser = auth.currentUser
             ?: run {
-                onChange(Result.failure(IllegalStateException("Bitte melde dich an, um Bestellungen zu laden.")))
+                onChange(
+                    Result.failure(
+                        IllegalStateException(AppTextResolver.string(R.string.order_error_signin_required_load)),
+                    ),
+                )
                 return null
             }
 
@@ -40,7 +46,7 @@ class AndroidOrderRepository(
 
     override suspend fun loadOrders(): Result<List<Order>> {
         return runCatching {
-            val currentUser = auth.currentUser ?: error("Bitte melde dich an, um Bestellungen zu laden.")
+            val currentUser = auth.currentUser ?: error(AppTextResolver.string(R.string.order_error_signin_required_load))
             ordersQueryFor(currentUser).get().await()
                 .documents
                 .mapNotNull(::mapOrder)
@@ -100,7 +106,7 @@ class AndroidOrderRepository(
                 is Map<*, *> -> (data["orderId"] as? String)?.takeIf { it.isNotBlank() }
                 is String -> data.takeIf { it.isNotBlank() }
                 else -> null
-            } ?: error("Die Bestellung konnte serverseitig nicht angelegt werden.")
+            } ?: error(AppTextResolver.string(R.string.order_error_server_create_failed))
         }
     }
 
@@ -183,7 +189,7 @@ class AndroidOrderRepository(
     private fun mapOrdersReadError(error: Exception): Exception {
         val firestoreError = error as? FirebaseFirestoreException
         return if (firestoreError?.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-            IllegalStateException("Keine Berechtigung zum Laden der Bestellungen. Pruefe Owner-Rechte und die Firestore Rules.")
+            IllegalStateException(AppTextResolver.string(R.string.order_error_permission_denied_load))
         } else {
             error
         }

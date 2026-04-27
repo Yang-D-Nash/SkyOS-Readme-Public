@@ -10,6 +10,7 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageException
 import com.google.firebase.storage.StorageMetadata
+import com.nash.skyos.R
 import com.nash.skyos.ui.model.ProfileGalleryItem
 import com.nash.skyos.ui.model.ProfileMediaType
 import com.skydown.shared.model.UserQuotaPlan
@@ -233,7 +234,7 @@ class UserProfileRepository(
     }
 
     private suspend fun ensureProfileDocumentsExist(userId: String) {
-        val authUser = auth.currentUser ?: error("Bitte zuerst anmelden.")
+        val authUser = auth.currentUser ?: error(AppTextResolver.string(R.string.common_error_signin_required))
         require(authUser.uid == userId) {
             "Bitte zuerst mit dem richtigen Konto anmelden."
         }
@@ -343,15 +344,15 @@ class UserProfileRepository(
             )
             .await()
 
-        val data = response.data as? Map<*, *> ?: error("Upload-Freigabe konnte nicht gelesen werden.")
+        val data = response.data as? Map<*, *> ?: error(AppTextResolver.string(R.string.upload_error_approval_unreadable))
         val allowed = data["allowed"] as? Boolean ?: false
         if (!allowed) {
             error((data["message"] as? String)?.takeIf { it.isNotBlank() } ?: "Upload wurde abgelehnt.")
         }
 
         return UploadSlot(
-            slotId = data["slotId"] as? String ?: error("Upload-Slot fehlt."),
-            storagePath = data["storagePath"] as? String ?: error("Upload-Pfad fehlt."),
+            slotId = data["slotId"] as? String ?: error(AppTextResolver.string(R.string.upload_error_slot_missing)),
+            storagePath = data["storagePath"] as? String ?: error(AppTextResolver.string(R.string.upload_error_path_missing)),
         )
     }
 

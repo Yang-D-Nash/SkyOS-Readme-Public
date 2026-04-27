@@ -1,6 +1,7 @@
 package com.nash.skyos.data
 
 import com.google.firebase.functions.FirebaseFunctions
+import com.nash.skyos.R
 import com.skydown.shared.model.OrderSubmission
 import kotlinx.coroutines.tasks.await
 
@@ -66,12 +67,12 @@ class HostedMerchCheckoutClient(
                 .await()
 
             val data = response.data as? Map<*, *>
-                ?: error("Hosted Checkout konnte serverseitig nicht vorbereitet werden.")
+                ?: error(AppTextResolver.string(R.string.checkout_error_hosted_prepare_failed))
 
             val orderId = (data["orderId"] as? String)?.takeIf { it.isNotBlank() }
-                ?: error("Hosted Checkout lieferte keine orderId.")
+                ?: error(AppTextResolver.string(R.string.checkout_error_hosted_missing_order_id))
             val checkoutUrl = (data["checkoutUrl"] as? String)?.takeIf { it.isNotBlank() }
-                ?: error("Hosted Checkout lieferte keine URL.")
+                ?: error(AppTextResolver.string(R.string.checkout_error_hosted_missing_url))
 
             HostedCheckoutSession(
                 orderId = orderId,

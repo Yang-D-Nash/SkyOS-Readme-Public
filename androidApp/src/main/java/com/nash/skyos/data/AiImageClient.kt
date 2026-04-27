@@ -3,6 +3,7 @@ package com.nash.skyos.data
 import android.util.Base64
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
+import com.nash.skyos.R
 import kotlinx.coroutines.delay
 
 data class AiGeneratedVisualResult(
@@ -32,12 +33,12 @@ open class AiImageClient(
             }
         }
 
-        throw lastError ?: error("Der Visual-Server konnte das Bild gerade nicht erzeugen.")
+        throw lastError ?: error(AppTextResolver.string(R.string.ai_visual_error_generate_failed))
     }
 
     private suspend fun generateVisualOnce(prompt: String, aiLevel: String): AiGeneratedVisualResult {
         if (!AppNetworkMonitor.isOnline.value) {
-            error("Du bist offline. Visuals lassen sich wieder erzeugen, sobald Internet da ist.")
+            error(AppTextResolver.string(R.string.ai_visual_error_offline))
         }
 
         val result = functions
@@ -49,15 +50,16 @@ open class AiImageClient(
                 ),
             )
 
-        val data = result.data as? Map<*, *> ?: error("Die Visual-Antwort konnte nicht gelesen werden.")
+        val data = result.data as? Map<*, *> ?: error(AppTextResolver.string(R.string.ai_visual_error_response_unreadable))
         val imageBase64 = data["imageBase64"] as? String
         val imageBytes = imageBase64
             ?.takeIf { it.isNotBlank() }
             ?.let { Base64.decode(it, Base64.DEFAULT) }
-            ?: error("Keine Bilddaten in der Antwort.")
+            ?: error(AppTextResolver.string(R.string.ai_visual_error_no_image_data))
 
         return AiGeneratedVisualResult(
-            text = (data["text"] as? String)?.takeIf { it.isNotBlank() } ?: "Visual generiert.",
+            text = (data["text"] as? String)?.takeIf { it.isNotBlank() }
+                ?: AppTextResolver.string(R.string.ai_visual_generated_fallback_text),
             imageBytes = imageBytes,
             mimeType = (data["mimeType"] as? String)?.takeIf { it.isNotBlank() } ?: "image/png",
             historyRetentionDays = (data["historyRetentionDays"] as? Number)?.toInt() ?: 3,

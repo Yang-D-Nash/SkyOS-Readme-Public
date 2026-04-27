@@ -1,6 +1,7 @@
 package com.nash.skyos.data.repository
 
 import com.nash.skyos.data.AppSessionStore
+import com.nash.skyos.data.AppTextResolver
 import com.nash.skyos.data.GoogleSignInManager
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.FirebaseAuth
@@ -13,6 +14,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.functions.FirebaseFunctions
+import com.nash.skyos.R
 import com.skydown.shared.model.LoginInput
 import com.skydown.shared.model.ProfileUpdateInput
 import com.skydown.shared.model.RegistrationConsentInput
@@ -38,7 +40,8 @@ class AndroidAuthRepository(
         return runCatching {
             val authResult = auth.signInWithEmailAndPassword(input.email, input.password).await()
             authResult.user?.let { syncSessionClaimsIfPossible(it) }
-            (authResult.user?.let { resolveCurrentUserAfterAuth(it) } ?: error("Benutzer konnte nicht geladen werden."))
+            (authResult.user?.let { resolveCurrentUserAfterAuth(it) }
+                ?: error(AppTextResolver.string(R.string.auth_error_user_not_loaded)))
                 .also(AppSessionStore::update)
         }.recoverCatching { error ->
             throw error.toReadableAuthError()
@@ -53,13 +56,13 @@ class AndroidAuthRepository(
         return runCatching {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val authResult = auth.signInWithCredential(credential).await()
-            val firebaseUser = authResult.user ?: error("Google-Benutzer konnte nicht geladen werden.")
+            val firebaseUser = authResult.user ?: error(AppTextResolver.string(R.string.auth_error_google_user_not_loaded))
             val isNewUser = authResult.additionalUserInfo?.isNewUser == true
 
             if (isNewUser && !registrationConsent.isValidRegistrationConsent()) {
                 runCatching { firebaseUser.delete().await() }
                 auth.signOut()
-                error("Bitte nutze den Registrieren-Flow und bestaetige AGB sowie Datenschutz.")
+                error(AppTextResolver.string(R.string.auth_error_register_flow_required))
             }
 
             resolveCurrentUserAfterAuth(firebaseUser, preferredUsername, registrationConsent)
@@ -73,7 +76,7 @@ class AndroidAuthRepository(
         return runCatching {
             ensureRegistrationsOpen()
             val authResult = auth.createUserWithEmailAndPassword(input.email, input.password).await()
-            val firebaseUser = authResult.user ?: error("Benutzer konnte nicht erstellt werden.")
+            val firebaseUser = authResult.user ?: error(AppTextResolver.string(R.string.auth_error_user_not_created))
             val registeredEmail = firebaseUser.email?.takeIf { it.isNotBlank() }?.lowercase() ?: input.email.trim().lowercase()
             val resolvedRole = UserRole.User
             val quotaPlan = UserQuotaPlan.defaultPlanFor(resolvedRole)
@@ -129,7 +132,7 @@ class AndroidAuthRepository(
 
     override suspend fun deleteCurrentAccount(): Result<Unit> {
         return runCatching {
-            checkNotNull(auth.currentUser) { "Kein Benutzer angemeldet." }
+            checkNotNull(auth.currentUser) { AppTextResolver.string(R.string.auth_error_not_signed_in) }
             functions.getHttpsCallable("deleteCurrentUserAccount").call(emptyMap<String, Any>()).await()
             runCatching {
                 GoogleSignInManager.client(auth.app.applicationContext).signOut().await()
@@ -143,7 +146,7 @@ class AndroidAuthRepository(
 
     override suspend fun updateCurrentProfile(input: ProfileUpdateInput): Result<User> {
         return runCatching {
-            val authUser = auth.currentUser ?: error("Kein Benutzer angemeldet.")
+            val authUser = auth.currentUser ?: error(AppTextResolver.string(R.string.auth_error_not_signed_in))
             val documentReference = firestore.collection("users").document(authUser.uid)
 
             authUser.updateProfile(
@@ -183,7 +186,7 @@ class AndroidAuthRepository(
 
     override suspend fun updateCurrentAiAccessEnabled(enabled: Boolean): Result<User> {
         return runCatching {
-            val authUser = auth.currentUser ?: error("Kein Benutzer angemeldet.")
+            val authUser = auth.currentUser ?: error(AppTextResolver.string(R.string.auth_error_not_signed_in))
             val documentReference = firestore.collection("users").document(authUser.uid)
             documentReference.update(
                 mapOf(
@@ -451,7 +454,7 @@ class AndroidAuthRepository(
         val lockdown = data["lockdown"] as? Boolean ?: false
 
         if (!registrationsEnabled || lockdown) {
-            error("Registrierungen sind derzeit pausiert.")
+            error(AppTextResolver.string(R.string.auth_error_registrations_paused))
         }
     }
 

@@ -2,6 +2,7 @@ package com.nash.skyos.data
 
 import com.google.firebase.storage.StorageException
 import com.google.firebase.storage.StorageReference
+import com.nash.skyos.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 
@@ -24,7 +25,7 @@ internal suspend fun StorageReference.awaitStableDownloadUrl(
         }
     }
 
-    error("Download-URL konnte nicht geladen werden.")
+    error(AppTextResolver.string(R.string.storage_error_download_url_failed))
 }
 
 private fun mapDownloadUrlError(error: Exception): Exception {

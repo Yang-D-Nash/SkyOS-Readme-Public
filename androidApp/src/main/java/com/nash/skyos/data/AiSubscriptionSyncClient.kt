@@ -1,6 +1,7 @@
 package com.nash.skyos.data
 
 import com.google.firebase.functions.FirebaseFunctions
+import com.nash.skyos.R
 
 data class AndroidSubscriptionSyncResult(
     val status: String,
@@ -29,7 +30,7 @@ class AiSubscriptionSyncClient {
             functionName = "syncAndroidAiSubscriptionStatus",
             payload = payload,
         )
-        val data = result.data as? Map<*, *> ?: error("Android Billing Sync konnte nicht verarbeitet werden.")
+        val data = result.data as? Map<*, *> ?: error(AppTextResolver.string(R.string.billing_sync_error_unreadable))
         return AndroidSubscriptionSyncResult(
             status = (data["status"] as? String).orEmpty(),
             provider = (data["provider"] as? String).orEmpty(),

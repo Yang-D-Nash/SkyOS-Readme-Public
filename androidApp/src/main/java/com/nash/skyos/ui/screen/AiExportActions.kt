@@ -6,6 +6,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import com.nash.skyos.R
+import com.nash.skyos.data.AppTextResolver
 
 fun copyAiText(context: Context, label: String, text: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -22,7 +24,7 @@ fun shareAiText(context: Context, title: String, text: String) {
     openExternalIntent(
         context = context,
         intent = Intent.createChooser(shareIntent, title),
-        missingMessage = "Teilen konnte nicht gestartet werden.",
+        missingMessage = AppTextResolver.string(R.string.ai_export_error_share_start_failed),
     )
 }
 
@@ -49,12 +51,12 @@ fun saveAiImage(
 
     val resolver = context.contentResolver
     val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-        ?: error("Kein Speicherziel fuer das Bild verfuegbar.")
+        ?: error(AppTextResolver.string(R.string.ai_export_error_target_unavailable))
 
     resolver.openOutputStream(uri)?.use { stream ->
         stream.write(imageBytes)
         stream.flush()
-    } ?: error("Das Bild konnte nicht geschrieben werden.")
+    } ?: error(AppTextResolver.string(R.string.ai_export_error_write_failed))
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         contentValues.clear()

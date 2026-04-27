@@ -12,6 +12,7 @@ import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesResponseListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import com.nash.skyos.R
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
@@ -79,7 +80,9 @@ class AiNativeBillingManager(
         return withTimeout(120_000L) {
             suspendCancellableCoroutine { continuation ->
                 if (pendingPurchaseContinuation != null) {
-                    continuation.resumeWithException(IllegalStateException("Ein Billing Flow laeuft bereits."))
+                    continuation.resumeWithException(
+                        IllegalStateException(AppTextResolver.string(R.string.billing_error_flow_already_running)),
+                    )
                     return@suspendCancellableCoroutine
                 }
 
@@ -177,7 +180,9 @@ class AiNativeBillingManager(
 
                 override fun onBillingServiceDisconnected() {
                     if (continuation.isActive) {
-                        continuation.resumeWithException(IllegalStateException("Billing Service getrennt."))
+                        continuation.resumeWithException(
+                            IllegalStateException(AppTextResolver.string(R.string.billing_error_service_disconnected)),
+                        )
                     }
                 }
             })

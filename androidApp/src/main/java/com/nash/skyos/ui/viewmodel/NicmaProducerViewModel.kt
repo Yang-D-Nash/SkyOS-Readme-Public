@@ -6,9 +6,11 @@ import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nash.skyos.data.AppContainer
+import com.nash.skyos.data.AppTextResolver
 import com.nash.skyos.data.ExternalBeatUploadRequest
 import com.nash.skyos.data.NicmaBeatUploadRequest
 import com.nash.skyos.data.NicmaBeatUploadService
+import com.nash.skyos.R
 import com.nash.skyos.ui.model.NicmaBeatHubItem
 import com.nash.skyos.ui.model.NicmaProducerUiState
 import com.nash.skyos.ui.model.NicmaSelectedBeatFile
@@ -94,8 +96,8 @@ class NicmaProducerViewModel(
         if (!_uiState.value.isAdmin) {
             _uiState.update {
                 it.copy(
-                    validationMessage = "Nur Admins koennen Beats hochladen.",
-                    feedbackMessage = "Uploads sind nur fuer Admins verfuegbar.",
+                    validationMessage = AppTextResolver.string(R.string.nicma_upload_admin_only),
+                    feedbackMessage = AppTextResolver.string(R.string.nicma_upload_admin_only_detail),
                     feedbackIsError = true,
                 )
             }
@@ -117,14 +119,14 @@ class NicmaProducerViewModel(
             it.copy(
                 selectedFiles = files,
                 validationMessage = if (files.isEmpty()) {
-                    "Bitte waehle mindestens eine Audio-Datei oder eine ZIP aus."
+                    AppTextResolver.string(R.string.nicma_upload_select_audio_or_zip)
                 } else {
                     null
                 },
                 feedbackMessage = if (files.isEmpty()) {
-                    "Keine unterstuetzten Dateien gefunden."
+                    AppTextResolver.string(R.string.nicma_upload_no_supported_files)
                 } else {
-                    "${files.size} Datei(en) fuer den Beat Hub ausgewaehlt."
+                    AppTextResolver.string(R.string.nicma_upload_files_selected, files.size)
                 },
                 feedbackIsError = files.isEmpty(),
             )
@@ -153,9 +155,9 @@ class NicmaProducerViewModel(
                 _uiState.update {
                     it.copy(
                         feedbackMessage = if (beat.isPublic) {
-                            "Beat wieder verborgen."
+                            AppTextResolver.string(R.string.nicma_beat_hidden_again)
                         } else {
-                            "Beat fuer alle freigegeben."
+                            AppTextResolver.string(R.string.nicma_beat_released_public)
                         },
                         feedbackIsError = false,
                     )
@@ -163,7 +165,7 @@ class NicmaProducerViewModel(
             }.onFailure {
                 _uiState.update {
                     it.copy(
-                        feedbackMessage = "Der Beat-Status konnte nicht aktualisiert werden.",
+                        feedbackMessage = AppTextResolver.string(R.string.nicma_beat_status_update_failed),
                         feedbackIsError = true,
                     )
                 }
@@ -180,14 +182,14 @@ class NicmaProducerViewModel(
             }.onSuccess {
                 _uiState.update {
                     it.copy(
-                        feedbackMessage = "Beat geloescht.",
+                        feedbackMessage = AppTextResolver.string(R.string.nicma_beat_deleted),
                         feedbackIsError = false,
                     )
                 }
             }.onFailure {
                 _uiState.update {
                     it.copy(
-                        feedbackMessage = "Der Beat konnte nicht geloescht werden.",
+                        feedbackMessage = AppTextResolver.string(R.string.nicma_beat_delete_failed),
                         feedbackIsError = true,
                     )
                 }
@@ -200,8 +202,8 @@ class NicmaProducerViewModel(
         if (!currentState.isAdmin) {
             _uiState.update {
                 it.copy(
-                    validationMessage = "Nur Admins koennen Beats hochladen.",
-                    feedbackMessage = "Uploads sind nur fuer Admins verfuegbar.",
+                    validationMessage = AppTextResolver.string(R.string.nicma_upload_admin_only),
+                    feedbackMessage = AppTextResolver.string(R.string.nicma_upload_admin_only_detail),
                     feedbackIsError = true,
                 )
             }
@@ -216,21 +218,21 @@ class NicmaProducerViewModel(
         when {
             trimmedArtist.isBlank() -> {
                 _uiState.update {
-                    it.copy(validationMessage = "Bitte trag dein Projekt oder deinen Artist-Namen ein.")
+                    it.copy(validationMessage = AppTextResolver.string(R.string.nicma_validation_artist_required))
                 }
                 return
             }
 
             !trimmedEmail.contains("@") -> {
                 _uiState.update {
-                    it.copy(validationMessage = "Bitte trag eine gueltige E-Mail ein.")
+                    it.copy(validationMessage = AppTextResolver.string(R.string.nicma_validation_email_required))
                 }
                 return
             }
 
             currentState.selectedFiles.isEmpty() -> {
                 _uiState.update {
-                    it.copy(validationMessage = "Bitte waehle mindestens eine Audio-Datei oder eine ZIP aus.")
+                    it.copy(validationMessage = AppTextResolver.string(R.string.nicma_upload_select_audio_or_zip))
                 }
                 return
             }
@@ -264,7 +266,10 @@ class NicmaProducerViewModel(
                         notes = "",
                         selectedFiles = emptyList(),
                         isUploading = false,
-                        feedbackMessage = "${currentState.selectedFiles.size} Beat-Datei(en) hochgeladen.",
+                        feedbackMessage = AppTextResolver.string(
+                            R.string.nicma_upload_files_uploaded,
+                            currentState.selectedFiles.size,
+                        ),
                         feedbackIsError = false,
                     )
                 }
@@ -274,8 +279,8 @@ class NicmaProducerViewModel(
                     it.copy(
                         isUploading = false,
                         feedbackMessage = detail?.let { message ->
-                            "Der Upload ist fehlgeschlagen: $message"
-                        } ?: "Der Upload ist fehlgeschlagen. Bitte versuch es noch einmal.",
+                            AppTextResolver.string(R.string.nicma_upload_failed_with_detail, message)
+                        } ?: AppTextResolver.string(R.string.nicma_upload_failed_retry),
                         feedbackIsError = true,
                     )
                 }
@@ -288,8 +293,8 @@ class NicmaProducerViewModel(
         if (!currentState.isAdmin) {
             _uiState.update {
                 it.copy(
-                    validationMessage = "Nur Admins koennen externe Beats freigeben.",
-                    feedbackMessage = "Externe Beats sind nur fuer Admins verfuegbar.",
+                    validationMessage = AppTextResolver.string(R.string.nicma_external_admin_only),
+                    feedbackMessage = AppTextResolver.string(R.string.nicma_external_admin_only_detail),
                     feedbackIsError = true,
                 )
             }
@@ -305,21 +310,21 @@ class NicmaProducerViewModel(
         when {
             trimmedArtist.isBlank() -> {
                 _uiState.update {
-                    it.copy(validationMessage = "Bitte trag dein Projekt oder deinen Artist-Namen ein.")
+                    it.copy(validationMessage = AppTextResolver.string(R.string.nicma_validation_artist_required))
                 }
                 return
             }
 
             !trimmedEmail.contains("@") -> {
                 _uiState.update {
-                    it.copy(validationMessage = "Bitte trag eine gueltige E-Mail ein.")
+                    it.copy(validationMessage = AppTextResolver.string(R.string.nicma_validation_email_required))
                 }
                 return
             }
 
             trimmedUrl.isBlank() -> {
                 _uiState.update {
-                    it.copy(validationMessage = "Bitte trag einen Drive-, MEGA- oder anderen Audio-Link ein.")
+                    it.copy(validationMessage = AppTextResolver.string(R.string.nicma_external_link_required))
                 }
                 return
             }
@@ -352,7 +357,7 @@ class NicmaProducerViewModel(
                         notes = "",
                         externalBeatUrl = "",
                         isUploading = false,
-                        feedbackMessage = "Externer Beat wurde freigegeben.",
+                        feedbackMessage = AppTextResolver.string(R.string.nicma_external_released),
                         feedbackIsError = false,
                     )
                 }
@@ -362,8 +367,8 @@ class NicmaProducerViewModel(
                     it.copy(
                         isUploading = false,
                         feedbackMessage = detail?.let { message ->
-                            "Der externe Beat-Link ist fehlgeschlagen: $message"
-                        } ?: "Der externe Beat-Link konnte nicht gespeichert werden.",
+                            AppTextResolver.string(R.string.nicma_external_failed_with_detail, message)
+                        } ?: AppTextResolver.string(R.string.nicma_external_failed_save),
                         feedbackIsError = true,
                     )
                 }
@@ -389,7 +394,7 @@ class NicmaProducerViewModel(
                 _uiState.update {
                     it.copy(
                         isLoadingBeats = false,
-                        feedbackMessage = "Der Beat Hub konnte gerade nicht geladen werden.",
+                        feedbackMessage = AppTextResolver.string(R.string.nicma_hub_load_failed),
                         feedbackIsError = true,
                     )
                 }

@@ -1,6 +1,7 @@
 package com.nash.skyos.data
 
 import com.google.firebase.functions.FirebaseFunctions
+import com.nash.skyos.R
 
 data class AiGeneratedTextResult(
     val text: String,
@@ -14,7 +15,7 @@ class AiChatClient(
 ) {
     suspend fun generateText(prompt: String, mode: String, aiLevel: String): AiGeneratedTextResult {
         if (!AppNetworkMonitor.isOnline.value) {
-            error("Du bist offline. Der Bot ist wieder verfuegbar, sobald Internet da ist.")
+            error(AppTextResolver.string(R.string.ai_chat_error_offline))
         }
 
         val result = functions
@@ -27,10 +28,10 @@ class AiChatClient(
                 ),
             )
 
-        val data = result.data as? Map<*, *> ?: error("Die Bot-Antwort konnte nicht gelesen werden.")
+        val data = result.data as? Map<*, *> ?: error(AppTextResolver.string(R.string.ai_chat_error_response_unreadable))
         val reply = data["reply"] as? String
         return AiGeneratedTextResult(
-            text = reply?.takeIf { it.isNotBlank() } ?: error("Die Bot-Antwort fehlt."),
+            text = reply?.takeIf { it.isNotBlank() } ?: error(AppTextResolver.string(R.string.ai_chat_error_response_missing)),
             historyRetentionDays = (data["historyRetentionDays"] as? Number)?.toInt() ?: 3,
             usage = parseAiUsageSnapshot(data["usage"]),
             decision = parseAiBotDecision(data["botDecision"]),

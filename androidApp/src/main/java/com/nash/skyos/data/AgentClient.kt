@@ -1,6 +1,7 @@
 package com.nash.skyos.data
 
 import com.google.firebase.functions.FirebaseFunctions
+import com.nash.skyos.R
 
 data class AgentHistoryTurn(
     val role: String,
@@ -75,7 +76,7 @@ class AgentClient {
         manusApiKeyOverride: String? = null,
     ): AgentResponse {
         if (!AppNetworkMonitor.isOnline.value) {
-            error("Du bist offline. Der Agent arbeitet wieder, sobald Internet da ist.")
+            error(AppTextResolver.string(R.string.agent_error_offline))
         }
 
         val payload = mutableMapOf<String, Any>(
@@ -105,7 +106,7 @@ class AgentClient {
         return when (val data = result.data) {
             is String -> AgentResponse(
                 reply = data.takeIf { it.isNotBlank() }
-                    ?: error("Der SkyOS Agent hat keine Antwort geliefert."),
+                    ?: error(AppTextResolver.string(R.string.agent_error_no_response)),
                 historyRetentionDays = 3,
                 automationTriggered = false,
                 automationAttempted = false,
@@ -125,7 +126,11 @@ class AgentClient {
                 val parsedResults = parseAgentResults(data["results"])
                 val reply = ((data["reply"] as? String) ?: (data["message"] as? String)).orEmpty().trim()
                 val resolvedReply = reply.ifBlank {
-                    if (parsedResults.isNotEmpty()) "Dein Content ist fertig." else error("Der SkyOS Agent hat keine Antwort geliefert.")
+                    if (parsedResults.isNotEmpty()) {
+                        AppTextResolver.string(R.string.agent_result_ready_fallback)
+                    } else {
+                        error(AppTextResolver.string(R.string.agent_error_no_response))
+                    }
                 }
                 AgentResponse(
                 reply = resolvedReply,
@@ -146,7 +151,7 @@ class AgentClient {
                 decision = parseAgentDecision(data["agentDecision"]),
             )
             }
-            else -> error("Der SkyOS Agent hat keine Antwort geliefert.")
+            else -> error(AppTextResolver.string(R.string.agent_error_no_response))
         }
     }
 }

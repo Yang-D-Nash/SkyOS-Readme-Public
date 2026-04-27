@@ -2,6 +2,7 @@ package com.nash.skyos.data
 
 import android.content.Context
 import android.net.Uri
+import com.nash.skyos.R
 import com.google.firebase.storage.StorageException
 import com.google.firebase.storage.StorageMetadata
 import com.google.firebase.storage.StorageReference
@@ -29,7 +30,7 @@ internal suspend fun Context.stagePickerFileForUpload(
             tempFile.outputStream().use { outputStream ->
                 inputStream.copyTo(outputStream)
             }
-        } ?: error("Die Datei $fileName konnte nicht gelesen werden.")
+        } ?: error(AppTextResolver.string(R.string.upload_error_file_read_failed, fileName))
     } catch (error: Exception) {
         tempFile.delete()
         throw error

@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.ListenerRegistration
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.AppCartStore
+import com.nash.skyos.data.AppTextResolver
 import com.nash.skyos.data.MerchStoreStatusRepository
 import com.nash.skyos.data.toAppCheckVerificationMessage
+import com.nash.skyos.R
 import com.nash.skyos.ui.model.ShopUiState
 import com.skydown.shared.model.MerchandiseItem
 import com.skydown.shared.model.isPlatformOwner
@@ -54,7 +56,7 @@ class ShopViewModel : ViewModel() {
         if (!_uiState.value.isAdmin) {
             _uiState.update {
                 it.copy(
-                    toastMessage = "Nur der Owner darf den Merch Store schalten.",
+                    toastMessage = AppTextResolver.string(R.string.shop_toast_owner_only_store_toggle),
                     isErrorToast = true,
                 )
             }
@@ -70,7 +72,11 @@ class ShopViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         isUpdatingStoreState = false,
-                        toastMessage = if (nextState) "Merch Store geoeffnet." else "Merch Store geschlossen.",
+                        toastMessage = if (nextState) {
+                            AppTextResolver.string(R.string.shop_toast_store_opened)
+                        } else {
+                            AppTextResolver.string(R.string.shop_toast_store_closed)
+                        },
                         isErrorToast = false,
                     )
                 }
@@ -78,7 +84,8 @@ class ShopViewModel : ViewModel() {
                 _uiState.update {
                     it.copy(
                         isUpdatingStoreState = false,
-                        toastMessage = result.exceptionOrNull()?.message ?: "Store-Status konnte nicht aktualisiert werden.",
+                        toastMessage = result.exceptionOrNull()?.message
+                            ?: AppTextResolver.string(R.string.shop_error_store_status_update_failed),
                         isErrorToast = true,
                     )
                 }
@@ -106,7 +113,7 @@ class ShopViewModel : ViewModel() {
         if (!_uiState.value.isAdmin) {
             _uiState.update {
                 it.copy(
-                    toastMessage = "Nur der Owner darf den Shopify-Sync starten.",
+                    toastMessage = AppTextResolver.string(R.string.shop_toast_owner_only_sync),
                     isErrorToast = true,
                 )
             }
@@ -122,7 +129,7 @@ class ShopViewModel : ViewModel() {
                     toastMessage = result.getOrElse { error ->
                         error.toAppCheckVerificationMessage("den Shopify-Sync erneut starten")
                             ?: error.message
-                            ?: "Shopify-Sync fehlgeschlagen."
+                            ?: AppTextResolver.string(R.string.shop_error_sync_failed)
                     },
                     isErrorToast = result.isFailure,
                 )
@@ -165,14 +172,14 @@ class ShopViewModel : ViewModel() {
 
             _uiState.update {
                 it.copy(
-                    toastMessage = "Zum Warenkorb hinzugefuegt.",
+                    toastMessage = AppTextResolver.string(R.string.shop_toast_added_to_cart),
                     isErrorToast = false,
                 )
             }
         }.onFailure { error ->
             _uiState.update {
                 it.copy(
-                    toastMessage = error.message ?: "Die Variante konnte nicht hinzugefuegt werden.",
+                    toastMessage = error.message ?: AppTextResolver.string(R.string.shop_error_variant_add_failed),
                     isErrorToast = true,
                 )
             }
@@ -243,7 +250,7 @@ class ShopViewModel : ViewModel() {
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(
-                        toastMessage = error.message ?: "Store-Status konnte nicht geladen werden.",
+                        toastMessage = error.message ?: AppTextResolver.string(R.string.shop_error_store_status_load_failed),
                         isErrorToast = true,
                     )
                 }
@@ -307,7 +314,7 @@ class ShopViewModel : ViewModel() {
             it.copy(
                 isSyncingCatalog = true,
                 isCatalogLoading = true,
-                toastMessage = "Shopify-Katalog wird geladen...",
+                toastMessage = AppTextResolver.string(R.string.shop_toast_sync_loading),
                 isErrorToast = false,
             )
         }
@@ -326,7 +333,7 @@ class ShopViewModel : ViewModel() {
                     isAdmin = user?.isPlatformOwner == true,
                     errorMessage = if (resolvedItems.isNotEmpty()) null else itemsResult.exceptionOrNull()?.message,
                     isSyncingCatalog = false,
-                    toastMessage = "Shopify-Katalog wurde neu geladen.",
+                    toastMessage = AppTextResolver.string(R.string.shop_toast_sync_reloaded),
                     isErrorToast = false,
                 )
             }
@@ -344,12 +351,12 @@ class ShopViewModel : ViewModel() {
                     },
                     errorMessage = if (fallbackItems.isNotEmpty()) null else it.errorMessage,
                     toastMessage = if (fallbackItems.isNotEmpty()) {
-                        "Shopify-Katalog direkt aus dem Store geladen."
+                        AppTextResolver.string(R.string.shop_toast_sync_loaded_from_store)
                     } else {
                         syncResult.exceptionOrNull()
                             ?.toAppCheckVerificationMessage("den Shopify-Sync erneut starten")
                             ?: syncResult.exceptionOrNull()?.message
-                            ?: "Shopify-Sync fehlgeschlagen."
+                            ?: AppTextResolver.string(R.string.shop_error_sync_failed)
                     },
                     isErrorToast = fallbackItems.isEmpty(),
                 )

@@ -6,6 +6,7 @@ import com.skydown.shared.model.RegistrationConsentInput
 import com.skydown.shared.model.RegistrationInput
 import com.skydown.shared.model.User
 import com.skydown.shared.repository.AuthRepository
+import com.skydown.shared.text.SharedText
 import com.skydown.shared.usecase.AuthValidation
 
 class AuthService(
@@ -28,7 +29,7 @@ class AuthService(
         registrationConsent: RegistrationConsentInput? = null,
     ): Result<User> {
         if (idToken.isBlank()) {
-            return Result.failure(IllegalArgumentException("Google-Anmeldung konnte nicht gestartet werden."))
+            return Result.failure(IllegalArgumentException(SharedText.AUTH_GOOGLE_SIGNIN_START_FAILED))
         }
 
         if (registrationConsent != null) {
@@ -57,19 +58,19 @@ class AuthService(
     suspend fun updateCurrentProfile(input: ProfileUpdateInput): Result<User> {
         val normalizedUsername = input.username.trim()
         if (normalizedUsername.isEmpty()) {
-            return Result.failure(IllegalArgumentException("Bitte gib einen Benutzernamen ein."))
+            return Result.failure(IllegalArgumentException(SharedText.AUTH_PROFILE_USERNAME_REQUIRED))
         }
         if (normalizedUsername.length > 32) {
-            return Result.failure(IllegalArgumentException("Der Benutzername darf maximal 32 Zeichen lang sein."))
+            return Result.failure(IllegalArgumentException(SharedText.AUTH_PROFILE_USERNAME_MAX))
         }
         if ((input.profileTagline?.trim()?.length ?: 0) > 60) {
-            return Result.failure(IllegalArgumentException("Die Kurzinfo darf maximal 60 Zeichen lang sein."))
+            return Result.failure(IllegalArgumentException(SharedText.AUTH_PROFILE_TAGLINE_MAX))
         }
         if ((input.profileBio?.trim()?.length ?: 0) > 240) {
-            return Result.failure(IllegalArgumentException("Die Bio darf maximal 240 Zeichen lang sein."))
+            return Result.failure(IllegalArgumentException(SharedText.AUTH_PROFILE_BIO_MAX))
         }
         if ((input.instagramHandle?.trim()?.removePrefix("@")?.length ?: 0) > 40) {
-            return Result.failure(IllegalArgumentException("Der Instagram-Handle ist zu lang."))
+            return Result.failure(IllegalArgumentException(SharedText.AUTH_PROFILE_INSTAGRAM_HANDLE_MAX))
         }
 
         return repository.updateCurrentProfile(

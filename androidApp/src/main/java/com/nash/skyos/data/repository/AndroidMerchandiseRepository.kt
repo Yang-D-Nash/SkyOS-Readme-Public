@@ -2,6 +2,8 @@ package com.nash.skyos.data.repository
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.nash.skyos.R
+import com.nash.skyos.data.AppTextResolver
 import com.skydown.shared.model.MerchandiseItem
 import com.skydown.shared.model.MerchandiseVariant
 import com.skydown.shared.repository.MerchandiseRepository
@@ -21,7 +23,7 @@ class AndroidMerchandiseRepository(
             )
         }.recoverCatching { error ->
             if (error is FirebaseFirestoreException && error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                throw IllegalStateException("Merch kann aktuell nicht geladen werden. Bitte zuerst anmelden oder die Firestore-Leserechte pruefen.")
+                throw IllegalStateException(AppTextResolver.string(R.string.merch_error_load_failed_permissions))
             }
             throw error
         }

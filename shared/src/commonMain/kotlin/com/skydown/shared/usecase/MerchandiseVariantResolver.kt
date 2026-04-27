@@ -2,6 +2,7 @@ package com.skydown.shared.usecase
 
 import com.skydown.shared.model.MerchandiseItem
 import com.skydown.shared.model.MerchandiseVariant
+import com.skydown.shared.text.SharedText
 
 object MerchandiseVariantResolver {
     fun availableSizes(item: MerchandiseItem): List<String> {
@@ -27,12 +28,12 @@ object MerchandiseVariantResolver {
     ): Result<MerchandiseVariant> {
         if (item.variants.isEmpty()) {
             return Result.failure(
-                IllegalStateException("Fuer ${item.name} sind keine Shopify-Varianten vorhanden."),
+                IllegalStateException(SharedText.MERCH_VARIANT_NONE_AVAILABLE.format(item.name)),
             )
         }
 
         val normalizedSize = size.normalizedValue()
-            ?: return Result.failure(IllegalArgumentException("Groesse ist erforderlich."))
+            ?: return Result.failure(IllegalArgumentException(SharedText.MERCH_VARIANT_SIZE_REQUIRED))
         val normalizedColor = color.normalizedValue()
 
         val matches = item.variants.filter { variant ->
@@ -45,13 +46,15 @@ object MerchandiseVariantResolver {
         }
 
         if (matches.isEmpty()) {
+            val colorPart = color?.let { " / $it" }.orEmpty()
             return Result.failure(
-                IllegalArgumentException("Keine passende Variante fuer Groesse $size${color?.let { " / $it" }.orEmpty()} gefunden."),
+                IllegalArgumentException(SharedText.MERCH_VARIANT_NOT_FOUND.format(size, colorPart)),
             )
         }
 
+        val colorPart = color?.let { " / $it" }.orEmpty()
         return Result.failure(
-            IllegalStateException("Mehrere Varianten fuer Groesse $size${color?.let { " / $it" }.orEmpty()} gefunden."),
+            IllegalStateException(SharedText.MERCH_VARIANT_MULTIPLE_FOUND.format(size, colorPart)),
         )
     }
 }

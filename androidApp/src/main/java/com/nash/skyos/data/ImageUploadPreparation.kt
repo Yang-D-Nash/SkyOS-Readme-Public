@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
+import com.nash.skyos.R
 import java.io.ByteArrayOutputStream
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -69,7 +70,7 @@ object ImageUploadPreparation {
             }
             contentResolver.openInputStream(uri).use { input ->
                 BitmapFactory.decodeStream(input, null, options)
-            } ?: error("Bild konnte nicht gelesen werden.")
+            } ?: error(AppTextResolver.string(R.string.image_upload_error_read_failed))
         }
     }
 

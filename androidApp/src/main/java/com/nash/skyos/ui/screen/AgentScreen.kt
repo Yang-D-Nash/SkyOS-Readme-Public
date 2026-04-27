@@ -1325,15 +1325,14 @@ private fun AgentAutomationTriggerButton(
 }
 
 private enum class AgentInputAttachmentKind(
-    val label: String,
     val icon: ImageVector,
 ) {
-    Text("Text", Icons.Default.Bolt),
-    Video("Video", Icons.Default.Movie),
-    Audio("Audio", Icons.Default.MusicNote),
-    Image("Image", Icons.Default.Photo),
-    Document("Document", Icons.Default.Refresh),
-    File("File", Icons.Default.Refresh),
+    Text(Icons.Default.Bolt),
+    Video(Icons.Default.Movie),
+    Audio(Icons.Default.MusicNote),
+    Image(Icons.Default.Photo),
+    Document(Icons.Default.Refresh),
+    File(Icons.Default.Refresh),
 }
 
 private data class AgentInputAttachment(
