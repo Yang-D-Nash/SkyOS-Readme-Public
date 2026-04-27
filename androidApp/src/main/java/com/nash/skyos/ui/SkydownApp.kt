@@ -1,7 +1,11 @@
 package com.nash.skyos.ui
 
+import android.content.Context
+import android.content.ContextWrapper
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
@@ -301,6 +305,15 @@ fun SkydownApp(
         }
     }
 
+    // After leaving the main shell for the launch landing, drain the NavController so the next entry is clean.
+    LaunchedEffect(selectedEntryRoute) {
+        if (selectedEntryRoute == null) {
+            while (navController.popBackStack()) {
+                // Drain stack while the main shell is not composed.
+            }
+        }
+    }
+
     fun trackFirstValueMoment(surface: String) {
         if (hasTrackedFirstValueMoment) return
         hasTrackedFirstValueMoment = true
@@ -370,24 +383,42 @@ fun SkydownApp(
                 onFinished = { showIntro = false },
             )
         } else if (selectedEntryRoute == null) {
-            LaunchLandingScreen(
-                onOpenHome = {
-                    trackFirstValueMoment("launch_entry_home")
-                    selectedEntryRoute = "home"
-                },
-                onOpenMusic = {
-                    trackFirstValueMoment("launch_entry_music")
-                    selectedEntryRoute = "music"
-                },
-                onOpenVideography = {
-                    trackFirstValueMoment("launch_entry_video")
-                    selectedEntryRoute = "video"
-                },
-                onOpenShop = {
-                    trackFirstValueMoment("launch_entry_shop")
-                    selectedEntryRoute = "shop"
-                },
-            )
+            Box(Modifier.fillMaxSize()) {
+                val landingContext = LocalContext.current
+                val pressBackAgainToExit = stringResource(R.string.launch_press_back_again_to_exit)
+                var lastBackPressForExitMs by rememberSaveable { mutableStateOf(0L) }
+                BackHandler {
+                    val now = System.currentTimeMillis()
+                    if (lastBackPressForExitMs != 0L && now - lastBackPressForExitMs <= 2_000L) {
+                        landingContext.findComponentActivity()?.finish()
+                    } else {
+                        lastBackPressForExitMs = now
+                        Toast.makeText(
+                            landingContext,
+                            pressBackAgainToExit,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                }
+                LaunchLandingScreen(
+                    onOpenHome = {
+                        trackFirstValueMoment("launch_entry_home")
+                        selectedEntryRoute = "home"
+                    },
+                    onOpenMusic = {
+                        trackFirstValueMoment("launch_entry_music")
+                        selectedEntryRoute = "music"
+                    },
+                    onOpenVideography = {
+                        trackFirstValueMoment("launch_entry_video")
+                        selectedEntryRoute = "video"
+                    },
+                    onOpenShop = {
+                        trackFirstValueMoment("launch_entry_shop")
+                        selectedEntryRoute = "shop"
+                    },
+                )
+            }
         } else {
             val startRoute = selectedEntryRoute ?: "home"
             val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -433,13 +464,16 @@ fun SkydownApp(
                 !topLevelRoutes.contains(currentDestination?.route)
             val canPopTopLevelRoute = topLevelRoutes.contains(currentDestination?.route) &&
                 topLevelRouteHistory.size > 1
+            val onMainShellAtRoot = topLevelRoutes.contains(currentDestination?.route) &&
+                topLevelRouteHistory.size == 1
 
             BackHandler(
                 enabled = hasBlockingAuthSheet ||
                     hasOrdersSheet ||
                     canCloseWorkflowWorkspace ||
                     canPopNestedRoute ||
-                    canPopTopLevelRoute,
+                    canPopTopLevelRoute ||
+                    onMainShellAtRoot,
             ) {
                 when {
                     authSheet != null -> {
@@ -450,9 +484,13 @@ fun SkydownApp(
                     navController.previousBackStackEntry != null && !topLevelRoutes.contains(currentDestination?.route) -> {
                         navController.popBackStack()
                     }
-                    else -> {
+                    canPopTopLevelRoute -> {
                         navigateBackWithinTopLevel()
                     }
+                    onMainShellAtRoot -> {
+                        selectedEntryRoute = null
+                    }
+                    else -> { }
                 }
             }
 
@@ -2667,4 +2705,10 @@ private fun LaunchLandingMetaPill(
             .heightIn(min = 44.dp)
             .padding(horizontal = 14.dp, vertical = 10.dp),
     )
+}
+
+private tailrec fun Context.findComponentActivity(): ComponentActivity? = when (this) {
+    is ComponentActivity -> this
+    is ContextWrapper -> baseContext.findComponentActivity()
+    else -> null
 }

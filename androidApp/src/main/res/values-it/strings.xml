@@ -1107,6 +1107,7 @@
     <string name="editable_image_remove">Remove image</string>
     <string name="youtube_player_unavailable">The YouTube player could not be initialized for this video.</string>
     <string name="youtube_watch">Watch on YouTube</string>
+    <string name="launch_press_back_again_to_exit">Premi di nuovo Indietro per uscire</string>
     <string name="common_back">Back</string>
     <string name="common_remove">Remove</string>
     <string name="cart_title">Cart</string>
