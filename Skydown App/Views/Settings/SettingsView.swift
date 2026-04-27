@@ -502,7 +502,7 @@ struct SettingsView: View {
                                     Text(AppLocalized.text("settings.owner_hub.link_title", fallback: "Owner hub"))
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
-                                    Text(AppLocalized.text("settings.owner_hub.link_subtitle", fallback: "Briefing, metrics cards, roadmap"))
+                                    Text(AppLocalized.text("settings.owner_hub.link_subtitle", fallback: "Same flow as Home: Agent briefing, then Tasks, Notes, or reminders."))
                                         .font(.caption)
                                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                                         .fixedSize(horizontal: false, vertical: true)

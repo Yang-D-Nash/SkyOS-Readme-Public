@@ -1378,13 +1378,19 @@ private fun HomeOwnerWorkflowRow(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
         Text(
-            text = "Owner workflows",
+            text = stringResource(R.string.home_owner_workflows_title),
             style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+        )
+        Text(
+            text = stringResource(R.string.home_owner_workflows_subtitle),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             HomeQuickActionChip(
-                text = "Plan",
+                text = stringResource(R.string.home_owner_workflows_plan),
                 countBadge = taskCount,
                 onClick = {
                     onOpenWorkflowWithPrompt("Review open tasks ($taskCount) and return a concise execution plan with priorities.")
@@ -1392,7 +1398,7 @@ private fun HomeOwnerWorkflowRow(
                 modifier = Modifier.weight(1f),
             )
             HomeQuickActionChip(
-                text = "Follow-up",
+                text = stringResource(R.string.home_owner_workflows_followup),
                 countBadge = reminderCount,
                 onClick = {
                     onOpenWorkflowWithPrompt("Create follow-up actions from reminders ($reminderCount) and suggest what to do today first.")
@@ -1400,7 +1406,7 @@ private fun HomeOwnerWorkflowRow(
                 modifier = Modifier.weight(1f),
             )
             HomeQuickActionChip(
-                text = "Summarize",
+                text = stringResource(R.string.home_owner_workflows_summarize),
                 countBadge = noteCount,
                 onClick = {
                     onOpenWorkflowWithPrompt("Summarize notes ($noteCount) into next actions and a short owner update.")
@@ -1503,23 +1509,35 @@ private fun HomeQuickActionChip(
             overflow = TextOverflow.Ellipsis,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        if ((countBadge ?: 0) > 0) {
+        // When countBadge is supplied (owner workflow chips), show it even at 0 — same signal as productivity rows.
+        countBadge?.let { count ->
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 2.dp, end = 2.dp),
                 contentAlignment = Alignment.TopEnd,
             ) {
+                val muted = count == 0
                 Box(
                     modifier = Modifier
-                    .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
-                    .padding(horizontal = 5.dp, vertical = 1.dp),
+                        .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
+                        .background(
+                            if (muted) {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+                            } else {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                            },
+                        )
+                        .padding(horizontal = 5.dp, vertical = 1.dp),
                 ) {
                     Text(
-                        text = countBadge.toString(),
+                        text = count.toString(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = if (muted) {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+                        } else {
+                            MaterialTheme.colorScheme.onPrimary
+                        },
                         fontWeight = FontWeight.Bold,
                     )
                 }

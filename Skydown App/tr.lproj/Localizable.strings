@@ -147,3 +147,18 @@
 "home.hero.title" = "SkyOS";
 "home.hero.live_count" = "%d/%d live";
 "home.hero.detail" = "Open music, videos or merch.";
+
+"auth.entry.subtitle.ai" = "Live now: reminders with push, saved tasks and notes. Next: longer-lived profile memory and smarter follow-up automations.";
+"feature.status.live.body" = "Reminders with push, plus saved tasks and notes in the productivity dock.";
+"feature.status.next.body" = "Longer-lived profile memory and smarter follow-up automations.";
+"agent.feature_status.live_body" = "Reminders + push, tasks + notes";
+"agent.feature_status.next_body" = "Profile memory & follow-ups";
+"agent.empty.header.title" = "Answers in the chat. Saves beside them.";
+"agent.empty.header.subtitle" = "Store follow-ups in Tasks or Notes from the AI productivity dock. Reminders with push work from the agent or Home quick actions.";
+"home.owner.workflows.title" = "Owner shortcuts";
+"home.owner.workflows.subtitle" = "Opens AI → Agent with a seeded prompt. Tap compose to send, read the reply, then save in Tasks or Notes from the AI productivity dock—or add reminders from Home.";
+"home.owner.workflows.plan" = "Plan";
+"home.owner.workflows.followup" = "Follow-up";
+"home.owner.workflows.summarize" = "Summarize";
+"settings.owner_hub.link_subtitle" = "Same flow as Home: Agent briefing, then Tasks, Notes, or reminders.";
+"owner.hub.briefing.body" = "Opens AI → Agent with a structured briefing in the draft. Tap compose to send, refine the reply, then capture follow-ups in Tasks or Notes from the productivity dock—or reminders from Home.";

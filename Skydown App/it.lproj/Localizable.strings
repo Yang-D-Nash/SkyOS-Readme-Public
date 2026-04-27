@@ -147,3 +147,18 @@
 "home.hero.title" = "SkyOS";
 "home.hero.live_count" = "%d/%d live";
 "home.hero.detail" = "Open music, videos or merch.";
+
+"auth.entry.subtitle.ai" = "Gia disponibile: promemoria con push, attivita e note salvate. Prossimo: memoria del profilo piu duratura e automazioni di follow-up piu intelligenti.";
+"feature.status.live.body" = "Promemoria con push, piu attivita e note salvate nel dock di produttivita.";
+"feature.status.next.body" = "Memoria del profilo piu duratura e automazioni di follow-up piu intelligenti.";
+"agent.feature_status.live_body" = "Promemoria + push, attivita + note";
+"agent.feature_status.next_body" = "Memoria profilo e follow-up";
+"agent.empty.header.title" = "Risposte in chat. Salva accanto.";
+"agent.empty.header.subtitle" = "Salva i follow-up in Attivita o Note dal dock di produttivita IA. I promemoria con push funzionano dall agente o dalle azioni rapide in Home.";
+"home.owner.workflows.title" = "Scorciatoie owner";
+"home.owner.workflows.subtitle" = "Apre IA → Agente con un prompt preparato. Tocca componi per inviare, leggi la risposta, poi salva in Attivita o Note dal dock IA, oppure aggiungi promemoria da Home.";
+"home.owner.workflows.plan" = "Piano";
+"home.owner.workflows.followup" = "Follow-up";
+"home.owner.workflows.summarize" = "Riassumi";
+"settings.owner_hub.link_subtitle" = "Stesso percorso della Home: briefing agent, poi Attivita, Note o promemoria.";
+"owner.hub.briefing.body" = "Apre IA → Agente con un briefing strutturato nella bozza. Tocca componi per inviare, affina la risposta, poi registra i follow-up in Attivita o Note dal dock, oppure promemoria da Home.";

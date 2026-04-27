@@ -264,3 +264,18 @@
 "home.hero.title" = "SkyOS";
 "home.hero.live_count" = "%d/%d live";
 "home.hero.detail" = "Open music, videos or merch.";
+
+"auth.entry.subtitle.ai" = "Déjà disponible : rappels avec notifications push, tâches et notes enregistrées. Prochaine étape : mémoire de profil plus durable et automatisations de suivi plus intelligentes.";
+"feature.status.live.body" = "Rappels avec notifications push, plus tâches et notes enregistrées dans le dock de productivité.";
+"feature.status.next.body" = "Mémoire de profil plus durable et automatisations de suivi plus intelligentes.";
+"agent.feature_status.live_body" = "Rappels + push, tâches + notes";
+"agent.feature_status.next_body" = "Mémoire de profil et suivis";
+"agent.empty.header.title" = "Réponses dans le chat. Enregistrez à côté.";
+"agent.empty.header.subtitle" = "Enregistrez les suites dans Tâches ou Notes depuis le dock de productivité IA. Les rappels avec notifications passent par l\'agent ou les raccourcis d\'accueil.";
+"home.owner.workflows.title" = "Raccourcis propriétaire";
+"home.owner.workflows.subtitle" = "Ouvre IA → Agent avec un prompt préparé. Touchez composer pour envoyer, lisez la réponse, puis enregistrez dans Tâches ou Notes depuis le dock IA, ou ajoutez des rappels depuis l\'accueil.";
+"home.owner.workflows.plan" = "Plan";
+"home.owner.workflows.followup" = "Suivi";
+"home.owner.workflows.summarize" = "Synthèse";
+"settings.owner_hub.link_subtitle" = "Même parcours que l\'accueil : briefing agent, puis Tâches, Notes ou rappels.";
+"owner.hub.briefing.body" = "Ouvre IA → Agent avec un briefing structuré dans le brouillon. Touchez composer pour envoyer, affinez la réponse, puis enregistrez les suites dans Tâches ou Notes depuis le dock, ou des rappels depuis l\'accueil.";

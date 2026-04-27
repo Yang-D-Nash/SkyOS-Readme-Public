@@ -252,6 +252,8 @@ fun AgentScreen(
         val prompt = prefilledPrompt?.trim()
         if (!prompt.isNullOrEmpty()) {
             viewModel.updateDraft(prefilledPrompt)
+            // Prefill paths (owner shortcuts, hub, links): open composer at once — same immediacy
+            // as a conversational entry; FAB remains for sessions without a prefill.
             showPromptComposer = true
             onConsumePrefilledPrompt()
         }

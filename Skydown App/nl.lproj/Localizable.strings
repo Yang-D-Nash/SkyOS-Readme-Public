@@ -147,3 +147,18 @@
 "home.hero.title" = "SkyOS";
 "home.hero.live_count" = "%d/%d live";
 "home.hero.detail" = "Open music, videos or merch.";
+
+"auth.entry.subtitle.ai" = "Nu live: herinneringen met push, opgeslagen taken en notities. Volgende: langduriger profielgeheugen en slimmere vervolgautomatiseringen.";
+"feature.status.live.body" = "Herinneringen met push, plus opgeslagen taken en notities in het productiviteitsdock.";
+"feature.status.next.body" = "Langduriger profielgeheugen en slimmere vervolgautomatiseringen.";
+"agent.feature_status.live_body" = "Herinneringen + push, taken + notities";
+"agent.feature_status.next_body" = "Profielgeheugen en vervolgstappen";
+"agent.empty.header.title" = "Antwoorden in de chat. Bewaar ernaast.";
+"agent.empty.header.subtitle" = "Bewaar vervolgstappen in Taken of Notities via het AI-productiviteitsdock. Herinneringen met push via de agent of snelle acties op Home.";
+"home.owner.workflows.title" = "Owner-snelkoppelingen";
+"home.owner.workflows.subtitle" = "Ga naar AI → Agent met een voorbereide prompt. Tik op opstellen om te verzenden, lees het antwoord en sla op in Taken of Notities via het AI-productiviteitsdock, of voeg herinneringen toe vanaf Home.";
+"home.owner.workflows.plan" = "Plan";
+"home.owner.workflows.followup" = "Vervolg";
+"home.owner.workflows.summarize" = "Samenvatten";
+"settings.owner_hub.link_subtitle" = "Zelfde pad als Home: agentbriefing, dan Taken, Notities of herinneringen.";
+"owner.hub.briefing.body" = "Opent AI → Agent met een gestructureerde briefing in het concept. Tik op opstellen om te verzenden, verfijn het antwoord en leg vervolgstappen vast in Taken of Notities via het dock, of herinneringen vanaf Home.";

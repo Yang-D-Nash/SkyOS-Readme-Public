@@ -1130,9 +1130,16 @@ private struct HomeOwnerWorkflowSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-            Text(AppLocalized.text("home.owner.workflows.title", fallback: "Owner workflows"))
+            Text(AppLocalized.text("home.owner.workflows.title", fallback: "Owner shortcuts"))
                 .font(.caption.weight(.semibold))
                 .foregroundColor(.secondary)
+            Text(AppLocalized.text(
+                "home.owner.workflows.subtitle",
+                fallback: "Opens AI → Agent with a seeded prompt. Tap compose to send, read the reply, then save in Tasks or Notes from the AI productivity dock—or add reminders from Home."
+            ))
+                .font(.caption2)
+                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.55))
+                .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 HomeQuickActionButton(
@@ -1268,7 +1275,8 @@ private struct HomeQuickActionButton: View {
                 .background(AppColors.cardBackground(for: colorScheme))
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
                 .overlay(alignment: .topTrailing) {
-                    if let badgeCount, badgeCount > 0 {
+                    // Match productivity rows: show count including 0 when this chip carries metrics (owner shortcuts).
+                    if let badgeCount {
                         HomeCountBadge(count: badgeCount)
                             .offset(x: 4, y: -4)
                     }

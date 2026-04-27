@@ -4394,6 +4394,12 @@ fun SettingsScreen(
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
+                            Text(
+                                text = stringResource(R.string.settings_owner_hub_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 6.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                            )
                             OutlinedButton(
                                 onClick = onOpenOwnerHub,
                                 modifier = Modifier

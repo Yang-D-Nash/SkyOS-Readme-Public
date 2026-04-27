@@ -115,9 +115,9 @@
 
     <string name="agent_queue_placeholder">Queued: this request will send automatically when your connection is back.</string>
     <string name="feature_status_live_title">Live now:</string>
-    <string name="feature_status_live_body">Smart reminders with push notifications.</string>
+    <string name="feature_status_live_body">Reminders with push, plus saved tasks and notes in the productivity dock.</string>
     <string name="feature_status_next_title">Coming next:</string>
-    <string name="feature_status_next_body">Tasks, Notes and Memory Automations.</string>
+    <string name="feature_status_next_body">Longer-lived profile memory and smarter follow-up automations.</string>
     <string name="tasks_title">Tasks</string>
     <string name="tasks_empty">No tasks yet</string>
     <string name="tasks_completed">Task completed</string>
@@ -140,7 +140,7 @@
     <string name="auth_login_title">Sign in</string>
     <string name="auth_login_welcome">Welcome to SkyOS</string>
     <string name="auth_login_subtitle">Sign in to access your account and creator tools.</string>
-    <string name="auth_entry_subtitle_ai">Live now: smart reminders with push. Coming next: Tasks, Notes and Memory Automations.</string>
+    <string name="auth_entry_subtitle_ai">Live now: reminders with push, saved tasks and notes. Next: longer-lived profile memory and smarter follow-up automations.</string>
     <string name="auth_entry_subtitle_merch">Track orders and delivery in one place when you are ready.</string>
     <string name="auth_entry_subtitle_cart">Secure your bag and finish checkout on your terms.</string>
     <string name="auth_entry_subtitle_settings">Connect an account for personalized settings and support.</string>
@@ -449,6 +449,11 @@
     <string name="home_quick_create_task">Create Task</string>
     <string name="home_quick_create_note">Create Note</string>
     <string name="home_quick_hint">In Agent, this opens the composer with a guided workflow prompt.</string>
+    <string name="home_owner_workflows_title">Owner shortcuts</string>
+    <string name="home_owner_workflows_subtitle">Opens AI → Agent with a seeded prompt. Tap compose to send, read the reply, then save in Tasks or Notes from the AI productivity dock—or add reminders from Home.</string>
+    <string name="home_owner_workflows_plan">Plan</string>
+    <string name="home_owner_workflows_followup">Follow-up</string>
+    <string name="home_owner_workflows_summarize">Summarize</string>
     <string name="home_productivity_quick_hint">Tap a shortcut to open a calm capture sheet on Home — no tab switch.</string>
     <string name="home_sheet_reminder_hint">Pick a clear title, then set date and time. SkyOS uses the exact timestamp for push scheduling.</string>
     <string name="home_sheet_reminder_title_hint">Reminder title</string>
@@ -889,6 +894,7 @@
 
     <string name="settings_membership_section_summary">Current plan, billing clarity, and restore in one place.</string>
     <string name="settings_owner_section_summary">Protected control for revenue, users, and runtime.</string>
+    <string name="settings_owner_hub_hint">Same capture path as Home: Agent briefing or seeded prompts, then Tasks, Notes, or reminders.</string>
     <string name="settings_open_owner_hub">Owner hub</string>
     <string name="owner_hub_nav_title">Owner</string>
     <string name="owner_hub_title">Owner hub</string>
@@ -903,7 +909,7 @@
     <string name="owner_hub_card_release_subtitle">Ship cadence</string>
     <string name="owner_hub_metric_placeholder">—</string>
     <string name="owner_hub_briefing_title">Daily briefing</string>
-    <string name="owner_hub_briefing_body">Opens the Agent with a structured owner briefing prompt. Refine the output, then capture follow-ups in tasks or notes.</string>
+    <string name="owner_hub_briefing_body">Opens AI → Agent with a structured briefing in the draft. Tap compose to send, refine the reply, then capture follow-ups in Tasks or Notes from the productivity dock—or reminders from Home.</string>
     <string name="owner_hub_briefing_cta">Start briefing in Agent</string>
     <string name="owner_hub_roadmap_title">Next on the roadmap</string>
     <string name="owner_hub_roadmap_action_queue">Action queue — apply agent suggestions to tasks &amp; notes</string>
@@ -1584,14 +1590,14 @@ Message:
     <string name="agent_sessions_title">Agent chats</string>
     <string name="agent_membership_trigger">Trigger: %1$s</string>
     <string name="agent_membership_billing_unavailable">Play Billing is not configured live for this build yet.</string>
-    <string name="agent_empty_header_title">Start with reminders that already run live.</string>
-    <string name="agent_empty_header_subtitle">Use + to create a reminder with push. Tasks, Notes and Memory Automations are coming next.</string>
+    <string name="agent_empty_header_title">Answers in the chat. Saves beside them.</string>
+    <string name="agent_empty_header_subtitle">Store follow-ups in Tasks or Notes from the productivity dock. Reminders with push work from the agent or Home quick actions.</string>
     <string name="agent_prompt_open">Open prompt</string>
     <string name="agent_fab_working">Working</string>
     <string name="agent_feature_status_live_title">LIVE TODAY</string>
-    <string name="agent_feature_status_live_body">Reminders + Push</string>
+    <string name="agent_feature_status_live_body">Reminders + push, tasks + notes</string>
     <string name="agent_feature_status_next_title">COMING NEXT</string>
-    <string name="agent_feature_status_next_body">Tasks / Notes / Memory Automations</string>
+    <string name="agent_feature_status_next_body">Profile memory &amp; follow-ups</string>
     <string name="agent_productivity_header">Productivity surfaces</string>
     <string name="agent_productivity_tasks_count">Tasks (%1$d)</string>
     <string name="agent_productivity_notes_count">Notes (%1$d)</string>

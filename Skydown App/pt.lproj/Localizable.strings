@@ -264,3 +264,18 @@
 "home.hero.title" = "SkyOS";
 "home.hero.live_count" = "%d/%d live";
 "home.hero.detail" = "Open music, videos or merch.";
+
+"auth.entry.subtitle.ai" = "Ja disponivel: lembretes com push, tarefas e notas salvas. Proximo: memoria de perfil mais duradoura e automacoes de acompanhamento mais inteligentes.";
+"feature.status.live.body" = "Lembretes com push, mais tarefas e notas salvas no dock de produtividade.";
+"feature.status.next.body" = "Memoria de perfil mais duradoura e automacoes de acompanhamento mais inteligentes.";
+"agent.feature_status.live_body" = "Lembretes + push, tarefas + notas";
+"agent.feature_status.next_body" = "Memoria de perfil e acompanhamentos";
+"agent.empty.header.title" = "Respostas no chat. Guarde ao lado.";
+"agent.empty.header.subtitle" = "Guarde acompanhamentos em Tarefas ou Notas pelo dock de produtividade da IA. Lembretes com push pelo agente ou atalhos na Home.";
+"home.owner.workflows.title" = "Atalhos do owner";
+"home.owner.workflows.subtitle" = "Abre IA → Agente com um prompt preparado. Toque em compor para enviar, leia a resposta e guarde em Tarefas ou Notas no dock de produtividade da IA, ou adicione lembretes pela Home.";
+"home.owner.workflows.plan" = "Plano";
+"home.owner.workflows.followup" = "Acompanhamento";
+"home.owner.workflows.summarize" = "Resumir";
+"settings.owner_hub.link_subtitle" = "Mesmo fluxo da Home: briefing do agente, depois Tarefas, Notas ou lembretes.";
+"owner.hub.briefing.body" = "Abre IA → Agente com um briefing estruturado no rascunho. Toque em compor para enviar, refine a resposta e capture acompanhamentos em Tarefas ou Notas pelo dock, ou lembretes pela Home.";

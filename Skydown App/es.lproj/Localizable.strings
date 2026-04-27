@@ -264,3 +264,18 @@
 "home.hero.title" = "SkyOS";
 "home.hero.live_count" = "%d/%d live";
 "home.hero.detail" = "Open music, videos or merch.";
+
+"auth.entry.subtitle.ai" = "Ya disponible: recordatorios con push, tareas y notas guardadas. Proximo: memoria de perfil mas duradera y automatizaciones de seguimiento mas inteligentes.";
+"feature.status.live.body" = "Recordatorios con push, mas tareas y notas guardadas en el panel de productividad.";
+"feature.status.next.body" = "Memoria de perfil mas duradera y automatizaciones de seguimiento mas inteligentes.";
+"agent.feature_status.live_body" = "Recordatorios + push, tareas + notas";
+"agent.feature_status.next_body" = "Memoria de perfil y seguimientos";
+"agent.empty.header.title" = "Respuestas en el chat. Guardalas al lado.";
+"agent.empty.header.subtitle" = "Guarda seguimientos en Tareas o Notas desde el panel de productividad de la IA. Los recordatorios con push funcionan desde el agente o las acciones rapidas de Inicio.";
+"home.owner.workflows.title" = "Atajos de propietario";
+"home.owner.workflows.subtitle" = "Abre IA → Agente con un prompt preparado. Pulsa redactar para enviar, lee la respuesta y guarda en Tareas o Notas desde el panel de productividad de la IA, o anade recordatorios desde Inicio.";
+"home.owner.workflows.plan" = "Plan";
+"home.owner.workflows.followup" = "Seguimiento";
+"home.owner.workflows.summarize" = "Resumir";
+"settings.owner_hub.link_subtitle" = "Mismo flujo que en Inicio: briefing del agente, luego Tareas, Notas o recordatorios.";
+"owner.hub.briefing.body" = "Abre IA → Agente con un briefing estructurado en el borrador. Pulsa redactar para enviar, refina la respuesta, luego captura seguimientos en Tareas o Notas desde el panel, o recordatorios desde Inicio.";

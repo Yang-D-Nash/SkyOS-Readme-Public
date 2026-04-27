@@ -32,7 +32,7 @@
 "auth.register.google_hint" = "Dein Konto wird beim ersten Google-Login automatisch erstellt.";
 "auth.register.username_hint" = "Wenn du oben einen Benutzernamen eintraegst, wird er fuer dein Profil genutzt.";
 "auth.register.title" = "Neues Konto";
-"auth.entry.subtitle.ai" = "Jetzt live: Smarte Erinnerungen mit Push-Benachrichtigungen. Demnaechst: Aufgaben, Notizen und Memory-Automationen.";
+"auth.entry.subtitle.ai" = "Jetzt live: Reminder mit Push, gespeicherte Aufgaben und Notizen. Als Naechstes: laengerfristiges Profil-Memory und intelligentere Follow-up-Automationen.";
 "auth.entry.subtitle.merch" = "Bestellungen und Lieferung an einem ruhigen Ort nachverfolgen, wenn du soweit bist.";
 "auth.entry.subtitle.cart" = "Warenkorb sichern und Checkout abschliessen, sobald es fuer dich passt.";
 "auth.entry.subtitle.settings" = "Konto verknuepfen fuer persoenliche Einstellungen und Support.";
@@ -170,19 +170,19 @@
 "agent.paused" = "SkyOS Agent pausiert";
 "agent.paused.detail" = "Rest der App bleibt nutzbar. Der Agent folgt, sobald er wieder freigeschaltet ist.";
 "feature.status.live.title" = "Jetzt live:";
-"feature.status.live.body" = "Smarte Erinnerungen mit Push-Benachrichtigungen.";
+"feature.status.live.body" = "Erinnerungen mit Push plus gespeicherte Aufgaben und Notizen in der Produktivitaetsleiste.";
 "feature.status.next.title" = "Demnaechst:";
-"feature.status.next.body" = "Aufgaben, Notizen und Memory-Automationen.";
+"feature.status.next.body" = "Laengerfristiges Profil-Memory und intelligentere Follow-up-Automationen.";
 "agent.feature_status.live_title" = "LIVE HEUTE";
-"agent.feature_status.live_body" = "Reminder + Push";
+"agent.feature_status.live_body" = "Reminder + Push, Aufgaben + Notizen";
 "agent.feature_status.next_title" = "IM AUSBAU";
-"agent.feature_status.next_body" = "Tasks / Notes / Memory-Automationen";
+"agent.feature_status.next_body" = "Profil-Memory & Follow-ups";
 "agent.productivity.header" = "Produktivitaetsflaechen";
 "agent.prefill.create_reminder" = "Erstelle eine Erinnerung fuer ";
 "agent.prefill.create_task" = "Erstelle eine Aufgabe fuer ";
 "agent.prefill.create_note" = "Erstelle eine Notiz zu ";
-"agent.empty.header.title" = "Starte mit Remindern, die heute schon live laufen.";
-"agent.empty.header.subtitle" = "Nutze den Agent fuer Erinnerungen mit Push. Tasks, Notes und Memory-Automationen folgen als naechster Ausbau.";
+"agent.empty.header.title" = "Antworten im Chat. Festhalten daneben.";
+"agent.empty.header.subtitle" = "Folgeaufgaben speicherst du ueber Aufgaben oder Notizen in der Produktivitaetsleiste. Reminder mit Push ueber den Agent oder Home-Kurzaktionen.";
 "settings.membership_ops.title" = "Membership-Steuerung";
 "settings.membership_ops.subtitle" = "Owner-Bereich fuer KPIs, Experimente und Learnings.";
 "settings.membership_ops.loading" = "Membership-Steuerung wird geladen...";
@@ -488,6 +488,11 @@
 "home.quick.create_task" = "Task erstellen";
 "home.quick.create_note" = "Notiz erstellen";
 "home.quick.hint" = "Im Agent oeffnet das den Composer mit einem gefuehrten Workflow-Prompt.";
+"home.owner.workflows.title" = "Owner-Kurzwege";
+"home.owner.workflows.subtitle" = "Springt zu KI → Agent mit vorbereitetem Text. Ueber Eingabe senden, Antwort lesen, dann in Aufgaben oder Notizen in der KI-Produktivitaetsleiste speichern — oder Reminder ueber Home anlegen.";
+"home.owner.workflows.plan" = "Plan";
+"home.owner.workflows.followup" = "Follow-up";
+"home.owner.workflows.summarize" = "Zusammenfassen";
 "home.productivity.quick_hint" = "Tippe auf eine Kurzaktion, um ein ruhiges Capture-Sheet auf Home zu oeffnen — ohne Tab-Wechsel.";
 "home.sheet.reminder.hint" = "Waehle einen klaren Titel, dann Datum und Uhrzeit. SkyOS nutzt den exakten Zeitstempel fuer Push-Scheduling.";
 "home.sheet.reminder.title_hint" = "Reminder-Titel";
@@ -497,7 +502,7 @@
 "home.sheet.add" = "Hinzufuegen";
 
 "settings.owner_hub.link_title" = "Owner-Hub";
-"settings.owner_hub.link_subtitle" = "Briefing, Metrik-Karten, Roadmap";
+"settings.owner_hub.link_subtitle" = "Gleicher Ablauf wie auf Home: Agent-Briefing, dann Aufgaben, Notizen oder Reminder.";
 "owner.hub.title" = "Owner-Hub";
 "owner.hub.subtitle" = "Gesundheit, Wachstum, Qualitaet und Release auf einen Blick.";
 "owner.hub.nav_title" = "Owner";
@@ -511,7 +516,7 @@
 "owner.hub.card.release.subtitle" = "Ship-Takt";
 "owner.hub.metric.placeholder" = "—";
 "owner.hub.briefing.title" = "Tagesbriefing";
-"owner.hub.briefing.body" = "Oeffnet den Agent mit einem strukturierten Owner-Briefing. Ausgabe verfeinern, dann Follow-ups in Aufgaben oder Notizen festhalten.";
+"owner.hub.briefing.body" = "Oeffnet KI → Agent mit strukturiertem Briefing im Entwurf. Ueber Eingabe senden, Antwort verfeinern, dann Follow-ups in Aufgaben oder Notizen ueber die Produktivitaetsleiste — oder Reminder ueber Home festhalten.";
 "owner.hub.briefing.cta" = "Briefing im Agent starten";
 "owner.hub.roadmap.title" = "Als Naechstes auf der Roadmap";
 "owner.hub.roadmap.action_queue" = "Action Queue — Agent-Vorschlaege auf Aufgaben & Notizen anwenden";

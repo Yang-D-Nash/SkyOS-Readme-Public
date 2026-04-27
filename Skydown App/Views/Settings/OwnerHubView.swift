@@ -64,7 +64,7 @@ struct OwnerHubView: View {
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .accessibilityIdentifier("owner.hub.briefing.title")
-                    Text(AppLocalized.text("owner.hub.briefing.body", fallback: "Opens the Agent with a structured owner briefing prompt. Refine the output, then capture follow-ups in tasks or notes."))
+                    Text(AppLocalized.text("owner.hub.briefing.body", fallback: "Opens AI → Agent with a structured briefing in the draft. Tap compose to send, refine the reply, then capture follow-ups in Tasks or Notes from the productivity dock—or reminders from Home."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     Button {

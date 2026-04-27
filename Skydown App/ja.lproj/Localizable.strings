@@ -147,3 +147,18 @@
 "home.hero.title" = "SkyOS";
 "home.hero.live_count" = "%d/%d live";
 "home.hero.detail" = "Open music, videos or merch.";
+
+"auth.entry.subtitle.ai" = "利用可能：プッシュ付きリマインダー、保存されたタスクとメモ。次の段階：より長期にわたるプロファイルメモリーと、より賢いフォローアップ自動化。";
+"feature.status.live.body" = "プッシュ付きリマインダーと、生産性ドックに保存されたタスクとメモ。";
+"feature.status.next.body" = "より長期にわたるプロファイルメモリーと、より賢いフォローアップ自動化。";
+"agent.feature_status.live_body" = "リマインダー＋プッシュ、タスク＋メモ";
+"agent.feature_status.next_body" = "プロファイルメモリーとフォローアップ";
+"agent.empty.header.title" = "回答はチャットに。横で保存。";
+"agent.empty.header.subtitle" = "フォローアップは AI の生産性ドックから「タスク」または「メモ」で保存。プッシュ付きリマインダーはエージェントまたはホームのクイック操作から。";
+"home.owner.workflows.title" = "オーナー向けショートカット";
+"home.owner.workflows.subtitle" = "AI → エージェントへシード済みプロンプトで移動。作成をタップして送信し、返答を読んでから、AI 生産性ドックの「タスク」または「メモ」に保存するか、ホームからリマインダーを追加。";
+"home.owner.workflows.plan" = "計画";
+"home.owner.workflows.followup" = "フォローアップ";
+"home.owner.workflows.summarize" = "要約";
+"settings.owner_hub.link_subtitle" = "ホームと同じ流れ：エージェントのブリーフィングの後に、タスク・メモ・リマインダー。";
+"owner.hub.briefing.body" = "AI → エージェントを開き、下書きに構造化されたブリーフィング。作成をタップして送信し、返答を調整したら、ドックの「タスク」または「メモ」でフォローアップを保存、またはホームからリマインダー。";

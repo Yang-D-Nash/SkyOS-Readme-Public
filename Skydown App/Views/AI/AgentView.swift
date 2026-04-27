@@ -342,11 +342,13 @@ struct AgentView: View {
         .onChange(of: viewModel.activeSessionTitle) { _, title in
             renameDraft = title
         }
-        .onChange(of: prefilledPrompt) { _, prompt in
-            guard let prompt else { return }
+        .task(id: prefilledPrompt) {
+            guard let prompt = prefilledPrompt else { return }
             let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return }
             viewModel.draft = prompt
+            // Prefill (Home owner shortcuts, Owner hub, deep links): open the composer immediately
+            // so it feels as direct as the bot’s inline field — FAB stays for unprompted sessions.
             showingPromptComposer = true
             onConsumePrefilledPrompt?()
         }
@@ -793,7 +795,7 @@ private struct AgentEmptyStateHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: isCompact ? 6 : 8) {
-            Text(AppLocalized.text("agent.empty.header.title", fallback: "Start with reminders that already run live."))
+            Text(AppLocalized.text("agent.empty.header.title", fallback: "Answers in the chat. Saves beside them."))
                 .font(
                     isCompact
                         ? .system(size: 24, weight: .black, design: .rounded)
@@ -801,7 +803,7 @@ private struct AgentEmptyStateHeader: View {
                 )
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text(AppLocalized.text("agent.empty.header.subtitle", fallback: "Use the agent to create a reminder with push. Tasks, Notes and Memory Automations are coming next."))
+            Text(AppLocalized.text("agent.empty.header.subtitle", fallback: "Store follow-ups in Tasks or Notes from the productivity dock. Reminders with push work from the agent or Home quick actions."))
                 .font(isCompact ? .subheadline.weight(.semibold) : .subheadline.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -903,14 +905,14 @@ private struct AgentFeatureStatusCard: View {
             Text(AppLocalized.text("agent.feature_status.live_title", fallback: "LIVE TODAY"))
                 .font(.caption2.weight(.black))
                 .foregroundColor(AppColors.accentMystic(for: colorScheme))
-            Text(AppLocalized.text("agent.feature_status.live_body", fallback: "Reminders + Push"))
+            Text(AppLocalized.text("agent.feature_status.live_body", fallback: "Reminders + push, tasks + notes"))
                 .font(.subheadline.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
             Text(AppLocalized.text("agent.feature_status.next_title", fallback: "COMING NEXT"))
                 .font(.caption2.weight(.black))
                 .foregroundColor(AppColors.accentHighlight(for: colorScheme))
                 .padding(.top, 2)
-            Text(AppLocalized.text("agent.feature_status.next_body", fallback: "Tasks / Notes / Memory Automations"))
+            Text(AppLocalized.text("agent.feature_status.next_body", fallback: "Profile memory & follow-ups"))
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }

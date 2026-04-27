@@ -32,7 +32,7 @@
 "auth.register.google_hint" = "Your account is created automatically on first Google login.";
 "auth.register.username_hint" = "If you enter a username above, it is used for your profile.";
 "auth.register.title" = "New account";
-"auth.entry.subtitle.ai" = "Live now: smart reminders with push. Coming next: Tasks, Notes and Memory Automations.";
+"auth.entry.subtitle.ai" = "Live now: reminders with push, saved tasks and notes. Next: longer-lived profile memory and smarter follow-up automations.";
 "auth.entry.subtitle.merch" = "Track orders and delivery in one place when you are ready.";
 "auth.entry.subtitle.cart" = "Secure your bag and finish checkout on your terms.";
 "auth.entry.subtitle.settings" = "Connect an account for personalized settings and support.";
@@ -170,19 +170,19 @@
 "agent.paused" = "SkyOS Agent paused";
 "agent.paused.detail" = "The rest of the app stays available. The agent continues once re-enabled.";
 "feature.status.live.title" = "Live now:";
-"feature.status.live.body" = "Smart reminders with push notifications.";
+"feature.status.live.body" = "Reminders with push, plus saved tasks and notes in the productivity dock.";
 "feature.status.next.title" = "Coming next:";
-"feature.status.next.body" = "Tasks, Notes and Memory Automations.";
+"feature.status.next.body" = "Longer-lived profile memory and smarter follow-up automations.";
 "agent.feature_status.live_title" = "LIVE TODAY";
-"agent.feature_status.live_body" = "Reminders + Push";
+"agent.feature_status.live_body" = "Reminders + push, tasks + notes";
 "agent.feature_status.next_title" = "COMING NEXT";
-"agent.feature_status.next_body" = "Tasks / Notes / Memory Automations";
+"agent.feature_status.next_body" = "Profile memory & follow-ups";
 "agent.productivity.header" = "Productivity surfaces";
 "agent.prefill.create_reminder" = "Create a reminder for ";
 "agent.prefill.create_task" = "Create a task for ";
 "agent.prefill.create_note" = "Create a note about ";
-"agent.empty.header.title" = "Start with reminders that already run live.";
-"agent.empty.header.subtitle" = "Use the agent to create a reminder with push. Tasks, Notes and Memory Automations are coming next.";
+"agent.empty.header.title" = "Answers in the chat. Saves beside them.";
+"agent.empty.header.subtitle" = "Store follow-ups in Tasks or Notes from the productivity dock. Reminders with push work from the agent or Home quick actions.";
 "settings.membership_ops.title" = "Membership Control";
 "settings.membership_ops.subtitle" = "Owner area for KPIs, experiments, and learnings.";
 "settings.membership_ops.loading" = "Loading membership control...";
@@ -488,6 +488,11 @@
 "home.quick.create_task" = "Create Task";
 "home.quick.create_note" = "Create Note";
 "home.quick.hint" = "In Agent, this opens the composer with a guided workflow prompt.";
+"home.owner.workflows.title" = "Owner shortcuts";
+"home.owner.workflows.subtitle" = "Opens AI → Agent with a seeded prompt. Tap compose to send, read the reply, then save in Tasks or Notes from the AI productivity dock—or add reminders from Home.";
+"home.owner.workflows.plan" = "Plan";
+"home.owner.workflows.followup" = "Follow-up";
+"home.owner.workflows.summarize" = "Summarize";
 "home.productivity.quick_hint" = "Tap a shortcut to open a calm capture sheet on Home — no tab switch.";
 "home.sheet.reminder.hint" = "Pick a clear title, then set date and time. SkyOS uses the exact timestamp for push scheduling.";
 "home.sheet.reminder.title_hint" = "Reminder title";
@@ -497,7 +502,7 @@
 "home.sheet.add" = "Add";
 
 "settings.owner_hub.link_title" = "Owner hub";
-"settings.owner_hub.link_subtitle" = "Briefing, metrics cards, roadmap";
+"settings.owner_hub.link_subtitle" = "Same flow as Home: Agent briefing, then Tasks, Notes, or reminders.";
 "owner.hub.title" = "Owner hub";
 "owner.hub.subtitle" = "Health, growth, quality, and release at a glance.";
 "owner.hub.nav_title" = "Owner";
@@ -511,7 +516,7 @@
 "owner.hub.card.release.subtitle" = "Ship cadence";
 "owner.hub.metric.placeholder" = "—";
 "owner.hub.briefing.title" = "Daily briefing";
-"owner.hub.briefing.body" = "Opens the Agent with a structured owner briefing prompt. Refine the output, then capture follow-ups in tasks or notes.";
+"owner.hub.briefing.body" = "Opens AI → Agent with a structured briefing in the draft. Tap compose to send, refine the reply, then capture follow-ups in Tasks or Notes from the productivity dock—or reminders from Home.";
 "owner.hub.briefing.cta" = "Start briefing in Agent";
 "owner.hub.roadmap.title" = "Next on the roadmap";
 "owner.hub.roadmap.action_queue" = "Action queue — apply agent suggestions to tasks & notes";
