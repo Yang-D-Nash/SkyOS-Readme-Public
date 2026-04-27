@@ -4,6 +4,7 @@ import com.skydown.shared.model.CartItem
 import com.skydown.shared.model.ContactRequest
 import com.skydown.shared.model.MerchandiseItem
 import com.skydown.shared.text.SharedText
+import com.skydown.shared.text.formatTemplate
 
 object CartUseCase {
     fun addItem(
@@ -52,7 +53,7 @@ object CartUseCase {
 
     fun buildContactMessage(itemName: String, size: String, color: String?, quantity: Int): String {
         val colorPart = color?.takeIf { it.isNotBlank() }?.let { " in $it" }.orEmpty()
-        return SharedText.CART_CONTACT_MESSAGE_TEMPLATE.format(itemName, size, colorPart, quantity)
+        return SharedText.CART_CONTACT_MESSAGE_TEMPLATE.formatTemplate(itemName, size, colorPart, quantity)
     }
 
     fun validateContact(request: ContactRequest): String? {

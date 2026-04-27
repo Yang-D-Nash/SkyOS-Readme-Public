@@ -3,6 +3,7 @@ package com.skydown.shared.usecase
 import com.skydown.shared.model.MerchandiseItem
 import com.skydown.shared.model.MerchandiseVariant
 import com.skydown.shared.text.SharedText
+import com.skydown.shared.text.formatTemplate
 
 object MerchandiseVariantResolver {
     fun availableSizes(item: MerchandiseItem): List<String> {
@@ -28,7 +29,7 @@ object MerchandiseVariantResolver {
     ): Result<MerchandiseVariant> {
         if (item.variants.isEmpty()) {
             return Result.failure(
-                IllegalStateException(SharedText.MERCH_VARIANT_NONE_AVAILABLE.format(item.name)),
+                IllegalStateException(SharedText.MERCH_VARIANT_NONE_AVAILABLE.formatTemplate(item.name)),
             )
         }
 
@@ -48,13 +49,13 @@ object MerchandiseVariantResolver {
         if (matches.isEmpty()) {
             val colorPart = color?.let { " / $it" }.orEmpty()
             return Result.failure(
-                IllegalArgumentException(SharedText.MERCH_VARIANT_NOT_FOUND.format(size, colorPart)),
+                IllegalArgumentException(SharedText.MERCH_VARIANT_NOT_FOUND.formatTemplate(size, colorPart)),
             )
         }
 
         val colorPart = color?.let { " / $it" }.orEmpty()
         return Result.failure(
-            IllegalStateException(SharedText.MERCH_VARIANT_MULTIPLE_FOUND.format(size, colorPart)),
+            IllegalStateException(SharedText.MERCH_VARIANT_MULTIPLE_FOUND.formatTemplate(size, colorPart)),
         )
     }
 }
