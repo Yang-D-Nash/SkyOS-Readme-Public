@@ -18,6 +18,10 @@ struct AgentWorkflowSummary: Equatable {
     let workflowName: String
     let statusText: String
     let runID: String?
+    let progressPercent: Int?
+    let step: String
+    let etaSeconds: Int?
+    let details: String
 }
 
 struct AgentChatMessage: Identifiable, Equatable {
@@ -1158,7 +1162,11 @@ final class AgentChatViewModel: ObservableObject {
         return AgentWorkflowSummary(
             workflowName: resolvedWorkflowLabel,
             statusText: statusText,
-            runID: runId.isEmpty ? nil : runId
+            runID: runId.isEmpty ? nil : runId,
+            progressPercent: nil,
+            step: "",
+            etaSeconds: nil,
+            details: ""
         )
     }
 
@@ -1244,7 +1252,11 @@ final class AgentChatViewModel: ObservableObject {
                 updateWorkflowSummary(
                     messageID: assistantMessageID,
                     workflowName: status.workflowName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? response.workflowName : status.workflowName,
-                    statusText: resolvedSummary
+                    statusText: resolvedSummary,
+                    progressPercent: status.progressPercent,
+                    step: status.step,
+                    etaSeconds: status.etaSeconds > 0 ? status.etaSeconds : nil,
+                    details: status.details
                 )
                 if normalized == "completed" || normalized == "failed" {
                     return
@@ -1253,7 +1265,15 @@ final class AgentChatViewModel: ObservableObject {
         }
     }
 
-    private func updateWorkflowSummary(messageID: UUID, workflowName: String, statusText: String) {
+    private func updateWorkflowSummary(
+        messageID: UUID,
+        workflowName: String,
+        statusText: String,
+        progressPercent: Int?,
+        step: String,
+        etaSeconds: Int?,
+        details: String
+    ) {
         guard let index = messages.firstIndex(where: { $0.id == messageID }) else { return }
         let existing = messages[index].workflowSummary
         messages[index].workflowSummary = AgentWorkflowSummary(
@@ -1261,7 +1281,11 @@ final class AgentChatViewModel: ObservableObject {
                 (existing?.workflowName ?? "External Workflow") :
                 workflowName,
             statusText: statusText,
-            runID: existing?.runID
+            runID: existing?.runID,
+            progressPercent: progressPercent ?? existing?.progressPercent,
+            step: step.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (existing?.step ?? "") : step,
+            etaSeconds: etaSeconds ?? existing?.etaSeconds,
+            details: details.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (existing?.details ?? "") : details
         )
     }
 

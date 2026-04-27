@@ -831,6 +831,10 @@ class AgentViewModel : ViewModel() {
                     messageId = assistantMessageId,
                     workflowName = status.workflowName.trim().ifBlank { response.workflowName.ifBlank { "External Workflow" } },
                     statusText = summary,
+                    progressPercent = status.workflowProgressPercent,
+                    step = status.workflowStep,
+                    etaSeconds = status.workflowEtaSeconds.takeIf { it > 0 },
+                    details = status.workflowDetails,
                 )
                 if (normalizedState == "completed" || normalizedState == "failed") {
                     return@launch
@@ -843,6 +847,10 @@ class AgentViewModel : ViewModel() {
         messageId: String,
         workflowName: String,
         statusText: String,
+        progressPercent: Int? = null,
+        step: String = "",
+        etaSeconds: Int? = null,
+        details: String = "",
     ) {
         _uiState.update { state ->
             state.copy(
@@ -854,6 +862,10 @@ class AgentViewModel : ViewModel() {
                                 workflowName = workflowName.ifBlank { existing?.workflowName ?: "External Workflow" },
                                 statusText = statusText,
                                 runId = existing?.runId,
+                                progressPercent = progressPercent ?: existing?.progressPercent,
+                                step = step.ifBlank { existing?.step.orEmpty() },
+                                etaSeconds = etaSeconds ?: existing?.etaSeconds,
+                                details = details.ifBlank { existing?.details.orEmpty() },
                             ),
                         )
                     } else {

@@ -205,6 +205,10 @@ struct AgentRunStatus: Equatable {
     let workflowName: String
     let automationMessage: String
     let provider: String
+    let progressPercent: Int
+    let step: String
+    let etaSeconds: Int
+    let details: String
 }
 
 protocol AgentChatServicing {
@@ -265,7 +269,11 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
             automationTriggered: payload["automationTriggered"] as? Bool ?? false,
             workflowName: (payload["workflowName"] as? String) ?? "",
             automationMessage: (payload["automationMessage"] as? String) ?? "",
-            provider: (payload["provider"] as? String) ?? ""
+            provider: (payload["provider"] as? String) ?? "",
+            progressPercent: min(100, max(0, (payload["workflowProgressPercent"] as? NSNumber)?.intValue ?? 0)),
+            step: (payload["workflowStep"] as? String) ?? "",
+            etaSeconds: max(0, (payload["workflowEtaSeconds"] as? NSNumber)?.intValue ?? 0),
+            details: (payload["workflowDetails"] as? String) ?? ""
         )
     }
 

@@ -1491,6 +1491,14 @@ function clampIntegerSetting(value, fallback, min, max) {
   return Math.max(min, Math.min(max, rounded));
 }
 
+function normalizeAgentRunProgress(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+  return Math.max(0, Math.min(100, Math.floor(numeric)));
+}
+
 function resolveAiKindLimits(raw, fallback, min, max) {
   const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   return {
@@ -5323,6 +5331,10 @@ async function persistAgentRunSummary({
       ),
       workflowName: nonEmptyString(automation?.workflowName) || "",
       automationMessage: trimTextMax(nonEmptyString(automation?.message) || "", 1200),
+      workflowStep: "",
+      workflowDetails: "",
+      workflowEtaSeconds: 0,
+      workflowProgressPercent: 0,
       automationRequestId: nonEmptyString(automation?.requestId) || "",
       promptChars: Math.min(Math.max(prompt.length, 0), 100000),
       replyChars: Math.min(Math.max(reply.length, 0), 500000),
@@ -5345,6 +5357,10 @@ async function updateAgentRunStatus({
   workflowName = "",
   provider = "",
   requestId = "",
+  progressPercent = null,
+  step = "",
+  etaSeconds = null,
+  details = "",
 }) {
   const normalizedUid = nonEmptyString(uid) || "";
   const normalizedRunId = nonEmptyString(runId) || "";
@@ -5365,12 +5381,20 @@ async function updateAgentRunStatus({
     return false;
   }
   const normalizedState = normalizeAutomationWorkflowStatus(state, "running");
+  const normalizedProgress = normalizeAgentRunProgress(progressPercent);
+  const normalizedEta = clampIntegerSetting(etaSeconds, 0, 0, 86400);
   await runRef.set({
     automationAttempted: true,
     automationTriggered: normalizedState !== "failed",
     automationStatus: normalizedState,
     automationMessage: trimTextMax(nonEmptyString(message) || "", 1200),
     workflowName: nonEmptyString(workflowName) || "",
+    workflowStep: trimTextMax(nonEmptyString(step) || "", 160),
+    workflowDetails: trimTextMax(nonEmptyString(details) || "", 1200),
+    workflowEtaSeconds: normalizedEta,
+    workflowProgressPercent: normalizedProgress === null ? (
+      normalizedState === "completed" ? 100 : (normalizedState === "failed" ? 0 : 0)
+    ) : normalizedProgress,
     automationRequestId: nonEmptyString(requestId) || "",
     agentProvider: nonEmptyString(provider) || (snapshot.data()?.agentProvider || ""),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -5468,6 +5492,10 @@ exports.getAgentRunStatus = onCall({
   );
   const workflowName = nonEmptyString(data.workflowName) || "";
   const automationMessage = nonEmptyString(data.automationMessage) || "";
+  const workflowStep = nonEmptyString(data.workflowStep) || "";
+  const workflowDetails = nonEmptyString(data.workflowDetails) || "";
+  const workflowEtaSeconds = clampIntegerSetting(data.workflowEtaSeconds, 0, 0, 86400);
+  const workflowProgressPercent = normalizeAgentRunProgress(data.workflowProgressPercent);
   return {
     runId,
     state,
@@ -5475,6 +5503,12 @@ exports.getAgentRunStatus = onCall({
     automationTriggered,
     workflowName,
     automationMessage,
+    workflowStep,
+    workflowDetails,
+    workflowEtaSeconds,
+    workflowProgressPercent: workflowProgressPercent === null ? (
+      state === "completed" ? 100 : (state === "failed" ? 0 : 0)
+    ) : workflowProgressPercent,
     provider: nonEmptyString(data.agentProvider) || "",
     updatedAt: data.updatedAt instanceof admin.firestore.Timestamp ?
       data.updatedAt.toDate().toISOString() :
@@ -5515,6 +5549,10 @@ exports.agentRunStatusCallback = onRequest({
   const message = nonEmptyString(payload.message) || nonEmptyString(payload.summary) || "";
   const workflowName = nonEmptyString(payload.workflowName) || "";
   const provider = nonEmptyString(payload.provider) || "";
+  const progressPercent = normalizeAgentRunProgress(payload.progressPercent ?? payload.progress ?? payload.percent);
+  const step = nonEmptyString(payload.step) || "";
+  const details = nonEmptyString(payload.details) || "";
+  const etaSeconds = clampIntegerSetting(payload.etaSeconds, 0, 0, 86400);
 
   if ((!uid || !runId) && !requestId) {
     response.status(400).json({ok: false, error: "uid_runId_or_requestId_required"});
@@ -5529,6 +5567,10 @@ exports.agentRunStatusCallback = onRequest({
       workflowName,
       provider,
       requestId,
+      progressPercent,
+      step,
+      etaSeconds,
+      details,
     });
     if (!updated) {
       response.status(404).json({ok: false, error: "run_not_found"});

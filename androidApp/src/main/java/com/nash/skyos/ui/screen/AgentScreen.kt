@@ -1975,6 +1975,42 @@ private fun AgentWorkflowResultCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
         )
+        summary.progressPercent?.let { progress ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                androidx.compose.material3.LinearProgressIndicator(
+                    progress = progress.coerceIn(0, 100) / 100f,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = "$progress%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                )
+            }
+        }
+        if (summary.step.isNotBlank()) {
+            Text(
+                text = "Step: ${summary.step}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+            )
+        }
+        summary.etaSeconds?.takeIf { it > 0 }?.let { eta ->
+            Text(
+                text = "ETA: ${eta}s",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+            )
+        }
+        if (summary.details.isNotBlank()) {
+            Text(
+                text = summary.details,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         summary.runId?.takeIf { it.isNotBlank() }?.let { runId ->
             Text(
                 text = stringResource(R.string.agent_workflow_run_id, runId),

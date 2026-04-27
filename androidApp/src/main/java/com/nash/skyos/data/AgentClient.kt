@@ -71,6 +71,10 @@ data class AgentRunStatus(
     val workflowName: String,
     val automationMessage: String,
     val provider: String = "",
+    val workflowProgressPercent: Int = 0,
+    val workflowStep: String = "",
+    val workflowEtaSeconds: Int = 0,
+    val workflowDetails: String = "",
 )
 
 class AgentClient {
@@ -189,6 +193,10 @@ class AgentClient {
             workflowName = (data["workflowName"] as? String).orEmpty(),
             automationMessage = (data["automationMessage"] as? String).orEmpty(),
             provider = (data["provider"] as? String).orEmpty(),
+            workflowProgressPercent = ((data["workflowProgressPercent"] as? Number)?.toInt() ?: 0).coerceIn(0, 100),
+            workflowStep = (data["workflowStep"] as? String).orEmpty(),
+            workflowEtaSeconds = ((data["workflowEtaSeconds"] as? Number)?.toInt() ?: 0).coerceAtLeast(0),
+            workflowDetails = (data["workflowDetails"] as? String).orEmpty(),
         )
     }
 }

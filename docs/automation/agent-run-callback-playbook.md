@@ -36,7 +36,11 @@ Mindestens einer der beiden Schluessel muss aufloesbar sein:
   "state": "queued",
   "workflowName": "SkyOS Master Workflow",
   "message": "Workflow wurde in die Warteschlange gestellt.",
-  "provider": "activepieces"
+  "provider": "activepieces",
+  "progressPercent": 10,
+  "step": "Input validieren",
+  "etaSeconds": 45,
+  "details": "Dateien werden vorbereitet."
 }
 ```
 
@@ -79,7 +83,10 @@ Synonyme wie `pending`, `in_progress`, `success`, `error` werden intern gemappt.
   "state": "running",
   "workflowName": "{{trigger.body.workflowName}}",
   "message": "Assets werden generiert.",
-  "provider": "activepieces"
+  "provider": "activepieces",
+  "progressPercent": 60,
+  "step": "Assets rendern",
+  "etaSeconds": 20
 }
 ```
 
@@ -102,7 +109,9 @@ Hinweis: Wenn `runId` im externen Flow nicht vorhanden ist, `requestId` trotzdem
   "state": "completed",
   "workflowName": "={{$json.workflowName}}",
   "message": "Workflow erfolgreich abgeschlossen.",
-  "provider": "n8n"
+  "provider": "n8n",
+  "progressPercent": 100,
+  "step": "Fertig"
 }
 ```
 
@@ -123,3 +132,4 @@ Hinweis: Wenn `runId` im externen Flow nicht vorhanden ist, `requestId` trotzdem
 - Sende bei long-running Tasks `running`.
 - Sende immer final `completed` oder `failed`.
 - Halte `message` kurz (UI-geeignet, 1 Satz).
+- Optional fuer bessere UX: `progressPercent`, `step`, `etaSeconds`, `details`.

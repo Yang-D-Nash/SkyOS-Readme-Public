@@ -19,6 +19,10 @@ data class AgentWorkflowSummary(
     val workflowName: String,
     val statusText: String,
     val runId: String? = null,
+    val progressPercent: Int? = null,
+    val step: String = "",
+    val etaSeconds: Int? = null,
+    val details: String = "",
 )
 
 data class AgentMessage(

@@ -1746,6 +1746,43 @@ private struct AgentWorkflowResultCard: View {
                 .font(.caption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
+            if let progress = summary.progressPercent {
+                VStack(alignment: .leading, spacing: 4) {
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(AppColors.secondaryBackground(for: colorScheme))
+                            Capsule()
+                                .fill(AppColors.accentMystic(for: colorScheme))
+                                .frame(width: max(8, geometry.size.width * CGFloat(progress) / 100.0))
+                        }
+                    }
+                    .frame(height: 8)
+                    Text("\(progress)%")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                }
+            }
+
+            if !summary.step.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text("Step: \(summary.step)")
+                    .font(.caption2)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            if let eta = summary.etaSeconds, eta > 0 {
+                Text("ETA: \(eta)s")
+                    .font(.caption2)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
+            if !summary.details.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(summary.details)
+                    .font(.caption2)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineLimit(3)
+            }
+
             if let runID = summary.runID {
                 Text("Run: \(runID)")
                     .font(.caption2)
