@@ -1,17 +1,12 @@
-Wichtig: Verschiedene JSON-Typen
+Import
+  Nur: activepieces-import-skyos-webhook-starter.json (im Ordner-Root)
+  Nicht: Dateien unter reference-http-payloads/ — das sind HTTP-Beispiele, kein AP-Template.
 
-(0) activepieces-import-skyos-webhook-starter.json
-    = Vorgabe im Template-Format fuer den Activepieces-Import (name + flows[] + trigger),
-      passend zu template-parser in der Activepieces-Web-App.
-    = Diese Datei bei „Import Flow“ verwenden, nicht 01-skyos-inbound… .
-    = Kein Garantie-Fit fuer jede Cloud-Version: bei Fehler Flow oeffnen, Webhook-Piece
-      speichern (aktualisiert die Piece-Version), oder einen Flow in AP exportieren und vergleichen.
+Die „7“ alten Dateien
+  Liegen jetzt unter reference-http-payloads/ — bewusst getrennt vom importierbaren
+  Template, damit klar ist: Copy-Paste / Tests, nicht „Import Flow“.
 
-(1) 01-…07-*.example.json
-    = HTTP-Beispiel-Bodies (SkyOS-Payload, Callback, Antwort, Task/Reminder/Note).
-    = Nicht als Flow importieren; in Test/HTTP-Nodes einfuegen.
-
-(2) Sicherer Weg
-    = Eigenen Flow in Activepieces bauen, dann exportieren — immer passend zur Instanz.
-
-Fazit: (1) ist Referenz fuer Requests; (0) ist ein importierbares Minimalflow-Template; (2) ist am robustesten.
+Vollstaendige Abdeckung der App
+  Braucht nicht 7 importierte Workflows. Ein Master-Webhook-Flow + Router deckt
+  die Agent-Modi; Reminder/Task/Note kommen optional per separater HTTP-API (siehe
+  docs/workflow-http-api-activepieces.md).
