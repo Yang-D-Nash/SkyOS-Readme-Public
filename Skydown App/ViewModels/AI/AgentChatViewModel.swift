@@ -22,6 +22,7 @@ struct AgentWorkflowSummary: Equatable {
     let step: String
     let etaSeconds: Int?
     let details: String
+    let schemaVersion: String
 }
 
 struct AgentChatMessage: Identifiable, Equatable {
@@ -1166,7 +1167,8 @@ final class AgentChatViewModel: ObservableObject {
             progressPercent: nil,
             step: "",
             etaSeconds: nil,
-            details: ""
+            details: "",
+            schemaVersion: response.automationSchemaVersion.trimmingCharacters(in: .whitespacesAndNewlines)
         )
     }
 
@@ -1256,7 +1258,8 @@ final class AgentChatViewModel: ObservableObject {
                     progressPercent: status.progressPercent,
                     step: status.step,
                     etaSeconds: status.etaSeconds > 0 ? status.etaSeconds : nil,
-                    details: status.details
+                    details: status.details,
+                    schemaVersion: status.automationSchemaVersion
                 )
                 if normalized == "completed" || normalized == "failed" {
                     return
@@ -1272,7 +1275,8 @@ final class AgentChatViewModel: ObservableObject {
         progressPercent: Int?,
         step: String,
         etaSeconds: Int?,
-        details: String
+        details: String,
+        schemaVersion: String
     ) {
         guard let index = messages.firstIndex(where: { $0.id == messageID }) else { return }
         let existing = messages[index].workflowSummary
@@ -1285,7 +1289,8 @@ final class AgentChatViewModel: ObservableObject {
             progressPercent: progressPercent ?? existing?.progressPercent,
             step: step.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (existing?.step ?? "") : step,
             etaSeconds: etaSeconds ?? existing?.etaSeconds,
-            details: details.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (existing?.details ?? "") : details
+            details: details.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (existing?.details ?? "") : details,
+            schemaVersion: schemaVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? (existing?.schemaVersion ?? "") : schemaVersion
         )
     }
 

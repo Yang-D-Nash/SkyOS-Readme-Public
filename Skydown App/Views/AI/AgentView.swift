@@ -1046,6 +1046,59 @@ private struct AgentQuickPromptCard: View {
     }
 }
 
+private enum AgentHttpsLinkTextBuilder {
+    static func attributed(text: String, baseColor: Color, linkColor: Color) -> AttributedString {
+        let ns = text as NSString
+        let fullRange = NSRange(location: 0, length: ns.length)
+        guard let regex = try? NSRegularExpression(
+            pattern: #"https://[\w\-._~:/?#\[\]@!$&'()*+,;=%]+"#,
+            options: []
+        ) else {
+            var plain = AttributedString(text)
+            plain.foregroundColor = baseColor
+            return plain
+        }
+        let matches = regex.matches(in: text, options: [], range: fullRange)
+        guard !matches.isEmpty else {
+            var plain = AttributedString(text)
+            plain.foregroundColor = baseColor
+            return plain
+        }
+        var output = AttributedString()
+        var cursor = 0
+        for match in matches {
+            let range = match.range
+            if range.location > cursor {
+                let before = ns.substring(with: NSRange(location: cursor, length: range.location - cursor))
+                var segment = AttributedString(before)
+                segment.foregroundColor = baseColor
+                output.append(segment)
+            }
+            let urlString = ns.substring(with: range)
+            if let url = URL(string: urlString),
+               url.scheme?.lowercased() == "https",
+               url.host != nil {
+                var linkSegment = AttributedString(urlString)
+                linkSegment.foregroundColor = linkColor
+                linkSegment.link = url
+                output.append(linkSegment)
+            } else {
+                var segment = AttributedString(urlString)
+                segment.foregroundColor = baseColor
+                output.append(segment)
+            }
+            cursor = range.location + range.length
+        }
+        if cursor < ns.length {
+            let tail = ns.substring(from: cursor)
+            var segment = AttributedString(tail)
+            segment.foregroundColor = baseColor
+            output.append(segment)
+        }
+        return output
+    }
+}
+
 private struct AgentMessageBubble: View {
     let message: AgentChatMessage
     let colorScheme: ColorScheme
@@ -1084,9 +1137,14 @@ private struct AgentMessageBubble: View {
                     }
 
                     if !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text(message.text)
-                            .font(.body)
-                            .foregroundColor(isUser ? .white : AppColors.text(for: colorScheme))
+                        Text(
+                            AgentHttpsLinkTextBuilder.attributed(
+                                text: message.text,
+                                baseColor: isUser ? .white : AppColors.text(for: colorScheme),
+                                linkColor: isUser ? Color.white.opacity(0.92) : AppColors.accentMystic(for: colorScheme)
+                            )
+                        )
+                        .font(.body)
                     }
 
                     if !isUser {
@@ -1781,6 +1839,13 @@ private struct AgentWorkflowResultCard: View {
                     .font(.caption2)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .lineLimit(3)
+            }
+
+            if !summary.schemaVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text("Schema: \(summary.schemaVersion)")
+                    .font(.caption2)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .textSelection(.enabled)
             }
 
             if let runID = summary.runID {

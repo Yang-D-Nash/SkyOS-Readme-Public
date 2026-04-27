@@ -115,6 +115,8 @@ struct AgentChatResponse {
     let automationAttempted: Bool
     let automationMessage: String
     let workflowName: String
+    /// Optional contract version reported by the external workflow JSON (`schemaVersion` / `automationSchemaVersion`).
+    let automationSchemaVersion: String
     let agentProvider: String
     let providerFallbackUsed: Bool
     let providerNotice: String
@@ -205,6 +207,7 @@ struct AgentRunStatus: Equatable {
     let workflowName: String
     let automationMessage: String
     let provider: String
+    let automationSchemaVersion: String
     let progressPercent: Int
     let step: String
     let etaSeconds: Int
@@ -270,6 +273,7 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
             workflowName: (payload["workflowName"] as? String) ?? "",
             automationMessage: (payload["automationMessage"] as? String) ?? "",
             provider: (payload["provider"] as? String) ?? "",
+            automationSchemaVersion: (payload["automationSchemaVersion"] as? String) ?? "",
             progressPercent: min(100, max(0, (payload["workflowProgressPercent"] as? NSNumber)?.intValue ?? 0)),
             step: (payload["workflowStep"] as? String) ?? "",
             etaSeconds: max(0, (payload["workflowEtaSeconds"] as? NSNumber)?.intValue ?? 0),
@@ -306,7 +310,7 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
             payload["manusApiKeyOverride"] = manusApiKeyOverride
         }
         if !attachments.isEmpty {
-            payload["attachments"] = attachments.map(\.asDictionary)
+            payload["attachments"] = attachments.map { $0.asDictionary() }
         }
 
         let result = try await functions.invokeCallable("skydownAgent", payload: payload)
@@ -319,6 +323,7 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
                 automationAttempted: false,
                 automationMessage: "",
                 workflowName: "",
+                automationSchemaVersion: "",
                 agentProvider: "",
                 providerFallbackUsed: false,
                 providerNotice: "",
@@ -355,6 +360,7 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
                 automationAttempted: payload["automationAttempted"] as? Bool ?? false,
                 automationMessage: (payload["automationMessage"] as? String) ?? "",
                 workflowName: (payload["workflowName"] as? String) ?? "",
+                automationSchemaVersion: (payload["automationSchemaVersion"] as? String) ?? "",
                 agentProvider: (payload["agentProvider"] as? String) ?? "",
                 providerFallbackUsed: payload["providerFallbackUsed"] as? Bool ?? false,
                 providerNotice: (payload["providerNotice"] as? String) ?? "",

@@ -776,6 +776,7 @@ const DEFAULT_AI_RUNTIME_SETTINGS = Object.freeze({
         maxExternalCallsPerRequest: 1,
         externalTimeoutMs: 12000,
         externalRetryAttempts: 2,
+        allowedAutomationLinkHosts: [],
       },
       diagnosticsMode: "owner_only",
       ownerMode: "standard",
@@ -1924,6 +1925,13 @@ function resolveAiBotAgentCore(raw) {
           0,
           4,
       ),
+      allowedAutomationLinkHosts: (Array.isArray(source.externalPolicy?.allowedAutomationLinkHosts) ?
+        source.externalPolicy.allowedAutomationLinkHosts :
+        defaultCore.externalPolicy.allowedAutomationLinkHosts || [])
+          .map((entry) => nonEmptyString(entry)?.trim().toLowerCase())
+          .filter(Boolean)
+          .slice(0, 32)
+          .map((entry) => entry.slice(0, 128)),
     },
     diagnosticsMode: resolveBotSettingValue(
         source.diagnosticsMode,
@@ -2907,6 +2915,83 @@ const AGENT_STRUCTURED_RESULT_TYPES = new Set([
   "html",
 ]);
 
+function normalizeAutomationAllowedLinkHosts(policy) {
+  const raw = policy?.allowedAutomationLinkHosts;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw
+      .map((entry) => nonEmptyString(entry)?.trim().toLowerCase())
+      .filter(Boolean)
+      .slice(0, 32)
+      .map((entry) => entry.slice(0, 128));
+}
+
+function isAutomationUrlHostnameAllowed(hostname, allowedHosts) {
+  const host = nonEmptyString(hostname)?.trim().toLowerCase() || "";
+  if (!host || !Array.isArray(allowedHosts) || !allowedHosts.length) {
+    return true;
+  }
+  return allowedHosts.some((entry) => host === entry || host.endsWith("." + entry));
+}
+
+function safeHttpsUrlStringForAgentResult(raw, allowedHosts = []) {
+  const candidate = trimTextMax(nonEmptyString(raw) || "", 2000);
+  if (!candidate) {
+    return "";
+  }
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== "https:") {
+      return "";
+    }
+    const host = nonEmptyString(parsed.hostname)?.trim().toLowerCase() || "";
+    if (!host) {
+      return "";
+    }
+    if (Array.isArray(allowedHosts) && allowedHosts.length &&
+      !isAutomationUrlHostnameAllowed(host, allowedHosts)) {
+      return "";
+    }
+    return candidate;
+  } catch (error) {
+    return "";
+  }
+}
+
+function extractAutomationSchemaVersion(parsedBody) {
+  if (!parsedBody || typeof parsedBody !== "object" || Array.isArray(parsedBody)) {
+    return "";
+  }
+  const version = nonEmptyString(parsedBody.schemaVersion) ||
+    nonEmptyString(parsedBody.automationSchemaVersion);
+  return trimTextMax(version || "", 64);
+}
+
+function coerceAutomationWebhookParsedBody(parsedBody) {
+  if (parsedBody === null || parsedBody === undefined) {
+    return null;
+  }
+  if (Array.isArray(parsedBody)) {
+    return parsedBody;
+  }
+  if (typeof parsedBody !== "object") {
+    return null;
+  }
+  const body = {...parsedBody};
+  const arrayKeys = ["results", "outputs", "assets", "files"];
+  for (const key of arrayKeys) {
+    if (Object.prototype.hasOwnProperty.call(body, key) && !Array.isArray(body[key])) {
+      logger.warn("Automation webhook response ignored non-array field.", {
+        key,
+        type: typeof body[key],
+      });
+      delete body[key];
+    }
+  }
+  return body;
+}
+
 function normalizeAgentResultType(value) {
   const normalized = nonEmptyString(value)?.toLowerCase() || "text";
   switch (normalized) {
@@ -2984,7 +3069,10 @@ function normalizeAgentTableRows(rawRows, columns) {
       .filter((row) => row.some((cell) => cell.length > 0));
 }
 
-function normalizeAgentResultEntry(rawEntry, index = 0) {
+function normalizeAgentResultEntry(rawEntry, index = 0, options = {}) {
+  const allowedLinkHosts = Array.isArray(options.allowedLinkHosts) ? options.allowedLinkHosts : [];
+  const stripWorkflowFromAutomation = options.stripWorkflowFromAutomation === true;
+
   if (typeof rawEntry === "string") {
     const text = rawEntry.trim();
     return text ? {type: "text", text: trimTextMax(text, 2000)} : null;
@@ -2995,11 +3083,15 @@ function normalizeAgentResultEntry(rawEntry, index = 0) {
   }
 
   const type = normalizeAgentResultType(rawEntry.type || rawEntry.kind || rawEntry.mediaType);
-  const url = nonEmptyString(rawEntry.url) ||
+  if (stripWorkflowFromAutomation && type === "workflow") {
+    return null;
+  }
+  const rawUrl = nonEmptyString(rawEntry.url) ||
     nonEmptyString(rawEntry.href) ||
     nonEmptyString(rawEntry.downloadUrl) ||
     nonEmptyString(rawEntry.downloadURL) ||
     "";
+  const url = safeHttpsUrlStringForAgentResult(rawUrl, allowedLinkHosts);
   const title = nonEmptyString(rawEntry.title) ||
     nonEmptyString(rawEntry.name) ||
     nonEmptyString(rawEntry.filename) ||
@@ -3049,14 +3141,14 @@ function normalizeAgentResultEntry(rawEntry, index = 0) {
   return normalized;
 }
 
-function normalizeAgentResultEntries(rawResults) {
+function normalizeAgentResultEntries(rawResults, options = {}) {
   if (!Array.isArray(rawResults)) {
     return [];
   }
 
   return rawResults
       .slice(0, 12)
-      .map((entry, index) => normalizeAgentResultEntry(entry, index))
+      .map((entry, index) => normalizeAgentResultEntry(entry, index, options))
       .filter(Boolean);
 }
 
@@ -3091,9 +3183,9 @@ function extractAutomationResponseMessage(bodyText, workflowName, parsedBody = n
   return trimmed.length > 160 ? `Test an ${workflowName} gesendet.` : trimmed;
 }
 
-function extractAutomationResponseResults(parsedBody) {
+function extractAutomationResponseResults(parsedBody, options = {}) {
   if (Array.isArray(parsedBody)) {
-    return normalizeAgentResultEntries(parsedBody);
+    return normalizeAgentResultEntries(parsedBody, options);
   }
 
   if (!parsedBody || typeof parsedBody !== "object") {
@@ -3106,6 +3198,7 @@ function extractAutomationResponseResults(parsedBody) {
       parsedBody.assets ||
       parsedBody.files ||
       [],
+      options,
   );
 }
 
@@ -3321,7 +3414,9 @@ async function triggerWorkflowAutomationWebhook({
     durationMs,
   });
 
-  const parsedResponseBody = parseAutomationResponseBody(responseBody);
+  const parsedResponseBody = coerceAutomationWebhookParsedBody(
+      parseAutomationResponseBody(responseBody),
+  );
   const workflowStatus = normalizeAutomationWorkflowStatus(
       parsedResponseBody?.workflowStatus ||
       parsedResponseBody?.workflow_state ||
@@ -3330,6 +3425,11 @@ async function triggerWorkflowAutomationWebhook({
       "",
       "completed",
   );
+  const allowedLinkHosts = normalizeAutomationAllowedLinkHosts(runtimePolicy);
+  const automationResultOptions = {
+    allowedLinkHosts,
+    stripWorkflowFromAutomation: true,
+  };
   return {
     message: extractAutomationResponseMessage(responseBody, settings.workflowName, parsedResponseBody),
     workflowName: settings.workflowName,
@@ -3337,7 +3437,8 @@ async function triggerWorkflowAutomationWebhook({
     provider: settings.provider,
     requestId,
     workflowStatus,
-    results: extractAutomationResponseResults(parsedResponseBody),
+    schemaVersion: extractAutomationSchemaVersion(parsedResponseBody),
+    results: extractAutomationResponseResults(parsedResponseBody, automationResultOptions),
   };
 }
 
@@ -5336,6 +5437,7 @@ async function persistAgentRunSummary({
       workflowEtaSeconds: 0,
       workflowProgressPercent: 0,
       automationRequestId: nonEmptyString(automation?.requestId) || "",
+      automationSchemaVersion: trimTextMax(nonEmptyString(automation?.schemaVersion) || "", 64),
       promptChars: Math.min(Math.max(prompt.length, 0), 100000),
       replyChars: Math.min(Math.max(reply.length, 0), 500000),
     });
@@ -5510,6 +5612,7 @@ exports.getAgentRunStatus = onCall({
       state === "completed" ? 100 : (state === "failed" ? 0 : 0)
     ) : workflowProgressPercent,
     provider: nonEmptyString(data.agentProvider) || "",
+    automationSchemaVersion: trimTextMax(nonEmptyString(data.automationSchemaVersion) || "", 64),
     updatedAt: data.updatedAt instanceof admin.firestore.Timestamp ?
       data.updatedAt.toDate().toISOString() :
       (
@@ -10424,6 +10527,7 @@ exports.debugTriggerWorkflowAutomation = onCall({
       workflowName: nonEmptyString(response?.workflowName) || "",
       status: Number(response?.status) || 0,
       message: nonEmptyString(response?.message) || "Debug trigger erfolgreich.",
+      automationSchemaVersion: nonEmptyString(response?.schemaVersion) || "",
       results: Array.isArray(response?.results) ? response.results : [],
       auditExpected: true,
     };
@@ -12514,6 +12618,7 @@ async function maybeTriggerAgentAutomation({
       message: nonEmptyString(automationResult.message) || "An externen Workflow gesendet.",
       workflowName: nonEmptyString(automationResult.workflowName) || "",
       requestId: nonEmptyString(automationResult.requestId) || "",
+      schemaVersion: nonEmptyString(automationResult.schemaVersion) || "",
       workflowStatus: normalizeAutomationWorkflowStatus(
           automationResult.workflowStatus,
           "completed",
@@ -12528,6 +12633,7 @@ async function maybeTriggerAgentAutomation({
       triggered: false,
       message: error instanceof Error ? error.message : `${error}`,
       requestId: "",
+      schemaVersion: "",
       workflowStatus: "failed",
       externalState: "external_failed",
       route: "external",
@@ -13411,6 +13517,7 @@ exports.skydownAgent = onCall({
     automationAttempted: automation.attempted === true,
     automationMessage: nonEmptyString(automation.message) || "",
     workflowName: nonEmptyString(automation.workflowName) || "",
+    automationSchemaVersion: nonEmptyString(automation.schemaVersion) || "",
     agentProvider,
     providerFallbackUsed,
     providerNotice,

@@ -1475,10 +1475,10 @@ private fun AgentMessageBubble(
                 }
 
                 if (message.text.isNotBlank()) {
-                    Text(
+                    AgentHttpsClickableChatText(
                         text = message.text,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        baseColor = MaterialTheme.colorScheme.onSurface,
+                        linkColor = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.padding(top = 8.dp),
                     )
                 }
@@ -2009,6 +2009,13 @@ private fun AgentWorkflowResultCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+        summary.schemaVersion.trim().takeIf { it.isNotBlank() }?.let { schemaVersion ->
+            Text(
+                text = "Schema: $schemaVersion",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
             )
         }
         summary.runId?.takeIf { it.isNotBlank() }?.let { runId ->

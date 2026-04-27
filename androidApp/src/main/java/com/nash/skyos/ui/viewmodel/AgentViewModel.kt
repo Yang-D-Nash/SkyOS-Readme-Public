@@ -835,6 +835,7 @@ class AgentViewModel : ViewModel() {
                     step = status.workflowStep,
                     etaSeconds = status.workflowEtaSeconds.takeIf { it > 0 },
                     details = status.workflowDetails,
+                    schemaVersion = status.automationSchemaVersion,
                 )
                 if (normalizedState == "completed" || normalizedState == "failed") {
                     return@launch
@@ -851,6 +852,7 @@ class AgentViewModel : ViewModel() {
         step: String = "",
         etaSeconds: Int? = null,
         details: String = "",
+        schemaVersion: String = "",
     ) {
         _uiState.update { state ->
             state.copy(
@@ -866,6 +868,7 @@ class AgentViewModel : ViewModel() {
                                 step = step.ifBlank { existing?.step.orEmpty() },
                                 etaSeconds = etaSeconds ?: existing?.etaSeconds,
                                 details = details.ifBlank { existing?.details.orEmpty() },
+                                schemaVersion = schemaVersion.trim().ifBlank { existing?.schemaVersion.orEmpty() },
                             ),
                         )
                     } else {
@@ -1127,6 +1130,7 @@ class AgentViewModel : ViewModel() {
             workflowName = workflowLabel,
             statusText = statusText,
             runId = runId,
+            schemaVersion = result.automationSchemaVersion.trim(),
         )
     }
 

@@ -23,6 +23,7 @@ data class AgentWorkflowSummary(
     val step: String = "",
     val etaSeconds: Int? = null,
     val details: String = "",
+    val schemaVersion: String = "",
 )
 
 data class AgentMessage(
