@@ -152,23 +152,17 @@ class VideoHubViewModel(
 
         when {
             trimmedProject.isBlank() -> {
-                _uiState.update {
-                    it.copy(validationMessage = "Bitte trag ein Projekt, einen Artist oder einen Videotitel ein.")
-                }
+                setValidationMessage("Bitte trag ein Projekt, einen Artist oder einen Videotitel ein.")
                 return
             }
 
             !trimmedEmail.contains("@") -> {
-                _uiState.update {
-                    it.copy(validationMessage = "Bitte trag eine gueltige E-Mail ein.")
-                }
+                setValidationMessage("Bitte trag eine gueltige E-Mail ein.")
                 return
             }
 
             currentState.selectedFiles.isEmpty() -> {
-                _uiState.update {
-                    it.copy(validationMessage = "Bitte waehle mindestens eine MP4-, MOV- oder M4V-Datei aus.")
-                }
+                setValidationMessage("Bitte waehle mindestens eine MP4-, MOV- oder M4V-Datei aus.")
                 return
             }
         }
@@ -201,15 +195,11 @@ class VideoHubViewModel(
                 }
             }.onFailure {
                 val detail = it.localizedMessage?.takeIf { message -> message.isNotBlank() }
-                _uiState.update {
-                    it.copy(
-                        isUploading = false,
-                        feedbackMessage = detail?.let { message ->
-                            "Der Video-Upload ist fehlgeschlagen: $message"
-                        } ?: "Der Video-Upload ist fehlgeschlagen. Bitte versuch es noch einmal.",
-                        feedbackIsError = true,
-                    )
-                }
+                failUpload(
+                    detail?.let { message ->
+                        "Der Video-Upload ist fehlgeschlagen: $message"
+                    } ?: "Der Video-Upload ist fehlgeschlagen. Bitte versuch es noch einmal.",
+                )
             }
         }
     }
@@ -229,23 +219,17 @@ class VideoHubViewModel(
 
         when {
             trimmedProject.isBlank() -> {
-                _uiState.update {
-                    it.copy(validationMessage = "Bitte trag ein Projekt, einen Artist oder einen Videotitel ein.")
-                }
+                setValidationMessage("Bitte trag ein Projekt, einen Artist oder einen Videotitel ein.")
                 return
             }
 
             !trimmedEmail.contains("@") -> {
-                _uiState.update {
-                    it.copy(validationMessage = "Bitte trag eine gueltige E-Mail ein.")
-                }
+                setValidationMessage("Bitte trag eine gueltige E-Mail ein.")
                 return
             }
 
             trimmedUrl.isBlank() -> {
-                _uiState.update {
-                    it.copy(validationMessage = "Bitte trag einen Google-Drive-, MEGA- oder anderen Video-Link ein.")
-                }
+                setValidationMessage("Bitte trag einen Google-Drive-, MEGA- oder anderen Video-Link ein.")
                 return
             }
         }
@@ -277,15 +261,11 @@ class VideoHubViewModel(
                 }
             }.onFailure { error ->
                 val detail = error.localizedMessage?.takeIf { message -> message.isNotBlank() }
-                _uiState.update {
-                    it.copy(
-                        isUploading = false,
-                        feedbackMessage = detail?.let { message ->
-                            "Der externe Reel-Link ist fehlgeschlagen: $message"
-                        } ?: "Der externe Reel-Link konnte nicht gespeichert werden.",
-                        feedbackIsError = true,
-                    )
-                }
+                failUpload(
+                    detail?.let { message ->
+                        "Der externe Reel-Link ist fehlgeschlagen: $message"
+                    } ?: "Der externe Reel-Link konnte nicht gespeichert werden.",
+                )
             }
         }
     }
@@ -680,6 +660,20 @@ class VideoHubViewModel(
             it.copy(
                 validationMessage = "Nur Admins koennen externe Videos freigeben.",
                 feedbackMessage = "Externe Reels sind nur fuer Admins verfuegbar.",
+                feedbackIsError = true,
+            )
+        }
+    }
+
+    private fun setValidationMessage(message: String) {
+        _uiState.update { it.copy(validationMessage = message) }
+    }
+
+    private fun failUpload(message: String) {
+        _uiState.update {
+            it.copy(
+                isUploading = false,
+                feedbackMessage = message,
                 feedbackIsError = true,
             )
         }

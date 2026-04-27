@@ -205,23 +205,17 @@ class NicmaProducerViewModel(
 
         when {
             trimmedArtist.isBlank() -> {
-                _uiState.update {
-                    it.copy(validationMessage = AppTextResolver.string(R.string.nicma_validation_artist_required))
-                }
+                setValidationMessage(AppTextResolver.string(R.string.nicma_validation_artist_required))
                 return
             }
 
             !trimmedEmail.contains("@") -> {
-                _uiState.update {
-                    it.copy(validationMessage = AppTextResolver.string(R.string.nicma_validation_email_required))
-                }
+                setValidationMessage(AppTextResolver.string(R.string.nicma_validation_email_required))
                 return
             }
 
             currentState.selectedFiles.isEmpty() -> {
-                _uiState.update {
-                    it.copy(validationMessage = AppTextResolver.string(R.string.nicma_upload_select_audio_or_zip))
-                }
+                setValidationMessage(AppTextResolver.string(R.string.nicma_upload_select_audio_or_zip))
                 return
             }
         }
@@ -257,15 +251,11 @@ class NicmaProducerViewModel(
                 }
             }.onFailure {
                 val detail = it.localizedMessage?.takeIf { message -> message.isNotBlank() }
-                _uiState.update {
-                    it.copy(
-                        isUploading = false,
-                        feedbackMessage = detail?.let { message ->
-                            AppTextResolver.string(R.string.nicma_upload_failed_with_detail, message)
-                        } ?: AppTextResolver.string(R.string.nicma_upload_failed_retry),
-                        feedbackIsError = true,
-                    )
-                }
+                failUpload(
+                    detail?.let { message ->
+                        AppTextResolver.string(R.string.nicma_upload_failed_with_detail, message)
+                    } ?: AppTextResolver.string(R.string.nicma_upload_failed_retry),
+                )
             }
         }
     }
@@ -285,23 +275,17 @@ class NicmaProducerViewModel(
 
         when {
             trimmedArtist.isBlank() -> {
-                _uiState.update {
-                    it.copy(validationMessage = AppTextResolver.string(R.string.nicma_validation_artist_required))
-                }
+                setValidationMessage(AppTextResolver.string(R.string.nicma_validation_artist_required))
                 return
             }
 
             !trimmedEmail.contains("@") -> {
-                _uiState.update {
-                    it.copy(validationMessage = AppTextResolver.string(R.string.nicma_validation_email_required))
-                }
+                setValidationMessage(AppTextResolver.string(R.string.nicma_validation_email_required))
                 return
             }
 
             trimmedUrl.isBlank() -> {
-                _uiState.update {
-                    it.copy(validationMessage = AppTextResolver.string(R.string.nicma_external_link_required))
-                }
+                setValidationMessage(AppTextResolver.string(R.string.nicma_external_link_required))
                 return
             }
         }
@@ -333,15 +317,11 @@ class NicmaProducerViewModel(
                 }
             }.onFailure { error ->
                 val detail = error.localizedMessage?.takeIf { message -> message.isNotBlank() }
-                _uiState.update {
-                    it.copy(
-                        isUploading = false,
-                        feedbackMessage = detail?.let { message ->
-                            AppTextResolver.string(R.string.nicma_external_failed_with_detail, message)
-                        } ?: AppTextResolver.string(R.string.nicma_external_failed_save),
-                        feedbackIsError = true,
-                    )
-                }
+                failUpload(
+                    detail?.let { message ->
+                        AppTextResolver.string(R.string.nicma_external_failed_with_detail, message)
+                    } ?: AppTextResolver.string(R.string.nicma_external_failed_save),
+                )
             }
         }
     }
@@ -413,6 +393,20 @@ class NicmaProducerViewModel(
             it.copy(
                 validationMessage = AppTextResolver.string(R.string.nicma_external_admin_only),
                 feedbackMessage = AppTextResolver.string(R.string.nicma_external_admin_only_detail),
+                feedbackIsError = true,
+            )
+        }
+    }
+
+    private fun setValidationMessage(message: String) {
+        _uiState.update { it.copy(validationMessage = message) }
+    }
+
+    private fun failUpload(message: String) {
+        _uiState.update {
+            it.copy(
+                isUploading = false,
+                feedbackMessage = message,
                 feedbackIsError = true,
             )
         }
