@@ -21,7 +21,8 @@ echo "Cleaning Android build outputs..."
 rm -rf androidApp/build/outputs
 
 echo "Building Android release APK and AAB for version ${expected_version_name} (${expected_version_code})..."
-./gradlew :androidApp:clean :androidApp:assembleRelease :androidApp:bundleRelease
+# Release gates must fail only on release issues, not on configuration-cache serialization of build-script checks.
+./gradlew --no-configuration-cache :androidApp:clean :androidApp:assembleRelease :androidApp:bundleRelease
 
 if [[ ! -f "$APK_FILE" ]]; then
   echo "Missing release APK: $APK_FILE" >&2

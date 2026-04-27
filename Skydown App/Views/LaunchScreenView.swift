@@ -18,6 +18,13 @@ struct LaunchScreenView: View {
     @State private var hasTrackedFirstValueMoment = false
     private let growthTracker = MembershipAnalyticsTracker()
 
+    init() {
+        if ProcessInfo.processInfo.arguments.contains("-ui_test_start_main_shell") {
+            _phase = State(initialValue: .shell(.hub))
+            _hasCompletedIntro = State(initialValue: true)
+        }
+    }
+
     var body: some View {
         Group {
             switch phase {
@@ -308,6 +315,7 @@ private struct LaunchLandingView: View {
                                 )
                             }
                         }
+                        .zIndex(2)
 
                         Group {
                             VStack(alignment: .leading, spacing: compactCardSpacing) {
@@ -492,6 +500,7 @@ private struct LaunchLandingView: View {
                                 }
                             }
                         }
+                        .zIndex(1)
                     }
                 }
                 .frame(maxWidth: contentWidth, alignment: .leading)
@@ -971,6 +980,7 @@ private struct LaunchLandingActionButton: View {
             )
         }
         .buttonStyle(.plain)
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .skydownTactileAction()
     }
 

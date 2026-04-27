@@ -21,6 +21,18 @@ how it is operated without reverse-engineering the repository.
 - [faq.md](faq.md) - user-facing operational answers and support guidance
 - [store/README.md](store/README.md) - App Store and Google Play presence, screenshots, and review prep
 
+## Current Release Entry
+
+As of 2026-04-27, SkyOS is documented as a `1.0.0` release candidate with passing local code gates
+and generated iPad/Google Play asset exports, but public rollout remains blocked until the
+store-console, legal, URL, asset upload/mapping, and real-device smoke items in the release runbook
+are closed.
+
+- [release/store-upload-runbook.md](release/store-upload-runbook.md) - current build identity, upload state, blockers, hashes, and next console clicks
+- [release-checklist.md](release-checklist.md) - generic go/no-go checklist for every release candidate
+- [../manual-test-checklist.md](../manual-test-checklist.md) - role and platform smoke matrix for manual release validation
+- [beta-distribution.md](beta-distribution.md) - external tester access path and 5-minute feedback script
+
 ## Legal And Trust
 
 - [legal/terms.md](legal/terms.md)

@@ -108,6 +108,7 @@ final class Skydown_AppUITests: XCTestCase {
             "(en)",
             "-AppleLocale",
             "en_US",
+            "-ui_test_start_main_shell",
             "-ui_test_signed_in",
             "-ui_test_merch_flow",
         ]
@@ -144,8 +145,8 @@ final class Skydown_AppUITests: XCTestCase {
             failureMessage: "Immersive AI workspace should provide a clear exit action."
         )
         XCTAssertTrue(
-            app.tabBars.firstMatch.waitForExistence(timeout: 20),
-            "Tab bar should reappear after leaving the immersive AI workspace."
+            waitForMainShellChrome(app: app, timeout: 20),
+            "Main shell chrome should reappear after leaving the immersive AI workspace."
         )
 
         // 04 Music
@@ -691,21 +692,33 @@ final class Skydown_AppUITests: XCTestCase {
 private extension Skydown_AppUITests {
     @MainActor
     func enterMainShellIfNeeded(app: XCUIApplication) {
+        if waitForMainShellChrome(app: app, timeout: 3) {
+            return
+        }
+
         let settingsButton = app.buttons["app.open_settings"].firstMatch
         if settingsButton.waitForExistence(timeout: 8) {
             return
         }
 
-        let openMusicButton = app.buttons["launch.open_music"].firstMatch
+        let openHomeButton = app.buttons["Open Home"].firstMatch
         XCTAssertTrue(
-            openMusicButton.waitForExistence(timeout: 60),
-            "Landing open_music button should appear after intro."
+            openHomeButton.waitForExistence(timeout: 60),
+            "Landing Open Home button should appear after intro."
         )
-        openMusicButton.tap()
+        openHomeButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         XCTAssertTrue(
-            settingsButton.waitForExistence(timeout: 30),
+            waitForMainShellChrome(app: app, timeout: 30),
             "Main shell should appear after opening from landing."
         )
+    }
+
+    @MainActor
+    func waitForMainShellChrome(app: XCUIApplication, timeout: TimeInterval) -> Bool {
+        if app.tabBars.firstMatch.waitForExistence(timeout: min(timeout, 3)) {
+            return true
+        }
+        return app.buttons["app.open_settings"].firstMatch.waitForExistence(timeout: timeout)
     }
 
     @MainActor
@@ -852,11 +865,35 @@ private extension Skydown_AppUITests {
     @MainActor
     func tapTab(app: XCUIApplication, index: Int) {
         let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: 20), "Tab bar must be visible.")
+        if tabBar.waitForExistence(timeout: 4) {
+            let buttons = tabBar.buttons.allElementsBoundByIndex
+            XCTAssertGreaterThan(buttons.count, index, "Expected at least \(index + 1) tab buttons.")
+            buttons[index].tap()
+            return
+        }
 
-        let buttons = tabBar.buttons.allElementsBoundByIndex
-        XCTAssertGreaterThan(buttons.count, index, "Expected at least \(index + 1) tab buttons.")
-        buttons[index].tap()
+        let fallbackTabs = [
+            (identifier: "bag.fill", label: "Merch"),
+            (identifier: "waveform.circle.fill", label: "Music"),
+            (identifier: "house.fill", label: "Home"),
+            (identifier: "play.rectangle.fill", label: "Videos"),
+            (identifier: "sparkles", label: "AI"),
+        ]
+        XCTAssertGreaterThan(fallbackTabs.count, index, "Expected at least \(index + 1) fallback tab buttons.")
+
+        let target = fallbackTabs[index]
+        let predicate = NSPredicate(
+            format: "identifier == %@ AND label == %@",
+            target.identifier,
+            target.label
+        )
+        let button = app.buttons.matching(predicate).firstMatch
+        tapElementReliably(
+            button,
+            in: app,
+            timeout: 20,
+            failureMessage: "Fallback top tab \(target.label) must be visible."
+        )
     }
 
     @MainActor

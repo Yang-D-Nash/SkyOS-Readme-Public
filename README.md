@@ -8,9 +8,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/plattform-macOS%20%7C%20iOS%20%7C%20Android-0A84FF?style=for-the-badge" alt="Plattformen: macOS, iOS, Android" />
+  <img src="https://img.shields.io/badge/plattform-iOS%20%7C%20iPadOS%20%7C%20Android%20%7C%20Mac%20Catalyst-0A84FF?style=for-the-badge" alt="Plattformen: iOS, iPadOS, Android, Mac Catalyst" />
   <img src="https://img.shields.io/badge/stack-KMP%20%2B%20SwiftUI%20%2B%20Compose-111827?style=for-the-badge" alt="Stack: KMP, SwiftUI, Compose" />
-  <img src="https://img.shields.io/badge/release-v1.0.0-16A34A?style=for-the-badge" alt="Release: v1.0.0" />
+  <img src="https://img.shields.io/badge/release-v1.0.0%20RC-16A34A?style=for-the-badge" alt="Release: v1.0.0 RC" />
 </p>
 
 ---
@@ -27,6 +27,24 @@ klar werden:
 - was die App leistet
 - in welchem Marken- oder Funktionsbereich man sich befindet
 - wo Vertrauen, Konto, Zahlung, Support und Rechtliches gesteuert werden
+
+## Aktueller Release-Stand
+
+Stand: `2026-04-27` Europe/Berlin.
+
+| Bereich | Status |
+| --- | --- |
+| Produktversion | `1.0.0` Release Candidate |
+| iOS / iPadOS | Bundle `com.skydown.ios`, Build `10007`, Release-Simulator-Build bestanden |
+| Android | Package `com.nash.skyos`, `versionCode 10015`, Release-AAB/APK verifiziert |
+| Backend | Firebase-Projekt `skydown-a6add`, Functions-Paket `skyos-functions@1.0.0` |
+| Lokale Gates | `./scripts/ci_local_gate.sh`, `./gradlew detektAll`, Android-Artefaktverify, iOS Release-Build und iPad Store-Screenshot-Test bestanden |
+| Store-Status | Interner/Test-Release ist vorbereitet; oeffentlicher Rollout bleibt `no-go`, bis Store-, Legal-, Domain- und Device-Smoke-Freigaben abgeschlossen sind |
+
+Die operative Wahrheit fuer Uploads und offene Store-Punkte steht im
+[Store Upload Runbook](docs/release/store-upload-runbook.md). Diese README beschreibt den
+releasefaehigen Code- und Doku-Stand, nicht automatisch eine bereits genehmigte oeffentliche
+Store-Freigabe.
 
 ## Produktbereiche
 
@@ -82,7 +100,7 @@ fuer Apple und Android gespiegelt.
 ```mermaid
 flowchart TB
     skyos["SkyOS Core: System, Motion, Brand"]
-    skyos --> apple["Apple Apps: iOS, iPadOS, macOS"]
+    skyos --> apple["Apple Apps: iOS, iPadOS, Mac Catalyst"]
     skyos --> android["Android App"]
     skyos --> shared["Shared KMP Domain"]
     apple --> firebase["Firebase Backend"]
@@ -106,11 +124,54 @@ flowchart TB
 | AI Runtime | Cloud Functions, Genkit/Gemini-basierte Ausfuehrung, wo aktiv |
 | Dokumentation | Markdown, Release-, Store-, Legal- und Compliance-Dokumente |
 
+## Voraussetzungen
+
+- Xcode mit aktuellem iOS-SDK fuer SwiftUI-Builds, Archive und TestFlight/App-Store-Arbeit
+- Android Studio / Android SDK, `ANDROID_HOME` fuer tiefere APK-Pruefung mit `aapt2`
+- JDK 17 fuer Gradle, Kotlin Multiplatform und Android
+- Node.js 22 fuer `functions/` entsprechend `functions/package.json`
+- Firebase CLI fuer Emulator-, Rules- und Deploy-Workflows
+- Produktionssigning nur lokal oder in Secrets: `keystore.properties` oder `SKYOS_UPLOAD_*`
+- App-/Store-Zugaenge fuer App Store Connect, Google Play Console, Firebase, Shopify, Stripe/Klarna
+
+## Schnellstart
+
+```bash
+# Voller lokaler CI-Gate: shared, Android lint/metadata, Functions und Rules
+./scripts/ci_local_gate.sh
+
+# Kotlin static analysis
+./gradlew detektAll
+
+# Functions syntax/build check
+npm ci --prefix functions
+npm run build --prefix functions
+npm test --prefix functions
+```
+
+Fuer iOS:
+
+```bash
+xcodebuild -project "Skydown App.xcodeproj" \
+  -scheme "Skydown App" \
+  -configuration Release \
+  -destination "generic/platform=iOS Simulator" \
+  CODE_SIGNING_ALLOWED=NO \
+  build
+```
+
+Fuer Android:
+
+```bash
+./scripts/android_release_clean_build.sh
+./scripts/verify_android_release_artifacts.sh
+```
+
 ## Build
 
 | Plattform | Modul | Build-Referenz |
 | --- | --- | --- |
-| iOS / iPadOS / macOS | `Skydown App.xcodeproj` | `xcodebuild` mit passender Destination |
+| iOS / iPadOS / Mac Catalyst | `Skydown App.xcodeproj` | `xcodebuild` oder Xcode mit passender Destination; Store-Archive brauchen echte Signierung |
 | Android | `androidApp/` | `./scripts/android_release_clean_build.sh` fuer oeffentliche Artefakte; vor Play-Upload `./scripts/verify_android_release_artifacts.sh`; Kotlin-Static-Analysis `./gradlew detektAll` |
 | Shared | `shared/` | Wird in Apple- und Android-Builds eingebunden |
 | Functions | `functions/` | `npm ci --prefix functions`, `npm run build --prefix functions`, `npm test --prefix functions` |
@@ -126,8 +187,8 @@ npm test --prefix functions
 # Vor manuellem Play-Upload: Version/Metadaten pruefen (Fastlane laeuft das automatisch)
 ./scripts/verify_android_release_artifacts.sh
 
-# Apple-Beispiel
-xcodebuild -project "Skydown App.xcodeproj" -scheme "Skydown App" -configuration Debug -destination "generic/platform=iOS Simulator" build
+# Apple compile validation ohne lokale Store-Signierung
+xcodebuild -project "Skydown App.xcodeproj" -scheme "Skydown App" -configuration Release -destination "generic/platform=iOS Simulator" CODE_SIGNING_ALLOWED=NO build
 ```
 
 Fuer lokale Android-Smoke-Tests ohne Store-Signing kann weiterhin gebaut werden mit:
@@ -140,6 +201,22 @@ Store-faehige Builds benoetigen Produktionssigning ueber `keystore.properties` o
 `SKYOS_UPLOAD_*` Secrets. Android Studio installiert mit dem Run-Button normalerweise `debug`;
 fuer Verteilung und Store-Tests muessen die Release-Artefakte aus dem Clean-Build-Script verwendet
 werden.
+
+## Konfiguration und Secrets
+
+| Zweck | Quelle |
+| --- | --- |
+| Android Firebase Client | `androidApp/google-services.json` |
+| Apple Firebase Client | `Skydown App/GoogleService-Info.plist` |
+| Android Release Signing | `keystore.properties.example`, `.env.example`, `SKYOS_UPLOAD_*` |
+| Google Play Fastlane | `SUPPLY_JSON_KEY` als Pfad zur Play-Service-Account-JSON |
+| Functions Runtime | Firebase Secrets / Runtime Config, dokumentiert in `.env.example` |
+| Public Policy Pages | `site/privacy.html`, `site/terms.html`, `site/support.html`, final auf Produktionsdomain zu hosten |
+
+Keine echten Secrets, privaten Service-Account-Keys, Keystores, `.env`-Dateien oder Store-Credentials
+duerfen in das Repository. Die vorhandenen Firebase Client-Konfigurationsdateien sind fuer die
+jeweiligen Apps noetig, sollten aber vor einer Open-Source- oder externen Repository-Verteilung
+bewusst freigegeben werden.
 
 ## Vertrauen, Datenschutz und KI-Transparenz
 
@@ -187,19 +264,29 @@ fuer einen konkreten Release, Markt, Provider-Setup oder eine konkrete Datenvera
 | Store-Dokumente | [docs/store/README.md](docs/store/README.md) |
 | Store Listing | [docs/store-listing.md](docs/store-listing.md) |
 | Store Screenshots | [docs/store-screenshots.md](docs/store-screenshots.md) |
+| Store Upload Runbook | [docs/release/store-upload-runbook.md](docs/release/store-upload-runbook.md) |
 
 ## Release-Bereitschaft
 
-SkyOS ist als v1.0.0 Release Candidate dokumentiert. Cross-Plattform-Buildpfade, Brand-Assets,
-Store-Vorbereitung sowie Legal- und Compliance-Arbeitsdokumente sind im Repository vorhanden.
+SkyOS ist als `v1.0.0` Release Candidate dokumentiert und die lokalen technischen Gates sind
+bestanden. Das bedeutet: Der Code- und Artefaktstand ist fuer interne Distribution und Store-Prep
+geeignet. Es bedeutet nicht automatisch, dass ein oeffentlicher Produktionsrollout freigegeben ist.
 
-Vor oeffentlicher Auslieferung muessen bestaetigt werden:
+Aktuelle harte Vor-Release-Punkte:
 
-- Produktionssigning und Distribution-Credentials
-- Store-Listing-URLs fuer Datenschutz, AGB, Support und Loeschanfragen
-- finale Provider-Liste und Datenverarbeitungsrollen
-- finale rechtliche Freigabe fuer Datenschutz, AGB, Subscription, KI-Hinweis und Impressum
-- Plattformanforderungen fuer App Store und Google Play
+- iOS: vorhandenen Build `10007` in App Store Connect/TestFlight bestaetigen oder vor erneutem
+  Upload auf Build `10008` erhoehen.
+- Android: Google Play Android Developer API fuer Projekt `1069068117600` aktivieren/Propagation
+  abwarten und Fastlane `validate_android_internal` erneut laufen lassen.
+- Store Assets: Play-konforme Android-Screenshots liegen unter
+  `screenshots/final/google-play/android-phone/`, iPad-Screenshots unter
+  `screenshots/final/ipad/`, Play-Grafiken unter `docs/assets/google-play/`; finale Assets in den
+  Store-Konsolen hochladen, mappen und freigeben.
+- Store URLs: finale Produktionsdomain fuer Datenschutz, AGB, Support und App-Website eintragen.
+- Legal: finale Freigabe fuer Datenschutz, AGB, Subscription Terms, KI-Hinweis und Impressum.
+- QA: realer iPhone- und Android-Device-Smoke aus den hochgeladenen Store-Artefakten.
+
+Wenn einer dieser Punkte unbekannt ist, bleibt die Antwort fuer oeffentlichen Rollout `no-go`.
 
 ## Support
 

@@ -98,10 +98,10 @@ fi
 echo
 echo "-- Files to upload (only these paths; same directory from the last clean release build) --"
 echo "Play App Bundle (AAB): $ROOT_DIR/$AAB_FILE"
-ls -l "$AAB_FILE" | awk '{print "  size: "$5" bytes; modified: $6" "$7" "$8}"
+ls -l "$AAB_FILE" | awk '{print "  size: " $5 " bytes; modified: " $6 " " $7 " " $8}'
 echo
 echo "Sideload / QA APK (optional, not for Play): $ROOT_DIR/$APK_FILE"
-ls -l "$APK_FILE" | awk '{print "  size: "$5" bytes; modified: $6" "$7" "$8}"
+ls -l "$APK_FILE" | awk '{print "  size: " $5 " bytes; modified: " $6 " " $7 " " $8}'
 echo
 if command -v shasum >/dev/null 2>&1; then
   echo "SHA-256 fingerprints (compare after copy or before filing a release note):"

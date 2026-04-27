@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - README.md
+      - docs/public/README.md
       - .github/workflows/sync-public-readme.yml
   workflow_dispatch:
 
@@ -24,6 +24,7 @@ jobs:
         env:
           TARGET_REPO: Yang-D-Nash/SkyOS-Readme-Public
           TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          PUBLIC_README_SOURCE: docs/public/README.md
         run: |
           if [ -z "$TARGET_REPO" ]; then
             echo "Missing target repository configuration." >&2
@@ -35,17 +36,23 @@ jobs:
             exit 1
           fi
 
+          if [ ! -f "$PUBLIC_README_SOURCE" ]; then
+            echo "Missing public README source: $PUBLIC_README_SOURCE" >&2
+            exit 1
+          fi
+
       - name: Push README to public repository
         env:
           TARGET_REPO: Yang-D-Nash/SkyOS-Readme-Public
           TARGET_BRANCH: ${{ vars.PUBLIC_README_BRANCH }}
           TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          PUBLIC_README_SOURCE: docs/public/README.md
         run: |
           branch="${TARGET_BRANCH:-main}"
           clone_url="https://x-access-token:${TOKEN}@github.com/${TARGET_REPO}.git"
 
           git clone --depth 1 --branch "${branch}" "${clone_url}" public-readme
-          cp README.md public-readme/README.md
+          cp "${PUBLIC_README_SOURCE}" public-readme/README.md
 
           cd public-readme
           if git diff --quiet -- README.md; then

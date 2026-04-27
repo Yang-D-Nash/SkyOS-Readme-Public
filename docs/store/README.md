@@ -31,6 +31,20 @@ Short public variant:
 - [screenshots.md](screenshots.md) - screenshot storyline, capture mapping, overlay copy, and visual rules
 - [review-prep.md](review-prep.md) - review request timing, support routing, restore clarity, and store trust checks
 
+## Current Asset Read
+
+The repository has usable capture foundations and local Play-ready exports, but the public store set
+is not complete until console upload/mapping and final story/order approval are closed:
+
+- iPhone raw set: 7 captures at `1320x2868` under `store-assets/ios/raw/`
+- iOS final set: 6 captures at `1320x2868` under `screenshots/final/ios/`
+- iPad final set: 7 captures at `2064x2752` under `screenshots/final/ipad/`
+- Android phone raw set: 7 captures at `1080x2424` under `store-assets/android/raw/`
+- Google Play Android phone export: 7 captures at `1242x2424` under `screenshots/final/google-play/android-phone/`
+- Android final set: 6 captures at `1080x2424`; keep as non-Play local preview material unless reframed
+- Fold raw set: 7 captures at `1812x2176`
+- Play listing graphics: `docs/assets/google-play/skyos-play-icon-512.png` and `docs/assets/google-play/skyos-feature-graphic-1024x500.png`
+
 ## Trust Rules
 
 Store copy for SkyOS must always:

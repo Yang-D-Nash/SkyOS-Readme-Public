@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-04-26 (Android 10014, AI subscription gate)
+Last updated: 2026-04-27 (release readiness check: iOS 10007, Android 10015)
 Owner: Release Engineering
 
 ## Build Identity
@@ -9,31 +9,33 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10006`
+- Build: `10007`
 - Team ID: `F3BNLG6L7P`
 
 ### Android
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10014`
+- versionCode: `10015`
 - Play Billing Library: `8.3.0`
 
 ## Build Artifacts
 
-- iOS archive: `build/ios/SkyOS-1.0.0-10006-20260426.xcarchive` (rebuilt 2026-04-26 Europe/Berlin)
-- iOS IPA export: `build/ios/export-app-store/SkyOS.ipa` (App Store Connect export succeeded)
-- iOS upload: direct App Store Connect upload from archive; build `10006` uploaded and is processing.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-26 Europe/Berlin, versionCode `10014`)
-- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (`18997697` bytes, rebuilt 2026-04-25 13:12:14 Europe/Berlin)
+- iOS archive: `build/ios/SkyOS-1.0.0-10007-20260427.xcarchive` (rebuilt 2026-04-27 Europe/Berlin)
+- iOS upload status: App Store Connect rejected a repeat upload for build `10007` as redundant, which indicates build `10007` already exists for version `1.0` / `1.0.0`.
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-27 Europe/Berlin, versionCode `10015`)
+- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-04-27 Europe/Berlin, versionCode `10015`)
 
 ## Upload Status
 
 ### iOS Upload Status
-- Archive build: DONE for build `10006`
-- App Store Connect IPA export/upload: DONE
-- Processing status: uploaded package is processing in App Store Connect
+- Archive build: DONE for build `10007`
+- App Store Connect upload: NOT rerun successfully during this check; the server reported redundant binary for build `10007`.
+- Processing status: verify existing build `10007` in App Store Connect and attach it to internal TestFlight testers if available.
 - Notes:
+  - If a new binary is required, increment `CURRENT_PROJECT_VERSION` to `10008` before uploading again.
+  - Build `10007` was archived successfully on 2026-04-27.
+  - The redundant-upload response for build `10007` means reusing the same build number will not work.
   - Build `10006` uploaded successfully on 2026-04-26 via `xcodebuild -exportArchive` with `destination=upload`.
   - Build `10005` uploaded successfully on 2026-04-26 via `xcodebuild -exportArchive` with `destination=upload`.
   - Xcode reported missing dSYMs for Firebase binary frameworks during symbol upload; app package upload still succeeded.
@@ -42,14 +44,28 @@ Owner: Release Engineering
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: DONE for versionCode `10014`
+- Release AAB build: DONE for versionCode `10015`
 - Play upload automation: CONFIGURED via Fastlane `upload_android_internal`
-- CLI upload attempt: BLOCKED
+- CLI validate-only attempt: BLOCKED by Google Cloud API configuration
 - Blocker details:
-  - Fastlane requires `SUPPLY_JSON_KEY` to point at a Google Play service-account JSON key.
-  - Current shell has no `SUPPLY_JSON_KEY`, so Play Console upload must be manual or rerun after exporting that environment variable.
+  - Fastlane was run with `SUPPLY_JSON_KEY` pointing at a local Play service-account JSON and `validate_only: true`.
+  - Google Play Android Developer API is disabled or not yet propagated for project `1069068117600`.
+  - Enable `androidpublisher.googleapis.com` for project `1069068117600`, wait for propagation, then rerun the validate-only lane before any automated upload.
+
+## 2026-04-27 Verification Log
+
+1. Android clean release gate passed for version `1.0.0` / versionCode `10015`.
+2. Android AAB SHA-256: `ca67068303962c127c3cf69e83153b206f8b4fa8da38a39536685d7a4ef49d05`.
+3. Android APK SHA-256: `05d086c85dbece9c60ee214eb907a07ae2d5513cc624d53b2dc158a94a75e4ff`.
+4. iOS Release build passed with code signing disabled for compile validation.
+5. iOS archive passed for `com.skydown.ios`, version `1.0.0`, build `10007`.
+6. Local CI gate passed: shared tests, Android lint, Functions tests, Firestore rules tests, and Storage rules tests.
+7. Detekt passed with `./gradlew detektAll --no-daemon`.
+8. Store screenshot folders contain 7-frame iPad/phone/fold/iPhone sets. Play-compliant Android phone exports were added at `screenshots/final/google-play/android-phone/` (`1242x2424`, no alpha), iPad screenshots were exported at `screenshots/final/ipad/` (`2064x2752`, no alpha), and Google Play listing graphics were exported under `docs/assets/google-play/`.
 
 ## Execution Log (Direct Upload Run)
+
+Historical 2026-04-26 upload notes retained for traceability; current upload targets are listed above.
 
 1. Deployed AI callable fix to Firebase Functions (`authorizeAiUsage`, `generateAiText`, `generateAiVisual`, `skydownAgent`) -> deploy complete.
 2. Rebuilt Android release bundle (`./gradlew :androidApp:bundleRelease`) -> `BUILD SUCCESSFUL` for versionCode `10014`.
@@ -144,7 +160,7 @@ Suggested review note text:
 
 1. Confirm final legal approval for public privacy/terms wording.
 2. Confirm final production domain and replace URL placeholders in App Store Connect and Play Console.
-3. Verify subscription product setup status for iOS build `10006` and Android versionCode `10014`.
+3. Verify subscription product setup status for iOS build `10007` and Android versionCode `10015`.
 4. Update production Firestore `appConfig/legalContent` and `appConfig/commerceSettings` if old remote operator/legal values still exist.
 5. Firestore/Storage rules were deployed on 2026-04-25; fixed owner Firebase Auth account was verified with `emailVerified=true`.
 6. Verify data safety/privacy forms reflect actual SDK usage:
@@ -154,20 +170,20 @@ Suggested review note text:
    - User content: profile data, uploads, AI prompts/outputs, media/gallery selections and support/workflow requests where a user submits them.
    - Device/app data: app version, platform, security/App Check/abuse signals, Firebase installation or app instance identifiers. Advertising ID and AdServices permissions are intentionally removed from Android release manifests.
    - Not used by current binaries: precise/coarse location, camera capture, microphone, contacts, calendar. Photo/video selection uses system pickers; Android `WRITE_EXTERNAL_STORAGE` is capped to API 28 only for saving generated images.
-7. Upload and map final screenshot sets for iPhone and Android phone form factors.
+7. Upload and map final screenshot sets for iPhone, iPad, and Android phone form factors. Use `screenshots/final/ipad/` for iPad, `screenshots/final/google-play/android-phone/` for Play phone screenshots, and `docs/assets/google-play/` for the Play icon/feature graphic.
 8. Set age rating/content rating questionnaires in both consoles.
-9. Build numbers are current for the 2026-04-26 upload set: iOS `10006`, Android `10014`.
+9. Build numbers are current for the 2026-04-27 check: iOS `10007`, Android `10015`.
 
 ## Go/No-Go Checklist
 
-- [ ] iOS upload visible in App Store Connect TestFlight
+- [ ] Existing iOS build `10007` visible in App Store Connect TestFlight, or new build number prepared before another upload
 - [ ] Android release visible in Play Console internal/closed track
 - [ ] Privacy, terms, support URLs point to final public domain
 - [ ] Legal text approved for store/public use
 - [ ] Subscription metadata, pricing, and restore behavior validated
 - [ ] Data safety/privacy questionnaire completed and consistent with app behavior
 - [ ] Content/Age rating completed
-- [ ] Screenshots and listing metadata complete in target languages
+- [ ] Screenshots and listing metadata complete in target languages, including uploaded iPad and Google Play assets
 - [ ] Internal smoke test passed on real iOS and Android devices from uploaded store artifacts
 
 ## Exact Next Clicks: App Store Connect
@@ -175,8 +191,8 @@ Suggested review note text:
 1. Open [App Store Connect](https://appstoreconnect.apple.com/).
 2. Go to **My Apps** -> select/create app for bundle `com.skydown.ios`.
 3. Open **TestFlight** tab.
-4. Under **Builds**, click **+** (or wait for uploaded build).
-5. Wait for uploaded build `10006` to finish processing, then attach it to Internal Testers.
+4. Under **Builds**, click **+** and look for existing build `10007`.
+5. If build `10007` is available, attach it to Internal Testers. If it is not available and a new binary is required, increment the iOS build number to `10008` before uploading.
 6. When build appears, assign to Internal Testers first.
 7. Fill **App Information** and **App Privacy** sections.
 8. Fill **Pricing and Availability** (manual business decision required).
@@ -188,7 +204,7 @@ Suggested review note text:
 1. Open [Google Play Console](https://play.google.com/console/).
 2. Select app with package `com.nash.skyos` (or create it if missing).
 3. Go to **Testing** -> **Internal testing** (or **Closed testing**).
-4. Create/Edit release and upload `androidApp/build/outputs/bundle/release/androidApp-release.aab` (versionCode `10014`).
+4. Create/Edit release and upload `androidApp/build/outputs/bundle/release/androidApp-release.aab` (versionCode `10015`).
 5. Add release notes and save.
 6. Go to **Store presence** and complete store listing fields.
 7. Go to **App content** and complete:

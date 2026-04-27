@@ -60,14 +60,20 @@ Build a story:
 
 ## Current Capture Mapping
 
-Current in-repo iOS screenshot coverage already exists for:
+Current in-repo capture coverage exists for:
 
-- Shop
-- Music
-- Home
-- Video
-- AI
-- Settings
+- `store-assets/ios/raw/`: 7 iPhone captures at `1320x2868`
+- `screenshots/final/ios/`: 6 iPhone captures at `1320x2868`
+- `screenshots/final/ipad/`: 7 iPad captures at `2064x2752`
+- `store-assets/android/raw/`: 7 Android phone captures at `1080x2424`
+- `screenshots/final/android/`: 6 Android phone captures at `1080x2424`
+- `screenshots/final/google-play/android-phone/`: 7 Play-compliant Android phone captures at `1242x2424`
+- `store-assets/fold/raw/`: 7 foldable captures at `1812x2176`
 
-That is a strong base, but the final public set should be reordered and expanded around the story
-above instead of shipping the raw capture order as-is.
+That is a strong base, but it is not a complete public upload set until the console mapping and
+final story/order review are closed.
+
+Release blockers before listing upload:
+
+- Store exports and listing graphics still need to be uploaded and mapped in App Store Connect and Play Console.
+- Final public sets should use the story order above, not raw capture order.

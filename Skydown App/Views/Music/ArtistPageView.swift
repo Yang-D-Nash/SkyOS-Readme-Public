@@ -614,7 +614,6 @@ struct ArtistPageView: View {
 
     private var artistHeroMotionStage: some View {
         let hasHeroVideo = displayPage.heroVideoURL?.trimmedNilIfEmpty != nil
-        let hasHeroImage = displayPage.heroImageURL?.trimmedNilIfEmpty != nil
 
         return ZStack(alignment: .bottomLeading) {
             Group {
@@ -777,10 +776,11 @@ struct ArtistPageView: View {
                         track: track,
                         audioManager: audioManager,
                         isSelected: selectedTrackID == track.trackId,
+                        onSelect: {
+                            selectedTrackID = track.trackId
+                        },
                         presentation: index == 0 ? .featured : (index == 1 ? .secondary : .catalog)
-                    ) {
-                        selectedTrackID = track.trackId
-                    }
+                    )
                 }
             }
         }

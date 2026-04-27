@@ -3,6 +3,20 @@
 Use this checklist for every release candidate. SkyOS is only release-ready when product behavior,
 trust paths, backend authority, and support readiness all line up at the same time.
 
+## Current RC Snapshot
+
+Status as of 2026-04-27: local code gates and artifact checks have passed for `1.0.0`, but public
+store rollout is still `no-go` until the open items in
+[release/store-upload-runbook.md](release/store-upload-runbook.md) are closed.
+
+Known open release gates:
+
+- App Store Connect: confirm existing iOS build `10007` in TestFlight or increment to `10008` before another upload.
+- Google Play: enable/propagate `androidpublisher.googleapis.com` for project `1069068117600`, then rerun Fastlane validate-only.
+- Store assets: upload/map the generated iPhone, iPad, Play-compliant Android screenshots, and Play listing graphics.
+- Store URLs and legal: replace placeholder console URLs with final hosted pages and confirm final legal approval.
+- QA: complete real-device smoke from uploaded store artifacts on iPhone and Android.
+
 ## 1. Source and Hygiene
 
 - [ ] `git status` is clean or intentionally scoped

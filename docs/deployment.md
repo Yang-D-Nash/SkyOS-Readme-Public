@@ -55,7 +55,7 @@ Use selective deploys when the scope is intentionally narrow and validated.
 
 ### Android
 
-- provide `keystore.properties` or `SKYDOWN_UPLOAD_*` env vars
+- provide `keystore.properties` or `SKYOS_UPLOAD_*` env vars
 - build `assembleRelease` or `bundleRelease`
 - validate on at least one real Android device, plus foldables if they are in target scope
 

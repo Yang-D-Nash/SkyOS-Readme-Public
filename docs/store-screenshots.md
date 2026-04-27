@@ -4,6 +4,21 @@ Status: `production capture playbook`
 
 This playbook defines the creative direction, sequence, and capture standards for App Store and Google Play screenshots in a premium Apple/OpenAI-style quality bar.
 
+## Current Release Asset Status
+
+Status as of 2026-04-27: capture foundations exist, but the public upload package is not complete.
+
+| Set | Current files | Release read |
+| --- | --- | --- |
+| iPhone raw | `store-assets/ios/raw/`, 7 files at `1320x2868` | Usable capture base |
+| iOS final | `screenshots/final/ios/`, 6 files at `1320x2868` | Needs final story/order approval |
+| Android phone raw | `store-assets/android/raw/`, 7 files at `1080x2424` | Not Play-upload ready because aspect ratio exceeds 2:1 |
+| Android final | `screenshots/final/android/`, 6 files at `1080x2424` | Not Play-upload ready because aspect ratio exceeds 2:1 |
+| Google Play Android export | `screenshots/final/google-play/android-phone/`, 7 files at `1242x2424` | Play-compliant phone set; upload/map in Play Console |
+| Fold raw | `store-assets/fold/raw/`, 7 files at `1812x2176` | Optional secondary set |
+| iPad | `screenshots/final/ipad/`, 7 files at `2064x2752` | App Store-ready iPad set; upload/map in App Store Connect |
+| Play listing graphics | `docs/assets/google-play/skyos-play-icon-512.png`, `docs/assets/google-play/skyos-feature-graphic-1024x500.png` | Exported; review/upload in Play Console |
+
 ## Creative Objective
 
 Screenshot set must communicate in under 5 seconds:
@@ -60,7 +75,7 @@ Primary KPI: higher listing conversion from impression to install.
 
 - Primary set: iPhone 6.7"
 - Optional secondary: iPhone 6.5" derived from same story
-- iPad set only if dedicated iPad UX strategy exists
+- iPad set: `screenshots/final/ipad/` captured on iPad Pro 13-inch simulator
 - Preferred visual mode: Dark Mode if SkyOS quality reads stronger
 
 ### Android (Play Store)
@@ -132,3 +147,6 @@ Approve screenshot set only if all are true:
 - Branding is premium, calm, and modern.
 - SkyOS is dominant, Skydown is coherent, sub-brands are scoped correctly.
 - App Store and Play Store compliance checks pass.
+- iPad screenshots are uploaded/mapped if iOS stays universal.
+- Android screenshots satisfy Google Play side-ratio constraints.
+- Google Play app icon and feature graphic are exported and reviewed.

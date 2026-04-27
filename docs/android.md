@@ -19,7 +19,10 @@ Important paths:
 - Android Studio and Android SDK
 - JDK 17
 - `androidApp/google-services.json` for the intended Firebase project
-- release signing material through `keystore.properties` or `SKYDOWN_UPLOAD_*` environment variables
+- release signing material through `keystore.properties` or `SKYOS_UPLOAD_*` environment variables
+  (`SKYDOWN_UPLOAD_*` remains accepted for older local setups)
+- optional but recommended: `ANDROID_HOME` with build-tools so `verify_android_release_artifacts.sh`
+  can re-check the binary APK via `aapt2`
 
 ## 3. Build Commands
 
