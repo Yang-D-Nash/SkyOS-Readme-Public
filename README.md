@@ -12,26 +12,48 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Plattform-iOS%20%7C%20iPadOS%20%7C%20Android%20%7C%20Mac%20Catalyst-0A84FF?style=for-the-badge" alt="Plattformen" />
   <img src="https://img.shields.io/badge/Stack-KMP%20%2B%20SwiftUI%20%2B%20Compose-111827?style=for-the-badge" alt="Stack" />
-  <img src="https://img.shields.io/badge/Release-v1.0.0%20RC-16A34A?style=for-the-badge" alt="Release" />
+  <img src="https://img.shields.io/badge/Release-v1.0.0-16A34A?style=for-the-badge" alt="Release" />
 </p>
 
 ---
 
-Dieses Repository enthält **SkyOS** — den operativen Kern hinter der **Skydown**-App: gemeinsame Domänenlogik (Kotlin Multiplatform), native Apple- und Android-Clients und ein **Firebase**-Backend (Auth, Firestore, Storage, Cloud Functions, App Check). Die folgende Dokumentation ist bewusst **ausführlich**: sie soll Entwicklern, Reviewern, Betriebs- und Produkteam **dieselbe technische Wahrheit** vermitteln — ohne wesentliche Architektur- oder Betriebsaspekte hinter vagen Formulierungen zu verbergen.
+SkyOS ist der operative Kern hinter der Skydown-App: gemeinsame Domänenlogik (Kotlin Multiplatform), native Apple- und Android-Clients und ein Firebase-Backend (Auth, Firestore, Storage, Cloud Functions, App Check).
+
+Diese README ist absichtlich umfassend, aber für schnellen Zugriff strukturiert: zuerst Orientierung und Einstieg, danach technische Tiefe.
+
+## Auf einen Blick
+
+- **Was ist das hier?** Produkt + Plattform + Betriebsdokumentation in einem Monorepo.
+- **Für wen?** Entwickler, Reviewer, Betrieb, Produktverantwortliche.
+- **Was ist der schnellste Einstieg?** Siehe `Schnellnavigation` und dann den passenden Pfad.
+
+## Schnellnavigation
+
+| Ich will... | Direktlink |
+| --- | --- |
+| Projekt und Architektur in 3 Minuten verstehen | [Status und Release-Reife](#status-und-release-reife), [Architekturüberblick](#architekturüberblick), [Projektstruktur](#projektstruktur) |
+| Lokal starten und bauen | [Voraussetzungen](#voraussetzungen), [Erstinstallation](#erstinstallation-auf-neuer-maschine), [Lokale Entwicklung](#lokale-entwicklung) |
+| Release sicher durchführen | [Production-Checkliste](#production-checkliste), [App-Store-Release-Workflow](#app-store-release-workflow-verbindlich), [Deployment und Rollback](#deployment-und-rollback) |
+| Sicherheit und Compliance prüfen | [Sicherheit](#sicherheit), [Rollen und Berechtigungen](#rollen-und-berechtigungen), [Recht, Datenschutz, KI-Transparenz](#recht-datenschutz-ki-transparenz) |
+| Tiefer in Fachthemen einsteigen | [Weiterführende Dokumentation](#weiterführende-dokumentation) |
 
 ## Transparenz und Verantwortlichkeiten
 
 | Wer / Was | Inhalt |
 | --- | --- |
-| **Diese README** | Technischer **Ist-Stand** (Stand der Codebasis); der **lineare Ablauf** für einen App-Store-Release steht in [docs/release/app-release-workflow.md](docs/release/app-release-workflow.md). Ergänzend: [Release-Checkliste](docs/release-checklist.md), [Store-Upload-Runbook](docs/release/store-upload-runbook.md), [manuelle Smokes](manual-test-checklist.md) — die README **verweist** und fasst zusammen. |
-| **Produktverantwortung / Rechtstexte** | Sämtliche **rechtswirksamen** Texte (AGB, Datenschutz, Impressum, Abo-Bedingungen, KI-Hinweis) liegen als Inhalt in [docs/legal/](docs/legal/) und in den **öffentlich zu hostenden** Seiten unter [site/](site/). **Inhaltliche Verantwortung und Aktualisierung** liegen beim **Unternehmer bzw. der hinter dem Produkt stehenden Organisation** — nicht bei dieser technischen Doku. Wo ihr eine **juristische Stellungnahme** zu Spezialfragen (z. B. grenzüberschreitende Dienste) braucht, wendet euch dafür **bewusst** an eure Fachanwälte; die README ersetzt das nicht, sie beschreibt nur, **wo** rechtlich relevante Texte im Repo gepflegt werden. |
-| **Store-Einreichungen (Apple, Google)** | Account, Verträge, Inhalte, Alters- und Richtlinien-Compliance, finale URLs — **Konsolen- und Prozesspflichten** eurer Organisation; technische Voraussetzung ist ein **build- und regelkonformer** Code (siehe Checklisten). |
-| **Sicherheits- und Kostenrisiko** | Sensible Aktionen (Zahlung aktivieren, Rollen vergegen, KI-Hochlast, öffentliches Repository) setzen **bewusste** Entscheidung und Operationsdisziplin voraus — dazu die Abschnitte [Sicherheit](#sicherheit), [Deployment und Rollback](#deployment-und-rollback), [Owner/Admin-Dokumentation](docs/owner-admin.md). |
-| **Datenverarbeitung gegenüber Endnutzern** | Durchgängig in **Produkt, Policies und ggf. Auftragsverarbeitung** eurer Anbieter (Firebase, Google, Stripe, Shopify, …) zu bewerten — sachliche Stützpunkte in [docs/compliance/README.md](docs/compliance/README.md) und in den **Legal-Dateien**; technische Lage siehe [Backend-Überblick](docs/backend.md). |
+| **Diese README** | Technischer Ist-Stand der Codebasis. Sie gibt Orientierung und verweist auf die kanonischen Detaildokumente. |
+| **Release-Ablauf** | Verbindliche Schrittfolge: [docs/release/app-release-workflow.md](docs/release/app-release-workflow.md). Ergänzend: [Release-Checkliste](docs/release-checklist.md), [Store-Upload-Runbook](docs/release/store-upload-runbook.md), [manuelle Smokes](manual-test-checklist.md). |
+| **Rechtstexte und Außenwirkung** | Rechtswirksame Inhalte liegen in [docs/legal/](docs/legal/) und [site/](site/). Inhaltliche Verantwortung und Aktualisierung liegen beim Owner/Unternehmer der Plattform. |
+| **Store-Einreichungen** | Accounts, Verträge, Richtlinien-Compliance und finale Inhalte sind Organisationspflichten; die technische Basis liefert dieses Repo. |
+| **Sicherheits- und Kostenentscheidungen** | Kritische Aktionen (Payments, Rollen, KI-Hochlast, Public-Mirror) brauchen bewusstes Operations-Handling, siehe [Sicherheit](#sicherheit), [Deployment und Rollback](#deployment-und-rollback), [docs/owner-admin.md](docs/owner-admin.md). |
+| **Datenverarbeitung** | Bewertung gegenüber Endnutzern erfolgt über Produkt, Policies und Anbieter-Verträge; technische Einordnung in [docs/compliance/README.md](docs/compliance/README.md) und [docs/backend.md](docs/backend.md). |
 
-**Kurz:** Alles, was in diesem Repo **steht** und **baut**, ist hier nachvollziehbar beschrieben. Alles, was im **rechtswirksamen Außenverhältnis** (Kunden, Stores, Finanzbehörden) geregelt ist, setzt eure **inhaltliche und vertragliche** Pflege der verlinkten Dokumente voraus.
+**Kurz:** Technik ist hier transparent dokumentiert. Rechts- und Plattformverantwortung bleibt bei der Organisation, die das Produkt betreibt.
 
 ## Inhaltsverzeichnis
+
+<details>
+<summary>Vollständige Navigation ausklappen</summary>
 
 - [Transparenz und Verantwortlichkeiten](#transparenz-und-verantwortlichkeiten)
 - [Status und Release-Reife](#status-und-release-reife)
@@ -88,13 +110,22 @@ Dieses Repository enthält **SkyOS** — den operativen Kern hinter der **Skydow
 - [Marken, App-Icon und Design](#marken-app-icon-und-design)
 - [Recht, Datenschutz, KI-Transparenz](#recht-datenschutz-ki-transparenz)
 
+</details>
+
 ---
 
 ## Status und Release-Reife
 
+Kurz gelesen:
+
+- Versionen stehen konsistent auf `1.0.0`.
+- Build-Nummern stehen konsistent auf `10018`.
+- Release-Ablauf wird zentral im Release-Workflow gepflegt.
+
 | Aspekt | Stand (Repository) |
 | --- | --- |
-| **Produktversion** | `1.0.0` Release Candidate (Doku- und Code-Sicht) |
+| **Produktversion (Repository-Stand)** | `1.0.0` (`VERSION`, iOS `MARKETING_VERSION`, Android `versionName`) |
+| **Build-Identität (Repository-Stand)** | iOS `CURRENT_PROJECT_VERSION=10018`, Android `versionCode=10018` |
 | **iOS** | Bundle-ID `com.skydown.ios` — siehe Xcode-Projekt und [docs/ios.md](docs/ios.md) |
 | **Android** | Application ID `com.nash.skyos` — siehe [docs/android.md](docs/android.md) |
 | **Backend** | Firebase-Projekt in Client-Konfigurationen referenziert; Functions-Paket `skyos-functions@1.0.0` ([functions/package.json](functions/package.json)) |
@@ -102,30 +133,30 @@ Dieses Repository enthält **SkyOS** — den operativen Kern hinter der **Skydow
 | **Lokale Quality Gates** | `./scripts/ci_local_gate.sh` (Shared-Tests, Android lint + detekt, Functions Build + Tests inkl. Rules-Emulator) |
 | **App-Store-Release (Ablauf)** | Kanonische Schrittfolge: [docs/release/app-release-workflow.md](docs/release/app-release-workflow.md) — **dort pflegen** bei Prozessänderungen |
 
-Build- und **VersionCode-Identität** pro Store-Release: im [Store-Upload-Runbook](docs/release/store-upload-runbook.md) führen; die README hält kein zweites, leicht veraltbares Zähler-Log.
+Build- und VersionCode-Identität pro Store-Release werden im [Store-Upload-Runbook](docs/release/store-upload-runbook.md) gepflegt; die README führt bewusst kein zweites Zähler-Log.
 
 ---
 
 ## Grenzen der README und bewusst offene Punkte
 
-Damit **Transparenz** nicht mit falschen Trivialitäten endet, ist Folgendes explizit **nicht** in dieser Datei erschöpfend, sondern nur verwiesen bzw. als laufend zu pflegende Themen markiert (Details oft in [docs/](docs/)):
+Diese README ist bewusst ein Einstieg mit belastbaren Kernfakten. Die folgenden Themen werden nicht vollständig hier gepflegt, sondern in den verlinkten Fachdokumenten:
 
 | Thema | Wo vertieft / wer pflegt |
 | --- | --- |
-| Staging- oder zweite Firebase-Projekte, exakte `firebase use`-Matrix | Euer Betrieb, [docs/deployment.md](docs/deployment.md) ergänzen |
+| Staging- oder zweite Firebase-Projekte, exakte `firebase use`-Matrix | Betrieblich pflegen und in [docs/deployment.md](docs/deployment.md) ergänzen |
 | Vollständig maschinenlesbare **API-Liste** aller Functions-Exports (OpenAPI) | Entwicklungsteam; fachlich [docs/backend.md](docs/backend.md) |
 | Abdeckung aller `process.env`-/Secret-Vorkommen in einer Zeilendokumentation | Laufend Code + `index.js` — bei großen Refactors sinnvoll: Skript oder Sektion in [docs/backend.md](docs/backend.md) |
 | Konkrete SLO, Budget-Ziele, verbindliches APM (Sentry etc.) | Betrieb/Google Cloud, sobald gebunden, hier einen Satz nachtragen |
 | Pager, Eskalation, On-Call | Internes Runbook, nicht im öffentlichen Repo-Standard |
 | Öffentliches Herausgeben: **Lizenzdatei** | Siehe [Lizenz](#lizenz) — betriebliche Entscheidung |
 
-Diese Tabelle ersetzt die **vielen** verstreuten `TODO:`-Einträge früherer Fassungen — einzelne technische Lücken können weiterhin in Issues oder in `docs/` notiert werden.
+Die Tabelle ersetzt verstreute `TODO:`-Hinweise aus älteren Fassungen. Detail-Lücken gehören in Issues oder in die passenden Dateien unter `docs/`.
 
 ---
 
 ## Kritische Daten- und Steuerflüsse
 
-Nicht jede Datei, aber **jede wesentliche Vertrauenslinie** soll aus dieser Übersicht erkennbar sein. Details und Sonderfälle: [docs/architecture.md](docs/architecture.md), [docs/backend.md](docs/backend.md).
+Ziel dieser Sektion: die wichtigsten Vertrauenslinien auf einen Blick. Details und Sonderfälle stehen in [docs/architecture.md](docs/architecture.md) und [docs/backend.md](docs/backend.md).
 
 | Fluss | Kurz, technisch, transparent |
 | --- | --- |
@@ -137,11 +168,16 @@ Nicht jede Datei, aber **jede wesentliche Vertrauenslinie** soll aus dieser Übe
 | **Uploads in Storage** | **Kein** freies Hochladen: `requestUploadSlot` und Regeln; Content-Types und Pfade in [storage.rules](storage.rules) + Tests. |
 | **Laufzeit-Notbremse** | `system/runtimeConfig` — Lockdown, App-Check-Modus, Budget — siehe [docs/backend.md](docs/backend.md) Abschnitt 5, [docs/owner-admin.md](docs/owner-admin.md). |
 
-**Implementierungs-Transparenz (Backend-Größe):** die Cloud-Functions-Logik liegt überwiegend in einer großen Einstiegsdatei `functions/index.js` (einziger in `package.json` referenzierter `main`). Das erleichlicht Deploy und gemeinsame Imports, erschwert aber die Navigation — bei Änderungen bewusst `grep`/IDE-Suche, selektive Deploys siehe [docs/deployment.md](docs/deployment.md).
+**Hinweis zur Backend-Struktur:** Ein großer Teil der Cloud-Functions-Logik liegt in `functions/index.js` (laut `package.json` einziger `main`). Das vereinfacht Deploys, macht Navigation aber schwerer; für Änderungen gezielt suchen und selektiv deployen (siehe [docs/deployment.md](docs/deployment.md)).
 
 ---
 
 ## Funktionen
+
+Kurzbild:
+
+- Native App-Erfahrung mit Productivity, Media, Commerce und Account/Trust.
+- KI- und Integrationslogik ist backendgeführt, nicht rein clientseitig.
 
 | Bereich | Inhalt |
 | --- | --- |
@@ -389,7 +425,7 @@ Bei **Auth-Fehlern** in der App: Token erneuern, Uhrzeit prüfen, App-Check-Prov
 | **Callables / interne API-Oberfläche** | Überblick in [docs/backend.md](docs/backend.md); **keine** maschinell gepflegte OpenAPI-Datei im Repo |
 | **Beispiel App Check (Web-ähnlich)** | [examples/web/firebase-app-check.example.js](examples/web/firebase-app-check.example.js) — Referenz, nicht das Produkt-UI |
 
-Eine zentrale **OpenAPI-** oder **AsyncAPI-**Datei für alle Callables **existiert nicht**; fachlich genügen [docs/backend.md](docs/backend.md) und Code-Suche, bis ihr gegebenenfalls eine generierte Doku bewusst einführt ([Grenzen](#grenzen-der-readme-und-bewusst-offene-punkte)).
+Eine zentrale **OpenAPI-** oder **AsyncAPI-**Datei für alle Callables **existiert nicht**; fachlich genügen [docs/backend.md](docs/backend.md) und Code-Suche, bis bei Bedarf eine generierte Doku eingeführt wird ([Grenzen](#grenzen-der-readme-und-bewusst-offene-punkte)).
 
 ### Externe Dienste (Kurzüberblick)
 
@@ -490,7 +526,7 @@ Bei `PERMISSION_DENIED` für Storage: Slot-Request, Pfade, `request.auth` und gg
 ## Zahlungen und Webhooks
 
 - **Technisch im Repo:** **Stripe** (u. a. `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` als Firebase Secrets) mit serverseitiger **Signaturprüfung**; Implementierung unter `functions/src/payments/`; fachlich [docs/commerce.md](docs/commerce.md), [docs/deployment.md](docs/deployment.md). **App Store** und **Google Play**-Abos: u. a. Apple Server Library, Android Purchase-Flows — siehe `functions/package.json` und Commerce-Doku.
-- **Unternehmerische und steuerliche Ebene (transparent benannt, ohne Auskunft zu ersetzen):** Wer Zahlungsmethoden in **Produktion** schaltet, ist dafür verantwortlich, **Angebot, Rechnungsstellung, Steuern, AGB, Widerruf** und anwendbare **Geldwäsche-/KYC-Pflichten** mit eurer Mandantschaft und euren Beratern abzusichern — die technische Anbindung ist hier beschrieben, **nicht** die wirtschaftlich-rechtliche Bewertung. Das ist in eurer Verantwortung als **Betreiber**; die README führt euch zu den richtigen **Dokupfaden** ([docs/legal/](docs/legal/), [docs/commerce.md](docs/commerce.md)).
+- **Unternehmerische und steuerliche Ebene (transparent benannt, ohne Auskunft zu ersetzen):** Wer Zahlungsmethoden in **Produktion** schaltet, verantwortet **Angebot, Rechnungsstellung, Steuern, AGB, Widerruf** und anwendbare **Geldwäsche-/KYC-Pflichten** gemeinsam mit Mandatsträgern und Beratern. Die technische Anbindung ist hier beschrieben, **nicht** die wirtschaftlich-rechtliche Bewertung. Diese Verantwortung liegt beim **Betreiber/Owner**; die README verweist auf die relevanten **Dokupfade** ([docs/legal/](docs/legal/), [docs/commerce.md](docs/commerce.md)).
 
 ---
 
@@ -569,11 +605,17 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — **pfad-basi
 
 Detailliert: [docs/ci.md](docs/ci.md).
 
-Zusätzlich existiert [`.github/workflows/sync-public-readme.yml`](.github/workflows/sync-public-readme.yml) — spiegelt `docs/public/README.md` in ein **öffentliches** Repo, **nur** wenn `PUBLIC_REPO_TOKEN` in GitHub Secrets konfiguriert ist.
+Zusätzlich existiert [`.github/workflows/sync-public-readme.yml`](.github/workflows/sync-public-readme.yml) — spiegelt die Root-`README.md` plus lokal verlinkte Dateien/Ordner in ein **öffentliches** Repo, wenn `PUBLIC_REPO_TOKEN` in GitHub Secrets konfiguriert ist.
 
 ---
 
 ## Deployment und Rollback
+
+Kurzbild:
+
+- Deploy-Quelle ist `docs/deployment.md`.
+- Rollback ist mehrstufig (Runtime-Konfig, Provider, Functions-Version).
+- Staging-Details bleiben in interner Betriebsdoku.
 
 - **Einstieg:** [docs/deployment.md](docs/deployment.md) (Firebase, selektive Deploys, Client-Releases, Rollback-Logik, Runtime-Lockdowns).
 - **Häufige Firebase-Befehle:** siehe Tabelle in `docs/deployment.md` (Functions, Rules+Storage, Einzelfunktionen).
@@ -585,6 +627,12 @@ Zusätzlich existiert [`.github/workflows/sync-public-readme.yml`](.github/workf
 
 ## Production-Checkliste
 
+Kurzbild:
+
+- Prozessreihenfolge: Release-Workflow.
+- Qualitäts- und Trust-Gates: Release-Checkliste.
+- Build-/Upload-Nachweise: Store-Upload-Runbook.
+
 | Schicht | Einstieg |
 | --- | --- |
 | **App-Store-Release (Reihenfolge, Checkboxen)** | [docs/release/app-release-workflow.md](docs/release/app-release-workflow.md) — **hier zuerst** bei Prozessänderungen |
@@ -592,15 +640,15 @@ Zusätzlich existiert [`.github/workflows/sync-public-readme.yml`](.github/workf
 | **Store, Upload, Build-Identität, Hashes** | [docs/release/store-upload-runbook.md](docs/release/store-upload-runbook.md) |
 | **Sicherheits- und Kosten-Hebel, Owner** | [docs/owner-admin.md](docs/owner-admin.md), [docs/deployment.md](docs/deployment.md) |
 | **Manuelle Plattform-Smokes (Matrix)** | [manual-test-checklist.md](manual-test-checklist.md) |
-| **Rechtstexte / öffentliche Erklärungen** | [docs/legal/](docs/legal/), gehostetes [site/](site/) — inhaltlich **durch euch** gepflegt (siehe [Transparenz](#transparenz-und-verantwortlichkeiten)) |
+| **Rechtstexte / öffentliche Erklärungen** | [docs/legal/](docs/legal/), gehostetes [site/](site/) — inhaltlich durch Owner/Betreiber gepflegt (siehe [Transparenz](#transparenz-und-verantwortlichkeiten)) |
 
-**Klarstellung:** Eine grüne CI-Build und diese README ersetzen **weder** App-Store-Prüfung **noch** eure rechtlich ordnungsgemäße Anbieter- und Produktdokumentation — sie stellen nur sicher, dass der **Code- und Regel-Stand** nachvollziehbar und testbar ist.
+**Klarstellung:** Eine grüne CI und diese README ersetzen weder App-Store-Prüfung noch rechtlich belastbare Anbieter- und Produktdokumentation. Sie machen den Code- und Regel-Stand nachvollziehbar und testbar.
 
 ---
 
 ## App-Store-Release-Workflow (verbindlich)
 
-Dieser Abschnitt fasst zusammen, **wo** der Release-Prozess gepflegt wird. Die **vollständige, checkbox-basierte Reihenfolge** (Hygiene, `ci_local_gate`, iOS-`xcodebuild`, Android-`android_release_gate`, optionales Firebase-Deploy, Smokes, Abschluss) steht ausschließlich in:
+Die vollständige, checkbox-basierte Reihenfolge steht ausschließlich in:
 
 **[docs/release/app-release-workflow.md](docs/release/app-release-workflow.md)**
 
@@ -609,11 +657,17 @@ Dieser Abschnitt fasst zusammen, **wo** der Release-Prozess gepflegt wird. Die *
 | **Rolle der Datei** | Zentrale **Checkliste** für euren App-Release; bei Tool- oder Prozesswechsel **zuerst** dort anpassen, dann Runbook/README ggf. spiegeln (steht so im Dokumentenkopf). |
 | **Abgrenzung** | Ergänzt [docs/release-checklist.md](docs/release-checklist.md) (breite RC-Gate) und [docs/release/store-upload-runbook.md](docs/release/store-upload-runbook.md) (Build-IDs, Hashes, Konsolen) — ersetzt sie **nicht**. |
 | **Wichtigste Befehle (Kurz)** | `./scripts/ci_local_gate.sh` → `./scripts/android_release_gate.sh` (Android) → iOS Archive/Upload laut Doku; Backend nur bei Scope, siehe die Datei. |
-| **KI-Assistent** | Einen **separaten Prompt** zur Generierung/Überarbeitung *ähnlicher* Abläufe gebt ihr **nicht** ins Repo, sondern nutzt ihn in eurem Werkzeug — Inhalt bleibt fachlich in [app-release-workflow.md](docs/release/app-release-workflow.md) nachziehbar. |
+| **KI-Assistent** | Ein separater Prompt zur Generierung/Überarbeitung ähnlicher Abläufe gehört nicht ins Repo, sondern in das jeweilige Tooling; fachliche Nachvollziehbarkeit bleibt in [app-release-workflow.md](docs/release/app-release-workflow.md). |
 
 ---
 
 ## Sicherheit
+
+Kurzbild:
+
+- Keine Secrets oder Keystores in Git.
+- Serverregeln und App Check sind harte Sicherheitsachsen.
+- Webhooks und externen Traffic nur mit validierten Secrets.
 
 - **Keine** Secrets, Keystores, echten API-Keys oder vollständigen Service-Account-Dateien in Git; `.gitignore` strikt beachten.
 - **Client-Konfigurationen** `google-services.json` / `GoogleService-Info.plist` sind pro Firebase-Projekt notwendig, aber bei **öffentlichem** Repo-Release separat bewerten.
@@ -621,11 +675,17 @@ Dieser Abschnitt fasst zusammen, **wo** der Release-Prozess gepflegt wird. Die *
 - **Webhooks (Stripe, Workflows):** nur mit validierten Secrets und in HTTPS-Produktionskontext.
 - **Node-Abhängigkeiten in `functions/`:** regelmäßig `npm audit` auswerten; bewusstes Upgrade statt unreflektiertem `audit fix --force` (Breaking-Risiko, Transitive-Tooling-Debris).
 
-Für tiefere Checklisten: [docs/compliance/README.md](docs/compliance/README.md) — fachlich ergänzt eure **eigenen** rechtlich relevanten Prozesse, wo nötig.
+Für tiefere Checklisten: [docs/compliance/README.md](docs/compliance/README.md) — ergänzt die jeweils geltenden rechtlich relevanten Prozesse.
 
 ---
 
 ## Performance
+
+Kurzbild:
+
+- Native UI, schwere Arbeit backendseitig.
+- Firestore-Indexe und Query-Form sind Performance-kritisch.
+- Kosten-/Last-Ziele sind Betriebsaufgabe, nicht README-Versprechen.
 
 - Native UIs, serverseitige Bündelung schwerer Arbeit (AI, Zahlung, Suche).
 - Firestore: **Indizes** und **Abfrageform** prüfen (fehlender Index führt zu Fehlern, nicht zu stillem Slowdown) — [Firebase Indizes](https://firebase.google.com/docs/firestore/query-data/indexing).
@@ -636,8 +696,14 @@ Für tiefere Checklisten: [docs/compliance/README.md](docs/compliance/README.md)
 
 ## Logging, Monitoring, Fehleranalyse
 
+Kurzbild:
+
+- Primäre Logs laufen über Firebase/Cloud Logging.
+- APM-Tooling ist optional und aktuell nicht fest im Monorepo verdrahtet.
+- Budget- und Permission-Spitzen sollten aktiv überwacht werden.
+
 - **Cloud Functions:** [Firebase-Logger / strukturierte Logs](https://firebase.google.com/docs/functions/writing-and-viewing-logs) — zentral in der Google Cloud Console / Firebase-Projekt.
-- **Fehlerverfolgung / APM:** Sentry, Datadog o. ä. **sind in diesem Monorepo nicht fester Bestandteil**; sobald ein Tool produktiv angebunden ist, **einen internen Verweis** in euer Runbook legen; hier absichtlich **keine** Tool-Wahl, damit keine falsche Garantie entsteht.
+- **Fehlerverfolgung / APM:** Sentry, Datadog o. ä. **sind in diesem Monorepo nicht fester Bestandteil**; sobald ein Tool produktiv angebunden ist, sollte ein interner Verweis im Runbook ergänzt werden. Hier bleibt die Tool-Wahl bewusst offen, um keine falsche Garantie zu erzeugen.
 - **Budget-Alerts:** Pub/Sub-Topic `BILLING_BUDGET_TOPIC` bzw. Default, siehe Code/Deployment-Doku.
 - **Firestore `PERMISSION_DENIED`:** in Tests auch „Expression-Limit“-Fälle — massiv komplexe Rules/Writes können in Edge-Cases laufen; Alarmierung auf unerwartete `PERMISSION_DENIED`-Spitzen sinnvoll (Team-Entscheid).
 
@@ -692,7 +758,7 @@ Bei `setUserRoleClaims` / `buildRoleClaims` ([`functions/src/security/roles.js`]
 | `isStaff` | identisch implementiert mit `isAdmin` (Moderation/Staff-Gate = Owner + Admin) |
 
 - **`assertOwner(auth)`**: nur Rolle *Owner* (E-Mail des festen Owner-Kontos inkl. siehe unten).
-- **`assertAdmin(auth)`**: *Owner* oder *Admin* — **Subadmin** fällt hier bewusst **nicht** drunter; erwartet ihr Admin-Callable, prüft den Fehlertext in den Functions.
+- **`assertAdmin(auth)`**: *Owner* oder *Admin* — **Subadmin** fällt hier bewusst **nicht** drunter; bei erwarteten Admin-Callables den Fehlertext in den Functions prüfen.
 
 ### Feinrechte im User-Dokument
 
@@ -716,6 +782,11 @@ Bei **Berechtigungs**-Bugs: Client, **ID-Token-Claims**, **User-Dokument in Fire
 
 ## Admin- und Owner-Betrieb
 
+Kurzbild:
+
+- Owner/Admin-Abläufe sind in `docs/owner-admin.md` zentralisiert.
+- `system/runtimeConfig` ist der schnellste Betriebshebel bei Vorfällen.
+
 - [docs/owner-admin.md](docs/owner-admin.md) — zentrale Anlaufstelle: Kill-Switches, Konfig, Owner-spezifische Abläufe.
 - **Runtime-Config** in Firestore (`system/runtimeConfig`) — schneller Hebel bei Vorfällen, siehe [docs/backend.md](docs/backend.md) Abs. 5ff.
 
@@ -731,27 +802,27 @@ Bei **Berechtigungs**-Bugs: Client, **ID-Token-Claims**, **User-Dokument in Fire
 ## Webbrowser und statische Seiten
 
 - **Hauptprodukt** sind native Apps, kein SPA im Repo-Root.
-- [site/](site/) — statische `privacy`, `terms`, `support` und `index` als **Bereitstellung fester HTML**; welches **CDN, welche Domain und welches TLS-Setup** produktiv gilt, ist betrieblich festzulegen und in eurem Doku-Stack zu verankern, nicht in dieser technischen Eingangsdokumentation.
+- [site/](site/) liefert statische `privacy`, `terms`, `support` und `index`-Seiten. CDN, Domain und TLS-Setup sind Betriebsentscheidungen und gehören in die interne Betriebsdokumentation.
 
 ---
 
 ## Backup und Wiederherstellung
 
-- **Firestore / Auth / Storage:** vollständige **Backup- und Wiederanlauf-Strategie** fällt in den **Verantwortungsbereich eures Cloud-Betriebs** (Export-Jobs, Aufbewahrung, PITR wo verfügbar) — Werkzeuge: [Google Cloud / Firestore](https://cloud.google.com/firestore/docs) und zugehörige IAM-Richtlinien. Compliance-Bezug: [docs/compliance/README.md](docs/compliance/README.md) parallel zu euren externen **vertraglichen** Pflichten.
+- **Firestore / Auth / Storage:** Backup- und Wiederanlauf-Strategie liegt bei eurem Cloud-Betrieb (Export-Jobs, Aufbewahrung, PITR wo verfügbar), inklusive passender IAM-Richtlinien. Referenz: [Google Cloud / Firestore](https://cloud.google.com/firestore/docs), Compliance-Kontext: [docs/compliance/README.md](docs/compliance/README.md).
 - **Rollback-Logik** fachlich: [docs/deployment.md](docs/deployment.md).
 
 ---
 
 ## Wartung und Betrieb
 
-- Regelmäßige: Dependency- und Secret-Rotation, Review von `system/runtimeConfig`, Kosten-Budget, Store-Listings, Legal-Text-Drift, Firebase-**Rules** bei Schemaänderungen.
-- **Öffentliches README** kann per Workflow aus [docs/public/README.md](docs/public/README.md) gespiegelt werden (nicht automatisch `README.md` im Wurzelverzeichnis ersetzen).
+- Regelmäßig prüfen: Dependency- und Secret-Rotation, `system/runtimeConfig`, Kostenbudgets, Store-Listings, Legal-Text-Drift und Firebase-**Rules** bei Schemaänderungen.
+- **Öffentlicher Mirror:** Der Workflow [`.github/workflows/sync-public-readme.yml`](.github/workflows/sync-public-readme.yml) spiegelt die Root-`README.md` samt lokal verlinkter Inhalte in das konfigurierte Public-Repo.
 
 ---
 
 ## Beiträge, Git-Workflow und Release-Prozess
 
-- **Branch-Modell:** in diesem Repo: **CI auf `main`** und **Pull Requests** (siehe [`.github/workflows/ci.yml`](.github/workflows/ci.yml)). Ein getrenntes `develop` oder eure teaminternen **Git-Flow-Regeln** stehen außerhalb — wo ihr sie braucht, in **Team-Regelwerk** führen.
+- **Branch-Modell:** In diesem Repo läuft CI auf `main` mit Pull Requests (siehe [`.github/workflows/ci.yml`](.github/workflows/ci.yml)). Ein separates `develop` oder eigene Git-Flow-Regeln gehören ins Team-Regelwerk.
 - **Pull-Request-Disziplin:** Änderungen an **Trust, Billing, Legal, Firestore-Regeln** nur zusammen mit den zugehörigen **Doku-Anpassungen** in [docs/](docs/) (siehe [docs/README.md](docs/README.md) „Operating Standard“).
 - **Releases:** semantische Versionen und **Store-Paketierung** laut euren Checklisten; diese README beschreibt **nicht** jeden Release-Schritt, verweist aber vollständig.
 - **CONTRIBUTING.md** ist im Root **optional**; minimaler Einstieg für neue Mitwirkende: `./scripts/ci_local_gate.sh` + Doku-Index in [docs/README.md](docs/README.md).
@@ -760,23 +831,32 @@ Bei **Berechtigungs**-Bugs: Client, **ID-Token-Claims**, **User-Dokument in Fire
 
 ## Changelog
 
-Im Repository-Wurzelverzeichnis gibt es **keine** verpflichtende, versionsgeführte **CHANGELOG-Datei**; sinnvoll: **GitHub Releases** (Tags) und/oder zeitgeführte Notizen in [docs/release/](docs/release/), damit Kunden- und interne **Nachvollziehbarkeit** außerhalb reiner Commits entsteht.
+Die zentrale Historie liegt in [CHANGELOG.md](CHANGELOG.md). Ergänzend sind **GitHub Releases** (Tags) und/oder zeitgeführte Notizen in [docs/release/](docs/release/) sinnvoll, damit Kunden- und interne Nachvollziehbarkeit außerhalb reiner Commits entsteht.
 
 ---
 
 ## Lizenz
 
-Die **Lizenzierung** dieses Quellcodes liegt in **eurer** Hoheit (intern, kommerziell, spätere Open-Source-Freigabe o. ä.). Eine `LICENSE` im Repo-Root dient dabei als **eindeutige, nach außen sichtbare** Regel; legt sie fest, **bevor** ihr Quellcode öffentlich teilt. Welche Lizenz wirtschaftlich und rechtlich passt, entscheidet **ihr** mit fachlicher Beratung — die README wählt keine Lizenz.
+Die **Lizenzierung** dieses Quellcodes liegt in der Hoheit des Owners/Betreibers (intern, kommerziell, spätere Open-Source-Freigabe o. ä.). Eine `LICENSE` im Repo-Root dient als **eindeutige, nach außen sichtbare** Regel; sie sollte festgelegt sein, bevor Quellcode öffentlich geteilt wird. Welche Lizenz wirtschaftlich und rechtlich passt, ist eine Betreiberentscheidung mit fachlicher Beratung — die README wählt keine Lizenz.
 
 ---
 
 ## Support und Kontakt
 
-- **Aktuell in der Doku/Produktkontext genannte** Anlaufsadresse: **skydownent@gmail.com** — in **eurer** finalen **öffentlichen** Kommunikation (App, [site/support.html](site/support.html), Store-Listings) die **tatsächlich** betriebene(n) **Support-URL(s) und Erreichbarkeiten** führen; das ist **Produkt- und Kundenbeziehung**, nicht technische Repo-Sache.
+- Primärer Kontaktkanal: **skydownent@gmail.com**.
+- Der Owner agiert als verantwortlicher Unternehmer für Produkt, Betrieb und Rechtstexte.
+- Rückfragen zu rechtlichen, betrieblichen oder inhaltlichen Punkten bitte direkt über den oben genannten Kontakt an den Owner richten.
+- In App, [site/support.html](site/support.html) und Store-Listings sollten dieselben Support-Kanäle konsistent gepflegt sein.
 
 ---
 
 ## Troubleshooting und typische Fehlerbilder
+
+Schnell vorgehen:
+
+1. Fehlerbild im Build-/Runtime-Log sauber eingrenzen.
+2. Rolle/Token/Rules gemeinsam prüfen (nicht isoliert).
+3. Danach erst gezielte Fixes oder Rollback entscheiden.
 
 | Symptom | Mögliche Ursache | Erste Schritte |
 | --- | --- | --- |
@@ -792,7 +872,7 @@ Die **Lizenzierung** dieses Quellcodes liegt in **eurer** Hoheit (intern, kommer
 | Lokal anderes Node | Engine-Warnung, riskante Differenzen | `nvm install 22 && nvm use 22` in `functions/` |
 | `npm` Vulnerabilities | abhängig von `firebase-tools` u. a. | `npm audit`, gezielte Upgrades, keine unreflektierten `audit fix --force` in Prod |
 
-Für **Pager, Eskalation, interne 24/7-Prozesse** — absichtlich **kein** Inhalt hier; gehört in **betriebliche** und ggf. nur **unternehmensinterne** Doku.
+Pager, Eskalation und interne 24/7-Prozesse stehen absichtlich nicht hier; sie gehören in Betriebs- und ggf. interne Sicherheitsdokumentation.
 
 ---
 
@@ -868,9 +948,11 @@ Auszug wichtiger Verweise:
 
 ## Recht, Datenschutz, KI-Transparenz
 
-- **Ort der rechtlich relevanten Texte** (AGB, Datenschutz, Impressum, Abo-Bedingungen, KI-Nutzungshinweis, ggf. weitere): [docs/legal/](docs/legal/) und die **zur Veröffentlichung** vorgesehenen Inhalte in [site/](site/) (Privacy, Terms, Support). **Inhaltliche Richtigkeit, Fristen, Geltungsbereich und Anpassung an euer Geschäftsmodell** liegen bei **euch** als Anbieter; diese README hält **keine** parallele Rechtstext-Version vor.
-- **Operative Compliance-Struktur** (Checklisten, Rollen, Prozesshüllen): [docs/compliance/README.md](docs/compliance/README.md) — ergänzt eure *tatsächlichen* vertraglichen und behördlichen Pflichten.
-- **Europäische und allgemeine Referenzquellen** (z. B. EU AI Act, DSGVO) sind in den **jeweiligen Legal- und Compliance-Dokumenten** des Repos oder offiziell verlinkt, wo es für eure **Textarbeit** hilft — nicht um hier abstrakt „abzusichern“, sondern damit **ihr** gezielt Stellen findet, an denen *ihr* inhaltlich entscheidet.
+- **Ort der rechtlich relevanten Texte** (AGB, Datenschutz, Impressum, Abo-Bedingungen, KI-Nutzungshinweis, ggf. weitere): [docs/legal/](docs/legal/) und die **zur Veröffentlichung** vorgesehenen Inhalte in [site/](site/) (Privacy, Terms, Support).
+- **Verantwortung:** Der Owner/Unternehmer verantwortet Inhalt, Aktualität, Geltungsbereich und Anpassung an das Geschäftsmodell. Diese README hält keine zweite, parallele Rechtstext-Version vor.
+- **Rückfragen:** Rechtliche oder organisatorische Rückfragen laufen direkt über den Support-Kontakt im Abschnitt [Support und Kontakt](#support-und-kontakt).
+- **Operative Compliance-Struktur** (Checklisten, Rollen, Prozesshüllen): [docs/compliance/README.md](docs/compliance/README.md) — ergänzt die tatsächlichen vertraglichen und behördlichen Pflichten.
+- **Europäische und allgemeine Referenzquellen** (z. B. EU AI Act, DSGVO) sind in den jeweiligen Legal- und Compliance-Dokumenten des Repos oder offiziell verlinkt, damit Entscheidungen zu Inhalten nachvollziehbar und gezielt getroffen werden können.
 
 ---
 
