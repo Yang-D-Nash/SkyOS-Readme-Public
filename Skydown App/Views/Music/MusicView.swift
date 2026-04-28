@@ -498,7 +498,7 @@ struct MusicView: View {
                         .font(.headline)
                         .lineLimit(1)
 
-                    Text(isSelected ? "Aktiv" : "Waehlen")
+                    Text("Waehlen")
                         .font(.caption)
                         .foregroundColor(
                             isSelected

@@ -13,6 +13,24 @@ struct AIPromptSettings: Equatable {
     static let `default` = AIPromptSettings()
 }
 
+struct AIFaqKnowledgeEntry: Equatable, Identifiable {
+    var id: String
+    var question: String
+    var answer: String
+    var tags: [String]
+    var isPublished: Bool
+
+    static func empty() -> AIFaqKnowledgeEntry {
+        AIFaqKnowledgeEntry(
+            id: UUID().uuidString.lowercased(),
+            question: "",
+            answer: "",
+            tags: [],
+            isPublished: false
+        )
+    }
+}
+
 enum AIRuntimeAgentProvider: String, CaseIterable, Equatable {
     case gemini
     case grok
@@ -121,6 +139,18 @@ struct AIRuntimeBotAgentCore: Equatable {
     var killSwitch: Bool = false
 }
 
+struct AIRuntimeKnowledgeGoogleDriveSettings: Equatable {
+    var isEnabled: Bool = false
+    var strictSourceMode: Bool = true
+    var requireSourceCitations: Bool = true
+    var allowedSharedDriveIds: [String] = []
+    var allowedFolderIds: [String] = []
+}
+
+struct AIRuntimeKnowledgeSettings: Equatable {
+    var googleDrive: AIRuntimeKnowledgeGoogleDriveSettings = AIRuntimeKnowledgeGoogleDriveSettings()
+}
+
 struct AIRuntimeBotSettings: Equatable {
     var promptVersion: String = "bot-max-v1"
     var qualityMode: String = "balanced"
@@ -147,6 +177,7 @@ struct AIRuntimeSettings: Equatable {
     var hardDailyCaps: AIRuntimeKindLimits = .hardDefaults
     var globalDailyCaps: AIRuntimeKindLimits = .globalDefaults
     var manus: AIRuntimeManusSettings = AIRuntimeManusSettings()
+    var knowledge: AIRuntimeKnowledgeSettings = AIRuntimeKnowledgeSettings()
     var bot: AIRuntimeBotSettings = AIRuntimeBotSettings()
 
     static let `default` = AIRuntimeSettings()
@@ -157,6 +188,13 @@ protocol AIPromptSettingsServicing {
         _ onChange: @escaping @MainActor (Result<AIPromptSettings, Error>) -> Void
     ) -> () -> Void
     func updateSettings(_ settings: AIPromptSettings) async throws
+}
+
+protocol AIFaqKnowledgeStudioServicing {
+    func observeEntries(
+        _ onChange: @escaping @MainActor (Result<[AIFaqKnowledgeEntry], Error>) -> Void
+    ) -> () -> Void
+    func updateEntries(_ entries: [AIFaqKnowledgeEntry]) async throws
 }
 
 protocol AIRuntimeSettingsServicing {
@@ -260,6 +298,124 @@ final class FirestoreAIPromptSettingsService: AIPromptSettingsServicing {
     }
 }
 
+final class FirestoreAIFaqKnowledgeStudioService: AIFaqKnowledgeStudioServicing {
+    private let firestore: Firestore
+    private let collectionName = "adminConfig"
+    private let documentName = "aiStudioFaqKnowledge"
+
+    init(firestore: Firestore = Firestore.firestore()) {
+        self.firestore = firestore
+    }
+
+    func observeEntries(
+        _ onChange: @escaping @MainActor (Result<[AIFaqKnowledgeEntry], Error>) -> Void
+    ) -> () -> Void {
+        let listener = firestore.collection(collectionName).document(documentName).addSnapshotListener { snapshot, error in
+            Task { @MainActor in
+                if let error {
+                    onChange(.failure(error))
+                    return
+                }
+
+                onChange(.success(Self.decode(snapshot?.data() ?? [:])))
+            }
+        }
+
+        return {
+            listener.remove()
+        }
+    }
+
+    func updateEntries(_ entries: [AIFaqKnowledgeEntry]) async throws {
+        try await firestore.collection(collectionName).document(documentName).setData([
+            "entries": Self.encode(entries),
+            "updatedAt": FieldValue.serverTimestamp()
+        ], merge: true)
+    }
+
+    private static func decode(_ data: [String: Any]) -> [AIFaqKnowledgeEntry] {
+        guard let rawEntries = data["entries"] as? [Any] else { return [] }
+
+        let decoded = rawEntries.compactMap { raw -> AIFaqKnowledgeEntry? in
+            guard let map = raw as? [String: Any] else { return nil }
+            let question = normalizeInstruction(map["question"] as? String, fallback: "")
+            let answer = normalizeInstruction(map["answer"] as? String, fallback: "")
+            guard !question.isEmpty, !answer.isEmpty else { return nil }
+            let tags = normalizeEntryTags(map["tags"])
+            let id = normalizeEntryID(map["id"] as? String, fallbackQuestion: question)
+            return AIFaqKnowledgeEntry(
+                id: id,
+                question: question,
+                answer: answer,
+                tags: tags,
+                isPublished: map["isPublished"] as? Bool ?? false
+            )
+        }
+
+        return Array(decoded.prefix(120))
+    }
+
+    private static func encode(_ entries: [AIFaqKnowledgeEntry]) -> [[String: Any]] {
+        entries
+            .prefix(120)
+            .compactMap { entry in
+                let question = normalizeInstruction(entry.question, fallback: "")
+                let answer = normalizeInstruction(entry.answer, fallback: "")
+                guard !question.isEmpty, !answer.isEmpty else { return nil }
+                return [
+                    "id": normalizeEntryID(entry.id, fallbackQuestion: question),
+                    "question": question,
+                    "answer": answer,
+                    "tags": normalizeEntryTags(entry.tags),
+                    "isPublished": entry.isPublished
+                ]
+            }
+    }
+
+    private static func normalizeEntryTags(_ raw: Any?) -> [String] {
+        let values: [String]
+        if let list = raw as? [String] {
+            values = list
+        } else if let anyList = raw as? [Any] {
+            values = anyList.compactMap { $0 as? String }
+        } else {
+            values = []
+        }
+
+        var seen = Set<String>()
+        var result: [String] = []
+        for tag in values {
+            let normalized = tag
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+            guard !normalized.isEmpty else { continue }
+            let capped = String(normalized.prefix(40))
+            guard !seen.contains(capped) else { continue }
+            seen.insert(capped)
+            result.append(capped)
+            if result.count >= 12 { break }
+        }
+        return result
+    }
+
+    private static func normalizeEntryID(_ value: String?, fallbackQuestion: String) -> String {
+        let trimmedValue = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let base = trimmedValue.isEmpty ? fallbackQuestion : trimmedValue
+        let lowered = base.lowercased()
+        let allowed = lowered.map { character -> Character in
+            if character.isLetter || character.isNumber || character == "-" || character == "_" {
+                return character
+            }
+            return "-"
+        }
+        let collapsed = String(allowed)
+            .replacingOccurrences(of: "--", with: "-")
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-_"))
+        let candidate = String(collapsed.prefix(64))
+        return candidate.isEmpty ? UUID().uuidString.lowercased() : candidate
+    }
+}
+
 final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
     private let firestore: Firestore
     private let collectionName = "adminConfig"
@@ -294,6 +450,8 @@ final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
 
     private static func decode(_ data: [String: Any]) -> AIRuntimeSettings {
         let manusData = data["manus"] as? [String: Any] ?? [:]
+        let knowledgeData = data["knowledge"] as? [String: Any] ?? [:]
+        let googleDriveData = knowledgeData["googleDrive"] as? [String: Any] ?? [:]
         let botData = data["bot"] as? [String: Any] ?? [:]
         let botModelPolicy = botData["modelPolicy"] as? [String: Any] ?? [:]
         let botCostGuard = botData["costGuard"] as? [String: Any] ?? [:]
@@ -359,6 +517,21 @@ final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
                 autoStopOnWaiting: manusData["autoStopOnWaiting"] as? Bool ?? true,
                 blockHighCreditEvents: manusData["blockHighCreditEvents"] as? Bool ?? true,
                 includeVerboseEvents: manusData["includeVerboseEvents"] as? Bool ?? false
+            ),
+            knowledge: AIRuntimeKnowledgeSettings(
+                googleDrive: AIRuntimeKnowledgeGoogleDriveSettings(
+                    isEnabled: googleDriveData["isEnabled"] as? Bool ?? false,
+                    strictSourceMode: googleDriveData["strictSourceMode"] as? Bool ?? true,
+                    requireSourceCitations: googleDriveData["requireSourceCitations"] as? Bool ?? true,
+                    allowedSharedDriveIds: normalizeRuntimeStringArray(
+                        googleDriveData["allowedSharedDriveIds"],
+                        fallback: []
+                    ),
+                    allowedFolderIds: normalizeRuntimeStringArray(
+                        googleDriveData["allowedFolderIds"],
+                        fallback: []
+                    )
+                )
             ),
             bot: AIRuntimeBotSettings(
                 promptVersion: normalizeShortString(
@@ -578,6 +751,21 @@ final class FirestoreAIRuntimeSettingsService: AIRuntimeSettingsServicing {
                 "autoStopOnWaiting": settings.manus.autoStopOnWaiting,
                 "blockHighCreditEvents": settings.manus.blockHighCreditEvents,
                 "includeVerboseEvents": settings.manus.includeVerboseEvents
+            ],
+            "knowledge": [
+                "googleDrive": [
+                    "isEnabled": settings.knowledge.googleDrive.isEnabled,
+                    "strictSourceMode": settings.knowledge.googleDrive.strictSourceMode,
+                    "requireSourceCitations": settings.knowledge.googleDrive.requireSourceCitations,
+                    "allowedSharedDriveIds": normalizeRuntimeStringArray(
+                        settings.knowledge.googleDrive.allowedSharedDriveIds,
+                        fallback: []
+                    ),
+                    "allowedFolderIds": normalizeRuntimeStringArray(
+                        settings.knowledge.googleDrive.allowedFolderIds,
+                        fallback: []
+                    )
+                ]
             ],
             "bot": [
                 "promptVersion": normalizeShortString(
@@ -870,6 +1058,59 @@ final class AIPromptSettingsStore: ObservableObject {
             switch result {
             case .success(let settings):
                 self.settings = settings
+                self.lastErrorMessage = nil
+            case .failure(let error):
+                self.lastErrorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    deinit {
+        stopObserving?()
+    }
+}
+
+@MainActor
+final class AIFaqKnowledgeStudioStore: ObservableObject {
+    static let shared = AIFaqKnowledgeStudioStore()
+
+    @Published private(set) var entries: [AIFaqKnowledgeEntry] = []
+    @Published private(set) var lastErrorMessage: String?
+
+    private let service: AIFaqKnowledgeStudioServicing
+    private var stopObserving: (() -> Void)?
+    private var isObservationEnabled = false
+
+    init(service: AIFaqKnowledgeStudioServicing = FirestoreAIFaqKnowledgeStudioService()) {
+        self.service = service
+    }
+
+    func setObservationEnabled(_ isEnabled: Bool) {
+        guard isEnabled != isObservationEnabled else { return }
+        isObservationEnabled = isEnabled
+
+        if isEnabled {
+            startObserving()
+        } else {
+            stopObserving?()
+            stopObserving = nil
+            entries = []
+            lastErrorMessage = nil
+        }
+    }
+
+    func save(_ entries: [AIFaqKnowledgeEntry]) async throws {
+        try await service.updateEntries(entries)
+    }
+
+    private func startObserving() {
+        stopObserving?()
+        stopObserving = service.observeEntries { [weak self] result in
+            guard let self else { return }
+
+            switch result {
+            case .success(let entries):
+                self.entries = entries
                 self.lastErrorMessage = nil
             case .failure(let error):
                 self.lastErrorMessage = error.localizedDescription

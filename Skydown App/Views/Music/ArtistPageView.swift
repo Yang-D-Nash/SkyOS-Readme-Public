@@ -357,14 +357,9 @@ struct ArtistPageView: View {
                             .font(.caption.weight(.semibold))
                             .lineLimit(1)
                         if selected {
-                            HStack(spacing: 5) {
-                                Circle()
-                                    .fill(AppColors.spotify(for: colorScheme))
-                                    .frame(width: 5, height: 5)
-                                Text("Aktiv")
-                                    .font(.caption2.weight(.semibold))
-                            }
-                            .foregroundColor(AppColors.spotify(for: colorScheme))
+                            Circle()
+                                .fill(AppColors.spotify(for: colorScheme))
+                                .frame(width: 5, height: 5)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -1128,6 +1123,15 @@ struct ArtistPageView: View {
         guard canEdit else { return }
         isUploadingHeroVideo = true
         defer { isUploadingHeroVideo = false }
+
+        if UITestRuntime.usesIsolatedAuthService {
+            let previousURL = heroVideoURLDraft
+            let url = "https://ui-tests.skydown.local/assets/artist-hero-video-fixture.mp4"
+            registerTemporaryAsset(previousURL: previousURL, newURL: url)
+            heroVideoURLDraft = url
+            showToast("Hero-Video Fixture hochgeladen.", style: .success)
+            return
+        }
 
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("ui-test-hero-video")

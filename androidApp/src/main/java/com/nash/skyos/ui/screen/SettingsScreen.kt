@@ -425,6 +425,11 @@ fun SettingsScreen(
     var aiManusAutoStopOnWaitingDraft by rememberSaveable { mutableStateOf(true) }
     var aiManusBlockHighCreditEventsDraft by rememberSaveable { mutableStateOf(true) }
     var aiManusIncludeVerboseEventsDraft by rememberSaveable { mutableStateOf(false) }
+    var aiKnowledgeGoogleDriveEnabledDraft by rememberSaveable { mutableStateOf(false) }
+    var aiKnowledgeGoogleDriveStrictSourceModeDraft by rememberSaveable { mutableStateOf(true) }
+    var aiKnowledgeGoogleDriveRequireSourceCitationsDraft by rememberSaveable { mutableStateOf(true) }
+    var aiKnowledgeGoogleDriveAllowedSharedDriveIdsDraft by rememberSaveable { mutableStateOf("") }
+    var aiKnowledgeGoogleDriveAllowedFolderIdsDraft by rememberSaveable { mutableStateOf("") }
     var aiHardTextLimitDraft by rememberSaveable { mutableStateOf("") }
     var aiHardVisualLimitDraft by rememberSaveable { mutableStateOf("") }
     var aiHardAgentLimitDraft by rememberSaveable { mutableStateOf("") }
@@ -473,6 +478,10 @@ fun SettingsScreen(
     var activeAdminWorkspaceKey by rememberSaveable(initialAdminWorkspaceKey) {
         mutableStateOf(initialAdminWorkspaceKey ?: AdminWorkspaceSection.Users.name)
     }
+    var activeSettingsRootArea by rememberSaveable {
+        mutableStateOf(if (uiState.isOwner) SettingsRootArea.OwnerConsole else SettingsRootArea.User)
+    }
+    var activeOwnerConsoleArea by rememberSaveable { mutableStateOf(OwnerConsoleArea.Ops) }
     val activeAdminWorkspace = remember(activeAdminWorkspaceKey) {
         AdminWorkspaceSection.fromSavedKey(activeAdminWorkspaceKey)
     }
@@ -636,6 +645,11 @@ fun SettingsScreen(
         aiManusAutoStopOnWaitingDraft = uiState.aiRuntimeSettings.manus.autoStopOnWaiting
         aiManusBlockHighCreditEventsDraft = uiState.aiRuntimeSettings.manus.blockHighCreditEvents
         aiManusIncludeVerboseEventsDraft = uiState.aiRuntimeSettings.manus.includeVerboseEvents
+        aiKnowledgeGoogleDriveEnabledDraft = uiState.aiRuntimeSettings.knowledge.googleDrive.isEnabled
+        aiKnowledgeGoogleDriveStrictSourceModeDraft = uiState.aiRuntimeSettings.knowledge.googleDrive.strictSourceMode
+        aiKnowledgeGoogleDriveRequireSourceCitationsDraft = uiState.aiRuntimeSettings.knowledge.googleDrive.requireSourceCitations
+        aiKnowledgeGoogleDriveAllowedSharedDriveIdsDraft = uiState.aiRuntimeSettings.knowledge.googleDrive.allowedSharedDriveIds.joinToString("\n")
+        aiKnowledgeGoogleDriveAllowedFolderIdsDraft = uiState.aiRuntimeSettings.knowledge.googleDrive.allowedFolderIds.joinToString("\n")
         aiHardTextLimitDraft = uiState.aiRuntimeSettings.hardDailyCaps.text.toString()
         aiHardVisualLimitDraft = uiState.aiRuntimeSettings.hardDailyCaps.visual.toString()
         aiHardAgentLimitDraft = uiState.aiRuntimeSettings.hardDailyCaps.agent.toString()
@@ -680,6 +694,18 @@ fun SettingsScreen(
         aiBotUpgradeHintProToCreatorTextDraft = uiState.aiRuntimeSettings.bot.actionLayer.upgradeHintProToCreatorText
         aiBotFaqPriorityModeDraft = uiState.aiRuntimeSettings.bot.actionLayer.faqPriorityMode
         aiBotPromptVersionAliasDraft = uiState.aiRuntimeSettings.bot.actionLayer.promptVersionAlias
+    }
+
+    LaunchedEffect(uiState.isOwner) {
+        if (!uiState.isOwner && activeSettingsRootArea == SettingsRootArea.OwnerConsole) {
+            activeSettingsRootArea = SettingsRootArea.User
+        }
+    }
+
+    LaunchedEffect(uiState.isLoggedIn) {
+        if (!uiState.isLoggedIn && activeSettingsRootArea == SettingsRootArea.CreatorOps) {
+            activeSettingsRootArea = SettingsRootArea.User
+        }
     }
 
     LaunchedEffect(uiState.legalContentSettings) {
@@ -3439,6 +3465,54 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
+                Text(
+                    text = "Knowledge / Google Drive (adminConfig/aiRuntime.knowledge.googleDrive)",
+                    modifier = Modifier.padding(top = 14.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                SettingsToggleRow(
+                    title = "Google Drive Knowledge aktiv",
+                    body = "Aktiviert Drive als zulaessige Knowledge-Quelle.",
+                    checked = aiKnowledgeGoogleDriveEnabledDraft,
+                    onCheckedChange = { aiKnowledgeGoogleDriveEnabledDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                SettingsToggleRow(
+                    title = "Strict Source Mode",
+                    body = "Antworten nur auf Basis zugelassener Quellen.",
+                    checked = aiKnowledgeGoogleDriveStrictSourceModeDraft,
+                    onCheckedChange = { aiKnowledgeGoogleDriveStrictSourceModeDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                SettingsToggleRow(
+                    title = "Source Citations erzwingen",
+                    body = "Antworten muessen Quellenzitate enthalten.",
+                    checked = aiKnowledgeGoogleDriveRequireSourceCitationsDraft,
+                    onCheckedChange = { aiKnowledgeGoogleDriveRequireSourceCitationsDraft = it },
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                OutlinedTextField(
+                    value = aiKnowledgeGoogleDriveAllowedSharedDriveIdsDraft,
+                    onValueChange = { aiKnowledgeGoogleDriveAllowedSharedDriveIdsDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Allowed Shared Drive IDs") },
+                    supportingText = { Text("Eine ID pro Zeile oder komma-separiert.") },
+                    minLines = 3,
+                )
+                OutlinedTextField(
+                    value = aiKnowledgeGoogleDriveAllowedFolderIdsDraft,
+                    onValueChange = { aiKnowledgeGoogleDriveAllowedFolderIdsDraft = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    label = { Text("Allowed Folder IDs") },
+                    supportingText = { Text("Eine ID pro Zeile oder komma-separiert.") },
+                    minLines = 3,
+                )
+
                 OutlinedTextField(
                     value = aiHardTextLimitDraft,
                     onValueChange = { aiHardTextLimitDraft = it },
@@ -3546,6 +3620,15 @@ fun SettingsScreen(
                                 autoStopOnWaiting = aiManusAutoStopOnWaitingDraft,
                                 blockHighCreditEvents = aiManusBlockHighCreditEventsDraft,
                                 includeVerboseEvents = aiManusIncludeVerboseEventsDraft,
+                            ),
+                            knowledge = currentRuntime.knowledge.copy(
+                                googleDrive = currentRuntime.knowledge.googleDrive.copy(
+                                    isEnabled = aiKnowledgeGoogleDriveEnabledDraft,
+                                    strictSourceMode = aiKnowledgeGoogleDriveStrictSourceModeDraft,
+                                    requireSourceCitations = aiKnowledgeGoogleDriveRequireSourceCitationsDraft,
+                                    allowedSharedDriveIds = aiKnowledgeGoogleDriveAllowedSharedDriveIdsDraft.parseRuntimeIdList(),
+                                    allowedFolderIds = aiKnowledgeGoogleDriveAllowedFolderIdsDraft.parseRuntimeIdList(),
+                                ),
                             ),
                             bot = currentRuntime.bot.copy(
                                 promptVersion = aiBotPromptVersionDraft,
@@ -4162,6 +4245,61 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                 ) {
                 item {
+                    SkydownCard {
+                        Text(
+                            text = "Settings Area",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+                        ) {
+                            OutlinedButton(
+                                onClick = { activeSettingsRootArea = SettingsRootArea.User },
+                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (activeSettingsRootArea == SettingsRootArea.User) {
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surface
+                                    },
+                                ),
+                            ) { Text("User") }
+                            if (uiState.isLoggedIn) {
+                                OutlinedButton(
+                                    onClick = { activeSettingsRootArea = SettingsRootArea.CreatorOps },
+                                    shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = if (activeSettingsRootArea == SettingsRootArea.CreatorOps) {
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                        } else {
+                                            MaterialTheme.colorScheme.surface
+                                        },
+                                    ),
+                                ) { Text("Creator Ops") }
+                            }
+                            if (uiState.isOwner) {
+                                OutlinedButton(
+                                    onClick = { activeSettingsRootArea = SettingsRootArea.OwnerConsole },
+                                    shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = if (activeSettingsRootArea == SettingsRootArea.OwnerConsole) {
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                        } else {
+                                            MaterialTheme.colorScheme.surface
+                                        },
+                                    ),
+                                ) { Text("Owner Console") }
+                            }
+                        }
+                    }
+                }
+
+                if (activeSettingsRootArea == SettingsRootArea.User) {
+                item {
                     SettingsUtilityRow(
                         isOwner = uiState.isOwner,
                         onOpenPayments = {
@@ -4181,8 +4319,23 @@ fun SettingsScreen(
                         onOpenOrders = onOpenOrders,
                     )
                 }
+                }
 
-                item {
+                if (activeSettingsRootArea == SettingsRootArea.User) item {
+                    Text(
+                        text = "User",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    )
+                    Text(
+                        text = "Account, membership, system, and support.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp),
+                    )
+                }
+
+                if (activeSettingsRootArea == SettingsRootArea.User) item {
                     SkydownCard {
                         SectionHeader(stringResource(R.string.settings_section_profile))
                         if (uiState.isLoggedIn) {
@@ -4307,7 +4460,7 @@ fun SettingsScreen(
                     }
                 }
 
-                item {
+                if (activeSettingsRootArea == SettingsRootArea.User) item {
                     SkydownCard(
                         modifier = Modifier.testTag("settings.membership.section"),
                     ) {
@@ -4386,7 +4539,20 @@ fun SettingsScreen(
                 }
 
                 if (uiState.isOwner) {
-                    item {
+                    if (activeSettingsRootArea == SettingsRootArea.OwnerConsole) item {
+                        Text(
+                            text = "Owner Console",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                        Text(
+                            text = "Platform-wide admin, AI runtime, payments, and governance.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                            modifier = Modifier.padding(top = 2.dp, bottom = 2.dp),
+                        )
+                    }
+                    if (activeSettingsRootArea == SettingsRootArea.OwnerConsole) item {
                         SkydownCard {
                             SectionHeader(stringResource(R.string.settings_section_owner))
                             Text(
@@ -4438,35 +4604,178 @@ fun SettingsScreen(
                                 },
                                 modifier = Modifier.padding(top = 14.dp),
                             )
-                            OutlinedButton(
-                                onClick = {
-                                    activeAdminWorkspaceKey = AdminWorkspaceSection.Users.name
-                                    showAdminWorkspaceSheet = true
-                                },
+                            Text(
+                                text = "Owner Area",
+                                modifier = Modifier.padding(top = 12.dp),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 12.dp),
-                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                                    .padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                             ) {
-                                Text(stringResource(R.string.settings_all_admin_sections))
+                                OutlinedButton(
+                                    onClick = {
+                                        activeOwnerConsoleArea = OwnerConsoleArea.Ops
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = if (activeOwnerConsoleArea == OwnerConsoleArea.Ops) {
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                        } else {
+                                            MaterialTheme.colorScheme.surface
+                                        },
+                                    ),
+                                ) {
+                                    Text("Ops")
+                                }
+                                OutlinedButton(
+                                    onClick = { activeOwnerConsoleArea = OwnerConsoleArea.AiRuntime },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = if (activeOwnerConsoleArea == OwnerConsoleArea.AiRuntime) {
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                        } else {
+                                            MaterialTheme.colorScheme.surface
+                                        },
+                                    ),
+                                ) {
+                                    Text("AI Runtime")
+                                }
+                                OutlinedButton(
+                                    onClick = { activeOwnerConsoleArea = OwnerConsoleArea.Governance },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = if (activeOwnerConsoleArea == OwnerConsoleArea.Governance) {
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                        } else {
+                                            MaterialTheme.colorScheme.surface
+                                        },
+                                    ),
+                                ) {
+                                    Text("Governance")
+                                }
                             }
-                            OutlinedButton(
-                                onClick = onOpenOrders,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp),
-                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                            ) {
-                                Text(stringResource(R.string.settings_open_orders))
+                            Text(
+                                text = when (activeOwnerConsoleArea) {
+                                    OwnerConsoleArea.Ops -> "Payments, Shopify, and commerce operations."
+                                    OwnerConsoleArea.AiRuntime -> "Runtime governance and workflow automation controls."
+                                    OwnerConsoleArea.Governance -> "Users, access policy, and membership operations."
+                                },
+                                modifier = Modifier.padding(top = 8.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                            )
+
+                            if (activeOwnerConsoleArea == OwnerConsoleArea.Ops) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            activeAdminWorkspaceKey = AdminWorkspaceSection.Payments.name
+                                            showAdminWorkspaceSheet = true
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                                    ) { Text("Payments") }
+                                    OutlinedButton(
+                                        onClick = {
+                                            activeAdminWorkspaceKey = AdminWorkspaceSection.Shopify.name
+                                            showAdminWorkspaceSheet = true
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                                    ) { Text("Shopify") }
+                                }
+                            }
+
+                            if (activeOwnerConsoleArea == OwnerConsoleArea.AiRuntime) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            activeAdminWorkspaceKey = AdminWorkspaceSection.AiPrompts.name
+                                            showAdminWorkspaceSheet = true
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                                    ) { Text("Runtime") }
+                                    OutlinedButton(
+                                        onClick = {
+                                            activeAdminWorkspaceKey = AdminWorkspaceSection.Automation.name
+                                            showAdminWorkspaceSheet = true
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                                    ) { Text("Automation") }
+                                }
+                            }
+
+                            if (activeOwnerConsoleArea == OwnerConsoleArea.Governance) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            activeAdminWorkspaceKey = AdminWorkspaceSection.Users.name
+                                            showAdminWorkspaceSheet = true
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                                    ) { Text("Users") }
+                                    OutlinedButton(
+                                        onClick = {
+                                            activeAdminWorkspaceKey = AdminWorkspaceSection.MembershipOps.name
+                                            showAdminWorkspaceSheet = true
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                                    ) { Text("Membership Ops") }
+                                }
                             }
                         }
                     }
                 }
 
                 if (uiState.isLoggedIn) {
-                    item {
+                    if (activeSettingsRootArea == SettingsRootArea.CreatorOps) item {
+                        Text(
+                            text = "Creator Ops",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        )
+                        Text(
+                            text = "AI and automation operations for your own workflow.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                            modifier = Modifier.padding(top = 2.dp, bottom = 2.dp),
+                        )
+                    }
+                    if (activeSettingsRootArea == SettingsRootArea.CreatorOps) item {
                         SkydownCard {
                             SectionHeader(stringResource(R.string.settings_section_ai_agent))
+                            Text(
+                                text = "Primary action: open automation control and save workflow changes.",
+                                modifier = Modifier.padding(top = 8.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                            )
                             Row(
                                 modifier = Modifier.padding(top = 12.dp),
                                 horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
@@ -4540,7 +4849,7 @@ fun SettingsScreen(
                     }
                 }
 
-                item {
+                if (activeSettingsRootArea == SettingsRootArea.User) item {
                     SkydownCard {
                         val notificationsEnabledToast = stringResource(R.string.settings_notifications_toast_enabled)
                         val notificationsEnableInSettingsToast = stringResource(R.string.settings_notifications_toast_enable_in_settings)
@@ -4595,7 +4904,7 @@ fun SettingsScreen(
                     }
                 }
 
-                item {
+                if (activeSettingsRootArea == SettingsRootArea.User) item {
                     SkydownCard {
                         SectionHeader(stringResource(R.string.settings_section_theme))
                         AppearanceMode.entries.forEach { scheme ->
@@ -4614,7 +4923,7 @@ fun SettingsScreen(
                     }
                 }
 
-                item {
+                if (activeSettingsRootArea == SettingsRootArea.User) item {
                     SkydownCard {
                         SectionHeader(stringResource(R.string.settings_legal_section_title))
                         Text(
@@ -5444,7 +5753,13 @@ private fun ProfileEditorCard(
             enabled = !isSaving,
             shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
         ) {
-            Text(if (isSaving) "Profil wird gespeichert..." else "Profil speichern")
+            Text(
+                if (isSaving) {
+                    stringResource(R.string.settings_profile_save_loading)
+                } else {
+                    stringResource(R.string.settings_profile_save)
+                },
+            )
         }
     }
 }
@@ -6076,6 +6391,18 @@ private enum class MembershipOpsTab(val label: String) {
             return entries.firstOrNull { it.name == raw } ?: Dashboard
         }
     }
+}
+
+private enum class SettingsRootArea {
+    User,
+    CreatorOps,
+    OwnerConsole,
+}
+
+private enum class OwnerConsoleArea {
+    Ops,
+    AiRuntime,
+    Governance,
 }
 
 @Composable
@@ -7053,6 +7380,12 @@ private fun String.parseIntInRangeOrDefault(
 ): Int {
     val value = trim().toIntOrNull() ?: return fallback
     return value.coerceIn(min, max)
+}
+
+private fun String.parseRuntimeIdList(): List<String> {
+    return split('\n', ',')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
 }
 
 private fun historyOptionLabel(days: Int): String {

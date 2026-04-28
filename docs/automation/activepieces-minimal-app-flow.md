@@ -85,3 +85,13 @@ Wenn etwas **laenger** dauert: `workflowStatus` auf `queued` / `running` setzen 
 - **Reminder / Task / Note** = andere Endpoints ([workflow-http-api-activepieces.md](../workflow-http-api-activepieces.md)), andere Secrets — eigenes Thema.
 
 Kurz: **Catch Webhook → (optional Logik) → Return Response mit JSON-Contract → sync-URL in SkyOS eintragen** — dann funktioniert es mit der App.
+
+## 5) Security-Hinweis zu Webhook-Zielen
+
+SkyOS blockiert externe Workflow-Ziele, wenn sie nicht als `https://` URL erreichbar sind oder auf lokale/private Hosts zeigen (z. B. `localhost`, Loopback, RFC1918-Netze).
+
+Optional kann im Runtime-Config (`adminConfig/aiRuntime`) eine explizite Host-Allowlist gesetzt werden:
+
+- `bot.agentCore.externalPolicy.allowedAutomationWebhookHosts`
+
+Wenn gesetzt, sind nur diese Hosts (inkl. Subdomains) fuer Agent-Workflow-Webhooks erlaubt.

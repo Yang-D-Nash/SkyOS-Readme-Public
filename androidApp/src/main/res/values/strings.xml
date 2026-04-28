@@ -84,7 +84,7 @@
 
     <string name="settings_general_section">General</string>
     <string name="settings_system_language_value">System language: %1$s</string>
-    <string name="settings_supported_languages_summary">10 languages: DE, EN, ES, FR, IT, PT, NL, PL, TR, JA</string>
+    <string name="settings_supported_languages_summary">Release UI language: English. Additional localizations are disabled until reviewed.</string>
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_notifications_subtitle">Push updates for important app actions. This toggle follows system permissions.</string>
     <string name="settings_notifications_toast_enabled">Notifications are enabled.</string>
@@ -849,6 +849,8 @@
     <string name="settings_profile_bio">Bio</string>
     <string name="settings_profile_instagram">Instagram</string>
     <string name="settings_profile_whatsapp">WhatsApp</string>
+    <string name="settings_profile_save">Save profile</string>
+    <string name="settings_profile_save_loading">Saving profile…</string>
     <string name="settings_save_editors">Save editors</string>
     <string name="settings_admin_limit_bot">Bot per day</string>
     <string name="settings_admin_limit_visuals">Visuals per day</string>

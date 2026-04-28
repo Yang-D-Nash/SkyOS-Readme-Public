@@ -141,9 +141,12 @@ struct LoginView: View {
             }
             .padding()
             .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+            .contentShape(Rectangle())
+            .skydownDismissKeyboardOnTap()
             .navigationTitle(localized("auth.login.title", "Sign in"))
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
+            .skydownKeyboardDismissToolbar()
             .onChange(of: viewModel.isAuthenticated) { _, newValue in
                 if newValue { dismiss() }
             }

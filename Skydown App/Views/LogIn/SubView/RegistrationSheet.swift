@@ -141,6 +141,9 @@ struct RegistrationSheet: View {
                     Button(localized("common.cancel", "Cancel")) { dismiss() }
                 }
             }
+            .skydownKeyboardDismissToolbar()
+            .scrollDismissesKeyboard(.interactively)
+            .skydownDismissKeyboardOnTap()
             .scrollContentBackground(.hidden)
             .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         }

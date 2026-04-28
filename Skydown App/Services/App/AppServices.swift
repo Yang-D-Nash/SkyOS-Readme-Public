@@ -32,8 +32,8 @@ final class AppServices: ObservableObject {
     ) {
         let launchArguments = ProcessInfo.processInfo.arguments
         let resolvedAuthService: AuthServicing = {
-            if launchArguments.contains("-ui_test_signed_in") {
-                return UITestAuthService()
+            if UITestRuntime.usesIsolatedAuthService {
+                return UITestAuthService.shared
             }
             return authService
         }()

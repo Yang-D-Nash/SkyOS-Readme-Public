@@ -61,10 +61,13 @@ struct ProfileView: View {
                 .padding(.top, SkydownLayout.screenTopPadding)
                 .padding(.bottom, SkydownLayout.screenBottomPadding)
             }
+            .scrollDismissesKeyboard(.interactively)
+            .skydownDismissKeyboardOnTap()
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
             .navigationTitle("Profil")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
+            .skydownKeyboardDismissToolbar()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Schliessen") {

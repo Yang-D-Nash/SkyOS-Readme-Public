@@ -1,12 +1,40 @@
 import Foundation
 
+enum UITestRuntime {
+    static var usesIsolatedAuthService: Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard arguments.contains(where: { $0.hasPrefix("-ui_test") }) else {
+            return false
+        }
+
+        let environment = ProcessInfo.processInfo.environment
+        let liveBackendKeys = [
+            "SKYOS_RUN_LIVE_PROFILE_UI_TESTS",
+            "SKYOS_RUN_LIVE_MEMBERSHIP_UI_TEST",
+            "SKYOS_RUN_LIVE_AGENT_UI_TEST",
+        ]
+        return !liveBackendKeys.contains { environment[$0] == "1" }
+    }
+}
+
 @MainActor
 final class UITestAuthService: @preconcurrency AuthServicing {
+    static let shared = UITestAuthService()
+
+    private let defaults: UserDefaults
+    private let persistedEmailKey = "skydown.ui_test.auth.email"
     private var currentUser: User?
     private var observers: [UUID: @MainActor (User?) -> Void] = [:]
 
-    init() {
-        currentUser = Self.fixtureUser()
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        let persistedEmail = defaults.string(forKey: persistedEmailKey)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if let persistedEmail, !persistedEmail.isEmpty {
+            currentUser = Self.fixtureUser(email: persistedEmail)
+        } else {
+            currentUser = Self.fixtureUser()
+        }
     }
 
     func observeAuthState(_ onChange: @escaping @MainActor (User?) -> Void) -> () -> Void {
@@ -21,7 +49,9 @@ final class UITestAuthService: @preconcurrency AuthServicing {
     }
 
     func signIn(email: String, password: String) async throws {
-        currentUser = Self.fixtureUser(email: email)
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        defaults.set(normalizedEmail, forKey: persistedEmailKey)
+        currentUser = Self.fixtureUser(email: normalizedEmail)
         notifyObservers()
     }
 
@@ -29,6 +59,7 @@ final class UITestAuthService: @preconcurrency AuthServicing {
         preferredUsername: String?,
         registrationConsent: RegistrationLegalConsent?
     ) async throws {
+        defaults.removeObject(forKey: persistedEmailKey)
         currentUser = Self.fixtureUser(username: preferredUsername)
         notifyObservers()
     }
@@ -40,8 +71,10 @@ final class UITestAuthService: @preconcurrency AuthServicing {
         password: String,
         registrationConsent: RegistrationLegalConsent
     ) async throws {
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        defaults.set(normalizedEmail, forKey: persistedEmailKey)
         currentUser = Self.fixtureUser(
-            email: email,
+            email: normalizedEmail,
             username: username,
             whatsApp: whatsApp
         )
@@ -75,11 +108,13 @@ final class UITestAuthService: @preconcurrency AuthServicing {
     }
 
     func signOut() throws {
+        defaults.removeObject(forKey: persistedEmailKey)
         currentUser = nil
         notifyObservers()
     }
 
     func deleteCurrentAccount() async throws {
+        defaults.removeObject(forKey: persistedEmailKey)
         currentUser = nil
         notifyObservers()
     }
@@ -99,6 +134,11 @@ final class UITestAuthService: @preconcurrency AuthServicing {
         username: String? = nil,
         whatsApp: String? = nil
     ) -> User {
+        let normalizedEmail = (email?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()).flatMap {
+            $0.isEmpty ? nil : $0
+        }
+        let resolvedRole = UserRole.resolve(from: nil, isAdmin: false, email: normalizedEmail)
+        let resolvedPlan = UserQuotaPlan.defaultPlan(for: resolvedRole)
         let platformOwnerSession = ProcessInfo.processInfo.arguments.contains("-ui_test_platform_owner")
             && email == nil
             && username == nil
@@ -139,7 +179,7 @@ final class UITestAuthService: @preconcurrency AuthServicing {
 
         return User(
             id: "ui-test-user",
-            email: (email?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()).flatMap { $0.isEmpty ? nil : $0 } ?? "creator@skydown.app",
+            email: normalizedEmail ?? "creator@skydown.app",
             username: (username?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 } ?? "SkyOS Creator",
             profileImageURL: nil,
             whatsApp: whatsApp,
@@ -147,25 +187,25 @@ final class UITestAuthService: @preconcurrency AuthServicing {
             profileBio: "UITest session for premium screenshot capture.",
             instagramHandle: "@skyos",
             registrationDate: Date(timeIntervalSince1970: 1_756_000_000),
-            isAdmin: false,
-            role: UserRole.user.rawValue,
-            quotaPlan: UserQuotaPlan.creator.rawValue,
+            isAdmin: resolvedRole.hasStaffAccess,
+            role: resolvedRole.rawValue,
+            quotaPlan: resolvedPlan.rawValue,
             aiAccessEnabled: true,
-            aiTextRequestsPerDay: UserQuotaPlan.creator.aiTextRequestsPerDay,
-            aiVisualRequestsPerDay: UserQuotaPlan.creator.aiVisualRequestsPerDay,
-            aiAgentRequestsPerDay: UserQuotaPlan.creator.aiAgentRequestsPerDay,
-            aiHistoryRetentionDays: UserQuotaPlan.creator.aiHistoryRetentionDays,
+            aiTextRequestsPerDay: resolvedPlan.aiTextRequestsPerDay,
+            aiVisualRequestsPerDay: resolvedPlan.aiVisualRequestsPerDay,
+            aiAgentRequestsPerDay: resolvedPlan.aiAgentRequestsPerDay,
+            aiHistoryRetentionDays: resolvedPlan.aiHistoryRetentionDays,
             aiSubscriptionStatus: "active",
-            aiSubscriptionPlan: UserQuotaPlan.creator.rawValue,
+            aiSubscriptionPlan: resolvedPlan.rawValue,
             aiSubscriptionCurrentPeriodEndEpochSeconds: 1_786_204_800,
             aiSubscriptionCheckoutExpiresAtEpochSeconds: nil,
             aiSubscriptionCancelAtPeriodEnd: false,
             aiSubscriptionProvider: "app_store",
             aiSubscriptionSourcePlatform: "ios",
             aiSubscriptionProductID: "skyos.creator.monthly",
-            canManageMusicCatalog: false,
-            canManageVideoCatalog: false,
-            canModerateProfiles: false
+            canManageMusicCatalog: resolvedRole == .owner,
+            canManageVideoCatalog: resolvedRole == .owner,
+            canModerateProfiles: resolvedRole == .owner
         )
     }
 }

@@ -11,6 +11,9 @@
 import SwiftUI
 import MessageUI
 import FirebaseFunctions
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct SettingsView: View {
     @EnvironmentObject var authManager: AuthManager
@@ -22,6 +25,7 @@ struct SettingsView: View {
 
     @ObservedObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
     @ObservedObject private var aiPromptSettingsStore = AIPromptSettingsStore.shared
+    @ObservedObject private var aiFaqKnowledgeStudioStore = AIFaqKnowledgeStudioStore.shared
     @ObservedObject private var aiRuntimeSettingsStore = AIRuntimeSettingsStore.shared
     @ObservedObject private var aiFaqOwnerReviewLoopStore = AIFaqOwnerReviewLoopStore.shared
     @ObservedObject private var adminUserManagementStore = AdminUserManagementStore.shared
@@ -63,6 +67,8 @@ struct SettingsView: View {
     @State private var isRunningControlCenterCheck = false
     @State private var activeEditableImageUploadTarget: SettingsEditableImageTarget?
     @State private var activeAdminWorkspace: SettingsAdminWorkspaceSection?
+    @State private var activeSettingsRootArea: SettingsRootArea = .user
+    @State private var activeOwnerConsoleArea: OwnerConsoleArea = .ops
     @State private var showingMailOptions = false
     @State private var stripeAccountHintDraft = ""
     @State private var stripeSecretKeyDraft = ""
@@ -143,6 +149,7 @@ struct SettingsView: View {
     @State private var aiAgentSystemInstructionDraft = ""
     @State private var aiFAQInstructionDraft = ""
     @State private var aiFAQKnowledgeBaseDraft = ""
+    @State private var aiStudioFAQEntriesDraft: [AIFaqKnowledgeEntry] = []
     @State private var aiAssetLibraryLinkDraft = ""
     @State private var aiAssetReferenceNotesDraft = ""
     @State private var aiCostGuardEnabledDraft = true
@@ -197,6 +204,11 @@ struct SettingsView: View {
     @State private var aiManusAutoStopOnWaitingDraft = true
     @State private var aiManusBlockHighCreditEventsDraft = true
     @State private var aiManusIncludeVerboseEventsDraft = false
+    @State private var aiKnowledgeGoogleDriveEnabledDraft = false
+    @State private var aiKnowledgeGoogleDriveStrictSourceModeDraft = true
+    @State private var aiKnowledgeGoogleDriveRequireSourceCitationsDraft = true
+    @State private var aiKnowledgeGoogleDriveAllowedSharedDriveIdsDraft = ""
+    @State private var aiKnowledgeGoogleDriveAllowedFolderIdsDraft = ""
     @State private var aiHardTextLimitDraft = ""
     @State private var aiHardVisualLimitDraft = ""
     @State private var aiHardAgentLimitDraft = ""
@@ -527,9 +539,26 @@ struct SettingsView: View {
                         .accessibilityIdentifier("settings.open_owner_hub")
                     }
 
-                    controlCenterSectionCard
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
+                        SettingsFieldTitle(title: "Settings Area", colorScheme: effectiveColorScheme)
+                        Picker("Settings Area", selection: $activeSettingsRootArea) {
+                            Text("User").tag(SettingsRootArea.user)
+                            if authManager.userSession != nil {
+                                Text("Creator Ops").tag(SettingsRootArea.creatorOps)
+                            }
+                            if isOwnerUser {
+                                Text("Owner Console").tag(SettingsRootArea.ownerConsole)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
 
-                    SettingsSectionCard(title: AppLocalized.text("settings.section.profile_account", fallback: "Profile / Account"), colorScheme: effectiveColorScheme) {
+                    if activeSettingsRootArea == .creatorOps {
+                        controlCenterSectionCard
+                    }
+
+                    if activeSettingsRootArea == .user {
+                        SettingsSectionCard(title: AppLocalized.text("settings.section.profile_account", fallback: "Profile / Account"), colorScheme: effectiveColorScheme) {
                         if let user = authManager.userSession {
                             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                                 Text("\(AppLocalized.text("settings.logged_in_as", fallback: "Signed in as")) \(user.username)")
@@ -615,17 +644,21 @@ struct SettingsView: View {
                             }
                         }
                     }
+                    }
 
-                    if authManager.userSession != nil {
+                    if authManager.userSession != nil && activeSettingsRootArea == .creatorOps {
                         personalAgentServiceSectionCard
                     }
 
-                    membershipSectionCard
+                    if activeSettingsRootArea == .user {
+                        membershipSectionCard
+                    }
 
-                    if isOwnerUser {
+                    if isOwnerUser && activeSettingsRootArea == .ownerConsole {
                         adminWorkspaceSectionCard
                     }
 
+                    if activeSettingsRootArea == .user {
                     SettingsSectionCard(title: AppLocalized.text("settings.section.system", fallback: "System"), colorScheme: effectiveColorScheme) {
                         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                             HStack {
@@ -655,7 +688,9 @@ struct SettingsView: View {
                             )
                         }
                     }
+                    }
 
+                    if activeSettingsRootArea == .user {
                     SettingsSectionCard(title: AppLocalized.text("settings.section.theme", fallback: "Theme"), colorScheme: effectiveColorScheme) {
                         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                             ForEach(Appearance.allCases) { appearance in
@@ -669,7 +704,9 @@ struct SettingsView: View {
                             }
                         }
                     }
+                    }
 
+                    if activeSettingsRootArea == .user {
                     SettingsSectionCard(title: AppLocalized.text("settings.section.privacy_legal_help", fallback: "Privacy / Legal / Help"), colorScheme: effectiveColorScheme) {
                         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                             Text("\(AppLocalized.text("settings.version", fallback: "Version")) \(appVersion)")
@@ -863,6 +900,11 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                dismissSystemKeyboard()
+            }
             .navigationTitle(AppLocalized.text("settings.title", fallback: "Settings"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -951,6 +993,7 @@ struct SettingsView: View {
             syncAutomationDrafts(with: workflowAutomationSettings.settings)
             syncManusBYOSDrafts(with: manusByosStore.settings)
             syncAIPromptDrafts(with: aiPromptSettingsStore.settings)
+            syncAIStudioFAQDrafts(with: aiFaqKnowledgeStudioStore.entries)
             syncAIRuntimeDrafts(with: aiRuntimeSettingsStore.settings)
             syncLegalContentDrafts(with: legalContentStore.settings)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
@@ -988,6 +1031,14 @@ struct SettingsView: View {
             manusByosAPIKeyDraft = ""
             syncProfileDrafts(with: authManager.userSession)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace, userID: userID)
+            if userID == nil && activeSettingsRootArea == .creatorOps {
+                activeSettingsRootArea = .user
+            }
+        }
+        .onChange(of: isOwnerUser) { _, owner in
+            if !owner && activeSettingsRootArea == .ownerConsole {
+                activeSettingsRootArea = .user
+            }
         }
         .onChange(of: activeAdminWorkspace) { _, section in
             refreshOwnerWorkspaceObservation(for: section)
@@ -1013,6 +1064,9 @@ struct SettingsView: View {
         .onReceive(aiPromptSettingsStore.$settings) { settings in
             syncAIPromptDrafts(with: settings)
         }
+        .onReceive(aiFaqKnowledgeStudioStore.$entries) { entries in
+            syncAIStudioFAQDrafts(with: entries)
+        }
         .onReceive(aiRuntimeSettingsStore.$settings) { settings in
             syncAIRuntimeDrafts(with: settings)
         }
@@ -1032,6 +1086,7 @@ struct SettingsView: View {
             stripeBackendSecretsStore.setObservationEnabled(false)
             workflowAutomationSettings.configureObservation(isEnabled: false, userID: nil)
             aiPromptSettingsStore.setObservationEnabled(false)
+            aiFaqKnowledgeStudioStore.setObservationEnabled(false)
             aiRuntimeSettingsStore.setObservationEnabled(false)
         }
     }
@@ -1245,7 +1300,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var controlCenterSectionCard: some View {
-        SettingsSectionCard(title: "Control Center", colorScheme: effectiveColorScheme) {
+        SettingsSectionCard(title: AppLocalized.text("settings.control_center.title", fallback: "Control center"), colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
                 SettingsInlineStatusStrip(
                     icon: "slider.horizontal.3",
@@ -1329,7 +1384,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var membershipSectionCard: some View {
-        SettingsSectionCard(title: "Membership", colorScheme: effectiveColorScheme) {
+        SettingsSectionCard(title: AppLocalized.text("settings.membership.title", fallback: "Membership"), colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
                 if let user = authManager.userSession {
                     if canUseAISelfPaySubscription {
@@ -1373,9 +1428,12 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var adminWorkspaceSectionCard: some View {
-        SettingsSectionCard(title: "Owner-Bereich", colorScheme: effectiveColorScheme) {
+        SettingsSectionCard(
+            title: AppLocalized.text("settings.owner.section_title", fallback: "Owner workspace"),
+            colorScheme: effectiveColorScheme
+        ) {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-                Text("Admin & Revenue zentral steuern.")
+                Text(AppLocalized.text("settings.owner.section_subtitle", fallback: "Control admin, operations, and revenue in one place."))
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                     .accessibilityIdentifier("settings.owner.section")
@@ -1395,10 +1453,80 @@ struct SettingsView: View {
                     onOpenAI: { presentSheet(.adminWorkspace(.aiPrompts)) }
                 )
 
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
+                    SettingsFieldTitle(title: "Owner Area", colorScheme: effectiveColorScheme)
+                    Picker("Owner Area", selection: $activeOwnerConsoleArea) {
+                        Text("Ops").tag(OwnerConsoleArea.ops)
+                        Text("AI Runtime").tag(OwnerConsoleArea.aiRuntime)
+                        Text("Governance").tag(OwnerConsoleArea.governance)
+                    }
+                    .pickerStyle(.segmented)
+                    Text(ownerConsoleAreaHint)
+                        .font(.footnote)
+                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                }
+
+                if activeOwnerConsoleArea == .ops {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
+                        Button { presentSheet(.adminWorkspace(.payments)) } label: {
+                            Label("Payments", systemImage: "creditcard")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .skydownInteractiveFeedback()
+
+                        Button { presentSheet(.adminWorkspace(.shopify)) } label: {
+                            Label("Shopify", systemImage: "bag")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .skydownInteractiveFeedback()
+                    }
+                }
+
+                if activeOwnerConsoleArea == .aiRuntime {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
+                        Button { presentSheet(.adminWorkspace(.aiPrompts)) } label: {
+                            Label("Runtime", systemImage: "sparkles")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .skydownInteractiveFeedback()
+
+                        Button { presentSheet(.adminWorkspace(.automation)) } label: {
+                            Label("Automation", systemImage: "bolt")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .skydownInteractiveFeedback()
+                    }
+                }
+
+                if activeOwnerConsoleArea == .governance {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
+                        Button { presentSheet(.adminWorkspace(.users)) } label: {
+                            Label("Users", systemImage: "person.2")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .skydownInteractiveFeedback()
+
+                        Button { presentSheet(.adminWorkspace(.membershipOps)) } label: {
+                            Label("Membership Ops", systemImage: "chart.xyaxis.line")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .skydownInteractiveFeedback()
+                    }
+                }
+
                 Button {
                     presentSheet(.adminWorkspace(.users))
                 } label: {
-                    Label("Alle Admin-Bereiche", systemImage: "rectangle.grid.2x2")
+                    Label(
+                        AppLocalized.text("settings.owner.open_all_admin_areas", fallback: "Open all admin areas"),
+                        systemImage: "rectangle.grid.2x2"
+                    )
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -1420,12 +1548,17 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var personalAgentServiceSectionCard: some View {
-        SettingsSectionCard(title: "AI Control", colorScheme: effectiveColorScheme) {
+        SettingsSectionCard(title: AppLocalized.text("settings.ai_control.title", fallback: "AI control"), colorScheme: effectiveColorScheme) {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                Text("Primary action: open automation control and save workflow changes.")
+                    .font(.footnote)
+                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: SkydownLayout.stackSpacingPill) {
                     SettingsBadge(
-                        text: workflowAutomationSettings.settings.isPrepared ? "Workflow bereit" : "Workflow offen",
+                        text: workflowAutomationSettings.settings.isPrepared
+                            ? AppLocalized.text("settings.ai_control.workflow_ready", fallback: "Workflow ready")
+                            : AppLocalized.text("settings.ai_control.workflow_open", fallback: "Workflow open"),
                         colorScheme: effectiveColorScheme,
                         onTap: { presentSheet(.adminWorkspace(.automation)) }
                     )
@@ -1437,7 +1570,9 @@ struct SettingsView: View {
                         )
                     }
                     SettingsBadge(
-                        text: manusByosStore.settings.isEnabled && manusByosStore.settings.hasAPIKey ? "Manus BYOS aktiv" : "Manus BYOS aus",
+                        text: manusByosStore.settings.isEnabled && manusByosStore.settings.hasAPIKey
+                            ? AppLocalized.text("settings.ai_control.manus_byos_on", fallback: "Manus BYOS on")
+                            : AppLocalized.text("settings.ai_control.manus_byos_off", fallback: "Manus BYOS off"),
                         colorScheme: effectiveColorScheme,
                         onTap: { presentSheet(.adminWorkspace(.automation)) }
                     )
@@ -1502,7 +1637,7 @@ struct SettingsView: View {
                     }
 
                     if adminUserManagementStore.users.isEmpty {
-                        Text("Neue Konten erscheinen hier.")
+                        Text(AppLocalized.text("settings.users.new_accounts_appear_here", fallback: "New accounts appear here."))
                             .font(.footnote)
                             .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                     } else {
@@ -1518,11 +1653,12 @@ struct SettingsView: View {
                             }
                         }
                     }
+                    }
                 }
 
             case .artists:
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-                    Text("Artist-Seiten: Owner vergibt Editoren.")
+                    Text(AppLocalized.text("settings.artists.owner_assigns_editors", fallback: "Artist pages: owner assigns editors."))
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1553,7 +1689,7 @@ struct SettingsView: View {
 
             case .headers:
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-                    Text("Hero unter Home, Music, Shop, Video — Bilder werden für Lesbarkeit abgedunkelt.")
+                    Text(AppLocalized.text("settings.headers.hero_hint", fallback: "Hero in Home, Music, Shop, and Video. Images are dimmed for readability."))
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1563,7 +1699,7 @@ struct SettingsView: View {
                         SettingsBadge(text: "CRUD bereit", colorScheme: effectiveColorScheme)
                     }
 
-                    Text("Live erst nach „Header speichern“.")
+                    Text(AppLocalized.text("settings.headers.live_after_save", fallback: "Goes live only after saving headers."))
                         .font(.footnote.weight(.medium))
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1756,7 +1892,7 @@ struct SettingsView: View {
 
             case .shopify:
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-                    Text("Domain, Token, Collections — dann lädt Shopify.")
+                    Text(AppLocalized.text("settings.shopify.domain_token_collections_hint", fallback: "Domain, token, and collections are required before Shopify can load."))
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1810,7 +1946,7 @@ struct SettingsView: View {
                     }
 
                     if shopifyAdminSettingsStore.availableCollections.isEmpty == false {
-                        Text("Verfuegbare Collections")
+                        Text(AppLocalized.text("settings.shopify.available_collections", fallback: "Available collections"))
                             .font(.headline)
                             .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
@@ -1844,12 +1980,12 @@ struct SettingsView: View {
                             }
                         }
                     } else if let message = shopifyAdminSettingsStore.collectionsErrorMessage {
-                        Text("Collections konnten nicht geladen werden: \(message)")
+                        Text("\(AppLocalized.text("settings.shopify.collections_load_failed", fallback: "Collections could not be loaded")): \(message)")
                             .font(.footnote)
                             .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                     }
 
-                    Text("Antippen oder Handles. Leer = ganzer Store.")
+                    Text(AppLocalized.text("settings.shopify.handles_hint", fallback: "Tap to select or enter handles. Empty means full store."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1862,7 +1998,7 @@ struct SettingsView: View {
 
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button(action: saveShopifyAdminSettings) {
-                            Label("Shopify speichern", systemImage: "shippingbox.and.arrow.backward")
+                            Label(AppLocalized.text("settings.shopify.save", fallback: "Save Shopify"), systemImage: "shippingbox.and.arrow.backward")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
@@ -1873,7 +2009,7 @@ struct SettingsView: View {
                             Button {
                                 openURL(url)
                             } label: {
-                                Label("Link oeffnen", systemImage: "arrow.up.right.square")
+                                Label(AppLocalized.text("common.open_link", fallback: "Open link"), systemImage: "arrow.up.right.square")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
@@ -1884,7 +2020,7 @@ struct SettingsView: View {
 
             case .payments:
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-                    Text("PayPal/Bank: manuell. Stripe live. Klarna über Stripe, wenn aktiv.")
+                    Text(AppLocalized.text("settings.payments.provider_hint", fallback: "PayPal and bank transfer are manual. Stripe is live. Klarna runs via Stripe when enabled."))
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -1989,7 +2125,7 @@ struct SettingsView: View {
 
             case .commerce:
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-                    Text("Versand & Steuer für Checkout. Store-Schalter = harte Freigabe.")
+                    Text(AppLocalized.text("settings.commerce.shipping_tax_hint", fallback: "Shipping and tax for checkout. Store switch is a hard gate."))
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2004,7 +2140,7 @@ struct SettingsView: View {
                         )
                     }
 
-                    Text("Versand")
+                    Text(AppLocalized.text("settings.commerce.shipping_title", fallback: "Shipping"))
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
@@ -2050,7 +2186,7 @@ struct SettingsView: View {
                     Divider()
                         .padding(.vertical, 4)
 
-                    Text("Rechnung")
+                    Text(AppLocalized.text("settings.commerce.invoice_title", fallback: "Invoice"))
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
@@ -2110,7 +2246,7 @@ struct SettingsView: View {
                     Button {
                         saveCommerceSettings()
                     } label: {
-                        Label("Versand & Rechnung speichern", systemImage: "shippingbox.and.arrow.backward")
+                        Label(AppLocalized.text("settings.commerce.save_shipping_invoice", fallback: "Save shipping and invoice"), systemImage: "shippingbox.and.arrow.backward")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -2132,7 +2268,7 @@ struct SettingsView: View {
                         )
                     )
 
-                    Text("Lokal. Link + Hinweise für KI. Sync später.")
+                    Text(AppLocalized.text("settings.visuals.local_sync_later_hint", fallback: "Stored locally. Link and notes for AI. Sync comes later."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2165,11 +2301,11 @@ struct SettingsView: View {
                     )
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                        Text("Referenzhinweise")
+                        Text(AppLocalized.text("settings.visuals.reference_notes", fallback: "Reference notes"))
                             .font(.headline)
                             .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                        Text("Bis zu 5 kurze Hinweise fuer Charaktere, Elemente, Moodboards oder Shots.")
+                        Text(AppLocalized.text("settings.visuals.reference_notes_hint", fallback: "Up to five short hints for characters, elements, moodboards, or shots."))
                             .font(.footnote)
                             .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2206,8 +2342,8 @@ struct SettingsView: View {
 
                     if !isOwnerUser {
                         Picker("Provider", selection: $automationProviderDraft) {
-                            Text("Activepieces").tag("activepieces")
-                            Text("n8n").tag("n8n")
+                            Text(AppLocalized.text("settings.automation.provider_activepieces", fallback: "Activepieces")).tag("activepieces")
+                            Text(AppLocalized.text("settings.automation.provider_n8n", fallback: "n8n")).tag("n8n")
                         }
                         .pickerStyle(.segmented)
                     }
@@ -2275,13 +2411,13 @@ struct SettingsView: View {
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                         if let saveReason = automationSaveDisabledReasons.first {
-                            Text("Speichern: \(saveReason)")
+                            Text("\(AppLocalized.text("settings.automation.save_reason_prefix", fallback: "Save")): \(saveReason)")
                                 .font(.caption)
                                 .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                         }
 
                         if let testReason = automationTestDisabledReasons.first {
-                            Text("Test: \(testReason)")
+                            Text("\(AppLocalized.text("settings.automation.test_reason_prefix", fallback: "Test")): \(testReason)")
                                 .font(.caption)
                                 .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                         }
@@ -2314,11 +2450,11 @@ struct SettingsView: View {
 
                     Divider()
 
-                    Text("Persoenlicher Manus-Account (optional)")
+                    Text(AppLocalized.text("settings.manus.personal_account_optional", fallback: "Personal Manus account (optional)"))
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                    Text("Aktiv = Key pro Anfrage — nur Keychain.")
+                    Text(AppLocalized.text("settings.manus.key_usage_hint", fallback: "When enabled, one key per request from keychain only."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2342,7 +2478,7 @@ struct SettingsView: View {
                         placeholder: "sk-..."
                     )
 
-                    Text("Key ersetzen oder löschen — ohne Key: Backend.")
+                    Text(AppLocalized.text("settings.manus.key_replace_remove_hint", fallback: "Replace or remove key. Without a key, backend fallback is used."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2357,7 +2493,7 @@ struct SettingsView: View {
 
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button(action: saveManusBYOSSettings) {
-                            Label("Manus speichern", systemImage: "lock.shield")
+                            Label(AppLocalized.text("settings.manus.save", fallback: "Save Manus"), systemImage: "lock.shield")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
@@ -2365,7 +2501,7 @@ struct SettingsView: View {
                         .tint(AppColors.accent(for: effectiveColorScheme))
 
                         Button(action: clearManusBYOSAPIKey) {
-                            Label("Key entfernen", systemImage: "trash")
+                            Label(AppLocalized.text("settings.manus.remove_key", fallback: "Remove key"), systemImage: "trash")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
@@ -2387,30 +2523,35 @@ struct SettingsView: View {
 
             case .aiPrompts:
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-                    Text("Bot / Visual / Agent — `adminConfig/aiPromptSettings`. Optional: Asset-Link global.")
+                    Text(AppLocalized.text(
+                        "settings.ai_prompts.intro",
+                        fallback: "Bot, visual, and agent instructions in adminConfig/aiPromptSettings. Optional global asset link."
+                    ))
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: SkydownLayout.stackSpacingPill) {
                             SettingsBadge(
-                                text: "Text \(aiTextInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
+                                text: "\(AppLocalized.text("settings.ai_prompts.badge_text", fallback: "Text")) \(aiTextInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
-                                text: "Visual \(aiVisualInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
+                                text: "\(AppLocalized.text("settings.ai_prompts.badge_visual", fallback: "Visual")) \(aiVisualInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
-                                text: "Agent \(aiAgentSystemInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
+                                text: "\(AppLocalized.text("settings.ai_prompts.badge_agent", fallback: "Agent")) \(aiAgentSystemInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
-                                text: "FAQ \(aiFAQInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
+                                text: "\(AppLocalized.text("settings.ai_prompts.badge_faq", fallback: "FAQ")) \(aiFAQInstructionDraft.trimmingCharacters(in: .whitespacesAndNewlines).count)",
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
-                                text: aiAssetLibraryLinkDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Assets aus" : "Assets aktiv",
+                                text: aiAssetLibraryLinkDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                    ? AppLocalized.text("settings.ai_prompts.badge_assets_off", fallback: "Assets off")
+                                    : AppLocalized.text("settings.ai_prompts.badge_assets_on", fallback: "Assets on"),
                                 colorScheme: effectiveColorScheme
                             )
                         }
@@ -2456,6 +2597,100 @@ struct SettingsView: View {
                         minHeight: 160
                     )
 
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                        Text("AI Studio FAQ Base (Owner)")
+                            .font(.headline)
+                            .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                        Text("Nur veroeffentlichte Eintraege gehen in den Bot-Knowledge-Load-Path.")
+                            .font(.footnote)
+                            .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                            SettingsBadge(
+                                text: "Entries \(aiStudioFAQEntriesDraft.count)",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: "Published \(aiStudioFAQEntriesDraft.filter { $0.isPublished }.count)",
+                                colorScheme: effectiveColorScheme
+                            )
+                        }
+
+                        ForEach($aiStudioFAQEntriesDraft) { $entry in
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
+                                SettingsInputField(
+                                    title: "Frage",
+                                    text: $entry.question,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "z. B. Wie upgrade ich auf Creator?"
+                                )
+
+                                SettingsMultilineInputField(
+                                    title: "Antwort",
+                                    text: $entry.answer,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "Kurze, klare Zielantwort...",
+                                    minHeight: 110
+                                )
+
+                                SettingsInputField(
+                                    title: "Tags (comma separated)",
+                                    text: Binding(
+                                        get: { entry.tags.joined(separator: ", ") },
+                                        set: { entry.tags = parseTagDraftList($0) }
+                                    ),
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "membership, restore, abo"
+                                )
+
+                                Toggle("Published", isOn: $entry.isPublished)
+                                    .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: effectiveColorScheme)))
+
+                                Button(role: .destructive) {
+                                    removeAIStudioFAQEntry(entry.id)
+                                } label: {
+                                    Label("Eintrag entfernen", systemImage: "trash")
+                                }
+                                .buttonStyle(.bordered)
+                                .skydownInteractiveFeedback()
+                            }
+                            .padding(12)
+                            .background(AppColors.secondaryBackground(for: effectiveColorScheme))
+                            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                                    .stroke(AppColors.accent(for: effectiveColorScheme).opacity(0.12), lineWidth: 1)
+                            )
+                        }
+
+                        Button {
+                            appendAIStudioFAQEntry()
+                        } label: {
+                            Label("FAQ-Eintrag hinzufuegen", systemImage: "plus")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .skydownInteractiveFeedback()
+
+                        Button(action: saveAIStudioFAQEntries) {
+                            Label("FAQ Base speichern", systemImage: "checkmark.seal")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.accentHighlight(for: effectiveColorScheme))
+                        .skydownInteractiveFeedback()
+
+                        if let storeError = aiFaqKnowledgeStudioStore.lastErrorMessage, !storeError.isEmpty {
+                            Text("FAQ Base konnte nicht geladen werden: \(storeError)")
+                                .font(.footnote)
+                                .foregroundColor(.red)
+                        }
+                    }
+
                     SettingsInputField(
                         title: "Asset- / Referenzbibliothek",
                         text: $aiAssetLibraryLinkDraft,
@@ -2472,12 +2707,12 @@ struct SettingsView: View {
                         minHeight: 110
                     )
 
-                    Text("Leere Felder fallen automatisch auf den Standard zurueck.")
+                    Text(AppLocalized.text("settings.ai_prompts.empty_resets_default", fallback: "Empty fields automatically reset to the default."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                     Button(action: saveAIPromptSettings) {
-                        Label("KI-Anweisungen speichern", systemImage: "sparkles")
+                        Label(AppLocalized.text("settings.ai_prompts.save", fallback: "Save AI instructions"), systemImage: "sparkles")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -2487,13 +2722,13 @@ struct SettingsView: View {
                     Divider()
                         .padding(.vertical, 4)
 
-                    Text("Runtime & Provider (`adminConfig/aiRuntime`)")
+                    Text(AppLocalized.text("settings.ai_runtime.heading", fallback: "Runtime and provider (adminConfig/aiRuntime)"))
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                         HStack {
-                            Text("FAQ Review Loop (30d)")
+                            Text(AppLocalized.text("settings.ai_runtime.faq_review_loop_title", fallback: "FAQ review loop (30d)"))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundColor(AppColors.text(for: effectiveColorScheme))
                             Spacer()
@@ -2501,7 +2736,7 @@ struct SettingsView: View {
                                 ProgressView()
                                     .controlSize(.small)
                             } else {
-                                Button("Aktualisieren") {
+                                Button(AppLocalized.text("common.refresh", fallback: "Refresh")) {
                                     Task { await aiFaqOwnerReviewLoopStore.refresh(windowDays: aiFaqReviewLoopWindowDays) }
                                 }
                                 .font(.caption.weight(.semibold))
@@ -2520,7 +2755,7 @@ struct SettingsView: View {
                         }
 
                         if let errorMessage = aiFaqOwnerReviewLoopStore.lastErrorMessage, !errorMessage.isEmpty {
-                            Text("Review Loop konnte nicht geladen werden: \(errorMessage)")
+                            Text("\(AppLocalized.text("settings.ai_runtime.review_loop_load_failed", fallback: "Review loop could not be loaded")): \(errorMessage)")
                                 .font(.footnote)
                                 .foregroundColor(.red)
                         } else {
@@ -2533,17 +2768,17 @@ struct SettingsView: View {
                             .padding(.bottom, 2)
 
                             if let topStrong = aiFaqOwnerReviewLoopStore.strongestTriggers.first {
-                                Text("Strongest Trigger: \(topStrong.triggerKey) · Conv \(Int(topStrong.conversionRate * 100))% · Repeat \(Int(topStrong.repeatRate * 100))%")
+                                Text("\(AppLocalized.text("settings.ai_runtime.strongest_trigger_prefix", fallback: "Strongest trigger")): \(topStrong.triggerKey) · Conv \(Int(topStrong.conversionRate * 100))% · Repeat \(Int(topStrong.repeatRate * 100))%")
                                     .font(.footnote)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                             }
                             if let topWeak = aiFaqOwnerReviewLoopStore.weakTriggers.first {
-                                Text("Weak Trigger: \(topWeak.triggerKey) · Conv \(Int(topWeak.conversionRate * 100))% · Repeat \(Int(topWeak.repeatRate * 100))%")
+                                Text("\(AppLocalized.text("settings.ai_runtime.weak_trigger_prefix", fallback: "Weak trigger")): \(topWeak.triggerKey) · Conv \(Int(topWeak.conversionRate * 100))% · Repeat \(Int(topWeak.repeatRate * 100))%")
                                     .font(.footnote)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                             }
                             if let topRepeat = aiFaqOwnerReviewLoopStore.repeatHeavyTopics.first {
-                                Text("Repeat-Heavy Topic: \(topRepeat.key) (\(topRepeat.value)x, \(Int(topRepeat.share * 100))%)")
+                                Text("\(AppLocalized.text("settings.ai_runtime.repeat_heavy_topic_prefix", fallback: "Repeat-heavy topic")): \(topRepeat.key) (\(topRepeat.value)x, \(Int(topRepeat.share * 100))%)")
                                     .font(.footnote)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                             }
@@ -2556,7 +2791,7 @@ struct SettingsView: View {
                                     Text(insight.summary)
                                         .font(.caption)
                                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-                                    Text("Erwartete Wirkung: \(insight.expectedImpact)")
+                                    Text("\(AppLocalized.text("settings.ai_runtime.expected_impact_prefix", fallback: "Expected impact")): \(insight.expectedImpact)")
                                         .font(.caption2)
                                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                                 }
@@ -2576,11 +2811,11 @@ struct SettingsView: View {
                                     Text(recommendation.summary)
                                         .font(.caption)
                                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
-                                    Text("Action: \(recommendation.actionType) · Target: \(recommendation.targetField) · Suggest: \(recommendation.suggestedValueLabel)")
+                                    Text("\(AppLocalized.text("settings.ai_runtime.recommendation_action_prefix", fallback: "Action")): \(recommendation.actionType) · \(AppLocalized.text("settings.ai_runtime.recommendation_target_prefix", fallback: "Target")): \(recommendation.targetField) · \(AppLocalized.text("settings.ai_runtime.recommendation_suggest_prefix", fallback: "Suggest")): \(recommendation.suggestedValueLabel)")
                                         .font(.caption2)
                                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                                     HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                                        Button("Preview") {
+                                        Button(AppLocalized.text("common.preview", fallback: "Preview")) {
                                             Task {
                                                 let message = await aiFaqOwnerReviewLoopStore.preview(
                                                     recommendation: recommendation,
@@ -2592,7 +2827,7 @@ struct SettingsView: View {
                                         .font(.caption.weight(.semibold))
                                         .buttonStyle(.bordered)
 
-                                        Button("Apply") {
+                                        Button(AppLocalized.text("common.apply", fallback: "Apply")) {
                                             Task {
                                                 let message = await aiFaqOwnerReviewLoopStore.apply(
                                                     recommendation: recommendation,
@@ -2612,7 +2847,7 @@ struct SettingsView: View {
                                         .fill(AppColors.cardBackground(for: effectiveColorScheme))
                                 )
                             }
-                            Button("Revert Last Change") {
+                            Button(AppLocalized.text("settings.ai_runtime.revert_last_change", fallback: "Revert last change")) {
                                 Task {
                                     let message = await aiFaqOwnerReviewLoopStore.revertLastChange(windowDays: aiFaqReviewLoopWindowDays)
                                     showToastMessage(message, style: message.contains("revert") ? .success : .info)
@@ -2623,7 +2858,7 @@ struct SettingsView: View {
                         }
                     }
 
-                    Text("Bot-Core + Agent-Provider — gleiche Governance fuer iOS und Android.")
+                    Text(AppLocalized.text("settings.ai_runtime.bot_core_governance_hint", fallback: "Bot core and agent provider share governance across iOS and Android."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2656,7 +2891,7 @@ struct SettingsView: View {
                         }
                     }
 
-                    Text("Bot Core (`adminConfig/aiRuntime.bot`)")
+                    Text(AppLocalized.text("settings.ai_runtime.bot_core_heading", fallback: "Bot core (adminConfig/aiRuntime.bot)"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
@@ -2684,8 +2919,8 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "Quality Mode", colorScheme: effectiveColorScheme)
                         Picker("Quality Mode", selection: $aiBotQualityModeDraft) {
-                            Text("Balanced").tag("balanced")
-                            Text("High").tag("high")
+                            Text(AppLocalized.text("common.balanced", fallback: "Balanced")).tag("balanced")
+                            Text(AppLocalized.text("common.high", fallback: "High")).tag("high")
                         }
                         .pickerStyle(.segmented)
                     }
@@ -2693,9 +2928,9 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "FAQ Mode", colorScheme: effectiveColorScheme)
                         Picker("FAQ Mode", selection: $aiBotFAQModeDraft) {
-                            Text("Off").tag("off")
-                            Text("Auto").tag("auto")
-                            Text("Prefer").tag("prefer_faq")
+                            Text(AppLocalized.text("common.off", fallback: "Off")).tag("off")
+                            Text(AppLocalized.text("common.auto", fallback: "Auto")).tag("auto")
+                            Text(AppLocalized.text("common.prefer", fallback: "Prefer")).tag("prefer_faq")
                         }
                         .pickerStyle(.segmented)
                     }
@@ -2703,8 +2938,8 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "Owner Mode", colorScheme: effectiveColorScheme)
                         Picker("Owner Mode", selection: $aiBotOwnerModeDraft) {
-                            Text("Standard").tag("standard")
-                            Text("Diagnostic").tag("diagnostic")
+                            Text(AppLocalized.text("common.standard", fallback: "Standard")).tag("standard")
+                            Text(AppLocalized.text("common.diagnostic", fallback: "Diagnostic")).tag("diagnostic")
                         }
                         .pickerStyle(.segmented)
                     }
@@ -2712,9 +2947,9 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "Antwortlaenge", colorScheme: effectiveColorScheme)
                         Picker("Antwortlaenge", selection: $aiBotAnswerLengthDraft) {
-                            Text("Adaptive").tag("adaptive")
-                            Text("Kurz").tag("short")
-                            Text("Tief").tag("detailed")
+                            Text(AppLocalized.text("common.adaptive", fallback: "Adaptive")).tag("adaptive")
+                            Text(AppLocalized.text("common.short", fallback: "Short")).tag("short")
+                            Text(AppLocalized.text("common.detailed", fallback: "Detailed")).tag("detailed")
                         }
                         .pickerStyle(.segmented)
                     }
@@ -2722,9 +2957,9 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "Diagnostics", colorScheme: effectiveColorScheme)
                         Picker("Diagnostics", selection: $aiBotDiagnosticsModeDraft) {
-                            Text("Off").tag("off")
-                            Text("Owner").tag("owner_only")
-                            Text("Verbose").tag("verbose")
+                            Text(AppLocalized.text("common.off", fallback: "Off")).tag("off")
+                            Text(AppLocalized.text("common.owner", fallback: "Owner")).tag("owner_only")
+                            Text(AppLocalized.text("common.verbose", fallback: "Verbose")).tag("verbose")
                         }
                         .pickerStyle(.segmented)
                     }
@@ -2788,9 +3023,9 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(title: "FAQ Prioritaet", colorScheme: effectiveColorScheme)
                         Picker("FAQ Prioritaet", selection: $aiBotFaqPriorityModeDraft) {
-                            Text("Live -> Owner -> Generic").tag("live_owner_generic")
-                            Text("Owner -> Live -> Generic").tag("owner_live_generic")
-                            Text("Balanced").tag("balanced")
+                            Text(AppLocalized.text("settings.ai_runtime.faq_priority_live_owner", fallback: "Live -> Owner -> Generic")).tag("live_owner_generic")
+                            Text(AppLocalized.text("settings.ai_runtime.faq_priority_owner_live", fallback: "Owner -> Live -> Generic")).tag("owner_live_generic")
+                            Text(AppLocalized.text("common.balanced", fallback: "Balanced")).tag("balanced")
                         }
                         .pickerStyle(.segmented)
                     }
@@ -2866,11 +3101,11 @@ struct SettingsView: View {
 
                     Toggle("Manus freigeben", isOn: $aiManusEnabledDraft)
 
-                    Text("Manus Runtime (`adminConfig/aiRuntime.manus`)")
+                    Text(AppLocalized.text("settings.ai_runtime.manus_heading", fallback: "Manus runtime (adminConfig/aiRuntime.manus)"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                    Text("Secret nur in Functions — nicht in der App.")
+                    Text(AppLocalized.text("settings.ai_runtime.manus_secret_hint", fallback: "Secret is stored in Functions only, never in the app."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
@@ -2924,6 +3159,33 @@ struct SettingsView: View {
                     Divider()
                         .padding(.vertical, 4)
 
+                    Text("Knowledge / Google Drive (adminConfig/aiRuntime.knowledge.googleDrive)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                    Toggle("Google Drive Knowledge aktiv", isOn: $aiKnowledgeGoogleDriveEnabledDraft)
+                    Toggle("Strict Source Mode", isOn: $aiKnowledgeGoogleDriveStrictSourceModeDraft)
+                    Toggle("Source Citations erzwingen", isOn: $aiKnowledgeGoogleDriveRequireSourceCitationsDraft)
+
+                    SettingsMultilineInputField(
+                        title: "Allowed Shared Drive IDs",
+                        text: $aiKnowledgeGoogleDriveAllowedSharedDriveIdsDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Eine ID pro Zeile oder komma-separiert.",
+                        minHeight: 100
+                    )
+
+                    SettingsMultilineInputField(
+                        title: "Allowed Folder IDs",
+                        text: $aiKnowledgeGoogleDriveAllowedFolderIdsDraft,
+                        colorScheme: effectiveColorScheme,
+                        placeholder: "Eine ID pro Zeile oder komma-separiert.",
+                        minHeight: 100
+                    )
+
+                    Divider()
+                        .padding(.vertical, 4)
+
                     SettingsInputField(
                         title: "Hard Cap Text / Tag",
                         text: $aiHardTextLimitDraft,
@@ -2969,7 +3231,7 @@ struct SettingsView: View {
                     )
 
                     Button(action: saveAIRuntimeSettings) {
-                        Label("KI Runtime speichern", systemImage: "switch.2")
+                        Label(AppLocalized.text("settings.ai_runtime.save", fallback: "Save AI runtime"), systemImage: "switch.2")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
@@ -3031,6 +3293,17 @@ struct SettingsView: View {
 
     private var preferredSupportSenderEmail: String? {
         authManager.userSession?.email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var ownerConsoleAreaHint: String {
+        switch activeOwnerConsoleArea {
+        case .ops:
+            return "Payments, Shopify, and commerce operations."
+        case .aiRuntime:
+            return "Runtime governance and workflow automation controls."
+        case .governance:
+            return "Users, access policy, and membership operations."
+        }
     }
 
     private var supportMailSubject: String {
@@ -3340,6 +3613,10 @@ struct SettingsView: View {
         aiAssetReferenceNotesDraft = settings.assetReferenceNotes
     }
 
+    private func syncAIStudioFAQDrafts(with entries: [AIFaqKnowledgeEntry]) {
+        aiStudioFAQEntriesDraft = entries
+    }
+
     private func syncAIRuntimeDrafts(with settings: AIRuntimeSettings) {
         aiCostGuardEnabledDraft = settings.costGuardEnabled
         aiAgentProviderDraft = settings.agentProvider
@@ -3354,6 +3631,15 @@ struct SettingsView: View {
         aiManusAutoStopOnWaitingDraft = settings.manus.autoStopOnWaiting
         aiManusBlockHighCreditEventsDraft = settings.manus.blockHighCreditEvents
         aiManusIncludeVerboseEventsDraft = settings.manus.includeVerboseEvents
+        aiKnowledgeGoogleDriveEnabledDraft = settings.knowledge.googleDrive.isEnabled
+        aiKnowledgeGoogleDriveStrictSourceModeDraft = settings.knowledge.googleDrive.strictSourceMode
+        aiKnowledgeGoogleDriveRequireSourceCitationsDraft = settings.knowledge.googleDrive.requireSourceCitations
+        aiKnowledgeGoogleDriveAllowedSharedDriveIdsDraft = formatRuntimeIDDraftList(
+            settings.knowledge.googleDrive.allowedSharedDriveIds
+        )
+        aiKnowledgeGoogleDriveAllowedFolderIdsDraft = formatRuntimeIDDraftList(
+            settings.knowledge.googleDrive.allowedFolderIds
+        )
         aiHardTextLimitDraft = String(settings.hardDailyCaps.text)
         aiHardVisualLimitDraft = String(settings.hardDailyCaps.visual)
         aiHardAgentLimitDraft = String(settings.hardDailyCaps.agent)
@@ -3431,6 +3717,7 @@ struct SettingsView: View {
             scope: isOwnerUser ? "owner_global" : "user_personal"
         )
         aiPromptSettingsStore.setObservationEnabled(shouldObserveAIPrompts)
+        aiFaqKnowledgeStudioStore.setObservationEnabled(shouldObserveAIPrompts)
         aiRuntimeSettingsStore.setObservationEnabled(shouldObserveAIPrompts)
         if shouldObserveAIPrompts {
             Task { await aiFaqOwnerReviewLoopStore.refresh(windowDays: aiFaqReviewLoopWindowDays) }
@@ -3539,7 +3826,7 @@ struct SettingsView: View {
                         Button {
                             activePresentedSheetBinding.wrappedValue = nil
                         } label: {
-                            Label("Schliessen", systemImage: "xmark")
+                            Label(AppLocalized.text("common.close", fallback: "Close"), systemImage: "xmark")
                         }
                     }
                 }
@@ -3773,6 +4060,36 @@ struct SettingsView: View {
         }
     }
 
+    private func appendAIStudioFAQEntry() {
+        aiStudioFAQEntriesDraft.append(.empty())
+    }
+
+    private func removeAIStudioFAQEntry(_ id: String) {
+        aiStudioFAQEntriesDraft.removeAll { $0.id == id }
+    }
+
+    private func parseTagDraftList(_ raw: String) -> [String] {
+        raw
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .filter { !$0.isEmpty }
+            .reduce(into: [String]()) { result, value in
+                guard !result.contains(value), result.count < 12 else { return }
+                result.append(String(value.prefix(40)))
+            }
+    }
+
+    private func saveAIStudioFAQEntries() {
+        Task {
+            do {
+                try await aiFaqKnowledgeStudioStore.save(aiStudioFAQEntriesDraft)
+                showToastMessage("FAQ Base gespeichert. Nur Published-Eintraege sind live im Bot.", style: .success)
+            } catch {
+                showToastMessage("FAQ Base konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
     private func saveLegalContentSettings() {
         Task {
             var updated = legalContentStore.settings
@@ -3853,6 +4170,15 @@ struct SettingsView: View {
             updated.manus.autoStopOnWaiting = aiManusAutoStopOnWaitingDraft
             updated.manus.blockHighCreditEvents = aiManusBlockHighCreditEventsDraft
             updated.manus.includeVerboseEvents = aiManusIncludeVerboseEventsDraft
+            updated.knowledge.googleDrive.isEnabled = aiKnowledgeGoogleDriveEnabledDraft
+            updated.knowledge.googleDrive.strictSourceMode = aiKnowledgeGoogleDriveStrictSourceModeDraft
+            updated.knowledge.googleDrive.requireSourceCitations = aiKnowledgeGoogleDriveRequireSourceCitationsDraft
+            updated.knowledge.googleDrive.allowedSharedDriveIds = parseRuntimeIDDraftList(
+                aiKnowledgeGoogleDriveAllowedSharedDriveIdsDraft
+            )
+            updated.knowledge.googleDrive.allowedFolderIds = parseRuntimeIDDraftList(
+                aiKnowledgeGoogleDriveAllowedFolderIdsDraft
+            )
             updated.bot.promptVersion = aiBotPromptVersionDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             updated.bot.qualityMode = aiBotQualityModeDraft
             updated.bot.faqMode = aiBotFAQModeDraft
@@ -3945,6 +4271,17 @@ struct SettingsView: View {
         }
 
         return Swift.max(min, Swift.min(max, value))
+    }
+
+    private func parseRuntimeIDDraftList(_ draft: String) -> [String] {
+        draft
+            .split(whereSeparator: { $0 == "," || $0 == "\n" })
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    private func formatRuntimeIDDraftList(_ values: [String]) -> String {
+        values.joined(separator: "\n")
     }
 
     private func runAutomationTest() {
@@ -4369,6 +4706,7 @@ private struct SettingsInputField: View {
     let colorScheme: ColorScheme
     let placeholder: String
     var keyboardType: UIKeyboardType = .default
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
@@ -4376,12 +4714,22 @@ private struct SettingsInputField: View {
 
             TextField(placeholder, text: $text)
                 .keyboardType(keyboardType)
+                .submitLabel(.done)
+                .focused($isFocused)
                 .textInputAutocapitalization(
                     keyboardType == .emailAddress || keyboardType == .asciiCapable || keyboardType == .URL
                         ? .never
                         : .sentences
                 )
                 .settingsFieldChrome(colorScheme: colorScheme)
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") {
+                            isFocused = false
+                        }
+                    }
+                }
         }
     }
 }
@@ -4391,14 +4739,25 @@ private struct SettingsSecureInputField: View {
     @Binding var text: String
     let colorScheme: ColorScheme
     let placeholder: String
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             SettingsFieldTitle(title: title, colorScheme: colorScheme)
 
             SecureField(placeholder, text: $text)
+                .submitLabel(.done)
+                .focused($isFocused)
                 .textInputAutocapitalization(.never)
                 .settingsFieldChrome(colorScheme: colorScheme)
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") {
+                            isFocused = false
+                        }
+                    }
+                }
         }
     }
 }
@@ -4409,6 +4768,7 @@ private struct SettingsMultilineInputField: View {
     let colorScheme: ColorScheme
     let placeholder: String
     var minHeight: CGFloat = 110
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
@@ -4426,7 +4786,16 @@ private struct SettingsMultilineInputField: View {
                 TextEditor(text: $text)
                     .scrollContentBackground(.hidden)
                     .frame(minHeight: minHeight)
+                    .focused($isFocused)
                     .settingsFieldChrome(colorScheme: colorScheme, horizontalPadding: 14, verticalPadding: 10)
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Done") {
+                                isFocused = false
+                            }
+                        }
+                    }
             }
         }
     }
@@ -4461,6 +4830,12 @@ private extension View {
     }
 }
 
+private func dismissSystemKeyboard() {
+    #if canImport(UIKit)
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    #endif
+}
+
 private struct SettingsProfileEditorCard: View {
     let colorScheme: ColorScheme
     @Binding var username: String
@@ -4490,11 +4865,11 @@ private struct SettingsProfileEditorCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
-                    Text("Profil")
+                    Text(AppLocalized.text("settings.profile.title", fallback: "Profile"))
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Username, Kurzinfo und Links.")
+                    Text(AppLocalized.text("settings.profile.subtitle", fallback: "Username, tagline, and links."))
                         .font(.subheadline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -4541,7 +4916,7 @@ private struct SettingsProfileEditorCard: View {
                     ProgressView()
                         .frame(maxWidth: .infinity)
                 } else {
-                    Label("Profil speichern", systemImage: "checkmark.circle.fill")
+                    Label(AppLocalized.text("settings.profile.save", fallback: "Save profile"), systemImage: "checkmark.circle.fill")
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -4640,7 +5015,7 @@ private struct StripeBackendSecretsCard: View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
-                    Text("Sicheres Stripe-Backend")
+                    Text(AppLocalized.text("settings.stripe_backend.title", fallback: "Secure Stripe backend"))
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -4672,7 +5047,7 @@ private struct StripeBackendSecretsCard: View {
                 )
             }
 
-            Text("Nur beim Speichern — nicht in Firestore. Live- oder Test-Keys sind moeglich. Leer = unveraendert.")
+            Text(AppLocalized.text("settings.stripe_backend.hint", fallback: "Values are only submitted on save, not stored in Firestore. Live or test keys are supported. Empty keeps previous values."))
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -4690,7 +5065,7 @@ private struct StripeBackendSecretsCard: View {
                 placeholder: "whsec_..."
             )
 
-            Button("Sicher speichern", action: onSave)
+            Button(AppLocalized.text("settings.stripe_backend.save_securely", fallback: "Save securely"), action: onSave)
                 .buttonStyle(.borderedProminent)
                 .skydownInteractiveFeedback()
                 .tint(AppColors.accent(for: colorScheme))
@@ -4721,11 +5096,11 @@ private struct NativeAISubscriptionStatusCard: View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             HStack(alignment: .top, spacing: SkydownLayout.stackSpacingPill) {
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
-                    Text("KI-Plan")
+                    Text(AppLocalized.text("settings.ai_plan.title", fallback: "AI plan"))
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Creator / Studio über App Store — Konto synchron.")
+                    Text(AppLocalized.text("settings.ai_plan.subtitle", fallback: "Creator and Studio via App Store with account sync."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -4738,7 +5113,7 @@ private struct NativeAISubscriptionStatusCard: View {
                 )
             }
 
-            Text("Aktueller Quota-Plan: \(user.resolvedQuotaPlan.displayTitle)")
+            Text("\(AppLocalized.text("settings.ai_plan.current_quota_plan_prefix", fallback: "Current quota plan")): \(user.resolvedQuotaPlan.displayTitle)")
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -4812,11 +5187,11 @@ private struct NativeAISubscriptionStatusCard: View {
                     }
                 }
             } else if isStorefrontReady {
-                Text("StoreKit aktiv — keine KI-Produkte in diesem Build.")
+                Text(AppLocalized.text("settings.ai_subscriptions.storekit_active_no_products", fallback: "StoreKit is active, but this build has no AI products."))
                     .font(.footnote)
                     .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
             } else {
-                Text("Abos in Vorbereitung — IDs folgen.")
+                Text(AppLocalized.text("settings.ai_subscriptions.coming_soon_ids_pending", fallback: "Subscriptions are in preparation. IDs are pending."))
                     .font(.footnote)
                     .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
             }
@@ -4828,11 +5203,11 @@ private struct NativeAISubscriptionStatusCard: View {
             }
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
-                Button("Kaeufe synchronisieren", action: onRestore)
+                Button(AppLocalized.text("settings.ai_subscriptions.restore_purchases", fallback: "Restore purchases"), action: onRestore)
                     .buttonStyle(.bordered)
                     .skydownInteractiveFeedback()
 
-                Button("Abo verwalten", action: onManage)
+                Button(AppLocalized.text("settings.ai_subscriptions.manage_subscription", fallback: "Manage subscription"), action: onManage)
                     .buttonStyle(.bordered)
                     .skydownInteractiveFeedback()
                     .disabled(!isStorefrontReady)
@@ -4876,7 +5251,7 @@ private struct AISubscriptionPricingCard: View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
-                    Text("KI-Abos")
+                    Text(AppLocalized.text("settings.ai_subscriptions.title", fallback: "AI subscriptions"))
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -4898,7 +5273,7 @@ private struct AISubscriptionPricingCard: View {
                 }
             }
 
-            Text("Stripe-Preise + native Produkt-IDs (iOS / später Android). iOS: Price-IDs, Produkt-IDs, App-ID.")
+            Text(AppLocalized.text("settings.ai_subscriptions.detail_hint", fallback: "Stripe prices plus native product IDs (iOS now, Android later). iOS uses price IDs, product IDs, and app ID."))
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -4958,7 +5333,7 @@ private struct AISubscriptionPricingCard: View {
                 placeholder: "skydown_ai_studio"
             )
 
-            Button("KI-Abo speichern", action: onSave)
+            Button(AppLocalized.text("settings.ai_subscriptions.save", fallback: "Save AI subscription"), action: onSave)
                 .buttonStyle(.borderedProminent)
                 .skydownInteractiveFeedback()
                 .tint(AppColors.accent(for: colorScheme))
@@ -5002,7 +5377,7 @@ private struct BankTransferSettingsCard: View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
-                    Text("Bankueberweisung")
+                    Text(AppLocalized.text("settings.bank_transfer.title", fallback: "Bank transfer"))
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -5101,7 +5476,7 @@ private struct SettingsHeroCard: View {
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("Konto, Anzeige und Support sauber an einem Ort.")
+                    Text(AppLocalized.text("settings.account_management.subtitle", fallback: "Account, visibility, and support in one place."))
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .fixedSize(horizontal: false, vertical: true)
@@ -5709,6 +6084,22 @@ private struct ShopifyCollectionToggleCard: View {
     }
 }
 
+private enum SettingsRootArea: String, CaseIterable, Identifiable {
+    case user
+    case creatorOps
+    case ownerConsole
+
+    var id: String { rawValue }
+}
+
+private enum OwnerConsoleArea: String, CaseIterable, Identifiable {
+    case ops
+    case aiRuntime
+    case governance
+
+    var id: String { rawValue }
+}
+
 private enum SettingsAdminWorkspaceSection: String, CaseIterable, Identifiable, Equatable {
     case payments = "Zahlungen"
     case users = "User"
@@ -5978,7 +6369,7 @@ private struct SettingsAdminRoleGuideCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-            Text("Rollen im System")
+            Text(AppLocalized.text("settings.roles.title", fallback: "Roles in system"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -6050,7 +6441,7 @@ private struct SettingsArtistPageCard: View {
             }
 
             if users.isEmpty {
-                Text("Mehr Konten = Editoren hier.")
+                Text(AppLocalized.text("settings.roles.more_accounts_more_editors", fallback: "More accounts means more editors here."))
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             } else {
@@ -6128,7 +6519,7 @@ private struct SettingsArtistPageCard: View {
                     )
                 )
             } label: {
-                Label("Editoren speichern", systemImage: "person.crop.circle.badge.checkmark")
+                Label(AppLocalized.text("settings.roles.save_editors", fallback: "Save editors"), systemImage: "person.crop.circle.badge.checkmark")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -6245,7 +6636,7 @@ private struct SettingsAdminUserCard: View {
             }
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                Text("Rolle")
+                Text(AppLocalized.text("settings.user.role_label", fallback: "Role"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -6276,15 +6667,15 @@ private struct SettingsAdminUserCard: View {
                 .skydownTactileAction()
 
                 if user.isPlatformOwner {
-                    Text("Owner fest: nash.lioncorna@gmail.com")
+                    Text(AppLocalized.text("settings.user.owner_fixed_account", fallback: "Owner is fixed to nash.lioncorna@gmail.com"))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 } else if isCurrentUser {
-                    Text("Eigenes Konto: Rolle geschützt. Limits anpassbar.")
+                    Text(AppLocalized.text("settings.user.self_account_role_protected", fallback: "Your account keeps a protected role. Limits are adjustable."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 } else if !canAssignOwnerRoleToUser {
-                    Text("Owner nur Hauptkonto. KI: Admin + Freigabe.")
+                    Text(AppLocalized.text("settings.user.owner_main_account_only_ai_admin_required", fallback: "Owner is only for the main account. AI requires admin and explicit access."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -6307,7 +6698,7 @@ private struct SettingsAdminUserCard: View {
             )
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                Text("Tageslimits")
+                Text(AppLocalized.text("settings.user.daily_limits", fallback: "Daily limits"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -6337,15 +6728,15 @@ private struct SettingsAdminUserCard: View {
             }
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                Text("History-Aufbewahrung")
+                Text(AppLocalized.text("settings.user.history_retention", fallback: "History retention"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
                 Picker("History-Aufbewahrung", selection: $historyRetentionDays) {
-                    Text("1 Tag").tag(1)
-                    Text("3 Tage").tag(3)
-                    Text("7 Tage").tag(7)
-                    Text("30 Tage").tag(30)
+                    Text(AppLocalized.text("settings.user.retention_1_day", fallback: "1 day")).tag(1)
+                    Text(AppLocalized.text("settings.user.retention_3_days", fallback: "3 days")).tag(3)
+                    Text(AppLocalized.text("settings.user.retention_7_days", fallback: "7 days")).tag(7)
+                    Text(AppLocalized.text("settings.user.retention_30_days", fallback: "30 days")).tag(30)
                 }
                 .pickerStyle(.segmented)
             }
@@ -6394,15 +6785,15 @@ private struct SettingsAdminUserCard: View {
                     .font(.footnote.weight(.semibold))
                     .foregroundColor(.red)
             } else if isSaving {
-                Text("Rolle, Rechte und KI-Limits werden gerade serverseitig synchronisiert.")
+                Text(AppLocalized.text("settings.user.syncing_role_rights_limits", fallback: "Role, permissions, and AI limits are syncing server-side."))
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             } else if hasPendingChanges {
-                Text("Ungespeichert — Speichern für Live-Claims & Limits.")
+                Text(AppLocalized.text("settings.user.unsaved_claims_limits", fallback: "Unsaved changes. Save to update live claims and limits."))
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             } else if saveSuccessCount > 0 {
-                Text("Gespeichert. Die letzte Aenderung wurde serverseitig bestaetigt.")
+                Text(AppLocalized.text("settings.user.saved_server_confirmed", fallback: "Saved. The latest change is confirmed server-side."))
                     .font(.footnote)
                     .foregroundColor(AppColors.accent(for: colorScheme))
             }
@@ -6526,11 +6917,11 @@ private struct SettingsAdminUserCard: View {
 
     private var ownerControlNote: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-            Text("Owner-Kontrolle")
+            Text(AppLocalized.text("settings.owner_control.title", fallback: "Owner control"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Root: Shopify, Zahlungen, Rollen, KI — nur hier.")
+            Text(AppLocalized.text("settings.owner_control.subtitle", fallback: "Root controls for Shopify, payments, roles, and AI live here."))
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -6538,7 +6929,7 @@ private struct SettingsAdminUserCard: View {
 
     private var adminCapabilitiesSection: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-            Text("Zugewiesene Funktionen")
+            Text(AppLocalized.text("settings.owner_control.assigned_functions", fallback: "Assigned functions"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -6609,7 +7000,7 @@ private struct SettingsAdminUserCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                 if draftRole == .admin {
-                    Text("Admin-KI bleibt auf Creator- und Studio-Kontingenten ausgerichtet.")
+                    Text(AppLocalized.text("settings.user.admin_ai_quota_alignment", fallback: "Admin AI remains aligned to Creator and Studio quotas."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }

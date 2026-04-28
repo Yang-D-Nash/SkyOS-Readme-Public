@@ -59,6 +59,18 @@ data class AiRuntimeManusSettings(
     val includeVerboseEvents: Boolean = false,
 )
 
+data class AiRuntimeKnowledgeGoogleDriveSettings(
+    val isEnabled: Boolean = false,
+    val strictSourceMode: Boolean = true,
+    val requireSourceCitations: Boolean = true,
+    val allowedSharedDriveIds: List<String> = emptyList(),
+    val allowedFolderIds: List<String> = emptyList(),
+)
+
+data class AiRuntimeKnowledgeSettings(
+    val googleDrive: AiRuntimeKnowledgeGoogleDriveSettings = AiRuntimeKnowledgeGoogleDriveSettings(),
+)
+
 data class AiRuntimeBotModelPolicy(
     val textPrimaryModel: String = "gemini-2.5-flash-lite",
     val textFallbackModel: String = "gemini-2.5-flash-lite",
@@ -154,6 +166,7 @@ data class AiRuntimeSettings(
     val hardDailyCaps: AiRuntimeKindLimits = AiRuntimeKindLimits.hardDefaults,
     val globalDailyCaps: AiRuntimeKindLimits = AiRuntimeKindLimits.globalDefaults,
     val manus: AiRuntimeManusSettings = AiRuntimeManusSettings(),
+    val knowledge: AiRuntimeKnowledgeSettings = AiRuntimeKnowledgeSettings(),
     val bot: AiRuntimeBotSettings = AiRuntimeBotSettings(),
 )
 
@@ -186,6 +199,8 @@ class AiRuntimeSettingsRepository(
 
 private fun Map<String, Any>.toAiRuntimeSettings(): AiRuntimeSettings {
     val manusMap = this["manus"].asStringKeyedMap()
+    val knowledgeMap = this["knowledge"].asStringKeyedMap()
+    val googleDriveMap = knowledgeMap["googleDrive"].asStringKeyedMap()
     val botMap = this["bot"].asStringKeyedMap()
     val botModelPolicyMap = botMap["modelPolicy"].asStringKeyedMap()
     val botCostGuardMap = botMap["costGuard"].asStringKeyedMap()
@@ -251,6 +266,21 @@ private fun Map<String, Any>.toAiRuntimeSettings(): AiRuntimeSettings {
             autoStopOnWaiting = manusMap["autoStopOnWaiting"] as? Boolean ?: true,
             blockHighCreditEvents = manusMap["blockHighCreditEvents"] as? Boolean ?: true,
             includeVerboseEvents = manusMap["includeVerboseEvents"] as? Boolean ?: false,
+        ),
+        knowledge = AiRuntimeKnowledgeSettings(
+            googleDrive = AiRuntimeKnowledgeGoogleDriveSettings(
+                isEnabled = googleDriveMap["isEnabled"] as? Boolean ?: false,
+                strictSourceMode = googleDriveMap["strictSourceMode"] as? Boolean ?: true,
+                requireSourceCitations = googleDriveMap["requireSourceCitations"] as? Boolean ?: true,
+                allowedSharedDriveIds = normalizeRuntimeStringList(
+                    googleDriveMap["allowedSharedDriveIds"],
+                    fallback = emptyList(),
+                ),
+                allowedFolderIds = normalizeRuntimeStringList(
+                    googleDriveMap["allowedFolderIds"],
+                    fallback = emptyList(),
+                ),
+            ),
         ),
         bot = AiRuntimeBotSettings(
             promptVersion = normalizeRuntimeString(
@@ -470,6 +500,21 @@ private fun AiRuntimeSettings.toMap(): Map<String, Any> {
             "autoStopOnWaiting" to manus.autoStopOnWaiting,
             "blockHighCreditEvents" to manus.blockHighCreditEvents,
             "includeVerboseEvents" to manus.includeVerboseEvents,
+        ),
+        "knowledge" to mapOf(
+            "googleDrive" to mapOf(
+                "isEnabled" to knowledge.googleDrive.isEnabled,
+                "strictSourceMode" to knowledge.googleDrive.strictSourceMode,
+                "requireSourceCitations" to knowledge.googleDrive.requireSourceCitations,
+                "allowedSharedDriveIds" to normalizeRuntimeStringList(
+                    knowledge.googleDrive.allowedSharedDriveIds,
+                    fallback = emptyList(),
+                ),
+                "allowedFolderIds" to normalizeRuntimeStringList(
+                    knowledge.googleDrive.allowedFolderIds,
+                    fallback = emptyList(),
+                ),
+            ),
         ),
         "bot" to mapOf(
             "promptVersion" to normalizeRuntimeString(bot.promptVersion, AiRuntimeBotSettings().promptVersion),

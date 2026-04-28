@@ -526,6 +526,8 @@ struct AgentView: View {
             }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        .skydownDismissKeyboardOnTap()
+        .skydownKeyboardDismissToolbar()
         .background(backgroundGradient.ignoresSafeArea())
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }

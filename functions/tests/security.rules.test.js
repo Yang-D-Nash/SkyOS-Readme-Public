@@ -411,6 +411,42 @@ test("user darf keine globalen Owner-adminConfig Dokumente schreiben", async () 
     isEnabled: true,
     updatedAt: Timestamp.now(),
   }));
+  await assertFails(setDoc(doc(aliceDb, "adminConfig", "aiStudioFaqKnowledge"), {
+    entries: [
+      {
+        id: "restore-flow",
+        question: "Wie restore ich?",
+        answer: "Im Membership-Bereich auf Restore tippen.",
+        isPublished: true,
+        tags: ["restore"],
+      },
+    ],
+    updatedAt: Timestamp.now(),
+  }));
+});
+
+test("owner darf AI Studio FAQ Knowledge speichern", async () => {
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+
+  await assertSucceeds(setDoc(doc(ownerDb, "adminConfig", "aiStudioFaqKnowledge"), {
+    entries: [
+      {
+        id: "creator-upgrade",
+        question: "Wann sollte ich Creator waehlen?",
+        answer: "Wenn du den Agent regelmaessig fuer laengere Workflows nutzt.",
+        isPublished: true,
+        tags: ["membership", "creator"],
+      },
+      {
+        id: "pending-entry",
+        question: "Interne Draft Frage",
+        answer: "Noch nicht freigegeben.",
+        isPublished: false,
+        tags: ["draft"],
+      },
+    ],
+    updatedAt: Timestamp.now(),
+  }));
 });
 
 test("user darf eigene Orders lesen, aber nicht verwalten", async () => {

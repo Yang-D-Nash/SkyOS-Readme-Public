@@ -20,8 +20,8 @@ class LoginViewModel: ObservableObject {
     @Published var toastStyle: ToastStyle = .info
     private let authService: AuthServicing
 
-    init(authService: AuthServicing = FirebaseAuthService()) {
-        self.authService = authService
+    init(authService: AuthServicing? = nil) {
+        self.authService = authService ?? (UITestRuntime.usesIsolatedAuthService ? UITestAuthService.shared : FirebaseAuthService())
     }
 
     var isSignInButtonDisabled: Bool {

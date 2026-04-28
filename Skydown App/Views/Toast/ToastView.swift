@@ -10,6 +10,7 @@ import SwiftUI
 struct ToastView: View {
     let message: String
     let style: ToastStyle
+    let onDismiss: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .center, spacing: SkydownLayout.stackSpacingRelaxed) {
@@ -47,6 +48,28 @@ struct ToastView: View {
             }
 
             Spacer(minLength: 0)
+
+            if let onDismiss {
+                Button {
+                    onDismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.white.opacity(0.92))
+                        .frame(width: 28, height: 28)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.14))
+                        )
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Hinweis schliessen")
+                .skydownInteractiveFeedback()
+            }
         }
         .padding(.horizontal, SkydownLayout.cardPadding)
         .padding(.vertical, 14)
@@ -104,13 +127,19 @@ struct ToastView: View {
         }
         .shadow(color: style.color.opacity(0.18), radius: 20, y: 10)
         .skydownLuminousSweep(cornerRadius: SkydownLayout.cardCornerRadius, accent: style.color, alpha: 0.18)
+        .onTapGesture {
+            onDismiss?()
+        }
+        .accessibilityAction(.escape) {
+            onDismiss?()
+        }
         .accessibilityElement(children: .combine)
     }
 }
 
 
 #Preview {
-    ToastView(message: "Profil gespeichert und direkt synchronisiert.", style: .success)
+    ToastView(message: "Profil gespeichert und direkt synchronisiert.", style: .success, onDismiss: nil)
         .padding()
         .background(Color.black)
 }

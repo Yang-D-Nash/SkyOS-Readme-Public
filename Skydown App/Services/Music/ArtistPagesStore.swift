@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import FirebaseFirestore
 
+@MainActor
 protocol ArtistPagesServicing {
     func observePages(_ onChange: @escaping @MainActor (Result<[ArtistPage], Error>) -> Void) -> () -> Void
     func save(page: ArtistPage) async throws
@@ -178,6 +179,37 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
     }
 }
 
+final class UITestArtistPagesService: ArtistPagesServicing {
+    private var pages: [ArtistPage] = []
+    private var observers: [UUID: @MainActor (Result<[ArtistPage], Error>) -> Void] = [:]
+
+    func observePages(_ onChange: @escaping @MainActor (Result<[ArtistPage], Error>) -> Void) -> () -> Void {
+        let id = UUID()
+        observers[id] = onChange
+        onChange(.success(pages))
+        return { [weak self] in
+            Task { @MainActor in
+                self?.observers.removeValue(forKey: id)
+            }
+        }
+    }
+
+    func save(page: ArtistPage) async throws {
+        if let index = pages.firstIndex(where: { $0.slug == page.slug && $0.brand == page.brand }) {
+            pages[index] = page
+        } else {
+            pages.append(page)
+        }
+        notifyObservers()
+    }
+
+    private func notifyObservers() {
+        for observer in observers.values {
+            observer(.success(pages))
+        }
+    }
+}
+
 @MainActor
 final class ArtistPagesStore: ObservableObject {
     static let shared = ArtistPagesStore()
@@ -188,8 +220,8 @@ final class ArtistPagesStore: ObservableObject {
     private let service: ArtistPagesServicing
     private var stopObserving: (() -> Void)?
 
-    init(service: ArtistPagesServicing = FirebaseArtistPagesService()) {
-        self.service = service
+    init(service: ArtistPagesServicing? = nil) {
+        self.service = service ?? (UITestRuntime.usesIsolatedAuthService ? UITestArtistPagesService() : FirebaseArtistPagesService())
         startObserving()
     }
 

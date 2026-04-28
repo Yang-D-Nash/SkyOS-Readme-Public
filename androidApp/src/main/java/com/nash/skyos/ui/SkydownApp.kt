@@ -1828,25 +1828,16 @@ private fun MusicHubSocialLinkButton(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        if (isActive) {
-            Text(
-                text = stringResource(R.string.music_hub_status_active),
-                style = MaterialTheme.typography.labelSmall,
-                color = accent.copy(alpha = 0.96f),
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
-                    .background(accent.copy(alpha = 0.16f))
-                    .padding(horizontal = 7.dp, vertical = 4.dp),
-            )
-        } else {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = colorScheme.skydownSecondaryText().copy(alpha = 0.72f),
-                modifier = Modifier.size(14.dp),
-            )
-        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = null,
+            tint = if (isActive) {
+                accent.copy(alpha = 0.86f)
+            } else {
+                colorScheme.skydownSecondaryText().copy(alpha = 0.72f)
+            },
+            modifier = Modifier.size(14.dp),
+        )
     }
 }
 
@@ -1987,7 +1978,7 @@ private fun ZweizweiMusicLaneScreen(
                                 subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { stringResource(R.string.music_hub_subtitle) },
                                 detail = screenHeaderSettings.musicHubDetail.ifBlank { stringResource(R.string.music_hub_detail) },
                                 backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
-                                accent = MaterialTheme.colorScheme.primary,
+                                accent = SpotifyGreen,
                                 secondaryAccent = MaterialTheme.colorScheme.secondary,
                                 marks = listOf(BrandArtwork.Zweizwei),
                                 compactVisualDensity = useCompactHubHero,

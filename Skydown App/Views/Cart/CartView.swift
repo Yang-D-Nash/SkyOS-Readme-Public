@@ -440,10 +440,13 @@ struct CartView: View {
                 .padding(.bottom, SkydownLayout.screenBottomPadding)
             }
             .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+            .skydownDismissKeyboardOnTap()
             .background(backgroundGradient.ignoresSafeArea())
             .navigationTitle("Warenkorb")
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
+            .skydownKeyboardDismissToolbar()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {

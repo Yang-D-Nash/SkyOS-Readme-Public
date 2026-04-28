@@ -17,7 +17,15 @@ struct ToastModifier: ViewModifier {
             content
 
             if isPresented {
-                ToastView(message: message, style: style)
+                ToastView(
+                    message: message,
+                    style: style,
+                    onDismiss: {
+                        withAnimation(SkydownMotion.statusTransition) {
+                            isPresented = false
+                        }
+                    }
+                )
                     .padding(.horizontal, 14)
                     .padding(.bottom, 18)
                     .transition(

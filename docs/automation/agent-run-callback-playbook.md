@@ -17,6 +17,13 @@ Der Callback braucht den Secret-Header:
 - Header-Name: `x-skyos-run-callback-secret`
 - Header-Wert: Inhalt von `AGENT_RUN_CALLBACK_SECRET`
 
+Secret setzen:
+
+```bash
+firebase functions:secrets:set AGENT_RUN_CALLBACK_SECRET
+firebase deploy --only functions
+```
+
 Ohne gueltigen Header kommt `401 unauthorized`.
 
 ## Minimal Payload

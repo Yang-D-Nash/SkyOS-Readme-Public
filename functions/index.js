@@ -13,6 +13,7 @@ const {genkit, z} = require("genkit");
 const {vertexAI} = require("@genkit-ai/google-genai");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const net = require("node:net");
 const {assertAppCheck} = require("./src/security/app-check");
 const {
   BILLING_LOCKDOWN_REASON_PREFIX,
@@ -92,6 +93,8 @@ const AUTOMATION_IDEMPOTENCY_KEY_MIN_LEN = 8;
 const PERSONAL_AGENT_PROFILE_DOCUMENT_PREFIX = "agentProfile_";
 const AI_PROMPT_SETTINGS_COLLECTION = "adminConfig";
 const AI_PROMPT_SETTINGS_DOCUMENT = "aiPromptSettings";
+const AI_STUDIO_FAQ_KNOWLEDGE_COLLECTION = "adminConfig";
+const AI_STUDIO_FAQ_KNOWLEDGE_DOCUMENT = "aiStudioFaqKnowledge";
 const STRIPE_SECRET_STATUS_COLLECTION = "adminConfig";
 const STRIPE_SECRET_STATUS_DOCUMENT = "stripeCheckoutSecrets";
 const REMINDER_STATUSES = Object.freeze({
@@ -582,6 +585,7 @@ const AI_SUBSCRIPTION_ACTIVE_STATUSES = Object.freeze(["active", "trialing"]);
 const AI_REMOTE_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 const AI_PROMPT_SETTINGS_CACHE_TTL_MS = 60 * 1000;
 const AI_RUNTIME_CONFIG_CACHE_TTL_MS = 60 * 1000;
+const AI_STUDIO_FAQ_KNOWLEDGE_CACHE_TTL_MS = 60 * 1000;
 const AI_RUNTIME_CONFIG_COLLECTION = "adminConfig";
 const AI_RUNTIME_CONFIG_DOCUMENT = "aiRuntime";
 const AI_USAGE_METRICS_COLLECTION = "systemMetrics";
@@ -792,6 +796,7 @@ const DEFAULT_AI_RUNTIME_SETTINGS = Object.freeze({
         externalTimeoutMs: 12000,
         externalRetryAttempts: 2,
         allowedAutomationLinkHosts: [],
+        allowedAutomationWebhookHosts: [],
       },
       diagnosticsMode: "owner_only",
       ownerMode: "standard",
@@ -817,6 +822,11 @@ let aiFeatureConfigCache = {
 let aiPromptSettingsCache = {
   expiresAt: 0,
   values: null,
+};
+
+let aiStudioFaqKnowledgeCache = {
+  expiresAt: 0,
+  values: "",
 };
 
 let aiRuntimeSettingsCache = {
@@ -1440,6 +1450,84 @@ function normalizePersonalAgentProfileSetting(value, maxChars = 4000) {
   return normalized.slice(0, maxChars);
 }
 
+function normalizeAiStudioFaqEntryId(value, fallback, index = 0) {
+  const raw = nonEmptyString(value) || nonEmptyString(fallback) || `entry-${index + 1}`;
+  return raw
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/-{2,}/g, "-")
+      .replace(/^[-_]+|[-_]+$/g, "")
+      .slice(0, 64) || `entry-${index + 1}`;
+}
+
+function normalizeAiStudioFaqEntries(rawEntries) {
+  if (!Array.isArray(rawEntries)) {
+    return [];
+  }
+
+  const seen = new Set();
+  const normalizedEntries = [];
+  for (let index = 0; index < rawEntries.length; index += 1) {
+    const entry = rawEntries[index];
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
+
+    const question = normalizeAiPromptSetting(entry.question, "");
+    const answer = normalizeAiPromptSetting(entry.answer, "");
+    if (!question || !answer) {
+      continue;
+    }
+
+    const id = normalizeAiStudioFaqEntryId(entry.id, question, index);
+    if (seen.has(id)) {
+      continue;
+    }
+    seen.add(id);
+
+    const tags = Array.isArray(entry.tags) ?
+      Array.from(new Set(entry.tags
+          .map((tag) => nonEmptyString(tag)?.toLowerCase() || "")
+          .filter(Boolean)))
+          .slice(0, 12) :
+      [];
+
+    normalizedEntries.push({
+      id,
+      question,
+      answer,
+      isPublished: entry.isPublished === true,
+      tags,
+    });
+
+    if (normalizedEntries.length >= 120) {
+      break;
+    }
+  }
+
+  return normalizedEntries;
+}
+
+function composePublishedAiStudioFaqKnowledge(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return "";
+  }
+
+  return entries
+      .filter((entry) => entry.isPublished === true)
+      .map((entry, index) => {
+        const tagsSegment = Array.isArray(entry.tags) && entry.tags.length > 0 ?
+          `\nTags: ${entry.tags.join(", ")}` :
+          "";
+        return [
+          `[Owner FAQ Entry ${index + 1}]`,
+          `Q: ${entry.question}`,
+          `A: ${entry.answer}${tagsSegment}`,
+        ].join("\n");
+      })
+      .join("\n\n");
+}
+
 function resolveAiPromptSettings(data = {}) {
   return {
     textInstruction: normalizeAiPromptSetting(
@@ -1491,6 +1579,34 @@ async function loadAiPromptSettings() {
 
   aiPromptSettingsCache = {
     expiresAt: now + AI_PROMPT_SETTINGS_CACHE_TTL_MS,
+    values,
+  };
+
+  return values;
+}
+
+async function loadPublishedAiStudioFaqKnowledge() {
+  const now = Date.now();
+  if (aiStudioFaqKnowledgeCache.expiresAt > now) {
+    return aiStudioFaqKnowledgeCache.values;
+  }
+
+  let values = "";
+  try {
+    const snapshot = await admin.firestore()
+        .collection(AI_STUDIO_FAQ_KNOWLEDGE_COLLECTION)
+        .doc(AI_STUDIO_FAQ_KNOWLEDGE_DOCUMENT)
+        .get();
+    const entries = normalizeAiStudioFaqEntries(snapshot.data()?.entries);
+    values = composePublishedAiStudioFaqKnowledge(entries);
+  } catch (error) {
+    logger.warn("AI Studio FAQ knowledge could not be loaded. Falling back to empty published knowledge.", {
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+  }
+
+  aiStudioFaqKnowledgeCache = {
+    expiresAt: now + AI_STUDIO_FAQ_KNOWLEDGE_CACHE_TTL_MS,
     values,
   };
 
@@ -1943,6 +2059,13 @@ function resolveAiBotAgentCore(raw) {
       allowedAutomationLinkHosts: (Array.isArray(source.externalPolicy?.allowedAutomationLinkHosts) ?
         source.externalPolicy.allowedAutomationLinkHosts :
         defaultCore.externalPolicy.allowedAutomationLinkHosts || [])
+          .map((entry) => nonEmptyString(entry)?.trim().toLowerCase())
+          .filter(Boolean)
+          .slice(0, 32)
+          .map((entry) => entry.slice(0, 128)),
+      allowedAutomationWebhookHosts: (Array.isArray(source.externalPolicy?.allowedAutomationWebhookHosts) ?
+        source.externalPolicy.allowedAutomationWebhookHosts :
+        defaultCore.externalPolicy.allowedAutomationWebhookHosts || [])
           .map((entry) => nonEmptyString(entry)?.trim().toLowerCase())
           .filter(Boolean)
           .slice(0, 32)
@@ -2914,6 +3037,87 @@ function buildAutomationWebhookUrl(baseURL, webhookPath) {
   return `${normalizedBaseURL}/${normalizedWebhookPath}`;
 }
 
+function normalizeAutomationWebhookHostAllowlist(policy = {}) {
+  const raw = policy?.allowedAutomationWebhookHosts;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return [...new Set(raw
+      .map((entry) => nonEmptyString(entry)?.toLowerCase())
+      .filter(Boolean)
+      .slice(0, 80))];
+}
+
+function isPrivateOrSpecialIpv4(ipv4) {
+  const parts = ipv4.split(".").map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return true;
+  }
+  if (parts[0] === 10) return true;
+  if (parts[0] === 127) return true;
+  if (parts[0] === 169 && parts[1] === 254) return true;
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+  if (parts[0] === 192 && parts[1] === 168) return true;
+  if (parts[0] === 0) return true;
+  return false;
+}
+
+function isBlockedAutomationWebhookHost(hostname, allowedHosts = []) {
+  const normalized = nonEmptyString(hostname)?.toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+
+  if (allowedHosts.length > 0) {
+    return !allowedHosts.some((host) => normalized === host || normalized.endsWith(`.${host}`));
+  }
+
+  if (normalized === "localhost" || normalized.endsWith(".localhost")) {
+    return true;
+  }
+
+  if (normalized === "0.0.0.0") {
+    return true;
+  }
+
+  const ipKind = net.isIP(normalized);
+  if (ipKind === 4) {
+    return isPrivateOrSpecialIpv4(normalized);
+  }
+  if (ipKind === 6) {
+    if (normalized.startsWith("::ffff:")) {
+      const mappedIpv4 = normalized.slice("::ffff:".length);
+      return isPrivateOrSpecialIpv4(mappedIpv4);
+    }
+    return normalized === "::1" ||
+      normalized.startsWith("fe80:") ||
+      normalized.startsWith("fc") ||
+      normalized.startsWith("fd");
+  }
+  return false;
+}
+
+function assertAutomationWebhookUrlAllowed(webhookUrl, runtimePolicy = {}) {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(webhookUrl);
+  } catch (error) {
+    throw new HttpsError("failed-precondition", "Externer Workflow hat eine ungueltige Webhook-URL.");
+  }
+
+  if (parsedUrl.protocol !== "https:") {
+    throw new HttpsError("failed-precondition", "Externer Workflow muss eine HTTPS-Webhook-URL nutzen.");
+  }
+
+  const allowedWebhookHosts = normalizeAutomationWebhookHostAllowlist(runtimePolicy);
+  if (isBlockedAutomationWebhookHost(parsedUrl.hostname, allowedWebhookHosts)) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Externer Workflow-Zielhost ist aus Sicherheitsgruenden nicht erlaubt.",
+    );
+  }
+}
+
 async function loadOwnerActivepiecesWorkflowSettings() {
   const snapshot = await admin.firestore()
       .collection(AUTOMATION_CONFIG_COLLECTION)
@@ -3493,6 +3697,7 @@ async function triggerWorkflowAutomationWebhook({
   if (!webhookUrl) {
     throw new HttpsError("failed-precondition", "Externer Workflow ist noch nicht vollstaendig konfiguriert.");
   }
+  assertAutomationWebhookUrlAllowed(webhookUrl, runtimePolicy);
 
   const safeData = data && typeof data === "object" && !Array.isArray(data) ? data : {};
   const knowledgeContext = nonEmptyString(settings.knowledgeContext) || "";
@@ -6329,8 +6534,11 @@ function resolveTextGenerationConfig({botRuntime, isFaq, warningLevel, aiLevel =
   };
 }
 
-function composeFaqKnowledge(promptSettings) {
+function composeFaqKnowledge(promptSettings, publishedOwnerFaqKnowledge = "") {
   const sections = [promptSettings.faqKnowledgeBase];
+  if (publishedOwnerFaqKnowledge) {
+    sections.push(`Published Owner FAQ Base:\n${publishedOwnerFaqKnowledge}`);
+  }
   if (promptSettings.assetReferenceNotes) {
     sections.push(`Owner / Zusatzkontext:\n${promptSettings.assetReferenceNotes}`);
   }
@@ -6382,11 +6590,12 @@ ${inputPrompt}
 function composeFaqPrompt({
   inputPrompt,
   promptSettings,
+  publishedOwnerFaqKnowledge = "",
   botRuntime,
   topic,
   liveFacts,
 }) {
-  const faqKnowledge = composeFaqKnowledge(promptSettings);
+  const faqKnowledge = composeFaqKnowledge(promptSettings, publishedOwnerFaqKnowledge);
   const safetyNotes = botRuntime.safetyPolicy.safeModeEnabled ?
     "- Safe Mode ist aktiv: keine riskanten Behauptungen, keine faulen Schluessen.\n" :
     "";
@@ -6591,7 +6800,10 @@ async function generateAiTextReply({
   usage,
   auth,
 }) {
-  const promptSettings = await loadAiPromptSettings();
+  const [promptSettings, publishedOwnerFaqKnowledge] = await Promise.all([
+    loadAiPromptSettings(),
+    loadPublishedAiStudioFaqKnowledge(),
+  ]);
   const assetContext = composeAssetLibraryPromptContext(promptSettings);
   const botRuntime = runtimeSettings.bot;
   const faqRoute = resolveFaqRoute({
@@ -6612,6 +6824,7 @@ async function generateAiTextReply({
     composeFaqPrompt({
       inputPrompt: prompt,
       promptSettings,
+      publishedOwnerFaqKnowledge,
       botRuntime,
       topic: faqRoute.topic,
       liveFacts: faqLiveFacts,

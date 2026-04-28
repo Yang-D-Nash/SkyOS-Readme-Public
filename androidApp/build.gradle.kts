@@ -51,7 +51,7 @@ android {
         minSdk = 26
         targetSdk = 36
         // Source of truth for Play versionName/versionCode; release scripts and verify_android_release_artifacts.sh read these.
-        versionCode = 10016
+        versionCode = 10018
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -103,6 +103,10 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+
+    androidResources {
+        localeFilters += listOf("en")
     }
 }
 

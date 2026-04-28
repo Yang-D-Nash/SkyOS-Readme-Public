@@ -244,6 +244,8 @@ struct AIView: View {
                 .zIndex(1)
             }
         }
+        .skydownDismissKeyboardOnTap()
+        .skydownKeyboardDismissToolbar()
         .background(backgroundGradient.ignoresSafeArea())
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
