@@ -542,14 +542,20 @@ struct SettingsView: View {
                     }
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                        SettingsFieldTitle(title: "Settings Area", colorScheme: effectiveColorScheme)
-                        Picker("Settings Area", selection: $activeSettingsRootArea) {
-                            Text("User").tag(SettingsRootArea.user)
+                        SettingsFieldTitle(
+                            title: AppLocalized.text("settings.experience_layer.title", fallback: "Experience Layer"),
+                            colorScheme: effectiveColorScheme
+                        )
+                        Picker(
+                            AppLocalized.text("settings.experience_layer.title", fallback: "Experience Layer"),
+                            selection: $activeSettingsRootArea
+                        ) {
+                            Text(AppLocalized.text("settings.root.personal", fallback: "Personal")).tag(SettingsRootArea.user)
                             if authManager.userSession != nil {
-                                Text("Creator Ops").tag(SettingsRootArea.creatorOps)
+                                Text(AppLocalized.text("settings.root.studio", fallback: "Studio")).tag(SettingsRootArea.creatorOps)
                             }
                             if isOwnerUser {
-                                Text("Owner Console").tag(SettingsRootArea.ownerConsole)
+                                Text(AppLocalized.text("settings.root.command", fallback: "Command")).tag(SettingsRootArea.ownerConsole)
                             }
                         }
                         .pickerStyle(.segmented)
@@ -1462,11 +1468,17 @@ struct SettingsView: View {
                 )
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                    SettingsFieldTitle(title: "Owner Area", colorScheme: effectiveColorScheme)
-                    Picker("Owner Area", selection: $activeOwnerConsoleArea) {
-                        Text("Ops").tag(OwnerConsoleArea.ops)
-                        Text("AI Runtime").tag(OwnerConsoleArea.aiRuntime)
-                        Text("Governance").tag(OwnerConsoleArea.governance)
+                    SettingsFieldTitle(
+                        title: AppLocalized.text("settings.command_layer.title", fallback: "Command Layer"),
+                        colorScheme: effectiveColorScheme
+                    )
+                    Picker(
+                        AppLocalized.text("settings.command_layer.title", fallback: "Command Layer"),
+                        selection: $activeOwnerConsoleArea
+                    ) {
+                        Text(AppLocalized.text("settings.command.daily", fallback: "Daily")).tag(OwnerConsoleArea.ops)
+                        Text(AppLocalized.text("settings.command.lab", fallback: "Lab")).tag(OwnerConsoleArea.aiRuntime)
+                        Text(AppLocalized.text("settings.command.vault", fallback: "Vault")).tag(OwnerConsoleArea.governance)
                     }
                     .pickerStyle(.segmented)
                     Text(ownerConsoleAreaHint)
@@ -1480,7 +1492,7 @@ struct SettingsView: View {
                             Label("Payments", systemImage: "creditcard")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                         .skydownInteractiveFeedback()
 
                         Button { presentSheet(.adminWorkspace(.shopify)) } label: {
@@ -1498,11 +1510,14 @@ struct SettingsView: View {
                             Label("Runtime", systemImage: "sparkles")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                         .skydownInteractiveFeedback()
 
                         Button { presentSheet(.adminWorkspace(.automation)) } label: {
-                            Label("Automation", systemImage: "bolt")
+                            Label(
+                                AppLocalized.text("settings.command.automation_studio", fallback: "Automation Studio"),
+                                systemImage: "bolt"
+                            )
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
@@ -1516,7 +1531,7 @@ struct SettingsView: View {
                             Label("Users", systemImage: "person.2")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                         .skydownInteractiveFeedback()
 
                         Button { presentSheet(.adminWorkspace(.membershipOps)) } label: {
@@ -3497,11 +3512,20 @@ struct SettingsView: View {
     private var ownerConsoleAreaHint: String {
         switch activeOwnerConsoleArea {
         case .ops:
-            return "Payments, Shopify, and commerce operations."
+            return AppLocalized.text(
+                "settings.command.hint.daily",
+                fallback: "Daily Operations, Payments und Commerce-Steuerung."
+            )
         case .aiRuntime:
-            return "Runtime governance and workflow automation controls."
+            return AppLocalized.text(
+                "settings.command.hint.lab",
+                fallback: "Lab fuer AI Runtime, Guardrails und Automation."
+            )
         case .governance:
-            return "Users, access policy, and membership operations."
+            return AppLocalized.text(
+                "settings.command.hint.vault",
+                fallback: "Vault fuer Nutzer, Zugriffe und Membership-Policy."
+            )
         }
     }
 

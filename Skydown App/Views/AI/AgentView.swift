@@ -426,9 +426,16 @@ struct AgentView: View {
                     pinnedSessionStrip
                         .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                         .padding(.top, showsNavigation ? 12 : 8)
-                        .padding(.bottom, 8)
+                        .padding(.bottom, 6)
                         .background(.ultraThinMaterial)
                         .zIndex(2)
+
+                    AgentTheaterPhaseStrip(
+                        phase: viewModel.phase,
+                        colorScheme: colorScheme
+                    )
+                    .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                    .padding(.bottom, 8)
 
                     AgentProductivityDockCard(
                         colorScheme: colorScheme,
@@ -826,7 +833,7 @@ private struct AgentEmptyStateHeader: View {
                 .font(isCompact ? .subheadline.weight(.semibold) : .subheadline.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            Text(AppLocalized.text("agent.memory.retention.hint", fallback: "Memory: letzte 30 Tage pro Konto."))
+            Text(AppLocalized.text("agent.memory.retention.hint", fallback: "Memory Layer · 30 Tage pro Konto."))
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.9))
 
@@ -864,6 +871,69 @@ private struct AgentStatusChip: View {
                 Capsule(style: .continuous)
                     .stroke(accent.opacity(0.16), lineWidth: 1)
             )
+    }
+}
+
+private struct AgentTheaterPhaseStrip: View {
+    let phase: AgentInteractionPhase
+    let colorScheme: ColorScheme
+
+    private var stageTitle: String {
+        phase.theaterStageTitle
+    }
+
+    private var stageDetail: String {
+        phase.composerStatusLabel ?? "Bereit fuer deinen naechsten Intent."
+    }
+
+    private var accent: Color {
+        switch stageTitle {
+        case "Intent":
+            return AppColors.accent(for: colorScheme)
+        case "Execution":
+            return AppColors.accentMystic(for: colorScheme)
+        default:
+            return AppColors.accentHighlight(for: colorScheme)
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(stageTitle.uppercased())
+                .font(.caption2.weight(.black))
+                .foregroundColor(accent)
+
+            Text("•")
+                .font(.caption2.weight(.bold))
+                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.55))
+
+            Text(stageDetail)
+                .font(.caption2.weight(.semibold))
+                .lineLimit(1)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(accent.opacity(colorScheme == .dark ? 0.16 : 0.12))
+        .overlay(
+            Capsule(style: .continuous)
+                .stroke(accent.opacity(0.24), lineWidth: 1)
+        )
+        .clipShape(Capsule(style: .continuous))
+    }
+}
+
+private extension AgentInteractionPhase {
+    var theaterStageTitle: String {
+        switch self {
+        case .idle, .awaitingConfirmation, .awaitingExternalAuth, .waitingReconnect:
+            return "Intent"
+        case .planning, .webhookPending, .externalRunning, .executing, .toolPending, .ownerDiagnostic:
+            return "Execution"
+        case .externalFailed, .externalCompleted, .fallbackInternal, .completed, .partial, .blocked, .failed, .retryable, .cancelled:
+            return "Resolution"
+        }
     }
 }
 

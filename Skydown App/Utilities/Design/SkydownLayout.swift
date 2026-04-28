@@ -15,9 +15,9 @@ enum SkydownLayout {
     static let screenHorizontalPadding: CGFloat = 20
     static let screenTopPadding: CGFloat = 16
     /// Mehr Luft über Tab Bar / Home Indicator (Android nutzt 48dp Content-Padding).
-    static let screenBottomPadding: CGFloat = 32
+    static let screenBottomPadding: CGFloat = 40
     /// Abstand zwischen vertikalen Sektionen — Android `screenSectionSpacing`.
-    static let sectionSpacing: CGFloat = 18
+    static let sectionSpacing: CGFloat = 22
     static let cardPadding: CGFloat = 16
     /// Abstand in `VStack`/`HStack`, wenn Module wie Karten-Inhalt wirken — gleicher Rhythmus wie `cardPadding`.
     static var stackSpacingComfortable: CGFloat { cardPadding }
@@ -84,16 +84,16 @@ enum SkydownLayout {
 
 /// Calm, single motion language: ease-out, ~150–250ms — no bouncy springs for UI chrome.
 enum SkydownMotion {
-    static let screenTransition = Animation.easeOut(duration: 0.22)
-    static let emphasizedTransition = Animation.easeOut(duration: 0.2)
+    static let screenTransition = Animation.timingCurve(0.2, 0.96, 0.3, 1, duration: 0.28)
+    static let emphasizedTransition = Animation.timingCurve(0.2, 0.96, 0.3, 1, duration: 0.24)
     static let statusTransition = Animation.easeOut(duration: 0.2)
     /// Tab bar + surrounding chrome when selection changes.
-    static let tabContextTransition = Animation.easeOut(duration: 0.2)
-    static let contentReveal = Animation.easeOut(duration: 0.24)
-    static let listStaggerDelay: Double = 0.035
-    static let smoothScroll = Animation.easeOut(duration: 0.3)
+    static let tabContextTransition = Animation.timingCurve(0.2, 0.96, 0.3, 1, duration: 0.24)
+    static let contentReveal = Animation.timingCurve(0.2, 0.96, 0.3, 1, duration: 0.3)
+    static let listStaggerDelay: Double = 0.05
+    static let smoothScroll = Animation.timingCurve(0.2, 0.96, 0.3, 1, duration: 0.34)
     static let pressInteraction = Animation.easeOut(duration: 0.18)
-    static let sheetPresentation = Animation.easeOut(duration: 0.25)
+    static let sheetPresentation = Animation.timingCurve(0.2, 0.96, 0.3, 1, duration: 0.3)
     static let ambientLoopDuration: Double = 6.2
 }
 

@@ -4414,7 +4414,7 @@ fun SettingsScreen(
                 item {
                     SkydownCard {
                         Text(
-                            text = "Settings Area",
+                            text = stringResource(R.string.settings_experience_layer_title),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -4424,42 +4424,45 @@ fun SettingsScreen(
                                 .padding(top = 10.dp),
                             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         ) {
-                            OutlinedButton(
+                            Button(
                                 onClick = { activeSettingsRootArea = SettingsRootArea.User },
                                 shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                colors = ButtonDefaults.outlinedButtonColors(
+                                colors = ButtonDefaults.buttonColors(
                                     containerColor = if (activeSettingsRootArea == SettingsRootArea.User) {
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                                     } else {
-                                        MaterialTheme.colorScheme.surface
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
                                     },
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
                                 ),
-                            ) { Text("User") }
+                            ) { Text(stringResource(R.string.settings_root_personal)) }
                             if (uiState.isLoggedIn) {
-                                OutlinedButton(
+                                Button(
                                     onClick = { activeSettingsRootArea = SettingsRootArea.CreatorOps },
                                     shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                    colors = ButtonDefaults.outlinedButtonColors(
+                                    colors = ButtonDefaults.buttonColors(
                                         containerColor = if (activeSettingsRootArea == SettingsRootArea.CreatorOps) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                                         } else {
-                                            MaterialTheme.colorScheme.surface
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
                                         },
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
                                     ),
-                                ) { Text("Creator Ops") }
+                                ) { Text(stringResource(R.string.settings_root_studio)) }
                             }
                             if (uiState.isOwner) {
-                                OutlinedButton(
+                                Button(
                                     onClick = { activeSettingsRootArea = SettingsRootArea.OwnerConsole },
                                     shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                    colors = ButtonDefaults.outlinedButtonColors(
+                                    colors = ButtonDefaults.buttonColors(
                                         containerColor = if (activeSettingsRootArea == SettingsRootArea.OwnerConsole) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                                         } else {
-                                            MaterialTheme.colorScheme.surface
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
                                         },
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
                                     ),
-                                ) { Text("Owner Console") }
+                                ) { Text(stringResource(R.string.settings_root_command)) }
                             }
                         }
                     }
@@ -4490,12 +4493,12 @@ fun SettingsScreen(
 
                 if (activeSettingsRootArea == SettingsRootArea.User) item {
                     Text(
-                        text = "User",
+                        text = stringResource(R.string.settings_root_personal),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                     )
                     Text(
-                        text = "Account, membership, system, and support.",
+                        text = "Account, Mitgliedschaft, System und Support.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
                         modifier = Modifier.padding(top = 2.dp, bottom = 2.dp),
@@ -4708,12 +4711,12 @@ fun SettingsScreen(
                 if (uiState.isOwner) {
                     if (activeSettingsRootArea == SettingsRootArea.OwnerConsole) item {
                         Text(
-                            text = "Owner Console",
+                        text = stringResource(R.string.settings_root_command),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
                         Text(
-                            text = "Platform-wide admin, AI runtime, payments, and governance.",
+                            text = stringResource(R.string.settings_command_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
                             modifier = Modifier.padding(top = 2.dp, bottom = 2.dp),
@@ -4772,7 +4775,7 @@ fun SettingsScreen(
                                 modifier = Modifier.padding(top = 14.dp),
                             )
                             Text(
-                                text = "Owner Area",
+                                text = stringResource(R.string.settings_command_layer_title),
                                 modifier = Modifier.padding(top = 12.dp),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
@@ -4783,56 +4786,59 @@ fun SettingsScreen(
                                     .padding(top = 8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                             ) {
-                                OutlinedButton(
+                                Button(
                                     onClick = {
                                         activeOwnerConsoleArea = OwnerConsoleArea.Ops
                                     },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                    colors = ButtonDefaults.outlinedButtonColors(
+                                    colors = ButtonDefaults.buttonColors(
                                         containerColor = if (activeOwnerConsoleArea == OwnerConsoleArea.Ops) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                                         } else {
-                                            MaterialTheme.colorScheme.surface
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
                                         },
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
                                     ),
                                 ) {
-                                    Text("Ops")
+                                    Text(stringResource(R.string.settings_command_daily))
                                 }
-                                OutlinedButton(
+                                Button(
                                     onClick = { activeOwnerConsoleArea = OwnerConsoleArea.AiRuntime },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                    colors = ButtonDefaults.outlinedButtonColors(
+                                    colors = ButtonDefaults.buttonColors(
                                         containerColor = if (activeOwnerConsoleArea == OwnerConsoleArea.AiRuntime) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                                         } else {
-                                            MaterialTheme.colorScheme.surface
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
                                         },
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
                                     ),
                                 ) {
-                                    Text("AI Runtime")
+                                    Text(stringResource(R.string.settings_command_lab))
                                 }
-                                OutlinedButton(
+                                Button(
                                     onClick = { activeOwnerConsoleArea = OwnerConsoleArea.Governance },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                    colors = ButtonDefaults.outlinedButtonColors(
+                                    colors = ButtonDefaults.buttonColors(
                                         containerColor = if (activeOwnerConsoleArea == OwnerConsoleArea.Governance) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                                         } else {
-                                            MaterialTheme.colorScheme.surface
+                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
                                         },
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
                                     ),
                                 ) {
-                                    Text("Governance")
+                                    Text(stringResource(R.string.settings_command_vault))
                                 }
                             }
                             Text(
                                 text = when (activeOwnerConsoleArea) {
-                                    OwnerConsoleArea.Ops -> "Payments, Shopify, and commerce operations."
-                                    OwnerConsoleArea.AiRuntime -> "Runtime governance and workflow automation controls."
-                                    OwnerConsoleArea.Governance -> "Users, access policy, and membership operations."
+                                    OwnerConsoleArea.Ops -> stringResource(R.string.settings_command_hint_daily)
+                                    OwnerConsoleArea.AiRuntime -> stringResource(R.string.settings_command_hint_lab)
+                                    OwnerConsoleArea.Governance -> stringResource(R.string.settings_command_hint_vault)
                                 },
                                 modifier = Modifier.padding(top = 8.dp),
                                 style = MaterialTheme.typography.bodySmall,
@@ -4887,7 +4893,7 @@ fun SettingsScreen(
                                         },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    ) { Text("Automation") }
+                                    ) { Text(stringResource(R.string.settings_automation_studio_label)) }
                                 }
                             }
 
@@ -4923,12 +4929,12 @@ fun SettingsScreen(
                 if (uiState.isLoggedIn) {
                     if (activeSettingsRootArea == SettingsRootArea.CreatorOps) item {
                         Text(
-                            text = "Creator Ops",
+                            text = stringResource(R.string.settings_root_studio),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
                         Text(
-                            text = "AI and automation operations for your own workflow.",
+                            text = stringResource(R.string.settings_studio_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
                             modifier = Modifier.padding(top = 2.dp, bottom = 2.dp),

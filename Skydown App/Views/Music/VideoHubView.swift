@@ -2303,31 +2303,37 @@ private struct SocialLinkButton<Background: View>: View {
     }
 
     private var buttonBody: some View {
-        Image(systemName: systemImage)
-            .font(.system(size: 12, weight: .bold))
-            .foregroundColor(foregroundColor)
-            .frame(width: 34, height: 34)
-            .background(background)
-            .clipShape(Circle())
-            .overlay(
-                Circle()
-                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
-            )
-            .overlay(
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.22),
-                                Color.white.opacity(0)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.system(size: 11, weight: .bold))
+            Text(accessibilityTitle)
+                .font(.caption2.weight(.semibold))
+                .lineLimit(1)
+        }
+        .foregroundColor(foregroundColor)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(background)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Color.white.opacity(0.16), lineWidth: 1)
+        )
+        .overlay(
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.20),
+                            Color.white.opacity(0)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-                    .scaleEffect(0.92)
-            )
-            .shadow(color: .black.opacity(0.18), radius: 10, y: 5)
+                )
+                .scaleEffect(0.94)
+        )
+        .shadow(color: .black.opacity(0.16), radius: 8, y: 4)
     }
 }
 

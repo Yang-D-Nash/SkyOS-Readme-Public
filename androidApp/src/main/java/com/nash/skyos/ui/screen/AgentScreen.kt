@@ -453,17 +453,22 @@ fun AgentScreen(
                             bottom = 10.dp,
                         ),
                 ) {
-                    AiConversationSessionStrip(
-                        title = uiState.activeSessionTitle,
-                        subtitle = activeSessionSubtitle,
-                        accent = MaterialTheme.colorScheme.tertiary,
-                        enabled = !uiState.agentPhase.shouldBlockComposerChrome,
-                        canDelete = uiState.activeSessionId != null,
-                        showsManagementActions = true,
-                        onOpenSessions = { showSessionsSheet = true },
-                        onRefreshChat = viewModel::refreshActiveConversation,
-                        onDeleteChat = viewModel::deleteActiveConversation,
-                    )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        AiConversationSessionStrip(
+                            title = uiState.activeSessionTitle,
+                            subtitle = activeSessionSubtitle,
+                            accent = MaterialTheme.colorScheme.tertiary,
+                            enabled = !uiState.agentPhase.shouldBlockComposerChrome,
+                            canDelete = uiState.activeSessionId != null,
+                            showsManagementActions = true,
+                            onOpenSessions = { showSessionsSheet = true },
+                            onRefreshChat = viewModel::refreshActiveConversation,
+                            onDeleteChat = viewModel::deleteActiveConversation,
+                        )
+                        AgentTheaterPhaseStrip(phase = uiState.agentPhase)
+                    }
                 }
             }
 
@@ -966,12 +971,82 @@ private fun AgentEmptyStateHeader() {
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
         Text(
-            text = "Memory: letzte 30 Tage pro Konto.",
+            text = "Memory Layer · 30 Tage pro Konto.",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f),
         )
     }
+}
+
+@Composable
+private fun AgentTheaterPhaseStrip(
+    phase: AgentInteractionPhase,
+) {
+    val stage = phase.theaterStageLabel()
+    val detail = phase.composerStatusLabel ?: "Bereit fuer deinen naechsten Intent."
+    val accent = when (stage) {
+        "Intent" -> MaterialTheme.colorScheme.primary
+        "Execution" -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.secondary
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
+            .background(accent.copy(alpha = 0.14f))
+            .border(
+                width = 1.dp,
+                color = accent.copy(alpha = 0.24f),
+                shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stage.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = accent,
+        )
+        Text(
+            text = "•",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+        )
+        Text(
+            text = detail,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private fun AgentInteractionPhase.theaterStageLabel(): String = when (this) {
+    AgentInteractionPhase.Idle,
+    AgentInteractionPhase.AwaitingConfirmation,
+    AgentInteractionPhase.AwaitingExternalAuth,
+    AgentInteractionPhase.WaitingReconnect -> "Intent"
+
+    AgentInteractionPhase.Planning,
+    AgentInteractionPhase.WebhookPending,
+    AgentInteractionPhase.ExternalRunning,
+    AgentInteractionPhase.Executing,
+    AgentInteractionPhase.ToolPending,
+    AgentInteractionPhase.OwnerDiagnostic -> "Execution"
+
+    AgentInteractionPhase.ExternalFailed,
+    AgentInteractionPhase.ExternalCompleted,
+    AgentInteractionPhase.FallbackInternal,
+    AgentInteractionPhase.Completed,
+    AgentInteractionPhase.Partial,
+    AgentInteractionPhase.Blocked,
+    AgentInteractionPhase.Failed,
+    AgentInteractionPhase.Retryable,
+    AgentInteractionPhase.Cancelled -> "Resolution"
 }
 
 @Composable

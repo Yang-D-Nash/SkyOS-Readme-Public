@@ -87,6 +87,16 @@ fun AiHubScreen(
     onOpenAutomationSettings: () -> Unit = onOpenSettings,
     onOpenHomeProductivityFromAgent: (String) -> Unit = {},
 ) {
+    @Composable
+    fun AiHubMode.displayTitle(): String = when (this) {
+        AiHubMode.Bot -> stringResource(R.string.ai_hub_mode_core_ai)
+        AiHubMode.Agent -> stringResource(R.string.ai_hub_mode_agent)
+    }
+    @Composable
+    fun AiHubMode.displaySubtitle(): String = when (this) {
+        AiHubMode.Bot -> stringResource(R.string.ai_hub_mode_core_ai_subtitle)
+        AiHubMode.Agent -> stringResource(R.string.ai_hub_mode_agent_subtitle)
+    }
     var mode by rememberSaveable { mutableStateOf(AiHubMode.Bot) }
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val workspaceMaxWidth = if (compactVisualDensity) Dp.Unspecified else 1040.dp
@@ -200,6 +210,13 @@ fun AiHubScreen(
                     AiHubCompactHeader(
                         mode = mode,
                         showsWorkflowWorkspace = showsWorkflowWorkspace,
+                                workflowTitle = if (showsWorkflowWorkspace) {
+                                    stringResource(R.string.ai_hub_workflow_return_intelligence)
+                                } else {
+                                    stringResource(R.string.ai_hub_workflow_automation_studio)
+                                },
+                                modeTitle = { it.displayTitle() },
+                                modeSubtitle = { it.displaySubtitle() },
                         onSelectMode = { selectedMode ->
                             onHideWorkflow()
                             mode = selectedMode
@@ -332,6 +349,9 @@ private fun AiHubRestrictedCard(
 private fun AiHubCompactHeader(
     mode: AiHubMode,
     showsWorkflowWorkspace: Boolean,
+    workflowTitle: String,
+    modeTitle: (AiHubMode) -> String,
+    modeSubtitle: (AiHubMode) -> String,
     onSelectMode: (AiHubMode) -> Unit,
     onToggleWorkflow: () -> Unit,
     compactVisualDensity: Boolean,
@@ -378,6 +398,8 @@ private fun AiHubCompactHeader(
         ) {
             AiHubModeButton(
                 mode = AiHubMode.Bot,
+                title = modeTitle(AiHubMode.Bot),
+                subtitle = modeSubtitle(AiHubMode.Bot),
                 isSelected = mode == AiHubMode.Bot && !showsWorkflowWorkspace,
                 onClick = { onSelectMode(AiHubMode.Bot) },
                 compactVisualDensity = compactVisualDensity,
@@ -387,6 +409,8 @@ private fun AiHubCompactHeader(
             )
             AiHubModeButton(
                 mode = AiHubMode.Agent,
+                title = modeTitle(AiHubMode.Agent),
+                subtitle = modeSubtitle(AiHubMode.Agent),
                 isSelected = mode == AiHubMode.Agent && !showsWorkflowWorkspace,
                 onClick = { onSelectMode(AiHubMode.Agent) },
                 compactVisualDensity = compactVisualDensity,
@@ -397,6 +421,7 @@ private fun AiHubCompactHeader(
         }
         AiHubWorkflowButton(
             showsWorkflowWorkspace = showsWorkflowWorkspace,
+            title = workflowTitle,
             onClick = onToggleWorkflow,
             compactVisualDensity = compactVisualDensity,
             modifier = if (compactVisualDensity) {
@@ -523,6 +548,8 @@ private fun WorkflowSignalRow(
 @Composable
 private fun AiHubModeButton(
     mode: AiHubMode,
+    title: String,
+    subtitle: String,
     isSelected: Boolean,
     onClick: () -> Unit,
     compactVisualDensity: Boolean,
@@ -530,7 +557,6 @@ private fun AiHubModeButton(
 ) {
     val accent = if (mode == AiHubMode.Agent) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
     val icon = if (mode == AiHubMode.Agent) Icons.Default.Bolt else Icons.Default.AutoAwesome
-    val label = if (mode == AiHubMode.Agent) "Agent" else "Bot"
     val shape = RoundedCornerShape(SkydownUiTokens.denseRadius)
     val backgroundColor = if (isSelected) accent else MaterialTheme.colorScheme.surface.copy(alpha = 0.84f)
     val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
@@ -560,21 +586,37 @@ private fun AiHubModeButton(
             tint = if (isSelected) Color.White else accent,
             modifier = Modifier.size(16.dp),
         )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = contentColor,
+        Column(
             modifier = Modifier.padding(start = 6.dp),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isSelected) {
+                    Color.White.copy(alpha = 0.84f)
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f)
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
 @Composable
 private fun AiHubWorkflowButton(
     showsWorkflowWorkspace: Boolean,
+    title: String,
     onClick: () -> Unit,
     compactVisualDensity: Boolean,
     modifier: Modifier = Modifier,
@@ -611,7 +653,7 @@ private fun AiHubWorkflowButton(
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = if (showsWorkflowWorkspace) "Zur AI" else "Automation",
+            text = title,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,

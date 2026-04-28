@@ -20,30 +20,30 @@ import androidx.compose.ui.graphics.graphicsLayer
  * no bouncy springs for standard UI.
  */
 object SkydownMotionTokens {
-    const val primaryEnterDurationMillis = 270
-    const val primaryExitDurationMillis = 210
-    const val overlayEnterDurationMillis = 260
-    const val overlayExitDurationMillis = 220
+    const val primaryEnterDurationMillis = 320
+    const val primaryExitDurationMillis = 240
+    const val overlayEnterDurationMillis = 300
+    const val overlayExitDurationMillis = 230
     const val statusEnterDurationMillis = 230
     const val statusExitDurationMillis = 180
     /// Subtle stagger for first-paint reveals (keep short; no “cascade” feel).
-    const val staggerStepMillis = 10
-    const val premiumAccentTransitionMillis = 260
-    const val premiumLabelTransitionMillis = 220
-    const val dockSelectionDurationMillis = 220
+    const val staggerStepMillis = 22
+    const val premiumAccentTransitionMillis = 310
+    const val premiumLabelTransitionMillis = 260
+    const val dockSelectionDurationMillis = 260
     const val pressDurationMillis = 200
-    const val selectionCrossFadeMillis = 220
-    const val contentRevealEnterMillis = 240
-    const val contentRevealExitMillis = 170
+    const val selectionCrossFadeMillis = 260
+    const val contentRevealEnterMillis = 300
+    const val contentRevealExitMillis = 190
     /// Nav fade-in lead (works with [LinearOutSlowInEasing]).
-    const val navFadeLeadMillis = 22
+    const val navFadeLeadMillis = 28
 }
 
 /**
  * Signature settle curve: quick start, long controlled deceleration — not Material default,
  * not elastic.
  */
-val SkydownStandardEasing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
+val SkydownStandardEasing = CubicBezierEasing(0.2f, 0.96f, 0.3f, 1f)
 
 /** Crisp departures for dismissals and route exits. */
 val SkydownExitEasing = CubicBezierEasing(0.4f, 0f, 1f, 1f)

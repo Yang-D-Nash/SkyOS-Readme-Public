@@ -1994,4 +1994,24 @@ Message:
     <string name="home_task_due_sublabel" translatable="true">Due (optional)</string>
     <string name="home_task_clear_due" translatable="true">Clear</string>
     <string name="home_productivity_collapse_summary" translatable="true">%1$d more · R %2$d · T %3$d · N %4$d</string>
+    <string name="ai_hub_mode_core_ai">Core AI</string>
+    <string name="ai_hub_mode_agent">Agent</string>
+    <string name="ai_hub_mode_core_ai_subtitle">Ask and orient</string>
+    <string name="ai_hub_mode_agent_subtitle">Execute and deliver</string>
+    <string name="ai_hub_workflow_return_intelligence">Back to intelligence</string>
+    <string name="ai_hub_workflow_automation_studio">Automation Studio</string>
+    <string name="settings_experience_layer_title">Experience Layer</string>
+    <string name="settings_root_personal">Personal</string>
+    <string name="settings_root_studio">Studio</string>
+    <string name="settings_root_command">Command</string>
+    <string name="settings_studio_subtitle">AI and automation control for your own workflow.</string>
+    <string name="settings_command_subtitle">Platform-wide controls for AI, payments, and governance.</string>
+    <string name="settings_command_layer_title">Command Layer</string>
+    <string name="settings_command_daily">Daily</string>
+    <string name="settings_command_lab">Lab</string>
+    <string name="settings_command_vault">Vault</string>
+    <string name="settings_command_hint_daily">Daily operations, payments, and commerce controls.</string>
+    <string name="settings_command_hint_lab">Lab for AI runtime, guardrails, and automation.</string>
+    <string name="settings_command_hint_vault">Vault for users, access controls, and membership policy.</string>
+    <string name="settings_automation_studio_label">Automation Studio</string>
 </resources>

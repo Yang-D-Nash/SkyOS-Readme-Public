@@ -39,7 +39,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -1728,10 +1727,9 @@ private fun SocialActionChip(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
-    Box(
+    Row(
         modifier = Modifier
-            .size(34.dp)
-            .clip(CircleShape)
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(gradient)
             .clickable(
                 interactionSource = interactionSource,
@@ -1739,14 +1737,21 @@ private fun SocialActionChip(
                 onClick = onClick,
             )
             .skydownPressable(interactionSource)
-            .padding(10.dp),
-        contentAlignment = Alignment.Center,
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = title,
             tint = Color.White,
-            modifier = Modifier.size(15.dp),
+            modifier = Modifier.size(13.dp),
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
         )
     }
 }

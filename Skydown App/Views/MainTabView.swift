@@ -29,6 +29,24 @@ private enum AIHubMode: String, CaseIterable, Identifiable {
             return "bolt.fill"
         }
     }
+
+    var displayTitle: String {
+        switch self {
+        case .bot:
+            return AppLocalized.text("ai.hub.mode.core_ai", fallback: "Core AI")
+        case .agent:
+            return AppLocalized.text("ai.hub.mode.agent", fallback: "Agent")
+        }
+    }
+
+    var displaySubtitle: String {
+        switch self {
+        case .bot:
+            return AppLocalized.text("ai.hub.mode.core_ai.subtitle", fallback: "Fragen und orientieren")
+        case .agent:
+            return AppLocalized.text("ai.hub.mode.agent.subtitle", fallback: "Ausfuehren und liefern")
+        }
+    }
 }
 
 private enum ZweizweiDestination: Equatable {
@@ -1672,7 +1690,7 @@ private struct AIHubLoginCard: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
-                AIHubBadge(text: "Bot", color: AppColors.accent(for: colorScheme))
+                AIHubBadge(text: AppLocalized.text("ai.hub.mode.core_ai", fallback: "Core AI"), color: AppColors.accent(for: colorScheme))
                 AIHubBadge(text: "Agent", color: AppColors.accentMystic(for: colorScheme))
                 AIHubBadge(text: "Visuals", color: AppColors.accentHighlight(for: colorScheme))
             }
@@ -1712,7 +1730,7 @@ private struct AIHubRestrictedCard: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
-                AIHubBadge(text: "Bot", color: AppColors.accent(for: colorScheme))
+                AIHubBadge(text: AppLocalized.text("ai.hub.mode.core_ai", fallback: "Core AI"), color: AppColors.accent(for: colorScheme))
                 AIHubBadge(text: "Agent", color: AppColors.accentHighlight(for: colorScheme))
                 AIHubBadge(text: "Visuals", color: AppColors.accentMystic(for: colorScheme))
             }
@@ -1784,8 +1802,13 @@ private struct AIHubCompactHeader: View {
                 } label: {
                     HStack(spacing: SkydownLayout.stackSpacingDense) {
                         Image(systemName: currentMode.iconName)
-                        Text(currentMode.rawValue)
-                            .fontWeight(.semibold)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(currentMode.displayTitle)
+                                .fontWeight(.semibold)
+                            Text(currentMode.displaySubtitle)
+                                .font(.caption2.weight(.semibold))
+                                .opacity(mode == currentMode ? 0.84 : 0.66)
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 9)
@@ -1814,7 +1837,11 @@ private struct AIHubCompactHeader: View {
             HStack(spacing: SkydownLayout.stackSpacingDense) {
                 Image(systemName: showsWorkflowWorkspace ? "xmark.circle.fill" : "bolt.horizontal.circle.fill")
                     .font(.headline)
-                Text(showsWorkflowWorkspace ? "Zur AI" : "Automation")
+                Text(
+                    showsWorkflowWorkspace
+                    ? AppLocalized.text("ai.hub.workflow.return_intelligence", fallback: "Zur Intelligenz")
+                    : AppLocalized.text("ai.hub.workflow.automation_studio", fallback: "Automation Studio")
+                )
                     .font(.subheadline.weight(.semibold))
             }
             .foregroundColor(AppColors.text(for: colorScheme))
@@ -1849,7 +1876,7 @@ private struct AIWorkflowWorkspaceCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-            Text("Automation")
+            Text(AppLocalized.text("ai.hub.workflow.automation_studio", fallback: "Automation Studio"))
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 

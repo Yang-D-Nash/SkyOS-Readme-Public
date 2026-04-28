@@ -46,12 +46,13 @@ struct HomeUtilityRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
             Text(
-                AppLocalized.text("home.explore.title", fallback: "Open")
+                AppLocalized.text("home.explore.title", fallback: "Portals")
             )
             .font(.caption2.weight(.medium))
-            .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
+            .foregroundColor(AppColors.text(for: colorScheme).opacity(0.44))
+            .textCase(.uppercase)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
@@ -74,21 +75,19 @@ struct HomeUtilityRow: View {
         } label: {
             HStack(spacing: SkydownLayout.stackSpacingDense) {
                 Image(systemName: utility.icon)
-                    .font(.caption.weight(.semibold))
-                    .padding(5)
-                    .background(Circle().fill(tint.opacity(0.14)))
+                    .font(.caption.weight(.medium))
                 Text(utility.title)
                     .font(.caption.weight(.semibold))
             }
-            .padding(.horizontal, 11)
-            .padding(.vertical, 9)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
-                    .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.72))
+                    .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.58))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
-                    .stroke(tint.opacity(0.22), lineWidth: 1)
+                    .stroke(tint.opacity(0.16), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
