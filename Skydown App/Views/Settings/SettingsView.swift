@@ -899,6 +899,7 @@ struct SettingsView: View {
                         }
                     }
                     }
+                    }
                     .frame(maxWidth: contentWidth, alignment: .leading)
                     .padding(.horizontal, layout.horizontalPadding)
                     .padding(.top, SkydownLayout.screenTopPadding)
@@ -1675,7 +1676,6 @@ struct SettingsView: View {
                                 }
                             }
                         }
-                    }
                     }
                 }
 

@@ -10,7 +10,17 @@ import SwiftUI
 struct ToastView: View {
     let message: String
     let style: ToastStyle
-    let onDismiss: (() -> Void)? = nil
+    let onDismiss: (() -> Void)?
+
+    init(
+        message: String,
+        style: ToastStyle,
+        onDismiss: (() -> Void)? = nil
+    ) {
+        self.message = message
+        self.style = style
+        self.onDismiss = onDismiss
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: SkydownLayout.stackSpacingRelaxed) {
@@ -139,7 +149,7 @@ struct ToastView: View {
 
 
 #Preview {
-    ToastView(message: "Profil gespeichert und direkt synchronisiert.", style: .success, onDismiss: nil)
+    ToastView(message: "Profil gespeichert und direkt synchronisiert.", style: .success)
         .padding()
         .background(Color.black)
 }

@@ -107,6 +107,10 @@ fun AiHubScreen(
         accessMode = aiAccessMode,
     )
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
+    val botModeTitle = stringResource(R.string.ai_hub_mode_core_ai)
+    val agentModeTitle = stringResource(R.string.ai_hub_mode_agent)
+    val botModeSubtitle = stringResource(R.string.ai_hub_mode_core_ai_subtitle)
+    val agentModeSubtitle = stringResource(R.string.ai_hub_mode_agent_subtitle)
 
     LaunchedEffect(pendingAgentPrefillPrompt, currentUser?.id, hasAiAccess) {
         val trimmed = pendingAgentPrefillPrompt?.trim().orEmpty()
@@ -215,8 +219,12 @@ fun AiHubScreen(
                                 } else {
                                     stringResource(R.string.ai_hub_workflow_automation_studio)
                                 },
-                                modeTitle = { it.displayTitle() },
-                                modeSubtitle = { it.displaySubtitle() },
+                                modeTitle = { selectedMode ->
+                                    if (selectedMode == AiHubMode.Bot) botModeTitle else agentModeTitle
+                                },
+                                modeSubtitle = { selectedMode ->
+                                    if (selectedMode == AiHubMode.Bot) botModeSubtitle else agentModeSubtitle
+                                },
                         onSelectMode = { selectedMode ->
                             onHideWorkflow()
                             mode = selectedMode
