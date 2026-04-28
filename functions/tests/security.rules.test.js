@@ -423,6 +423,18 @@ test("user darf keine globalen Owner-adminConfig Dokumente schreiben", async () 
     ],
     updatedAt: Timestamp.now(),
   }));
+  await assertFails(setDoc(doc(aliceDb, "adminConfig", "aiStudioOwnerInspiration"), {
+    entries: [
+      {
+        id: "late-night-drop",
+        title: "Late Night Drop",
+        details: "Urban, moody, high contrast visual direction.",
+        isPublished: true,
+        tags: ["drop"],
+      },
+    ],
+    updatedAt: Timestamp.now(),
+  }));
 });
 
 test("owner darf AI Studio FAQ Knowledge speichern", async () => {
@@ -443,6 +455,64 @@ test("owner darf AI Studio FAQ Knowledge speichern", async () => {
         answer: "Noch nicht freigegeben.",
         isPublished: false,
         tags: ["draft"],
+      },
+    ],
+    updatedAt: Timestamp.now(),
+  }));
+});
+
+test("owner darf AI Studio FAQ Knowledge nur im gueltigen Schema speichern", async () => {
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+
+  await assertFails(setDoc(doc(ownerDb, "adminConfig", "aiStudioFaqKnowledge"), {
+    entries: [
+      {
+        id: "broken-entry",
+        question: "Gueltige Frage",
+        answer: "Gueltige Antwort",
+        isPublished: true,
+        tags: Array.from({length: 13}, (_, index) => `tag-${index}`),
+      },
+    ],
+    updatedAt: Timestamp.now(),
+  }));
+});
+
+test("owner darf AI Studio Owner Inspiration speichern", async () => {
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+
+  await assertSucceeds(setDoc(doc(ownerDb, "adminConfig", "aiStudioOwnerInspiration"), {
+    entries: [
+      {
+        id: "night-street-capsule",
+        title: "Night Street Capsule",
+        details: "Hoher Kontrast, Neon-Licht, ruhige aber kraftvolle Tonebene.",
+        isPublished: true,
+        tags: ["streetwear", "drop"],
+      },
+      {
+        id: "draft-seed",
+        title: "Draft Moodline",
+        details: "Interner Entwurf fuer spaeteren Publish.",
+        isPublished: false,
+        tags: ["draft"],
+      },
+    ],
+    updatedAt: Timestamp.now(),
+  }));
+});
+
+test("owner darf AI Studio Owner Inspiration nur im gueltigen Schema speichern", async () => {
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+
+  await assertFails(setDoc(doc(ownerDb, "adminConfig", "aiStudioOwnerInspiration"), {
+    entries: [
+      {
+        id: "broken-inspiration",
+        title: "Gueltiger Titel",
+        details: "Gueltige Details",
+        isPublished: true,
+        tags: Array.from({length: 13}, (_, index) => `tag-${index}`),
       },
     ],
     updatedAt: Timestamp.now(),

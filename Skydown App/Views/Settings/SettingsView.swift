@@ -26,6 +26,7 @@ struct SettingsView: View {
     @ObservedObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
     @ObservedObject private var aiPromptSettingsStore = AIPromptSettingsStore.shared
     @ObservedObject private var aiFaqKnowledgeStudioStore = AIFaqKnowledgeStudioStore.shared
+    @ObservedObject private var aiOwnerInspirationStudioStore = AIOwnerInspirationStudioStore.shared
     @ObservedObject private var aiRuntimeSettingsStore = AIRuntimeSettingsStore.shared
     @ObservedObject private var aiFaqOwnerReviewLoopStore = AIFaqOwnerReviewLoopStore.shared
     @ObservedObject private var adminUserManagementStore = AdminUserManagementStore.shared
@@ -150,6 +151,7 @@ struct SettingsView: View {
     @State private var aiFAQInstructionDraft = ""
     @State private var aiFAQKnowledgeBaseDraft = ""
     @State private var aiStudioFAQEntriesDraft: [AIFaqKnowledgeEntry] = []
+    @State private var aiOwnerInspirationEntriesDraft: [AIOwnerInspirationEntry] = []
     @State private var aiAssetLibraryLinkDraft = ""
     @State private var aiAssetReferenceNotesDraft = ""
     @State private var aiCostGuardEnabledDraft = true
@@ -994,6 +996,7 @@ struct SettingsView: View {
             syncManusBYOSDrafts(with: manusByosStore.settings)
             syncAIPromptDrafts(with: aiPromptSettingsStore.settings)
             syncAIStudioFAQDrafts(with: aiFaqKnowledgeStudioStore.entries)
+            syncAIOwnerInspirationDrafts(with: aiOwnerInspirationStudioStore.entries)
             syncAIRuntimeDrafts(with: aiRuntimeSettingsStore.settings)
             syncLegalContentDrafts(with: legalContentStore.settings)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
@@ -1022,6 +1025,7 @@ struct SettingsView: View {
             adminUserManagementStore.configureObservation(isAdmin: false)
             stripeBackendSecretsStore.setObservationEnabled(false)
             aiPromptSettingsStore.setObservationEnabled(false)
+            aiOwnerInspirationStudioStore.setObservationEnabled(false)
             aiRuntimeSettingsStore.setObservationEnabled(false)
             refreshOwnerWorkspaceObservation(for: activeAdminWorkspace)
         }
@@ -1067,6 +1071,9 @@ struct SettingsView: View {
         .onReceive(aiFaqKnowledgeStudioStore.$entries) { entries in
             syncAIStudioFAQDrafts(with: entries)
         }
+        .onReceive(aiOwnerInspirationStudioStore.$entries) { entries in
+            syncAIOwnerInspirationDrafts(with: entries)
+        }
         .onReceive(aiRuntimeSettingsStore.$settings) { settings in
             syncAIRuntimeDrafts(with: settings)
         }
@@ -1087,6 +1094,7 @@ struct SettingsView: View {
             workflowAutomationSettings.configureObservation(isEnabled: false, userID: nil)
             aiPromptSettingsStore.setObservationEnabled(false)
             aiFaqKnowledgeStudioStore.setObservationEnabled(false)
+            aiOwnerInspirationStudioStore.setObservationEnabled(false)
             aiRuntimeSettingsStore.setObservationEnabled(false)
         }
     }
@@ -2620,14 +2628,78 @@ struct SettingsView: View {
                             )
                         }
 
+                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                            Button {
+                                appendAIStudioFAQEntry()
+                            } label: {
+                                Label("Neu", systemImage: "plus")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
+
+                            Button {
+                                publishAllAIStudioFAQEntries()
+                            } label: {
+                                Label("Alle publishen", systemImage: "checkmark.seal")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
+                            .disabled(aiStudioFAQEntriesDraft.isEmpty)
+
+                            Button {
+                                unpublishAllAIStudioFAQEntries()
+                            } label: {
+                                Label("Alle entpublishen", systemImage: "xmark.seal")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
+                            .disabled(aiStudioFAQEntriesDraft.isEmpty)
+                        }
+
+                        if aiStudioFAQEntriesDraft.isEmpty {
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
+                                Text("Noch keine FAQ-Eintraege.")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(AppColors.text(for: effectiveColorScheme))
+                                Text("Lege den ersten Eintrag an, schalte ihn auf Published und speichere. Nur dann nutzt der Bot ihn live.")
+                                    .font(.footnote)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                            }
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppColors.secondaryBackground(for: effectiveColorScheme))
+                            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                                    .stroke(AppColors.accent(for: effectiveColorScheme).opacity(0.12), lineWidth: 1)
+                            )
+                        }
+
                         ForEach($aiStudioFAQEntriesDraft) { $entry in
                             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
+                                HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                                    SettingsBadge(
+                                        text: entry.isPublished ? "Published" : "Draft",
+                                        colorScheme: effectiveColorScheme
+                                    )
+                                    Text(entry.id)
+                                        .font(.caption2)
+                                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                                        .lineLimit(1)
+                                }
+
                                 SettingsInputField(
                                     title: "Frage",
                                     text: $entry.question,
                                     colorScheme: effectiveColorScheme,
                                     placeholder: "z. B. Wie upgrade ich auf Creator?"
                                 )
+                                Text("\(entry.question.trimmingCharacters(in: .whitespacesAndNewlines).count)/12000")
+                                    .font(.caption2)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                                 SettingsMultilineInputField(
                                     title: "Antwort",
@@ -2636,6 +2708,9 @@ struct SettingsView: View {
                                     placeholder: "Kurze, klare Zielantwort...",
                                     minHeight: 110
                                 )
+                                Text("\(entry.answer.trimmingCharacters(in: .whitespacesAndNewlines).count)/12000")
+                                    .font(.caption2)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                                 SettingsInputField(
                                     title: "Tags (comma separated)",
@@ -2646,6 +2721,9 @@ struct SettingsView: View {
                                     colorScheme: effectiveColorScheme,
                                     placeholder: "membership, restore, abo"
                                 )
+                                Text("Bis zu 12 Tags, automatisch normalisiert.")
+                                    .font(.caption2)
+                                    .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                                 Toggle("Published", isOn: $entry.isPublished)
                                     .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: effectiveColorScheme)))
@@ -2665,16 +2743,9 @@ struct SettingsView: View {
                                 RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                                     .stroke(AppColors.accent(for: effectiveColorScheme).opacity(0.12), lineWidth: 1)
                             )
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                         }
-
-                        Button {
-                            appendAIStudioFAQEntry()
-                        } label: {
-                            Label("FAQ-Eintrag hinzufuegen", systemImage: "plus")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .skydownInteractiveFeedback()
+                        .animation(SkydownMotion.statusTransition, value: aiStudioFAQEntriesDraft.count)
 
                         Button(action: saveAIStudioFAQEntries) {
                             Label("FAQ Base speichern", systemImage: "checkmark.seal")
@@ -2686,6 +2757,134 @@ struct SettingsView: View {
 
                         if let storeError = aiFaqKnowledgeStudioStore.lastErrorMessage, !storeError.isEmpty {
                             Text("FAQ Base konnte nicht geladen werden: \(storeError)")
+                                .font(.footnote)
+                                .foregroundColor(.red)
+                        }
+                    }
+
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                        Text("AI Studio Ideen & Inspiration (Owner)")
+                            .font(.headline)
+                            .foregroundColor(AppColors.text(for: effectiveColorScheme))
+
+                        Text("Hier pflegst du kreative Richtungen, Content-Ideen und Style-Impulse. Nur Published-Eintraege gehen live in den Brain-Kontext.")
+                            .font(.footnote)
+                            .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+
+                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                            SettingsBadge(
+                                text: "Entries \(aiOwnerInspirationEntriesDraft.count)",
+                                colorScheme: effectiveColorScheme
+                            )
+                            SettingsBadge(
+                                text: "Published \(aiOwnerInspirationEntriesDraft.filter { $0.isPublished }.count)",
+                                colorScheme: effectiveColorScheme
+                            )
+                        }
+
+                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                            Button {
+                                appendAIOwnerInspirationEntry()
+                            } label: {
+                                Label("Neu", systemImage: "plus")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
+
+                            Button {
+                                publishAllAIOwnerInspirationEntries()
+                            } label: {
+                                Label("Alle publishen", systemImage: "checkmark.seal")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
+                            .disabled(aiOwnerInspirationEntriesDraft.isEmpty)
+
+                            Button {
+                                unpublishAllAIOwnerInspirationEntries()
+                            } label: {
+                                Label("Alle entpublishen", systemImage: "xmark.seal")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
+                            .disabled(aiOwnerInspirationEntriesDraft.isEmpty)
+                        }
+
+                        ForEach($aiOwnerInspirationEntriesDraft) { $entry in
+                            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
+                                HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                                    SettingsBadge(
+                                        text: entry.isPublished ? "Published" : "Draft",
+                                        colorScheme: effectiveColorScheme
+                                    )
+                                    Text(entry.id)
+                                        .font(.caption2)
+                                        .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
+                                        .lineLimit(1)
+                                }
+
+                                SettingsInputField(
+                                    title: "Titel",
+                                    text: $entry.title,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "z. B. Drop-Idee: Midnight Street Capsule"
+                                )
+
+                                SettingsMultilineInputField(
+                                    title: "Inspiration / Details",
+                                    text: $entry.details,
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "Stil, Mood, Story, kreative Leitplanken...",
+                                    minHeight: 110
+                                )
+
+                                SettingsInputField(
+                                    title: "Tags (comma separated)",
+                                    text: Binding(
+                                        get: { entry.tags.joined(separator: ", ") },
+                                        set: { entry.tags = parseTagDraftList($0) }
+                                    ),
+                                    colorScheme: effectiveColorScheme,
+                                    placeholder: "streetwear, drop, visual-style"
+                                )
+
+                                Toggle("Published", isOn: $entry.isPublished)
+                                    .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: effectiveColorScheme)))
+
+                                Button(role: .destructive) {
+                                    removeAIOwnerInspirationEntry(entry.id)
+                                } label: {
+                                    Label("Eintrag entfernen", systemImage: "trash")
+                                }
+                                .buttonStyle(.bordered)
+                                .skydownInteractiveFeedback()
+                            }
+                            .padding(12)
+                            .background(AppColors.secondaryBackground(for: effectiveColorScheme))
+                            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                                    .stroke(AppColors.accent(for: effectiveColorScheme).opacity(0.12), lineWidth: 1)
+                            )
+                        }
+                        .animation(SkydownMotion.statusTransition, value: aiOwnerInspirationEntriesDraft.count)
+
+                        Button(action: saveAIOwnerInspirationEntries) {
+                            Label("Ideen & Inspiration speichern", systemImage: "lightbulb")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.accentHighlight(for: effectiveColorScheme))
+                        .skydownInteractiveFeedback()
+
+                        if let storeError = aiOwnerInspirationStudioStore.lastErrorMessage, !storeError.isEmpty {
+                            Text("Ideen & Inspiration konnten nicht geladen werden: \(storeError)")
                                 .font(.footnote)
                                 .foregroundColor(.red)
                         }
@@ -3617,6 +3816,10 @@ struct SettingsView: View {
         aiStudioFAQEntriesDraft = entries
     }
 
+    private func syncAIOwnerInspirationDrafts(with entries: [AIOwnerInspirationEntry]) {
+        aiOwnerInspirationEntriesDraft = entries
+    }
+
     private func syncAIRuntimeDrafts(with settings: AIRuntimeSettings) {
         aiCostGuardEnabledDraft = settings.costGuardEnabled
         aiAgentProviderDraft = settings.agentProvider
@@ -3718,6 +3921,7 @@ struct SettingsView: View {
         )
         aiPromptSettingsStore.setObservationEnabled(shouldObserveAIPrompts)
         aiFaqKnowledgeStudioStore.setObservationEnabled(shouldObserveAIPrompts)
+        aiOwnerInspirationStudioStore.setObservationEnabled(shouldObserveAIPrompts)
         aiRuntimeSettingsStore.setObservationEnabled(shouldObserveAIPrompts)
         if shouldObserveAIPrompts {
             Task { await aiFaqOwnerReviewLoopStore.refresh(windowDays: aiFaqReviewLoopWindowDays) }
@@ -4065,7 +4269,25 @@ struct SettingsView: View {
     }
 
     private func removeAIStudioFAQEntry(_ id: String) {
-        aiStudioFAQEntriesDraft.removeAll { $0.id == id }
+        withAnimation(SkydownMotion.statusTransition) {
+            aiStudioFAQEntriesDraft.removeAll { $0.id == id }
+        }
+    }
+
+    private func publishAllAIStudioFAQEntries() {
+        aiStudioFAQEntriesDraft = aiStudioFAQEntriesDraft.map { entry in
+            var updated = entry
+            updated.isPublished = true
+            return updated
+        }
+    }
+
+    private func unpublishAllAIStudioFAQEntries() {
+        aiStudioFAQEntriesDraft = aiStudioFAQEntriesDraft.map { entry in
+            var updated = entry
+            updated.isPublished = false
+            return updated
+        }
     }
 
     private func parseTagDraftList(_ raw: String) -> [String] {
@@ -4086,6 +4308,43 @@ struct SettingsView: View {
                 showToastMessage("FAQ Base gespeichert. Nur Published-Eintraege sind live im Bot.", style: .success)
             } catch {
                 showToastMessage("FAQ Base konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func appendAIOwnerInspirationEntry() {
+        aiOwnerInspirationEntriesDraft.append(.empty())
+    }
+
+    private func removeAIOwnerInspirationEntry(_ id: String) {
+        withAnimation(SkydownMotion.statusTransition) {
+            aiOwnerInspirationEntriesDraft.removeAll { $0.id == id }
+        }
+    }
+
+    private func publishAllAIOwnerInspirationEntries() {
+        aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.map { entry in
+            var updated = entry
+            updated.isPublished = true
+            return updated
+        }
+    }
+
+    private func unpublishAllAIOwnerInspirationEntries() {
+        aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.map { entry in
+            var updated = entry
+            updated.isPublished = false
+            return updated
+        }
+    }
+
+    private func saveAIOwnerInspirationEntries() {
+        Task {
+            do {
+                try await aiOwnerInspirationStudioStore.save(aiOwnerInspirationEntriesDraft)
+                showToastMessage("Ideen & Inspiration gespeichert. Published-Eintraege sind live im Agent-Kontext.", style: .success)
+            } catch {
+                showToastMessage("Ideen & Inspiration konnten nicht gespeichert werden: \(error.localizedDescription)", style: .error)
             }
         }
     }

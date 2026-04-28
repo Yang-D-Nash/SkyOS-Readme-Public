@@ -274,6 +274,7 @@ private func normalizeCollectionHandles(
     legacyValue: String?,
     fallbackURL: String?
 ) -> [String] {
+    let hasExplicitRawValue = rawValue != nil
     let candidates: [String]
 
     if let values = rawValue as? [String], values.isEmpty == false {
@@ -295,6 +296,9 @@ private func normalizeCollectionHandles(
     let normalized = candidates.compactMap(normalizeCollectionHandle)
     if normalized.isEmpty == false {
         return Array(NSOrderedSet(array: normalized)) as? [String] ?? normalized
+    }
+    if hasExplicitRawValue {
+        return []
     }
 
     guard

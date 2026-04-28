@@ -85,6 +85,7 @@ fun AiHubScreen(
     onOpenProfile: () -> Unit = {},
     onOpenSettings: () -> Unit,
     onOpenAutomationSettings: () -> Unit = onOpenSettings,
+    onOpenHomeProductivityFromAgent: (String) -> Unit = {},
 ) {
     var mode by rememberSaveable { mutableStateOf(AiHubMode.Bot) }
     val compactVisualDensity = rememberUsesCompactVisualDensity()
@@ -251,6 +252,7 @@ fun AiHubScreen(
                                         immersiveInTools = immersiveMode,
                                         prefilledPrompt = pendingAgentPrefillPrompt,
                                         onConsumePrefilledPrompt = onConsumePendingAgentPrefillPrompt,
+                                        onOpenHomeProductivity = onOpenHomeProductivityFromAgent,
                                     )
                                 }
                             }

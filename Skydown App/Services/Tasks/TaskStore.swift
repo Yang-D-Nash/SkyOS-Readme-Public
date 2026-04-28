@@ -108,6 +108,26 @@ final class TaskStore: ObservableObject {
         let normalizedDetails = details.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedTitle.isEmpty else { return }
 
+        if let existingOpenTask = tasks.first(where: {
+            $0.status == .open && Self.normalizedTaskDedupKey($0.title) == Self.normalizedTaskDedupKey(normalizedTitle)
+        }) {
+            var mergedDescription = existingOpenTask.description.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !normalizedDetails.isEmpty, mergedDescription != normalizedDetails {
+                mergedDescription = mergedDescription.isEmpty ? normalizedDetails : "\(mergedDescription)\n\n\(normalizedDetails)"
+            }
+            try await firestore
+                .collection("users")
+                .document(uid)
+                .collection("tasks")
+                .document(existingOpenTask.id)
+                .setData([
+                    "title": normalizedTitle,
+                    "description": String(mergedDescription.prefix(5000)),
+                    "updatedAt": FieldValue.serverTimestamp()
+                ], merge: true)
+            return
+        }
+
         try await firestore
             .collection("users")
             .document(uid)
@@ -121,6 +141,20 @@ final class TaskStore: ObservableObject {
                 "createdAt": FieldValue.serverTimestamp(),
                 "updatedAt": FieldValue.serverTimestamp()
             ])
+    }
+
+    private static func normalizedTaskDedupKey(_ value: String) -> String {
+        let lowered = value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        let scalars = lowered.unicodeScalars.map { scalar -> Character in
+            let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: " _-"))
+            return allowed.contains(scalar) ? Character(scalar) : " "
+        }
+        let collapsed = String(scalars)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return String(collapsed.prefix(180))
     }
 
     private static func sortedTasks(_ tasks: [TaskItem]) -> [TaskItem] {

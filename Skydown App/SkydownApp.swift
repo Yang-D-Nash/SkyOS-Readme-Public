@@ -43,6 +43,7 @@ struct SkydownApp: App {
             ZStack(alignment: .top) {
                 LaunchScreenView()
                     .skydownTactileAction()
+                    .skydownPremiumInputSurface()
                     .environmentObject(services)
                     .environmentObject(services.featureFlags)
                     .environmentObject(services.authManager)

@@ -75,7 +75,7 @@ enum AgentExecutionMode: String, CaseIterable, Identifiable {
         case .merch:
             return "Merch"
         case .automation:
-            return "Automation"
+            return "Analyse"
         }
     }
 
@@ -90,7 +90,7 @@ enum AgentExecutionMode: String, CaseIterable, Identifiable {
         case .merch:
             return "Zum Beispiel: Struktur fuer einen Merch-Drop."
         case .automation:
-            return "Zum Beispiel: Uebergabe fuer einen n8n-Workflow."
+            return "Zum Beispiel: Analyse fuer einen Activepieces-Workflow."
         }
     }
 
@@ -413,7 +413,9 @@ final class AgentChatViewModel: ObservableObject {
                 refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 if result.automationTriggered {
                     lastIntegrationIssue = ""
-                    let successMessage = resultLooksLikeTaskCreation(result)
+                    let successMessage = resultLooksLikeReminderCreation(result)
+                        ? "Reminder erstellt"
+                        : (resultLooksLikeTaskCreation(result)
                         ? AppLocalized.text("tasks.created", fallback: "Task created")
                         : (resultLooksLikeNoteCreation(result)
                             ? AppLocalized.text("notes.saved", fallback: "Note saved")
@@ -421,7 +423,7 @@ final class AgentChatViewModel: ObservableObject {
                             result.automationMessage.isEmpty
                             ? AppLocalized.text("agent.automation.triggered", fallback: "Automation wurde gestartet.")
                             : result.automationMessage
-                        ))
+                        )))
                     showUserToast(successMessage, style: .success)
                 } else if result.automationAttempted && !result.automationMessage.isEmpty {
                     lastIntegrationIssue = result.automationMessage
@@ -910,7 +912,9 @@ final class AgentChatViewModel: ObservableObject {
                 refreshConversationMetadata(preferredSessionID: requestContext.sessionIDAtSend)
                 if result.automationTriggered {
                     lastIntegrationIssue = ""
-                    let successMessage = resultLooksLikeTaskCreation(result)
+                    let successMessage = resultLooksLikeReminderCreation(result)
+                        ? "Reminder erstellt"
+                        : (resultLooksLikeTaskCreation(result)
                         ? AppLocalized.text("tasks.created", fallback: "Task created")
                         : (resultLooksLikeNoteCreation(result)
                             ? AppLocalized.text("notes.saved", fallback: "Note saved")
@@ -918,7 +922,7 @@ final class AgentChatViewModel: ObservableObject {
                             result.automationMessage.isEmpty
                             ? AppLocalized.text("agent.automation.triggered", fallback: "Automation wurde gestartet.")
                             : result.automationMessage
-                        ))
+                        )))
                     showUserToast(successMessage, style: .success)
                 } else if result.automationAttempted && !result.automationMessage.isEmpty {
                     lastIntegrationIssue = result.automationMessage
@@ -1170,7 +1174,9 @@ final class AgentChatViewModel: ObservableObject {
         let automationLabel = workflowLabel.isEmpty ? "Workflow" : workflowLabel
         let message = response.automationMessage.trimmingCharacters(in: .whitespacesAndNewlines)
         let suffix = message.isEmpty ? "An \(automationLabel) uebergeben." : message
-        return "\(response.reply)\n\nWorkflow:\n\(suffix)"
+        let createdSummary = createdAutomationSummary(from: response)
+        let homeHint = "Du kannst alles in Home > Productivity als Liste bearbeiten (CRUD)."
+        return "\(response.reply)\n\nWorkflow:\n\(suffix)\n\n\(createdSummary)\n\(homeHint)"
     }
 
     private func buildWorkflowSummary(from response: AgentChatResponse) -> AgentWorkflowSummary? {
@@ -1229,6 +1235,25 @@ final class AgentChatViewModel: ObservableObject {
         return workflowName.contains("note") || automationMessage.contains("note")
     }
 
+    private func resultLooksLikeReminderCreation(_ response: AgentChatResponse) -> Bool {
+        if response.results.contains(where: { $0.type.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "reminder" }) {
+            return true
+        }
+        let workflowName = response.workflowName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let automationMessage = response.automationMessage.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return workflowName.contains("reminder") || automationMessage.contains("erinner")
+    }
+
+    private func createdAutomationSummary(from response: AgentChatResponse) -> String {
+        let reminderCount = resultLooksLikeReminderCreation(response) ? 1 : 0
+        let taskCount = resultLooksLikeTaskCreation(response) ? 1 : 0
+        let noteCount = resultLooksLikeNoteCreation(response) ? 1 : 0
+        if reminderCount == 0 && taskCount == 0 && noteCount == 0 {
+            return "Es wurde kein Reminder/Task/Notiz automatisch angelegt."
+        }
+        return "Angelegt: Reminder \(reminderCount) | Tasks \(taskCount) | Notizen \(noteCount)"
+    }
+
     func showToastMessage(_ message: String, style: ToastStyle) {
         showUserToast(message, style: style)
     }
@@ -1285,6 +1310,11 @@ final class AgentChatViewModel: ObservableObject {
         \(noteLines.isEmpty ? "- none" : noteLines.joined(separator: "\n"))
         Upcoming reminders:
         \(reminderLines.isEmpty ? "- none" : reminderLines.joined(separator: "\n"))
+        Execution policy:
+        - Reminder: nur fuer zeitgebundene Zusagen mit Datum/Uhrzeit.
+        - Task: fuer konkrete umsetzbare Arbeit ohne feste Erinnerungszeit.
+        - Note: fuer Referenzwissen ohne direkte Aktion.
+        - Bei aehnlichen offenen Eintraegen zuerst aktualisieren statt duplizieren.
         [/SkyOS Memory Context]
         """
 

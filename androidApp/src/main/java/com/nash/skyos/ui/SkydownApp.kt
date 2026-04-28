@@ -97,6 +97,8 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -130,6 +132,7 @@ import com.nash.skyos.ui.component.BrandHeroCard
 import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.ConnectivityStatusBanner
 import com.nash.skyos.ui.component.AppTopBarSessionActions
+import com.nash.skyos.ui.component.dismissKeyboardOnTap
 import com.nash.skyos.ui.component.LocalSessionUser
 import com.nash.skyos.ui.component.SkydownExitEasing
 import com.nash.skyos.ui.component.SkydownMotionTokens
@@ -204,6 +207,8 @@ fun SkydownApp(
     skipIntro: Boolean,
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val navController = rememberNavController()
     val isCompactLayout = rememberIsCompactAppLayout()
     val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
@@ -517,6 +522,10 @@ fun SkydownApp(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
+                        .dismissKeyboardOnTap {
+                            focusManager.clearFocus(force = true)
+                            keyboardController?.hide()
+                        }
                         .skydownAtmosphereBackground(),
                 ) {
                     NavHost(
@@ -612,6 +621,10 @@ fun SkydownApp(
                                 onOpenProfile = openProfile,
                                 onOpenSettings = openSettings,
                                 onOpenAutomationSettings = openAutomationSettings,
+                                onOpenHomeProductivityFromAgent = { sheet ->
+                                    AppContainer.openHomeProductivitySheet(sheet)
+                                    navigateToTopLevel("home")
+                                },
                             )
                         }
                         composable("settings") {

@@ -136,6 +136,7 @@ struct MainTabView: View {
                     }
             }
         }
+        .skydownPremiumInputSurface()
         .accentColor(selectedTabAccent)
         .background {
             AppColors.primaryBackground(for: currentScheme)
@@ -245,7 +246,18 @@ struct MainTabView: View {
                         onGuestSignIn: { presentLogin(.standard) },
                         onOpenProfile: { presentModal(.profile) },
                         onOpenSettings: { presentSettings() },
-                        onOpenAutomationSettings: { presentSettings(initialAdminWorkspaceRawValue: "Automation") }
+                        onOpenAutomationSettings: { presentSettings(initialAdminWorkspaceRawValue: "Automation") },
+                        onOpenHomeProductivityFromAgent: { target in
+                            withAnimation(SkydownMotion.screenTransition) {
+                                showsWorkflowWorkspace = false
+                                selectedTab = .hub
+                            }
+                            NotificationCenter.default.post(
+                                name: .skydownOpenHomeProductivitySheet,
+                                object: nil,
+                                userInfo: ["sheet": target.rawValue]
+                            )
+                        }
                     )
                     .skydownSceneActivation(isActive: selectedTab == .tools, axis: .horizontal, travel: 22)
                 }
@@ -1168,6 +1180,7 @@ private struct AIHubView: View {
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
     let onOpenAutomationSettings: () -> Void
+    let onOpenHomeProductivityFromAgent: (AgentHomeProductivityTarget) -> Void
     @State private var mode: AIHubMode = .bot
     @StateObject private var membershipCoordinator = AIMembershipCoordinator()
     @State private var isAgentSurfaceReady = false
@@ -1190,7 +1203,8 @@ private struct AIHubView: View {
         onGuestSignIn: (() -> Void)?,
         onOpenProfile: @escaping () -> Void,
         onOpenSettings: @escaping () -> Void,
-        onOpenAutomationSettings: @escaping () -> Void
+        onOpenAutomationSettings: @escaping () -> Void,
+        onOpenHomeProductivityFromAgent: @escaping (AgentHomeProductivityTarget) -> Void
     ) {
         self.aiChatService = aiChatService
         self.agentChatService = agentChatService
@@ -1201,6 +1215,7 @@ private struct AIHubView: View {
         self.onOpenProfile = onOpenProfile
         self.onOpenSettings = onOpenSettings
         self.onOpenAutomationSettings = onOpenAutomationSettings
+        self.onOpenHomeProductivityFromAgent = onOpenHomeProductivityFromAgent
         _featureFlags = ObservedObject(wrappedValue: featureFlags)
         _showsWorkflowWorkspace = showsWorkflowWorkspace
         _pendingAgentPrefillPrompt = pendingAgentPrefillPrompt
@@ -1350,6 +1365,7 @@ private struct AIHubView: View {
                                     membershipCoordinator: membershipCoordinator,
                                     prefilledPrompt: pendingAgentPrefillPrompt,
                                     onConsumePrefilledPrompt: { pendingAgentPrefillPrompt = nil },
+                                    onOpenHomeProductivity: onOpenHomeProductivityFromAgent,
                                     showsNavigation: false
                                 )
                             } else {

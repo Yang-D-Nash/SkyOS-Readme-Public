@@ -158,6 +158,7 @@ fun AgentScreen(
     immersiveInTools: Boolean = false,
     prefilledPrompt: String? = null,
     onConsumePrefilledPrompt: () -> Unit = {},
+    onOpenHomeProductivity: (String) -> Unit = {},
 ) {
     DisposableEffect(immersiveInTools) {
         onDispose { }
@@ -418,6 +419,7 @@ fun AgentScreen(
                                         localFeedbackMessage = messageText
                                         localFeedbackType = type
                                     },
+                                    onOpenHomeProductivity = onOpenHomeProductivity,
                                 )
                             }
                         }
@@ -963,6 +965,12 @@ private fun AgentEmptyStateHeader() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
+        Text(
+            text = "Memory: letzte 30 Tage pro Konto.",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f),
+        )
     }
 }
 
@@ -1433,6 +1441,8 @@ private fun AgentPromptComposerSheet(
     onClearAttachments: () -> Unit,
     onSend: () -> Unit,
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     Column(
         modifier = Modifier
             .testTag("agent.prompt.sheet")
@@ -1527,14 +1537,17 @@ private fun AgentPromptComposerSheet(
                 onModeChanged = onModeChanged,
             )
             if (canTriggerAutomation) {
-                AgentAutomationScopeMenu(
-                    selectedScope = selectedAutomationScope,
-                    canUseGlobalOwnerAutomationFlow = canUseGlobalOwnerAutomationFlow,
-                    enabled = !agentPhase.shouldBlockComposerChrome,
-                    onScopeChanged = onAutomationScopeChanged,
-                )
+                if (canUseGlobalOwnerAutomationFlow) {
+                    AgentAutomationScopeMenu(
+                        selectedScope = selectedAutomationScope,
+                        canUseGlobalOwnerAutomationFlow = canUseGlobalOwnerAutomationFlow,
+                        enabled = !agentPhase.shouldBlockComposerChrome,
+                        onScopeChanged = onAutomationScopeChanged,
+                    )
+                }
                 AgentAutomationTriggerButton(
                     isEnabled = shouldTriggerAutomation,
+                    isOwnerFlow = canUseGlobalOwnerAutomationFlow,
                     onToggle = onToggleAutomation,
                 )
             }
@@ -1564,7 +1577,11 @@ private fun AgentPromptComposerSheet(
             minLines = 4,
             maxLines = 8,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-            keyboardActions = KeyboardActions(onSend = { onSend() }),
+            keyboardActions = KeyboardActions(onSend = {
+                focusManager.clearFocus(force = true)
+                keyboardController?.hide()
+                onSend()
+            }),
             shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.72f),
@@ -1834,6 +1851,7 @@ private fun AgentAutomationScopeMenu(
 @Composable
 private fun AgentAutomationTriggerButton(
     isEnabled: Boolean,
+    isOwnerFlow: Boolean,
     onToggle: () -> Unit,
 ) {
     val accent = if (isEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
@@ -1854,9 +1872,9 @@ private fun AgentAutomationTriggerButton(
         Column(verticalArrangement = Arrangement.Center) {
             Text(
                 text = if (isEnabled) {
-                    stringResource(R.string.agent_workflow_active)
+                    if (isOwnerFlow) stringResource(R.string.agent_workflow_active) else "Persoenlich aktiv"
                 } else {
-                    stringResource(R.string.agent_workflow_start)
+                    if (isOwnerFlow) stringResource(R.string.agent_workflow_start) else "Persoenlich starten"
                 },
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
@@ -1865,9 +1883,9 @@ private fun AgentAutomationTriggerButton(
             )
             Text(
                 text = if (isEnabled) {
-                    stringResource(R.string.agent_workflow_attached)
+                    if (isOwnerFlow) stringResource(R.string.agent_workflow_attached) else "Personal-Flow"
                 } else {
-                    stringResource(R.string.agent_workflow_provider)
+                    if (isOwnerFlow) stringResource(R.string.agent_workflow_provider) else "nur dein Flow"
                 },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
@@ -1940,6 +1958,7 @@ private fun AgentMessageBubble(
     message: AgentMessage,
     compactLayout: Boolean,
     onFeedback: (String, ToastType) -> Unit,
+    onOpenHomeProductivity: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val isUser = message.role == AgentMessageRole.User
@@ -1960,6 +1979,7 @@ private fun AgentMessageBubble(
         Color.Transparent
     }
     val copiedFeedback = stringResource(R.string.agent_feedback_copied)
+    val homeTarget = remember(message.text, isUser) { resolveHomeProductivityTarget(message.text, isUser) }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -2055,10 +2075,36 @@ private fun AgentMessageBubble(
                         ) {
                             Text(stringResource(R.string.agent_action_share))
                         }
+                        if (homeTarget != null) {
+                            OutlinedButton(
+                                onClick = { onOpenHomeProductivity(homeTarget) },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            ) {
+                                Text("In Home öffnen")
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+private fun resolveHomeProductivityTarget(text: String, isUser: Boolean): String? {
+    if (isUser) return null
+    fun count(labelPattern: String): Int {
+        val regex = Regex("$labelPattern\\s*(\\d+)", RegexOption.IGNORE_CASE)
+        val value = regex.find(text)?.groupValues?.getOrNull(1) ?: return 0
+        return value.toIntOrNull() ?: 0
+    }
+    val reminderCount = count("Reminder")
+    val taskCount = count("Tasks?")
+    val noteCount = count("Notizen?")
+    if (reminderCount <= 0 && taskCount <= 0 && noteCount <= 0) return null
+    return when {
+        reminderCount >= taskCount && reminderCount >= noteCount -> "reminder_manage"
+        taskCount >= noteCount -> "task_manage"
+        else -> "note_manage"
     }
 }
 

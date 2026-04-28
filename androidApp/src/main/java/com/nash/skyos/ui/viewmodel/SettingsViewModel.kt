@@ -6,6 +6,7 @@ import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.AppearancePreferences
 import com.nash.skyos.data.AgentProfilePreferences
 import com.nash.skyos.data.AiVisualReferenceLibraryPreferences
+import com.nash.skyos.data.AiOwnerInspirationEntry
 import com.nash.skyos.data.AppLanguageSupport
 import com.nash.skyos.data.BankTransferSettings
 import com.nash.skyos.data.CommerceSettings
@@ -33,6 +34,7 @@ import kotlinx.coroutines.launch
 class SettingsViewModel : ViewModel() {
     private val authService = AppContainer.authService
     private val aiPromptSettingsRepository = AppContainer.aiPromptSettingsRepository
+    private val aiOwnerInspirationRepository = AppContainer.aiOwnerInspirationRepository
     private val aiRuntimeSettingsRepository = AppContainer.aiRuntimeSettingsRepository
     private val commerceSettingsRepository = AppContainer.commerceSettingsRepository
     private val legalContentRepository = AppContainer.legalContentRepository
@@ -44,6 +46,7 @@ class SettingsViewModel : ViewModel() {
     private var paymentMethodsListener: ListenerRegistration? = null
     private var stripeBackendSecretsListener: ListenerRegistration? = null
     private var aiPromptSettingsListener: ListenerRegistration? = null
+    private var aiOwnerInspirationListener: ListenerRegistration? = null
     private var aiRuntimeSettingsListener: ListenerRegistration? = null
     private var shopifyAdminSettingsListener: ListenerRegistration? = null
     private var adminUsersListener: ListenerRegistration? = null
@@ -106,6 +109,7 @@ class SettingsViewModel : ViewModel() {
 
                 configureStripeBackendSecretsObservation(isEnabled = isOwner)
                 configureAiPromptSettingsObservation(isEnabled = isOwner)
+                configureAiOwnerInspirationObservation(isEnabled = isOwner)
                 configureAiRuntimeSettingsObservation(isEnabled = isOwner)
                 configureManagedUsersObservation(isEnabled = isOwner)
             }
@@ -485,6 +489,32 @@ class SettingsViewModel : ViewModel() {
             } else {
                 showPaymentFeedback(
                     message = result.exceptionOrNull()?.message ?: "KI-Anweisungen konnten nicht gespeichert werden.",
+                    isError = true,
+                )
+            }
+        }
+    }
+
+    fun saveAiOwnerInspirationEntries(entries: List<AiOwnerInspirationEntry>) {
+        viewModelScope.launch {
+            if (!_uiState.value.isOwner) {
+                showPaymentFeedback(
+                    message = "Nur der Owner darf Ideen & Inspiration verwalten.",
+                    isError = true,
+                )
+                return@launch
+            }
+
+            val result = aiOwnerInspirationRepository.updateEntries(entries)
+            if (result.isSuccess) {
+                _uiState.update { it.copy(aiOwnerInspirationEntries = entries) }
+                showPaymentFeedback(
+                    message = "Ideen & Inspiration gespeichert. Published-Eintraege sind live im Agent-Kontext.",
+                    isError = false,
+                )
+            } else {
+                showPaymentFeedback(
+                    message = result.exceptionOrNull()?.message ?: "Ideen & Inspiration konnten nicht gespeichert werden.",
                     isError = true,
                 )
             }
@@ -1068,6 +1098,8 @@ class SettingsViewModel : ViewModel() {
         stripeBackendSecretsListener = null
         aiPromptSettingsListener?.remove()
         aiPromptSettingsListener = null
+        aiOwnerInspirationListener?.remove()
+        aiOwnerInspirationListener = null
         aiRuntimeSettingsListener?.remove()
         aiRuntimeSettingsListener = null
         shopifyAdminSettingsListener?.remove()
@@ -1130,6 +1162,30 @@ class SettingsViewModel : ViewModel() {
             }.onFailure { error ->
                 showPaymentFeedback(
                     message = error.message ?: "KI-Anweisungen konnten nicht geladen werden.",
+                    isError = true,
+                )
+            }
+        }
+    }
+
+    private fun configureAiOwnerInspirationObservation(isEnabled: Boolean) {
+        if (!isEnabled) {
+            aiOwnerInspirationListener?.remove()
+            aiOwnerInspirationListener = null
+            _uiState.update { it.copy(aiOwnerInspirationEntries = emptyList()) }
+            return
+        }
+
+        if (aiOwnerInspirationListener != null) {
+            return
+        }
+
+        aiOwnerInspirationListener = aiOwnerInspirationRepository.observeEntries { result ->
+            result.onSuccess { entries ->
+                _uiState.update { it.copy(aiOwnerInspirationEntries = entries) }
+            }.onFailure { error ->
+                showPaymentFeedback(
+                    message = error.message ?: "Ideen & Inspiration konnten nicht geladen werden.",
                     isError = true,
                 )
             }

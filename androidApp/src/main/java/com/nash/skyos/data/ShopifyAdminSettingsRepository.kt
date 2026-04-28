@@ -172,6 +172,7 @@ private fun normalizeCollectionHandles(
     legacyValue: String?,
     fallbackUrl: String?,
 ): List<String> {
+    val hasExplicitRawValue = rawValue != null
     val candidates = when (rawValue) {
         is List<*> -> rawValue.mapNotNull { it as? String }
         is String -> rawValue.split('\n', ',')
@@ -182,6 +183,9 @@ private fun normalizeCollectionHandles(
     val normalized = candidates.mapNotNull(::normalizeCollectionHandle).distinct()
     if (normalized.isNotEmpty()) {
         return normalized
+    }
+    if (hasExplicitRawValue) {
+        return emptyList()
     }
 
     val url = normalizeUrlString(fallbackUrl) ?: return emptyList()

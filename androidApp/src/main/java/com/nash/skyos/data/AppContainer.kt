@@ -17,6 +17,7 @@ import com.skydown.shared.service.AuthService
 import com.skydown.shared.service.MerchandiseService
 import com.skydown.shared.service.MusicService
 import com.skydown.shared.service.OrderService
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 object AppContainer {
@@ -48,6 +49,7 @@ object AppContainer {
     val hostedMerchCheckoutClient: HostedMerchCheckoutClient by lazy { HostedMerchCheckoutClient() }
     val userProfileRepository: UserProfileRepository by lazy { UserProfileRepository() }
     val aiPromptSettingsRepository: AiPromptSettingsRepository by lazy { AiPromptSettingsRepository() }
+    val aiOwnerInspirationRepository: AiOwnerInspirationRepository by lazy { AiOwnerInspirationRepository() }
     val aiRuntimeSettingsRepository: AiRuntimeSettingsRepository by lazy { AiRuntimeSettingsRepository() }
     val paymentMethodsRepository: PaymentMethodsRepository by lazy { PaymentMethodsRepository() }
     val stripeBackendSecretsRepository: StripeBackendSecretsRepository by lazy { StripeBackendSecretsRepository() }
@@ -89,6 +91,8 @@ object AppContainer {
         get() = MusicService(musicRepository)
     val currentUser: StateFlow<com.skydown.shared.model.User?> = AppSessionStore.currentUser
     val aiEnabled: StateFlow<Boolean> = AppFeatureFlagsStore.isAiEnabled
+    private val _homeProductivitySheetRequest = MutableStateFlow<String?>(null)
+    val homeProductivitySheetRequest: StateFlow<String?> = _homeProductivitySheetRequest
     val isUiTestCurrentUserOverrideActive: Boolean
         get() = currentUserOverride != null
 
@@ -144,5 +148,13 @@ object AppContainer {
         } catch (_: Throwable) {
             // Silent by design; token sync should not block session bootstrap.
         }
+    }
+
+    fun openHomeProductivitySheet(sheet: String) {
+        _homeProductivitySheetRequest.value = sheet
+    }
+
+    fun clearHomeProductivitySheetRequest() {
+        _homeProductivitySheetRequest.value = null
     }
 }

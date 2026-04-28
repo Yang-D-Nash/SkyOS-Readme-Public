@@ -1,6 +1,10 @@
 import AVKit
 import SwiftUI
 
+extension Notification.Name {
+    static let skydownOpenHomeProductivitySheet = Notification.Name("skydown.openHomeProductivitySheet")
+}
+
 /// Dedicated Home entry surface for clearer ownership and faster iteration.
 struct HomeView: View {
     let onOpenCart: () -> Void
@@ -360,6 +364,19 @@ struct HomeViewContent: View {
         .fullScreenCover(item: $fullscreenVideoTarget) { target in
             HomeFullscreenVideoViewer(video: target.video)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .skydownOpenHomeProductivitySheet)) { notification in
+            guard let rawSheet = notification.userInfo?["sheet"] as? String else { return }
+            switch rawSheet {
+            case AgentHomeProductivityTarget.reminderManager.rawValue:
+                presentSheet(.reminderManager)
+            case AgentHomeProductivityTarget.taskManager.rawValue:
+                presentSheet(.taskManager)
+            case AgentHomeProductivityTarget.noteManager.rawValue:
+                presentSheet(.noteManager)
+            default:
+                break
+            }
+        }
     }
 
     private var activePresentedSheetBinding: Binding<HomePresentedSheet?> {
@@ -718,6 +735,7 @@ private struct HomeReminderComposerSheet: View {
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 TextField(AppLocalized.text("home.sheet.reminder.title_hint", fallback: "Reminder title"), text: $titleText)
+                    .submitLabel(.done)
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
@@ -739,6 +757,8 @@ private struct HomeReminderComposerSheet: View {
             }
             .padding()
         }
+        .scrollDismissesKeyboard(.interactively)
+        .skydownPremiumInputSurface()
         .navigationTitle(AppLocalized.text("home.quick.create_reminder", fallback: "Create Reminder"))
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -760,10 +780,12 @@ private struct HomeTaskComposerSheet: View {
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 TextField(AppLocalized.text("tasks.input.title_hint", fallback: "Task title"), text: $titleText)
+                    .submitLabel(.done)
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
                 TextField(AppLocalized.text("tasks.input.details_hint", fallback: "Optional details"), text: $detailText)
+                    .submitLabel(.done)
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
@@ -794,6 +816,8 @@ private struct HomeTaskComposerSheet: View {
             }
             .padding()
         }
+        .scrollDismissesKeyboard(.interactively)
+        .skydownPremiumInputSurface()
         .navigationTitle(AppLocalized.text("home.quick.create_task", fallback: "Create Task"))
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -813,6 +837,7 @@ private struct HomeNoteComposerSheet: View {
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 TextField(AppLocalized.text("notes.input.title_hint", fallback: "Note title"), text: $titleText)
+                    .submitLabel(.done)
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
@@ -838,6 +863,8 @@ private struct HomeNoteComposerSheet: View {
             }
             .padding()
         }
+        .scrollDismissesKeyboard(.interactively)
+        .skydownPremiumInputSurface()
         .navigationTitle(AppLocalized.text("home.quick.create_note", fallback: "Create Note"))
         .navigationBarTitleDisplayMode(.inline)
     }

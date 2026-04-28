@@ -374,7 +374,9 @@ class AgentViewModel : ViewModel() {
                     state.copy(
                         agentPhase = resolveTerminalPhase(result.decision, pendingRequests.isNotEmpty()),
                         errorMessage = nextError,
-                        successMessage = if (result.automationTriggered && resultLooksLikeTaskCreation(result)) {
+                        successMessage = if (result.automationTriggered && resultLooksLikeReminderCreation(result)) {
+                            "Reminder erstellt"
+                        } else if (result.automationTriggered && resultLooksLikeTaskCreation(result)) {
                             AppTextResolver.string(R.string.tasks_created)
                         } else if (result.automationTriggered && resultLooksLikeNoteCreation(result)) {
                             AppTextResolver.string(R.string.notes_saved)
@@ -790,7 +792,9 @@ class AgentViewModel : ViewModel() {
                                 resolveTerminalPhase(result.decision, hasPendingQueue = false)
                             },
                             errorMessage = nextError,
-                            successMessage = if (result.automationTriggered && resultLooksLikeTaskCreation(result)) {
+                            successMessage = if (result.automationTriggered && resultLooksLikeReminderCreation(result)) {
+                                "Reminder erstellt"
+                            } else if (result.automationTriggered && resultLooksLikeTaskCreation(result)) {
                                 AppTextResolver.string(R.string.tasks_created)
                             } else if (result.automationTriggered && resultLooksLikeNoteCreation(result)) {
                                 AppTextResolver.string(R.string.notes_saved)
@@ -1298,7 +1302,9 @@ class AgentViewModel : ViewModel() {
         }
         val workflowLabel = result.workflowName.trim().ifBlank { "Workflow" }
         val automationMessage = result.automationMessage.trim().ifBlank { "An $workflowLabel uebergeben." }
-        return "${result.reply}\n\nWorkflow:\n$automationMessage"
+        val summary = createdAutomationSummary(result)
+        val homeHint = "Du kannst alles in Home > Productivity als Liste bearbeiten (CRUD)."
+        return "${result.reply}\n\nWorkflow:\n$automationMessage\n\n$summary\n$homeHint"
     }
 
     private fun resultLooksLikeTaskCreation(result: com.nash.skyos.data.AgentResponse): Boolean {
@@ -1309,6 +1315,22 @@ class AgentViewModel : ViewModel() {
     private fun resultLooksLikeNoteCreation(result: com.nash.skyos.data.AgentResponse): Boolean {
         if (result.results.any { it.type.trim().lowercase() == "note" }) return true
         return result.workflowName.lowercase().contains("note") || result.automationMessage.lowercase().contains("note")
+    }
+
+    private fun resultLooksLikeReminderCreation(result: com.nash.skyos.data.AgentResponse): Boolean {
+        if (result.results.any { it.type.trim().lowercase() == "reminder" }) return true
+        return result.workflowName.lowercase().contains("reminder") ||
+            result.automationMessage.lowercase().contains("erinner")
+    }
+
+    private fun createdAutomationSummary(result: com.nash.skyos.data.AgentResponse): String {
+        val reminderCount = if (resultLooksLikeReminderCreation(result)) 1 else 0
+        val taskCount = if (resultLooksLikeTaskCreation(result)) 1 else 0
+        val noteCount = if (resultLooksLikeNoteCreation(result)) 1 else 0
+        if (reminderCount == 0 && taskCount == 0 && noteCount == 0) {
+            return "Es wurde kein Reminder/Task/Notiz automatisch angelegt."
+        }
+        return "Angelegt: Reminder $reminderCount | Tasks $taskCount | Notizen $noteCount"
     }
 
     private fun buildWorkflowSummary(result: com.nash.skyos.data.AgentResponse): AgentWorkflowSummary? {
@@ -1400,6 +1422,11 @@ class AgentViewModel : ViewModel() {
             appendLine(if (noteLines.isEmpty()) "- none" else noteLines.joinToString("\n"))
             appendLine("Upcoming reminders:")
             appendLine(if (reminderLines.isEmpty()) "- none" else reminderLines.joinToString("\n"))
+            appendLine("Execution policy:")
+            appendLine("- Reminder: nur fuer zeitgebundene Zusagen mit Datum/Uhrzeit.")
+            appendLine("- Task: fuer konkrete umsetzbare Arbeit ohne feste Erinnerungszeit.")
+            appendLine("- Note: fuer Referenzwissen ohne direkte Aktion.")
+            appendLine("- Bei aehnlichen offenen Eintraegen zuerst aktualisieren statt duplizieren.")
             appendLine("[/SkyOS Memory Context]")
         }
         return "$memoryBlock\nUser request:\n$userPrompt"

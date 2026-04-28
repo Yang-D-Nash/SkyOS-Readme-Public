@@ -255,6 +255,12 @@ struct NicmaProducerPackage: Identifiable {
 }
 
 extension View {
+    func skydownPremiumInputSurface() -> some View {
+        self
+            .skydownKeyboardDismissToolbar()
+            .skydownDismissKeyboardOnTap()
+    }
+
     func skydownKeyboardDismissToolbar() -> some View {
         toolbar {
             ToolbarItemGroup(placement: .keyboard) {

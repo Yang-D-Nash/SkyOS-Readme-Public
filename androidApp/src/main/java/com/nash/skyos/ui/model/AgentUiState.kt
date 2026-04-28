@@ -11,7 +11,7 @@ enum class AgentExecutionMode(val rawValue: String, val title: String, val place
     Briefing("briefing", "Briefing", "Zum Beispiel: Briefing fuer ein Video-Team."),
     Content("content", "Content", "Zum Beispiel: Content-Plan fuer Reels und Story."),
     Merch("merch", "Merch", "Zum Beispiel: Struktur fuer einen Merch-Drop."),
-    Automation("automation", "Automation", "Zum Beispiel: Uebergabe fuer einen Activepieces-Workflow."),
+    Automation("automation", "Analyse", "Zum Beispiel: Analyse fuer einen Activepieces-Workflow."),
 }
 
 enum class AgentAutomationScope(val rawValue: String, val title: String) {

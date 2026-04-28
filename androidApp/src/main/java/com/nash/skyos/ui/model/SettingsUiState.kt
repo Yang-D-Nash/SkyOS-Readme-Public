@@ -3,6 +3,7 @@ package com.nash.skyos.ui.model
 import com.nash.skyos.ui.theme.AppearanceMode
 import com.nash.skyos.data.AgentProfileSettings
 import com.nash.skyos.data.AiPromptSettings
+import com.nash.skyos.data.AiOwnerInspirationEntry
 import com.nash.skyos.data.AiRuntimeSettings
 import com.nash.skyos.data.AiVisualReferenceLibrarySettings
 import com.nash.skyos.data.CommerceSettings
@@ -38,6 +39,7 @@ data class SettingsUiState(
     val aiVisualReferenceLibrary: AiVisualReferenceLibrarySettings = AiVisualReferenceLibrarySettings(),
     val agentProfileSettings: AgentProfileSettings = AgentProfileSettings(),
     val aiPromptSettings: AiPromptSettings = AiPromptSettings(),
+    val aiOwnerInspirationEntries: List<AiOwnerInspirationEntry> = emptyList(),
     val aiRuntimeSettings: AiRuntimeSettings = AiRuntimeSettings(),
     val legalContentSettings: LegalContentSettings = LegalContentSettings(),
     val workflowAutomationSettings: WorkflowAutomationSettings = WorkflowAutomationSettings(),

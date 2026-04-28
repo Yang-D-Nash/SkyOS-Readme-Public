@@ -74,6 +74,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -95,10 +97,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.Dp
@@ -178,6 +183,7 @@ fun HomeScreen(
     )
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentUser by AppContainer.currentUser.collectAsStateWithLifecycle()
+    val homeProductivitySheetRequest by AppContainer.homeProductivitySheetRequest.collectAsStateWithLifecycle()
     val screenHeaderSettings by AppContainer.screenHeaderSettingsRepository.settings.collectAsStateWithLifecycle()
     var activeDestination by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedVideoHubId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -202,6 +208,8 @@ fun HomeScreen(
     }
 
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val mediaContext = remember(context) { context.mediaAttributionContext() }
     var inAppOriginalVideoUrl by rememberSaveable { mutableStateOf<String?>(null) }
     var inAppOriginalVideoTitle by rememberSaveable { mutableStateOf("Original") }
@@ -319,6 +327,11 @@ fun HomeScreen(
             delay(700)
             isQuickActionCoolingDown = false
         }
+    }
+    LaunchedEffect(homeProductivitySheetRequest) {
+        val request = homeProductivitySheetRequest ?: return@LaunchedEffect
+        activeProductivitySheet = request
+        AppContainer.clearHomeProductivitySheetRequest()
     }
     val topBarActionDescription = stringResource(
         if (onOpenWorkflow != null) {
@@ -703,6 +716,13 @@ fun HomeScreen(
                                     label = { Text(stringResource(R.string.tasks_input_title_hint)) },
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = {
+                                            focusManager.clearFocus(force = true)
+                                            keyboardController?.hide()
+                                        },
+                                    ),
                                 )
                                 OutlinedTextField(
                                     value = taskDetailDraft,
@@ -710,6 +730,13 @@ fun HomeScreen(
                                     label = { Text(stringResource(R.string.tasks_input_details_hint)) },
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = {
+                                            focusManager.clearFocus(force = true)
+                                            keyboardController?.hide()
+                                        },
+                                    ),
                                 )
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -882,6 +909,13 @@ fun HomeScreen(
                                     label = { Text(stringResource(R.string.notes_input_title_hint)) },
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = {
+                                            focusManager.clearFocus(force = true)
+                                            keyboardController?.hide()
+                                        },
+                                    ),
                                 )
                                 OutlinedTextField(
                                     value = noteContentDraft,
@@ -890,6 +924,13 @@ fun HomeScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     minLines = 3,
                                     maxLines = 5,
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = {
+                                            focusManager.clearFocus(force = true)
+                                            keyboardController?.hide()
+                                        },
+                                    ),
                                 )
                                 BrandActionButton(
                                     text = stringResource(R.string.notes_input_add),
@@ -1156,6 +1197,8 @@ private fun HomeReminderCaptureSheet(
     viewModel: HomeViewModel,
     onDone: () -> Unit,
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     var dueMillis by remember { mutableLongStateOf(System.currentTimeMillis() + 3_600_000L) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -1175,6 +1218,13 @@ private fun HomeReminderCaptureSheet(
         label = { Text(stringResource(R.string.home_sheet_reminder_title_hint)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(
+            onDone = {
+                focusManager.clearFocus(force = true)
+                keyboardController?.hide()
+            },
+        ),
     )
     Text(
         text = stringResource(R.string.home_sheet_reminder_when),

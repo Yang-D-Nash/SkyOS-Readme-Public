@@ -108,6 +108,36 @@ class TaskRepository(
         val normalizedDescription = description.trim()
         if (normalizedTitle.isBlank()) return
 
+        val openTasksSnapshot = firestore.collection("users")
+            .document(uid)
+            .collection("tasks")
+            .whereEqualTo("status", TaskStatus.Open.rawValue)
+            .limit(60)
+            .get()
+            .await()
+        val dedupKey = normalizedTaskDedupKey(normalizedTitle)
+        val existing = openTasksSnapshot.documents.firstOrNull { document ->
+            normalizedTaskDedupKey(document.getString("title").orEmpty()) == dedupKey
+        }
+        if (existing != null) {
+            val currentDescription = existing.getString("description")?.trim().orEmpty()
+            val mergedDescription = when {
+                normalizedDescription.isBlank() -> currentDescription
+                currentDescription.isBlank() -> normalizedDescription
+                currentDescription == normalizedDescription -> currentDescription
+                else -> "$currentDescription\n\n$normalizedDescription"
+            }.take(5000)
+            existing.reference.set(
+                mapOf(
+                    "title" to normalizedTitle,
+                    "description" to mergedDescription,
+                    "updatedAt" to FieldValue.serverTimestamp(),
+                ),
+                SetOptions.merge(),
+            ).await()
+            return
+        }
+
         firestore.collection("users").document(uid).collection("tasks")
             .document()
             .set(
@@ -123,6 +153,15 @@ class TaskRepository(
                 SetOptions.merge(),
             )
             .await()
+    }
+
+    private fun normalizedTaskDedupKey(value: String): String {
+        return value.trim()
+            .lowercase()
+            .replace(Regex("[^a-z0-9\\s_-]+"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .take(180)
     }
 
     companion object {

@@ -56,6 +56,10 @@ test("external workflow webhook URL is validated before fetch", () => {
   assert.match(indexSource, /function assertAutomationWebhookUrlAllowed\(/);
   assert.match(indexSource, /assertAutomationWebhookUrlAllowed\(webhookUrl,\s*runtimePolicy\)/);
   assert.match(indexSource, /parsedUrl\.protocol !== "https:"/);
+  assert.match(indexSource, /triggerEpochMillis/);
+  assert.match(indexSource, /triggerLocalTimeBerlin/);
+  assert.match(indexSource, /socialWindowHours/);
+  assert.match(indexSource, /socialPlatforms/);
 });
 
 test("skydownAgent enforces idempotency read/write guard for automation triggers", () => {
@@ -78,9 +82,27 @@ test("agentRunStatusCallback supports requestId fallback correlation", () => {
 
 test("FAQ prompts include published AI Studio owner knowledge", () => {
   assert.match(indexSource, /const AI_STUDIO_FAQ_KNOWLEDGE_DOCUMENT = "aiStudioFaqKnowledge"/);
+  assert.match(indexSource, /const AI_STUDIO_OWNER_INSPIRATION_DOCUMENT = "aiStudioOwnerInspiration"/);
   assert.match(indexSource, /async function loadPublishedAiStudioFaqKnowledge\(\)/);
+  assert.match(indexSource, /async function loadPublishedAiStudioOwnerInspiration\(\)/);
   assert.match(indexSource, /publishedOwnerFaqKnowledge/);
-  assert.match(indexSource, /composeFaqKnowledge\(promptSettings,\s*publishedOwnerFaqKnowledge\)/);
+  assert.match(indexSource, /publishedOwnerInspiration/);
+  assert.match(indexSource, /composeFaqKnowledge\(promptSettings,\s*publishedOwnerFaqKnowledge,\s*publishedOwnerInspiration\)/);
+});
+
+test("agent workspace context includes recent agent conversation memory", () => {
+  assert.match(indexSource, /const AGENT_MEMORY_RETENTION_DAYS = 30/);
+  assert.match(indexSource, /collection\("aiEntries"\)\s*\.where\("source",\s*"==",\s*"agent"\)/);
+  assert.match(indexSource, /where\("createdAt",\s*">=",\s*memoryRetentionStart\)/);
+  assert.match(indexSource, /Memory-Agent-Verlauf:/);
+  assert.match(indexSource, /recentAgentHistory/);
+});
+
+test("workflow task creation deduplicates open tasks by normalized title", () => {
+  assert.match(indexSource, /function upsertOpenTaskWithDedup\(/);
+  assert.match(indexSource, /where\("status",\s*"==",\s*"open"\)/);
+  assert.match(indexSource, /normalizeTaskDedupKey\(/);
+  assert.match(indexSource, /deduplicated:\s*taskResult\.deduplicated/);
 });
 
 test("triggerWorkflowAutomation keeps personal scope owner-check free", () => {

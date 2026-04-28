@@ -31,6 +31,24 @@ struct AIFaqKnowledgeEntry: Equatable, Identifiable {
     }
 }
 
+struct AIOwnerInspirationEntry: Equatable, Identifiable {
+    var id: String
+    var title: String
+    var details: String
+    var tags: [String]
+    var isPublished: Bool
+
+    static func empty() -> AIOwnerInspirationEntry {
+        AIOwnerInspirationEntry(
+            id: UUID().uuidString.lowercased(),
+            title: "",
+            details: "",
+            tags: [],
+            isPublished: false
+        )
+    }
+}
+
 enum AIRuntimeAgentProvider: String, CaseIterable, Equatable {
     case gemini
     case grok
@@ -195,6 +213,13 @@ protocol AIFaqKnowledgeStudioServicing {
         _ onChange: @escaping @MainActor (Result<[AIFaqKnowledgeEntry], Error>) -> Void
     ) -> () -> Void
     func updateEntries(_ entries: [AIFaqKnowledgeEntry]) async throws
+}
+
+protocol AIOwnerInspirationStudioServicing {
+    func observeEntries(
+        _ onChange: @escaping @MainActor (Result<[AIOwnerInspirationEntry], Error>) -> Void
+    ) -> () -> Void
+    func updateEntries(_ entries: [AIOwnerInspirationEntry]) async throws
 }
 
 protocol AIRuntimeSettingsServicing {
@@ -413,6 +438,123 @@ final class FirestoreAIFaqKnowledgeStudioService: AIFaqKnowledgeStudioServicing 
             .trimmingCharacters(in: CharacterSet(charactersIn: "-_"))
         let candidate = String(collapsed.prefix(64))
         return candidate.isEmpty ? UUID().uuidString.lowercased() : candidate
+    }
+}
+
+final class FirestoreAIOwnerInspirationStudioService: AIOwnerInspirationStudioServicing {
+    private let firestore: Firestore
+    private let collectionName = "adminConfig"
+    private let documentName = "aiStudioOwnerInspiration"
+
+    init(firestore: Firestore = Firestore.firestore()) {
+        self.firestore = firestore
+    }
+
+    func observeEntries(
+        _ onChange: @escaping @MainActor (Result<[AIOwnerInspirationEntry], Error>) -> Void
+    ) -> () -> Void {
+        let listener = firestore.collection(collectionName).document(documentName).addSnapshotListener { snapshot, error in
+            Task { @MainActor in
+                if let error {
+                    onChange(.failure(error))
+                    return
+                }
+
+                onChange(.success(Self.decode(snapshot?.data() ?? [:])))
+            }
+        }
+
+        return {
+            listener.remove()
+        }
+    }
+
+    func updateEntries(_ entries: [AIOwnerInspirationEntry]) async throws {
+        try await firestore.collection(collectionName).document(documentName).setData([
+            "entries": Self.encode(entries),
+            "updatedAt": FieldValue.serverTimestamp()
+        ], merge: true)
+    }
+
+    private static func decode(_ data: [String: Any]) -> [AIOwnerInspirationEntry] {
+        guard let rawEntries = data["entries"] as? [Any] else { return [] }
+
+        let decoded = rawEntries.compactMap { raw -> AIOwnerInspirationEntry? in
+            guard let map = raw as? [String: Any] else { return nil }
+            let title = normalizeInstruction(map["title"] as? String, fallback: "")
+            let details = normalizeInstruction(map["details"] as? String, fallback: "")
+            guard !title.isEmpty, !details.isEmpty else { return nil }
+            let tags = normalizeEntryTags(map["tags"])
+            let id = normalizeEntryID(map["id"] as? String, fallbackTitle: title)
+            return AIOwnerInspirationEntry(
+                id: id,
+                title: title,
+                details: details,
+                tags: tags,
+                isPublished: map["isPublished"] as? Bool ?? false
+            )
+        }
+
+        return Array(decoded.prefix(120))
+    }
+
+    private static func encode(_ entries: [AIOwnerInspirationEntry]) -> [[String: Any]] {
+        entries
+            .prefix(120)
+            .compactMap { entry in
+                let title = normalizeInstruction(entry.title, fallback: "")
+                let details = normalizeInstruction(entry.details, fallback: "")
+                guard !title.isEmpty, !details.isEmpty else { return nil }
+                return [
+                    "id": normalizeEntryID(entry.id, fallbackTitle: title),
+                    "title": title,
+                    "details": details,
+                    "tags": normalizeEntryTags(entry.tags),
+                    "isPublished": entry.isPublished
+                ]
+            }
+    }
+
+    private static func normalizeEntryTags(_ raw: Any?) -> [String] {
+        let values: [String]
+        if let list = raw as? [String] {
+            values = list
+        } else if let anyList = raw as? [Any] {
+            values = anyList.compactMap { $0 as? String }
+        } else {
+            values = []
+        }
+
+        var seen = Set<String>()
+        var result: [String] = []
+        for tag in values {
+            let normalized = tag.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard !normalized.isEmpty else { continue }
+            let capped = String(normalized.prefix(40))
+            guard !seen.contains(capped) else { continue }
+            seen.insert(capped)
+            result.append(capped)
+            if result.count >= 12 { break }
+        }
+        return result
+    }
+
+    private static func normalizeEntryID(_ value: String?, fallbackTitle: String) -> String {
+        let trimmedValue = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let base = trimmedValue.isEmpty ? fallbackTitle : trimmedValue
+        let lowered = base.lowercased()
+        let allowed = lowered.map { character -> Character in
+            if character.isLetter || character.isNumber || character == "-" || character == "_" {
+                return character
+            }
+            return "-"
+        }
+        let collapsed = String(allowed).replacingOccurrences(of: "-+", with: "-", options: .regularExpression)
+        let trimmed = collapsed.trimmingCharacters(in: CharacterSet(charactersIn: "-_"))
+        if trimmed.isEmpty {
+            return UUID().uuidString.lowercased()
+        }
+        return String(trimmed.prefix(80))
     }
 }
 
@@ -1100,6 +1242,59 @@ final class AIFaqKnowledgeStudioStore: ObservableObject {
     }
 
     func save(_ entries: [AIFaqKnowledgeEntry]) async throws {
+        try await service.updateEntries(entries)
+    }
+
+    private func startObserving() {
+        stopObserving?()
+        stopObserving = service.observeEntries { [weak self] result in
+            guard let self else { return }
+
+            switch result {
+            case .success(let entries):
+                self.entries = entries
+                self.lastErrorMessage = nil
+            case .failure(let error):
+                self.lastErrorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    deinit {
+        stopObserving?()
+    }
+}
+
+@MainActor
+final class AIOwnerInspirationStudioStore: ObservableObject {
+    static let shared = AIOwnerInspirationStudioStore()
+
+    @Published private(set) var entries: [AIOwnerInspirationEntry] = []
+    @Published private(set) var lastErrorMessage: String?
+
+    private let service: AIOwnerInspirationStudioServicing
+    private var stopObserving: (() -> Void)?
+    private var isObservationEnabled = false
+
+    init(service: AIOwnerInspirationStudioServicing = FirestoreAIOwnerInspirationStudioService()) {
+        self.service = service
+    }
+
+    func setObservationEnabled(_ isEnabled: Bool) {
+        guard isEnabled != isObservationEnabled else { return }
+        isObservationEnabled = isEnabled
+
+        if isEnabled {
+            startObserving()
+        } else {
+            stopObserving?()
+            stopObserving = nil
+            entries = []
+            lastErrorMessage = nil
+        }
+    }
+
+    func save(_ entries: [AIOwnerInspirationEntry]) async throws {
         try await service.updateEntries(entries)
     }
 

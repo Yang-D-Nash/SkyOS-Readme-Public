@@ -90,12 +90,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -108,6 +114,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nash.skyos.R
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.AiFaqOwnerReviewLoop
+import com.nash.skyos.data.AiOwnerInspirationEntry
 import com.nash.skyos.data.AiRuntimeAgentProvider
 import com.nash.skyos.data.ArtistPageBrand
 import com.nash.skyos.data.ArtistPageUi
@@ -124,6 +131,7 @@ import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
+import com.nash.skyos.ui.component.dismissKeyboardOnTap
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.skydownContentPadding
 import com.nash.skyos.ui.component.skydownPressable
@@ -274,6 +282,8 @@ fun SettingsScreen(
     val artistPages by ArtistPagesStore.pages.collectAsStateWithLifecycle()
     val artistPagesError by ArtistPagesStore.lastErrorMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val resources = LocalResources.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
@@ -367,6 +377,7 @@ fun SettingsScreen(
     var aiAgentSystemInstructionDraft by rememberSaveable { mutableStateOf("") }
     var aiFaqInstructionDraft by rememberSaveable { mutableStateOf("") }
     var aiFaqKnowledgeBaseDraft by rememberSaveable { mutableStateOf("") }
+    var aiOwnerInspirationEntriesDraft by remember { mutableStateOf<List<AiOwnerInspirationEntry>>(emptyList()) }
     var aiAssetLibraryLinkDraft by rememberSaveable { mutableStateOf("") }
     var aiAssetReferenceNotesDraft by rememberSaveable { mutableStateOf("") }
     var aiCostGuardEnabledDraft by rememberSaveable { mutableStateOf(true) }
@@ -629,6 +640,9 @@ fun SettingsScreen(
         aiFaqKnowledgeBaseDraft = uiState.aiPromptSettings.faqKnowledgeBase
         aiAssetLibraryLinkDraft = uiState.aiPromptSettings.assetLibraryLink
         aiAssetReferenceNotesDraft = uiState.aiPromptSettings.assetReferenceNotes
+    }
+    LaunchedEffect(uiState.aiOwnerInspirationEntries) {
+        aiOwnerInspirationEntriesDraft = uiState.aiOwnerInspirationEntries
     }
 
     LaunchedEffect(uiState.aiRuntimeSettings) {
@@ -2494,6 +2508,155 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
+                Text(
+                    text = "AI Studio Ideen & Inspiration (Owner)",
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Nur Published-Eintraege gehen in den Agent-Kontext. Hier pflegst du kreative Richtungen und aktuelle Inspiration.",
+                    modifier = Modifier.padding(top = 4.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                LazyRow(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+                ) {
+                    item {
+                        SettingsBadge(
+                            text = "Entries ${aiOwnerInspirationEntriesDraft.size}",
+                            icon = Icons.Default.CheckCircle,
+                            isActive = aiOwnerInspirationEntriesDraft.isNotEmpty(),
+                        )
+                    }
+                    item {
+                        SettingsBadge(
+                            text = "Published ${aiOwnerInspirationEntriesDraft.count { it.isPublished }}",
+                            icon = Icons.Default.CheckCircle,
+                            isActive = aiOwnerInspirationEntriesDraft.any { it.isPublished },
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft + AiOwnerInspirationEntry.empty()
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Neu") }
+                    OutlinedButton(
+                        onClick = {
+                            aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.map { it.copy(isPublished = true) }
+                        },
+                        enabled = aiOwnerInspirationEntriesDraft.isNotEmpty(),
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Alle publishen") }
+                    OutlinedButton(
+                        onClick = {
+                            aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.map { it.copy(isPublished = false) }
+                        },
+                        enabled = aiOwnerInspirationEntriesDraft.isNotEmpty(),
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Alle entpublishen") }
+                }
+
+                aiOwnerInspirationEntriesDraft.forEachIndexed { index, entry ->
+                    SkydownCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp),
+                        contentPadding = PaddingValues(12.dp),
+                    ) {
+                        Text(
+                            text = if (entry.isPublished) "Published" else "Draft",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (entry.isPublished) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                        )
+                        OutlinedTextField(
+                            value = entry.title,
+                            onValueChange = { value ->
+                                aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.toMutableList().also {
+                                    it[index] = it[index].copy(title = value.take(12000))
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            label = { Text("Titel") },
+                            placeholder = { Text("z. B. Midnight Street Capsule") },
+                            singleLine = true,
+                        )
+                        OutlinedTextField(
+                            value = entry.details,
+                            onValueChange = { value ->
+                                aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.toMutableList().also {
+                                    it[index] = it[index].copy(details = value.take(12000))
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            label = { Text("Inspiration / Details") },
+                            minLines = 3,
+                            maxLines = 8,
+                        )
+                        OutlinedTextField(
+                            value = entry.tags.joinToString(", "),
+                            onValueChange = { value ->
+                                aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.toMutableList().also {
+                                    it[index] = it[index].copy(tags = normalizeOwnerInspirationTagsDraft(value))
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            label = { Text("Tags (comma separated)") },
+                            singleLine = true,
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text("Published", style = MaterialTheme.typography.labelMedium)
+                            Switch(
+                                checked = entry.isPublished,
+                                onCheckedChange = { checked ->
+                                    aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.toMutableList().also {
+                                        it[index] = it[index].copy(isPublished = checked)
+                                    }
+                                },
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.toMutableList().also {
+                                    it.removeAt(index)
+                                }
+                            },
+                            modifier = Modifier.padding(top = 8.dp),
+                        ) { Text("Eintrag entfernen") }
+                    }
+                }
+                Button(
+                    onClick = { viewModel.saveAiOwnerInspirationEntries(aiOwnerInspirationEntriesDraft) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                ) {
+                    Text("Ideen & Inspiration speichern")
+                }
+
                 OutlinedTextField(
                     value = aiAssetReferenceNotesDraft,
                     onValueChange = { aiAssetReferenceNotesDraft = it.take(12000) },
@@ -4217,6 +4380,10 @@ fun SettingsScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .dismissKeyboardOnTap {
+                    focusManager.clearFocus(force = true)
+                    keyboardController?.hide()
+                }
                 .background(
                     skydownScreenBrush(
                         secondaryColor = MaterialTheme.colorScheme.tertiary,
@@ -5294,6 +5461,47 @@ private enum class PaymentProviderKind {
 }
 
 @Composable
+private fun PremiumSettingsOutlinedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    label: @Composable (() -> Unit)? = null,
+    placeholder: @Composable (() -> Unit)? = null,
+    singleLine: Boolean = false,
+    minLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation =
+        androidx.compose.ui.text.input.VisualTransformation.None,
+    keyboardType: KeyboardType = KeyboardType.Text,
+) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val imeAction = if (singleLine) ImeAction.Done else ImeAction.Default
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        label = label,
+        placeholder = placeholder,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
+        visualTransformation = visualTransformation,
+        keyboardOptions = KeyboardOptions(
+            imeAction = imeAction,
+            keyboardType = keyboardType,
+        ),
+        keyboardActions = KeyboardActions(
+            onDone = {
+                focusManager.clearFocus(force = true)
+                keyboardController?.hide()
+            },
+        ),
+    )
+}
+
+@Composable
 private fun PaymentProviderAdminCard(
     title: String,
     providerKind: PaymentProviderKind,
@@ -5356,7 +5564,7 @@ private fun PaymentProviderAdminCard(
             )
         }
 
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = accountHint,
             onValueChange = onAccountHintChange,
             modifier = Modifier
@@ -5498,7 +5706,7 @@ private fun StripeBackendSecretsAdminCard(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
 
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = stripeSecretKey,
             onValueChange = onStripeSecretKeyChange,
             modifier = Modifier
@@ -5510,7 +5718,7 @@ private fun StripeBackendSecretsAdminCard(
             visualTransformation = PasswordVisualTransformation(),
         )
 
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = stripeWebhookSecret,
             onValueChange = onStripeWebhookSecretChange,
             modifier = Modifier
@@ -5591,7 +5799,7 @@ private fun BankTransferAdminCard(
             )
         }
 
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = accountHolder,
             onValueChange = onAccountHolderChange,
             modifier = Modifier
@@ -5600,7 +5808,7 @@ private fun BankTransferAdminCard(
             label = { Text(stringResource(R.string.settings_payments_account_holder)) },
             singleLine = true,
         )
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = iban,
             onValueChange = onIbanChange,
             modifier = Modifier
@@ -5609,7 +5817,7 @@ private fun BankTransferAdminCard(
             label = { Text(stringResource(R.string.settings_payments_iban)) },
             singleLine = true,
         )
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = bic,
             onValueChange = onBicChange,
             modifier = Modifier
@@ -5618,7 +5826,7 @@ private fun BankTransferAdminCard(
             label = { Text(stringResource(R.string.settings_payments_bic)) },
             singleLine = true,
         )
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = bankName,
             onValueChange = onBankNameChange,
             modifier = Modifier
@@ -5627,7 +5835,7 @@ private fun BankTransferAdminCard(
             label = { Text(stringResource(R.string.settings_payments_bank_name)) },
             singleLine = true,
         )
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = paymentInstructions,
             onValueChange = onPaymentInstructionsChange,
             modifier = Modifier
@@ -5710,21 +5918,21 @@ private fun ProfileEditorCard(
             }
         }
 
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = username,
             onValueChange = onUsernameChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.settings_profile_username)) },
             singleLine = true,
         )
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = profileTagline,
             onValueChange = onProfileTaglineChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.settings_profile_tagline)) },
             singleLine = true,
         )
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = profileBio,
             onValueChange = onProfileBioChange,
             modifier = Modifier.fillMaxWidth(),
@@ -5732,14 +5940,14 @@ private fun ProfileEditorCard(
             minLines = 3,
             maxLines = 5,
         )
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = instagramHandle,
             onValueChange = onInstagramHandleChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.settings_profile_instagram)) },
             singleLine = true,
         )
-        OutlinedTextField(
+        PremiumSettingsOutlinedTextField(
             value = whatsApp,
             onValueChange = onWhatsAppChange,
             modifier = Modifier.fillMaxWidth(),
@@ -6403,6 +6611,15 @@ private enum class OwnerConsoleArea {
     Ops,
     AiRuntime,
     Governance,
+}
+
+private fun normalizeOwnerInspirationTagsDraft(raw: String): List<String> {
+    return raw.split(',')
+        .map { it.trim().lowercase(Locale.ROOT) }
+        .filter { it.isNotBlank() }
+        .map { it.take(40) }
+        .distinct()
+        .take(12)
 }
 
 @Composable

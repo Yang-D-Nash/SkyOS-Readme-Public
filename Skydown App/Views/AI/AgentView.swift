@@ -3,6 +3,12 @@ import UIKit
 import AVKit
 import UniformTypeIdentifiers
 
+enum AgentHomeProductivityTarget: String {
+    case reminderManager = "reminder_manage"
+    case taskManager = "task_manage"
+    case noteManager = "note_manage"
+}
+
 struct AgentView: View {
     @StateObject private var viewModel: AgentChatViewModel
     @ObservedObject private var featureFlags: FeatureFlagsService
@@ -23,6 +29,7 @@ struct AgentView: View {
     @State private var selectedNote: NoteItem?
     let prefilledPrompt: String?
     let onConsumePrefilledPrompt: (() -> Void)?
+    let onOpenHomeProductivity: ((AgentHomeProductivityTarget) -> Void)?
     private let showsNavigation: Bool
     @State private var autoPresentedUpgradeHint = false
 
@@ -32,11 +39,13 @@ struct AgentView: View {
         membershipCoordinator: AIMembershipCoordinator,
         prefilledPrompt: String? = nil,
         onConsumePrefilledPrompt: (() -> Void)? = nil,
+        onOpenHomeProductivity: ((AgentHomeProductivityTarget) -> Void)? = nil,
         showsNavigation: Bool = true
     ) {
         self.showsNavigation = showsNavigation
         self.prefilledPrompt = prefilledPrompt
         self.onConsumePrefilledPrompt = onConsumePrefilledPrompt
+        self.onOpenHomeProductivity = onOpenHomeProductivity
         _viewModel = StateObject(
             wrappedValue: AgentChatViewModel(service: agentChatService)
         )
@@ -467,7 +476,10 @@ struct AgentView: View {
                                         ForEach(viewModel.messages) { message in
                                             AgentMessageBubble(
                                                 message: message,
-                                                colorScheme: colorScheme
+                                                colorScheme: colorScheme,
+                                                onOpenHomeProductivity: { target in
+                                                    onOpenHomeProductivity?(target)
+                                                }
                                             )
                                             .id(message.id)
                                         }
@@ -813,6 +825,10 @@ private struct AgentEmptyStateHeader: View {
             Text(AppLocalized.text("agent.empty.header.subtitle", fallback: "Store follow-ups in Tasks or Notes from the productivity dock. Reminders with push work from the agent or Home quick actions."))
                 .font(isCompact ? .subheadline.weight(.semibold) : .subheadline.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            Text(AppLocalized.text("agent.memory.retention.hint", fallback: "Memory: letzte 30 Tage pro Konto."))
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.9))
 
             if !isCompact {
                 Text("Auch der Agent fuehrt den Verlauf pro Konto weiter, damit Briefings und To-dos anschlussfaehig bleiben.")
@@ -1483,28 +1499,30 @@ private struct AgentPromptComposerSheet: View {
         if canTriggerAutomation {
             Divider()
                 .padding(.leading, 8)
-            HStack(alignment: .center) {
-                Text("Bereich")
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                Spacer(minLength: 12)
-                Picker("Bereich", selection: $selectedAutomationScope) {
-                    ForEach(agentAutomationScopeChoices) { scope in
-                        Text(scope.title).tag(scope)
+            if canUseGlobalOwnerAutomationFlow {
+                HStack(alignment: .center) {
+                    Text("Bereich")
+                        .font(.subheadline)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    Spacer(minLength: 12)
+                    Picker("Bereich", selection: $selectedAutomationScope) {
+                        ForEach(agentAutomationScopeChoices) { scope in
+                            Text(scope.title).tag(scope)
+                        }
                     }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .tint(agentAccent)
+                    .disabled(interactionPhase.shouldBlockComposerChrome)
                 }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .tint(agentAccent)
-                .disabled(interactionPhase.shouldBlockComposerChrome)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
 
-            Divider()
-                .padding(.leading, 8)
+                Divider()
+                    .padding(.leading, 8)
+            }
             Toggle(isOn: $shouldTriggerAutomation) {
-                Text("Workflow")
+                Text(canUseGlobalOwnerAutomationFlow ? "Workflow" : "Persoenlicher Workflow")
                     .font(.subheadline)
                     .foregroundColor(AppColors.text(for: colorScheme))
             }
@@ -1512,7 +1530,11 @@ private struct AgentPromptComposerSheet: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .disabled(interactionPhase.shouldBlockComposerChrome)
-            .accessibilityLabel(shouldTriggerAutomation ? "Workflow aktiv" : "Workflow starten")
+            .accessibilityLabel(
+                canUseGlobalOwnerAutomationFlow ?
+                    (shouldTriggerAutomation ? "Workflow aktiv" : "Workflow starten") :
+                    (shouldTriggerAutomation ? "Persoenlicher Workflow aktiv" : "Persoenlichen Workflow starten")
+            )
         }
     }
 
@@ -1803,11 +1825,35 @@ private enum AgentHttpsLinkTextBuilder {
 private struct AgentMessageBubble: View {
     let message: AgentChatMessage
     let colorScheme: ColorScheme
+    let onOpenHomeProductivity: ((AgentHomeProductivityTarget) -> Void)?
     @State private var showingShareSheet = false
     @State private var copyLabel = "Kopieren"
 
     private var isUser: Bool {
         message.role == .user
+    }
+
+    private var homeOpenTarget: AgentHomeProductivityTarget? {
+        guard !isUser else { return nil }
+        let text = message.text
+        func count(for label: String) -> Int {
+            let pattern = "\(label)\\s*(\\d+)"
+            guard
+                let regex = try? NSRegularExpression(pattern: pattern),
+                let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+                let range = Range(match.range(at: 1), in: text)
+            else {
+                return 0
+            }
+            return Int(text[range]) ?? 0
+        }
+        let reminder = count(for: "Reminder")
+        let task = count(for: "Tasks?")
+        let note = count(for: "Notizen?")
+        if reminder <= 0 && task <= 0 && note <= 0 { return nil }
+        if reminder >= task && reminder >= note { return .reminderManager }
+        if task >= note { return .taskManager }
+        return .noteManager
     }
 
     var body: some View {
@@ -1872,6 +1918,14 @@ private struct AgentMessageBubble: View {
                             }
                             .font(.caption.weight(.semibold))
                             .foregroundColor(AppColors.accent(for: colorScheme))
+
+                            if let target = homeOpenTarget {
+                                Button("In Home öffnen") {
+                                    onOpenHomeProductivity?(target)
+                                }
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                            }
                         }
                         .padding(.top, 8)
                     }

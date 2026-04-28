@@ -95,6 +95,7 @@ const AI_PROMPT_SETTINGS_COLLECTION = "adminConfig";
 const AI_PROMPT_SETTINGS_DOCUMENT = "aiPromptSettings";
 const AI_STUDIO_FAQ_KNOWLEDGE_COLLECTION = "adminConfig";
 const AI_STUDIO_FAQ_KNOWLEDGE_DOCUMENT = "aiStudioFaqKnowledge";
+const AI_STUDIO_OWNER_INSPIRATION_DOCUMENT = "aiStudioOwnerInspiration";
 const STRIPE_SECRET_STATUS_COLLECTION = "adminConfig";
 const STRIPE_SECRET_STATUS_DOCUMENT = "stripeCheckoutSecrets";
 const REMINDER_STATUSES = Object.freeze({
@@ -586,6 +587,7 @@ const AI_REMOTE_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 const AI_PROMPT_SETTINGS_CACHE_TTL_MS = 60 * 1000;
 const AI_RUNTIME_CONFIG_CACHE_TTL_MS = 60 * 1000;
 const AI_STUDIO_FAQ_KNOWLEDGE_CACHE_TTL_MS = 60 * 1000;
+const AGENT_MEMORY_RETENTION_DAYS = 30;
 const AI_RUNTIME_CONFIG_COLLECTION = "adminConfig";
 const AI_RUNTIME_CONFIG_DOCUMENT = "aiRuntime";
 const AI_USAGE_METRICS_COLLECTION = "systemMetrics";
@@ -825,6 +827,11 @@ let aiPromptSettingsCache = {
 };
 
 let aiStudioFaqKnowledgeCache = {
+  expiresAt: 0,
+  values: "",
+};
+
+let aiStudioOwnerInspirationCache = {
   expiresAt: 0,
   values: "",
 };
@@ -1528,6 +1535,74 @@ function composePublishedAiStudioFaqKnowledge(entries) {
       .join("\n\n");
 }
 
+function normalizeAiStudioOwnerInspirationEntries(rawEntries) {
+  if (!Array.isArray(rawEntries)) {
+    return [];
+  }
+
+  const seen = new Set();
+  const normalizedEntries = [];
+  for (let index = 0; index < rawEntries.length; index += 1) {
+    const entry = rawEntries[index];
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
+
+    const title = normalizeAiPromptSetting(entry.title, "");
+    const details = normalizeAiPromptSetting(entry.details, "");
+    if (!title || !details) {
+      continue;
+    }
+
+    const id = normalizeAiStudioFaqEntryId(entry.id, title, index);
+    if (seen.has(id)) {
+      continue;
+    }
+    seen.add(id);
+
+    const tags = Array.isArray(entry.tags) ?
+      Array.from(new Set(entry.tags
+          .map((tag) => nonEmptyString(tag)?.toLowerCase() || "")
+          .filter(Boolean)))
+          .slice(0, 12) :
+      [];
+
+    normalizedEntries.push({
+      id,
+      title,
+      details,
+      isPublished: entry.isPublished === true,
+      tags,
+    });
+
+    if (normalizedEntries.length >= 120) {
+      break;
+    }
+  }
+
+  return normalizedEntries;
+}
+
+function composePublishedAiStudioOwnerInspiration(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return "";
+  }
+
+  return entries
+      .filter((entry) => entry.isPublished === true)
+      .map((entry, index) => {
+        const tagsSegment = Array.isArray(entry.tags) && entry.tags.length > 0 ?
+          `\nTags: ${entry.tags.join(", ")}` :
+          "";
+        return [
+          `[Owner Inspiration ${index + 1}]`,
+          `Titel: ${entry.title}`,
+          `Details: ${entry.details}${tagsSegment}`,
+        ].join("\n");
+      })
+      .join("\n\n");
+}
+
 function resolveAiPromptSettings(data = {}) {
   return {
     textInstruction: normalizeAiPromptSetting(
@@ -1606,6 +1681,34 @@ async function loadPublishedAiStudioFaqKnowledge() {
   }
 
   aiStudioFaqKnowledgeCache = {
+    expiresAt: now + AI_STUDIO_FAQ_KNOWLEDGE_CACHE_TTL_MS,
+    values,
+  };
+
+  return values;
+}
+
+async function loadPublishedAiStudioOwnerInspiration() {
+  const now = Date.now();
+  if (aiStudioOwnerInspirationCache.expiresAt > now) {
+    return aiStudioOwnerInspirationCache.values;
+  }
+
+  let values = "";
+  try {
+    const snapshot = await admin.firestore()
+        .collection(AI_STUDIO_FAQ_KNOWLEDGE_COLLECTION)
+        .doc(AI_STUDIO_OWNER_INSPIRATION_DOCUMENT)
+        .get();
+    const entries = normalizeAiStudioOwnerInspirationEntries(snapshot.data()?.entries);
+    values = composePublishedAiStudioOwnerInspiration(entries);
+  } catch (error) {
+    logger.warn("AI Studio owner inspiration could not be loaded. Falling back to empty published inspiration.", {
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+  }
+
+  aiStudioOwnerInspirationCache = {
     expiresAt: now + AI_STUDIO_FAQ_KNOWLEDGE_CACHE_TTL_MS,
     values,
   };
@@ -2981,10 +3084,13 @@ function normalizeCollectionHandle(value, fallbackURL = null) {
 
 function normalizeCollectionHandles(rawValue, fallbackURL = null) {
   let candidates = [];
+  let hasExplicitValue = false;
 
   if (Array.isArray(rawValue)) {
+    hasExplicitValue = true;
     candidates = rawValue.filter((value) => typeof value === "string");
   } else if (typeof rawValue === "string") {
+    hasExplicitValue = true;
     candidates = rawValue.split(/[\n,]/g);
   }
 
@@ -2995,6 +3101,9 @@ function normalizeCollectionHandles(rawValue, fallbackURL = null) {
   )];
   if (normalized.length > 0) {
     return normalized;
+  }
+  if (hasExplicitValue) {
+    return [];
   }
 
   const fallbackHandle = normalizeCollectionHandle(null, fallbackURL);
@@ -3670,6 +3779,20 @@ async function triggerWorkflowAutomationWebhook({
   runtimePolicy = {},
   automationScope = "owner",
 }) {
+  const normalizeSocialPlatforms = (value) => {
+    const allowed = new Set(["instagram", "tiktok", "youtube"]);
+    const sourceValue = Array.isArray(value) ?
+      value :
+      typeof value === "string" ?
+        value.split(/[,\n]/g) :
+        [];
+    const normalized = Array.from(new Set(
+        sourceValue
+            .map((entry) => nonEmptyString(entry)?.toLowerCase() || "")
+            .filter((entry) => allowed.has(entry)),
+    ));
+    return normalized.length > 0 ? normalized : ["instagram", "tiktok", "youtube"];
+  };
   const scope = automationScope === "personal" ? "personal" : "owner";
   const settings = await loadWorkflowAutomationSettingsForUser(auth?.uid, scope);
 
@@ -3701,7 +3824,27 @@ async function triggerWorkflowAutomationWebhook({
 
   const safeData = data && typeof data === "object" && !Array.isArray(data) ? data : {};
   const knowledgeContext = nonEmptyString(settings.knowledgeContext) || "";
+  const socialWindowHours = clampIntegerSetting(
+      safeData.socialWindowHours,
+      24,
+      1,
+      168,
+  );
+  const socialPlatforms = normalizeSocialPlatforms(safeData.socialPlatforms);
   const requestId = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const triggerDate = new Date();
+  const triggerEpochMillis = triggerDate.getTime();
+  const triggerTimestampIso = triggerDate.toISOString();
+  const triggerTimestampLocalBerlin = triggerDate.toLocaleString("de-DE", {
+    timeZone: "Europe/Berlin",
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
   const payload = {
     provider: settings.provider,
     scope: settings.scope || "owner_global",
@@ -3709,11 +3852,21 @@ async function triggerWorkflowAutomationWebhook({
     workflowName: settings.workflowName,
     trigger,
     source,
-    timestamp: new Date().toISOString(),
+    timestamp: triggerTimestampIso,
+    triggerEpochMillis,
+    triggerTimezone: "UTC",
+    triggerLocalTimeBerlin: triggerTimestampLocalBerlin,
     data: {
       ...safeData,
       knowledgeContext,
       sourceRole: "agent_gateway",
+      socialWindowHours,
+      socialPlatforms,
+      trigger: {
+        epochMillis: triggerEpochMillis,
+        utcIso: triggerTimestampIso,
+        localTimeBerlin: triggerTimestampLocalBerlin,
+      },
     },
     knowledgeContext,
   };
@@ -6200,6 +6353,73 @@ exports.createReminderFromWorkflow = onRequest({
   }
 });
 
+function normalizeTaskDedupKey(value) {
+  const normalized = (nonEmptyString(value) || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  return normalized.slice(0, 180);
+}
+
+async function upsertOpenTaskWithDedup({
+  uid,
+  title,
+  description,
+  dueAt,
+  priority,
+  source,
+  requestId,
+}) {
+  const normalizedKey = normalizeTaskDedupKey(title);
+  const tasksCollection = admin.firestore()
+      .collection("users")
+      .doc(uid)
+      .collection("tasks");
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  const openTasksSnapshot = await tasksCollection
+      .where("status", "==", "open")
+      .limit(60)
+      .get();
+  const existingDoc = openTasksSnapshot.docs.find((doc) => {
+    const data = doc.data() || {};
+    return normalizeTaskDedupKey(data.title) === normalizedKey;
+  });
+
+  if (existingDoc) {
+    const existingData = existingDoc.data() || {};
+    const currentDescription = nonEmptyString(existingData.description) || "";
+    const nextDescription = description && description !== currentDescription ?
+      trimTextMax([currentDescription, description].filter(Boolean).join("\n\n"), 5000) :
+      currentDescription;
+    await existingDoc.ref.set({
+      title: trimTextMax(title, 180),
+      description: nextDescription,
+      dueAt: dueAt || existingData.dueAt || null,
+      priority,
+      source,
+      requestId,
+      updatedAt: now,
+    }, {merge: true});
+    return {taskId: existingDoc.id, deduplicated: true};
+  }
+
+  const taskRef = tasksCollection.doc();
+  await taskRef.set({
+    title: trimTextMax(title, 180),
+    description,
+    dueAt: dueAt || null,
+    priority,
+    status: "open",
+    source,
+    requestId,
+    createdAt: now,
+    updatedAt: now,
+    completedAt: null,
+  });
+  return {taskId: taskRef.id, deduplicated: false};
+}
+
 exports.createTaskFromWorkflow = onRequest({
   region: "us-central1",
   timeoutSeconds: 30,
@@ -6229,25 +6449,21 @@ exports.createTaskFromWorkflow = onRequest({
     const priorityRaw = nonEmptyString(payload.priority)?.toLowerCase() || "normal";
     const priority = ["low", "normal", "high"].includes(priorityRaw) ? priorityRaw : "normal";
     const dueAt = parseOptionalIsoTimestamp(payload.dueAt, "dueAt");
-    const now = admin.firestore.FieldValue.serverTimestamp();
-    const taskRef = admin.firestore()
-        .collection("users")
-        .doc(uid)
-        .collection("tasks")
-        .doc();
-    await taskRef.set({
-      title: trimTextMax(title, 180),
+    const taskResult = await upsertOpenTaskWithDedup({
+      uid,
+      title,
       description,
-      dueAt: dueAt || null,
+      dueAt,
       priority,
-      status: "open",
       source,
       requestId,
-      createdAt: now,
-      updatedAt: now,
-      completedAt: null,
     });
-    response.status(200).json({ok: true, uid, taskId: taskRef.id});
+    response.status(200).json({
+      ok: true,
+      uid,
+      taskId: taskResult.taskId,
+      deduplicated: taskResult.deduplicated,
+    });
   } catch (error) {
     if (error instanceof HttpsError && error.code === "invalid-argument") {
       response.status(400).json({ok: false, error: "invalid_argument", message: error.message});
@@ -6534,10 +6750,13 @@ function resolveTextGenerationConfig({botRuntime, isFaq, warningLevel, aiLevel =
   };
 }
 
-function composeFaqKnowledge(promptSettings, publishedOwnerFaqKnowledge = "") {
+function composeFaqKnowledge(promptSettings, publishedOwnerFaqKnowledge = "", publishedOwnerInspiration = "") {
   const sections = [promptSettings.faqKnowledgeBase];
   if (publishedOwnerFaqKnowledge) {
     sections.push(`Published Owner FAQ Base:\n${publishedOwnerFaqKnowledge}`);
+  }
+  if (publishedOwnerInspiration) {
+    sections.push(`Published Owner Inspiration:\n${publishedOwnerInspiration}`);
   }
   if (promptSettings.assetReferenceNotes) {
     sections.push(`Owner / Zusatzkontext:\n${promptSettings.assetReferenceNotes}`);
@@ -6591,11 +6810,12 @@ function composeFaqPrompt({
   inputPrompt,
   promptSettings,
   publishedOwnerFaqKnowledge = "",
+  publishedOwnerInspiration = "",
   botRuntime,
   topic,
   liveFacts,
 }) {
-  const faqKnowledge = composeFaqKnowledge(promptSettings, publishedOwnerFaqKnowledge);
+  const faqKnowledge = composeFaqKnowledge(promptSettings, publishedOwnerFaqKnowledge, publishedOwnerInspiration);
   const safetyNotes = botRuntime.safetyPolicy.safeModeEnabled ?
     "- Safe Mode ist aktiv: keine riskanten Behauptungen, keine faulen Schluessen.\n" :
     "";
@@ -6800,9 +7020,10 @@ async function generateAiTextReply({
   usage,
   auth,
 }) {
-  const [promptSettings, publishedOwnerFaqKnowledge] = await Promise.all([
+  const [promptSettings, publishedOwnerFaqKnowledge, publishedOwnerInspiration] = await Promise.all([
     loadAiPromptSettings(),
     loadPublishedAiStudioFaqKnowledge(),
+    loadPublishedAiStudioOwnerInspiration(),
   ]);
   const assetContext = composeAssetLibraryPromptContext(promptSettings);
   const botRuntime = runtimeSettings.bot;
@@ -6825,6 +7046,7 @@ async function generateAiTextReply({
       inputPrompt: prompt,
       promptSettings,
       publishedOwnerFaqKnowledge,
+      publishedOwnerInspiration,
       botRuntime,
       topic: faqRoute.topic,
       liveFacts: faqLiveFacts,
@@ -13243,6 +13465,7 @@ async function loadUserMemorySnapshot(uid) {
       moodLogs: [],
     };
   }
+  const memoryRetentionStart = new Date(Date.now() - (AGENT_MEMORY_RETENTION_DAYS * 24 * 60 * 60 * 1000));
   const userRef = admin.firestore().collection("users").doc(uid);
   const profileSnap = await userRef.collection("memoryProfile").doc("main").get().catch(() => null);
   const goalsSnap = await userRef
@@ -13263,6 +13486,14 @@ async function loadUserMemorySnapshot(uid) {
       .limit(3)
       .get()
       .catch(() => null);
+  const agentEntriesSnap = await userRef
+      .collection("aiEntries")
+      .where("source", "==", "agent")
+      .where("createdAt", ">=", memoryRetentionStart)
+      .orderBy("createdAt", "desc")
+      .limit(6)
+      .get()
+      .catch(() => null);
 
   const profileData = profileSnap?.exists ? (profileSnap.data() || {}) : {};
   const goals = Array.isArray(goalsSnap?.docs) ?
@@ -13274,12 +13505,24 @@ async function loadUserMemorySnapshot(uid) {
   const moodLogs = Array.isArray(moodLogsSnap?.docs) ?
     moodLogsSnap.docs.map((doc) => trimTextMax(JSON.stringify(doc.data() || {}), 420)) :
     [];
+  const recentAgentHistory = Array.isArray(agentEntriesSnap?.docs) ?
+    agentEntriesSnap.docs.map((doc) => {
+      const data = doc.data() || {};
+      const prompt = trimTextMax(nonEmptyString(data.prompt) || "", 320);
+      const response = trimTextMax(nonEmptyString(data.response) || "", 420);
+      if (!prompt && !response) {
+        return "";
+      }
+      return `Q: ${prompt || "-"} | A: ${response || "-"}`;
+    }).filter(Boolean) :
+    [];
 
   return {
     profileSummary: Object.keys(profileData).length > 0 ? trimTextMax(JSON.stringify(profileData), 1200) : "",
     goals,
     habits,
     moodLogs,
+    recentAgentHistory,
   };
 }
 
@@ -13342,6 +13585,9 @@ async function loadAgentWorkspaceContext(auth, promptSettings, personalAgentProf
       if (memorySnapshot.moodLogs.length > 0) {
         lines.push(`Memory-Mood: ${memorySnapshot.moodLogs.join(" | ")}`);
       }
+      if (memorySnapshot.recentAgentHistory.length > 0) {
+        lines.push(`Memory-Agent-Verlauf: ${memorySnapshot.recentAgentHistory.join(" || ")}`);
+      }
     }
   }
 
@@ -13361,7 +13607,15 @@ async function loadAgentWorkspaceContext(auth, promptSettings, personalAgentProf
   const context = lines.length ?
     `Arbeitskontext:\n- ${lines.join("\n- ")}` :
     "Arbeitskontext: kein zusaetzlicher Workspace-Kontext verfuegbar.";
-  return context.slice(0, 12000);
+  const executionPolicy = [
+    "Execution-Policy (Reminder -> Task -> Note):",
+    "1) Reminder nur fuer zeitgebundene Zusagen mit klarer Uhrzeit/Datum.",
+    "2) Task fuer umsetzbare Arbeitsschritte ohne feste Erinnerungzeit.",
+    "3) Note nur fuer reines Wissen/Referenz ohne Aktion.",
+    "4) Erst bestehende offene Reminders/Tasks/Notes pruefen, Duplikate vermeiden.",
+    "5) Wenn aehnlicher Eintrag existiert: aktualisieren/erweitern statt neu anlegen.",
+  ].join("\n");
+  return `${context}\n\n${executionPolicy}`.slice(0, 12000);
 }
 
 async function maybeTriggerAgentAutomation({
@@ -13398,6 +13652,7 @@ async function maybeTriggerAgentAutomation({
           goals: [],
           habits: [],
           moodLogs: [],
+          recentAgentHistory: [],
         },
       },
     });

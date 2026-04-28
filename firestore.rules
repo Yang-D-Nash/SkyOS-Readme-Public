@@ -250,6 +250,66 @@ service cloud.firestore {
       && optionalMapTimestamp(request.resource.data, "updatedAt");
     }
 
+    function validAiStudioFaqKnowledgeEntry(value) {
+      return value is map
+        && value.keys().hasOnly([
+          "id",
+          "question",
+          "answer",
+          "tags",
+          "isPublished"
+        ])
+        && requiredString(value.id, 1, 64)
+        && requiredString(value.question, 1, 12000)
+        && requiredString(value.answer, 1, 12000)
+        && value.isPublished is bool
+        && (!value.keys().hasAny(["tags"]) || (
+          value.tags is list
+          && value.tags.size() <= 12
+        ));
+    }
+
+    function validAiStudioFaqKnowledgePayload() {
+      return request.resource.data.keys().hasOnly([
+        "entries",
+        "updatedAt"
+      ])
+      && request.resource.data.entries is list
+      && request.resource.data.entries.size() <= 120
+      && request.resource.data.entries.all(entry, validAiStudioFaqKnowledgeEntry(entry))
+      && optionalMapTimestamp(request.resource.data, "updatedAt");
+    }
+
+    function validAiStudioOwnerInspirationEntry(value) {
+      return value is map
+        && value.keys().hasOnly([
+          "id",
+          "title",
+          "details",
+          "tags",
+          "isPublished"
+        ])
+        && requiredString(value.id, 1, 80)
+        && requiredString(value.title, 1, 12000)
+        && requiredString(value.details, 1, 12000)
+        && value.isPublished is bool
+        && (!value.keys().hasAny(["tags"]) || (
+          value.tags is list
+          && value.tags.size() <= 12
+        ));
+    }
+
+    function validAiStudioOwnerInspirationPayload() {
+      return request.resource.data.keys().hasOnly([
+        "entries",
+        "updatedAt"
+      ])
+      && request.resource.data.entries is list
+      && request.resource.data.entries.size() <= 120
+      && request.resource.data.entries.all(entry, validAiStudioOwnerInspirationEntry(entry))
+      && optionalMapTimestamp(request.resource.data, "updatedAt");
+    }
+
     function validImageContentType(value) {
       return value in ["image/jpeg", "image/png", "image/webp"];
     }
@@ -1190,7 +1250,19 @@ service cloud.firestore {
         || isOwnAutomationAdminConfig(documentId)
         || isOwnAgentProfileAdminConfig(documentId);
 
-      allow create, update: if isOwner() || (
+      allow create, update: if (
+        isOwner()
+        && documentId != "aiStudioFaqKnowledge"
+        && documentId != "aiStudioOwnerInspiration"
+      ) || (
+        isOwner()
+        && documentId == "aiStudioFaqKnowledge"
+        && validAiStudioFaqKnowledgePayload()
+      ) || (
+        isOwner()
+        && documentId == "aiStudioOwnerInspiration"
+        && validAiStudioOwnerInspirationPayload()
+      ) || (
         regularUserWriteAllowed()
         && (
           (isOwnAutomationAdminConfig(documentId) && validWorkflowAutomationUserPayload())
