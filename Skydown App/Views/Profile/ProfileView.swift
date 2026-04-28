@@ -542,7 +542,7 @@ struct ProfileView: View {
             && !viewModel.isUploadingAvatar
             && !viewModel.isUploadingMedia
 
-        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
+        return VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text(localized("profile.quick_actions.title", "Quick Actions"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
