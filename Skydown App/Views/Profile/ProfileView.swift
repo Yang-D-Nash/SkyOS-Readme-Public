@@ -321,7 +321,7 @@ struct ProfileView: View {
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         Text(viewModel.currentUser?.username ?? "Profil")
-                            .font(.system(size: 30, weight: .black, design: .rounded))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
 
                         if let tagline = viewModel.currentUser?.profileTagline, !tagline.isEmpty {
@@ -334,18 +334,14 @@ struct ProfileView: View {
                             Text(bio)
                                 .font(.footnote.weight(.medium))
                                 .foregroundColor(.white.opacity(0.72))
-                                .lineLimit(3)
+                                .lineLimit(2)
                         }
 
                         HStack(spacing: SkydownLayout.stackSpacingMicro) {
                             if let instagramURL {
                                 ProfileLinkPill(
                                     title: "Instagram",
-                                    systemImage: "camera.fill",
-                                    colors: [
-                                        AppColors.instagramStart(for: colorScheme),
-                                        AppColors.instagramEnd(for: colorScheme)
-                                    ]
+                                    systemImage: "camera.fill"
                                 ) {
                                     openURL(instagramURL)
                                 }
@@ -354,11 +350,7 @@ struct ProfileView: View {
                             if let whatsAppURL {
                                 ProfileLinkPill(
                                     title: "WhatsApp",
-                                    systemImage: "message.fill",
-                                    colors: [
-                                        AppColors.spotify(for: colorScheme),
-                                        AppColors.accentMystic(for: colorScheme)
-                                    ]
+                                    systemImage: "message.fill"
                                 ) {
                                     openURL(whatsAppURL)
                                 }
@@ -371,7 +363,6 @@ struct ProfileView: View {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ProfileMetaPill(title: "Bilder", value: "\(viewModel.imageCount)")
                     ProfileMetaPill(title: "Links", value: "\(instagramURL == nil ? 0 : 1 + (whatsAppURL == nil ? 0 : 1))")
-                    ProfileMetaPill(title: "Status", value: viewModel.canEditCurrentProfile ? "Live" : "Public")
                 }
             }
             .padding(22)
@@ -435,24 +426,6 @@ struct ProfileView: View {
                             .accessibilityIdentifier("profile.avatar.delete")
                     }
 
-                    Button {
-                        pendingImagePickerTarget = .gallery
-                    } label: {
-                        ProfileActionCapsuleLabel(
-                            title: isUploadingMedia ? "Laedt..." : "Bild",
-                            systemImage: "photo.badge.plus"
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                    .modifier(
-                        ProfileActionCapsuleModifier(
-                            tint: AppColors.cardBackground(for: colorScheme).opacity(0.92),
-                            textColor: .white
-                        )
-                    )
-                    .disabled(isUploadingImageFlow)
-                        .accessibilityIdentifier("profile.gallery.upload")
                 }
                 .padding(SkydownLayout.panelPadding)
             }
@@ -564,6 +537,11 @@ struct ProfileView: View {
     }
 
     private var quickActionsSection: some View {
+        let canRunPrimaryActions = viewModel.canEditCurrentProfile
+            && !viewModel.isSavingProfile
+            && !viewModel.isUploadingAvatar
+            && !viewModel.isUploadingMedia
+
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
             Text(localized("profile.quick_actions.title", "Quick Actions"))
                 .font(.headline)
@@ -572,41 +550,15 @@ struct ProfileView: View {
                 .font(.footnote.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            HStack(spacing: SkydownLayout.stackSpacingPill) {
-                quickActionButton(
-                    title: viewModel.isEditing ? localized("profile.done", "Done") : localized("profile.edit", "Edit profile"),
-                    systemImage: "square.and.pencil",
-                    emphasis: .primary
-                ) {
-                    viewModel.setEditing(!viewModel.isEditing)
-                }
-                quickActionButton(
-                    title: localized("profile.upload_image", "Upload image"),
-                    systemImage: "photo.badge.plus",
-                    emphasis: .primary
-                ) {
-                    pendingImagePickerTarget = .gallery
-                }
+            quickActionButton(
+                title: viewModel.isEditing ? localized("profile.done", "Done") : localized("profile.edit", "Edit profile"),
+                systemImage: "square.and.pencil",
+                emphasis: .primary,
+                enabled: canRunPrimaryActions
+            ) {
+                viewModel.setEditing(!viewModel.isEditing)
             }
 
-            HStack(spacing: SkydownLayout.stackSpacingPill) {
-                quickActionButton(
-                    title: localized("profile.membership", "Membership"),
-                    systemImage: "sparkles",
-                    emphasis: .secondary
-                ) {
-                    onOpenSettings?()
-                    dismiss()
-                }
-                quickActionButton(
-                    title: localized("profile.settings", "Settings"),
-                    systemImage: "gearshape.fill",
-                    emphasis: .secondary
-                ) {
-                    onOpenSettings?()
-                    dismiss()
-                }
-            }
         }
         .padding(SkydownLayout.cardPadding)
         .skydownPanelSurface(
@@ -689,6 +641,7 @@ struct ProfileView: View {
         title: String,
         systemImage: String,
         emphasis: QuickActionEmphasis,
+        enabled: Bool = true,
         action: @escaping () -> Void
     ) -> some View {
         Group {
@@ -702,9 +655,10 @@ struct ProfileView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(AppColors.accent(for: colorScheme))
                 .skydownInteractiveFeedback()
+                .disabled(!enabled)
             } else {
                 Button(action: action) {
-                    Text(title)
+                    Label(title, systemImage: systemImage)
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 9)
@@ -712,8 +666,10 @@ struct ProfileView: View {
                 .buttonStyle(.bordered)
                 .tint(AppColors.accent(for: colorScheme))
                 .skydownInteractiveFeedback()
+                .disabled(!enabled)
             }
         }
+        .opacity(enabled ? 1 : 0.58)
     }
 
     private var editSection: some View {
@@ -1010,11 +966,11 @@ private struct ProfileMetaPill: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color.white.opacity(0.10))
+        .background(Color.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                .stroke(Color.white.opacity(0.12), lineWidth: 1)
         )
     }
 }
@@ -1022,7 +978,6 @@ private struct ProfileMetaPill: View {
 private struct ProfileLinkPill: View {
     let title: String
     let systemImage: String
-    let colors: [Color]
     let action: () -> Void
 
     var body: some View {
@@ -1034,11 +989,11 @@ private struct ProfileLinkPill: View {
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
-                        .fill(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .fill(Color.white.opacity(0.12))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
-                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                        .stroke(Color.white.opacity(0.24), lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
@@ -1067,11 +1022,14 @@ private struct ProfileActionCapsuleModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .foregroundColor(textColor)
-            .padding(.horizontal, SkydownLayout.cardPadding)
-            .padding(.vertical, 12)
-            .background(tint)
-            .clipShape(Capsule())
-            .shadow(color: tint.opacity(0.22), radius: 14, y: 8)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(tint.opacity(0.92))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
+                    .stroke(Color.white.opacity(0.16), lineWidth: 1)
+            )
     }
 }
 
@@ -1087,10 +1045,13 @@ private struct ProfileCompactActionPill: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(
-                Capsule()
-                    .fill(AppColors.accent(for: colorScheme))
+                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                    .fill(AppColors.accent(for: colorScheme).opacity(0.92))
             )
-            .shadow(color: AppColors.accent(for: colorScheme).opacity(0.2), radius: 12, y: 8)
+            .overlay(
+                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                    .stroke(Color.white.opacity(0.14), lineWidth: 1)
+            )
     }
 }
 

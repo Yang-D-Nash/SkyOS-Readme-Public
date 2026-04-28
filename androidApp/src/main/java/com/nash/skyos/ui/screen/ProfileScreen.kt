@@ -80,9 +80,6 @@ import com.nash.skyos.ui.component.skydownScreenBrush
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.model.ProfileGalleryItem
 import com.nash.skyos.ui.model.ProfileMediaType
-import com.nash.skyos.ui.theme.InstagramOrange
-import com.nash.skyos.ui.theme.InstagramPink
-import com.nash.skyos.ui.theme.InstagramPurple
 import com.nash.skyos.ui.viewmodel.ProfileViewModel
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserQuotaPlan
@@ -220,14 +217,11 @@ fun ProfileScreen(
                 ProfileQuickActionsCard(
                     isEditing = uiState.isEditing,
                     canEdit = uiState.canEditCurrentProfile,
+                    canTriggerPrimaryActions = uiState.canEditCurrentProfile
+                        && !uiState.isSavingProfile
+                        && !uiState.isUploadingAvatar
+                        && !uiState.isUploadingMedia,
                     onToggleEdit = { viewModel.setEditing(!uiState.isEditing) },
-                    onPickImage = {
-                        imagePicker.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                        )
-                    },
-                    onOpenMembership = onOpenSettings,
-                    onOpenSettings = onOpenSettings,
                 )
 
                 ProfileHistoryCard(uiState = uiState)
@@ -267,7 +261,6 @@ fun ProfileScreen(
                 ProfileTrustCard(
                     supportEmail = uiState.currentUser?.email.orEmpty(),
                     onSupport = onOpenSettings,
-                    onOpenOrders = onOpenOrders,
                     onOpenSettings = onOpenSettings,
                 )
 
@@ -448,9 +441,10 @@ private fun ProfileHeroCard(
                         ) {
                             Text(
                                 text = uiState.username.ifBlank { "SkyOS User" },
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Black,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
                                 color = androidx.compose.ui.graphics.Color.White,
+                                maxLines = 1,
                             )
 
                             if (uiState.profileTagline.isNotBlank()) {
@@ -466,28 +460,23 @@ private fun ProfileHeroCard(
                                     text = uiState.profileBio,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.72f),
-                                    maxLines = 3,
+                                    maxLines = 2,
                                 )
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                                 if (normalizedInstagramUri(uiState.instagramHandle) != null) {
                                     ProfileSocialButton(
-                                    title = stringResource(R.string.settings_profile_instagram),
+                                        title = stringResource(R.string.settings_profile_instagram),
                                         icon = Icons.Default.CameraAlt,
-                                        colors = listOf(InstagramPurple, InstagramPink, InstagramOrange),
                                         onClick = onOpenInstagram,
                                     )
                                 }
 
                                 if (normalizedWhatsAppUri(uiState.whatsApp) != null) {
                                     ProfileSocialButton(
-                                    title = stringResource(R.string.settings_profile_whatsapp),
+                                        title = stringResource(R.string.settings_profile_whatsapp),
                                         icon = Icons.AutoMirrored.Filled.Message,
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.primary,
-                                            MaterialTheme.colorScheme.tertiary,
-                                        ),
                                         onClick = onOpenWhatsApp,
                                     )
                                 }
@@ -503,11 +492,6 @@ private fun ProfileHeroCard(
                                 normalizedInstagramUri(uiState.instagramHandle),
                                 normalizedWhatsAppUri(uiState.whatsApp),
                             ).size.toString(),
-                            modifier = Modifier.weight(1f),
-                        )
-                        ProfileHeroInfoPill(
-                            title = stringResource(R.string.cart_pulse_status),
-                            value = if (uiState.canEditCurrentProfile) stringResource(R.string.ai_chip_live) else stringResource(R.string.profile_public),
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -660,10 +644,8 @@ private fun ProfileDashboardCard(
 private fun ProfileQuickActionsCard(
     isEditing: Boolean,
     canEdit: Boolean,
+    canTriggerPrimaryActions: Boolean,
     onToggleEdit: () -> Unit,
-    onPickImage: () -> Unit,
-    onOpenMembership: () -> Unit,
-    onOpenSettings: () -> Unit,
 ) {
     SkydownCard {
         Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
@@ -675,24 +657,15 @@ private fun ProfileQuickActionsCard(
             )
 
             if (canEdit) {
-                Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill)) {
-                    Button(onClick = onToggleEdit, modifier = Modifier.weight(1f)) {
-                        Text(if (isEditing) stringResource(R.string.profile_done) else stringResource(R.string.profile_edit))
-                    }
-                    Button(onClick = onPickImage, modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.profile_upload_image))
-                    }
+                Button(
+                    onClick = onToggleEdit,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = canTriggerPrimaryActions,
+                ) {
+                    Text(if (isEditing) stringResource(R.string.profile_done) else stringResource(R.string.profile_edit))
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill)) {
-                OutlinedButton(onClick = onOpenMembership, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.profile_membership))
-                }
-                OutlinedButton(onClick = onOpenSettings, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.profile_settings))
-                }
-            }
         }
     }
 }
@@ -724,7 +697,6 @@ private fun ProfileHistoryCard(
 private fun ProfileTrustCard(
     supportEmail: String,
     onSupport: () -> Unit,
-    onOpenOrders: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     SkydownCard {
@@ -742,10 +714,7 @@ private fun ProfileTrustCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill)) {
-                OutlinedButton(onClick = onSupport, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.profile_support)) }
-                OutlinedButton(onClick = onOpenOrders, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.profile_orders)) }
-            }
+            OutlinedButton(onClick = onSupport, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.profile_support)) }
             OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.profile_privacy_account)) }
         }
     }
@@ -819,7 +788,7 @@ private fun ProfileHeroInfoPill(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
-            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.10f))
+            .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
     ) {
@@ -831,6 +800,7 @@ private fun ProfileHeroInfoPill(
         Text(
             text = title,
             color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.68f),
+            style = MaterialTheme.typography.labelSmall,
         )
     }
 }
@@ -839,19 +809,24 @@ private fun ProfileHeroInfoPill(
 private fun ProfileSocialButton(
     title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    colors: List<androidx.compose.ui.graphics.Color>,
     onClick: () -> Unit,
 ) {
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
-            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            containerColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.12f),
             contentColor = androidx.compose.ui.graphics.Color.White,
         ),
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
         modifier = Modifier
-            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
-            .background(Brush.linearGradient(colors)),
+            .clip(RoundedCornerShape(SkydownUiTokens.compactRadius)),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp,
+            focusedElevation = 0.dp,
+            hoveredElevation = 0.dp,
+            disabledElevation = 0.dp,
+        ),
     ) {
         Icon(icon, contentDescription = null)
         Spacer(modifier = Modifier.width(6.dp))
@@ -875,8 +850,14 @@ private fun ProfileHeroFab(
         modifier = Modifier
             .size(48.dp)
             .alpha(if (enabled) 1f else 0.58f),
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = if (enabled) 0.92f else 0.78f),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = if (enabled) 0.88f else 0.72f),
         contentColor = MaterialTheme.colorScheme.onSurface,
+        elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp,
+            focusedElevation = 0.dp,
+            hoveredElevation = 0.dp,
+        ),
     ) {
         Icon(icon, contentDescription = contentDescription)
     }
@@ -893,8 +874,15 @@ private fun ProfileGalleryActionButton(
         onClick = onClick,
         enabled = enabled,
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
+            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.92f),
             contentColor = MaterialTheme.colorScheme.onPrimary,
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp,
+            focusedElevation = 0.dp,
+            hoveredElevation = 0.dp,
+            disabledElevation = 0.dp,
         ),
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
     ) {
