@@ -1,5 +1,7 @@
 import AVKit
+import FirebaseFunctions
 import SwiftUI
+import UIKit
 
 extension Notification.Name {
     static let skydownOpenHomeProductivitySheet = Notification.Name("skydown.openHomeProductivitySheet")
@@ -47,6 +49,18 @@ private enum HomeSectionAnchor: String {
     case video
 }
 
+private enum FounderBriefingMode: String {
+    case privateBriefing = "private"
+    case group = "group"
+}
+
+private struct FounderBriefingPresentation: Identifiable {
+    let id = UUID()
+    let mode: FounderBriefingMode
+    let title: String
+    let body: String
+}
+
 struct HomeViewContent: View {
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var audioPlayerManager = AudioPlayerManager()
@@ -56,6 +70,11 @@ struct HomeViewContent: View {
     @State private var originalVideoViewerTarget: HomeOriginalVideoViewerTarget?
     @State private var hasLoadedInitialHomeContent = false
     @State private var isQuickActionCoolingDown = false
+    @State private var founderBriefingPresentation: FounderBriefingPresentation?
+    @State private var founderBriefingModeInFlight: FounderBriefingMode?
+    @State private var founderBriefingErrorMessage: String?
+    @State private var founderBriefingShareItems: [Any] = []
+    @State private var showsFounderBriefingShareSheet = false
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
     let onOpenCart: () -> Void
@@ -132,7 +151,11 @@ struct HomeViewContent: View {
                                     remindersUpcoming: viewModel.upcomingReminders,
                                     openTasks: viewModel.openTasks,
                                     recentNotes: viewModel.recentNotes,
-                                    onOpenWorkflowWithPrompt: onOpenWorkflowWithPrompt,
+                                    onRequestFounderBriefing: onOpenWorkflowWithPrompt == nil ? nil : { mode in
+                                        Task {
+                                            await runFounderBriefing(mode: mode)
+                                        }
+                                    },
                                     onOpenToday: {
                                         triggerQuickAction {
                                             if authManager.userSession == nil, let onGuestSignIn {
@@ -377,6 +400,42 @@ struct HomeViewContent: View {
                 break
             }
         }
+        .sheet(item: $founderBriefingPresentation) { presentation in
+            FounderBriefingResultSheet(
+                colorScheme: colorScheme,
+                presentation: presentation,
+                onCopy: {
+                    UIPasteboard.general.string = presentation.body
+                },
+                onShare: {
+                    founderBriefingShareItems = [presentation.body]
+                    showsFounderBriefingShareSheet = true
+                },
+                onShareWhatsApp: {
+                    shareFounderBriefingToWhatsApp(presentation.body)
+                }
+            )
+        }
+        .sheet(isPresented: $showsFounderBriefingShareSheet) {
+            AIShareSheet(activityItems: founderBriefingShareItems)
+        }
+        .alert(
+            AppLocalized.text("common.status.idle", fallback: "Status"),
+            isPresented: Binding(
+                get: { founderBriefingErrorMessage != nil },
+                set: { shouldShow in
+                    if !shouldShow { founderBriefingErrorMessage = nil }
+                }
+            ),
+            actions: {
+                Button(AppLocalized.text("common.close", fallback: "Close"), role: .cancel) {
+                    founderBriefingErrorMessage = nil
+                }
+            },
+            message: {
+                Text(founderBriefingErrorMessage ?? "")
+            }
+        )
     }
 
     private var activePresentedSheetBinding: Binding<HomePresentedSheet?> {
@@ -419,6 +478,104 @@ struct HomeViewContent: View {
             isQuickActionCoolingDown = false
         }
     }
+
+    private func runFounderBriefing(mode: FounderBriefingMode) async {
+        guard founderBriefingModeInFlight == nil else { return }
+        guard let uid = authManager.userSession?.id else {
+            founderBriefingErrorMessage = "Bitte zuerst anmelden."
+            return
+        }
+        founderBriefingModeInFlight = mode
+        defer { founderBriefingModeInFlight = nil }
+        do {
+            let requestDate = Self.founderBriefingDateFormatter.string(from: Date())
+            let requestId = "home-\(mode.rawValue)-\(Int(Date().timeIntervalSince1970))"
+
+            let data: [String: Any]
+            do {
+                data = try await requestFounderBriefingResult(uid: uid, mode: mode, date: requestDate, requestId: requestId)
+            } catch {
+                if shouldRetryFounderBriefing(after: error) {
+                    let functions = Functions.functions(region: "us-central1")
+                    _ = try? await functions.invokeCallable("syncCurrentUserClaims", payload: [:])
+                    data = try await requestFounderBriefingResult(uid: uid, mode: mode, date: requestDate, requestId: requestId)
+                } else {
+                    throw error
+                }
+            }
+
+            let textKey = mode == .privateBriefing ? "private" : "group"
+            let text = (data[textKey] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if text.isEmpty {
+                founderBriefingErrorMessage = "Kein Briefing erhalten."
+                return
+            }
+            founderBriefingPresentation = FounderBriefingPresentation(
+                mode: mode,
+                title: mode == .privateBriefing ? "Founder Analyse" : "Team Update",
+                body: text
+            )
+        } catch {
+            founderBriefingErrorMessage = "Briefing derzeit nicht verfuegbar. Bitte gleich erneut versuchen."
+        }
+    }
+
+    private func requestFounderBriefingResult(
+        uid: String,
+        mode: FounderBriefingMode,
+        date: String,
+        requestId: String
+    ) async throws -> [String: Any] {
+        let payload: [String: Any] = [
+            "uid": uid,
+            "mode": mode.rawValue,
+            "date": date,
+            "requestId": requestId,
+        ]
+        let result = try await Functions.functions(region: "us-central1")
+            .invokeCallable("createFounderBriefing", payload: payload)
+        guard let data = result.data as? [String: Any] else {
+            throw NSError(
+                domain: "HomeFounderBriefing",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Briefing konnte nicht gelesen werden."]
+            )
+        }
+        return data
+    }
+
+    private func shouldRetryFounderBriefing(after error: Error) -> Bool {
+        let nsError = error as NSError
+        guard nsError.domain == FunctionsErrorDomain,
+              let code = FunctionsErrorCode(rawValue: nsError.code) else {
+            return false
+        }
+        return code == .permissionDenied || code == .unauthenticated
+    }
+
+    private func shareFounderBriefingToWhatsApp(_ text: String) {
+        guard let encoded = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "whatsapp://send?text=\(encoded)") else {
+            founderBriefingShareItems = [text]
+            showsFounderBriefingShareSheet = true
+            return
+        }
+        if UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+            return
+        }
+        founderBriefingShareItems = [text]
+        showsFounderBriefingShareSheet = true
+    }
+
+    private static let founderBriefingDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter
+    }()
 
     private func openVideoHubFromMediaCluster(video: FeaturedHomeVideo) {
         stopAllMediaPlayback()
@@ -870,6 +1027,61 @@ private struct HomeNoteComposerSheet: View {
     }
 }
 
+private struct FounderBriefingResultSheet: View {
+    let colorScheme: ColorScheme
+    let presentation: FounderBriefingPresentation
+    let onCopy: () -> Void
+    let onShare: () -> Void
+    let onShareWhatsApp: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
+                Text(presentation.title)
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Text(
+                    presentation.mode == .privateBriefing ?
+                    "Private Founder Analyse" :
+                    "Team Update fuer WhatsApp"
+                )
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                ScrollView {
+                    Text(presentation.body)
+                        .font(.footnote)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(AppColors.cardBackground(for: colorScheme))
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
+                }
+
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                    Button("WhatsApp") { onShareWhatsApp() }
+                        .buttonStyle(.borderedProminent)
+                    Button(AppLocalized.text("common.copy", fallback: "Copy")) { onCopy() }
+                        .buttonStyle(.bordered)
+                    Button(AppLocalized.text("common.open_link", fallback: "Share")) { onShare() }
+                        .buttonStyle(.bordered)
+                }
+            }
+            .padding()
+            .navigationTitle("Briefing")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppLocalized.text("common.close", fallback: "Close")) {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
 private struct HomeOriginalVideoViewerTarget: Identifiable {
     let id = UUID()
     let urlString: String
@@ -1033,7 +1245,7 @@ private struct HomeProductivityOverviewSection: View {
     let remindersUpcoming: [HomeViewModel.ProductivityReminder]
     let openTasks: [HomeViewModel.ProductivityTask]
     let recentNotes: [HomeViewModel.ProductivityNote]
-    let onOpenWorkflowWithPrompt: ((String) -> Void)?
+    let onRequestFounderBriefing: ((FounderBriefingMode) -> Void)?
     let onOpenToday: () -> Void
     let onOpenUpcoming: () -> Void
     let onOpenTasks: () -> Void
@@ -1151,13 +1363,10 @@ private struct HomeProductivityOverviewSection: View {
                 )
             }
 
-            if let onOpenWorkflowWithPrompt {
+            if let onRequestFounderBriefing {
                 HomeOwnerWorkflowSection(
                     colorScheme: colorScheme,
-                    reminderCount: reminderCount,
-                    taskCount: taskCount,
-                    noteCount: noteCount,
-                    onOpenWorkflowWithPrompt: onOpenWorkflowWithPrompt
+                    onRequestFounderBriefing: onRequestFounderBriefing
                 )
                 .padding(.top, 2)
             }
@@ -1174,19 +1383,16 @@ private struct HomeProductivityOverviewSection: View {
 
 private struct HomeOwnerWorkflowSection: View {
     let colorScheme: ColorScheme
-    let reminderCount: Int
-    let taskCount: Int
-    let noteCount: Int
-    let onOpenWorkflowWithPrompt: (String) -> Void
+    let onRequestFounderBriefing: (FounderBriefingMode) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-            Text(AppLocalized.text("home.owner.workflows.title", fallback: "Owner shortcuts"))
+            Text(AppLocalized.text("home.owner.workflows.title", fallback: "Founder briefing"))
                 .font(.caption.weight(.semibold))
                 .foregroundColor(.secondary)
             Text(AppLocalized.text(
                 "home.owner.workflows.subtitle",
-                fallback: "Opens AI → Agent with a seeded prompt. Tap compose to send, read the reply, then save in Tasks or Notes from the AI productivity dock—or add reminders from Home."
+                fallback: "Run founder analysis with real available data."
             ))
                 .font(.caption2)
                 .foregroundColor(AppColors.text(for: colorScheme).opacity(0.55))
@@ -1194,27 +1400,19 @@ private struct HomeOwnerWorkflowSection: View {
 
             HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 HomeQuickActionButton(
-                    title: AppLocalized.text("home.owner.workflows.plan", fallback: "Plan"),
-                    badgeCount: taskCount,
+                    title: AppLocalized.text("home.owner.workflows.private_analysis", fallback: "Nur fuer mich"),
+                    systemImage: "dollarsign.circle",
                     colorScheme: colorScheme,
                     onTap: {
-                        onOpenWorkflowWithPrompt("Review open tasks (\(taskCount)) and return a concise execution plan with priorities.")
+                        onRequestFounderBriefing(.privateBriefing)
                     }
                 )
                 HomeQuickActionButton(
-                    title: AppLocalized.text("home.owner.workflows.followup", fallback: "Follow-up"),
-                    badgeCount: reminderCount,
+                    title: AppLocalized.text("home.owner.workflows.group_update", fallback: "Fuer Gruppe"),
+                    systemImage: "person.2",
                     colorScheme: colorScheme,
                     onTap: {
-                        onOpenWorkflowWithPrompt("Create follow-up actions from reminders (\(reminderCount)) and suggest what to do today first.")
-                    }
-                )
-                HomeQuickActionButton(
-                    title: AppLocalized.text("home.owner.workflows.summarize", fallback: "Summarize"),
-                    badgeCount: noteCount,
-                    colorScheme: colorScheme,
-                    onTap: {
-                        onOpenWorkflowWithPrompt("Summarize notes (\(noteCount)) into next actions and a short owner update.")
+                        onRequestFounderBriefing(.group)
                     }
                 )
             }
@@ -1383,17 +1581,20 @@ private struct HomeCountBadge: View {
 
 private struct HomeQuickActionButton: View {
     let title: String
+    let systemImage: String?
     let badgeCount: Int?
     let colorScheme: ColorScheme
     let onTap: () -> Void
 
     init(
         title: String,
+        systemImage: String? = nil,
         badgeCount: Int? = nil,
         colorScheme: ColorScheme,
         onTap: @escaping () -> Void
     ) {
         self.title = title
+        self.systemImage = systemImage
         self.badgeCount = badgeCount
         self.colorScheme = colorScheme
         self.onTap = onTap
@@ -1401,22 +1602,29 @@ private struct HomeQuickActionButton: View {
 
     var body: some View {
         Button(action: onTap) {
-            Text(title)
-                .font(.caption2.weight(.semibold))
-                .foregroundColor(AppColors.text(for: colorScheme))
-                .lineLimit(1)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 7)
-                .frame(maxWidth: .infinity)
-                .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
-                .overlay(alignment: .topTrailing) {
-                    // Match productivity rows: show count including 0 when this chip carries metrics (owner shortcuts).
-                    if let badgeCount {
-                        HomeCountBadge(count: badgeCount)
-                            .offset(x: 4, y: -4)
-                    }
+            HStack(spacing: 6) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme).opacity(0.82))
                 }
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity)
+            .background(AppColors.cardBackground(for: colorScheme))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
+            .overlay(alignment: .topTrailing) {
+                // Match productivity rows: show count including 0 when this chip carries metrics (owner shortcuts).
+                if let badgeCount {
+                    HomeCountBadge(count: badgeCount)
+                        .offset(x: 4, y: -4)
+                }
+            }
         }
         .buttonStyle(.plain)
         .skydownTactileAction()
