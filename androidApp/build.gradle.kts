@@ -122,14 +122,24 @@ val releaseSigningErrorMessage =
         """.trimIndent()
     }
 
-tasks.configureEach {
-    if (name in setOf("preReleaseBuild", "assembleRelease", "bundleRelease", "packageRelease", "validateSigningRelease")) {
-        doFirst {
-            if (!hasReleaseSigning && !allowDebugReleaseSigning) {
-                throw GradleException(releaseSigningErrorMessage)
-            }
-        }
-    }
+val releaseSigningTaskNames =
+    setOf(
+        "preReleaseBuild",
+        "assembleRelease",
+        "bundleRelease",
+        "packageRelease",
+        "validateSigningRelease",
+        "assemble",
+        "bundle",
+        "build",
+    )
+val requestedReleaseSigningTask =
+    gradle.startParameter.taskNames
+        .map { taskName -> taskName.substringAfterLast(':') }
+        .any { taskName -> taskName in releaseSigningTaskNames }
+
+if (requestedReleaseSigningTask && !hasReleaseSigning && !allowDebugReleaseSigning) {
+    throw GradleException(releaseSigningErrorMessage)
 }
 
 dependencies {

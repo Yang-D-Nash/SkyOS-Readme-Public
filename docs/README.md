@@ -15,9 +15,11 @@ how it is operated without reverse-engineering the repository.
 - [commerce.md](commerce.md) - merch, orders, checkout, shipping, payment rails, and memberships
 - [owner-admin.md](owner-admin.md) - owner workflows, controls, kill switches, and release governance
 - [deployment.md](deployment.md) - deploy flow, selective deploys, rollback basics, and post-deploy checks
+- [incident-runbook.md](incident-runbook.md) - incident scenarios, roles, severity, comms, rollback vs. hotfix
 - [ci.md](ci.md) - CI jobs, path filters, quality gates, and trigger behavior
 - [release-checklist.md](release-checklist.md) - release readiness gate across product, legal, analytics, and trust
 - [branding.md](branding.md) - product naming, voice, assets, and copy rules
+- [brand-architecture-and-launch-positioning.md](brand-architecture-and-launch-positioning.md) - final SkyOS/Skydown hierarchy, launch hero, visible vs. secondary features, Apple/Notion-style framing, differentiation
 - [workflow-http-api-activepieces.md](workflow-http-api-activepieces.md) - Activepieces HTTP setup for Reminder, Task, and Note creation
 - [automation/activepieces-minimal-app-flow.md](automation/activepieces-minimal-app-flow.md) - minimal Activepieces flow for **Agent-Automation** (sync URL, Return Response, app contract)
 - [automation/chatgpt-prompt-activepieces-skyos.md](automation/chatgpt-prompt-activepieces-skyos.md) - **copy-paste prompt** for ChatGPT to draft three AP workflows (Agent webhook, callbacks, workflow API)

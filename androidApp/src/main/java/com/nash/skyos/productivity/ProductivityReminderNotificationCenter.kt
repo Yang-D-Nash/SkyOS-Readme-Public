@@ -1,16 +1,19 @@
 package com.nash.skyos.productivity
 
+import android.Manifest
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.nash.skyos.MainActivity
 import com.nash.skyos.R
 import java.util.Date
@@ -79,14 +82,15 @@ object ProductivityReminderNotificationCenter {
                 am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
             }
         } catch (e: SecurityException) {
+            Log.w("Reminders", "Exact alarm scheduling denied; falling back to inexact alarm.", e)
             try {
                 @Suppress("DEPRECATION")
                 am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
             } catch (e2: Exception) {
-                Log.w("Reminders", "Could not schedule alarm: ${e2.message}")
+                Log.w("Reminders", "Could not schedule fallback alarm.", e2)
             }
         } catch (e: Exception) {
-            Log.w("Reminders", "Could not schedule alarm: ${e.message}")
+            Log.w("Reminders", "Could not schedule alarm.", e)
         }
     }
 
@@ -142,6 +146,13 @@ object ProductivityReminderNotificationCenter {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .build()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.w("Reminders", "Notification permission not granted; reminder notification skipped.")
+            return
+        }
         NotificationManagerCompat.from(app)
             .notify("reminder_$reminderId".hashCode(), n)
     }

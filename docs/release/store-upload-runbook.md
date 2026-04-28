@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-04-27 23:48 CEST (iOS 10010 uploaded, Android 10016 built)
+Last updated: 2026-04-28 06:15 CEST (iOS 10017 archived locally, not uploaded; Android 10016 built)
 Owner: Release Engineering
 
 ## Build Identity
@@ -9,7 +9,7 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10010` (uploaded; includes the iOS Music Studio split fix and Agent tap hardening; build `10008` was uploaded before these fixes)
+- Build: `10017` (local candidate archived; not uploaded because local iOS UI tests are red; build `10010` remains the previously uploaded build)
 - Team ID: `F3BNLG6L7P`
 
 ### Android
@@ -21,7 +21,7 @@ Owner: Release Engineering
 
 ## Build Artifacts
 
-- iOS archive: `build/ios/SkyOS-1.0.0-10010-20260427.xcarchive` archived successfully after the Music Studio split fix and Agent tap hardening.
+- iOS archive: `build/ios/SkyOS-1.0.0-10017-20260428.xcarchive` archived locally; do not upload until the iOS UI-test failures are resolved.
 - iOS upload status: build `10010` uploaded to App Store Connect at 2026-04-27 23:48 CEST and package processing started. Previous build `10008` was uploaded to App Store Connect at 2026-04-27 23:06 CEST, but does not include the iOS Music Studio split fix or Agent tap hardening.
 - Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-27 23:11 CEST, versionCode `10016`)
 - Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-04-27 23:11 CEST, versionCode `10016`)
@@ -29,11 +29,11 @@ Owner: Release Engineering
 ## Upload Status
 
 ### iOS Upload Status
-- Archive build: DONE locally for build `10010`
+- Archive build: DONE locally for build `10017`; upload blocked by local UI-test failures
 - App Store Connect upload: DONE for build `10010` at 2026-04-27 23:48 CEST
 - Processing status: uploaded package is processing; wait for build `10010` to appear in TestFlight, then attach to Internal Testers.
 - Notes:
-  - `CURRENT_PROJECT_VERSION` is set to `10010`; archive path is `build/ios/SkyOS-1.0.0-10010-20260427.xcarchive`.
+  - `CURRENT_PROJECT_VERSION` is set to `10017`; archive path is `build/ios/SkyOS-1.0.0-10017-20260428.xcarchive`.
   - Export/upload used `build/ios/ExportOptions-app-store-upload-10010.plist` with `manageAppVersionAndBuildNumber=false`.
   - Build `10009` was archived and identity-checked locally on 2026-04-27, but its upload was intentionally stopped before success after the iOS Agent tap crash report; use build `10010`.
   - Build `10008` uploaded successfully on 2026-04-27, but was superseded by build `10010` for the iOS Music Studio split fix and Agent tap hardening.

@@ -70,6 +70,8 @@ Do not treat live config casually. Confirm:
 
 ## 6. Rollback Basics
 
+Operator quick reference: [incident-runbook.md](incident-runbook.md) (scenarios, roles, severity, comms).
+
 SkyOS rollback is not only about git. In an incident:
 
 1. use runtime lockdown or targeted write locks if user protection is urgent
