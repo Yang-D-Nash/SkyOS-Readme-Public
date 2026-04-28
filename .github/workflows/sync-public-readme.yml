@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - docs/public/README.md
+      - README.md
       - .github/workflows/sync-public-readme.yml
   workflow_dispatch:
 
@@ -24,7 +24,7 @@ jobs:
         env:
           TARGET_REPO: Yang-D-Nash/SkyOS-Readme-Public
           TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
-          PUBLIC_README_SOURCE: docs/public/README.md
+          PUBLIC_README_SOURCE: README.md
         run: |
           if [ -z "$TARGET_REPO" ]; then
             echo "Missing target repository configuration." >&2
@@ -46,7 +46,7 @@ jobs:
           TARGET_REPO: Yang-D-Nash/SkyOS-Readme-Public
           TARGET_BRANCH: ${{ vars.PUBLIC_README_BRANCH }}
           TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
-          PUBLIC_README_SOURCE: docs/public/README.md
+          PUBLIC_README_SOURCE: README.md
         run: |
           branch="${TARGET_BRANCH:-main}"
           clone_url="https://x-access-token:${TOKEN}@github.com/${TARGET_REPO}.git"
