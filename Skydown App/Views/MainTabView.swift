@@ -126,6 +126,10 @@ struct MainTabView: View {
         featureFlags.allowsAIAccess(for: authManager.userSession)
     }
 
+    private var isOwner: Bool {
+        authManager.userSession?.isPlatformOwner == true
+    }
+
     /// Single SkyOS chrome accent for tab bar + `.accentColor` — avoids per-tab Spotify/YouTube retail colors reading as five separate products.
     private var selectedTabAccent: Color {
         AppColors.accentMystic(for: currentScheme)
@@ -226,7 +230,7 @@ struct MainTabView: View {
                                 selectedTab = .tools
                             }
                         } : nil,
-                        onOpenWorkflowWithPrompt: hasAIAccess ? { prompt in
+                        onOpenWorkflowWithPrompt: (hasAIAccess && isOwner) ? { prompt in
                             pendingAgentPrefillPrompt = prompt
                             withAnimation(SkydownMotion.screenTransition) {
                                 showsWorkflowWorkspace = true

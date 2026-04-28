@@ -11,6 +11,7 @@ import com.nash.skyos.data.AgentOutboundAttachment
 import com.nash.skyos.data.AgentPendingQueueEntry
 import com.nash.skyos.data.AgentPendingQueueStore
 import com.nash.skyos.data.AgentResultEntry
+import com.nash.skyos.data.AgentSocialSetupInput
 import com.nash.skyos.data.AiConversationHistorySource
 import com.nash.skyos.data.AiConversationHistoryResultEntry
 import com.nash.skyos.data.AiConversationHistorySaveResult
@@ -63,6 +64,7 @@ class AgentViewModel : ViewModel() {
         val createdAtEpochMillis: Long,
         val attachments: List<AgentOutboundAttachment> = emptyList(),
         val idempotencyKey: String = "",
+        val socialSetup: AgentSocialSetupInput = AgentSocialSetupInput(),
     )
 
     private data class InFlightRequestContext(
@@ -258,6 +260,30 @@ class AgentViewModel : ViewModel() {
         }
     }
 
+    fun updateSocialInstagramEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(socialInstagramEnabled = enabled) }
+    }
+
+    fun updateSocialInstagramHandle(handle: String) {
+        _uiState.update { it.copy(socialInstagramHandle = handle) }
+    }
+
+    fun updateSocialTiktokEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(socialTiktokEnabled = enabled) }
+    }
+
+    fun updateSocialTiktokHandle(handle: String) {
+        _uiState.update { it.copy(socialTiktokHandle = handle) }
+    }
+
+    fun updateSocialYoutubeEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(socialYoutubeEnabled = enabled) }
+    }
+
+    fun updateSocialYoutubeHandle(handle: String) {
+        _uiState.update { it.copy(socialYoutubeHandle = handle) }
+    }
+
     fun sendDraft(attachments: List<AgentOutboundAttachment> = emptyList()) {
         sendPrompt(_uiState.value.draft, attachments)
     }
@@ -283,6 +309,7 @@ class AgentViewModel : ViewModel() {
         val levelRawAtSend = levelAtSend.rawValue
         val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
         val automationScopeAtSend = _uiState.value.selectedAutomationScope.rawValue
+        val socialSetupAtSend = resolveSocialSetupForOutgoing(trimmedPrompt, modeAtSend)
         val idempotencyKeyAtSend =
             if (executeAutomationAtSend) java.util.UUID.randomUUID().toString() else ""
         val userMessage = AgentMessage(role = AgentMessageRole.User, text = trimmedPrompt)
@@ -322,6 +349,7 @@ class AgentViewModel : ViewModel() {
                     manusApiKeyOverride = ManusByosPreferences.currentManusApiKeyOrNull(),
                     idempotencyKey = idempotencyKeyAtSend.takeIf { it.isNotBlank() },
                     attachments = attachmentsAtSend,
+                    socialSetup = socialSetupAtSend.takeIf { it.hasAnySelection() },
                 )
                 if (!isRequestContextActive(requestContext)) return@launch
 
@@ -407,6 +435,7 @@ class AgentViewModel : ViewModel() {
                             createdAtEpochMillis = System.currentTimeMillis(),
                             attachments = attachmentsAtSend,
                             idempotencyKey = idempotencyKeyAtSend,
+                            socialSetup = socialSetupAtSend,
                         ),
                     )
                     persistPendingRequests()
@@ -652,6 +681,7 @@ class AgentViewModel : ViewModel() {
         val modeAtSend = _uiState.value.selectedMode.rawValue
         val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
         val automationScopeAtSend = _uiState.value.selectedAutomationScope.rawValue
+        val socialSetupAtQueue = resolveSocialSetupForOutgoing(trimmedPrompt, modeAtSend)
         val idempotencyKeyAtQueue =
             if (executeAutomationAtSend) java.util.UUID.randomUUID().toString() else ""
         val userMessage = AgentMessage(role = AgentMessageRole.User, text = trimmedPrompt)
@@ -677,6 +707,7 @@ class AgentViewModel : ViewModel() {
                 createdAtEpochMillis = System.currentTimeMillis(),
                 attachments = attachments,
                 idempotencyKey = idempotencyKeyAtQueue,
+                socialSetup = socialSetupAtQueue,
             ),
         )
         persistPendingRequests()
@@ -732,6 +763,7 @@ class AgentViewModel : ViewModel() {
                         manusApiKeyOverride = ManusByosPreferences.currentManusApiKeyOrNull(),
                         idempotencyKey = request.idempotencyKey.takeIf { it.isNotBlank() },
                         attachments = request.attachments,
+                        socialSetup = request.socialSetup.takeIf { it.hasAnySelection() },
                     )
                     if (!isRequestContextActive(requestContext)) {
                         pendingRetryJob = null
@@ -1106,6 +1138,7 @@ class AgentViewModel : ViewModel() {
                     createdAtEpochMillis = entry.createdAtEpochMillis,
                     attachments = entry.attachments,
                     idempotencyKey = entry.idempotencyKey,
+                    socialSetup = entry.socialSetup,
                 )
             },
         )
@@ -1148,6 +1181,7 @@ class AgentViewModel : ViewModel() {
                 createdAtEpochMillis = request.createdAtEpochMillis,
                 attachments = request.attachments,
                 idempotencyKey = request.idempotencyKey,
+                socialSetup = request.socialSetup,
             )
         }
         AgentPendingQueueStore.saveEntriesForSession(currentUserKey, currentSessionId, entries)
@@ -1324,13 +1358,16 @@ class AgentViewModel : ViewModel() {
     }
 
     private fun createdAutomationSummary(result: com.nash.skyos.data.AgentResponse): String {
-        val reminderCount = if (resultLooksLikeReminderCreation(result)) 1 else 0
-        val taskCount = if (resultLooksLikeTaskCreation(result)) 1 else 0
-        val noteCount = if (resultLooksLikeNoteCreation(result)) 1 else 0
-        if (reminderCount == 0 && taskCount == 0 && noteCount == 0) {
+        val reminderCount = result.results.count { it.type.trim().lowercase() == "reminder" }
+        val taskCount = result.results.count { it.type.trim().lowercase() == "task" }
+        val noteCount = result.results.count { it.type.trim().lowercase() == "note" }
+        val resolvedReminderCount = maxOf(reminderCount, if (resultLooksLikeReminderCreation(result)) 1 else 0)
+        val resolvedTaskCount = maxOf(taskCount, if (resultLooksLikeTaskCreation(result)) 1 else 0)
+        val resolvedNoteCount = maxOf(noteCount, if (resultLooksLikeNoteCreation(result)) 1 else 0)
+        if (resolvedReminderCount == 0 && resolvedTaskCount == 0 && resolvedNoteCount == 0) {
             return "Es wurde kein Reminder/Task/Notiz automatisch angelegt."
         }
-        return "Angelegt: Reminder $reminderCount | Tasks $taskCount | Notizen $noteCount"
+        return "Angelegt: Reminder $resolvedReminderCount | Tasks $resolvedTaskCount | Notizen $resolvedNoteCount"
     }
 
     private fun buildWorkflowSummary(result: com.nash.skyos.data.AgentResponse): AgentWorkflowSummary? {
@@ -1352,6 +1389,50 @@ class AgentViewModel : ViewModel() {
             statusText = statusText,
             runId = runId,
             schemaVersion = result.automationSchemaVersion.trim(),
+        )
+    }
+
+    fun shouldShowSocialSetupCard(): Boolean {
+        val state = _uiState.value
+        return state.selectedMode == AgentExecutionMode.Automation &&
+            isSocialAnalysisPrompt(state.draft)
+    }
+
+    private fun isSocialAnalysisPrompt(value: String): Boolean {
+        val text = value.trim().lowercase()
+        if (text.isBlank()) return false
+        if (
+            text.contains("social_analysis") ||
+            text.contains("social analysis") ||
+            text.contains("social analyse")
+        ) {
+            return true
+        }
+        val hasSocial =
+            text.contains("social") ||
+                text.contains("instagram") ||
+                text.contains("tiktok") ||
+                text.contains("youtube")
+        val hasAnalysis =
+            text.contains("analyse") ||
+                text.contains("analysis") ||
+                text.contains("insight") ||
+                text.contains("performance")
+        return hasSocial && hasAnalysis
+    }
+
+    private fun resolveSocialSetupForOutgoing(prompt: String, mode: String): AgentSocialSetupInput {
+        if (mode.trim().lowercase() != "automation" || !isSocialAnalysisPrompt(prompt)) {
+            return AgentSocialSetupInput()
+        }
+        val state = _uiState.value
+        return AgentSocialSetupInput(
+            instagramEnabled = state.socialInstagramEnabled,
+            instagramHandle = state.socialInstagramHandle.trim(),
+            tiktokEnabled = state.socialTiktokEnabled,
+            tiktokHandle = state.socialTiktokHandle.trim(),
+            youtubeEnabled = state.socialYoutubeEnabled,
+            youtubeHandle = state.socialYoutubeHandle.trim(),
         )
     }
 

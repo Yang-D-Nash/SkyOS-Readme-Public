@@ -31,6 +31,12 @@ data class AgentUiState(
     val canUseGlobalOwnerAutomationFlow: Boolean = false,
     val canTriggerAutomation: Boolean = false,
     val shouldTriggerAutomation: Boolean = false,
+    val socialInstagramEnabled: Boolean = false,
+    val socialInstagramHandle: String = "",
+    val socialTiktokEnabled: Boolean = false,
+    val socialTiktokHandle: String = "",
+    val socialYoutubeEnabled: Boolean = false,
+    val socialYoutubeHandle: String = "",
     val quickPrompts: List<String> = agentQuickPromptsFor(AgentExecutionMode.Release),
     /** Last successful Agent response provider (from callable). */
     val lastAgentProvider: AiRuntimeAgentProvider = AiRuntimeAgentProvider.Grok,

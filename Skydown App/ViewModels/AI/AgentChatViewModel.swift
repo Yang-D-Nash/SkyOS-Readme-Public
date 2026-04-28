@@ -169,6 +169,12 @@ final class AgentChatViewModel: ObservableObject {
     @Published var selectedLevel: AIExperienceLevel = .standard
     @Published var selectedAutomationScope: AgentAutomationScope = .owner
     @Published var shouldTriggerAutomation = false
+    @Published var socialInstagramEnabled = false
+    @Published var socialInstagramHandle = ""
+    @Published var socialTiktokEnabled = false
+    @Published var socialTiktokHandle = ""
+    @Published var socialYoutubeEnabled = false
+    @Published var socialYoutubeHandle = ""
     @Published private(set) var canTriggerAutomation = false
     /// When false, the global "App-Flow" (owner webhook) is hidden; use personal automation only.
     @Published private(set) var canUseGlobalOwnerAutomationFlow = false
@@ -223,6 +229,7 @@ final class AgentChatViewModel: ObservableObject {
         let createdAt: Date
         let attachments: [AgentOutboundAttachment]
         let idempotencyKey: String
+        let socialSetup: AgentSocialSetupInput
     }
 
     private struct InFlightRequestContext: Equatable {
@@ -344,6 +351,10 @@ final class AgentChatViewModel: ObservableObject {
         let levelAtSend = selectedLevel
         let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
         let automationScopeAtSend = selectedAutomationScope.rawValue
+        let socialSetupAtSend = resolveSocialSetupForOutgoing(
+            prompt: trimmedPrompt,
+            mode: modeAtSend
+        )
         let idempotencyKeyAtSend = executeAutomationAtSend ? UUID().uuidString : ""
         let assistantID = UUID()
         let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
@@ -376,7 +387,8 @@ final class AgentChatViewModel: ObservableObject {
                     automationScope: automationScopeAtSend,
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil(),
                     idempotencyKey: idempotencyKeyAtSend.isEmpty ? nil : idempotencyKeyAtSend,
-                    attachments: preparedAttachments
+                    attachments: preparedAttachments,
+                    socialSetup: socialSetupAtSend.hasAnySelection ? socialSetupAtSend : nil
                 )
                 guard isRequestContextValid(requestContext) else { return }
                 updateProviderDiagnostics(from: result)
@@ -451,7 +463,8 @@ final class AgentChatViewModel: ObservableObject {
                             assistantMessageID: assistantID,
                             createdAt: .now,
                             attachments: preparedAttachments,
-                            idempotencyKey: idempotencyKeyAtSend
+                            idempotencyKey: idempotencyKeyAtSend,
+                            socialSetup: socialSetupAtSend
                         )
                     )
                     persistPendingRequests()
@@ -634,7 +647,8 @@ final class AgentChatViewModel: ObservableObject {
                 assistantMessageID: assistantID,
                 createdAt: entry.createdAt,
                 attachments: entry.attachments,
-                idempotencyKey: entry.idempotencyKey
+                idempotencyKey: entry.idempotencyKey,
+                socialSetup: entry.socialSetup
             )
         }
 
@@ -762,6 +776,10 @@ final class AgentChatViewModel: ObservableObject {
         let levelAtSend = selectedLevel
         let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
         let automationScopeAtSend = selectedAutomationScope.rawValue
+        let socialSetupAtQueue = resolveSocialSetupForOutgoing(
+            prompt: trimmedPrompt,
+            mode: modeAtSend
+        )
         let idempotencyKeyAtQueue = executeAutomationAtSend ? UUID().uuidString : ""
 
         messages.append(userMessage)
@@ -790,7 +808,8 @@ final class AgentChatViewModel: ObservableObject {
                 assistantMessageID: assistantID,
                 createdAt: .now,
                 attachments: attachments,
-                idempotencyKey: idempotencyKeyAtQueue
+                idempotencyKey: idempotencyKeyAtQueue,
+                socialSetup: socialSetupAtQueue
             )
         )
         persistPendingRequests()
@@ -874,7 +893,8 @@ final class AgentChatViewModel: ObservableObject {
                     automationScope: request.automationScope,
                     manusApiKeyOverride: ManusBYOSStore.shared.currentAPIKeyOrNil(),
                     idempotencyKey: request.idempotencyKey.isEmpty ? nil : request.idempotencyKey,
-                    attachments: request.attachments
+                    attachments: request.attachments,
+                    socialSetup: request.socialSetup.hasAnySelection ? request.socialSetup : nil
                 )
                 guard isRequestContextValid(requestContext) else { return }
 
@@ -1022,7 +1042,8 @@ final class AgentChatViewModel: ObservableObject {
                 assistantMessageID: request.assistantMessageID.uuidString,
                 createdAt: request.createdAt,
                 attachments: request.attachments,
-                idempotencyKey: request.idempotencyKey
+                idempotencyKey: request.idempotencyKey,
+                socialSetup: request.socialSetup
             )
         }
         pendingQueueStore.saveEntries(
@@ -1245,13 +1266,22 @@ final class AgentChatViewModel: ObservableObject {
     }
 
     private func createdAutomationSummary(from response: AgentChatResponse) -> String {
-        let reminderCount = resultLooksLikeReminderCreation(response) ? 1 : 0
-        let taskCount = resultLooksLikeTaskCreation(response) ? 1 : 0
-        let noteCount = resultLooksLikeNoteCreation(response) ? 1 : 0
-        if reminderCount == 0 && taskCount == 0 && noteCount == 0 {
+        let reminderCount = response.results.filter {
+            $0.type.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "reminder"
+        }.count
+        let taskCount = response.results.filter {
+            $0.type.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "task"
+        }.count
+        let noteCount = response.results.filter {
+            $0.type.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "note"
+        }.count
+        let resolvedReminderCount = max(reminderCount, resultLooksLikeReminderCreation(response) ? 1 : 0)
+        let resolvedTaskCount = max(taskCount, resultLooksLikeTaskCreation(response) ? 1 : 0)
+        let resolvedNoteCount = max(noteCount, resultLooksLikeNoteCreation(response) ? 1 : 0)
+        if resolvedReminderCount == 0 && resolvedTaskCount == 0 && resolvedNoteCount == 0 {
             return "Es wurde kein Reminder/Task/Notiz automatisch angelegt."
         }
-        return "Angelegt: Reminder \(reminderCount) | Tasks \(taskCount) | Notizen \(noteCount)"
+        return "Angelegt: Reminder \(resolvedReminderCount) | Tasks \(resolvedTaskCount) | Notizen \(resolvedNoteCount)"
     }
 
     func showToastMessage(_ message: String, style: ToastStyle) {
@@ -1270,6 +1300,36 @@ final class AgentChatViewModel: ObservableObject {
             resetHint: usage.resetHint,
             retryAfterSeconds: usage.retryAfterSeconds,
             lowerCostOption: usage.lowerCostOption
+        )
+    }
+
+    var shouldShowSocialSetupCard: Bool {
+        selectedMode == .automation && isSocialAnalysisPrompt(draft)
+    }
+
+    private func isSocialAnalysisPrompt(_ value: String) -> Bool {
+        let text = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !text.isEmpty else { return false }
+        if text.contains("social_analysis") || text.contains("social analysis") || text.contains("social analyse") {
+            return true
+        }
+        let hasSocial = text.contains("social") || text.contains("instagram") || text.contains("tiktok") || text.contains("youtube")
+        let hasAnalysis = text.contains("analyse") || text.contains("analysis") || text.contains("insight") || text.contains("performance")
+        return hasSocial && hasAnalysis
+    }
+
+    private func resolveSocialSetupForOutgoing(prompt: String, mode: String) -> AgentSocialSetupInput {
+        let normalizedMode = mode.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard normalizedMode == "automation", isSocialAnalysisPrompt(prompt) else {
+            return .empty
+        }
+        return AgentSocialSetupInput(
+            instagramEnabled: socialInstagramEnabled,
+            instagramHandle: socialInstagramHandle.trimmingCharacters(in: .whitespacesAndNewlines),
+            tiktokEnabled: socialTiktokEnabled,
+            tiktokHandle: socialTiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines),
+            youtubeEnabled: socialYoutubeEnabled,
+            youtubeHandle: socialYoutubeHandle.trimmingCharacters(in: .whitespacesAndNewlines)
         )
     }
 

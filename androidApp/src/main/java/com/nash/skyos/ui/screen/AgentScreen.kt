@@ -500,6 +500,13 @@ fun AgentScreen(
                         canTriggerAutomation = uiState.canTriggerAutomation,
                         canUseGlobalOwnerAutomationFlow = uiState.canUseGlobalOwnerAutomationFlow,
                         shouldTriggerAutomation = uiState.shouldTriggerAutomation,
+                        socialInstagramEnabled = uiState.socialInstagramEnabled,
+                        socialInstagramHandle = uiState.socialInstagramHandle,
+                        socialTiktokEnabled = uiState.socialTiktokEnabled,
+                        socialTiktokHandle = uiState.socialTiktokHandle,
+                        socialYoutubeEnabled = uiState.socialYoutubeEnabled,
+                        socialYoutubeHandle = uiState.socialYoutubeHandle,
+                        showSocialSetupCard = viewModel.shouldShowSocialSetupCard(),
                         agentPhase = uiState.agentPhase,
                         attachments = inputAttachments,
                         quickPrompts = uiState.quickPrompts,
@@ -508,6 +515,12 @@ fun AgentScreen(
                         onModeChanged = viewModel::updateMode,
                         onAutomationScopeChanged = viewModel::updateAutomationScope,
                         onToggleAutomation = viewModel::toggleAutomation,
+                        onSocialInstagramEnabledChanged = viewModel::updateSocialInstagramEnabled,
+                        onSocialInstagramHandleChanged = viewModel::updateSocialInstagramHandle,
+                        onSocialTiktokEnabledChanged = viewModel::updateSocialTiktokEnabled,
+                        onSocialTiktokHandleChanged = viewModel::updateSocialTiktokHandle,
+                        onSocialYoutubeEnabledChanged = viewModel::updateSocialYoutubeEnabled,
+                        onSocialYoutubeHandleChanged = viewModel::updateSocialYoutubeHandle,
                         onAddFiles = {
                             showPromptComposer = false
                             attachmentPicker.launch(arrayOf("*/*"))
@@ -1503,6 +1516,13 @@ private fun AgentPromptComposerSheet(
     canTriggerAutomation: Boolean,
     canUseGlobalOwnerAutomationFlow: Boolean,
     shouldTriggerAutomation: Boolean,
+    socialInstagramEnabled: Boolean,
+    socialInstagramHandle: String,
+    socialTiktokEnabled: Boolean,
+    socialTiktokHandle: String,
+    socialYoutubeEnabled: Boolean,
+    socialYoutubeHandle: String,
+    showSocialSetupCard: Boolean,
     agentPhase: AgentInteractionPhase,
     attachments: List<AgentInputAttachment>,
     quickPrompts: List<String>,
@@ -1511,6 +1531,12 @@ private fun AgentPromptComposerSheet(
     onModeChanged: (AgentExecutionMode) -> Unit,
     onAutomationScopeChanged: (AgentAutomationScope) -> Unit,
     onToggleAutomation: () -> Unit,
+    onSocialInstagramEnabledChanged: (Boolean) -> Unit,
+    onSocialInstagramHandleChanged: (String) -> Unit,
+    onSocialTiktokEnabledChanged: (Boolean) -> Unit,
+    onSocialTiktokHandleChanged: (String) -> Unit,
+    onSocialYoutubeEnabledChanged: (Boolean) -> Unit,
+    onSocialYoutubeHandleChanged: (String) -> Unit,
     onAddFiles: () -> Unit,
     onRemoveAttachment: (AgentInputAttachment) -> Unit,
     onClearAttachments: () -> Unit,
@@ -1632,6 +1658,91 @@ private fun AgentPromptComposerSheet(
             prompts = quickPrompts,
             onPromptSelected = onDraftChanged,
         )
+
+        if (showSocialSetupCard) {
+            Text(
+                text = "Social Setup",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.tertiary,
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "Optional: Nur aktivierte Plattformen werden abgefragt. Handles beschleunigen die Analyse.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Instagram", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    androidx.compose.material3.Switch(
+                        checked = socialInstagramEnabled,
+                        onCheckedChange = onSocialInstagramEnabledChanged,
+                    )
+                }
+                if (socialInstagramEnabled) {
+                    OutlinedTextField(
+                        value = socialInstagramHandle,
+                        onValueChange = onSocialInstagramHandleChanged,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text("Instagram Handle (optional)") },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("TikTok", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    androidx.compose.material3.Switch(
+                        checked = socialTiktokEnabled,
+                        onCheckedChange = onSocialTiktokEnabledChanged,
+                    )
+                }
+                if (socialTiktokEnabled) {
+                    OutlinedTextField(
+                        value = socialTiktokHandle,
+                        onValueChange = onSocialTiktokHandleChanged,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text("TikTok Handle (optional)") },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("YouTube", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    androidx.compose.material3.Switch(
+                        checked = socialYoutubeEnabled,
+                        onCheckedChange = onSocialYoutubeEnabledChanged,
+                    )
+                }
+                if (socialYoutubeEnabled) {
+                    OutlinedTextField(
+                        value = socialYoutubeHandle,
+                        onValueChange = onSocialYoutubeHandleChanged,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text("YouTube Handle oder Channel (optional)") },
+                    )
+                }
+            }
+        }
 
         Text(
             text = stringResource(R.string.agent_prompt_label),

@@ -80,6 +80,13 @@ struct AgentView: View {
                 selectedMode: $viewModel.selectedMode,
                 selectedAutomationScope: $viewModel.selectedAutomationScope,
                 shouldTriggerAutomation: $viewModel.shouldTriggerAutomation,
+                socialInstagramEnabled: $viewModel.socialInstagramEnabled,
+                socialInstagramHandle: $viewModel.socialInstagramHandle,
+                socialTiktokEnabled: $viewModel.socialTiktokEnabled,
+                socialTiktokHandle: $viewModel.socialTiktokHandle,
+                socialYoutubeEnabled: $viewModel.socialYoutubeEnabled,
+                socialYoutubeHandle: $viewModel.socialYoutubeHandle,
+                shouldShowSocialSetupCard: viewModel.shouldShowSocialSetupCard,
                 canTriggerAutomation: viewModel.canTriggerAutomation,
                 canUseGlobalOwnerAutomationFlow: viewModel.canUseGlobalOwnerAutomationFlow,
                 interactionPhase: viewModel.phase,
@@ -1520,6 +1527,13 @@ private struct AgentPromptComposerSheet: View {
     @Binding var selectedMode: AgentExecutionMode
     @Binding var selectedAutomationScope: AgentAutomationScope
     @Binding var shouldTriggerAutomation: Bool
+    @Binding var socialInstagramEnabled: Bool
+    @Binding var socialInstagramHandle: String
+    @Binding var socialTiktokEnabled: Bool
+    @Binding var socialTiktokHandle: String
+    @Binding var socialYoutubeEnabled: Bool
+    @Binding var socialYoutubeHandle: String
+    let shouldShowSocialSetupCard: Bool
     let canTriggerAutomation: Bool
     let canUseGlobalOwnerAutomationFlow: Bool
     let interactionPhase: AgentInteractionPhase
@@ -1667,6 +1681,59 @@ private struct AgentPromptComposerSheet: View {
                             draft = prompt
                         }
                     )
+                }
+
+                if shouldShowSocialSetupCard {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                        PremiumPromptSectionHeader(
+                            title: "Social Setup",
+                            footnote: "Optional: aktiviere nur die Plattformen, die jetzt analysiert werden sollen.",
+                            accent: agentAccent,
+                            colorScheme: colorScheme
+                        )
+                        PremiumPromptCard(colorScheme: colorScheme) {
+                            Text("Nur aktivierte Plattformen werden abgefragt. Handles sind optional und beschleunigen die Analyse.")
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                            Toggle(isOn: $socialInstagramEnabled) {
+                                Text("Instagram")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .tint(agentAccent)
+                            if socialInstagramEnabled {
+                                TextField("Instagram Handle (optional)", text: $socialInstagramHandle)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                            }
+
+                            Divider()
+
+                            Toggle(isOn: $socialTiktokEnabled) {
+                                Text("TikTok")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .tint(agentAccent)
+                            if socialTiktokEnabled {
+                                TextField("TikTok Handle (optional)", text: $socialTiktokHandle)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                            }
+
+                            Divider()
+
+                            Toggle(isOn: $socialYoutubeEnabled) {
+                                Text("YouTube")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .tint(agentAccent)
+                            if socialYoutubeEnabled {
+                                TextField("YouTube Handle oder Channel (optional)", text: $socialYoutubeHandle)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                            }
+                        }
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {

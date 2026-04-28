@@ -238,6 +238,14 @@ const agentRequestSchema = z.object({
   manusApiKeyOverride: z.string().trim().min(16).max(1024).optional(),
   idempotencyKey: z.string().trim().max(128).optional(),
   attachments: z.array(agentAttachmentSchema).max(5).optional().default([]),
+  socialSetup: z.object({
+    instagramEnabled: z.boolean().optional().default(false),
+    instagramHandle: z.string().trim().max(120).optional().default(""),
+    tiktokEnabled: z.boolean().optional().default(false),
+    tiktokHandle: z.string().trim().max(120).optional().default(""),
+    youtubeEnabled: z.boolean().optional().default(false),
+    youtubeHandle: z.string().trim().max(120).optional().default(""),
+  }).optional(),
 });
 
 const agentFlowRequestSchema = agentRequestSchema.omit({
@@ -3455,6 +3463,9 @@ async function loadAutomationCaller(auth) {
 const AGENT_STRUCTURED_RESULT_TYPES = new Set([
   "text",
   "workflow",
+  "task",
+  "note",
+  "reminder",
   "image",
   "video",
   "audio",
@@ -13456,6 +13467,241 @@ async function maybePersistUserMemorySignal({auth, prompt, mode = ""}) {
   }
 }
 
+function normalizeSocialHandle(value) {
+  const raw = nonEmptyString(value) || "";
+  if (!raw) {
+    return "";
+  }
+  return trimTextMax(raw.replace(/^@+/, "").replace(/\s+/g, ""), 120).toLowerCase();
+}
+
+function normalizeSocialProfiles(value = {}) {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  return {
+    instagram: normalizeSocialHandle(source.instagram || source.instagramHandle),
+    tiktok: normalizeSocialHandle(source.tiktok || source.tiktokHandle),
+    youtube: normalizeSocialHandle(source.youtube || source.youtubeHandle || source.youtubeChannel),
+  };
+}
+
+function extractSocialProfilesFromPrompt(prompt = "") {
+  const text = nonEmptyString(prompt) || "";
+  if (!text) {
+    return {};
+  }
+  const patterns = {
+    instagram: /(?:instagram|ig)\s*[:=]\s*@?([a-z0-9._-]{2,60})/i,
+    tiktok: /(?:tiktok|tt)\s*[:=]\s*@?([a-z0-9._-]{2,60})/i,
+    youtube: /(?:youtube|yt)\s*[:=]\s*@?([a-z0-9._-]{2,80})/i,
+  };
+  const extracted = {};
+  for (const [platform, pattern] of Object.entries(patterns)) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const normalized = normalizeSocialHandle(match[1]);
+      if (normalized) {
+        extracted[platform] = normalized;
+      }
+    }
+  }
+  return extracted;
+}
+
+function mergeSocialProfiles(baseProfiles = {}, overrideProfiles = {}) {
+  const base = normalizeSocialProfiles(baseProfiles);
+  const override = normalizeSocialProfiles(overrideProfiles);
+  return {
+    instagram: override.instagram || base.instagram || "",
+    tiktok: override.tiktok || base.tiktok || "",
+    youtube: override.youtube || base.youtube || "",
+  };
+}
+
+function normalizeSocialSetupInput(value = {}) {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const setup = {
+    instagramEnabled: source.instagramEnabled === true,
+    instagramHandle: normalizeSocialHandle(source.instagramHandle),
+    tiktokEnabled: source.tiktokEnabled === true,
+    tiktokHandle: normalizeSocialHandle(source.tiktokHandle),
+    youtubeEnabled: source.youtubeEnabled === true,
+    youtubeHandle: normalizeSocialHandle(source.youtubeHandle),
+  };
+  return {
+    ...setup,
+    selectedPlatforms: [
+      setup.instagramEnabled ? "instagram" : "",
+      setup.tiktokEnabled ? "tiktok" : "",
+      setup.youtubeEnabled ? "youtube" : "",
+    ].filter(Boolean),
+  };
+}
+
+function detectSocialAnalysisIntent({mode = "", prompt = ""} = {}) {
+  const normalizedMode = nonEmptyString(mode)?.toLowerCase() || "";
+  const normalizedPrompt = nonEmptyString(prompt)?.toLowerCase() || "";
+  const explicitTerms = [
+    "social_analysis",
+    "social analysis",
+    "social analyse",
+    "social media analyse",
+    "social media analysis",
+    "instagram analyse",
+    "tiktok analyse",
+    "youtube analyse",
+    "engagement analyse",
+    "analyse social",
+  ];
+  if (explicitTerms.some((term) => normalizedPrompt.includes(term))) {
+    return true;
+  }
+  if (!["briefing", "content", "automation"].includes(normalizedMode)) {
+    return false;
+  }
+  const hasAnalysisWord = /\banaly[sz]e|\banalys[ei]s|\bauswert|\binsight|\bperformance\b/.test(normalizedPrompt);
+  const hasSocialWord = /\bsocial\b|\binstagram\b|\btiktok\b|\byoutube\b|\bengagement\b|\breach\b/.test(normalizedPrompt);
+  return hasAnalysisWord && hasSocialWord;
+}
+
+async function loadUserSocialProfiles(uid) {
+  const emptyProfiles = {instagram: "", tiktok: "", youtube: ""};
+  if (!uid) {
+    return {profiles: emptyProfiles, hasAny: false, missingPlatforms: ["instagram", "tiktok", "youtube"]};
+  }
+  const profileSnap = await admin.firestore()
+      .collection("users")
+      .doc(uid)
+      .collection("memoryProfile")
+      .doc("main")
+      .get()
+      .catch(() => null);
+  const data = profileSnap?.exists ? (profileSnap.data() || {}) : {};
+  const profiles = normalizeSocialProfiles(data.socialProfiles);
+  const missingPlatforms = Object.entries(profiles)
+      .filter(([, handle]) => !handle)
+      .map(([platform]) => platform);
+  return {
+    profiles,
+    hasAny: missingPlatforms.length < 3,
+    missingPlatforms,
+  };
+}
+
+async function persistSocialProfilesToMemoryProfile(uid, socialProfiles = {}) {
+  const resolvedUid = nonEmptyString(uid);
+  if (!resolvedUid) {
+    return;
+  }
+  const normalizedProfiles = normalizeSocialProfiles(socialProfiles);
+  await admin.firestore()
+      .collection("users")
+      .doc(resolvedUid)
+      .collection("memoryProfile")
+      .doc("main")
+      .set({
+        socialProfiles: normalizedProfiles,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+}
+
+function extractSocialAnalysisSummaryText(results = []) {
+  if (!Array.isArray(results)) {
+    return "";
+  }
+  for (const entry of results) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
+    const type = nonEmptyString(entry.type)?.toLowerCase() || "";
+    if (type === "text") {
+      const candidate = nonEmptyString(entry.text) ||
+        nonEmptyString(entry.summary) ||
+        nonEmptyString(entry.description);
+      if (candidate) {
+        return trimTextMax(candidate, 1200);
+      }
+    }
+  }
+  return "";
+}
+
+function extractSocialAnalysisTopFindings(results = []) {
+  if (!Array.isArray(results)) {
+    return [];
+  }
+  const findings = [];
+  for (const entry of results) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
+    const type = nonEmptyString(entry.type)?.toLowerCase() || "";
+    if (type === "table" && Array.isArray(entry.rows)) {
+      const tableFindings = entry.rows
+          .slice(0, 4)
+          .map((row) => Array.isArray(row) ? row.join(" | ") : "")
+          .map((line) => trimTextMax(nonEmptyString(line) || "", 300))
+          .filter(Boolean);
+      findings.push(...tableFindings);
+    }
+    if (type === "text") {
+      const raw = nonEmptyString(entry.text) || "";
+      const bullets = raw
+          .split(/\n+/g)
+          .map((line) => line.replace(/^[-*]\s*/, "").trim())
+          .filter((line) => line.length > 12)
+          .slice(0, 2)
+          .map((line) => trimTextMax(line, 280));
+      findings.push(...bullets);
+    }
+    if (findings.length >= 6) {
+      break;
+    }
+  }
+  return Array.from(new Set(findings)).slice(0, 6);
+}
+
+async function persistSocialAnalysisToMemoryProfile({
+  uid,
+  socialProfiles = {},
+  prompt = "",
+  automation = {},
+}) {
+  const resolvedUid = nonEmptyString(uid);
+  if (!resolvedUid) {
+    return {stored: false, reason: "missing_uid"};
+  }
+  if (automation.triggered !== true) {
+    return {stored: false, reason: "not_triggered"};
+  }
+  const normalizedStatus = normalizeAutomationWorkflowStatus(automation.workflowStatus, "failed");
+  if (normalizedStatus !== "completed") {
+    return {stored: false, reason: "not_completed"};
+  }
+  const summary = extractSocialAnalysisSummaryText(automation.results);
+  const topFindings = extractSocialAnalysisTopFindings(automation.results);
+  if (!summary && topFindings.length === 0) {
+    return {stored: false, reason: "empty_results"};
+  }
+  const profileRef = admin.firestore()
+      .collection("users")
+      .doc(resolvedUid)
+      .collection("memoryProfile")
+      .doc("main");
+  await profileRef.set({
+    socialProfiles: normalizeSocialProfiles(socialProfiles),
+    socialAnalysisLast: {
+      prompt: trimTextMax(nonEmptyString(prompt) || "", 500),
+      workflowName: trimTextMax(nonEmptyString(automation.workflowName) || "Social Analysis", 180),
+      requestId: trimTextMax(nonEmptyString(automation.requestId) || "", 120),
+      summary,
+      topFindings,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+  return {stored: true};
+}
+
 async function loadUserMemorySnapshot(uid) {
   if (!uid) {
     return {
@@ -13627,6 +13873,7 @@ async function maybeTriggerAgentAutomation({
   runtimeSettings,
   automationScope = "owner",
   attachments = [],
+  socialContext = {},
 }) {
   if (!auth?.uid) {
     return {attempted: false, triggered: false, idempotentReplay: false};
@@ -13647,6 +13894,7 @@ async function maybeTriggerAgentAutomation({
         history: history.slice(-8),
         automationScope,
         attachments: Array.isArray(attachments) ? attachments : [],
+        socialContext: socialContext && typeof socialContext === "object" ? socialContext : {},
         memory: memorySnapshot || {
           profileSummary: "",
           goals: [],
@@ -14185,6 +14433,10 @@ exports.skydownAgent = onCall({
   );
   const allowedExternalTaskTypes = agentCore.externalPolicy?.allowedExternalTaskTypes || [];
   const selectedAutomationScope = agentInput.automationScope === "personal" ? "personal" : "owner";
+  const isSocialAnalysisIntent = detectSocialAnalysisIntent({
+    mode: agentInput.mode,
+    prompt: agentInput.prompt,
+  });
   const maxExternalCallsPerRequest = Number.isFinite(Number(agentCore.externalPolicy?.maxExternalCallsPerRequest)) ?
     Number(agentCore.externalPolicy.maxExternalCallsPerRequest) :
     1;
@@ -14579,6 +14831,57 @@ exports.skydownAgent = onCall({
     agentProvider = AI_AGENT_PROVIDERS.gemini;
   }
 
+  let socialProfiles = {instagram: "", tiktok: "", youtube: ""};
+  let socialMissingPlatforms = [];
+  let socialSelectedPlatforms = [];
+  if (isSocialAnalysisIntent && request.auth?.uid) {
+    try {
+      const socialProfileState = await loadUserSocialProfiles(request.auth.uid);
+      const extractedFromPrompt = extractSocialProfilesFromPrompt(agentInput.prompt);
+      const socialSetup = normalizeSocialSetupInput(agentInput.socialSetup);
+      socialSelectedPlatforms = socialSetup.selectedPlatforms;
+      const structuredProfiles = {
+        instagram: socialSetup.instagramEnabled ? socialSetup.instagramHandle : "",
+        tiktok: socialSetup.tiktokEnabled ? socialSetup.tiktokHandle : "",
+        youtube: socialSetup.youtubeEnabled ? socialSetup.youtubeHandle : "",
+      };
+      socialProfiles = mergeSocialProfiles(
+          socialProfileState.profiles,
+          mergeSocialProfiles(structuredProfiles, extractedFromPrompt),
+      );
+      const requiredPlatforms = socialSelectedPlatforms.length > 0 ?
+        socialSelectedPlatforms :
+        ["instagram", "tiktok", "youtube"];
+      socialMissingPlatforms = requiredPlatforms
+          .filter((platform) => !socialProfiles[platform]);
+      if (socialSelectedPlatforms.length > 0) {
+        for (const platform of ["instagram", "tiktok", "youtube"]) {
+          if (!requiredPlatforms.includes(platform)) {
+            socialProfiles[platform] = "";
+          }
+        }
+      }
+      if (socialSelectedPlatforms.length === 0) {
+        socialMissingPlatforms = Object.entries(socialProfiles)
+          .filter(([, handle]) => !handle)
+          .map(([platform]) => platform);
+      }
+      const hasStructuredHandles = (
+        (socialSetup.instagramEnabled && !!socialSetup.instagramHandle) ||
+        (socialSetup.tiktokEnabled && !!socialSetup.tiktokHandle) ||
+        (socialSetup.youtubeEnabled && !!socialSetup.youtubeHandle)
+      );
+      if (Object.keys(extractedFromPrompt).length > 0 || hasStructuredHandles) {
+        await persistSocialProfilesToMemoryProfile(request.auth.uid, socialProfiles);
+      }
+    } catch (error) {
+      logger.warn("Social profile lookup failed.", {
+        uid: request.auth?.uid || null,
+        error: error instanceof Error ? error.message : `${error}`,
+      });
+    }
+  }
+
   const idempotencyKey = nonEmptyString(agentInput.idempotencyKey) || "";
   const idempotencyKeyUsable = idempotencyKey.length >= AUTOMATION_IDEMPOTENCY_KEY_MIN_LEN;
   let automation = {attempted: false, triggered: false, idempotentReplay: false};
@@ -14647,6 +14950,12 @@ exports.skydownAgent = onCall({
           runtimeSettings,
           automationScope: selectedAutomationScope,
           attachments: agentInput.attachments || [],
+          socialContext: {
+            intent: isSocialAnalysisIntent ? "social_analysis" : "",
+            socialProfiles,
+            selectedPlatforms: socialSelectedPlatforms,
+            missingPlatforms: socialMissingPlatforms,
+          },
         });
         automation = {
           ...fresh,
@@ -14673,6 +14982,24 @@ exports.skydownAgent = onCall({
         automation.triggered === true ? "completed" : "failed",
     ) :
     "completed";
+
+  let socialAnalysisStored = false;
+  if (isSocialAnalysisIntent && request.auth?.uid) {
+    try {
+      const persistedSocialAnalysis = await persistSocialAnalysisToMemoryProfile({
+        uid: request.auth.uid,
+        socialProfiles,
+        prompt: agentInput.prompt,
+        automation,
+      });
+      socialAnalysisStored = persistedSocialAnalysis.stored === true;
+    } catch (error) {
+      logger.warn("Social analysis memory persist failed.", {
+        uid: request.auth?.uid || null,
+        error: error instanceof Error ? error.message : `${error}`,
+      });
+    }
+  }
 
   const agentRunId = await persistAgentRunSummary({
     uid: request.auth.uid,
@@ -14735,7 +15062,7 @@ exports.skydownAgent = onCall({
       effectiveEntitlement: usage.effectiveEntitlement || null,
       decision: usage.decision || null,
     },
-    memoryUpdated: memoryWrite.stored === true,
+    memoryUpdated: memoryWrite.stored === true || socialAnalysisStored,
     agentDecision: buildAgentDecision({
       state: agentInput.executeAutomation ?
         (automation.ownerGlobalScopeDenied === true ? blockedState :
@@ -15135,6 +15462,76 @@ exports.handleAutomationIntent = onCall({
           scheduledAt,
           timezone,
         }),
+      }),
+    };
+  }
+
+  if (intent === "create_task") {
+    const title = nonEmptyString(payload.title);
+    if (!title) {
+      throw new HttpsError("invalid-argument", "title fehlt.");
+    }
+    const description = trimOptionalText(payload.description, 5000);
+    const priorityRaw = nonEmptyString(payload.priority)?.toLowerCase() || "normal";
+    const priority = ["low", "normal", "high"].includes(priorityRaw) ? priorityRaw : "normal";
+    const dueAt = parseOptionalIsoTimestamp(payload.dueAt, "dueAt");
+    const source = "agent_intent";
+    const requestId = trimOptionalText(payload.requestId, 120) || null;
+    const taskResult = await upsertOpenTaskWithDedup({
+      uid: targetUid,
+      title: trimTextMax(title, 180),
+      description,
+      dueAt,
+      priority,
+      source,
+      requestId,
+    });
+    return {
+      uid: targetUid,
+      taskId: taskResult.taskId,
+      deduplicated: taskResult.deduplicated,
+      ...buildSkyosWorkflowResponse({
+        message: taskResult.deduplicated ?
+          "Task war bereits offen und wurde aktualisiert." :
+          "Task wurde erstellt.",
+        workflowStatus: "completed",
+        schemaVersion: "v1",
+        text: taskResult.deduplicated ?
+          "Task war bereits offen und wurde aktualisiert." :
+          "Task wurde erstellt.",
+      }),
+    };
+  }
+
+  if (intent === "create_note") {
+    const title = nonEmptyString(payload.title);
+    if (!title) {
+      throw new HttpsError("invalid-argument", "title fehlt.");
+    }
+    const content = trimOptionalText(payload.content, 5000);
+    const requestId = trimOptionalText(payload.requestId, 120) || null;
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const noteRef = admin.firestore()
+        .collection("users")
+        .doc(targetUid)
+        .collection("notes")
+        .doc();
+    await noteRef.set({
+      title: trimTextMax(title, 180),
+      content,
+      source: "agent_intent",
+      requestId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return {
+      uid: targetUid,
+      noteId: noteRef.id,
+      ...buildSkyosWorkflowResponse({
+        message: "Notiz wurde erstellt.",
+        workflowStatus: "completed",
+        schemaVersion: "v1",
+        text: "Notiz wurde erstellt.",
       }),
     };
   }

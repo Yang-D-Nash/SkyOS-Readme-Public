@@ -19,6 +19,7 @@ data class AgentPendingQueueEntry(
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
     val attachments: List<AgentOutboundAttachment> = emptyList(),
     val idempotencyKey: String = "",
+    val socialSetup: AgentSocialSetupInput = AgentSocialSetupInput(),
 )
 
 object AgentPendingQueueStore {
@@ -113,6 +114,14 @@ object AgentPendingQueueStore {
                             createdAtEpochMillis = item.optLong("createdAtEpochMillis", System.currentTimeMillis()),
                             attachments = parseAttachments(item.optJSONArray("attachments")),
                             idempotencyKey = item.optString("idempotencyKey").trim(),
+                            socialSetup = AgentSocialSetupInput(
+                                instagramEnabled = item.optBoolean("socialInstagramEnabled", false),
+                                instagramHandle = item.optString("socialInstagramHandle").trim(),
+                                tiktokEnabled = item.optBoolean("socialTiktokEnabled", false),
+                                tiktokHandle = item.optString("socialTiktokHandle").trim(),
+                                youtubeEnabled = item.optBoolean("socialYoutubeEnabled", false),
+                                youtubeHandle = item.optString("socialYoutubeHandle").trim(),
+                            ),
                         ),
                     )
                 }
@@ -176,6 +185,12 @@ object AgentPendingQueueStore {
                     .put("assistantMessageId", entry.assistantMessageId)
                     .put("createdAtEpochMillis", entry.createdAtEpochMillis)
                     .put("idempotencyKey", entry.idempotencyKey)
+                    .put("socialInstagramEnabled", entry.socialSetup.instagramEnabled)
+                    .put("socialInstagramHandle", entry.socialSetup.instagramHandle)
+                    .put("socialTiktokEnabled", entry.socialSetup.tiktokEnabled)
+                    .put("socialTiktokHandle", entry.socialSetup.tiktokHandle)
+                    .put("socialYoutubeEnabled", entry.socialSetup.youtubeEnabled)
+                    .put("socialYoutubeHandle", entry.socialSetup.youtubeHandle)
                     .put(
                         "history",
                         JSONArray().apply {

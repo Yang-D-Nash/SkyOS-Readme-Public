@@ -80,6 +80,26 @@ data class AgentRunStatus(
     val workflowDetails: String = "",
 )
 
+data class AgentSocialSetupInput(
+    val instagramEnabled: Boolean = false,
+    val instagramHandle: String = "",
+    val tiktokEnabled: Boolean = false,
+    val tiktokHandle: String = "",
+    val youtubeEnabled: Boolean = false,
+    val youtubeHandle: String = "",
+) {
+    fun hasAnySelection(): Boolean = instagramEnabled || tiktokEnabled || youtubeEnabled
+
+    fun toPayloadMap(): Map<String, Any> = mapOf(
+        "instagramEnabled" to instagramEnabled,
+        "instagramHandle" to instagramHandle,
+        "tiktokEnabled" to tiktokEnabled,
+        "tiktokHandle" to tiktokHandle,
+        "youtubeEnabled" to youtubeEnabled,
+        "youtubeHandle" to youtubeHandle,
+    )
+}
+
 class AgentClient {
     private val functions = FirebaseFunctions.getInstance("us-central1")
 
@@ -93,6 +113,7 @@ class AgentClient {
         manusApiKeyOverride: String? = null,
         idempotencyKey: String? = null,
         attachments: List<AgentOutboundAttachment> = emptyList(),
+        socialSetup: AgentSocialSetupInput? = null,
     ): AgentResponse {
         if (!AppNetworkMonitor.isOnline.value) {
             error(AppTextResolver.string(R.string.agent_error_offline))
@@ -122,6 +143,9 @@ class AgentClient {
             ?.trim()
             ?.takeIf { it.length >= 8 }
             ?.let { payload["idempotencyKey"] = it }
+        socialSetup
+            ?.takeIf { it.hasAnySelection() }
+            ?.let { payload["socialSetup"] = it.toPayloadMap() }
 
         val result = functions
             .callWithAppCheckRetry(

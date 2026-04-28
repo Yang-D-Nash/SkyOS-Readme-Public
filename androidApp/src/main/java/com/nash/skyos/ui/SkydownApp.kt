@@ -165,6 +165,7 @@ import com.nash.skyos.ui.screen.ShopScreen
 import com.nash.skyos.ui.screen.VideoHubScreen
 import com.nash.skyos.ui.screen.openExternalLink
 import com.nash.skyos.ui.auth.AuthEntryContext
+import com.skydown.shared.model.isPlatformOwner
 import com.nash.skyos.ui.theme.BackgroundDark
 import com.nash.skyos.ui.theme.SkydownBodyCaptionTextStyle
 import com.nash.skyos.ui.theme.SkydownCardTitleTextStyle
@@ -285,6 +286,7 @@ fun SkydownApp(
         user = currentUser,
         accessMode = aiAccessMode,
     )
+    val isOwner = currentUser?.isPlatformOwner == true
 
     LaunchedEffect(currentUser?.id) {
         if (currentUser != null && authSheet != null) {
@@ -553,7 +555,7 @@ fun SkydownApp(
                                 } else {
                                     null
                                 },
-                                onOpenWorkflowWithPrompt = if (hasAiAccess) {
+                                onOpenWorkflowWithPrompt = if (hasAiAccess && isOwner) {
                                     { prompt ->
                                         pendingAgentPrefillPrompt = prompt
                                         // Keep the workflow / automation side panel open next to the Agent; owners need the same context as other AI users.

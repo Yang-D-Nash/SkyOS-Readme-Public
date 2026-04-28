@@ -216,6 +216,39 @@ struct AgentRunStatus: Equatable {
     let details: String
 }
 
+struct AgentSocialSetupInput: Codable, Equatable {
+    var instagramEnabled: Bool
+    var instagramHandle: String
+    var tiktokEnabled: Bool
+    var tiktokHandle: String
+    var youtubeEnabled: Bool
+    var youtubeHandle: String
+
+    static let empty = AgentSocialSetupInput(
+        instagramEnabled: false,
+        instagramHandle: "",
+        tiktokEnabled: false,
+        tiktokHandle: "",
+        youtubeEnabled: false,
+        youtubeHandle: ""
+    )
+
+    var hasAnySelection: Bool {
+        instagramEnabled || tiktokEnabled || youtubeEnabled
+    }
+
+    func asDictionary() -> [String: Any] {
+        [
+            "instagramEnabled": instagramEnabled,
+            "instagramHandle": instagramHandle,
+            "tiktokEnabled": tiktokEnabled,
+            "tiktokHandle": tiktokHandle,
+            "youtubeEnabled": youtubeEnabled,
+            "youtubeHandle": youtubeHandle
+        ]
+    }
+}
+
 protocol AgentChatServicing {
     func sendMessage(
         prompt: String,
@@ -226,7 +259,8 @@ protocol AgentChatServicing {
         automationScope: String,
         manusApiKeyOverride: String?,
         idempotencyKey: String?,
-        attachments: [AgentOutboundAttachment]
+        attachments: [AgentOutboundAttachment],
+        socialSetup: AgentSocialSetupInput?
     ) async throws -> AgentChatResponse
     func fetchRunStatus(runId: String) async throws -> AgentRunStatus
 }
@@ -293,7 +327,8 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
         automationScope: String,
         manusApiKeyOverride: String?,
         idempotencyKey: String? = nil,
-        attachments: [AgentOutboundAttachment] = []
+        attachments: [AgentOutboundAttachment] = [],
+        socialSetup: AgentSocialSetupInput? = nil
     ) async throws -> AgentChatResponse {
         try await ensureConnectivity()
         var payload: [String: Any] = [
@@ -319,6 +354,9 @@ struct FirebaseFunctionsAgentService: AgentChatServicing {
         if let idempotencyKey = idempotencyKey?.trimmingCharacters(in: .whitespacesAndNewlines),
            idempotencyKey.count >= 8 {
             payload["idempotencyKey"] = idempotencyKey
+        }
+        if let socialSetup, socialSetup.hasAnySelection {
+            payload["socialSetup"] = socialSetup.asDictionary()
         }
 
         let result = try await functions.invokeCallable("skydownAgent", payload: payload)

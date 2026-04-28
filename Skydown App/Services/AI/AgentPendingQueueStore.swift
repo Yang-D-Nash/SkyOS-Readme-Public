@@ -18,6 +18,7 @@ struct AgentPendingQueueEntry: Codable, Equatable {
     let createdAt: Date
     let attachments: [AgentOutboundAttachment]
     let idempotencyKey: String
+    let socialSetup: AgentSocialSetupInput
 
     init(
         userKey: String,
@@ -31,7 +32,8 @@ struct AgentPendingQueueEntry: Codable, Equatable {
         assistantMessageID: String,
         createdAt: Date,
         attachments: [AgentOutboundAttachment] = [],
-        idempotencyKey: String = ""
+        idempotencyKey: String = "",
+        socialSetup: AgentSocialSetupInput = .empty
     ) {
         self.userKey = userKey
         self.sessionID = sessionID
@@ -45,6 +47,7 @@ struct AgentPendingQueueEntry: Codable, Equatable {
         self.createdAt = createdAt
         self.attachments = attachments
         self.idempotencyKey = idempotencyKey
+        self.socialSetup = socialSetup
     }
 
     init(from decoder: Decoder) throws {
@@ -61,6 +64,7 @@ struct AgentPendingQueueEntry: Codable, Equatable {
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         attachments = try container.decodeIfPresent([AgentOutboundAttachment].self, forKey: .attachments) ?? []
         idempotencyKey = try container.decodeIfPresent(String.self, forKey: .idempotencyKey) ?? ""
+        socialSetup = try container.decodeIfPresent(AgentSocialSetupInput.self, forKey: .socialSetup) ?? .empty
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -76,6 +80,7 @@ struct AgentPendingQueueEntry: Codable, Equatable {
         case createdAt
         case attachments
         case idempotencyKey
+        case socialSetup
     }
 }
 
@@ -125,7 +130,8 @@ final class AgentPendingQueueStore {
                     assistantMessageID: $0.assistantMessageID,
                     createdAt: $0.createdAt,
                     attachments: $0.attachments,
-                    idempotencyKey: $0.idempotencyKey
+                    idempotencyKey: $0.idempotencyKey,
+                    socialSetup: $0.socialSetup
                 )
             }
             .sorted { $0.createdAt < $1.createdAt }
@@ -164,7 +170,8 @@ final class AgentPendingQueueStore {
                 assistantMessageID: entry.assistantMessageID,
                 createdAt: entry.createdAt,
                 attachments: entry.attachments,
-                idempotencyKey: entry.idempotencyKey
+                idempotencyKey: entry.idempotencyKey,
+                socialSetup: entry.socialSetup
             )
         }
 
