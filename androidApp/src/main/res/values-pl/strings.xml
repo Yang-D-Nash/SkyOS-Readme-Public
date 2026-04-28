@@ -529,6 +529,8 @@
     <string name="order_state_canceled">Canceled</string>
     <plurals name="order_pill_order_count">
         <item quantity="one">%d order</item>
+        <item quantity="few">%d orders</item>
+        <item quantity="many">%d orders</item>
         <item quantity="other">%d orders</item>
     </plurals>
 
