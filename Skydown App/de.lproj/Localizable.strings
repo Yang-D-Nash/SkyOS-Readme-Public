@@ -488,8 +488,10 @@
 "home.quick.create_task" = "Task erstellen";
 "home.quick.create_note" = "Notiz erstellen";
 "home.quick.hint" = "Im Agent oeffnet das den Composer mit einem gefuehrten Workflow-Prompt.";
-"home.owner.workflows.title" = "Owner-Kurzwege";
-"home.owner.workflows.subtitle" = "Springt zu KI → Agent mit vorbereitetem Text. Ueber Eingabe senden, Antwort lesen, dann in Aufgaben oder Notizen in der KI-Produktivitaetsleiste speichern — oder Reminder ueber Home anlegen.";
+"home.owner.workflows.title" = "Founder-Briefing";
+"home.owner.workflows.subtitle" = "Fuehrt Founder-Analysen mit echten verfuegbaren Daten aus.";
+"home.owner.workflows.private_analysis" = "Nur fuer mich";
+"home.owner.workflows.group_update" = "Fuer Gruppe";
 "home.owner.workflows.plan" = "Planen";
 "home.owner.workflows.followup" = "Nachverfolgen";
 "home.owner.workflows.summarize" = "Zusammenfassen";

@@ -96,7 +96,6 @@ import kotlinx.coroutines.delay
 fun ProfileScreen(
     onBack: () -> Unit,
     onOpenSettings: () -> Unit = {},
-    onOpenOrders: () -> Unit = {},
     viewModel: ProfileViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

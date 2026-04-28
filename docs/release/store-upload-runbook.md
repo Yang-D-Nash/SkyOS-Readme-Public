@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-04-28 06:15 CEST (iOS 10017 archived locally, not uploaded; Android 10016 built)
+Last updated: 2026-04-28 15:44 CEST (iOS 10018 project version set, not archived; Android 10018 uploaded to Play internal draft)
 Owner: Release Engineering
 
 ## Build Identity
@@ -9,31 +9,32 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10017` (local candidate archived; not uploaded because local iOS UI tests are red; build `10010` remains the previously uploaded build)
+- Build: `10018` (current project version; no local 10018 archive yet; build `10010` remains the previously uploaded build)
 - Team ID: `F3BNLG6L7P`
 
 ### Android
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10016`
+- versionCode: `10018`
 - Play Billing Library: `8.3.0`
 
 ## Build Artifacts
 
-- iOS archive: `build/ios/SkyOS-1.0.0-10017-20260428.xcarchive` archived locally; do not upload until the iOS UI-test failures are resolved.
+- iOS archive: no local archive for current project build `10018`; previous `build/ios/SkyOS-1.0.0-10017-20260428.xcarchive` was archived locally and should not be uploaded until the iOS UI-test failures are resolved.
 - iOS upload status: build `10010` uploaded to App Store Connect at 2026-04-27 23:48 CEST and package processing started. Previous build `10008` was uploaded to App Store Connect at 2026-04-27 23:06 CEST, but does not include the iOS Music Studio split fix or Agent tap hardening.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-27 23:11 CEST, versionCode `10016`)
-- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-04-27 23:11 CEST, versionCode `10016`)
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-28 15:36 CEST, versionCode `10018`)
+- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-04-28 15:37 CEST, versionCode `10018`)
 
 ## Upload Status
 
 ### iOS Upload Status
-- Archive build: DONE locally for build `10017`; upload blocked by local UI-test failures
+- Archive build: NOT DONE for current build `10018`; previous local build `10017` remains blocked by local UI-test failures
 - App Store Connect upload: DONE for build `10010` at 2026-04-27 23:48 CEST
 - Processing status: uploaded package is processing; wait for build `10010` to appear in TestFlight, then attach to Internal Testers.
 - Notes:
-  - `CURRENT_PROJECT_VERSION` is set to `10017`; archive path is `build/ios/SkyOS-1.0.0-10017-20260428.xcarchive`.
+  - `CURRENT_PROJECT_VERSION` is set to `10018`; no matching local 10018 archive exists yet.
+  - Previous local archive path: `build/ios/SkyOS-1.0.0-10017-20260428.xcarchive`.
   - Export/upload used `build/ios/ExportOptions-app-store-upload-10010.plist` with `manageAppVersionAndBuildNumber=false`.
   - Build `10009` was archived and identity-checked locally on 2026-04-27, but its upload was intentionally stopped before success after the iOS Agent tap crash report; use build `10010`.
   - Build `10008` uploaded successfully on 2026-04-27, but was superseded by build `10010` for the iOS Music Studio split fix and Agent tap hardening.
@@ -50,15 +51,23 @@ Owner: Release Engineering
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: DONE for versionCode `10016`
-- Play Console status: versionCode `10015` confirmed online/visible by release owner on 2026-04-27; `10016` is built and ready for Play upload.
-- Play upload automation: CONFIGURED via Fastlane `upload_android_internal`
-- CLI validate-only attempt: BLOCKED by Google Cloud API configuration
-- Blocker details:
-  - Fastlane was run with `SUPPLY_JSON_KEY` pointing at a local Play service-account JSON and `validate_only: true`.
-  - Google Play Android Developer API is disabled or not yet propagated for project `1069068117600`.
-  - Manual Play Console upload is confirmed for `10015`; upload `10016` manually unless Play API/service-account access is restored.
-  - Current shell has no `SUPPLY_JSON_KEY`, so this run cannot upload to Play automatically.
+- Release AAB build: DONE for versionCode `10018`
+- Play Console status: versionCode `10018` uploaded to the `internal` track as a draft through Fastlane at 2026-04-28 15:44 CEST.
+- Play upload automation: WORKING via Fastlane `upload_android_internal` when `SUPPLY_JSON_KEY` points at the local Play service-account JSON.
+- CLI validate-only attempt: PASSED at 2026-04-28 15:42 CEST.
+- Notes:
+  - Fastlane used `release_status: draft`, so this did not start a production rollout.
+  - VersionCode `10015` was previously confirmed online/visible by the release owner on 2026-04-27.
+
+## 2026-04-28 Verification Log
+
+1. Android clean release gate passed for version `1.0.0` / versionCode `10018` and verified with `aapt2` from local Android SDK.
+2. Android AAB SHA-256: `937ec888da21cf842100e5a77b87c5d4324674493c7bf5931b69f12495f1c5ae`.
+3. Android APK SHA-256: `e17573dd72b9731ec87a373d4f788d49ddb0e88c7dc83c2fafc1d7b766afa32b`.
+4. Firebase Secret Manager check confirmed the required Cloud Functions secrets exist in `skydown-a6add`: `SMTP_CONNECTION_URL`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SHOPIFY_ADMIN_ACCESS_TOKEN`, `MANUS_API_KEY`, `XAI_API_KEY`, `AGENT_RUN_CALLBACK_SECRET`, and `SKYOS_WORKFLOW_SECRET`.
+5. Release identity preflight passed after aligning this runbook with current source identity: iOS `SkyOS 1.0.0 (10018)` / `com.skydown.ios`; Android `SkyOS 1.0.0 (10018)` / `com.nash.skyos`.
+6. Fastlane `validate_android_internal` passed against Google Play for versionCode `10018`.
+7. Fastlane `upload_android_internal` uploaded versionCode `10018` to Google Play internal testing as a draft.
 
 ## 2026-04-27 Verification Log
 
@@ -176,7 +185,7 @@ Suggested review note text:
 
 1. Confirm final legal approval for public privacy/terms wording.
 2. Confirm final production domain and replace URL placeholders in App Store Connect and Play Console.
-3. Verify subscription product setup status for uploaded iOS build `10010`, plus Android versionCode `10016`.
+3. Verify subscription product setup status for uploaded iOS build `10010`, plus Android versionCode `10018`.
 4. Update production Firestore `appConfig/legalContent` and `appConfig/commerceSettings` if old remote operator/legal values still exist.
 5. Firestore/Storage rules were deployed on 2026-04-25; fixed owner Firebase Auth account was verified with `emailVerified=true`.
 6. Verify data safety/privacy forms reflect actual SDK usage:
@@ -188,12 +197,12 @@ Suggested review note text:
    - Not used by current binaries: precise/coarse location, camera capture, microphone, contacts, calendar. Photo/video selection uses system pickers; Android `WRITE_EXTERNAL_STORAGE` is capped to API 28 only for saving generated images.
 7. Upload and map final screenshot sets for iPhone, iPad, and Android phone form factors. Use `screenshots/final/ipad/` for iPad, `screenshots/final/google-play/android-phone/` for Play phone screenshots, and `docs/assets/google-play/` for the Play icon/feature graphic.
 8. Set age rating/content rating questionnaires in both consoles.
-9. Build numbers are current for the 2026-04-27 check: iOS build `10010` is uploaded and processing, Android `10016` is the next tester build after `10015` went online.
+9. Build numbers are current for the 2026-04-28 check: iOS project build `10018` is not archived/uploaded; iOS build `10010` remains uploaded and processing; Android `10018` is uploaded to Google Play internal testing as a draft.
 
 ## Go/No-Go Checklist
 
 - [x] iOS build `10010` uploaded to App Store Connect and processing
-- [ ] Android release `10016` visible in Play Console internal/closed track (`10015` is currently confirmed online/visible)
+- [x] Android release `10018` uploaded to Play Console internal testing as a draft
 - [ ] Privacy, terms, support URLs point to final public domain
 - [ ] Legal text approved for store/public use
 - [ ] Subscription metadata, pricing, and restore behavior validated
@@ -218,10 +227,10 @@ Suggested review note text:
 ## Exact Next Clicks: Google Play Console
 
 1. Open [Google Play Console](https://play.google.com/console/).
-2. Select app with package `com.nash.skyos` (or create it if missing).
-3. Go to **Testing** -> **Internal testing** (or **Closed testing**).
-4. Create/Edit release and upload `androidApp/build/outputs/bundle/release/androidApp-release.aab` (versionCode `10016`).
-5. Add release notes and save.
+2. Select app with package `com.nash.skyos`.
+3. Go to **Testing** -> **Internal testing**.
+4. Review the draft release containing versionCode `10018`.
+5. Confirm release notes and save.
 6. Go to **Store presence** and complete store listing fields.
 7. Go to **App content** and complete:
    - Privacy policy URL

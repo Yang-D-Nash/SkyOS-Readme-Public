@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 Release Finalization - 2026-04-28
+
+- Deployed `createFounderBriefingFromWorkflow` successfully to Firebase project `skydown-a6add` in `us-central1` (Cloud Functions 2nd gen, Node 22).
+- Resolved Android detekt failure by removing an unused `onOpenOrders` parameter from `ProfileScreen` and its call site.
+- Restored failing Firestore rules tests by replacing unsupported list-wide validation usage in `adminConfig` AI Studio document payload checks.
+- Re-ran the local release gate end-to-end (`shared`, `android`, `functions`, emulator-backed rules tests) with all checks passing.
+- Verified iOS release build path with `xcodebuild` for scheme `Skydown App` (Release, iOS Simulator destination).
+- Added release handover docs for final execution steps: `RELEASE_NOTES.md`, `CODEX_HANDOVER.md`, and `SCREENSHOTS/README.md`.
+
 ## 1.0.0 Release Readiness - 2026-04-27
 
 - Verified local release gates for the current candidate: shared tests, Android lint/metadata compile, Functions tests, Firestore/Storage rules tests, Detekt, Android artifact verification, and iOS Release simulator build.

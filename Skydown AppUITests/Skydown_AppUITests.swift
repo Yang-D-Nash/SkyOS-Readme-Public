@@ -412,8 +412,11 @@ final class Skydown_AppUITests: XCTestCase {
             ensureLoggedIn(app: app, email: email, password: password)
 
             if role.expectedRoleLabel == "Owner" {
+                selectSettingsRootArea(app: app, label: "Command")
+
                 let ownerSection = app.descendants(matching: .any)["settings.owner.section"].firstMatch
-                XCTAssertTrue(ownerSection.waitForExistence(timeout: 20), "Owner section should be present in settings.")
+                scrollSettingsUntilVisible(ownerSection, in: app, maxSwipes: 8)
+                XCTAssertTrue(ownerSection.waitForExistence(timeout: 8), "Owner section should be present in settings.")
                 XCTAssertFalse(
                     ownerWorkspaceLockVisible(in: app),
                     "Owner should not see owner-workspace lock messaging."
@@ -424,6 +427,7 @@ final class Skydown_AppUITests: XCTestCase {
             }
 
             if role.expectedRoleLabel == "Owner" {
+                selectSettingsRootArea(app: app, label: "Personal")
                 openProfileFromSettings(app: app)
 
                 // Profile opened successfully; role chip text can vary by async hydration/build variant.
@@ -945,7 +949,10 @@ private extension Skydown_AppUITests {
             switchAccountVisible || logoutVisible || openProfileVisible,
             "After login, account actions should be available."
         )
-        XCTAssertTrue(currentEmail.waitForExistence(timeout: 20), "Signed-in settings state should show the current account email.")
+        if !currentEmail.waitForExistence(timeout: 5) {
+            scrollSettingsTowardTopUntilVisible(currentEmail, in: app, maxSwipes: 6)
+        }
+        XCTAssertTrue(currentEmail.waitForExistence(timeout: 10), "Signed-in settings state should show the current account email.")
         XCTAssertEqual(
             currentEmail.label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
             email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
@@ -972,6 +979,52 @@ private extension Skydown_AppUITests {
         }
 
         return switchAccount.exists || logout.exists || openProfile.exists
+    }
+
+    @MainActor
+    func selectSettingsRootArea(app: XCUIApplication, label: String) {
+        let segment = app.buttons[label].firstMatch
+        if !segment.waitForExistence(timeout: 2) {
+            for _ in 0..<4 where !segment.exists {
+                app.swipeDown()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+            }
+            for _ in 0..<2 where !segment.exists {
+                app.swipeUp()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+            }
+        }
+        tapElementReliably(
+            segment,
+            in: app,
+            timeout: 10,
+            failureMessage: "Settings root area '\(label)' should be selectable."
+        )
+        waitForUISettle()
+    }
+
+    @MainActor
+    func scrollSettingsUntilVisible(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int) {
+        for _ in 0..<maxSwipes where !element.exists {
+            if app.scrollViews.firstMatch.exists {
+                app.scrollViews.firstMatch.swipeUp()
+            } else {
+                app.swipeUp()
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+        }
+    }
+
+    @MainActor
+    func scrollSettingsTowardTopUntilVisible(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int) {
+        for _ in 0..<maxSwipes where !element.exists {
+            if app.scrollViews.firstMatch.exists {
+                app.scrollViews.firstMatch.swipeDown()
+            } else {
+                app.swipeDown()
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+        }
     }
 
     func loadRoleCredentials(_ key: String) -> (email: String, password: String) {

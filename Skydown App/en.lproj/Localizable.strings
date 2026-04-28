@@ -488,8 +488,10 @@
 "home.quick.create_task" = "Create Task";
 "home.quick.create_note" = "Create Note";
 "home.quick.hint" = "In Agent, this opens the composer with a guided workflow prompt.";
-"home.owner.workflows.title" = "Owner shortcuts";
-"home.owner.workflows.subtitle" = "Opens AI → Agent with a seeded prompt. Tap compose to send, read the reply, then save in Tasks or Notes from the AI productivity dock—or add reminders from Home.";
+"home.owner.workflows.title" = "Founder briefing";
+"home.owner.workflows.subtitle" = "Run founder analysis with real available data.";
+"home.owner.workflows.private_analysis" = "Only me";
+"home.owner.workflows.group_update" = "For group";
 "home.owner.workflows.plan" = "Plan";
 "home.owner.workflows.followup" = "Follow-up";
 "home.owner.workflows.summarize" = "Summarize";

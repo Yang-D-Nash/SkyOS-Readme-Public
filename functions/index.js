@@ -6540,6 +6540,471 @@ exports.createNoteFromWorkflow = onRequest({
   }
 });
 
+const FOUNDER_BRIEFING_MODES = Object.freeze(["private", "group", "both"]);
+const RISK_SEVERITY_ORDER = Object.freeze({
+  high: 0,
+  medium: 1,
+  low: 2,
+});
+
+function normalizeFounderBriefingMode(value) {
+  const mode = nonEmptyString(value)?.toLowerCase() || "";
+  return FOUNDER_BRIEFING_MODES.includes(mode) ? mode : null;
+}
+
+function isValidIsoDateString(value) {
+  const normalized = nonEmptyString(value) || "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return false;
+  }
+  const parsedMs = Date.parse(`${normalized}T00:00:00.000Z`);
+  if (!Number.isFinite(parsedMs)) {
+    return false;
+  }
+  return new Date(parsedMs).toISOString().slice(0, 10) === normalized;
+}
+
+function collectMissingField(missing, fieldName) {
+  if (!fieldName) {
+    return;
+  }
+  if (!missing.includes(fieldName)) {
+    missing.push(fieldName);
+  }
+}
+
+function numberOrMissing(value, fieldName, missing) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    collectMissingField(missing, fieldName);
+    return null;
+  }
+  return parsed;
+}
+
+function formatEur(value) {
+  if (!Number.isFinite(value)) {
+    return "FEHLT: betrag";
+  }
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatNumber(value) {
+  if (!Number.isFinite(value)) {
+    return "FEHLT: wert";
+  }
+  return new Intl.NumberFormat("de-DE").format(value);
+}
+
+function formatPercent(value) {
+  if (!Number.isFinite(value)) {
+    return "FEHLT: prozent";
+  }
+  return `${new Intl.NumberFormat("de-DE", {maximumFractionDigits: 1}).format(value)}%`;
+}
+
+function normalizeRiskSeverity(value) {
+  const normalized = nonEmptyString(value)?.toLowerCase() || "low";
+  if (normalized === "high" || normalized === "medium" || normalized === "low") {
+    return normalized;
+  }
+  return "low";
+}
+
+function sortTasksForFounderBriefing(tasks) {
+  const priorityOrder = {high: 0, normal: 1, medium: 1, low: 2};
+  return [...tasks].sort((left, right) => {
+    const leftStatus = nonEmptyString(left?.status)?.toLowerCase() || "open";
+    const rightStatus = nonEmptyString(right?.status)?.toLowerCase() || "open";
+    const leftStatusRank = leftStatus === "open" ? 0 : 1;
+    const rightStatusRank = rightStatus === "open" ? 0 : 1;
+    if (leftStatusRank !== rightStatusRank) {
+      return leftStatusRank - rightStatusRank;
+    }
+    const leftPriority = nonEmptyString(left?.priority)?.toLowerCase() || "normal";
+    const rightPriority = nonEmptyString(right?.priority)?.toLowerCase() || "normal";
+    const leftPriorityRank = Object.prototype.hasOwnProperty.call(priorityOrder, leftPriority) ? priorityOrder[leftPriority] : 1;
+    const rightPriorityRank = Object.prototype.hasOwnProperty.call(priorityOrder, rightPriority) ? priorityOrder[rightPriority] : 1;
+    if (leftPriorityRank !== rightPriorityRank) {
+      return leftPriorityRank - rightPriorityRank;
+    }
+    return resolveDateValueToEpochMillis(right?.updatedAt || right?.createdAt) -
+      resolveDateValueToEpochMillis(left?.updatedAt || left?.createdAt);
+  });
+}
+
+function buildFounderPrivateBriefing({
+  date,
+  kpis,
+  risks,
+  highlights,
+  tasks,
+  notes,
+  missing,
+}) {
+  const firebaseCostToday = numberOrMissing(kpis?.firebase_cost_today, "founder_daily_kpis.firebase_cost_today", missing);
+  const firebaseCostMtd = numberOrMissing(kpis?.firebase_cost_mtd, "founder_daily_kpis.firebase_cost_mtd", missing);
+  const firebaseCostTrendPct = numberOrMissing(kpis?.firebase_cost_trend_pct, "founder_daily_kpis.firebase_cost_trend_pct", missing);
+  const activeUsers24h = numberOrMissing(kpis?.active_users_24h, "founder_daily_kpis.active_users_24h", missing);
+  const newUsers24h = numberOrMissing(kpis?.new_users_24h, "founder_daily_kpis.new_users_24h", missing);
+  const retentionD1Pct = numberOrMissing(kpis?.retention_d1_pct, "founder_daily_kpis.retention_d1_pct", missing);
+  const revenueToday = numberOrMissing(kpis?.revenue_today, "founder_daily_kpis.revenue_today", missing);
+  const revenueMtd = numberOrMissing(kpis?.revenue_mtd, "founder_daily_kpis.revenue_mtd", missing);
+
+  const topHighlights = Array.isArray(highlights) ? highlights.slice(0, 2) : [];
+  if (topHighlights.length === 0) {
+    collectMissingField(missing, "founder_highlights");
+  }
+
+  const sortedTasks = sortTasksForFounderBriefing(Array.isArray(tasks) ? tasks : []);
+  if (sortedTasks.length === 0) {
+    collectMissingField(missing, "tasks");
+  }
+
+  const notesSafe = Array.isArray(notes) ? notes : [];
+  if (notesSafe.length === 0) {
+    collectMissingField(missing, "notes");
+  }
+
+  const sortedRisks = [...(Array.isArray(risks) ? risks : [])]
+      .map((risk) => ({
+        title: nonEmptyString(risk?.title) || "FEHLT: founder_risks.title",
+        severity: normalizeRiskSeverity(risk?.severity),
+        impact: nonEmptyString(risk?.impact) || "FEHLT: founder_risks.impact",
+        nextStep: nonEmptyString(risk?.next_step) || "FEHLT: founder_risks.next_step",
+      }))
+      .sort((left, right) => RISK_SEVERITY_ORDER[left.severity] - RISK_SEVERITY_ORDER[right.severity]);
+  if (sortedRisks.length === 0) {
+    collectMissingField(missing, "founder_risks");
+  }
+
+  const costTrendText = Number.isFinite(firebaseCostTrendPct) ?
+    (firebaseCostTrendPct > 0 ? `steigend um ${formatPercent(firebaseCostTrendPct)}` : `fallend um ${formatPercent(Math.abs(firebaseCostTrendPct))}`) :
+    "FEHLT: founder_daily_kpis.firebase_cost_trend_pct";
+  const monthEndRiskText = Number.isFinite(firebaseCostMtd) && Number.isFinite(firebaseCostToday) ?
+    `Bei konstantem Verlauf liegt das Monatsniveau bei ca. ${formatEur(firebaseCostMtd + (firebaseCostToday * 30))}.` :
+    "FEHLT: founder_daily_kpis.firebase_cost_mtd, founder_daily_kpis.firebase_cost_today";
+  const highlightText = topHighlights.length ?
+    topHighlights.map((entry) => `- ${nonEmptyString(entry?.title) || "FEHLT: founder_highlights.title"} (${nonEmptyString(entry?.impact) || "FEHLT: founder_highlights.impact"})`).join("\n") :
+    "- FEHLT: founder_highlights";
+  const notesAnchor = notesSafe.length ?
+    `Signal aus Notizen: ${trimTextMax(nonEmptyString(notesSafe[0]?.title) || nonEmptyString(notesSafe[0]?.content) || "", 140) || "FEHLT: notes.title/content"}` :
+    "Signal aus Notizen: FEHLT: notes";
+
+  const decisionItems = [
+    Number.isFinite(firebaseCostToday) ?
+      `Setze heute ein klares Kostenlimit. Aktuell: ${formatEur(firebaseCostToday)} pro Tag.` :
+      "FEHLT: founder_daily_kpis.firebase_cost_today",
+    Number.isFinite(retentionD1Pct) ?
+      `Setze eine konkrete D1-Retention-Massnahme. Aktuell: ${formatPercent(retentionD1Pct)}.` :
+      "FEHLT: founder_daily_kpis.retention_d1_pct",
+    sortedRisks.length ?
+      `Priorisiere zuerst: ${sortedRisks[0].title}.` :
+      "FEHLT: founder_risks",
+  ];
+
+  const dayPlanItems = sortedTasks
+      .slice(0, 6)
+      .map((task) => `- ${trimTextMax(nonEmptyString(task?.title) || "FEHLT: tasks.title", 180)}`);
+  if (dayPlanItems.length === 0) {
+    dayPlanItems.push("- FEHLT: tasks");
+  }
+
+  const riskLines = sortedRisks.length ?
+    sortedRisks.slice(0, 8).map((risk) => `- [${risk.severity}] ${risk.title} - ${risk.impact} - Naechster Schritt: ${risk.nextStep}`).join("\n") :
+    "- FEHLT: founder_risks";
+
+  return [
+    `# Founder Briefing (Private) - ${date}`,
+    "",
+    "## 1) Cost Watch (Firebase)",
+    `- Haupttreiber: Kosten heute ${formatEur(firebaseCostToday)}; Trend ${costTrendText}.`,
+    `- Auffaelligkeiten: MTD ${formatEur(firebaseCostMtd)} bei ${formatNumber(activeUsers24h)} aktiven Nutzern in 24h.`,
+    `- Risiko bis Monatsende: ${monthEndRiskText}`,
+    Number.isFinite(firebaseCostTrendPct) && firebaseCostTrendPct > 0 ?
+      "- Handlung heute: Teure Kostenquellen zuerst eingrenzen." :
+      "- Handlung heute: Kostenkurs stabil halten und taeglich gegenpruefen.",
+    "",
+    "## 2) Business Impact",
+    `- Umsatz heute ${formatEur(revenueToday)}, Umsatz MTD ${formatEur(revenueMtd)}.`,
+    `- Neue Nutzer 24h: ${formatNumber(newUsers24h)}, aktive Nutzer 24h: ${formatNumber(activeUsers24h)}, D1-Retention: ${formatPercent(retentionD1Pct)}.`,
+    highlightText,
+    `- ${notesAnchor}`,
+    "",
+    "## 3) Top 3 Founder-Entscheidungen heute",
+    `1. ${decisionItems[0]}`,
+    `2. ${decisionItems[1]}`,
+    `3. ${decisionItems[2]}`,
+    "",
+    "## 4) Risiken & Blocker",
+    riskLines,
+    "",
+    "## 5) Mein Tagesplan",
+    ...dayPlanItems,
+  ].join("\n");
+}
+
+function buildFounderGroupBriefing({
+  date,
+  kpis,
+  risks,
+  highlights,
+  tasks,
+  missing,
+}) {
+  const firebaseCostToday = numberOrMissing(kpis?.firebase_cost_today, "founder_daily_kpis.firebase_cost_today", missing);
+  const revenueToday = numberOrMissing(kpis?.revenue_today, "founder_daily_kpis.revenue_today", missing);
+  const activeUsers24h = numberOrMissing(kpis?.active_users_24h, "founder_daily_kpis.active_users_24h", missing);
+  const newUsers24h = numberOrMissing(kpis?.new_users_24h, "founder_daily_kpis.new_users_24h", missing);
+  const retentionD1Pct = numberOrMissing(kpis?.retention_d1_pct, "founder_daily_kpis.retention_d1_pct", missing);
+
+  const sortedRisks = [...(Array.isArray(risks) ? risks : [])]
+      .map((risk) => ({
+        title: nonEmptyString(risk?.title) || "FEHLT: founder_risks.title",
+        severity: normalizeRiskSeverity(risk?.severity),
+        impact: nonEmptyString(risk?.impact) || "FEHLT: founder_risks.impact",
+        nextStep: nonEmptyString(risk?.next_step) || "FEHLT: founder_risks.next_step",
+      }))
+      .sort((left, right) => RISK_SEVERITY_ORDER[left.severity] - RISK_SEVERITY_ORDER[right.severity]);
+  if (sortedRisks.length === 0) {
+    collectMissingField(missing, "founder_risks");
+  }
+
+  const highlightsSafe = Array.isArray(highlights) ? highlights : [];
+  if (highlightsSafe.length === 0) {
+    collectMissingField(missing, "founder_highlights");
+  }
+  const sortedTasks = sortTasksForFounderBriefing(Array.isArray(tasks) ? tasks : []);
+  if (sortedTasks.length === 0) {
+    collectMissingField(missing, "tasks");
+  }
+
+  const analysisSentences = [
+    `Stand ${date}: Umsatz heute ${formatEur(revenueToday)} bei Kosten von ${formatEur(firebaseCostToday)}.`,
+    `Aktiv waren ${formatNumber(activeUsers24h)} Nutzer, davon ${formatNumber(newUsers24h)} neue Nutzer.`,
+    `Die D1-Retention liegt bei ${formatPercent(retentionD1Pct)} und zeigt den unmittelbaren Produkt-Fit.`,
+    sortedRisks.length ?
+      `Groesster aktueller Blocker: ${sortedRisks[0].title} (${sortedRisks[0].severity}).` :
+      "Groesster aktueller Blocker: FEHLT: founder_risks.",
+  ];
+
+  const whatsappLines = [];
+  whatsappLines.push(`WhatsApp Update:`);
+  whatsappLines.push(`Heute Umsatz ${formatEur(revenueToday)} und Kosten ${formatEur(firebaseCostToday)}.`);
+  whatsappLines.push(`Aktive Nutzer 24h: ${formatNumber(activeUsers24h)}. Neue Nutzer: ${formatNumber(newUsers24h)}.`);
+  whatsappLines.push(
+      sortedRisks.length ?
+        `Wichtigster Blocker: ${sortedRisks[0].title}. Naechster Schritt: ${sortedRisks[0].nextStep}.` :
+        "Wichtigster Blocker: FEHLT: founder_risks.",
+  );
+  whatsappLines.push(
+      highlightsSafe.length ?
+        `Positiver Punkt: ${nonEmptyString(highlightsSafe[0]?.title) || "FEHLT: founder_highlights.title"}.` :
+        "Positiver Punkt: FEHLT: founder_highlights.",
+  );
+  whatsappLines.push(
+      sortedTasks.length ?
+        `Fokus heute: ${trimTextMax(nonEmptyString(sortedTasks[0]?.title) || "FEHLT: tasks.title", 120)}.` :
+        "Fokus heute: FEHLT: tasks.",
+  );
+  whatsappLines.push("Ausblick: Wenn wir den Top-Blocker heute loesen, ist morgen ein klar messbarer Fortschritt realistisch.");
+
+  return `${analysisSentences.join(" ")}\n\n${whatsappLines.join("\n")}`;
+}
+
+async function buildFounderBriefingResponseData({
+  uid,
+  mode,
+  date,
+  requestId,
+}) {
+  const firestore = admin.firestore();
+  const kpiRef = firestore.collection("founder_daily_kpis").doc(date);
+  const risksQuery = firestore.collection("founder_risks")
+      .where("date", "==", date)
+      .limit(30);
+  const highlightsQuery = firestore.collection("founder_highlights")
+      .where("date", "==", date)
+      .limit(20);
+  const rootTasksQuery = firestore.collection("tasks")
+      .where("uid", "==", uid)
+      .limit(20);
+  const rootNotesQuery = firestore.collection("notes")
+      .where("uid", "==", uid)
+      .limit(20);
+  const userTasksQuery = firestore.collection("users")
+      .doc(uid)
+      .collection("tasks")
+      .limit(20);
+  const userNotesQuery = firestore.collection("users")
+      .doc(uid)
+      .collection("notes")
+      .limit(20);
+
+  const [
+    kpiSnapshot,
+    risksSnapshot,
+    highlightsSnapshot,
+    rootTasksSnapshot,
+    rootNotesSnapshot,
+    userTasksSnapshot,
+    userNotesSnapshot,
+  ] = await Promise.all([
+    kpiRef.get(),
+    risksQuery.get(),
+    highlightsQuery.get(),
+    rootTasksQuery.get(),
+    rootNotesQuery.get(),
+    userTasksQuery.get(),
+    userNotesQuery.get(),
+  ]);
+
+  const kpis = kpiSnapshot.exists ? (kpiSnapshot.data() || {}) : null;
+  const risks = risksSnapshot.docs.map((doc) => doc.data() || {});
+  const highlights = highlightsSnapshot.docs.map((doc) => doc.data() || {});
+
+  const rootTasks = rootTasksSnapshot.docs.map((doc) => doc.data() || {});
+  const userTasks = userTasksSnapshot.docs.map((doc) => doc.data() || {});
+  const rootNotes = rootNotesSnapshot.docs.map((doc) => doc.data() || {});
+  const userNotes = userNotesSnapshot.docs.map((doc) => doc.data() || {});
+
+  const mergedTasks = [...rootTasks, ...userTasks];
+  const uniqueTasks = Array.from(
+      new Map(
+          mergedTasks.map((entry) => {
+            const key = nonEmptyString(entry?.id) ||
+              nonEmptyString(entry?.requestId) ||
+              `${nonEmptyString(entry?.title) || "task"}-${resolveDateValueToEpochMillis(entry?.createdAt)}`;
+            return [key, entry];
+          }),
+      ).values(),
+  );
+  const mergedNotes = [...rootNotes, ...userNotes];
+  const uniqueNotes = Array.from(
+      new Map(
+          mergedNotes.map((entry) => {
+            const key = nonEmptyString(entry?.id) ||
+              nonEmptyString(entry?.requestId) ||
+              `${nonEmptyString(entry?.title) || nonEmptyString(entry?.content) || "note"}-${resolveDateValueToEpochMillis(entry?.createdAt)}`;
+            return [key, entry];
+          }),
+      ).values(),
+  );
+
+  const missing = [];
+  if (!kpis) {
+    collectMissingField(missing, "founder_daily_kpis");
+  }
+
+  const privateBriefing = mode === "private" || mode === "both" ?
+    buildFounderPrivateBriefing({
+      date,
+      kpis,
+      risks,
+      highlights,
+      tasks: uniqueTasks,
+      notes: uniqueNotes,
+      missing,
+    }) :
+    undefined;
+  const groupBriefing = mode === "group" || mode === "both" ?
+    buildFounderGroupBriefing({
+      date,
+      kpis,
+      risks,
+      highlights,
+      tasks: uniqueTasks,
+      missing,
+    }) :
+    undefined;
+
+  const result = {
+    ok: true,
+    requestId,
+    uid,
+    mode,
+    missing,
+    generatedAt: new Date().toISOString(),
+  };
+  if (typeof privateBriefing === "string") {
+    result.private = privateBriefing;
+  }
+  if (typeof groupBriefing === "string") {
+    result.group = groupBriefing;
+  }
+  return result;
+}
+
+exports.createFounderBriefingFromWorkflow = onRequest({
+  region: "us-central1",
+  timeoutSeconds: 30,
+  secrets: [workflowApiSecret],
+}, async (request, response) => {
+  const payload = assertWorkflowHttpRequest(request, response);
+  if (!payload) {
+    return;
+  }
+  try {
+    const uid = nonEmptyString(payload.uid);
+    if (!uid) {
+      response.status(400).json({ok: false, error: "uid_required"});
+      return;
+    }
+    const mode = normalizeFounderBriefingMode(payload.mode);
+    if (!mode) {
+      response.status(400).json({ok: false, error: "invalid_mode"});
+      return;
+    }
+    const date = nonEmptyString(payload.date);
+    if (!date || !isValidIsoDateString(date)) {
+      response.status(400).json({ok: false, error: "invalid_date"});
+      return;
+    }
+    const requestId = trimOptionalText(payload.requestId, 120);
+    if (!requestId) {
+      response.status(400).json({ok: false, error: "request_id_required"});
+      return;
+    }
+    const result = await buildFounderBriefingResponseData({uid, mode, date, requestId});
+    response.status(200).json(result);
+  } catch (error) {
+    logger.error("createFounderBriefingFromWorkflow failed.", {
+      error: error instanceof Error ? error.message : `${error}`,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    response.status(500).json({ok: false, error: "internal_error"});
+  }
+});
+
+exports.createFounderBriefing = onCall({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request) => {
+  await assertCallableSecurity(request, "createFounderBriefing");
+  await assertOwner(request.auth);
+
+  const uid = nonEmptyString(request.data?.uid);
+  if (!uid) {
+    throw new HttpsError("invalid-argument", "uid fehlt.");
+  }
+  const mode = normalizeFounderBriefingMode(request.data?.mode);
+  if (!mode) {
+    throw new HttpsError("invalid-argument", "mode ist ungueltig.");
+  }
+  const date = nonEmptyString(request.data?.date);
+  if (!date || !isValidIsoDateString(date)) {
+    throw new HttpsError("invalid-argument", "date ist ungueltig.");
+  }
+  const requestId = trimOptionalText(request.data?.requestId, 120) || `founder-${Date.now()}`;
+
+  return await buildFounderBriefingResponseData({uid, mode, date, requestId});
+});
+
 const FAQ_TOPIC_DEFINITIONS = Object.freeze([
   {
     key: "app_usage",

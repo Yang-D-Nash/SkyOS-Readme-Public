@@ -661,7 +661,6 @@ fun SkydownApp(
                             ProfileScreen(
                                 onBack = { navController.popBackStack() },
                                 onOpenSettings = openSettings,
-                                onOpenOrders = { showOrders = true },
                             )
                         }
                     }

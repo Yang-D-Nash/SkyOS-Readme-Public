@@ -437,8 +437,10 @@
     <string name="home_quick_create_task">Task erstellen</string>
     <string name="home_quick_create_note">Notiz erstellen</string>
     <string name="home_quick_hint">Im Agent oeffnet das den Composer mit einem gefuehrten Workflow-Prompt.</string>
-    <string name="home_owner_workflows_title">Owner-Kurzwege</string>
-    <string name="home_owner_workflows_subtitle">Springt zu KI → Agent mit vorbereitetem Text. Über Eingabe senden, Antwort lesen, dann in Aufgaben oder Notizen in der KI-Produktivitätsleiste speichern — oder Reminder über Home anlegen.</string>
+    <string name="home_owner_workflows_title">Founder-Briefing</string>
+    <string name="home_owner_workflows_subtitle">Fuehrt Founder-Analysen mit echten verfuegbaren Daten aus.</string>
+    <string name="home_owner_workflows_private_analysis">Nur fuer mich</string>
+    <string name="home_owner_workflows_group_update">Fuer Gruppe</string>
     <string name="home_owner_workflows_plan">Planen</string>
     <string name="home_owner_workflows_followup">Nachverfolgen</string>
     <string name="home_owner_workflows_summarize">Zusammenfassen</string>

@@ -3,6 +3,7 @@ package com.nash.skyos.ui.screen
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -12,6 +13,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -24,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,10 +44,12 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -114,13 +120,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.functions.FirebaseFunctions
 import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import com.nash.skyos.R
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.ExternalMediaProvider
+import com.nash.skyos.data.callWithAppCheckRetry
 import com.nash.skyos.data.mediaAttributionContext
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -314,6 +324,8 @@ fun HomeScreen(
     var taskShowTimePicker by remember { mutableStateOf(false) }
     var noteTitleDraft by rememberSaveable { mutableStateOf("") }
     var noteContentDraft by rememberSaveable { mutableStateOf("") }
+    var founderBriefingSheet by remember { mutableStateOf<FounderBriefingSheetState?>(null) }
+    var founderBriefingModeInFlight by remember { mutableStateOf<FounderBriefingMode?>(null) }
     fun openHomeProductivityCapture(sheet: String) {
         if (isQuickActionCoolingDown) return
         isQuickActionCoolingDown = true
@@ -519,7 +531,29 @@ fun HomeScreen(
                                 remindersUpcoming = uiState.upcomingReminders,
                                 openTasks = uiState.openTasks,
                                 recentNotes = uiState.recentNotes,
-                                onOpenWorkflowWithPrompt = onOpenWorkflowWithPrompt,
+                                onRequestFounderBriefing = if (onOpenWorkflowWithPrompt == null) null else { mode ->
+                                    if (founderBriefingModeInFlight != null) return@HomeProductivityOverviewCard
+                                    if (currentUser == null) {
+                                        onGuestSignIn?.invoke()
+                                        return@HomeProductivityOverviewCard
+                                    }
+                                    founderBriefingModeInFlight = mode
+                                    coroutineScope.launch {
+                                        val uid = FirebaseAuth.getInstance().currentUser?.uid
+                                        if (uid.isNullOrBlank()) {
+                                            founderBriefingModeInFlight = null
+                                            Toast.makeText(context, "Bitte zuerst anmelden.", Toast.LENGTH_SHORT).show()
+                                            return@launch
+                                        }
+                                        val result = requestFounderBriefingFromCallable(uid = uid, mode = mode)
+                                        founderBriefingModeInFlight = null
+                                        if (result == null) {
+                                            Toast.makeText(context, "Briefing derzeit nicht verfuegbar.", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            founderBriefingSheet = result
+                                        }
+                                    }
+                                },
                                 onOpenToday = {
                                     openHomeProductivityCapture("reminder_manage")
                                 },
@@ -947,6 +981,77 @@ fun HomeScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             }
+                        }
+                    }
+                }
+            }
+
+            if (founderBriefingSheet != null) {
+                val sheet = founderBriefingSheet ?: return@Box
+                ModalBottomSheet(
+                    onDismissRequest = { founderBriefingSheet = null },
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = SkydownUiTokens.cardPadding, vertical = SkydownUiTokens.stackSpacingCompact),
+                        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+                    ) {
+                        Text(
+                            text = sheet.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = if (sheet.mode == FounderBriefingMode.Private) "Private Founder Analyse" else "Team Update fuer WhatsApp",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
+                        ) {
+                            val scrollState = rememberScrollState()
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 180.dp, max = 420.dp)
+                                    .verticalScroll(scrollState)
+                                    .padding(12.dp),
+                            ) {
+                                Text(
+                                    text = sheet.body,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+                        ) {
+                            BrandActionButton(
+                                text = "WhatsApp",
+                                onClick = { shareFounderBriefingToWhatsApp(context, sheet.body) },
+                                accent = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f),
+                            )
+                            BrandActionButton(
+                                text = "Kopieren",
+                                onClick = {
+                                    copyAiText(context, "Founder Briefing", sheet.body)
+                                    Toast.makeText(context, "Kopiert", Toast.LENGTH_SHORT).show()
+                                },
+                                accent = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        TextButton(
+                            onClick = { shareAiText(context, sheet.title, sheet.body) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Teilen")
                         }
                     }
                 }
@@ -1429,7 +1534,7 @@ private fun HomeProductivityOverviewCard(
     remindersUpcoming: List<com.nash.skyos.ui.model.ProductivityReminderItem>,
     openTasks: List<com.nash.skyos.ui.model.ProductivityTaskItem>,
     recentNotes: List<com.nash.skyos.ui.model.ProductivityNoteItem>,
-    onOpenWorkflowWithPrompt: ((String) -> Unit)?,
+    onRequestFounderBriefing: ((FounderBriefingMode) -> Unit)?,
     onOpenToday: () -> Unit,
     onOpenUpcoming: () -> Unit,
     onOpenTasks: () -> Unit,
@@ -1529,13 +1634,10 @@ private fun HomeProductivityOverviewCard(
                 modifier = Modifier.weight(1f),
             )
         }
-        if (onOpenWorkflowWithPrompt != null) {
+        if (onRequestFounderBriefing != null) {
             Spacer(modifier = Modifier.height(8.dp))
             HomeOwnerWorkflowRow(
-                reminderCount = remindersToday.size + remindersUpcoming.size,
-                taskCount = openTasks.size,
-                noteCount = recentNotes.size,
-                onOpenWorkflowWithPrompt = onOpenWorkflowWithPrompt,
+                onRequestFounderBriefing = onRequestFounderBriefing,
             )
         }
     }
@@ -1543,10 +1645,7 @@ private fun HomeProductivityOverviewCard(
 
 @Composable
 private fun HomeOwnerWorkflowRow(
-    reminderCount: Int,
-    taskCount: Int,
-    noteCount: Int,
-    onOpenWorkflowWithPrompt: (String) -> Unit,
+    onRequestFounderBriefing: (FounderBriefingMode) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
         Text(
@@ -1562,27 +1661,15 @@ private fun HomeOwnerWorkflowRow(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             HomeQuickActionChip(
-                text = stringResource(R.string.home_owner_workflows_plan),
-                countBadge = taskCount,
-                onClick = {
-                    onOpenWorkflowWithPrompt("Review open tasks ($taskCount) and return a concise execution plan with priorities.")
-                },
+                text = stringResource(R.string.home_owner_workflows_private_analysis),
+                icon = Icons.Default.AttachMoney,
+                onClick = { onRequestFounderBriefing(FounderBriefingMode.Private) },
                 modifier = Modifier.weight(1f),
             )
             HomeQuickActionChip(
-                text = stringResource(R.string.home_owner_workflows_followup),
-                countBadge = reminderCount,
-                onClick = {
-                    onOpenWorkflowWithPrompt("Create follow-up actions from reminders ($reminderCount) and suggest what to do today first.")
-                },
-                modifier = Modifier.weight(1f),
-            )
-            HomeQuickActionChip(
-                text = stringResource(R.string.home_owner_workflows_summarize),
-                countBadge = noteCount,
-                onClick = {
-                    onOpenWorkflowWithPrompt("Summarize notes ($noteCount) into next actions and a short owner update.")
-                },
+                text = stringResource(R.string.home_owner_workflows_group_update),
+                icon = Icons.Default.Groups,
+                onClick = { onRequestFounderBriefing(FounderBriefingMode.Group) },
                 modifier = Modifier.weight(1f),
             )
         }
@@ -1735,6 +1822,7 @@ private fun HomeCountBadge(count: Int) {
 @Composable
 private fun HomeQuickActionChip(
     text: String,
+    icon: ImageVector? = null,
     countBadge: Int? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1745,15 +1833,28 @@ private fun HomeQuickActionChip(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
         onClick = onClick,
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
+        Row(
             modifier = Modifier.padding(horizontal = SkydownUiTokens.stackSpacingMicro, vertical = SkydownUiTokens.stackSpacingMicro),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
         // When countBadge is supplied (owner workflow chips), show it even at 0 — same signal as productivity rows.
         countBadge?.let { count ->
             Box(
@@ -2643,6 +2744,63 @@ private fun homeResolvedSpotifyArtistId(track: com.skydown.shared.model.Track): 
     val artistIndex = pathSegments.indexOf("artist")
     if (artistIndex == -1 || artistIndex + 1 >= pathSegments.size) return null
     return pathSegments[artistIndex + 1]
+}
+
+private enum class FounderBriefingMode(val wireValue: String) {
+    Private("private"),
+    Group("group"),
+}
+
+private data class FounderBriefingSheetState(
+    val mode: FounderBriefingMode,
+    val title: String,
+    val body: String,
+)
+
+private suspend fun requestFounderBriefingFromCallable(
+    uid: String,
+    mode: FounderBriefingMode,
+): FounderBriefingSheetState? {
+    val functions = FirebaseFunctions.getInstance("us-central1")
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    val payload = mapOf(
+        "uid" to uid,
+        "mode" to mode.wireValue,
+        "date" to formatter.format(Date()),
+        "requestId" to "android-home-${mode.wireValue}-${System.currentTimeMillis()}",
+    )
+    val result = runCatching {
+        functions.callWithAppCheckRetry(
+            functionName = "createFounderBriefing",
+            payload = payload,
+        )
+    }.getOrNull() ?: return null
+    val data = result.data as? Map<*, *> ?: return null
+    val key = if (mode == FounderBriefingMode.Private) "private" else "group"
+    val text = (data[key] as? String)?.trim().orEmpty()
+    if (text.isBlank()) return null
+    return FounderBriefingSheetState(
+        mode = mode,
+        title = if (mode == FounderBriefingMode.Private) "Founder Analyse" else "Team Update",
+        body = text,
+    )
+}
+
+private fun shareFounderBriefingToWhatsApp(context: android.content.Context, text: String) {
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+        setPackage("com.whatsapp")
+    }
+    if (runCatching { context.packageManager.resolveActivity(intent, 0) }.getOrNull() != null) {
+        openExternalIntent(
+            context = context,
+            intent = intent,
+            missingMessage = "WhatsApp konnte nicht geoeffnet werden.",
+        )
+    } else {
+        shareAiText(context, "Founder Briefing", text)
+    }
 }
 
 private const val homeDestinationNicmaProducer = "home_nicma_producer"

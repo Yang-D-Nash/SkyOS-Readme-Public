@@ -275,8 +275,15 @@ service cloud.firestore {
         "updatedAt"
       ])
       && request.resource.data.entries is list
-      && request.resource.data.entries.size() <= 120
-      && request.resource.data.entries.all(entry, validAiStudioFaqKnowledgeEntry(entry))
+      && request.resource.data.entries.size() <= 2
+      && (
+        request.resource.data.entries.size() == 0
+        || validAiStudioFaqKnowledgeEntry(request.resource.data.entries[0])
+      )
+      && (
+        request.resource.data.entries.size() <= 1
+        || validAiStudioFaqKnowledgeEntry(request.resource.data.entries[1])
+      )
       && optionalMapTimestamp(request.resource.data, "updatedAt");
     }
 
@@ -305,8 +312,15 @@ service cloud.firestore {
         "updatedAt"
       ])
       && request.resource.data.entries is list
-      && request.resource.data.entries.size() <= 120
-      && request.resource.data.entries.all(entry, validAiStudioOwnerInspirationEntry(entry))
+      && request.resource.data.entries.size() <= 2
+      && (
+        request.resource.data.entries.size() == 0
+        || validAiStudioOwnerInspirationEntry(request.resource.data.entries[0])
+      )
+      && (
+        request.resource.data.entries.size() <= 1
+        || validAiStudioOwnerInspirationEntry(request.resource.data.entries[1])
+      )
       && optionalMapTimestamp(request.resource.data, "updatedAt");
     }
 

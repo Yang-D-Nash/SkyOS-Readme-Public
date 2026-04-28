@@ -449,8 +449,10 @@
     <string name="home_quick_create_task">Create Task</string>
     <string name="home_quick_create_note">Create Note</string>
     <string name="home_quick_hint">In Agent, this opens the composer with a guided workflow prompt.</string>
-    <string name="home_owner_workflows_title">Owner shortcuts</string>
-    <string name="home_owner_workflows_subtitle">Opens AI → Agent with a seeded prompt. Tap compose to send, read the reply, then save in Tasks or Notes from the AI productivity dock—or add reminders from Home.</string>
+    <string name="home_owner_workflows_title">Founder briefing</string>
+    <string name="home_owner_workflows_subtitle">Run founder analysis with real available data.</string>
+    <string name="home_owner_workflows_private_analysis">Only me</string>
+    <string name="home_owner_workflows_group_update">For group</string>
     <string name="home_owner_workflows_plan">Plan</string>
     <string name="home_owner_workflows_followup">Follow-up</string>
     <string name="home_owner_workflows_summarize">Summarize</string>
