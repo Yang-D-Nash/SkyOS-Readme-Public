@@ -234,7 +234,7 @@ fun ProfileScreen(
                             "Galeriebild wird hochgeladen"
                         },
                         detail = if (uiState.isUploadingAvatar) {
-                            "Dein Avatar wird vorbereitet, hochgeladen und danach direkt im Profil aktualisiert."
+                            "Dein Avatar wird gerade vorbereitet, hochgeladen und direkt im Profil uebernommen."
                         } else {
                             "Das Bild landet gleich in deiner Galerie und wird danach automatisch angezeigt."
                         },
@@ -615,7 +615,7 @@ private fun ProfileDashboardCard(
     val aiStatus = when {
         user == null -> "Gastmodus"
         !user.aiAccessEnabled -> "KI pausiert"
-        !user.aiSubscriptionProvider.isNullOrBlank() -> "Premium verbunden"
+        !user.aiSubscriptionProvider.isNullOrBlank() -> "Premium aktiv"
         else -> "Basis aktiv"
     }
 
@@ -688,7 +688,7 @@ private fun ProfileHistoryCard(
             )
             ProfileHistoryRow(stringResource(R.string.profile_history_latest_created), latestLabel)
             ProfileHistoryRow(stringResource(R.string.profile_history_member_since), memberSince)
-            ProfileHistoryRow(stringResource(R.string.profile_history_current_plan), profilePlanTitle(uiState.currentUser))
+            ProfileHistoryRow(stringResource(R.string.profile_history_current_plan), "Plan ${profilePlanTitle(uiState.currentUser)}")
         }
     }
 }
