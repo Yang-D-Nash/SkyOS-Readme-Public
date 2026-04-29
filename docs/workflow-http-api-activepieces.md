@@ -93,7 +93,7 @@ Erfolg:
 }
 ```
 
-Je nach Endpoint heisst die ID `reminderId`, `taskId` oder `noteId`.
+Je nach Endpoint heisst die ID `reminderId`, `taskId` oder `noteId`. Bei **Tasks** kann zusaetzlich `deduplicated: true` zurueckkommen, wenn bereits eine offene Task mit gleichem normalisierten Titel existiert (Server merged Metadaten).
 
 Fehler:
 

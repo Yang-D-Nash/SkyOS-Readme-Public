@@ -33,9 +33,79 @@ Diese README ist absichtlich umfassend, aber für schnellen Zugriff strukturiert
 | --- | --- |
 | Projekt und Architektur in 3 Minuten verstehen | [Status und Release-Reife](#status-und-release-reife), [Architekturüberblick](#architekturüberblick), [Projektstruktur](#projektstruktur) |
 | Lokal starten und bauen | [Voraussetzungen](#voraussetzungen), [Erstinstallation](#erstinstallation-auf-neuer-maschine), [Lokale Entwicklung](#lokale-entwicklung) |
+| Productivity-Launch (Reminder, Tasks, Notes, Activepieces) | [Release-Übersicht](#release-übersicht-productivity--automation-launch) |
 | Release sicher durchführen | [Production-Checkliste](#production-checkliste), [App-Store-Release-Workflow](#app-store-release-workflow-verbindlich), [Deployment und Rollback](#deployment-und-rollback) |
 | Sicherheit und Compliance prüfen | [Sicherheit](#sicherheit), [Rollen und Berechtigungen](#rollen-und-berechtigungen), [Recht, Datenschutz, KI-Transparenz](#recht-datenschutz-ki-transparenz) |
 | Tiefer in Fachthemen einsteigen | [Weiterführende Dokumentation](#weiterführende-dokumentation) |
+
+## Release-Übersicht (Productivity & Automation Launch)
+
+Kurzfassung für Store-, Backend- und Integrations-Release: dieselbe Substanz steht ausführlicher weiter unten und in `docs/` — hier die **kompakte Checkliste**.
+
+### Kurzbeschreibung
+
+**Skydown** (App) läuft auf **SkyOS** (Systemkern): native iOS-/Android-/Catalyst-Clients, gemeinsame KMP-Domäne, Firebase (Auth, Firestore, Storage, Functions, App Check). Dieser Launch fokussiert **Reminder inkl. Push**, **Tasks**, **Notes** und die **Activepieces-HTTP-Workflows** als serverseitige Ergänzung zur App.
+
+### Live (dieser Release)
+
+| Bereich | Stand |
+| --- | --- |
+| **Reminder + Push** | End-to-end: App/Firestore → `processDueReminders` (alle 5 Min.) → FCM an registrierte Geräte |
+| **Tasks** | In der App nutzbar; optional per `createTaskFromWorkflow` (Body-Feld `uid` = Firebase-UID) |
+| **Notes** | In der App nutzbar; optional per `createNoteFromWorkflow` |
+| **Activepieces** | Drei HTTPS-`onRequest`-Functions mit Secret-Header; Detailvertrag: [docs/workflow-http-api-activepieces.md](docs/workflow-http-api-activepieces.md) |
+| **Memory / breitere Automation** | Bewusst **nicht** als vollständig live ausgewiesen — siehe „Coming next“ in App-Copy, FAQ und Store-Listing |
+
+### Setup (lokal)
+
+1. JDK **17**, Node **22** (für `functions/`), Xcode bzw. Android SDK.  
+2. Firebase-Clientdateien zum Projekt passend lassen (`GoogleService-Info.plist`, `google-services.json` — **keine** produktiven Secrets committen).  
+3. Monorepo-Gate: `./scripts/ci_local_gate.sh` (Varianten `--shared-only`, `--android-only`, `--functions-only`).
+
+### Firebase Functions deployen
+
+```bash
+cd functions
+npm ci
+npm run build && npm test
+cd ..
+firebase deploy --only functions
+```
+
+Selektive Einzelfunction-Deploys nach Bedarf siehe [docs/deployment.md](docs/deployment.md).
+
+### Firestore Rules deployen
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+Bei Indexänderungen zusätzlich `firebase deploy --only firestore:indexes` ([firestore.indexes.json](firestore.indexes.json)).
+
+### Activepieces
+
+- Kanonische Schritt-für-Schritt- und Payload-Doku: [docs/workflow-http-api-activepieces.md](docs/workflow-http-api-activepieces.md).  
+- Jeder Request: **`POST`**, Header **`x-skyos-workflow-secret`**, JSON-Body mit **`uid`** (Zielnutzer), **`source`: `"activepieces"`** (validiert im Backend).  
+- Beispiel-JSON: [docs/automation/json-samples/reference-http-payloads/](docs/automation/json-samples/reference-http-payloads/).
+
+### Secrets (Workflow)
+
+| Name | Rolle |
+| --- | --- |
+| **`SKYOS_WORKFLOW_SECRET`** | Shared Secret für alle drei Workflow-Endpoints; Firebase Secret + gleicher Wert im Activepieces-HTTP-Schritt |
+
+Setzen: `firebase functions:secrets:set SKYOS_WORKFLOW_SECRET`, danach Functions-Deploy. Vollständige Secret-Liste der Functions: Abschnitt [Environment-Variablen und Secrets](#environment-variablen-und-secrets).
+
+### Mobile Builds (Kurz)
+
+| Plattform | Typischer Check |
+| --- | --- |
+| **Android** | `./gradlew :androidApp:assembleDebug` (Debug); Release: [scripts/android_release_gate.sh](scripts/android_release_gate.sh) |
+| **iOS** | Xcode-Archiv für Store; schneller Syntax-/Compile-Check z. B. `xcodebuild -project "Skydown App.xcodeproj" -scheme "Skydown App" -destination "generic/platform=iOS Simulator" -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO build` (wie CI) |
+
+### Aktueller Status (Repository)
+
+Version **1.0.0**, iOS `CURRENT_PROJECT_VERSION=10018`, Android `versionCode=10019` — siehe [Status und Release-Reife](#status-und-release-reife). **Node 22** ist für Functions die offizielle Engine; lokale Abweichung kann `EBADENGINE`-Warnungen erzeugen — für Release-Builds Node 22 nutzen.
 
 ## Transparenz und Verantwortlichkeiten
 

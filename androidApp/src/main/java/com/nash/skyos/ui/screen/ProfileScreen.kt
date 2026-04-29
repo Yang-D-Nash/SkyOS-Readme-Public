@@ -99,6 +99,8 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val legalSettings by AppContainer.legalContentRepository.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val profileOpenInstagramFailed = stringResource(R.string.profile_open_instagram_failed)
+    val profileOpenWhatsAppFailed = stringResource(R.string.profile_open_whatsapp_failed)
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var feedbackType by remember { mutableStateOf(ToastType.Info) }
     var selectedGalleryItem by remember { mutableStateOf<ProfileGalleryItem?>(null) }
@@ -178,7 +180,7 @@ fun ProfileScreen(
                             openExternalUri(
                                 context = context,
                                 uri = it,
-                                missingMessage = context.getString(R.string.profile_open_instagram_failed),
+                                missingMessage = profileOpenInstagramFailed,
                             )
                         }
                     },
@@ -187,7 +189,7 @@ fun ProfileScreen(
                             openExternalUri(
                                 context = context,
                                 uri = it,
-                                missingMessage = context.getString(R.string.profile_open_whatsapp_failed),
+                                missingMessage = profileOpenWhatsAppFailed,
                             )
                         }
                     },

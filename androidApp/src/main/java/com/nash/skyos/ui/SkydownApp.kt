@@ -1805,7 +1805,7 @@ private val musicHubFallbackInstagramQuickLinks = listOf(
     ),
 )
 
-private fun resolvedMusicHubSocialLinks(pages: List<ArtistPageUi>): List<MusicHubSocialLink> {
+private fun resolvedMusicHubSocialLinks(): List<MusicHubSocialLink> {
     val preferredArtistOrder = listOf("JANNO", "Yang D. Nash", "MAVE", "ThaDude", "TANGAJOE007")
     val fallbackByArtistPageName = musicHubFallbackInstagramQuickLinks.associateBy { it.artistPageName }
     val dynamicArtists = preferredArtistOrder.mapNotNull { artistName ->
@@ -2050,7 +2050,7 @@ private fun ZweizweiMusicLaneScreen(
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val useCompactHubVisuals = compactLayout || compactVisualDensity
     val artistPages by ArtistPagesStore.pages.collectAsState()
-    val musicHubSocialLinks = remember(artistPages) { resolvedMusicHubSocialLinks(artistPages) }
+    val musicHubSocialLinks = remember(artistPages) { resolvedMusicHubSocialLinks() }
     var destination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
     var catalogInitialArtist by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedArtistPage by rememberSaveable { mutableStateOf<String?>(null) }

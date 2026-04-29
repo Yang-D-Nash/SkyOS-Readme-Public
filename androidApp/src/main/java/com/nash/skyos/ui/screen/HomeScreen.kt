@@ -236,6 +236,15 @@ fun HomeScreen(
     }
 
     val context = LocalContext.current
+    val founderBriefingErrorLogin = stringResource(R.string.home_owner_briefing_error_login)
+    val founderBriefingErrorUnavailable = stringResource(R.string.home_owner_briefing_error_unavailable)
+    val founderBriefingTitlePrivate = stringResource(R.string.home_owner_briefing_title_private)
+    val founderBriefingTitleGroup = stringResource(R.string.home_owner_briefing_title_group)
+    val founderBriefingErrorEmpty = stringResource(R.string.home_owner_briefing_error_empty)
+    val founderBriefingEmptyBody = stringResource(R.string.home_owner_briefing_empty_body)
+    val founderBriefingSuccess = stringResource(R.string.home_owner_briefing_success)
+    val founderBriefingCopyLabel = stringResource(R.string.home_owner_briefing_copy_label)
+    val agentFeedbackCopied = stringResource(R.string.agent_feedback_copied)
     val view = LocalView.current
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -574,11 +583,11 @@ fun HomeScreen(
                                         val uid = FirebaseAuth.getInstance().currentUser?.uid
                                         if (uid.isNullOrBlank()) {
                                             founderBriefingModeInFlight = null
-                                            founderBriefingFeedbackMessage = context.getString(R.string.home_owner_briefing_error_login)
+                                            founderBriefingFeedbackMessage = founderBriefingErrorLogin
                                             founderBriefingFeedbackIsError = true
                                             Toast.makeText(
                                                 context,
-                                                context.getString(R.string.home_owner_briefing_error_login),
+                                                founderBriefingErrorLogin,
                                                 Toast.LENGTH_SHORT,
                                             ).show()
                                             return@launch
@@ -588,15 +597,15 @@ fun HomeScreen(
                                         } catch (error: Throwable) {
                                             founderBriefingModeInFlight = null
                                             val message = error.message?.trim().takeUnless { it.isNullOrBlank() }
-                                                ?: context.getString(R.string.home_owner_briefing_error_unavailable)
+                                                ?: founderBriefingErrorUnavailable
                                             founderBriefingFeedbackMessage = message
                                             founderBriefingFeedbackIsError = true
                                             founderBriefingSheet = FounderBriefingSheetState(
                                                 mode = mode,
                                                 title = if (mode == FounderBriefingMode.Private) {
-                                                    context.getString(R.string.home_owner_briefing_title_private)
+                                                    founderBriefingTitlePrivate
                                                 } else {
-                                                    context.getString(R.string.home_owner_briefing_title_group)
+                                                    founderBriefingTitleGroup
                                                 },
                                                 body = message,
                                             )
@@ -604,19 +613,19 @@ fun HomeScreen(
                                         }
                                         founderBriefingModeInFlight = null
                                         if (result == null) {
-                                            founderBriefingFeedbackMessage = context.getString(R.string.home_owner_briefing_error_empty)
+                                            founderBriefingFeedbackMessage = founderBriefingErrorEmpty
                                             founderBriefingFeedbackIsError = true
                                             founderBriefingSheet = FounderBriefingSheetState(
                                                 mode = mode,
                                                 title = if (mode == FounderBriefingMode.Private) {
-                                                    context.getString(R.string.home_owner_briefing_title_private)
+                                                    founderBriefingTitlePrivate
                                                 } else {
-                                                    context.getString(R.string.home_owner_briefing_title_group)
+                                                    founderBriefingTitleGroup
                                                 },
-                                                body = context.getString(R.string.home_owner_briefing_empty_body),
+                                                body = founderBriefingEmptyBody,
                                             )
                                         } else {
-                                            founderBriefingFeedbackMessage = context.getString(R.string.home_owner_briefing_success)
+                                            founderBriefingFeedbackMessage = founderBriefingSuccess
                                             founderBriefingFeedbackIsError = false
                                             founderBriefingSheet = result
                                         }
@@ -1148,10 +1157,10 @@ fun HomeScreen(
                             BrandActionButton(
                                 text = stringResource(R.string.agent_action_copy),
                                 onClick = {
-                                    copyAiText(context, context.getString(R.string.home_owner_briefing_copy_label), sheet.body)
+                                    copyAiText(context, founderBriefingCopyLabel, sheet.body)
                                     Toast.makeText(
                                         context,
-                                        context.getString(R.string.agent_feedback_copied),
+                                        agentFeedbackCopied,
                                         Toast.LENGTH_SHORT,
                                     ).show()
                                 },
