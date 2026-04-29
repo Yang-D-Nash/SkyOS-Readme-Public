@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 Productivity & automation launch - 2026-04-29
+
+- README: kompakte **Release-Übersicht** (Reminder+Push, Tasks, Notes, Activepieces, Deploy-Befehle, Secrets, Mobile-Builds) plus Schnellnavigation.
+- Doku: `docs/workflow-http-api-activepieces.md` um Task-Antwortfeld **`deduplicated`** ergänzt.
+- Android: Compose **Lint** (`LocalContextGetResourceValueCall`) durch gehoiste `stringResource`-Werte in `HomeScreen` / `ProfileScreen` behoben.
+- Android: **Detekt** (`UnusedParameter`) in `resolvedMusicHubSocialLinks` bereinigt.
+- Git: `main` auf **einen** Commit mit Message `release: prepare SkyOS productivity automation launch` zusammengeführt (`git reset --soft` + force-with-lease).
+- Lokal: `./scripts/ci_local_gate.sh` erneut **grün** (Shared, Android lint+detekt+Metadata, Functions inkl. Rules-Emulator).
+
 ## 1.0.0 Release Finalization - 2026-04-28
 
 - Deployed `createFounderBriefingFromWorkflow` successfully to Firebase project `skydown-a6add` in `us-central1` (Cloud Functions 2nd gen, Node 22).
