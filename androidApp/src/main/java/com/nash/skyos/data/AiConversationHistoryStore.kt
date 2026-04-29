@@ -44,6 +44,7 @@ data class AiConversationHistoryEntry(
     val automationMessage: String = "",
     val workflowName: String = "",
     val agentRunId: String = "",
+    val executionMode: String = "",
     val structuredResults: List<AiConversationHistoryResultEntry> = emptyList(),
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
 )
@@ -290,6 +291,7 @@ object AiConversationHistoryStore {
         automationMessage: String = "",
         workflowName: String = "",
         agentRunId: String = "",
+        executionMode: String = "",
         structuredResults: List<AiConversationHistoryResultEntry> = emptyList(),
     ): AiConversationHistorySaveResult? {
         val trimmedPrompt = prompt.trim()
@@ -330,6 +332,7 @@ object AiConversationHistoryStore {
             automationMessage = automationMessage,
             workflowName = workflowName,
             agentRunId = agentRunId,
+            executionMode = executionMode.trim(),
             structuredResults = structuredResults,
             createdAtEpochMillis = now,
         )
@@ -468,6 +471,7 @@ object AiConversationHistoryStore {
                 automationMessage = "",
                 workflowName = "",
                 agentRunId = "",
+                executionMode = "",
                 structuredResults = emptyList(),
                 createdAtEpochMillis = legacyEntry.createdAtEpochMillis,
             )
@@ -589,6 +593,7 @@ object AiConversationHistoryStore {
                             automationMessage = item.optString("automationMessage").trim(),
                             workflowName = item.optString("workflowName").trim(),
                             agentRunId = item.optString("agentRunId").trim(),
+                            executionMode = item.optString("executionMode").trim(),
                             structuredResults = item.optJSONArray("results").toHistoryResults(),
                             createdAtEpochMillis = item.optLong(
                                 "createdAtEpochMillis",
@@ -683,6 +688,7 @@ object AiConversationHistoryStore {
                     .put("automationMessage", entry.automationMessage)
                     .put("workflowName", entry.workflowName)
                     .put("agentRunId", entry.agentRunId)
+                    .put("executionMode", entry.executionMode)
                     .put("results", entry.structuredResults.toJsonArray())
                     .put("createdAtEpochMillis", entry.createdAtEpochMillis),
             )

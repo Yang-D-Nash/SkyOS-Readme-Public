@@ -169,6 +169,18 @@ enum AIExperienceLevel: String, CaseIterable, Identifiable {
         )
     }
 
+    /// Praeferiert die Meldung aus Cloud Functions (Tageslimit, Stufenlimit, Budget, Rate), sonst Standard-Text.
+    static func resourceExhaustedUserMessage(from error: Error) -> String {
+        let raw = (error as NSError).localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = raw.lowercased()
+        if raw.count >= 8,
+           !lower.contains("internal error"),
+           !lower.hasPrefix("the operation couldn") {
+            return raw
+        }
+        return limitReachedMessage
+    }
+
     func isAvailable(for quotaPlan: UserQuotaPlan) -> Bool {
         switch self {
         case .standard, .advanced:
@@ -999,7 +1011,7 @@ final class AIChatViewModel: ObservableObject {
             case .deadlineExceeded:
                 return "Die Antwort dauert gerade laenger als gewohnt."
             case .resourceExhausted:
-                return AIExperienceLevel.limitReachedMessage
+                return AIExperienceLevel.resourceExhaustedUserMessage(from: error)
             case .failedPrecondition:
                 if nsError.localizedDescription.localizedCaseInsensitiveContains("App Check") {
                     return "Der Sicherheitscheck laeuft noch. Bitte kurz erneut versuchen."

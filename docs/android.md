@@ -141,6 +141,23 @@ If owner-only Shopify calls such as `syncShopifyMerch` or `listShopifyCollection
 3. Register that secret in Firebase Console under App Check for the Android app `com.nash.skyos`.
 4. Retry the Shopify sync or collection load after the token is allow-listed.
 
+**Ohne Browser (lokal, einmal):** Wenn `gcloud` installiert und mit deinem Google-Konto angemeldet ist (`gcloud auth login`), kannst du denselben Debug-Secret per API eintragen:
+
+```bash
+cd /path/to/SkyOs-App
+./scripts/register_android_appcheck_debug_token.py 'PASTE-UUID-FROM-LOGCAT-HERE'
+```
+
+Falls `gcloud` nicht im PATH des Skripts liegt (z. B. IDE-Terminal), Token explizit übergeben:
+
+```bash
+cd /path/to/SkyOs-App
+export GCLOUD_ACCESS_TOKEN="$(gcloud auth print-access-token)"
+python3 scripts/register_android_appcheck_debug_token.py 'PASTE-UUID-FROM-LOGCAT-HERE'
+```
+
+Das Skript nutzt die Android-App-ID aus `androidApp/google-services.json` (`com.nash.skyos`). Bei anderem Projekt oder zweiter Android-App die Umgebungsvariablen `FIREBASE_PROJECT_NUMBER` und `FIREBASE_ANDROID_APP_ID` setzen (siehe Skriptkopf).
+
 Helpful commands:
 
 ```bash

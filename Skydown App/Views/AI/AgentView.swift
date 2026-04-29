@@ -86,6 +86,10 @@ struct AgentView: View {
                 socialTiktokHandle: $viewModel.socialTiktokHandle,
                 socialYoutubeEnabled: $viewModel.socialYoutubeEnabled,
                 socialYoutubeHandle: $viewModel.socialYoutubeHandle,
+                socialFacebookEnabled: $viewModel.socialFacebookEnabled,
+                socialFacebookHandle: $viewModel.socialFacebookHandle,
+                socialSpotifyEnabled: $viewModel.socialSpotifyEnabled,
+                socialSpotifyHandle: $viewModel.socialSpotifyHandle,
                 shouldShowSocialSetupCard: viewModel.shouldShowSocialSetupCard,
                 canTriggerAutomation: viewModel.canTriggerAutomation,
                 canUseGlobalOwnerAutomationFlow: viewModel.canUseGlobalOwnerAutomationFlow,
@@ -493,6 +497,10 @@ struct AgentView: View {
                                                 colorScheme: colorScheme,
                                                 onOpenHomeProductivity: { target in
                                                     onOpenHomeProductivity?(target)
+                                                },
+                                                onContinueInMode: { mode in
+                                                    viewModel.continueInModeFromAssistant(mode, sourceMessage: message)
+                                                    showingPromptComposer = true
                                                 }
                                             )
                                             .id(message.id)
@@ -1533,6 +1541,10 @@ private struct AgentPromptComposerSheet: View {
     @Binding var socialTiktokHandle: String
     @Binding var socialYoutubeEnabled: Bool
     @Binding var socialYoutubeHandle: String
+    @Binding var socialFacebookEnabled: Bool
+    @Binding var socialFacebookHandle: String
+    @Binding var socialSpotifyEnabled: Bool
+    @Binding var socialSpotifyHandle: String
     let shouldShowSocialSetupCard: Bool
     let canTriggerAutomation: Bool
     let canUseGlobalOwnerAutomationFlow: Bool
@@ -1548,6 +1560,29 @@ private struct AgentPromptComposerSheet: View {
 
     private var trimmedDraft: String {
         draft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var canSendPrompt: Bool {
+        guard !trimmedDraft.isEmpty, !interactionPhase.shouldBlockSend else { return false }
+        if selectedMode == .automation, canTriggerAutomation, shouldTriggerAutomation {
+            return socialInstagramEnabled || socialTiktokEnabled || socialYoutubeEnabled
+                || socialFacebookEnabled || socialSpotifyEnabled
+        }
+        return true
+    }
+
+    private var workflowSocialBlockedHint: String? {
+        guard !trimmedDraft.isEmpty,
+              !interactionPhase.shouldBlockSend,
+              selectedMode == .automation,
+              canTriggerAutomation,
+              shouldTriggerAutomation,
+              !canSendPrompt
+        else { return nil }
+        return AppLocalized.text(
+            "agent.workflow.social_required_hint",
+            fallback: "Workflow aktiv — mindestens eine Plattform waehlen, um zu senden."
+        )
     }
 
     private var agentAccent: Color {
@@ -1732,6 +1767,32 @@ private struct AgentPromptComposerSheet: View {
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
                             }
+
+                            Divider()
+
+                            Toggle(isOn: $socialFacebookEnabled) {
+                                Text("Facebook / Meta")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .tint(agentAccent)
+                            if socialFacebookEnabled {
+                                TextField("Seite oder @Handle (optional)", text: $socialFacebookHandle)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                            }
+
+                            Divider()
+
+                            Toggle(isOn: $socialSpotifyEnabled) {
+                                Text("Spotify")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .tint(agentAccent)
+                            if socialSpotifyEnabled {
+                                TextField("Artist / Profil-Handle oder ID (optional)", text: $socialSpotifyHandle)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                            }
                         }
                     }
                 }
@@ -1750,7 +1811,7 @@ private struct AgentPromptComposerSheet: View {
                             .focused($isFocused)
                             .submitLabel(.send)
                             .onSubmit {
-                                if !trimmedDraft.isEmpty && !interactionPhase.shouldBlockSend {
+                                if canSendPrompt {
                                     onSend()
                                 }
                             }
@@ -1819,16 +1880,24 @@ private struct AgentPromptComposerSheet: View {
                     }
                 }
 
-                PremiumPromptPrimaryButton(
-                    title: "Senden",
-                    systemImage: "arrow.up.circle.fill",
-                    accent: agentAccent,
-                    colorScheme: colorScheme,
-                    isEnabled: !trimmedDraft.isEmpty && !interactionPhase.shouldBlockSend,
-                    action: onSend
-                )
-                .accessibilityLabel("Prompt senden")
-                .accessibilityIdentifier("agent.prompt.send")
+                VStack(alignment: .leading, spacing: 6) {
+                    PremiumPromptPrimaryButton(
+                        title: "Senden",
+                        systemImage: "arrow.up.circle.fill",
+                        accent: agentAccent,
+                        colorScheme: colorScheme,
+                        isEnabled: canSendPrompt,
+                        action: onSend
+                    )
+                    .accessibilityLabel("Prompt senden")
+                    .accessibilityIdentifier("agent.prompt.send")
+
+                    if let hint = workflowSocialBlockedHint {
+                        Text(hint)
+                            .font(.caption2)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.92))
+                    }
+                }
             }
             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
             .padding(.top, 10)
@@ -1963,11 +2032,26 @@ private struct AgentMessageBubble: View {
     let message: AgentChatMessage
     let colorScheme: ColorScheme
     let onOpenHomeProductivity: ((AgentHomeProductivityTarget) -> Void)?
+    var onContinueInMode: (AgentExecutionMode) -> Void = { _ in }
     @State private var showingShareSheet = false
     @State private var copyLabel = "Kopieren"
 
     private var isUser: Bool {
         message.role == .user
+    }
+
+    private var continueTargetModes: [AgentExecutionMode] {
+        if let r = message.responseMode {
+            return AgentExecutionMode.allCases.filter { $0 != r }
+        }
+        return Array(AgentExecutionMode.allCases)
+    }
+
+    private var hasContinuationPayload: Bool {
+        let t = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !t.isEmpty { return true }
+        if message.workflowSummary != nil { return true }
+        return !message.results.isEmpty
     }
 
     private var homeOpenTarget: AgentHomeProductivityTarget? {
@@ -2036,6 +2120,59 @@ private struct AgentMessageBubble: View {
                             results: message.results,
                             colorScheme: colorScheme
                         )
+                    }
+
+                    if !isUser, message.resultType != .progress,
+                       hasContinuationPayload,
+                       !continueTargetModes.isEmpty {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Rectangle()
+                                .fill(AppColors.accentMystic(for: colorScheme).opacity(0.14))
+                                .frame(height: 1)
+                                .padding(.top, 10)
+
+                            Text(
+                                AppLocalized.text(
+                                    "agent.continue_in_mode_subtitle",
+                                    fallback: "Bereit fuer den naechsten Schritt?"
+                                )
+                            )
+                            .font(.caption)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.95))
+                            .padding(.top, 12)
+
+                            Text(
+                                AppLocalized.text(
+                                    "agent.continue_in_mode",
+                                    fallback: "Weiter in"
+                                )
+                            )
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.92))
+                            .padding(.top, 6)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                                    ForEach(continueTargetModes, id: \.self) { mode in
+                                        Button {
+                                            onContinueInMode(mode)
+                                        } label: {
+                                            Text(mode.title)
+                                                .font(.caption.weight(.semibold))
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 6)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous)
+                                                .fill(AppColors.accentMystic(for: colorScheme).opacity(0.12))
+                                        )
+                                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                                    }
+                                }
+                            }
+                            .padding(.top, 4)
+                        }
                     }
 
                     if !isUser {

@@ -37,6 +37,10 @@ data class AgentUiState(
     val socialTiktokHandle: String = "",
     val socialYoutubeEnabled: Boolean = false,
     val socialYoutubeHandle: String = "",
+    val socialFacebookEnabled: Boolean = false,
+    val socialFacebookHandle: String = "",
+    val socialSpotifyEnabled: Boolean = false,
+    val socialSpotifyHandle: String = "",
     val quickPrompts: List<String> = agentQuickPromptsFor(AgentExecutionMode.Release),
     /** Last successful Agent response provider (from callable). */
     val lastAgentProvider: AiRuntimeAgentProvider = AiRuntimeAgentProvider.Grok,

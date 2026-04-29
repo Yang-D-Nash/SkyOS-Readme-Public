@@ -223,6 +223,10 @@ struct AgentSocialSetupInput: Codable, Equatable {
     var tiktokHandle: String
     var youtubeEnabled: Bool
     var youtubeHandle: String
+    var facebookEnabled: Bool
+    var facebookHandle: String
+    var spotifyEnabled: Bool
+    var spotifyHandle: String
 
     static let empty = AgentSocialSetupInput(
         instagramEnabled: false,
@@ -230,11 +234,15 @@ struct AgentSocialSetupInput: Codable, Equatable {
         tiktokEnabled: false,
         tiktokHandle: "",
         youtubeEnabled: false,
-        youtubeHandle: ""
+        youtubeHandle: "",
+        facebookEnabled: false,
+        facebookHandle: "",
+        spotifyEnabled: false,
+        spotifyHandle: ""
     )
 
     var hasAnySelection: Bool {
-        instagramEnabled || tiktokEnabled || youtubeEnabled
+        instagramEnabled || tiktokEnabled || youtubeEnabled || facebookEnabled || spotifyEnabled
     }
 
     func asDictionary() -> [String: Any] {
@@ -244,8 +252,69 @@ struct AgentSocialSetupInput: Codable, Equatable {
             "tiktokEnabled": tiktokEnabled,
             "tiktokHandle": tiktokHandle,
             "youtubeEnabled": youtubeEnabled,
-            "youtubeHandle": youtubeHandle
+            "youtubeHandle": youtubeHandle,
+            "facebookEnabled": facebookEnabled,
+            "facebookHandle": facebookHandle,
+            "spotifyEnabled": spotifyEnabled,
+            "spotifyHandle": spotifyHandle
         ]
+    }
+
+    init(
+        instagramEnabled: Bool,
+        instagramHandle: String,
+        tiktokEnabled: Bool,
+        tiktokHandle: String,
+        youtubeEnabled: Bool,
+        youtubeHandle: String,
+        facebookEnabled: Bool = false,
+        facebookHandle: String = "",
+        spotifyEnabled: Bool = false,
+        spotifyHandle: String = ""
+    ) {
+        self.instagramEnabled = instagramEnabled
+        self.instagramHandle = instagramHandle
+        self.tiktokEnabled = tiktokEnabled
+        self.tiktokHandle = tiktokHandle
+        self.youtubeEnabled = youtubeEnabled
+        self.youtubeHandle = youtubeHandle
+        self.facebookEnabled = facebookEnabled
+        self.facebookHandle = facebookHandle
+        self.spotifyEnabled = spotifyEnabled
+        self.spotifyHandle = spotifyHandle
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        instagramEnabled = try c.decodeIfPresent(Bool.self, forKey: .instagramEnabled) ?? false
+        instagramHandle = try c.decodeIfPresent(String.self, forKey: .instagramHandle) ?? ""
+        tiktokEnabled = try c.decodeIfPresent(Bool.self, forKey: .tiktokEnabled) ?? false
+        tiktokHandle = try c.decodeIfPresent(String.self, forKey: .tiktokHandle) ?? ""
+        youtubeEnabled = try c.decodeIfPresent(Bool.self, forKey: .youtubeEnabled) ?? false
+        youtubeHandle = try c.decodeIfPresent(String.self, forKey: .youtubeHandle) ?? ""
+        facebookEnabled = try c.decodeIfPresent(Bool.self, forKey: .facebookEnabled) ?? false
+        facebookHandle = try c.decodeIfPresent(String.self, forKey: .facebookHandle) ?? ""
+        spotifyEnabled = try c.decodeIfPresent(Bool.self, forKey: .spotifyEnabled) ?? false
+        spotifyHandle = try c.decodeIfPresent(String.self, forKey: .spotifyHandle) ?? ""
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case instagramEnabled, instagramHandle, tiktokEnabled, tiktokHandle
+        case youtubeEnabled, youtubeHandle, facebookEnabled, facebookHandle, spotifyEnabled, spotifyHandle
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(instagramEnabled, forKey: .instagramEnabled)
+        try c.encode(instagramHandle, forKey: .instagramHandle)
+        try c.encode(tiktokEnabled, forKey: .tiktokEnabled)
+        try c.encode(tiktokHandle, forKey: .tiktokHandle)
+        try c.encode(youtubeEnabled, forKey: .youtubeEnabled)
+        try c.encode(youtubeHandle, forKey: .youtubeHandle)
+        try c.encode(facebookEnabled, forKey: .facebookEnabled)
+        try c.encode(facebookHandle, forKey: .facebookHandle)
+        try c.encode(spotifyEnabled, forKey: .spotifyEnabled)
+        try c.encode(spotifyHandle, forKey: .spotifyHandle)
     }
 }
 

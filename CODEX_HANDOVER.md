@@ -3,6 +3,7 @@
 ## 1) Projektstatus
 
 - Release candidate is in a green local verification state.
+- Final iOS UI-test verification passed in a fresh simulator session; iOS build `10018` is uploaded to App Store Connect and processing.
 - Critical targeted backend deployment is complete: `createFounderBriefingFromWorkflow` is live on `skydown-a6add`.
 - Core local CI gate passes end-to-end.
 
@@ -43,6 +44,7 @@
 - Functions callable and security behavior (`test:node`)
 - Firestore/Storage rules suite under emulators (`test:rules`)
 - iOS scheme release build path (`Skydown App`, Release)
+- iOS UI-test target (`Skydown AppUITests`) on a fresh iPhone 17 simulator for build `10018`
 
 ## 6) Bekannte NICHT kritische Punkte
 
@@ -70,7 +72,8 @@
 ## 9) Letzte Änderungen
 
 - Deployed `createFounderBriefingFromWorkflow` to production project.
-- Built signed Android `1.0.0` / versionCode `10018` and uploaded it to Google Play internal testing as a draft.
+- Uploaded iOS `1.0.0` / build `10018` to App Store Connect; package processing started.
+- Built signed Android `1.0.0` / versionCode `10019` and uploaded it to Google Play internal testing as a draft.
 - Fixed Android detekt failure in `ProfileScreen` wiring.
 - Fixed Firestore rules expression issue that broke security rules tests.
 - Added release-level handover docs (`RELEASE_NOTES.md`, `CODEX_HANDOVER.md`) and screenshot manifest.
@@ -79,5 +82,7 @@
 
 - All mandatory local quality gates currently pass.
 - iOS release build path is verified.
+- Fresh iOS UI-test run passed for build `10018`.
+- iOS build `10018` and Android versionCode `10019` are uploaded to their store consoles for internal/TestFlight processing paths.
 - Required targeted backend function is deployed and reachable.
 - Release/handover documentation is now explicit enough for Codex to execute final store/release actions without additional debugging.

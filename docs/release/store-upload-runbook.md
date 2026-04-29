@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-04-28 15:44 CEST (iOS 10018 project version set, not archived; Android 10018 uploaded to Play internal draft)
+Last updated: 2026-04-28 17:35 CEST (iOS 10018 uploaded and processing; Android 10019 uploaded to Play internal draft)
 Owner: Release Engineering
 
 ## Build Identity
@@ -9,34 +9,40 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10018` (current project version; no local 10018 archive yet; build `10010` remains the previously uploaded build)
+- Build: `10018` (current project version; local archive exists; uploaded to App Store Connect)
 - Team ID: `F3BNLG6L7P`
 
 ### Android
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10018`
+- versionCode: `10019`
 - Play Billing Library: `8.3.0`
 
 ## Build Artifacts
 
-- iOS archive: no local archive for current project build `10018`; previous `build/ios/SkyOS-1.0.0-10017-20260428.xcarchive` was archived locally and should not be uploaded until the iOS UI-test failures are resolved.
-- iOS upload status: build `10010` uploaded to App Store Connect at 2026-04-27 23:48 CEST and package processing started. Previous build `10008` was uploaded to App Store Connect at 2026-04-27 23:06 CEST, but does not include the iOS Music Studio split fix or Agent tap hardening.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-04-28 15:36 CEST, versionCode `10018`)
-- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-04-28 15:37 CEST, versionCode `10018`)
+- iOS archive: `build/ios/SkyOS-1.0.0-10018-20260428.xcarchive` (created 2026-04-28 15:52 CEST; archive identity `SkyOS` / `com.skydown.ios` / `1.0.0` / `10018`)
+- iOS UI test evidence: `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.xcresult` and raw log `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.log`
+- iOS upload logs: `build/ios/SkyOS-1.0.0-10018-app-store-upload-20260428-1715.log` and `build/ios/SkyOS-1.0.0-10018-app-store-upload-20260428-1715.xcdistributionlogs/`
+- iOS upload status: DONE for build `10018` at 2026-04-28 17:17 CEST; uploaded package is processing.
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt and uploaded 2026-04-28 17:34 CEST, versionCode `10019`)
+- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt for QA 2026-04-28 17:32 CEST, versionCode `10019`)
 
 ## Upload Status
 
 ### iOS Upload Status
-- Archive build: NOT DONE for current build `10018`; previous local build `10017` remains blocked by local UI-test failures
-- App Store Connect upload: DONE for build `10010` at 2026-04-27 23:48 CEST
-- Processing status: uploaded package is processing; wait for build `10010` to appear in TestFlight, then attach to Internal Testers.
+- Archive build: DONE for current build `10018` at `build/ios/SkyOS-1.0.0-10018-20260428.xcarchive`
+- App Store Connect upload: DONE for build `10018` at 2026-04-28 17:17 CEST
+- Processing status: uploaded package is processing; wait for build `10018` to appear in TestFlight, then attach to Internal Testers.
 - Notes:
-  - `CURRENT_PROJECT_VERSION` is set to `10018`; no matching local 10018 archive exists yet.
+  - `CURRENT_PROJECT_VERSION` is set to `10018`; matching local archive exists.
+  - Fresh iOS UI-test run on 2026-04-28 17:03-17:13 CEST passed on a newly created iPhone 17 simulator (`B8B0F386-8D3D-4390-81B6-2784B9E2FB20`, iOS 26.4.1 / 23E254a): 16 total tests, 12 passed, 4 intentionally skipped, 0 failures. Result bundle: `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.xcresult`.
+  - During the fresh UI-test run Xcode emitted repeated `DebuggerLLDB.DebuggerVersionStore.StoreError error 0` / `no debugger version` warnings, but the test session completed and `xcodebuild` exited `0` with `** TEST SUCCEEDED **`; no LLDB/tooling hang reproduced.
+  - Export/upload used `build/ios/ExportOptions-app-store-upload-10018.plist` with `manageAppVersionAndBuildNumber=false`; archive distribution metadata shows `uploadedBuildNumber` `10018` and upload event state `success`.
+  - Xcode reported missing dSYMs for FirebaseFirestoreInternal, absl, grpc, grpcpp, and openssl_grpc binary frameworks during symbol upload; app package upload still succeeded.
   - Previous local archive path: `build/ios/SkyOS-1.0.0-10017-20260428.xcarchive`.
   - Export/upload used `build/ios/ExportOptions-app-store-upload-10010.plist` with `manageAppVersionAndBuildNumber=false`.
-  - Build `10009` was archived and identity-checked locally on 2026-04-27, but its upload was intentionally stopped before success after the iOS Agent tap crash report; use build `10010`.
+  - Build `10009` was archived and identity-checked locally on 2026-04-27, but its upload was intentionally stopped before success after the iOS Agent tap crash report; it was superseded by build `10010` at the time and by the current build `10018`.
   - Build `10008` uploaded successfully on 2026-04-27, but was superseded by build `10010` for the iOS Music Studio split fix and Agent tap hardening.
   - Export/upload for build `10008` used `build/ios/ExportOptions-app-store-upload-10008.plist` with `manageAppVersionAndBuildNumber=false`.
   - Xcode reported missing dSYMs for FirebaseFirestoreInternal, absl, grpc, grpcpp, and openssl_grpc binary frameworks during symbol upload; app package upload still succeeded.
@@ -51,12 +57,13 @@ Owner: Release Engineering
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: DONE for versionCode `10018`
-- Play Console status: versionCode `10018` uploaded to the `internal` track as a draft through Fastlane at 2026-04-28 15:44 CEST.
+- Release AAB build: DONE for versionCode `10019`
+- Play Console status: versionCode `10019` uploaded to the `internal` track as a draft through Fastlane at 2026-04-28 17:34 CEST.
 - Play upload automation: WORKING via Fastlane `upload_android_internal` when `SUPPLY_JSON_KEY` points at the local Play service-account JSON.
-- CLI validate-only attempt: PASSED at 2026-04-28 15:42 CEST.
+- CLI validate-only attempt: PASSED for versionCode `10019` at 2026-04-28 17:33 CEST.
 - Notes:
   - Fastlane used `release_status: draft`, so this did not start a production rollout.
+  - Earlier versionCode `10018` was uploaded to the Play internal draft at 2026-04-28 15:44 CEST and superseded by this fresh versionCode `10019` upload.
   - VersionCode `10015` was previously confirmed online/visible by the release owner on 2026-04-27.
 
 ## 2026-04-28 Verification Log
@@ -68,6 +75,19 @@ Owner: Release Engineering
 5. Release identity preflight passed after aligning this runbook with current source identity: iOS `SkyOS 1.0.0 (10018)` / `com.skydown.ios`; Android `SkyOS 1.0.0 (10018)` / `com.nash.skyos`.
 6. Fastlane `validate_android_internal` passed against Google Play for versionCode `10018`.
 7. Fastlane `upload_android_internal` uploaded versionCode `10018` to Google Play internal testing as a draft.
+8. Fresh iOS UI-test run passed on a newly created iPhone 17 simulator (`B8B0F386-8D3D-4390-81B6-2784B9E2FB20`, iOS 26.4.1 / 23E254a): `xcodebuild test -project "Skydown App.xcodeproj" -scheme "Skydown App" -configuration Debug -destination "id=B8B0F386-8D3D-4390-81B6-2784B9E2FB20" -only-testing:"Skydown AppUITests" -resultBundlePath "build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.xcresult" -derivedDataPath "build/DerivedData/Skydown-App-10018-ui-tests-fresh-20260428-170034" CODE_SIGNING_ALLOWED=NO`.
+9. iOS UI-test result: PASS, 16 total tests, 12 passed, 4 intentionally skipped due missing `SKYOS_RUN_LIVE_*` App-Check flags, 0 failures; raw log: `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.log`.
+10. Relevant UI-test tooling note: repeated `DebuggerLLDB.DebuggerVersionStore.StoreError error 0` / `no debugger version` warnings appeared during launches, but the run completed without hang and ended with `** TEST SUCCEEDED **`.
+11. Release identity preflight passed after the fresh UI-test run: iOS `SkyOS 1.0.0 (10018)` / `com.skydown.ios`; Android `SkyOS 1.0.0 (10018)` / `com.nash.skyos`.
+12. iOS build `10018` uploaded to App Store Connect successfully at 2026-04-28 17:17 CEST via `xcodebuild -exportArchive`; archive metadata records `uploadedBuildNumber` `10018`, upload event state `success`, and uploaded package processing started.
+13. Android local release artifact verify passed after iOS upload; current local hashes: AAB `f84be7d63da70b92c458b4a264a0700825a14693eb677d45c4d3e40af48173c4`, APK `38531fd872dfb5cd7291f6f7f99332eae163ad3c71ee9ad7782fccc4e6ed979c`.
+14. Android `versionCode` was bumped from `10018` to `10019` for a fresh post-17:00 Play upload.
+15. Android clean release gate passed for version `1.0.0` / versionCode `10019`; artifacts were rebuilt at 2026-04-28 17:32 CEST.
+16. Android AAB SHA-256 for versionCode `10019`: `af61d25c91edcfa91db8dd2e8bfaeedd13ae32d051e853ed3c13daee0062ff83`.
+17. Android APK SHA-256 for versionCode `10019`: `865dc4790c7e7073f9c5f44ae3f19e7640da7c18e02a20a54d5848a35cc74772`.
+18. Fastlane `validate_android_internal` passed against Google Play for versionCode `10019` at 2026-04-28 17:33 CEST; log: `build/android-10019-validate-20260428-1733.log`.
+19. Fastlane `upload_android_internal` uploaded versionCode `10019` to Google Play internal testing as a draft at 2026-04-28 17:34 CEST; log: `build/android-10019-upload-20260428-1734.log`.
+20. Final release identity preflight passed: iOS `SkyOS 1.0.0 (10018)` / `com.skydown.ios`; Android `SkyOS 1.0.0 (10019)` / `com.nash.skyos`.
 
 ## 2026-04-27 Verification Log
 
@@ -79,7 +99,7 @@ Owner: Release Engineering
 6. iOS UI screenshot test passed through the Agent tap path and waited for `agent.screen.root`.
 7. iOS build `10010` archived at `build/ios/SkyOS-1.0.0-10010-20260427.xcarchive`; archive identity verified as `SkyOS` / `com.skydown.ios` / `1.0.0` / `10010`.
 8. iOS build `10010` uploaded to App Store Connect successfully at 2026-04-27 23:48 CEST; uploaded package is processing.
-9. Previous iOS build `10008` uploaded to App Store Connect successfully; build `10009` was superseded before successful upload; use build `10010`.
+9. Previous iOS build `10008` uploaded to App Store Connect successfully; build `10009` was superseded before successful upload; that pass used build `10010`, now superseded by current build `10018`.
 10. Local CI gate passed: shared tests, Android lint, Functions tests, Firestore rules tests, and Storage rules tests.
 11. Detekt passed with `./gradlew detektAll --no-daemon`.
 12. Release identity preflight passed: iOS `SkyOS 1.0.0 (10010)` / `com.skydown.ios`; Android `SkyOS 1.0.0 (10016)` / `com.nash.skyos`.
@@ -185,7 +205,7 @@ Suggested review note text:
 
 1. Confirm final legal approval for public privacy/terms wording.
 2. Confirm final production domain and replace URL placeholders in App Store Connect and Play Console.
-3. Verify subscription product setup status for uploaded iOS build `10010`, plus Android versionCode `10018`.
+3. Verify subscription product setup status for uploaded iOS build `10018`, plus Android versionCode `10019`.
 4. Update production Firestore `appConfig/legalContent` and `appConfig/commerceSettings` if old remote operator/legal values still exist.
 5. Firestore/Storage rules were deployed on 2026-04-25; fixed owner Firebase Auth account was verified with `emailVerified=true`.
 6. Verify data safety/privacy forms reflect actual SDK usage:
@@ -197,12 +217,12 @@ Suggested review note text:
    - Not used by current binaries: precise/coarse location, camera capture, microphone, contacts, calendar. Photo/video selection uses system pickers; Android `WRITE_EXTERNAL_STORAGE` is capped to API 28 only for saving generated images.
 7. Upload and map final screenshot sets for iPhone, iPad, and Android phone form factors. Use `screenshots/final/ipad/` for iPad, `screenshots/final/google-play/android-phone/` for Play phone screenshots, and `docs/assets/google-play/` for the Play icon/feature graphic.
 8. Set age rating/content rating questionnaires in both consoles.
-9. Build numbers are current for the 2026-04-28 check: iOS project build `10018` is not archived/uploaded; iOS build `10010` remains uploaded and processing; Android `10018` is uploaded to Google Play internal testing as a draft.
+9. Build numbers are current for the 2026-04-28 check: iOS build `10018` is archived, uploaded, and processing; Android `10019` is uploaded to Google Play internal testing as a draft.
 
 ## Go/No-Go Checklist
 
-- [x] iOS build `10010` uploaded to App Store Connect and processing
-- [x] Android release `10018` uploaded to Play Console internal testing as a draft
+- [x] iOS build `10018` uploaded to App Store Connect and processing
+- [x] Android release `10019` uploaded to Play Console internal testing as a draft
 - [ ] Privacy, terms, support URLs point to final public domain
 - [ ] Legal text approved for store/public use
 - [ ] Subscription metadata, pricing, and restore behavior validated
@@ -216,9 +236,9 @@ Suggested review note text:
 1. Open [App Store Connect](https://appstoreconnect.apple.com/).
 2. Go to **My Apps** -> select/create app for bundle `com.skydown.ios`.
 3. Open **TestFlight** tab.
-4. Wait for uploaded build `10010` to finish processing.
-5. Under **Builds**, click **+** and select build `10010`.
-6. Assign build `10010` to Internal Testers first.
+4. Wait for uploaded build `10018` to finish processing.
+5. Under **Builds**, click **+** and select build `10018`.
+6. Assign build `10018` to Internal Testers first.
 7. Fill **App Information** and **App Privacy** sections.
 8. Fill **Pricing and Availability** (manual business decision required).
 9. Fill **App Review Information** with support contact + test account.
@@ -229,7 +249,7 @@ Suggested review note text:
 1. Open [Google Play Console](https://play.google.com/console/).
 2. Select app with package `com.nash.skyos`.
 3. Go to **Testing** -> **Internal testing**.
-4. Review the draft release containing versionCode `10018`.
+4. Review the draft release containing versionCode `10019`.
 5. Confirm release notes and save.
 6. Go to **Store presence** and complete store listing fields.
 7. Go to **App content** and complete:

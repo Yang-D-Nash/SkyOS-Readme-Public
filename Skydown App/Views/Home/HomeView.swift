@@ -59,6 +59,12 @@ private struct FounderBriefingPresentation: Identifiable {
     let mode: FounderBriefingMode
     let title: String
     let body: String
+    var metaLine: String? = nil
+}
+
+private enum FounderBriefingFeedbackStyle {
+    case success
+    case error
 }
 
 struct HomeViewContent: View {
@@ -72,6 +78,8 @@ struct HomeViewContent: View {
     @State private var isQuickActionCoolingDown = false
     @State private var founderBriefingPresentation: FounderBriefingPresentation?
     @State private var founderBriefingModeInFlight: FounderBriefingMode?
+    @State private var founderBriefingFeedbackMessage: String?
+    @State private var founderBriefingFeedbackStyle: FounderBriefingFeedbackStyle = .success
     @State private var founderBriefingErrorMessage: String?
     @State private var founderBriefingShareItems: [Any] = []
     @State private var showsFounderBriefingShareSheet = false
@@ -156,6 +164,9 @@ struct HomeViewContent: View {
                                             await runFounderBriefing(mode: mode)
                                         }
                                     },
+                                    founderBriefingModeInFlight: founderBriefingModeInFlight,
+                                    founderBriefingFeedbackMessage: founderBriefingFeedbackMessage,
+                                    founderBriefingFeedbackStyle: founderBriefingFeedbackStyle,
                                     onOpenToday: {
                                         triggerQuickAction {
                                             if authManager.userSession == nil, let onGuestSignIn {
@@ -436,6 +447,17 @@ struct HomeViewContent: View {
                 Text(founderBriefingErrorMessage ?? "")
             }
         )
+        .overlay {
+            if founderBriefingModeInFlight != nil {
+                ZStack {
+                    Color.black.opacity(0.12).ignoresSafeArea()
+                    ProgressView("Founder Briefing wird erstellt...")
+                        .padding(14)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+            }
+        }
     }
 
     private var activePresentedSheetBinding: Binding<HomePresentedSheet?> {
@@ -479,12 +501,42 @@ struct HomeViewContent: View {
         }
     }
 
+    private static func founderBriefingMetaLine(_ meta: [String: Any]?) -> String? {
+        guard let meta, !meta.isEmpty else { return nil }
+        var parts: [String] = []
+        if let d = meta["businessDate"] as? String, !d.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let day = d.trimmingCharacters(in: .whitespacesAndNewlines)
+            parts.append("Berichtstag \(day)")
+        }
+        if let qRaw = meta["dataQuality"] as? String {
+            let q = qRaw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if !q.isEmpty {
+                let label: String
+                switch q {
+                case "complete": label = "Daten vollstaendig"
+                case "partial": label = "Teildaten"
+                case "no_kpi_doc": label = "KPI-Dokument fehlt"
+                default: label = q
+                }
+                parts.append(label)
+            }
+        }
+        if let k = meta["kpiUpdatedAt"] as? String, !k.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let t = k.trimmingCharacters(in: .whitespacesAndNewlines)
+            let short = t.count > 36 ? String(t.prefix(36)) + "…" : t
+            parts.append("KPI \(short)")
+        }
+        if parts.isEmpty { return nil }
+        return parts.joined(separator: " · ")
+    }
+
     private func runFounderBriefing(mode: FounderBriefingMode) async {
         guard founderBriefingModeInFlight == nil else { return }
         guard let uid = authManager.userSession?.id else {
             founderBriefingErrorMessage = "Bitte zuerst anmelden."
             return
         }
+        founderBriefingFeedbackMessage = nil
         founderBriefingModeInFlight = mode
         defer { founderBriefingModeInFlight = nil }
         do {
@@ -493,12 +545,22 @@ struct HomeViewContent: View {
 
             let data: [String: Any]
             do {
-                data = try await requestFounderBriefingResult(uid: uid, mode: mode, date: requestDate, requestId: requestId)
+                data = try await requestFounderBriefingWorkflowResult(
+                    uid: uid,
+                    mode: mode,
+                    date: requestDate,
+                    requestId: requestId
+                )
             } catch {
                 if shouldRetryFounderBriefing(after: error) {
                     let functions = Functions.functions(region: "us-central1")
                     _ = try? await functions.invokeCallable("syncCurrentUserClaims", payload: [:])
-                    data = try await requestFounderBriefingResult(uid: uid, mode: mode, date: requestDate, requestId: requestId)
+                    data = try await requestFounderBriefingWorkflowResult(
+                        uid: uid,
+                        mode: mode,
+                        date: requestDate,
+                        requestId: requestId
+                    )
                 } else {
                     throw error
                 }
@@ -508,41 +570,176 @@ struct HomeViewContent: View {
             let text = (data[textKey] as? String)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             if text.isEmpty {
-                founderBriefingErrorMessage = "Kein Briefing erhalten."
-                return
-            }
+                founderBriefingFeedbackMessage = "Briefing hat keinen Inhalt geliefert."
+                founderBriefingFeedbackStyle = .error
+            let emptyMeta = Self.founderBriefingMetaLine(data["briefingMeta"] as? [String: Any])
             founderBriefingPresentation = FounderBriefingPresentation(
                 mode: mode,
                 title: mode == .privateBriefing ? "Founder Analyse" : "Team Update",
-                body: text
+                body: "Briefing ist fertig, aber es wurde kein Text geliefert. Bitte erneut versuchen.",
+                metaLine: emptyMeta
+            )
+                return
+            }
+            founderBriefingFeedbackMessage = "Briefing erfolgreich erstellt."
+            founderBriefingFeedbackStyle = .success
+            let metaLine = Self.founderBriefingMetaLine(data["briefingMeta"] as? [String: Any])
+            founderBriefingPresentation = FounderBriefingPresentation(
+                mode: mode,
+                title: mode == .privateBriefing ? "Founder Analyse" : "Team Update",
+                body: text,
+                metaLine: metaLine
             )
         } catch {
-            founderBriefingErrorMessage = "Briefing derzeit nicht verfuegbar. Bitte gleich erneut versuchen."
+            let reason = (error as NSError).localizedDescription
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            founderBriefingFeedbackMessage = reason.isEmpty ?
+                "Briefing derzeit nicht verfuegbar. Bitte gleich erneut versuchen." :
+                reason
+            founderBriefingFeedbackStyle = .error
+            founderBriefingPresentation = FounderBriefingPresentation(
+                mode: mode,
+                title: mode == .privateBriefing ? "Founder Analyse" : "Team Update",
+                body: reason.isEmpty ?
+                    "Briefing derzeit nicht verfuegbar. Bitte gleich erneut versuchen." :
+                    reason
+            )
         }
     }
 
-    private func requestFounderBriefingResult(
+    private func requestFounderBriefingWorkflowResult(
         uid: String,
         mode: FounderBriefingMode,
         date: String,
         requestId: String
     ) async throws -> [String: Any] {
         let payload: [String: Any] = [
-            "uid": uid,
-            "mode": mode.rawValue,
-            "date": date,
-            "requestId": requestId,
+            "trigger": "home_founder_briefing",
+            "source": "ios_home_owner_buttons",
+            "automationScope": "owner",
+            "data": [
+                "uid": uid,
+                "mode": "briefing",
+                "briefingTarget": mode.rawValue,
+                "date": date,
+                "requestId": requestId,
+                "isOwner": true,
+            ],
         ]
         let result = try await Functions.functions(region: "us-central1")
-            .invokeCallable("createFounderBriefing", payload: payload)
-        guard let data = result.data as? [String: Any] else {
+            .invokeCallable("triggerWorkflowAutomation", payload: payload)
+        guard let rootData = result.data as? [String: Any] else {
             throw NSError(
                 domain: "HomeFounderBriefing",
                 code: -1,
                 userInfo: [NSLocalizedDescriptionKey: "Briefing konnte nicht gelesen werden."]
             )
         }
-        return data
+        let workflowData = (rootData["data"] as? [String: Any]) ?? rootData
+
+        let workflowStatus = (workflowData["workflowStatus"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+        if workflowStatus == "failed" {
+            let message = (workflowData["message"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let resolvedMessage = (message?.isEmpty == false ? message : nil) ?? "Workflow konnte nicht abgeschlossen werden."
+            throw NSError(
+                domain: "HomeFounderBriefing",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: resolvedMessage]
+            )
+        }
+
+        var resolved: [String: Any] = [:]
+        var fallbackText: String?
+        let bodyCandidate = workflowData["body"] ?? rootData["body"]
+        var nestedBody = bodyCandidate as? [String: Any]
+        let rawBodyText = (bodyCandidate as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if nestedBody == nil,
+           !rawBodyText.isEmpty,
+           let jsonData = rawBodyText.data(using: .utf8),
+           let parsed = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+            nestedBody = parsed
+        }
+
+        let topLevelPrivate = ((workflowData["private"] as? String) ??
+            (rootData["private"] as? String) ??
+            (nestedBody?["private"] as? String) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let topLevelGroup = ((workflowData["group"] as? String) ??
+            (rootData["group"] as? String) ??
+            (nestedBody?["group"] as? String) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !topLevelPrivate.isEmpty {
+            resolved["private"] = topLevelPrivate
+            fallbackText = topLevelPrivate
+        }
+        if !topLevelGroup.isEmpty {
+            resolved["group"] = topLevelGroup
+            if fallbackText == nil {
+                fallbackText = topLevelGroup
+            }
+        }
+        let rawBodyPlainText = (nestedBody == nil) ? rawBodyText : ""
+        if !rawBodyPlainText.isEmpty {
+            if mode == .privateBriefing {
+                resolved["private"] = rawBodyPlainText
+            } else {
+                resolved["group"] = rawBodyPlainText
+            }
+            if fallbackText == nil {
+                fallbackText = rawBodyPlainText
+            }
+        }
+
+        let resultsSource = (workflowData["results"] as? [[String: Any]]) ?? (rootData["results"] as? [[String: Any]])
+        if let results = resultsSource {
+            for entry in results {
+                let entryType = ((entry["type"] as? String) ?? "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .lowercased()
+                guard entryType == "text" else { continue }
+                let title = ((entry["title"] as? String) ?? "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .lowercased()
+                let content = ((entry["content"] as? String) ?? (entry["text"] as? String) ?? "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !content.isEmpty else { continue }
+                if fallbackText == nil {
+                    fallbackText = content
+                }
+                if title.contains("private") || title.contains("only me") || title.contains("nur") {
+                    resolved["private"] = content
+                } else if title.contains("group") || title.contains("gruppe") || title.contains("team") {
+                    resolved["group"] = content
+                }
+            }
+        }
+
+        if resolved["private"] == nil, mode == .privateBriefing, let fallbackText {
+            resolved["private"] = fallbackText
+        }
+        if resolved["group"] == nil, mode == .group, let fallbackText {
+            resolved["group"] = fallbackText
+        }
+
+        if resolved.isEmpty {
+            let message = (workflowData["message"] as? String)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let resolvedMessage = (message?.isEmpty == false ? message : nil) ??
+                "Workflow lief, aber es wurden keine Briefing-Texte geliefert."
+            throw NSError(
+                domain: "HomeFounderBriefing",
+                code: -3,
+                userInfo: [NSLocalizedDescriptionKey: resolvedMessage]
+            )
+        }
+        if let meta = (workflowData["briefingMeta"] as? [String: Any]) ?? (rootData["briefingMeta"] as? [String: Any]) {
+            resolved["briefingMeta"] = meta
+        }
+        return resolved
     }
 
     private func shouldRetryFounderBriefing(after error: Error) -> Bool {
@@ -1048,6 +1245,11 @@ private struct FounderBriefingResultSheet: View {
                 )
                 .font(.caption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                if let meta = presentation.metaLine, !meta.isEmpty {
+                    Text(meta)
+                        .font(.caption2)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
+                }
 
                 ScrollView {
                     Text(presentation.body)
@@ -1246,6 +1448,9 @@ private struct HomeProductivityOverviewSection: View {
     let openTasks: [HomeViewModel.ProductivityTask]
     let recentNotes: [HomeViewModel.ProductivityNote]
     let onRequestFounderBriefing: ((FounderBriefingMode) -> Void)?
+    let founderBriefingModeInFlight: FounderBriefingMode?
+    let founderBriefingFeedbackMessage: String?
+    let founderBriefingFeedbackStyle: FounderBriefingFeedbackStyle
     let onOpenToday: () -> Void
     let onOpenUpcoming: () -> Void
     let onOpenTasks: () -> Void
@@ -1366,7 +1571,10 @@ private struct HomeProductivityOverviewSection: View {
             if let onRequestFounderBriefing {
                 HomeOwnerWorkflowSection(
                     colorScheme: colorScheme,
-                    onRequestFounderBriefing: onRequestFounderBriefing
+                    onRequestFounderBriefing: onRequestFounderBriefing,
+                    founderBriefingModeInFlight: founderBriefingModeInFlight,
+                    founderBriefingFeedbackMessage: founderBriefingFeedbackMessage,
+                    founderBriefingFeedbackStyle: founderBriefingFeedbackStyle
                 )
                 .padding(.top, 2)
             }
@@ -1384,6 +1592,9 @@ private struct HomeProductivityOverviewSection: View {
 private struct HomeOwnerWorkflowSection: View {
     let colorScheme: ColorScheme
     let onRequestFounderBriefing: (FounderBriefingMode) -> Void
+    let founderBriefingModeInFlight: FounderBriefingMode?
+    let founderBriefingFeedbackMessage: String?
+    let founderBriefingFeedbackStyle: FounderBriefingFeedbackStyle
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
@@ -1398,19 +1609,45 @@ private struct HomeOwnerWorkflowSection: View {
                 .foregroundColor(AppColors.text(for: colorScheme).opacity(0.55))
                 .fixedSize(horizontal: false, vertical: true)
 
+            if founderBriefingModeInFlight != nil {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Erstellt Briefing...")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                }
+            } else if let founderBriefingFeedbackMessage {
+                Text(founderBriefingFeedbackMessage)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(
+                        founderBriefingFeedbackStyle == .error ?
+                            Color.red.opacity(0.86) :
+                            AppColors.accentMystic(for: colorScheme)
+                    )
+            }
+
             HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 HomeQuickActionButton(
-                    title: AppLocalized.text("home.owner.workflows.private_analysis", fallback: "Nur fuer mich"),
+                    title: founderBriefingModeInFlight == .privateBriefing ?
+                        "Wird erstellt..." :
+                        AppLocalized.text("home.owner.workflows.private_analysis", fallback: "Nur fuer mich"),
                     systemImage: "dollarsign.circle",
                     colorScheme: colorScheme,
+                    isLoading: founderBriefingModeInFlight == .privateBriefing,
+                    isDisabled: founderBriefingModeInFlight != nil,
                     onTap: {
                         onRequestFounderBriefing(.privateBriefing)
                     }
                 )
                 HomeQuickActionButton(
-                    title: AppLocalized.text("home.owner.workflows.group_update", fallback: "Fuer Gruppe"),
+                    title: founderBriefingModeInFlight == .group ?
+                        "Wird erstellt..." :
+                        AppLocalized.text("home.owner.workflows.group_update", fallback: "Fuer Gruppe"),
                     systemImage: "person.2",
                     colorScheme: colorScheme,
+                    isLoading: founderBriefingModeInFlight == .group,
+                    isDisabled: founderBriefingModeInFlight != nil,
                     onTap: {
                         onRequestFounderBriefing(.group)
                     }
@@ -1584,6 +1821,8 @@ private struct HomeQuickActionButton: View {
     let systemImage: String?
     let badgeCount: Int?
     let colorScheme: ColorScheme
+    let isLoading: Bool
+    let isDisabled: Bool
     let onTap: () -> Void
 
     init(
@@ -1591,18 +1830,26 @@ private struct HomeQuickActionButton: View {
         systemImage: String? = nil,
         badgeCount: Int? = nil,
         colorScheme: ColorScheme,
+        isLoading: Bool = false,
+        isDisabled: Bool = false,
         onTap: @escaping () -> Void
     ) {
         self.title = title
         self.systemImage = systemImage
         self.badgeCount = badgeCount
         self.colorScheme = colorScheme
+        self.isLoading = isLoading
+        self.isDisabled = isDisabled
         self.onTap = onTap
     }
 
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 6) {
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.mini)
+                }
                 if let systemImage {
                     Image(systemName: systemImage)
                         .font(.caption2.weight(.semibold))
@@ -1628,6 +1875,8 @@ private struct HomeQuickActionButton: View {
         }
         .buttonStyle(.plain)
         .skydownTactileAction()
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.72 : 1)
     }
 }
 

@@ -58,6 +58,7 @@ const {
 const {
   addSecretVersion,
 } = require("./src/payments/secret-manager");
+const {runSyncFounderDailyKpis} = require("./src/founder/sync-daily-kpis");
 
 admin.initializeApp();
 void enableFirebaseTelemetry().catch((error) => {
@@ -76,7 +77,7 @@ const shopifyAdminAccessToken = defineSecret("SHOPIFY_ADMIN_ACCESS_TOKEN");
 const manusApiKey = defineSecret("MANUS_API_KEY");
 const xaiApiKey = defineSecret("XAI_API_KEY");
 const agentRunCallbackSecret = defineSecret("AGENT_RUN_CALLBACK_SECRET");
-const workflowApiSecret = defineSecret("SKYOS_WORKFLOW_SECRET");
+const workflowApiSecret = defineSecret("WORKFLOW_API_SECRET");
 const IOS_APP_BUNDLE_ID = nonEmptyString(process.env.SKYOS_IOS_APP_BUNDLE_ID) || "com.skydown.ios";
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
 const SHOPIFY_API_VERSION = "2026-01";
@@ -245,6 +246,10 @@ const agentRequestSchema = z.object({
     tiktokHandle: z.string().trim().max(120).optional().default(""),
     youtubeEnabled: z.boolean().optional().default(false),
     youtubeHandle: z.string().trim().max(120).optional().default(""),
+    facebookEnabled: z.boolean().optional().default(false),
+    facebookHandle: z.string().trim().max(120).optional().default(""),
+    spotifyEnabled: z.boolean().optional().default(false),
+    spotifyHandle: z.string().trim().max(120).optional().default(""),
   }).optional(),
 });
 
@@ -2806,9 +2811,18 @@ function buildSkyosWorkflowResponse({
 
 function loadWorkflowApiSecret() {
   try {
-    return nonEmptyString(workflowApiSecret.value()) || nonEmptyString(process.env.SKYOS_WORKFLOW_SECRET) || "";
+    return (
+      nonEmptyString(workflowApiSecret.value()) ||
+      nonEmptyString(process.env.WORKFLOW_API_SECRET) ||
+      nonEmptyString(process.env.SKYOS_WORKFLOW_SECRET) ||
+      ""
+    );
   } catch (error) {
-    return nonEmptyString(process.env.SKYOS_WORKFLOW_SECRET) || "";
+    return (
+      nonEmptyString(process.env.WORKFLOW_API_SECRET) ||
+      nonEmptyString(process.env.SKYOS_WORKFLOW_SECRET) ||
+      ""
+    );
   }
 }
 
@@ -3532,6 +3546,58 @@ function coerceAutomationWebhookParsedBody(parsedBody) {
   if (parsedBody === null || parsedBody === undefined) {
     return null;
   }
+  // Some webhook providers wrap the payload as: { status, headers, body } — sometimes
+  // nested more than once (e.g. router + HTTP step). Unwrap repeatedly so private/group/results
+  // are visible to downstream parsing.
+  if (!Array.isArray(parsedBody) && typeof parsedBody === "object") {
+    for (let depth = 0; depth < 8; depth += 1) {
+      if (!parsedBody || typeof parsedBody !== "object" || Array.isArray(parsedBody)) {
+        break;
+      }
+      // Already at the real payload (has briefing text or result cards) — do not peel "body"
+      // again. Otherwise we can drop top-level private/results when the payload also has a
+      // nested "body" field (not an HTTP envelope).
+      const hasPrivate = typeof parsedBody.private === "string" && parsedBody.private.trim().length > 0;
+      const hasResults = Array.isArray(parsedBody.results) && parsedBody.results.length > 0;
+      if (hasPrivate || hasResults) {
+        break;
+      }
+      const hasHttpEnvelope = Object.prototype.hasOwnProperty.call(parsedBody, "status") ||
+        Object.prototype.hasOwnProperty.call(parsedBody, "headers");
+      const wrappedBody = parsedBody.body;
+      if (!hasHttpEnvelope || wrappedBody == null) {
+        break;
+      }
+      const statusRaw = parsedBody.status;
+      const statusNumber = typeof statusRaw === "number" ?
+        statusRaw :
+        Number.isFinite(Number(statusRaw)) ?
+          Number(statusRaw) :
+          NaN;
+      // Only unwrap 2xx-style HTTP envelopes. Missing/NaN status on a real envelope is treated as OK.
+      const statusOk = statusNumber === 200 || statusNumber === 201 || statusNumber === 202 ||
+        statusNumber === 204 || Number.isNaN(statusNumber);
+      if (!statusOk) {
+        break;
+      }
+      if (wrappedBody && typeof wrappedBody === "object" && !Array.isArray(wrappedBody)) {
+        parsedBody = wrappedBody;
+        continue;
+      }
+      if (typeof wrappedBody === "string") {
+        const trimmed = wrappedBody.trim();
+        if (trimmed) {
+          try {
+            parsedBody = JSON.parse(trimmed);
+            continue;
+          } catch (error) {
+            // Keep current object if body is not valid JSON.
+          }
+        }
+      }
+      break;
+    }
+  }
   if (Array.isArray(parsedBody)) {
     return parsedBody;
   }
@@ -3539,17 +3605,474 @@ function coerceAutomationWebhookParsedBody(parsedBody) {
     return null;
   }
   const body = {...parsedBody};
-  const arrayKeys = ["results", "outputs", "assets", "files"];
-  for (const key of arrayKeys) {
-    if (Object.prototype.hasOwnProperty.call(body, key) && !Array.isArray(body[key])) {
-      logger.warn("Automation webhook response ignored non-array field.", {
-        key,
-        type: typeof body[key],
-      });
-      delete body[key];
+  normalizeAutomationWebhookArrayFields(body);
+  return body;
+}
+
+/**
+ * If primary JSON parsing leaves `private` / `results` empty, re-parse the raw HTTP text and peel
+ * `{ status, body: { private, results, ... } }` (Activepieces). Used when the first `parse` path fails.
+ * @return {{private?: *, group?: *, results?: *}|null}
+ */
+function rescueAutomationLayerFromRawResponse(responseText) {
+  if (!responseText || typeof responseText !== "string") {
+    return null;
+  }
+  const trimmed = responseText.trim();
+  if (!trimmed.startsWith("{")) {
+    return null;
+  }
+  let root;
+  try {
+    root = JSON.parse(trimmed);
+  } catch (e) {
+    return null;
+  }
+  if (!root || typeof root !== "object" || Array.isArray(root)) {
+    return null;
+  }
+  if (Object.prototype.hasOwnProperty.call(root, "body") && root.body != null) {
+    const envOk = Object.prototype.hasOwnProperty.call(root, "status") ||
+      Object.prototype.hasOwnProperty.call(root, "headers");
+    if (!envOk) {
+      // Not { status, body } / { headers, body } — do not treat root.body as the payload.
+    } else {
+      let layer = null;
+      if (typeof root.body === "string") {
+        const inner = root.body.trim();
+        if (inner.startsWith("{") || inner.startsWith("[")) {
+          try {
+            layer = JSON.parse(inner);
+          } catch (e) {
+            return null;
+          }
+        } else {
+          return null;
+        }
+      } else if (typeof root.body === "object") {
+        layer = root.body;
+      }
+      if (layer && typeof layer === "object" && !Array.isArray(layer)) {
+        // One nested HTTP envelope (peel a second time; primary peeling is in coerceAutomationWebhookParsedBody)
+        if (layer.body != null &&
+          (Object.prototype.hasOwnProperty.call(layer, "status") ||
+            Object.prototype.hasOwnProperty.call(layer, "headers"))) {
+          let inner = layer.body;
+          if (typeof inner === "string") {
+            const t = inner.trim();
+            if (t.startsWith("{") || t.startsWith("[")) {
+              try {
+                inner = JSON.parse(t);
+              } catch (e) {
+                inner = null;
+              }
+            } else {
+              inner = null;
+            }
+          }
+          if (inner && typeof inner === "object" && !Array.isArray(inner)) {
+            layer = inner;
+          }
+        }
+        if (layer.results == null && layer.private == null && layer.message == null) {
+          return null;
+        }
+        return {private: layer.private, group: layer.group, results: layer.results};
+      }
     }
   }
-  return body;
+  if (root.results != null || root.private != null || root.message != null) {
+    return {private: root.private, group: root.group, results: root.results};
+  }
+  return null;
+}
+
+/**
+ * Walks any JSON (including `body` fields stored as stringified sub-JSON) and returns the
+ * longest string found at a given key. Used when normal unwrap misses nested private/results.
+ * @return {string|null}
+ */
+function deepExtractLongestStringFieldByKey(responseText, key, minLength = 16) {
+  if (!responseText || typeof responseText !== "string" || !key) {
+    return null;
+  }
+  const t = responseText.trim();
+  if (t.length < minLength) {
+    return null;
+  }
+  let best = null;
+  let bestLen = 0;
+  const visit = (node, depth) => {
+    if (node == null || depth > 40) {
+      return;
+    }
+    if (typeof node === "string") {
+      const s = node.trim();
+      if (s.length > 1 && (s.startsWith("{") || s.startsWith("[")) && s.length < 1_200_000) {
+        try {
+          visit(JSON.parse(s), depth + 1);
+        } catch (e) {
+        }
+      }
+      return;
+    }
+    if (Array.isArray(node)) {
+      for (const e of node) {
+        visit(e, depth + 1);
+      }
+      return;
+    }
+    if (typeof node !== "object") {
+      return;
+    }
+    if (Object.prototype.hasOwnProperty.call(node, key) && typeof node[key] === "string") {
+      const v = node[key].trim();
+      if (v.length >= minLength && v.length > bestLen) {
+        best = v;
+        bestLen = v.length;
+      }
+    }
+    for (const c of Object.keys(node)) {
+      visit(node[c], depth + 1);
+    }
+  };
+  let root;
+  try {
+    root = JSON.parse(t);
+  } catch (e) {
+    return null;
+  }
+  visit(root, 0);
+  return best;
+}
+
+/**
+ * Pre-order: first "message" string in the tree that is not the boilerplate
+ * "Test an … gesendet" line (e.g. Activepieces "Erledigt. …" status).
+ * @return {string|null}
+ */
+function deepFirstNonGenericAutomationMessageString(responseText) {
+  if (!responseText || typeof responseText !== "string") {
+    return null;
+  }
+  const isGeneric = (s) => {
+    const t = (s || "").trim();
+    return t.length < 3 || /^Test an .+gesendet\.?$/i.test(t);
+  };
+  let root;
+  try {
+    root = JSON.parse(responseText.trim());
+  } catch (e) {
+    return null;
+  }
+  const visit = (node, depth) => {
+    if (node == null || depth > 40) {
+      return null;
+    }
+    if (typeof node === "string") {
+      const s = node.trim();
+      if (s.length > 1 && (s.startsWith("{") || s.startsWith("[")) && s.length < 1_200_000) {
+        try {
+          return visit(JSON.parse(s), depth + 1);
+        } catch (e) {
+        }
+      }
+      return null;
+    }
+    if (Array.isArray(node)) {
+      for (const e of node) {
+        const t = visit(e, depth + 1);
+        if (t) {
+          return t;
+        }
+      }
+      return null;
+    }
+    if (typeof node !== "object") {
+      return null;
+    }
+    for (const c of Object.keys(node)) {
+      if (c === "message" && typeof node.message === "string") {
+        const t = node.message.trim();
+        if (t && t.length < 4000 && !isGeneric(t)) {
+          return t;
+        }
+      }
+    }
+    for (const c of Object.keys(node)) {
+      const t = visit(node[c], depth + 1);
+      if (t) {
+        return t;
+      }
+    }
+    return null;
+  };
+  return visit(root, 0);
+}
+
+/**
+ * @return {Array|undefined}
+ */
+function deepExtractFirstNonEmptyArrayByKey(responseText, key) {
+  if (!responseText || typeof responseText !== "string" || !key) {
+    return;
+  }
+  const findIn = (node, depth) => {
+    if (node == null || depth > 40) {
+      return;
+    }
+    if (typeof node === "string") {
+      const s = node.trim();
+      if (s.length > 1 && (s.startsWith("{") || s.startsWith("[")) && s.length < 1_200_000) {
+        try {
+          return findIn(JSON.parse(s), depth + 1);
+        } catch (e) {
+        }
+      }
+      return;
+    }
+    if (Array.isArray(node)) {
+      for (const e of node) {
+        const f = findIn(e, depth + 1);
+        if (f) {
+          return f;
+        }
+      }
+      return;
+    }
+    if (typeof node !== "object") {
+      return;
+    }
+    if (Object.prototype.hasOwnProperty.call(node, key) && Array.isArray(node[key]) && node[key].length) {
+      return node[key];
+    }
+    for (const c of Object.keys(node)) {
+      const f = findIn(node[c], depth + 1);
+      if (f) {
+        return f;
+      }
+    }
+  };
+  try {
+    return findIn(JSON.parse(responseText.trim()), 0);
+  } catch (e) {
+    return;
+  }
+}
+
+/**
+ * Some workflows only put the long markdown in `results[].content` (or `text`), not in top-level
+ * `private`. Pick the longest string among common keys in the full JSON (including stringified
+ * sub-documents such as `responseForWebhookJson`).
+ * @return {string}
+ */
+function deepFillPrivateFromNestedTextFields(responseText) {
+  if (!responseText || typeof responseText !== "string") {
+    return "";
+  }
+  const spec = [
+    {key: "private", min: 20},
+    {key: "content", min: 40},
+    {key: "text", min: 40},
+    {key: "markdown", min: 40},
+  ];
+  let best = "";
+  for (const {key, min} of spec) {
+    const hit = deepExtractLongestStringFieldByKey(responseText, key, min);
+    if (hit && hit.length > best.length) {
+      best = hit;
+    }
+  }
+  return best;
+}
+
+/**
+ * Activepieces / n8n often return results or outputs as an object map (step id -> payload).
+ * Older logic deleted those fields when they were not arrays, which produced empty `results`
+ * on the client. Normalize objects (and JSON strings) into arrays instead.
+ */
+function normalizeAutomationWebhookArrayFields(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return;
+  }
+  const arrayKeys = ["results", "outputs", "assets", "files"];
+  for (const key of arrayKeys) {
+    if (!Object.prototype.hasOwnProperty.call(body, key)) {
+      continue;
+    }
+    const val = body[key];
+    if (Array.isArray(val)) {
+      continue;
+    }
+    if (val == null) {
+      delete body[key];
+      continue;
+    }
+    if (typeof val === "object") {
+      const asArray = Object.values(val);
+      if (asArray.length) {
+        body[key] = asArray;
+        continue;
+      }
+      delete body[key];
+      continue;
+    }
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      if (!trimmed) {
+        delete body[key];
+        continue;
+      }
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          body[key] = parsed;
+          continue;
+        }
+        if (parsed && typeof parsed === "object") {
+          const asArray = Object.values(parsed);
+          if (asArray.length) {
+            body[key] = asArray;
+            continue;
+          }
+        }
+      } catch (error) {
+        // Not JSON; drop unless we want a single text entry — keep delete for parity.
+      }
+    }
+    logger.warn("Automation webhook response dropped unrecognized array-like field.", {
+      key,
+      type: typeof val,
+    });
+    delete body[key];
+  }
+}
+
+function pickAutomationNestedScalarField(parsedBody, fieldName) {
+  if (!parsedBody || typeof parsedBody !== "object" || Array.isArray(parsedBody)) {
+    return undefined;
+  }
+  const layers = [
+    parsedBody,
+    parsedBody.data,
+    parsedBody.payload,
+    parsedBody.response,
+    parsedBody.output,
+    parsedBody.result,
+    parsedBody.body,
+    parsedBody.responseForWebhook,
+  ].filter((layer) => layer && typeof layer === "object" && !Array.isArray(layer));
+  for (const layer of layers) {
+    if (Object.prototype.hasOwnProperty.call(layer, fieldName) && layer[fieldName] != null) {
+      const v = layer[fieldName];
+      if (typeof v === "string" && v.trim() === "") {
+        // Empty "private" / "group" at a shallow level must not hide the same key deeper (e.g. in body).
+        continue;
+      }
+      return v;
+    }
+  }
+  return undefined;
+}
+
+function pickFirstAutomationNestedStringField(parsedBody, fieldNames) {
+  for (const name of fieldNames) {
+    const raw = pickAutomationNestedScalarField(parsedBody, name) ?? (parsedBody && parsedBody[name]);
+    const t = coerceAutomationTextField(raw, 12000);
+    if (t) {
+      return t;
+    }
+  }
+  return "";
+}
+
+/**
+ * `message` / `reply` on webhook payloads is often the real user-visible text, while the callable
+ * `message` is forced to a generic "Test an …" string for long bodies. Only accept non-boilerplate.
+ */
+function isAutomationStatusOnlyMessageLine(t) {
+  const s = (t || "").trim();
+  if (s.length < 12) {
+    return true;
+  }
+  if (s.length < 200) {
+    if (/^test an /i.test(s) && s.length < 500) {
+      return true;
+    }
+    if (/^erledigt[.\s]/i.test(s) && /(ausgefü|voll|submitted|completed|success)/i.test(s)) {
+      return true;
+    }
+    if (/(^|\s)workflow(completed|status)/i.test(s) && s.length < 500) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function pickNonGenericAgentMessageText(parsedBody) {
+  for (const key of ["message", "reply", "userMessage", "answer"]) {
+    const raw = pickAutomationNestedScalarField(parsedBody, key) ?? (parsedBody && parsedBody[key]);
+    if (raw == null) {
+      continue;
+    }
+    const t = coerceAutomationTextField(raw, 12000);
+    if (!t || t.length < 12) {
+      continue;
+    }
+    if (isAutomationStatusOnlyMessageLine(t)) {
+      continue;
+    }
+    return t;
+  }
+  return "";
+}
+
+function firstNonEmptyAutomationResultsArray(parsedBody) {
+  if (!parsedBody || typeof parsedBody !== "object" || Array.isArray(parsedBody)) {
+    return [];
+  }
+  const candidates = [
+    parsedBody.data && parsedBody.data.results,
+    parsedBody.data && parsedBody.data.outputs,
+    parsedBody.payload && parsedBody.payload.results,
+    parsedBody.response && parsedBody.response.results,
+    parsedBody.output && parsedBody.output.results,
+    parsedBody.results,
+    parsedBody.outputs,
+    parsedBody.assets,
+    parsedBody.files,
+  ];
+  for (const raw of candidates) {
+    if (raw == null) {
+      continue;
+    }
+    if (Array.isArray(raw) && raw.length) {
+      return raw;
+    }
+    if (typeof raw === "object" && !Array.isArray(raw)) {
+      const asArray = Object.values(raw);
+      if (asArray.length) {
+        return asArray;
+      }
+    }
+    if (typeof raw === "string" && raw.trim()) {
+      try {
+        const parsed = JSON.parse(raw.trim());
+        if (Array.isArray(parsed) && parsed.length) {
+          return parsed;
+        }
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          const asArray = Object.values(parsed);
+          if (asArray.length) {
+            return asArray;
+          }
+        }
+      } catch (error) {
+        // ignore
+      }
+    }
+  }
+  return [];
 }
 
 function normalizeAgentResultType(value) {
@@ -3658,6 +4181,7 @@ function normalizeAgentResultEntry(rawEntry, index = 0, options = {}) {
     nonEmptyString(rawEntry.fileName) ||
     "";
   const text = nonEmptyString(rawEntry.text) ||
+    nonEmptyString(rawEntry.content) ||
     nonEmptyString(rawEntry.message) ||
     nonEmptyString(rawEntry.summary) ||
     nonEmptyString(rawEntry.description) ||
@@ -3720,13 +4244,30 @@ function parseAutomationResponseBody(bodyText) {
   try {
     return JSON.parse(trimmed);
   } catch (error) {
-    return null;
+    if (trimmed.length > 120_000) {
+      return null;
+    }
+    const t = coerceAutomationTextField(trimmed, 12000);
+    if (!t) {
+      return null;
+    }
+    // Plain-text webhook body (e.g. Activepieces "return text" with no JSON wrapper)
+    return {
+      workflowStatus: "completed",
+      private: t,
+      group: t,
+      message: t.slice(0, Math.min(2000, t.length)),
+    };
   }
 }
 
 function extractAutomationResponseMessage(bodyText, workflowName, parsedBody = null) {
   const trimmed = typeof bodyText === "string" ? bodyText.trim() : "";
   if (!trimmed) {
+    return `Test an ${workflowName} gesendet.`;
+  }
+  // Short non-JSON error bodies; avoid returning "{}" to clients (coerced as the user-visible message).
+  if (trimmed === "{}" || trimmed === "[]" || /^null$/i.test(trimmed)) {
     return `Test an ${workflowName} gesendet.`;
   }
 
@@ -3739,7 +4280,12 @@ function extractAutomationResponseMessage(bodyText, workflowName, parsedBody = n
       return message;
     }
   }
-
+  if (trimmed.length > 160) {
+    const fromDeep = deepFirstNonGenericAutomationMessageString(bodyText);
+    if (fromDeep) {
+      return fromDeep;
+    }
+  }
   return trimmed.length > 160 ? `Test an ${workflowName} gesendet.` : trimmed;
 }
 
@@ -3750,6 +4296,11 @@ function extractAutomationResponseResults(parsedBody, options = {}) {
 
   if (!parsedBody || typeof parsedBody !== "object") {
     return [];
+  }
+
+  const nestedFirst = firstNonEmptyAutomationResultsArray(parsedBody);
+  if (nestedFirst.length) {
+    return normalizeAgentResultEntries(nestedFirst, options);
   }
 
   return normalizeAgentResultEntries(
@@ -3791,7 +4342,7 @@ async function triggerWorkflowAutomationWebhook({
   automationScope = "owner",
 }) {
   const normalizeSocialPlatforms = (value) => {
-    const allowed = new Set(["instagram", "tiktok", "youtube"]);
+    const allowed = new Set(SOCIAL_PLATFORM_ORDER);
     const sourceValue = Array.isArray(value) ?
       value :
       typeof value === "string" ?
@@ -3802,7 +4353,7 @@ async function triggerWorkflowAutomationWebhook({
             .map((entry) => nonEmptyString(entry)?.toLowerCase() || "")
             .filter((entry) => allowed.has(entry)),
     ));
-    return normalized.length > 0 ? normalized : ["instagram", "tiktok", "youtube"];
+    return normalized.length > 0 ? normalized : [...SOCIAL_PLATFORM_ORDER];
   };
   const scope = automationScope === "personal" ? "personal" : "owner";
   const settings = await loadWorkflowAutomationSettingsForUser(auth?.uid, scope);
@@ -4035,6 +4586,213 @@ async function triggerWorkflowAutomationWebhook({
     allowedLinkHosts,
     stripWorkflowFromAutomation: true,
   };
+  let privateOut = coerceAutomationTextField(
+      pickAutomationNestedScalarField(parsedResponseBody, "private") ??
+      parsedResponseBody?.private,
+      12000,
+  );
+  if (!privateOut) {
+    privateOut = pickFirstAutomationNestedStringField(parsedResponseBody, [
+      "text", "markdown", "answer", "content", "briefing", "output", "aiText", "result",
+    ]);
+  }
+  if (!privateOut) {
+    privateOut = pickNonGenericAgentMessageText(parsedResponseBody);
+  }
+  let groupOut = coerceAutomationTextField(
+      pickAutomationNestedScalarField(parsedResponseBody, "group") ??
+      parsedResponseBody?.group,
+      12000,
+  );
+  if (!groupOut) {
+    groupOut = pickFirstAutomationNestedStringField(parsedResponseBody, [
+      "group", "team", "shared", "channel",
+    ]);
+  }
+  if (!groupOut) {
+    groupOut = privateOut;
+  }
+  if (!privateOut) {
+    privateOut = groupOut;
+  }
+  let resultsOut = extractAutomationResponseResults(
+      parsedResponseBody || {},
+      automationResultOptions,
+  );
+  let founderBriefingMeta = null;
+  if (privateOut === "{}" || privateOut === "[]") {
+    privateOut = "";
+  }
+  if (groupOut === "{}" || groupOut === "[]") {
+    groupOut = "";
+  }
+  if ((!privateOut && !groupOut) || !resultsOut.length) {
+    const rescue = rescueAutomationLayerFromRawResponse(responseBody);
+    if (rescue) {
+      const p = coerceAutomationTextField(rescue.private, 12000);
+      const g = coerceAutomationTextField(rescue.group, 12000);
+      if (!privateOut && p) {
+        privateOut = p;
+      }
+      if (!groupOut && g) {
+        groupOut = g;
+      }
+      if (!privateOut) {
+        privateOut = groupOut;
+      }
+      if (!groupOut) {
+        groupOut = privateOut;
+      }
+      if (!resultsOut.length && Array.isArray(rescue.results) && rescue.results.length) {
+        const merged = {...(parsedResponseBody && typeof parsedResponseBody === "object" ?
+            parsedResponseBody : {}), results: rescue.results};
+        resultsOut = extractAutomationResponseResults(merged, automationResultOptions);
+      }
+    }
+  }
+  if (!privateOut || privateOut.length < 10) {
+    const deepP = deepFillPrivateFromNestedTextFields(responseBody);
+    if (deepP) {
+      privateOut = coerceAutomationTextField(deepP, 12000);
+    }
+  }
+  // Shallow "message" / "Erledigt. …" can satisfy privateOut and skip the branch above. Prefer the
+  // longest "private" / "content" / "markdown" anywhere in the full JSON.
+  {
+    const deepP = (deepFillPrivateFromNestedTextFields(responseBody) || "").trim();
+    if (deepP) {
+      const t = coerceAutomationTextField(deepP, 12000);
+      if (t && t.length > (privateOut || "").length) {
+        privateOut = t;
+      }
+    }
+  }
+  if (!groupOut || groupOut.length < 1) {
+    const deepG = deepExtractLongestStringFieldByKey(responseBody, "group", 8);
+    if (deepG) {
+      groupOut = coerceAutomationTextField(deepG, 12000);
+    }
+  }
+  if (!privateOut) {
+    privateOut = groupOut;
+  }
+  if (!groupOut) {
+    groupOut = privateOut;
+  }
+  if (!resultsOut.length) {
+    const deepR = deepExtractFirstNonEmptyArrayByKey(responseBody, "results");
+    if (Array.isArray(deepR) && deepR.length) {
+      const merged = {...(parsedResponseBody && typeof parsedResponseBody === "object" ?
+        parsedResponseBody : {}), results: deepR};
+      resultsOut = extractAutomationResponseResults(merged, automationResultOptions);
+    }
+  }
+  if (!resultsOut.length && (privateOut || groupOut)) {
+    const blob = privateOut || groupOut;
+    if (blob) {
+      resultsOut = normalizeAgentResultEntries(
+          [{ type: "text", text: blob, title: "Briefing", id: "synthetic_1" }],
+          automationResultOptions,
+      );
+    }
+  }
+  if (privateOut && privateOut.length > 0 && (groupOut == null || groupOut === "")) {
+    groupOut = privateOut;
+  }
+  if (groupOut && groupOut.length > 0 && !privateOut) {
+    privateOut = groupOut;
+  }
+  // Android Home "Founder Analyse" / Team: merge the same Firestore-based briefing
+  // (createFounderBriefing) over the Activepieces response. Prefer longer text in each
+  // field so a broken/echoing webhook (e.g. `{{step_1}}` body) is overridden when Firestore
+  // has the real markdown.
+  const dForFallback = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const briefingLikeRequest =
+    trigger === "home_founder_briefing" ||
+    nonEmptyString(dForFallback.mode)?.toLowerCase() === "briefing";
+  if (automationScope === "owner" && auth?.uid && briefingLikeRequest) {
+    const fbMode = normalizeFounderBriefingMode(
+        nonEmptyString(dForFallback.briefingTarget) || nonEmptyString(dForFallback.briefingMode) ||
+        "private",
+    ) || "private";
+    const fbDate = nonEmptyString(dForFallback.date);
+    if (fbDate && isValidIsoDateString(fbDate)) {
+      try {
+        const fr = await buildFounderBriefingResponseData({
+          uid: auth.uid,
+          mode: fbMode,
+          date: fbDate,
+          requestId: nonEmptyString(dForFallback.requestId) || requestId,
+        });
+        if (fr && fr.ok) {
+          if (fr.briefingMeta && typeof fr.briefingMeta === "object") {
+            founderBriefingMeta = fr.briefingMeta;
+          }
+          const fsp = typeof fr.private === "string" ? fr.private : "";
+          const fsg = typeof fr.group === "string" ? fr.group : "";
+          if (fsp.length > (privateOut || "").length) {
+            privateOut = fsp;
+          }
+          if (fsg.length > (groupOut || "").length) {
+            groupOut = fsg;
+          }
+          if (privateOut && privateOut.length > 0 && (groupOut == null || groupOut === "")) {
+            groupOut = privateOut;
+          }
+          if (groupOut && groupOut.length > 0 && !privateOut) {
+            privateOut = groupOut;
+          }
+          if (!Array.isArray(resultsOut) || !resultsOut.length) {
+            if (privateOut || groupOut) {
+              const blob = privateOut || groupOut;
+              if (blob) {
+                resultsOut = normalizeAgentResultEntries(
+                    [{
+                      type: "text",
+                      text: blob,
+                      title: "Founder Briefing (Firestore)",
+                      id: "firestore_fallback_1",
+                    }],
+                    automationResultOptions,
+                );
+              }
+            }
+          }
+          logger.info("automation.founder_briefing.firestore_merge", {
+            requestId,
+            trigger,
+            uid: auth.uid,
+            privateOutChars: (privateOut || "").length,
+            groupOutChars: (groupOut || "").length,
+            resultsOutCount: Array.isArray(resultsOut) ? resultsOut.length : 0,
+          });
+        }
+      } catch (fbErr) {
+        logger.warn("automation.founder_briefing.firestore_merge_failed", {
+          requestId,
+          err: fbErr instanceof Error ? fbErr.message : String(fbErr),
+        });
+      }
+    } else {
+      logger.info("automation.founder_briefing.firestore_merge_skipped_invalid_date", {
+        requestId,
+        trigger,
+        gotDate: fbDate || null,
+      });
+    }
+  }
+  const bodyStr = typeof responseBody === "string" ? responseBody : "";
+  logger.info("automation.webhook.parse_summary", {
+    requestId,
+    trigger,
+    workflowName: settings.workflowName,
+    responseBodyChars: bodyStr.length,
+    privateOutChars: (privateOut || "").length,
+    groupOutChars: (groupOut || "").length,
+    resultsOutCount: Array.isArray(resultsOut) ? resultsOut.length : 0,
+    bodyLooksJson: bodyStr.trim().startsWith("{") || bodyStr.trim().startsWith("["),
+    bodyPrefix: bodyStr.replace(/\s+/g, " ").slice(0, 200),
+  });
   return {
     message: extractAutomationResponseMessage(responseBody, settings.workflowName, parsedResponseBody),
     workflowName: settings.workflowName,
@@ -4042,8 +4800,16 @@ async function triggerWorkflowAutomationWebhook({
     provider: settings.provider,
     requestId,
     workflowStatus,
+    private: privateOut,
+    group: groupOut,
+    briefingPrivate: privateOut,
+    briefingGroup: groupOut,
+    // Alias (same string) — some clients have historically mis-read `private` with empty values.
+    founderBriefingMarkdown: privateOut,
     schemaVersion: extractAutomationSchemaVersion(parsedResponseBody),
-    results: extractAutomationResponseResults(parsedResponseBody, automationResultOptions),
+    results: resultsOut,
+    briefingResults: resultsOut,
+    briefingMeta: founderBriefingMeta,
   };
 }
 
@@ -6638,6 +7404,66 @@ function sortTasksForFounderBriefing(tasks) {
   });
 }
 
+/** Anzeige-Texte bei fehlenden Einzelwerten (kein internes FEHLT: im Nutzer-Markdown). */
+const FOUNDER_DISPLAY = Object.freeze({
+  gapEur: "wird noch angebunden",
+  gapCount: "wird noch angebunden",
+  gapPercent: "wird noch angebunden",
+  gapTrend: "noch kein Trend",
+  gapMonthModel: "Modellrechnung: dafuer fehlen Tages- oder Monatskosten.",
+  noHighlights: "- Kein Highlight fuer diesen Tag hinterlegt (optional nachziehen).",
+  noNotes: "Notizen: heute kein klarer Executive-Pull aus den letzten Eintraegen.",
+  noRisksBlock: "- Keine strategischen Risiken fuer heute hinterlegt (ruhiger Lageblick).",
+  noTasks: "- Keine offenen Team-Aufgaben in der Warteschlange.",
+  riskTitle: "Ohne Titel",
+  riskImpact: "Einordnung fehlt",
+  riskNext: "Naechster Schritt offen",
+  decisionKpi: "Kosten: Zielkorridor definieren, sobald Tageswerte stabil bleiben.",
+  decisionRetention: "Retention: D1 per Analytics messen, dann Hebel priorisieren.",
+  decisionRisks: "Risiken: Erstbefuellung in founder_risks (Top 1–3) empfohlen.",
+  tagline: "*Auf den Punkt gebracht, vertraulich — dein schneller Lageblick fuer heute.*",
+  disclaimer: "*Hinweis: unverbindlich, keine Rechts- oder Steuerberatung. Basiert auf vorliegenden Systemdaten; Luecken sind normal, solange Anbindungen wachsen.*",
+});
+
+function formatFounderEur(value) {
+  return Number.isFinite(value) ? formatEur(value) : FOUNDER_DISPLAY.gapEur;
+}
+function formatFounderNumber(value) {
+  return Number.isFinite(value) ? formatNumber(value) : FOUNDER_DISPLAY.gapCount;
+}
+function formatFounderPercent(value) {
+  return Number.isFinite(value) ? formatPercent(value) : FOUNDER_DISPLAY.gapPercent;
+}
+
+function buildFounderBriefingFooter({date, kpis = {}}) {
+  const k = kpis && typeof kpis === "object" && !Array.isArray(kpis) ? kpis : {};
+  const now = new Date();
+  const berlin = new Intl.DateTimeFormat("de-DE", {
+    timeZone: "Europe/Berlin",
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(now);
+  const kpiTime = nonEmptyString(k.updatedAt) ?
+    ` · KPI-Stand: ${trimTextMax(k.updatedAt, 32)}` :
+    "";
+  const kpiLine = [
+    nonEmptyString(k.kpiSource),
+    nonEmptyString(k.kpiCostSource),
+    nonEmptyString(k.kpiUserSource),
+    nonEmptyString(k.kpiRevenueSource),
+  ]
+      .filter(Boolean)
+      .join(" · ");
+  const sourceHint = kpiLine ? `*Quellen (technisch, nachvollziehbar):* ${kpiLine}` : "";
+  return [
+    "",
+    "---",
+    `Stand: ${berlin} · Berichtstag ${date}${kpiTime}`,
+    sourceHint,
+    FOUNDER_DISPLAY.disclaimer,
+  ].filter((line) => line !== "").join("\n");
+}
+
 function buildFounderPrivateBriefing({
   date,
   kpis,
@@ -6673,10 +7499,10 @@ function buildFounderPrivateBriefing({
 
   const sortedRisks = [...(Array.isArray(risks) ? risks : [])]
       .map((risk) => ({
-        title: nonEmptyString(risk?.title) || "FEHLT: founder_risks.title",
+        title: nonEmptyString(risk?.title) || FOUNDER_DISPLAY.riskTitle,
         severity: normalizeRiskSeverity(risk?.severity),
-        impact: nonEmptyString(risk?.impact) || "FEHLT: founder_risks.impact",
-        nextStep: nonEmptyString(risk?.next_step) || "FEHLT: founder_risks.next_step",
+        impact: nonEmptyString(risk?.impact) || FOUNDER_DISPLAY.riskImpact,
+        nextStep: nonEmptyString(risk?.next_step) || FOUNDER_DISPLAY.riskNext,
       }))
       .sort((left, right) => RISK_SEVERITY_ORDER[left.severity] - RISK_SEVERITY_ORDER[right.severity]);
   if (sortedRisks.length === 0) {
@@ -6685,58 +7511,60 @@ function buildFounderPrivateBriefing({
 
   const costTrendText = Number.isFinite(firebaseCostTrendPct) ?
     (firebaseCostTrendPct > 0 ? `steigend um ${formatPercent(firebaseCostTrendPct)}` : `fallend um ${formatPercent(Math.abs(firebaseCostTrendPct))}`) :
-    "FEHLT: founder_daily_kpis.firebase_cost_trend_pct";
+    FOUNDER_DISPLAY.gapTrend;
   const monthEndRiskText = Number.isFinite(firebaseCostMtd) && Number.isFinite(firebaseCostToday) ?
     `Bei konstantem Verlauf liegt das Monatsniveau bei ca. ${formatEur(firebaseCostMtd + (firebaseCostToday * 30))}.` :
-    "FEHLT: founder_daily_kpis.firebase_cost_mtd, founder_daily_kpis.firebase_cost_today";
+    FOUNDER_DISPLAY.gapMonthModel;
   const highlightText = topHighlights.length ?
-    topHighlights.map((entry) => `- ${nonEmptyString(entry?.title) || "FEHLT: founder_highlights.title"} (${nonEmptyString(entry?.impact) || "FEHLT: founder_highlights.impact"})`).join("\n") :
-    "- FEHLT: founder_highlights";
+    topHighlights.map((entry) => `- ${nonEmptyString(entry?.title) || "Ohne Titel"} (${nonEmptyString(entry?.impact) || "Wirkung offen"})`).join("\n") :
+    FOUNDER_DISPLAY.noHighlights;
   const notesAnchor = notesSafe.length ?
-    `Signal aus Notizen: ${trimTextMax(nonEmptyString(notesSafe[0]?.title) || nonEmptyString(notesSafe[0]?.content) || "", 140) || "FEHLT: notes.title/content"}` :
-    "Signal aus Notizen: FEHLT: notes";
+    `Wichtigstes Signal aus Notizen: ${trimTextMax(nonEmptyString(notesSafe[0]?.title) || nonEmptyString(notesSafe[0]?.content) || "", 140) || "Inhalt lokal kuerzbar"}` :
+    FOUNDER_DISPLAY.noNotes;
 
   const decisionItems = [
     Number.isFinite(firebaseCostToday) ?
-      `Setze heute ein klares Kostenlimit. Aktuell: ${formatEur(firebaseCostToday)} pro Tag.` :
-      "FEHLT: founder_daily_kpis.firebase_cost_today",
+      `Gib heute Kosten und Tempo bewusst den Rahmen. Heute: ${formatEur(firebaseCostToday)} pro Tag — Limit und Review festlegen.` :
+      FOUNDER_DISPLAY.decisionKpi,
     Number.isFinite(retentionD1Pct) ?
-      `Setze eine konkrete D1-Retention-Massnahme. Aktuell: ${formatPercent(retentionD1Pct)}.` :
-      "FEHLT: founder_daily_kpis.retention_d1_pct",
+      `Pack die eine Massnahme an, die D1 wirklich bewegt. Heute: ${formatPercent(retentionD1Pct)} — einen Hebel sichtbar testen.` :
+      FOUNDER_DISPLAY.decisionRetention,
     sortedRisks.length ?
-      `Priorisiere zuerst: ${sortedRisks[0].title}.` :
-      "FEHLT: founder_risks",
+      `Geh zuerst ins Thema, das alles bremst: ${sortedRisks[0].title}.` :
+      FOUNDER_DISPLAY.decisionRisks,
   ];
 
   const dayPlanItems = sortedTasks
       .slice(0, 6)
-      .map((task) => `- ${trimTextMax(nonEmptyString(task?.title) || "FEHLT: tasks.title", 180)}`);
+      .map((task) => `- ${trimTextMax(nonEmptyString(task?.title) || "Aufgabe", 180)}`);
   if (dayPlanItems.length === 0) {
-    dayPlanItems.push("- FEHLT: tasks");
+    dayPlanItems.push(FOUNDER_DISPLAY.noTasks);
   }
 
   const riskLines = sortedRisks.length ?
-    sortedRisks.slice(0, 8).map((risk) => `- [${risk.severity}] ${risk.title} - ${risk.impact} - Naechster Schritt: ${risk.nextStep}`).join("\n") :
-    "- FEHLT: founder_risks";
+    sortedRisks.slice(0, 8).map((risk) => `- [${risk.severity}] ${risk.title} — Wirkung: ${risk.impact} — Naechster Schritt: ${risk.nextStep}`).join("\n") :
+    FOUNDER_DISPLAY.noRisksBlock;
 
   return [
-    `# Founder Briefing (Private) - ${date}`,
+    `# Founder Briefing (Private) — ${date}`,
+    FOUNDER_DISPLAY.tagline,
     "",
-    "## 1) Cost Watch (Firebase)",
-    `- Haupttreiber: Kosten heute ${formatEur(firebaseCostToday)}; Trend ${costTrendText}.`,
-    `- Auffaelligkeiten: MTD ${formatEur(firebaseCostMtd)} bei ${formatNumber(activeUsers24h)} aktiven Nutzern in 24h.`,
-    `- Risiko bis Monatsende: ${monthEndRiskText}`,
+    "## 1) Cost Watch (SkyOS & KI)",
+    "Kostenbasis: abgestimmter KI- und Plattform-Nutzungstrack (systemMetrics). Vollstaendiger GCP-Abrechnungsexport ist separat, nicht 1:1 ersetzt.",
+    `Haupttreiber: Kosten heute ${formatFounderEur(firebaseCostToday)}; Trend ${costTrendText}.`,
+    `Auffaellig: Monat bis dato ${formatFounderEur(firebaseCostMtd)} bei ${formatFounderNumber(activeUsers24h)} aktiven Nutzern in 24h (rollierend).`,
+    `Bis Monatsende: ${monthEndRiskText}`,
     Number.isFinite(firebaseCostTrendPct) && firebaseCostTrendPct > 0 ?
-      "- Handlung heute: Teure Kostenquellen zuerst eingrenzen." :
-      "- Handlung heute: Kostenkurs stabil halten und taeglich gegenpruefen.",
+      "Sinnvoll heute: teure Kostenstellen zuerst eingrenzen und Messpunkt setzen." :
+      "Sinnvoll heute: Kurs halten, kurz gegenchecken — Ueberraschungen vermeiden.",
     "",
     "## 2) Business Impact",
-    `- Umsatz heute ${formatEur(revenueToday)}, Umsatz MTD ${formatEur(revenueMtd)}.`,
-    `- Neue Nutzer 24h: ${formatNumber(newUsers24h)}, aktive Nutzer 24h: ${formatNumber(activeUsers24h)}, D1-Retention: ${formatPercent(retentionD1Pct)}.`,
+    `Umsatz: heute ${formatFounderEur(revenueToday)}, Monat ${formatFounderEur(revenueMtd)} (Shop-Bestellungen, sofern angebunden).`,
+    `Nutzer: ${formatFounderNumber(newUsers24h)} neu in 24h, ${formatFounderNumber(activeUsers24h)} aktiv; D1-Retention ${formatFounderPercent(retentionD1Pct)}.`,
     highlightText,
     `- ${notesAnchor}`,
     "",
-    "## 3) Top 3 Founder-Entscheidungen heute",
+    "## 3) Top 3 Entscheidungen fuer heute",
     `1. ${decisionItems[0]}`,
     `2. ${decisionItems[1]}`,
     `3. ${decisionItems[2]}`,
@@ -6744,8 +7572,9 @@ function buildFounderPrivateBriefing({
     "## 4) Risiken & Blocker",
     riskLines,
     "",
-    "## 5) Mein Tagesplan",
+    "## 5) Tagesplan",
     ...dayPlanItems,
+    buildFounderBriefingFooter({date, kpis}),
   ].join("\n");
 }
 
@@ -6765,10 +7594,10 @@ function buildFounderGroupBriefing({
 
   const sortedRisks = [...(Array.isArray(risks) ? risks : [])]
       .map((risk) => ({
-        title: nonEmptyString(risk?.title) || "FEHLT: founder_risks.title",
+        title: nonEmptyString(risk?.title) || FOUNDER_DISPLAY.riskTitle,
         severity: normalizeRiskSeverity(risk?.severity),
-        impact: nonEmptyString(risk?.impact) || "FEHLT: founder_risks.impact",
-        nextStep: nonEmptyString(risk?.next_step) || "FEHLT: founder_risks.next_step",
+        impact: nonEmptyString(risk?.impact) || FOUNDER_DISPLAY.riskImpact,
+        nextStep: nonEmptyString(risk?.next_step) || FOUNDER_DISPLAY.riskNext,
       }))
       .sort((left, right) => RISK_SEVERITY_ORDER[left.severity] - RISK_SEVERITY_ORDER[right.severity]);
   if (sortedRisks.length === 0) {
@@ -6785,36 +7614,46 @@ function buildFounderGroupBriefing({
   }
 
   const analysisSentences = [
-    `Stand ${date}: Umsatz heute ${formatEur(revenueToday)} bei Kosten von ${formatEur(firebaseCostToday)}.`,
-    `Aktiv waren ${formatNumber(activeUsers24h)} Nutzer, davon ${formatNumber(newUsers24h)} neue Nutzer.`,
-    `Die D1-Retention liegt bei ${formatPercent(retentionD1Pct)} und zeigt den unmittelbaren Produkt-Fit.`,
+    `Am ${date} liegen Umsatz und Kosten nah beieinander: ${formatFounderEur(revenueToday)} Umsatz bei ${formatFounderEur(firebaseCostToday)} aus dem bekannten KI-/Nutzungstrack.`,
+    `In 24h waren ${formatFounderNumber(activeUsers24h)} Nutzer aktiv, ${formatFounderNumber(newUsers24h)} neu dazu — das misst, ob wir Nutzen und Kurve wirklich treffen.`,
+    Number.isFinite(retentionD1Pct) ?
+      `D1-Retention steht bei ${formatPercent(retentionD1Pct)}; das ist der schnellste Eindruck, ob Newcomer wiederkommen.` :
+      "D1-Retention folgt, sobald Analytics voll angebunden ist; bis dahin ist die Zahl eher ein Blindflug.",
     sortedRisks.length ?
-      `Groesster aktueller Blocker: ${sortedRisks[0].title} (${sortedRisks[0].severity}).` :
-      "Groesster aktueller Blocker: FEHLT: founder_risks.",
+      `Wenn heute eins bremst, dann: ${sortedRisks[0].title} (Einstufung ${sortedRisks[0].severity}) — da lohnt sich ehrliche Priorisierung.` :
+      "Fuer heute fehlt noch der scharfe Blick in founder_risks — ohne Risikolinie fehlt auch die gemeinsame Fokusrichtung.",
   ];
 
+  const stepWhats = trimTextMax(nonEmptyString(sortedRisks[0]?.nextStep) || "naechster Schritt festlegen", 100);
   const whatsappLines = [];
-  whatsappLines.push(`WhatsApp Update:`);
-  whatsappLines.push(`Heute Umsatz ${formatEur(revenueToday)} und Kosten ${formatEur(firebaseCostToday)}.`);
-  whatsappLines.push(`Aktive Nutzer 24h: ${formatNumber(activeUsers24h)}. Neue Nutzer: ${formatNumber(newUsers24h)}.`);
+  whatsappLines.push(`*Kurz-Update (zum Weiterleiten, WhatsApp-Style)*`);
+  whatsappLines.push(`Umsatz heute ${formatFounderEur(revenueToday)} · Kosten-Track (bekannt) ${formatFounderEur(firebaseCostToday)}.`);
+  whatsappLines.push(
+      `Aktiv 24h: ${formatFounderNumber(activeUsers24h)} · neu: ${formatFounderNumber(newUsers24h)}.`,
+  );
   whatsappLines.push(
       sortedRisks.length ?
-        `Wichtigster Blocker: ${sortedRisks[0].title}. Naechster Schritt: ${sortedRisks[0].nextStep}.` :
-        "Wichtigster Blocker: FEHLT: founder_risks.",
+        `Blocker Nr. 1: ${sortedRisks[0].title} — naechster sinnvoller Schritt: ${stepWhats}.` :
+        "Blocker: heute kein Eintrag in founder_risks — besser einen klaren Kandidaten nennen als stilles Risiko.",
   );
   whatsappLines.push(
       highlightsSafe.length ?
-        `Positiver Punkt: ${nonEmptyString(highlightsSafe[0]?.title) || "FEHLT: founder_highlights.title"}.` :
-        "Positiver Punkt: FEHLT: founder_highlights.",
+        `Guter Punkt heute: ${nonEmptyString(highlightsSafe[0]?.title) || "Highlight"}.` :
+        "Guter Punkt: noch kein Highlight in founder_highlights hinterlegt (optional, aber motivierend).",
   );
   whatsappLines.push(
       sortedTasks.length ?
-        `Fokus heute: ${trimTextMax(nonEmptyString(sortedTasks[0]?.title) || "FEHLT: tasks.title", 120)}.` :
-        "Fokus heute: FEHLT: tasks.",
+        `Fokus fuer heute: ${trimTextMax(nonEmptyString(sortedTasks[0]?.title) || "Aufgabe", 120)}` :
+        "Fokus: in der Task-Queue steht heute nichts Sichtbares – entweder ist wirklich Luft, oder Staging fehlt.",
   );
-  whatsappLines.push("Ausblick: Wenn wir den Top-Blocker heute loesen, ist morgen ein klar messbarer Fortschritt realistisch.");
+  whatsappLines.push("Wenn wir den wichtigsten Blocker heute sichtbar angehen, ist morgen der Fortschritt messbar spuerbarer.");
 
-  return `${analysisSentences.join(" ")}\n\n${whatsappLines.join("\n")}`;
+  return [
+    analysisSentences.join(" "),
+    "",
+    whatsappLines.join("\n"),
+    buildFounderBriefingFooter({date, kpis}),
+  ].join("\n");
 }
 
 async function buildFounderBriefingResponseData({
@@ -6923,19 +7762,39 @@ async function buildFounderBriefingResponseData({
     }) :
     undefined;
 
+  const generatedAt = new Date().toISOString();
+  const dataQuality =
+    !kpis ? "no_kpi_doc" :
+    missing.length === 0 ? "complete" :
+    "partial";
   const result = {
     ok: true,
     requestId,
     uid,
     mode,
     missing,
-    generatedAt: new Date().toISOString(),
+    generatedAt,
+    briefingMeta: {
+      businessDate: date,
+      generatedAt,
+      dataQuality,
+      missingKeysCount: missing.length,
+      kpiDocumentId: kpiRef.id,
+      kpiUpdatedAt: nonEmptyString(kpis?.updatedAt) || null,
+      kpiSource: nonEmptyString(kpis?.kpiSource) || null,
+      kpiCostSource: nonEmptyString(kpis?.kpiCostSource) || null,
+      kpiUserSource: nonEmptyString(kpis?.kpiUserSource) || null,
+      kpiRevenueSource: nonEmptyString(kpis?.kpiRevenueSource) || null,
+    },
   };
   if (typeof privateBriefing === "string") {
     result.private = privateBriefing;
+    result.briefingPrivate = privateBriefing;
+    result.founderBriefingMarkdown = privateBriefing;
   }
   if (typeof groupBriefing === "string") {
     result.group = groupBriefing;
+    result.briefingGroup = groupBriefing;
   }
   return result;
 }
@@ -9325,6 +10184,26 @@ function stripHtml(value) {
 
 function nonEmptyString(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function coerceAutomationTextField(value, maxChars = 12000) {
+  if (value == null) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return trimTextMax(value, maxChars);
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return trimTextMax(String(value), maxChars);
+  }
+  if (typeof value === "object") {
+    try {
+      return trimTextMax(JSON.stringify(value), maxChars);
+    } catch (error) {
+      return "";
+    }
+  }
+  return trimTextMax(String(value), maxChars);
 }
 
 function truncateTextBlock(value, maxChars = 600) {
@@ -13940,12 +14819,22 @@ function normalizeSocialHandle(value) {
   return trimTextMax(raw.replace(/^@+/, "").replace(/\s+/g, ""), 120).toLowerCase();
 }
 
+const SOCIAL_PLATFORM_ORDER = Object.freeze([
+  "instagram",
+  "tiktok",
+  "youtube",
+  "facebook",
+  "spotify",
+]);
+
 function normalizeSocialProfiles(value = {}) {
   const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   return {
     instagram: normalizeSocialHandle(source.instagram || source.instagramHandle),
     tiktok: normalizeSocialHandle(source.tiktok || source.tiktokHandle),
     youtube: normalizeSocialHandle(source.youtube || source.youtubeHandle || source.youtubeChannel),
+    facebook: normalizeSocialHandle(source.facebook || source.facebookHandle),
+    spotify: normalizeSocialHandle(source.spotify || source.spotifyHandle),
   };
 }
 
@@ -13958,6 +14847,8 @@ function extractSocialProfilesFromPrompt(prompt = "") {
     instagram: /(?:instagram|ig)\s*[:=]\s*@?([a-z0-9._-]{2,60})/i,
     tiktok: /(?:tiktok|tt)\s*[:=]\s*@?([a-z0-9._-]{2,60})/i,
     youtube: /(?:youtube|yt)\s*[:=]\s*@?([a-z0-9._-]{2,80})/i,
+    facebook: /(?:facebook|fb)\s*[:=]\s*@?([a-z0-9._-]{2,80})/i,
+    spotify: /(?:spotify|sp)\s*[:=]\s*@?([a-z0-9._-]{2,100})/i,
   };
   const extracted = {};
   for (const [platform, pattern] of Object.entries(patterns)) {
@@ -13979,6 +14870,8 @@ function mergeSocialProfiles(baseProfiles = {}, overrideProfiles = {}) {
     instagram: override.instagram || base.instagram || "",
     tiktok: override.tiktok || base.tiktok || "",
     youtube: override.youtube || base.youtube || "",
+    facebook: override.facebook || base.facebook || "",
+    spotify: override.spotify || base.spotify || "",
   };
 }
 
@@ -13991,6 +14884,10 @@ function normalizeSocialSetupInput(value = {}) {
     tiktokHandle: normalizeSocialHandle(source.tiktokHandle),
     youtubeEnabled: source.youtubeEnabled === true,
     youtubeHandle: normalizeSocialHandle(source.youtubeHandle),
+    facebookEnabled: source.facebookEnabled === true,
+    facebookHandle: normalizeSocialHandle(source.facebookHandle),
+    spotifyEnabled: source.spotifyEnabled === true,
+    spotifyHandle: normalizeSocialHandle(source.spotifyHandle),
   };
   return {
     ...setup,
@@ -13998,6 +14895,8 @@ function normalizeSocialSetupInput(value = {}) {
       setup.instagramEnabled ? "instagram" : "",
       setup.tiktokEnabled ? "tiktok" : "",
       setup.youtubeEnabled ? "youtube" : "",
+      setup.facebookEnabled ? "facebook" : "",
+      setup.spotifyEnabled ? "spotify" : "",
     ].filter(Boolean),
   };
 }
@@ -14024,14 +14923,14 @@ function detectSocialAnalysisIntent({mode = "", prompt = ""} = {}) {
     return false;
   }
   const hasAnalysisWord = /\banaly[sz]e|\banalys[ei]s|\bauswert|\binsight|\bperformance\b/.test(normalizedPrompt);
-  const hasSocialWord = /\bsocial\b|\binstagram\b|\btiktok\b|\byoutube\b|\bengagement\b|\breach\b/.test(normalizedPrompt);
+  const hasSocialWord = /\bsocial\b|\binstagram\b|\btiktok\b|\byoutube\b|\bfacebook\b|\bspotify\b|\bengagement\b|\breach\b/.test(normalizedPrompt);
   return hasAnalysisWord && hasSocialWord;
 }
 
 async function loadUserSocialProfiles(uid) {
-  const emptyProfiles = {instagram: "", tiktok: "", youtube: ""};
+  const emptyProfiles = {instagram: "", tiktok: "", youtube: "", facebook: "", spotify: ""};
   if (!uid) {
-    return {profiles: emptyProfiles, hasAny: false, missingPlatforms: ["instagram", "tiktok", "youtube"]};
+    return {profiles: emptyProfiles, hasAny: false, missingPlatforms: [...SOCIAL_PLATFORM_ORDER]};
   }
   const profileSnap = await admin.firestore()
       .collection("users")
@@ -14047,7 +14946,7 @@ async function loadUserSocialProfiles(uid) {
       .map(([platform]) => platform);
   return {
     profiles,
-    hasAny: missingPlatforms.length < 3,
+    hasAny: missingPlatforms.length < SOCIAL_PLATFORM_ORDER.length,
     missingPlatforms,
   };
 }
@@ -14898,10 +15797,14 @@ exports.skydownAgent = onCall({
   );
   const allowedExternalTaskTypes = agentCore.externalPolicy?.allowedExternalTaskTypes || [];
   const selectedAutomationScope = agentInput.automationScope === "personal" ? "personal" : "owner";
+  const socialSetupForIntent = normalizeSocialSetupInput(agentInput.socialSetup);
   const isSocialAnalysisIntent = detectSocialAnalysisIntent({
     mode: agentInput.mode,
     prompt: agentInput.prompt,
-  });
+  }) || (
+    nonEmptyString(agentInput.mode)?.toLowerCase() === "automation" &&
+    socialSetupForIntent.selectedPlatforms.length > 0
+  );
   const maxExternalCallsPerRequest = Number.isFinite(Number(agentCore.externalPolicy?.maxExternalCallsPerRequest)) ?
     Number(agentCore.externalPolicy.maxExternalCallsPerRequest) :
     1;
@@ -15296,19 +16199,27 @@ exports.skydownAgent = onCall({
     agentProvider = AI_AGENT_PROVIDERS.gemini;
   }
 
-  let socialProfiles = {instagram: "", tiktok: "", youtube: ""};
+  let socialProfiles = {
+    instagram: "",
+    tiktok: "",
+    youtube: "",
+    facebook: "",
+    spotify: "",
+  };
   let socialMissingPlatforms = [];
   let socialSelectedPlatforms = [];
   if (isSocialAnalysisIntent && request.auth?.uid) {
     try {
       const socialProfileState = await loadUserSocialProfiles(request.auth.uid);
       const extractedFromPrompt = extractSocialProfilesFromPrompt(agentInput.prompt);
-      const socialSetup = normalizeSocialSetupInput(agentInput.socialSetup);
+      const socialSetup = socialSetupForIntent;
       socialSelectedPlatforms = socialSetup.selectedPlatforms;
       const structuredProfiles = {
         instagram: socialSetup.instagramEnabled ? socialSetup.instagramHandle : "",
         tiktok: socialSetup.tiktokEnabled ? socialSetup.tiktokHandle : "",
         youtube: socialSetup.youtubeEnabled ? socialSetup.youtubeHandle : "",
+        facebook: socialSetup.facebookEnabled ? socialSetup.facebookHandle : "",
+        spotify: socialSetup.spotifyEnabled ? socialSetup.spotifyHandle : "",
       };
       socialProfiles = mergeSocialProfiles(
           socialProfileState.profiles,
@@ -15316,11 +16227,11 @@ exports.skydownAgent = onCall({
       );
       const requiredPlatforms = socialSelectedPlatforms.length > 0 ?
         socialSelectedPlatforms :
-        ["instagram", "tiktok", "youtube"];
+        [...SOCIAL_PLATFORM_ORDER];
       socialMissingPlatforms = requiredPlatforms
           .filter((platform) => !socialProfiles[platform]);
       if (socialSelectedPlatforms.length > 0) {
-        for (const platform of ["instagram", "tiktok", "youtube"]) {
+        for (const platform of SOCIAL_PLATFORM_ORDER) {
           if (!requiredPlatforms.includes(platform)) {
             socialProfiles[platform] = "";
           }
@@ -15328,13 +16239,15 @@ exports.skydownAgent = onCall({
       }
       if (socialSelectedPlatforms.length === 0) {
         socialMissingPlatforms = Object.entries(socialProfiles)
-          .filter(([, handle]) => !handle)
-          .map(([platform]) => platform);
+            .filter(([, handle]) => !handle)
+            .map(([platform]) => platform);
       }
       const hasStructuredHandles = (
         (socialSetup.instagramEnabled && !!socialSetup.instagramHandle) ||
         (socialSetup.tiktokEnabled && !!socialSetup.tiktokHandle) ||
-        (socialSetup.youtubeEnabled && !!socialSetup.youtubeHandle)
+        (socialSetup.youtubeEnabled && !!socialSetup.youtubeHandle) ||
+        (socialSetup.facebookEnabled && !!socialSetup.facebookHandle) ||
+        (socialSetup.spotifyEnabled && !!socialSetup.spotifyHandle)
       );
       if (Object.keys(extractedFromPrompt).length > 0 || hasStructuredHandles) {
         await persistSocialProfilesToMemoryProfile(request.auth.uid, socialProfiles);
@@ -16484,4 +17397,36 @@ exports.notifyOrderCreated = onDocumentCreated({
     orderId: event.params.orderId,
     recipient,
   });
+});
+
+exports.syncFounderDailyKpis = onSchedule({
+  region: "us-central1",
+  schedule: "15 5,11,17,23 * * *",
+  timeZone: "Europe/Berlin",
+  timeoutSeconds: 300,
+  memory: "512MiB",
+}, async () => {
+  await runSyncFounderDailyKpis({
+    firestore: admin.firestore(),
+    auth: admin.auth(),
+  });
+});
+
+exports.refreshFounderDailyKpis = onCall({
+  region: "us-central1",
+  timeoutSeconds: 120,
+  memory: "512MiB",
+}, async (request) => {
+  await assertCallableSecurity(request, "refreshFounderDailyKpis");
+  await assertOwner(request.auth);
+  const rawDate = nonEmptyString(request.data?.date);
+  if (rawDate && !isValidIsoDateString(rawDate)) {
+    throw new HttpsError("invalid-argument", "date muss im Format yyyy-MM-dd vorliegen.");
+  }
+  const result = await runSyncFounderDailyKpis({
+    firestore: admin.firestore(),
+    auth: admin.auth(),
+    options: rawDate && isValidIsoDateString(rawDate) ? {kpiYmd: rawDate} : {},
+  });
+  return {ok: true, result};
 });

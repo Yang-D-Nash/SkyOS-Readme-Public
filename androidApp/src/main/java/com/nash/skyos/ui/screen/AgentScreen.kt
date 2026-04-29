@@ -73,6 +73,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -420,6 +421,10 @@ fun AgentScreen(
                                         localFeedbackType = type
                                     },
                                     onOpenHomeProductivity = onOpenHomeProductivity,
+                                    onContinueInMode = { mode ->
+                                        viewModel.continueInModeFromAssistant(mode, message)
+                                        showPromptComposer = true
+                                    },
                                 )
                             }
                         }
@@ -489,6 +494,19 @@ fun AgentScreen(
             )
 
             if (showPromptComposer) {
+                val canSendAgent = viewModel.canSendAgentMessage()
+                val sendBlockedHint = if (
+                    !canSendAgent &&
+                    uiState.draft.isNotBlank() &&
+                    !uiState.agentPhase.shouldBlockSend &&
+                    uiState.selectedMode == AgentExecutionMode.Automation &&
+                    uiState.canTriggerAutomation &&
+                    uiState.shouldTriggerAutomation
+                ) {
+                    stringResource(R.string.agent_workflow_social_required_hint)
+                } else {
+                    null
+                }
                 ModalBottomSheet(
                     onDismissRequest = { showPromptComposer = false },
                     sheetState = promptSheetState,
@@ -500,12 +518,18 @@ fun AgentScreen(
                         canTriggerAutomation = uiState.canTriggerAutomation,
                         canUseGlobalOwnerAutomationFlow = uiState.canUseGlobalOwnerAutomationFlow,
                         shouldTriggerAutomation = uiState.shouldTriggerAutomation,
+                        canSend = canSendAgent,
+                        sendBlockedHint = sendBlockedHint,
                         socialInstagramEnabled = uiState.socialInstagramEnabled,
                         socialInstagramHandle = uiState.socialInstagramHandle,
                         socialTiktokEnabled = uiState.socialTiktokEnabled,
                         socialTiktokHandle = uiState.socialTiktokHandle,
                         socialYoutubeEnabled = uiState.socialYoutubeEnabled,
                         socialYoutubeHandle = uiState.socialYoutubeHandle,
+                        socialFacebookEnabled = uiState.socialFacebookEnabled,
+                        socialFacebookHandle = uiState.socialFacebookHandle,
+                        socialSpotifyEnabled = uiState.socialSpotifyEnabled,
+                        socialSpotifyHandle = uiState.socialSpotifyHandle,
                         showSocialSetupCard = viewModel.shouldShowSocialSetupCard(),
                         agentPhase = uiState.agentPhase,
                         attachments = inputAttachments,
@@ -521,6 +545,10 @@ fun AgentScreen(
                         onSocialTiktokHandleChanged = viewModel::updateSocialTiktokHandle,
                         onSocialYoutubeEnabledChanged = viewModel::updateSocialYoutubeEnabled,
                         onSocialYoutubeHandleChanged = viewModel::updateSocialYoutubeHandle,
+                        onSocialFacebookEnabledChanged = viewModel::updateSocialFacebookEnabled,
+                        onSocialFacebookHandleChanged = viewModel::updateSocialFacebookHandle,
+                        onSocialSpotifyEnabledChanged = viewModel::updateSocialSpotifyEnabled,
+                        onSocialSpotifyHandleChanged = viewModel::updateSocialSpotifyHandle,
                         onAddFiles = {
                             showPromptComposer = false
                             attachmentPicker.launch(arrayOf("*/*"))
@@ -1516,12 +1544,18 @@ private fun AgentPromptComposerSheet(
     canTriggerAutomation: Boolean,
     canUseGlobalOwnerAutomationFlow: Boolean,
     shouldTriggerAutomation: Boolean,
+    canSend: Boolean,
+    sendBlockedHint: String? = null,
     socialInstagramEnabled: Boolean,
     socialInstagramHandle: String,
     socialTiktokEnabled: Boolean,
     socialTiktokHandle: String,
     socialYoutubeEnabled: Boolean,
     socialYoutubeHandle: String,
+    socialFacebookEnabled: Boolean,
+    socialFacebookHandle: String,
+    socialSpotifyEnabled: Boolean,
+    socialSpotifyHandle: String,
     showSocialSetupCard: Boolean,
     agentPhase: AgentInteractionPhase,
     attachments: List<AgentInputAttachment>,
@@ -1537,6 +1571,10 @@ private fun AgentPromptComposerSheet(
     onSocialTiktokHandleChanged: (String) -> Unit,
     onSocialYoutubeEnabledChanged: (Boolean) -> Unit,
     onSocialYoutubeHandleChanged: (String) -> Unit,
+    onSocialFacebookEnabledChanged: (Boolean) -> Unit,
+    onSocialFacebookHandleChanged: (String) -> Unit,
+    onSocialSpotifyEnabledChanged: (Boolean) -> Unit,
+    onSocialSpotifyHandleChanged: (String) -> Unit,
     onAddFiles: () -> Unit,
     onRemoveAttachment: (AgentInputAttachment) -> Unit,
     onClearAttachments: () -> Unit,
@@ -1661,7 +1699,7 @@ private fun AgentPromptComposerSheet(
 
         if (showSocialSetupCard) {
             Text(
-                text = "Social Setup",
+                text = stringResource(R.string.agent_social_setup_title),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.tertiary,
@@ -1675,7 +1713,7 @@ private fun AgentPromptComposerSheet(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    text = "Optional: Nur aktivierte Plattformen werden abgefragt. Handles beschleunigen die Analyse.",
+                    text = stringResource(R.string.agent_social_setup_footnote),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 )
@@ -1684,7 +1722,11 @@ private fun AgentPromptComposerSheet(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Instagram", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.agent_social_instagram),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     androidx.compose.material3.Switch(
                         checked = socialInstagramEnabled,
                         onCheckedChange = onSocialInstagramEnabledChanged,
@@ -1696,7 +1738,7 @@ private fun AgentPromptComposerSheet(
                         onValueChange = onSocialInstagramHandleChanged,
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text("Instagram Handle (optional)") },
+                        placeholder = { Text(stringResource(R.string.agent_social_instagram_hint)) },
                     )
                 }
 
@@ -1705,7 +1747,11 @@ private fun AgentPromptComposerSheet(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("TikTok", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.agent_social_tiktok),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     androidx.compose.material3.Switch(
                         checked = socialTiktokEnabled,
                         onCheckedChange = onSocialTiktokEnabledChanged,
@@ -1717,7 +1763,7 @@ private fun AgentPromptComposerSheet(
                         onValueChange = onSocialTiktokHandleChanged,
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text("TikTok Handle (optional)") },
+                        placeholder = { Text(stringResource(R.string.agent_social_tiktok_hint)) },
                     )
                 }
 
@@ -1726,7 +1772,11 @@ private fun AgentPromptComposerSheet(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("YouTube", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.agent_social_youtube),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     androidx.compose.material3.Switch(
                         checked = socialYoutubeEnabled,
                         onCheckedChange = onSocialYoutubeEnabledChanged,
@@ -1738,7 +1788,57 @@ private fun AgentPromptComposerSheet(
                         onValueChange = onSocialYoutubeHandleChanged,
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text("YouTube Handle oder Channel (optional)") },
+                        placeholder = { Text(stringResource(R.string.agent_social_youtube_hint)) },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.agent_social_facebook),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    androidx.compose.material3.Switch(
+                        checked = socialFacebookEnabled,
+                        onCheckedChange = onSocialFacebookEnabledChanged,
+                    )
+                }
+                if (socialFacebookEnabled) {
+                    OutlinedTextField(
+                        value = socialFacebookHandle,
+                        onValueChange = onSocialFacebookHandleChanged,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text(stringResource(R.string.agent_social_facebook_hint)) },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.agent_social_spotify),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    androidx.compose.material3.Switch(
+                        checked = socialSpotifyEnabled,
+                        onCheckedChange = onSocialSpotifyEnabledChanged,
+                    )
+                }
+                if (socialSpotifyEnabled) {
+                    OutlinedTextField(
+                        value = socialSpotifyHandle,
+                        onValueChange = onSocialSpotifyHandleChanged,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text(stringResource(R.string.agent_social_spotify_hint)) },
                     )
                 }
             }
@@ -1764,6 +1864,7 @@ private fun AgentPromptComposerSheet(
             maxLines = 8,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = {
+                if (!canSend) return@KeyboardActions
                 focusManager.clearFocus(force = true)
                 keyboardController?.hide()
                 onSend()
@@ -1844,22 +1945,35 @@ private fun AgentPromptComposerSheet(
             }
         }
 
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill, Alignment.End),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalAlignment = Alignment.End,
         ) {
-            Spacer(modifier = Modifier.weight(1f, fill = true))
-            BrandActionButton(
-                text = stringResource(R.string.agent_action_send),
-                onClick = onSend,
-                accent = MaterialTheme.colorScheme.tertiary,
-                icon = Icons.AutoMirrored.Filled.Send,
-                filled = true,
-                compact = true,
-                enabled = draft.isNotBlank() && !agentPhase.shouldBlockSend,
-                isLoading = agentPhase.shouldBlockComposerChrome,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Spacer(modifier = Modifier.weight(1f, fill = true))
+                BrandActionButton(
+                    text = stringResource(R.string.agent_action_send),
+                    onClick = onSend,
+                    accent = MaterialTheme.colorScheme.tertiary,
+                    icon = Icons.AutoMirrored.Filled.Send,
+                    filled = true,
+                    compact = true,
+                    enabled = canSend,
+                    isLoading = agentPhase.shouldBlockComposerChrome,
+                )
+            }
+            sendBlockedHint?.let { hint ->
+                Text(
+                    text = hint,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            }
         }
     }
 }
@@ -2139,12 +2253,14 @@ private fun resolveAgentInputAttachment(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AgentMessageBubble(
     message: AgentMessage,
     compactLayout: Boolean,
     onFeedback: (String, ToastType) -> Unit,
     onOpenHomeProductivity: (String) -> Unit,
+    onContinueInMode: (AgentExecutionMode) -> Unit = { },
 ) {
     val context = LocalContext.current
     val isUser = message.role == AgentMessageRole.User
@@ -2236,6 +2352,55 @@ private fun AgentMessageBubble(
                         results = message.results,
                         modifier = Modifier.padding(top = 8.dp),
                     )
+                }
+
+                val hasContinuationPayload = message.text.isNotBlank() ||
+                    message.workflowSummary != null ||
+                    message.results.isNotEmpty()
+                if (!isUser && !message.isStreaming && hasContinuationPayload) {
+                    val targetModes = if (message.responseMode != null) {
+                        AgentExecutionMode.entries.filter { it != message.responseMode }
+                    } else {
+                        AgentExecutionMode.entries
+                    }
+                    if (targetModes.isNotEmpty()) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(top = 10.dp),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
+                        )
+                        Text(
+                            text = stringResource(R.string.agent_continue_in_mode_subtitle),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.agent_continue_in_mode_label),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.92f),
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(top = 4.dp),
+                        ) {
+                            targetModes.forEach { mode ->
+                                TextButton(
+                                    onClick = { onContinueInMode(mode) },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                ) {
+                                    Text(
+                                        text = mode.title,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 if (!isUser && !message.isStreaming) {

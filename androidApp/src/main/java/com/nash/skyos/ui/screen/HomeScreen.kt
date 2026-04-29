@@ -1,8 +1,12 @@
 package com.nash.skyos.ui.screen
 
 import android.app.Application
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -61,9 +65,11 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -122,6 +128,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -326,6 +334,8 @@ fun HomeScreen(
     var noteContentDraft by rememberSaveable { mutableStateOf("") }
     var founderBriefingSheet by remember { mutableStateOf<FounderBriefingSheetState?>(null) }
     var founderBriefingModeInFlight by remember { mutableStateOf<FounderBriefingMode?>(null) }
+    var founderBriefingFeedbackMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var founderBriefingFeedbackIsError by rememberSaveable { mutableStateOf(false) }
     fun openHomeProductivityCapture(sheet: String) {
         if (isQuickActionCoolingDown) return
         isQuickActionCoolingDown = true
@@ -537,23 +547,51 @@ fun HomeScreen(
                                         onGuestSignIn?.invoke()
                                         return@HomeProductivityOverviewCard
                                     }
+                                    founderBriefingFeedbackMessage = null
                                     founderBriefingModeInFlight = mode
                                     coroutineScope.launch {
                                         val uid = FirebaseAuth.getInstance().currentUser?.uid
                                         if (uid.isNullOrBlank()) {
                                             founderBriefingModeInFlight = null
+                                            founderBriefingFeedbackMessage = "Bitte zuerst anmelden."
+                                            founderBriefingFeedbackIsError = true
                                             Toast.makeText(context, "Bitte zuerst anmelden.", Toast.LENGTH_SHORT).show()
                                             return@launch
                                         }
-                                        val result = requestFounderBriefingFromCallable(uid = uid, mode = mode)
+                                        val result = try {
+                                            requestFounderBriefingFromCallable(context = context, uid = uid, mode = mode)
+                                        } catch (error: Throwable) {
+                                            founderBriefingModeInFlight = null
+                                            val message = error.message?.trim().takeUnless { it.isNullOrBlank() }
+                                                ?: "Briefing derzeit nicht verfuegbar."
+                                            founderBriefingFeedbackMessage = message
+                                            founderBriefingFeedbackIsError = true
+                                            founderBriefingSheet = FounderBriefingSheetState(
+                                                mode = mode,
+                                                title = if (mode == FounderBriefingMode.Private) "Founder Analyse" else "Team Update",
+                                                body = message,
+                                            )
+                                            return@launch
+                                        }
                                         founderBriefingModeInFlight = null
                                         if (result == null) {
-                                            Toast.makeText(context, "Briefing derzeit nicht verfuegbar.", Toast.LENGTH_SHORT).show()
+                                            founderBriefingFeedbackMessage = "Briefing hat keinen Inhalt geliefert."
+                                            founderBriefingFeedbackIsError = true
+                                            founderBriefingSheet = FounderBriefingSheetState(
+                                                mode = mode,
+                                                title = if (mode == FounderBriefingMode.Private) "Founder Analyse" else "Team Update",
+                                                body = "ANDROID_PARSER_V6: Kein Text geliefert.",
+                                            )
                                         } else {
+                                            founderBriefingFeedbackMessage = "Briefing erfolgreich erstellt."
+                                            founderBriefingFeedbackIsError = false
                                             founderBriefingSheet = result
                                         }
                                     }
                                 },
+                                founderBriefingModeInFlight = founderBriefingModeInFlight,
+                                founderBriefingFeedbackMessage = founderBriefingFeedbackMessage,
+                                founderBriefingFeedbackIsError = founderBriefingFeedbackIsError,
                                 onOpenToday = {
                                     openHomeProductivityCapture("reminder_manage")
                                 },
@@ -1008,6 +1046,13 @@ fun HomeScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
                         )
+                        if (!sheet.metaLine.isNullOrBlank()) {
+                            Text(
+                                text = sheet.metaLine,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.52f),
+                            )
+                        }
                         Surface(
                             shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
@@ -1535,6 +1580,9 @@ private fun HomeProductivityOverviewCard(
     openTasks: List<com.nash.skyos.ui.model.ProductivityTaskItem>,
     recentNotes: List<com.nash.skyos.ui.model.ProductivityNoteItem>,
     onRequestFounderBriefing: ((FounderBriefingMode) -> Unit)?,
+    founderBriefingModeInFlight: FounderBriefingMode?,
+    founderBriefingFeedbackMessage: String?,
+    founderBriefingFeedbackIsError: Boolean,
     onOpenToday: () -> Unit,
     onOpenUpcoming: () -> Unit,
     onOpenTasks: () -> Unit,
@@ -1638,6 +1686,9 @@ private fun HomeProductivityOverviewCard(
             Spacer(modifier = Modifier.height(8.dp))
             HomeOwnerWorkflowRow(
                 onRequestFounderBriefing = onRequestFounderBriefing,
+                founderBriefingModeInFlight = founderBriefingModeInFlight,
+                founderBriefingFeedbackMessage = founderBriefingFeedbackMessage,
+                founderBriefingFeedbackIsError = founderBriefingFeedbackIsError,
             )
         }
     }
@@ -1646,6 +1697,9 @@ private fun HomeProductivityOverviewCard(
 @Composable
 private fun HomeOwnerWorkflowRow(
     onRequestFounderBriefing: (FounderBriefingMode) -> Unit,
+    founderBriefingModeInFlight: FounderBriefingMode?,
+    founderBriefingFeedbackMessage: String?,
+    founderBriefingFeedbackIsError: Boolean,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
         Text(
@@ -1659,17 +1713,47 @@ private fun HomeOwnerWorkflowRow(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
         )
+        if (founderBriefingModeInFlight != null) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            Text(
+                text = "Founder Briefing wird erstellt...",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        } else if (!founderBriefingFeedbackMessage.isNullOrBlank()) {
+            Text(
+                text = founderBriefingFeedbackMessage,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (founderBriefingFeedbackIsError) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                },
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             HomeQuickActionChip(
-                text = stringResource(R.string.home_owner_workflows_private_analysis),
+                text = if (founderBriefingModeInFlight == FounderBriefingMode.Private) {
+                    "Wird erstellt..."
+                } else {
+                    stringResource(R.string.home_owner_workflows_private_analysis)
+                },
                 icon = Icons.Default.AttachMoney,
                 onClick = { onRequestFounderBriefing(FounderBriefingMode.Private) },
+                enabled = founderBriefingModeInFlight == null,
+                isLoading = founderBriefingModeInFlight == FounderBriefingMode.Private,
                 modifier = Modifier.weight(1f),
             )
             HomeQuickActionChip(
-                text = stringResource(R.string.home_owner_workflows_group_update),
+                text = if (founderBriefingModeInFlight == FounderBriefingMode.Group) {
+                    "Wird erstellt..."
+                } else {
+                    stringResource(R.string.home_owner_workflows_group_update)
+                },
                 icon = Icons.Default.Groups,
                 onClick = { onRequestFounderBriefing(FounderBriefingMode.Group) },
+                enabled = founderBriefingModeInFlight == null,
+                isLoading = founderBriefingModeInFlight == FounderBriefingMode.Group,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -1825,6 +1909,8 @@ private fun HomeQuickActionChip(
     icon: ImageVector? = null,
     countBadge: Int? = null,
     onClick: () -> Unit,
+    enabled: Boolean = true,
+    isLoading: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -1832,12 +1918,19 @@ private fun HomeQuickActionChip(
         shape = RoundedCornerShape(SkydownUiTokens.pillSoftRadius),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
         onClick = onClick,
+        enabled = enabled,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = SkydownUiTokens.stackSpacingMicro, vertical = SkydownUiTokens.stackSpacingMicro),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
             if (icon != null) {
                 Icon(
                     imageVector = icon,
@@ -2755,35 +2848,575 @@ private data class FounderBriefingSheetState(
     val mode: FounderBriefingMode,
     val title: String,
     val body: String,
+    val metaLine: String? = null,
 )
 
+/**
+ * Eine Zeile Status aus [briefingMeta] (Cloud Function), fuer Private + Group.
+ */
+private fun formatBriefingMetaLine(raw: Any?): String? {
+    val m = raw as? Map<*, *> ?: return null
+    if (m.isEmpty()) return null
+    val parts = ArrayList<String>(4)
+    (m["businessDate"] as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let { parts.add("Berichtstag $it") }
+    when (val q = (m["dataQuality"] as? String)?.trim()?.lowercase().orEmpty()) {
+        "complete" -> parts.add("Daten vollstaendig")
+        "partial" -> parts.add("Teildaten")
+        "no_kpi_doc" -> parts.add("KPI-Dokument fehlt")
+        else -> if (q.isNotEmpty()) parts.add(q)
+    }
+    (m["kpiUpdatedAt"] as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let { k ->
+        val short = if (k.length > 36) k.take(36) + "…" else k
+        parts.add("KPI $short")
+    }
+    if (parts.isEmpty()) return null
+    return parts.joinToString(" · ")
+}
+
+private fun jsonObjectToKotlinMap(json: JSONObject): Map<String, Any?> {
+    val keys = json.keys().asSequence().toList()
+    return buildMap {
+        for (key in keys) {
+            put(key, json.opt(key))
+        }
+    }
+}
+
+private fun parseJsonObject(raw: String?): JSONObject? {
+    val trimmed = raw?.trim().orEmpty()
+    if (trimmed.isBlank()) return null
+    return runCatching { JSONObject(trimmed) }.getOrNull()
+}
+
+private fun coerceAnyToTrimmedString(value: Any?, maxChars: Int = 12000, depth: Int = 0): String {
+    if (depth > 12 || maxChars < 1) return ""
+    return when (value) {
+        null -> ""
+        is String -> value.trim().take(maxChars)
+        is Map<*, *> -> coerceMapToBriefingString(value, maxChars, depth)
+        is List<*> -> {
+            for (item in value) {
+                val piece = coerceAnyToTrimmedString(item, maxChars, depth + 1)
+                if (piece.isNotBlank()) return piece
+            }
+            runCatching { JSONArray(value).toString() }.getOrNull()?.trim()?.take(maxChars).orEmpty()
+        }
+        else -> value.toString().trim().take(maxChars)
+    }
+}
+
+/** Firebase Callable maps may nest briefing text; JSONObject.put often fails on mixed types → empty. */
+private fun coerceMapToBriefingString(map: Map<*, *>, maxChars: Int, depth: Int): String {
+    val textKeys = listOf(
+        "founderBriefingMarkdown",
+        "briefingPrivate", "briefingGroup", "briefingResults", "text", "content", "message", "summary",
+        "description", "output", "body",
+        "private", "group", "reply", "result", "markdown", "value",
+    )
+    for (key in textKeys) {
+        val v = map[key] ?: continue
+        when (v) {
+            is String -> if (v.isNotBlank()) return v.trim().take(maxChars)
+            is Map<*, *> -> {
+                val nested = coerceAnyToTrimmedString(v, maxChars, depth + 1)
+                if (nested.isNotBlank()) return nested
+            }
+            is List<*> -> {
+                for (item in v) {
+                    val nested = coerceAnyToTrimmedString(item, maxChars, depth + 1)
+                    if (nested.isNotBlank()) return nested
+                }
+            }
+            else -> {
+                val s = v.toString().trim()
+                if (s.isNotBlank() && s != "{}" && s != "[]" && s != "null") return s.take(maxChars)
+            }
+        }
+    }
+    for ((rawKey, rawVal) in map) {
+        val key = rawKey as? String ?: continue
+        if (key in textKeys) continue
+        when (rawVal) {
+            is Map<*, *>, is List<*> -> {
+                val nested = coerceAnyToTrimmedString(rawVal, maxChars, depth + 1)
+                if (nested.isNotBlank()) return nested
+            }
+            is String -> if (rawVal.isNotBlank()) return rawVal.trim().take(maxChars)
+            else -> Unit
+        }
+    }
+    return runCatching {
+        val json = JSONObject()
+        for ((rawKey, rawVal) in map) {
+            val key = rawKey as? String ?: continue
+            when (rawVal) {
+                null -> json.put(key, JSONObject.NULL)
+                is String, is Number, is Boolean -> json.put(key, rawVal)
+                else -> json.put(key, rawVal.toString())
+            }
+        }
+        json.toString().trim().take(maxChars)
+    }.getOrElse {
+        map.entries.joinToString(
+            separator = "\n",
+            limit = 40,
+            truncated = "\n…",
+        ) { entry ->
+            val k = entry.key?.toString() ?: "?"
+            val v = coerceAnyToTrimmedString(entry.value, minOf(800, maxChars), depth + 1)
+            "$k=$v"
+        }.trim().take(maxChars)
+    }
+}
+
+private fun unwrapAutomationEnvelope(map: Map<*, *>?): Map<*, *>? {
+    if (map == null) return null
+    if (!map.containsKey("body")) return null
+    // Only un-wrap { status, headers, body } / Activepieces-style envelopes, not any map
+    // that also has a "body" key next to a top-level "private" or "message".
+    if (!map.containsKey("status") && !map.containsKey("headers")) return null
+    val statusRaw = map["status"]
+    val status = when (statusRaw) {
+        is Number -> statusRaw.toInt()
+        is String -> statusRaw.trim().toIntOrNull()
+        else -> null
+    }
+    val body = map["body"] ?: return null
+    // Activepieces sometimes returns status as string ("200"). Treat unknown/missing as OK if body exists.
+    if (status != null && status != 200) return null
+    return when (body) {
+        is Map<*, *> -> body
+        is String -> parseJsonObject(body)?.let(::jsonObjectToKotlinMap)
+        else -> null
+    }
+}
+
+private fun bodyMapFrom(map: Map<*, *>?): Map<*, *>? {
+    val direct = map?.get("body") ?: return null
+    return when (direct) {
+        is Map<*, *> -> direct
+        is String -> parseJsonObject(direct)?.let(::jsonObjectToKotlinMap)
+        else -> null
+    }
+}
+
+private fun unwrapAutomationResponseMap(root: Map<*, *>): Map<*, *> {
+    var m: Map<*, *> = root
+    var guard = 0
+    while (guard < 10) {
+        guard++
+        val e0 = unwrapAutomationEnvelope(m)
+        if (e0 != null) {
+            m = e0
+            continue
+        }
+        val d = m["data"] as? Map<*, *>
+        val e1 = d?.let { unwrapAutomationEnvelope(it) }
+        if (e1 != null) {
+            m = e1
+            continue
+        }
+        // If data / root looks like the HTTP envelope, peel body even without unwrap (edge case).
+        if (d != null && (d.containsKey("status") || d.containsKey("headers"))) {
+            val b = bodyMapFrom(d)
+            if (b != null) {
+                m = b
+                continue
+            }
+        }
+        if (m.containsKey("status") || m.containsKey("headers")) {
+            val b = bodyMapFrom(m)
+            if (b != null) {
+                m = b
+                continue
+            }
+        }
+        break
+    }
+    return m
+}
+
+/**
+ * Callable often sets [message] to a human summary while [private] / [results] stay empty.
+ * Filter out the short “Test an … gesendet” style status lines, and **empty JSON** like `"{}"` /
+ * `"[]"` (Cloud Functions / Activepieces sometimes stringify an empty object as the message).
+ */
+private fun isGenericWorkflowStatusMessage(message: String): Boolean {
+    val t = message.trim()
+    if (t.isEmpty()) return true
+    if (t.length <= 3 && t.equals("ok", true)) return true
+    val lower = t.lowercase(Locale.ROOT)
+    if (t.length < 200) {
+        if (lower.startsWith("test an ") && (lower.contains("gesendet") || lower.contains("vollständig"))) {
+            return true
+        }
+        if (lower.startsWith("test for ") && (lower.contains("sent") || lower.contains("submitted"))) {
+            return true
+        }
+    }
+    return false
+}
+
+/**
+ * @return true if [message] must not be shown as the briefing body (placeholders, empty JSON, “null” string).
+ */
+private fun isUnusableAsCallableBriefingText(message: String): Boolean {
+    if (isGenericWorkflowStatusMessage(message)) return true
+    val t = message.trim()
+    if (t == "{}" || t == "[]") return true
+    if (t.equals("null", ignoreCase = true) && t.length == 4) return true
+    if (t.startsWith("{") && t.endsWith("}")) {
+        val keyCount = runCatching { JSONObject(t).length() }.getOrNull() ?: -1
+        if (keyCount == 0) return true
+    } else if (t.startsWith("[") && t.endsWith("]")) {
+        val len = runCatching { JSONArray(t).length() }.getOrNull() ?: -1
+        if (len == 0) return true
+    }
+    return false
+}
+
 private suspend fun requestFounderBriefingFromCallable(
+    context: Context,
     uid: String,
     mode: FounderBriefingMode,
 ): FounderBriefingSheetState? {
     val functions = FirebaseFunctions.getInstance("us-central1")
     val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    val requestId = "android-home-${mode.wireValue}-${System.currentTimeMillis()}"
     val payload = mapOf(
-        "uid" to uid,
-        "mode" to mode.wireValue,
-        "date" to formatter.format(Date()),
-        "requestId" to "android-home-${mode.wireValue}-${System.currentTimeMillis()}",
+        "trigger" to "home_founder_briefing",
+        "source" to "android_home_owner_buttons",
+        "automationScope" to "owner",
+        "data" to mapOf(
+            "uid" to uid,
+            "mode" to "briefing",
+            "briefingTarget" to mode.wireValue,
+            "date" to formatter.format(Date()),
+            "requestId" to requestId,
+            "isOwner" to true,
+        ),
     )
-    val result = runCatching {
+    val callableResult = runCatching {
         functions.callWithAppCheckRetry(
-            functionName = "createFounderBriefing",
+            functionName = "triggerWorkflowAutomation",
             payload = payload,
         )
-    }.getOrNull() ?: return null
-    val data = result.data as? Map<*, *> ?: return null
-    val key = if (mode == FounderBriefingMode.Private) "private" else "group"
-    val text = (data[key] as? String)?.trim().orEmpty()
-    if (text.isBlank()) return null
+    }.getOrElse { error ->
+        Log.e("FounderBriefing", "callWithAppCheckRetry threw", error)
+        Toast.makeText(
+            context,
+            "DEBUG callable threw: ${error.javaClass.simpleName}",
+            Toast.LENGTH_LONG,
+        ).show()
+        Handler(Looper.getMainLooper()).postDelayed({
+            Toast.makeText(
+                context,
+                "DEBUG callable threw: ${error.javaClass.simpleName}",
+                Toast.LENGTH_LONG,
+            ).show()
+        }, 1600)
+        return null
+    }
+
+    val result = callableResult
+    val rootData = result.data as? Map<*, *> ?: run {
+        Log.e("FounderBriefing", "callableResult.data is not a map: ${result.data?.javaClass?.name}")
+        Toast.makeText(context, "DEBUG result.data not map", Toast.LENGTH_LONG).show()
+        Handler(Looper.getMainLooper()).postDelayed({
+            Toast.makeText(context, "DEBUG result.data not map", Toast.LENGTH_LONG).show()
+        }, 1600)
+        return null
+    }
+    Log.e(
+        "FounderBriefing",
+        "triggerWorkflowAutomation raw keys=${rootData.keys.joinToString(",")}",
+    )
+    val resolvedRoot = unwrapAutomationResponseMap(rootData)
+    val data = (resolvedRoot["data"] as? Map<*, *>) ?: resolvedRoot
+    val bodyMap =
+        bodyMapFrom(data) ?:
+            bodyMapFrom(resolvedRoot) ?:
+            (unwrapAutomationEnvelope(resolvedRoot) ?: unwrapAutomationEnvelope(data))
+
+    val responseForWebhookJsonObj = run {
+        val raw =
+            (bodyMap?.get("responseForWebhookJson") as? String)?.trim().orEmpty().ifBlank { null }
+                ?: (data["responseForWebhookJson"] as? String)?.trim().orEmpty().ifBlank { null }
+                ?: (resolvedRoot["responseForWebhookJson"] as? String)?.trim().orEmpty().ifBlank { null }
+        parseJsonObject(raw)
+    }
+
+    val nestedBodyJson = (data["body"] as? String)?.trim().takeUnless { it.isNullOrBlank() }?.let { raw ->
+        runCatching { JSONObject(raw) }.getOrNull()
+    } ?: (resolvedRoot["body"] as? String)?.trim().takeUnless { it.isNullOrBlank() }?.let { raw ->
+        runCatching { JSONObject(raw) }.getOrNull()
+    }
+
+    val topLevelMessage = listOf(
+        data["message"],
+        resolvedRoot["message"],
+        bodyMap?.get("message"),
+        responseForWebhookJsonObj?.optString("message"),
+        nestedBodyJson?.optString("message"),
+    ).map { coerceAnyToTrimmedString(it) }.firstOrNull { it.isNotBlank() }.orEmpty()
+
+    val rawResults = bodyMap?.get("briefingResults")
+        ?: data["briefingResults"]
+        ?: resolvedRoot["briefingResults"]
+        ?: bodyMap?.get("results")
+        ?: data["results"]
+        ?: resolvedRoot["results"]
+    val dataBodyMap = data["body"] as? Map<*, *>
+    val rootBodyMap = resolvedRoot["body"] as? Map<*, *>
+    val privatePreview = listOf(
+        bodyMap?.get("founderBriefingMarkdown"),
+        data["founderBriefingMarkdown"],
+        resolvedRoot["founderBriefingMarkdown"],
+        bodyMap?.get("briefingPrivate"),
+        data["briefingPrivate"],
+        resolvedRoot["briefingPrivate"],
+        bodyMap?.get("private"),
+        dataBodyMap?.get("briefingPrivate"),
+        rootBodyMap?.get("briefingPrivate"),
+        dataBodyMap?.get("founderBriefingMarkdown"),
+        rootBodyMap?.get("founderBriefingMarkdown"),
+        responseForWebhookJsonObj?.opt("private"),
+        nestedBodyJson?.opt("private"),
+        dataBodyMap?.get("private"),
+        rootBodyMap?.get("private"),
+        data["private"],
+        resolvedRoot["private"],
+    ).map { coerceAnyToTrimmedString(it) }.firstOrNull { it.isNotBlank() }.orEmpty()
+    val resultCountForLog = when (rawResults) {
+        is List<*> -> rawResults.size
+        is Map<*, *> -> rawResults.size
+        else -> 0
+    }
+    Log.d(
+        "FounderBriefing",
+        "resolved keys=${resolvedRoot.keys.joinToString(",")} | data keys=${data.keys.joinToString(",")} | body keys=${bodyMap?.keys?.joinToString(",")} | previewLen=${privatePreview.length} | messageLen=${topLevelMessage.length} msgUsable=${!isUnusableAsCallableBriefingText(topLevelMessage)} | resultsType=${rawResults?.javaClass?.simpleName} resultsN=$resultCountForLog",
+    )
+    val workflowStatus = (
+        (data["workflowStatus"] as? String)
+            ?: (bodyMap?.get("workflowStatus") as? String)
+            ?: responseForWebhookJsonObj?.optString("workflowStatus")
+            ?: (resolvedRoot["workflowStatus"] as? String)
+    )?.trim()?.lowercase().orEmpty()
+    if (workflowStatus == "failed") {
+        val message = (
+            (data["message"] as? String)
+                ?: (bodyMap?.get("message") as? String)
+                ?: responseForWebhookJsonObj?.optString("message")
+                ?: (resolvedRoot["message"] as? String)
+        )?.trim().orEmpty()
+        throw IllegalStateException(
+            if (message.isBlank()) "Workflow konnte nicht abgeschlossen werden."
+            else message
+        )
+    }
+
+    val resultEntries: List<*> = when (rawResults) {
+        is List<*> -> rawResults
+        is Map<*, *> -> rawResults.values.toList()
+        else -> emptyList<Any>()
+    }
+    var privateText = ""
+    var groupText = ""
+    var fallbackText = ""
+
+    val directPrivate = listOf(
+        data["founderBriefingMarkdown"],
+        resolvedRoot["founderBriefingMarkdown"],
+        bodyMap?.get("founderBriefingMarkdown"),
+        data["briefingPrivate"],
+        resolvedRoot["briefingPrivate"],
+        bodyMap?.get("briefingPrivate"),
+        dataBodyMap?.get("briefingPrivate"),
+        rootBodyMap?.get("briefingPrivate"),
+        dataBodyMap?.get("founderBriefingMarkdown"),
+        rootBodyMap?.get("founderBriefingMarkdown"),
+        data["private"],
+        resolvedRoot["private"],
+        bodyMap?.get("private"),
+        dataBodyMap?.get("private"),
+        rootBodyMap?.get("private"),
+        responseForWebhookJsonObj?.opt("private"),
+        nestedBodyJson?.opt("private"),
+    ).map { coerceAnyToTrimmedString(it) }.firstOrNull { it.isNotBlank() }.orEmpty()
+    val directGroup = listOf(
+        data["briefingGroup"],
+        resolvedRoot["briefingGroup"],
+        bodyMap?.get("briefingGroup"),
+        data["group"],
+        resolvedRoot["group"],
+        bodyMap?.get("group"),
+        responseForWebhookJsonObj?.opt("group"),
+        nestedBodyJson?.opt("group"),
+    ).map { coerceAnyToTrimmedString(it) }.firstOrNull { it.isNotBlank() }.orEmpty()
+    if (directPrivate.isNotBlank()) {
+        privateText = directPrivate
+        fallbackText = directPrivate
+    }
+    if (directGroup.isNotBlank()) {
+        groupText = directGroup
+        if (fallbackText.isBlank()) fallbackText = directGroup
+    }
+
+    val responseForWebhook =
+        (bodyMap?.get("responseForWebhook") as? Map<*, *>)
+            ?: (data["responseForWebhook"] as? Map<*, *>)
+            ?: (resolvedRoot["responseForWebhook"] as? Map<*, *>)
+    if (privateText.isBlank()) {
+        privateText = listOf(
+            responseForWebhook?.get("private"),
+            findFirstNonBlankStringByKeys(resolvedRoot, setOf("private")),
+        ).map { coerceAnyToTrimmedString(it) }.firstOrNull { it.isNotBlank() }.orEmpty()
+    }
+    if (groupText.isBlank()) {
+        groupText = listOf(
+            responseForWebhook?.get("group"),
+            findFirstNonBlankStringByKeys(resolvedRoot, setOf("group")),
+        ).map { coerceAnyToTrimmedString(it) }.firstOrNull { it.isNotBlank() }.orEmpty()
+    }
+    if (fallbackText.isBlank()) {
+        fallbackText = findFirstNonBlankStringByKeys(resolvedRoot, setOf("content", "text", "private", "group"))
+    }
+
+    for (rawEntry in resultEntries) {
+        when (rawEntry) {
+            is String -> {
+                val t = rawEntry.trim()
+                if (t.isNotBlank() && fallbackText.isBlank()) fallbackText = t
+            }
+            is Map<*, *> -> {
+                val entry = rawEntry
+                val entryType = (entry["type"] as? String)?.trim()?.lowercase().orEmpty()
+                if (entryType == "workflow") continue
+                val content = extractBriefingTextFromAutomationResultEntry(entry)
+                if (content.isBlank()) continue
+                if (fallbackText.isBlank()) fallbackText = content
+                val title = (entry["title"] as? String)?.trim()?.lowercase().orEmpty()
+                when {
+                    title.contains("private") || title.contains("only me") || title.contains("nur") ->
+                        privateText = content
+                    title.contains("group") || title.contains("gruppe") || title.contains("team") ->
+                        groupText = content
+                    else -> {
+                        if (privateText.isBlank() && mode == FounderBriefingMode.Private) {
+                            privateText = content
+                        }
+                        if (groupText.isBlank() && mode == FounderBriefingMode.Group) {
+                            groupText = content
+                        }
+                    }
+                }
+            }
+            else -> Unit
+        }
+    }
+
+    val messageFallback = topLevelMessage.takeUnless { isUnusableAsCallableBriefingText(it) }.orEmpty()
+    val text = if (mode == FounderBriefingMode.Private) {
+        privateText.ifBlank { fallbackText }.ifBlank { messageFallback }
+    } else {
+        groupText.ifBlank { fallbackText }.ifBlank { messageFallback }
+    }
+    if (text.isBlank()) {
+        val errMessage = (data["message"] as? String)?.trim().orEmpty()
+        val msgHint =
+            "msgLen=${topLevelMessage.length} msgRejected=${topLevelMessage.isNotBlank() && isUnusableAsCallableBriefingText(topLevelMessage)}"
+        val debugSummary =
+            "DBG preview=${privatePreview.isNotBlank()} private=${privateText.isNotBlank()} group=${groupText.isNotBlank()} fallback=${fallbackText.isNotBlank()} $msgHint keys=${resolvedRoot.keys.joinToString(",")}"
+        val userMessage = when {
+            errMessage.isNotBlank() && !isUnusableAsCallableBriefingText(errMessage) -> errMessage
+            else ->
+                "Kein Briefing-Text. Die Cloud Function liefert leere Inhalte (private / results). " +
+                    "In den Functions-Logs pruefen, ob der Webhook-Response den vollstaendigen Body inkl. private oder results[].content hat."
+        }
+        Log.e("FounderBriefing", "Briefing leer. $debugSummary | callableMessage=$errMessage")
+        throw IllegalStateException(userMessage)
+    }
+    val rawBriefingMeta = data["briefingMeta"]
+        ?: resolvedRoot["briefingMeta"]
+        ?: bodyMap?.get("briefingMeta")
     return FounderBriefingSheetState(
         mode = mode,
         title = if (mode == FounderBriefingMode.Private) "Founder Analyse" else "Team Update",
         body = text,
+        metaLine = formatBriefingMetaLine(rawBriefingMeta),
     )
+}
+
+private fun findFirstNonBlankStringByKeys(
+    value: Any?,
+    keys: Set<String>,
+): String {
+    when (value) {
+        is Map<*, *> -> {
+            for ((rawKey, rawVal) in value) {
+                val key = rawKey as? String ?: continue
+                if (key in keys) {
+                    val candidate = coerceAnyToTrimmedString(rawVal)
+                    if (candidate.isNotBlank()) return candidate
+                }
+            }
+            for ((_, nested) in value) {
+                val nestedHit = findFirstNonBlankStringByKeys(nested, keys)
+                if (nestedHit.isNotBlank()) return nestedHit
+            }
+        }
+        is List<*> -> {
+            for (entry in value) {
+                val nestedHit = findFirstNonBlankStringByKeys(entry, keys)
+                if (nestedHit.isNotBlank()) return nestedHit
+            }
+        }
+    }
+    return ""
+}
+
+/** Text fields returned by Firebase Functions / Activepieces agent result normalization. */
+private fun extractBriefingTextFromAutomationResultEntry(entry: Map<*, *>): String {
+    val kind = (entry["type"] as? String)?.trim()?.lowercase(Locale.ROOT).orEmpty()
+    if (kind == "table") {
+        val table = formatFounderAutomationTableResult(entry)
+        if (table.isNotBlank()) return table
+    }
+    for (key in listOf("text", "content", "message", "summary", "description", "output", "body")) {
+        val chunk = coerceAnyToTrimmedString(entry[key])
+        if (chunk.isNotBlank()) return chunk
+    }
+    val html = coerceAnyToTrimmedString(entry["html"])
+    if (html.isNotBlank()) {
+        return html.replace(Regex("<[^>]+>"), " ").replace(Regex("\\s+"), " ").trim()
+    }
+    return ""
+}
+
+/** Renders Activepieces `type: "table"` blocks (columns + rows) as plain text for the briefing sheet. */
+private fun formatFounderAutomationTableResult(entry: Map<*, *>): String {
+    val columns = entry["columns"] as? List<*> ?: return ""
+    val rows = entry["rows"] as? List<*> ?: return ""
+    if (columns.isEmpty() || rows.isEmpty()) return ""
+    val colLabels = columns.map { coerceAnyToTrimmedString(it) }
+    val lines = ArrayList<String>(rows.size + 1)
+    lines.add(colLabels.joinToString(" | "))
+    for (row in rows) {
+        val cells: List<String> = when (row) {
+            is List<*> -> {
+                val r = row.map { coerceAnyToTrimmedString(it) }
+                if (r.size >= colLabels.size) {
+                    r.take(colLabels.size)
+                } else {
+                    r + List(colLabels.size - r.size) { "" }
+                }
+            }
+            is Map<*, *> -> colLabels.map { k -> coerceAnyToTrimmedString(row[k]) }
+            else -> listOf(coerceAnyToTrimmedString(row))
+        }
+        lines.add(cells.joinToString(" | "))
+    }
+    return lines.joinToString("\n")
 }
 
 private fun shareFounderBriefingToWhatsApp(context: android.content.Context, text: String) {

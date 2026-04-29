@@ -51,6 +51,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Skydown">
+
+        <provider
+            android:name=".init.FirebaseAppCheckInitProvider"
+            android:authorities="${applicationId}.firebaseappcheckinit"
+            android:exported="false"
+            android:initOrder="2147483647" />
+
         <activity
             android:name=".MainActivity"
             android:attributionTags="core"

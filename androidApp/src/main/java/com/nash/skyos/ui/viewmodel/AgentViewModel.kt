@@ -224,10 +224,10 @@ class AgentViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 selectedMode = mode,
-                shouldTriggerAutomation = if (mode == AgentExecutionMode.Automation && it.canTriggerAutomation) {
-                    true
-                } else {
-                    it.shouldTriggerAutomation
+                shouldTriggerAutomation = when {
+                    mode != AgentExecutionMode.Automation -> false
+                    it.selectedMode != AgentExecutionMode.Automation && it.canTriggerAutomation -> true
+                    else -> it.shouldTriggerAutomation
                 },
                 quickPrompts = agentQuickPromptsFor(mode),
             )
@@ -284,6 +284,90 @@ class AgentViewModel : ViewModel() {
         _uiState.update { it.copy(socialYoutubeHandle = handle) }
     }
 
+    fun updateSocialFacebookEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(socialFacebookEnabled = enabled) }
+    }
+
+    fun updateSocialFacebookHandle(handle: String) {
+        _uiState.update { it.copy(socialFacebookHandle = handle) }
+    }
+
+    fun updateSocialSpotifyEnabled(enabled: Boolean) {
+        _uiState.update { it.copy(socialSpotifyEnabled = enabled) }
+    }
+
+    fun updateSocialSpotifyHandle(handle: String) {
+        _uiState.update { it.copy(socialSpotifyHandle = handle) }
+    }
+
+    private fun hasAnySocialToggleOn(): Boolean {
+        val s = _uiState.value
+        return s.socialInstagramEnabled || s.socialTiktokEnabled || s.socialYoutubeEnabled ||
+            s.socialFacebookEnabled || s.socialSpotifyEnabled
+    }
+
+    private fun modeFromRaw(raw: String): AgentExecutionMode? =
+        AgentExecutionMode.entries.find { it.rawValue == raw }
+
+    /**
+     * Analyse + aktiver Workflow: mindestens eine Plattform noetig.
+     * Ohne Workflow: reiner Chat / Brain, keine Pflicht-Handles.
+     */
+    fun canSendAgentMessage(): Boolean {
+        val s = _uiState.value
+        if (s.draft.isBlank() || s.agentPhase.shouldBlockSend) return false
+        if (s.selectedMode == AgentExecutionMode.Automation && s.canTriggerAutomation && s.shouldTriggerAutomation) {
+            return hasAnySocialToggleOn()
+        }
+        return true
+    }
+
+    /**
+     * Nach Assistenten-Antwort: anderen Modus waehlen und Entwurf mit Kontext befuellen.
+     * Nutzt Fließtext, Workflow-Status/Details und strukturierte [AgentMessage.results] (z. B. n8n-Output).
+     */
+    fun continueInModeFromAssistant(targetMode: AgentExecutionMode, sourceMessage: AgentMessage) {
+        val snippet = buildAssistantContinuationContext(sourceMessage)
+        if (snippet.isBlank()) return
+        val nextDraft = "Anknuepfend an die letzte Antwort — bitte vertiefen:\n\n$snippet"
+        _uiState.update { s ->
+            s.copy(
+                selectedMode = targetMode,
+                shouldTriggerAutomation = targetMode == AgentExecutionMode.Automation && s.canTriggerAutomation,
+                quickPrompts = agentQuickPromptsFor(targetMode),
+                draft = nextDraft,
+            )
+        }
+    }
+
+    private fun buildAssistantContinuationContext(message: AgentMessage): String {
+        val sections = mutableListOf<String>()
+        val body = message.text.trim()
+        if (body.isNotEmpty()) {
+            sections.add(body)
+        }
+        message.workflowSummary?.let { ws ->
+            val block = buildString {
+                appendLine("[Workflow]")
+                if (ws.workflowName.isNotBlank()) appendLine(ws.workflowName)
+                if (ws.statusText.isNotBlank()) appendLine(ws.statusText)
+                if (ws.details.isNotBlank()) appendLine(ws.details)
+                if (ws.step.isNotBlank()) appendLine("Schritt: ${ws.step}")
+                ws.runId?.takeIf { it.isNotBlank() }?.let { appendLine("Run: $it") }
+            }.trim()
+            if (block.isNotEmpty()) {
+                sections.add(block)
+            }
+        }
+        if (message.results.isNotEmpty()) {
+            val lines = message.results.mapNotNull { it.toAgentContinuationSnippet() }
+            if (lines.isNotEmpty()) {
+                sections.add("[Ergebnisse]\n" + lines.joinToString("\n"))
+            }
+        }
+        return sections.joinToString("\n\n---\n\n").take(4_000)
+    }
+
     fun sendDraft(attachments: List<AgentOutboundAttachment> = emptyList()) {
         sendPrompt(_uiState.value.draft, attachments)
     }
@@ -292,6 +376,12 @@ class AgentViewModel : ViewModel() {
         val trimmedPrompt = prompt.trim()
         if (!isAgentRequestAllowed()) return
         if (trimmedPrompt.isBlank() || _uiState.value.agentPhase.shouldBlockSend) return
+        if (!canSendAgentMessage()) {
+            _uiState.update {
+                it.copy(errorMessage = AppTextResolver.string(R.string.agent_send_requires_social_when_workflow))
+            }
+            return
+        }
 
         val levelAtSend = _uiState.value.selectedLevel
         if (!levelAtSend.isAvailableFor(currentQuotaPlan)) {
@@ -309,15 +399,17 @@ class AgentViewModel : ViewModel() {
         val levelRawAtSend = levelAtSend.rawValue
         val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
         val automationScopeAtSend = _uiState.value.selectedAutomationScope.rawValue
-        val socialSetupAtSend = resolveSocialSetupForOutgoing(trimmedPrompt, modeAtSend)
+        val socialSetupAtSend = resolveSocialSetupForOutgoing(modeAtSend)
         val idempotencyKeyAtSend =
             if (executeAutomationAtSend) java.util.UUID.randomUUID().toString() else ""
         val userMessage = AgentMessage(role = AgentMessageRole.User, text = trimmedPrompt)
+        val responseModeAtSend = _uiState.value.selectedMode
         val assistantMessage = AgentMessage(
             role = AgentMessageRole.Assistant,
             text = "",
             isStreaming = true,
             resultType = AgentResultType.Progress,
+            responseMode = responseModeAtSend,
         )
         val assistantMessageId = assistantMessage.id
         val historyAtSend = buildHistory(_uiState.value.messages + userMessage)
@@ -364,6 +456,7 @@ class AgentViewModel : ViewModel() {
                     automationMessage = result.automationMessage,
                     workflowName = result.workflowName,
                     agentRunId = result.agentRunId,
+                    executionMode = modeAtSend,
                     structuredResults = result.results.map { it.toHistoryResultEntry() },
                 )
                 savedResult?.let(::syncSavedEntryToRemote)
@@ -459,6 +552,7 @@ class AgentViewModel : ViewModel() {
                     sessionId = requestContext.sessionIdAtSend,
                     prompt = trimmedPrompt,
                     response = errorMessage,
+                    executionMode = modeAtSend,
                 )
                 savedResult?.let(::syncSavedEntryToRemote)
                 refreshSessionState(requestContext.sessionIdAtSend)
@@ -677,19 +771,27 @@ class AgentViewModel : ViewModel() {
     }
 
     private fun enqueuePromptForRetry(trimmedPrompt: String, attachments: List<AgentOutboundAttachment> = emptyList()) {
+        if (!canSendAgentMessage()) {
+            _uiState.update {
+                it.copy(errorMessage = AppTextResolver.string(R.string.agent_send_requires_social_when_workflow))
+            }
+            return
+        }
         val activeSessionId = ensureCurrentSessionId()
         val modeAtSend = _uiState.value.selectedMode.rawValue
         val executeAutomationAtSend = _uiState.value.canTriggerAutomation && _uiState.value.shouldTriggerAutomation
         val automationScopeAtSend = _uiState.value.selectedAutomationScope.rawValue
-        val socialSetupAtQueue = resolveSocialSetupForOutgoing(trimmedPrompt, modeAtSend)
+        val socialSetupAtQueue = resolveSocialSetupForOutgoing(modeAtSend)
         val idempotencyKeyAtQueue =
             if (executeAutomationAtSend) java.util.UUID.randomUUID().toString() else ""
         val userMessage = AgentMessage(role = AgentMessageRole.User, text = trimmedPrompt)
+        val responseModeAtQueue = _uiState.value.selectedMode
         val assistantMessage = AgentMessage(
             role = AgentMessageRole.Assistant,
             text = AppTextResolver.string(R.string.agent_queue_placeholder),
             isStreaming = false,
             resultType = AgentResultType.Progress,
+            responseMode = responseModeAtQueue,
         )
         val history = buildHistory(_uiState.value.messages + userMessage)
         val levelAtSend = _uiState.value.selectedLevel
@@ -781,6 +883,7 @@ class AgentViewModel : ViewModel() {
                         automationMessage = result.automationMessage,
                         workflowName = result.workflowName,
                         agentRunId = result.agentRunId,
+                        executionMode = request.mode,
                         structuredResults = result.results.map { it.toHistoryResultEntry() },
                     )
                     savedResult?.let(::syncSavedEntryToRemote)
@@ -870,6 +973,7 @@ class AgentViewModel : ViewModel() {
                         sessionId = requestContext.sessionIdAtSend,
                         prompt = request.prompt,
                         response = message,
+                        executionMode = request.mode,
                     )
                     savedResult?.let(::syncSavedEntryToRemote)
                     refreshSessionState(requestContext.sessionIdAtSend)
@@ -1119,7 +1223,11 @@ class AgentViewModel : ViewModel() {
         ).flatMap { entry ->
             listOf(
                 AgentMessage(role = AgentMessageRole.User, text = entry.prompt),
-                AgentMessage(role = AgentMessageRole.Assistant, text = entry.response),
+                AgentMessage(
+                    role = AgentMessageRole.Assistant,
+                    text = entry.response,
+                    responseMode = modeFromRaw(entry.executionMode),
+                ),
             )
         }
 
@@ -1150,6 +1258,7 @@ class AgentViewModel : ViewModel() {
                     role = AgentMessageRole.Assistant,
                     text = AppTextResolver.string(R.string.agent_queue_placeholder),
                     resultType = AgentResultType.Progress,
+                    responseMode = modeFromRaw(request.mode),
                 ),
             )
         }
@@ -1393,36 +1502,11 @@ class AgentViewModel : ViewModel() {
     }
 
     fun shouldShowSocialSetupCard(): Boolean {
-        val state = _uiState.value
-        return state.selectedMode == AgentExecutionMode.Automation &&
-            isSocialAnalysisPrompt(state.draft)
+        return _uiState.value.selectedMode == AgentExecutionMode.Automation
     }
 
-    private fun isSocialAnalysisPrompt(value: String): Boolean {
-        val text = value.trim().lowercase()
-        if (text.isBlank()) return false
-        if (
-            text.contains("social_analysis") ||
-            text.contains("social analysis") ||
-            text.contains("social analyse")
-        ) {
-            return true
-        }
-        val hasSocial =
-            text.contains("social") ||
-                text.contains("instagram") ||
-                text.contains("tiktok") ||
-                text.contains("youtube")
-        val hasAnalysis =
-            text.contains("analyse") ||
-                text.contains("analysis") ||
-                text.contains("insight") ||
-                text.contains("performance")
-        return hasSocial && hasAnalysis
-    }
-
-    private fun resolveSocialSetupForOutgoing(prompt: String, mode: String): AgentSocialSetupInput {
-        if (mode.trim().lowercase() != "automation" || !isSocialAnalysisPrompt(prompt)) {
+    private fun resolveSocialSetupForOutgoing(mode: String): AgentSocialSetupInput {
+        if (mode.trim().lowercase() != "automation") {
             return AgentSocialSetupInput()
         }
         val state = _uiState.value
@@ -1433,6 +1517,10 @@ class AgentViewModel : ViewModel() {
             tiktokHandle = state.socialTiktokHandle.trim(),
             youtubeEnabled = state.socialYoutubeEnabled,
             youtubeHandle = state.socialYoutubeHandle.trim(),
+            facebookEnabled = state.socialFacebookEnabled,
+            facebookHandle = state.socialFacebookHandle.trim(),
+            spotifyEnabled = state.socialSpotifyEnabled,
+            spotifyHandle = state.socialSpotifyHandle.trim(),
         )
     }
 
@@ -1443,8 +1531,11 @@ class AgentViewModel : ViewModel() {
             -> "Dieser Agent-Bereich wird gerade vorbereitet."
             FirebaseFunctionsException.Code.UNAVAILABLE -> "Der SkyOS Agent ist gerade kurz nicht erreichbar."
             FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> "Die Agent-Antwort dauert gerade laenger als gewohnt."
-            FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED ->
-                AppTextResolver.string(R.string.ai_level_limit_reached)
+            FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> {
+                val server = error.message?.trim().orEmpty()
+                if (server.isNotEmpty()) server
+                else AppTextResolver.string(R.string.ai_level_limit_reached)
+            }
             FirebaseFunctionsException.Code.INVALID_ARGUMENT -> "Die Anfrage konnte so nicht verarbeitet werden."
             FirebaseFunctionsException.Code.FAILED_PRECONDITION ->
                 if (error.localizedMessage?.contains("App Check", ignoreCase = true) == true) {
@@ -1623,4 +1714,27 @@ private fun AgentResultEntry.toHistoryResultEntry(): AiConversationHistoryResult
         summary = summary,
         runId = runId,
     )
+}
+
+/** Kompakte Zeile fuer Weiter-in-Modi (Workflow-Output, Tabellen, Links, …). */
+private fun AgentResultEntry.toAgentContinuationSnippet(): String? {
+    val kind = type.trim().lowercase()
+    val primary: String? = when {
+        text.isNotBlank() -> text.trim()
+        summary.isNotBlank() -> summary.trim()
+        title.isNotBlank() && url.isNotBlank() -> "${title.trim()}: ${url.trim()}"
+        url.isNotBlank() -> url.trim()
+        title.isNotBlank() -> title.trim()
+        fileName.isNotBlank() -> fileName.trim()
+        html.isNotBlank() -> html.trim().take(600)
+        rows.isNotEmpty() -> rows.take(8).joinToString("\n") { row -> row.joinToString(" | ") }
+        workflowName.isNotBlank() || status.isNotBlank() || runId.isNotBlank() -> listOfNotNull(
+            workflowName.takeIf { it.isNotBlank() },
+            status.takeIf { it.isNotBlank() },
+            runId.takeIf { it.isNotBlank() }?.let { "Run: $it" },
+        ).joinToString(" — ")
+        else -> null
+    }
+    val primaryText = primary ?: return null
+    return "($kind) ${primaryText.take(1_200)}"
 }

@@ -35,6 +35,8 @@ struct AgentChatMessage: Identifiable, Equatable {
     var resultType: AgentResultType
     var workflowSummary: AgentWorkflowSummary?
     var results: [AgentResultEntry]
+    /// Modus der Anfrage, die diese Antwort erzeugt hat (fuer „Weiter in …“).
+    var responseMode: AgentExecutionMode?
 
     init(
         id: UUID = UUID(),
@@ -43,7 +45,8 @@ struct AgentChatMessage: Identifiable, Equatable {
         isStreaming: Bool = false,
         resultType: AgentResultType = .text,
         workflowSummary: AgentWorkflowSummary? = nil,
-        results: [AgentResultEntry] = []
+        results: [AgentResultEntry] = [],
+        responseMode: AgentExecutionMode? = nil
     ) {
         self.id = id
         self.role = role
@@ -52,6 +55,7 @@ struct AgentChatMessage: Identifiable, Equatable {
         self.resultType = resultType
         self.workflowSummary = workflowSummary
         self.results = results
+        self.responseMode = responseMode
     }
 }
 
@@ -175,6 +179,10 @@ final class AgentChatViewModel: ObservableObject {
     @Published var socialTiktokHandle = ""
     @Published var socialYoutubeEnabled = false
     @Published var socialYoutubeHandle = ""
+    @Published var socialFacebookEnabled = false
+    @Published var socialFacebookHandle = ""
+    @Published var socialSpotifyEnabled = false
+    @Published var socialSpotifyHandle = ""
     @Published private(set) var canTriggerAutomation = false
     /// When false, the global "App-Flow" (owner webhook) is hidden; use personal automation only.
     @Published private(set) var canUseGlobalOwnerAutomationFlow = false
@@ -325,9 +333,103 @@ final class AgentChatViewModel: ObservableObject {
         sendPrompt(draft, attachmentURLs: attachmentURLs)
     }
 
+    private func hasAnySocialToggleOn() -> Bool {
+        socialInstagramEnabled || socialTiktokEnabled || socialYoutubeEnabled
+            || socialFacebookEnabled || socialSpotifyEnabled
+    }
+
+    /// Analyse + aktiver Workflow: mindestens eine Plattform. Ohne Workflow: kein Zwang.
+    func canSendAgentMessage(trimmedPrompt: String) -> Bool {
+        guard !trimmedPrompt.isEmpty, !phase.shouldBlockSend else { return false }
+        if selectedMode == .automation, canTriggerAutomation, shouldTriggerAutomation {
+            return hasAnySocialToggleOn()
+        }
+        return true
+    }
+
+    /// Nach Assistenten-Antwort: anderen Modus waehlen; Entwurf enthaelt Text, Workflow-Status und strukturierte Ergebnisse.
+    func continueInModeFromAssistant(_ target: AgentExecutionMode, sourceMessage: AgentChatMessage) {
+        let snippet = buildAssistantContinuationContext(from: sourceMessage)
+        guard !snippet.isEmpty else { return }
+        draft = "Anknuepfend an die letzte Antwort — bitte vertiefen:\n\n\(snippet)"
+        selectedMode = target
+        if target == .automation, canTriggerAutomation {
+            shouldTriggerAutomation = true
+        } else {
+            shouldTriggerAutomation = false
+        }
+    }
+
+    private func buildAssistantContinuationContext(from message: AgentChatMessage) -> String {
+        var sections: [String] = []
+        let body = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !body.isEmpty {
+            sections.append(body)
+        }
+        if let ws = message.workflowSummary {
+            var w = "[Workflow]\n"
+            w += ws.workflowName.trimmingCharacters(in: .whitespacesAndNewlines) + "\n"
+            w += ws.statusText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !ws.details.isEmpty { w += "\n" + ws.details }
+            if !ws.step.isEmpty { w += "\nSchritt: " + ws.step }
+            if let run = ws.runID, !run.isEmpty { w += "\nRun: " + run }
+            sections.append(w)
+        }
+        if !message.results.isEmpty {
+            let lines = message.results.compactMap { continuationSnippet(from: $0) }
+            if !lines.isEmpty {
+                sections.append("[Ergebnisse]\n" + lines.joined(separator: "\n"))
+            }
+        }
+        return String(sections.joined(separator: "\n\n---\n\n").prefix(4_000))
+    }
+
+    private func continuationSnippet(from entry: AgentResultEntry) -> String? {
+        let kind = entry.type.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let primary: String?
+        if !entry.text.isEmpty {
+            primary = entry.text
+        } else if !entry.summary.isEmpty {
+            primary = entry.summary
+        } else if !entry.title.isEmpty, !entry.url.isEmpty {
+            primary = "\(entry.title): \(entry.url)"
+        } else if !entry.url.isEmpty {
+            primary = entry.url
+        } else if !entry.title.isEmpty {
+            primary = entry.title
+        } else if !entry.fileName.isEmpty {
+            primary = entry.fileName
+        } else if !entry.html.isEmpty {
+            primary = String(entry.html.prefix(600))
+        } else if !entry.rows.isEmpty {
+            primary = entry.rows.prefix(8).map { $0.joined(separator: " | ") }.joined(separator: "\n")
+        } else if !entry.workflowName.isEmpty || !entry.status.isEmpty || !entry.runId.isEmpty {
+            let parts: [String] = [
+                entry.workflowName, entry.status,
+                entry.runId.isEmpty ? nil : "Run: \(entry.runId)"
+            ].compactMap { s in
+                let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+                return t.isEmpty ? nil : t
+            }
+            primary = parts.isEmpty ? nil : parts.joined(separator: " — ")
+        } else {
+            primary = nil
+        }
+        guard let p = primary else { return nil }
+        return "(\(kind)) " + String(p.prefix(1_200))
+    }
+
     func sendPrompt(_ prompt: String, attachmentURLs: [URL] = []) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty, !phase.shouldBlockSend else { return }
+        guard canSendAgentMessage(trimmedPrompt: trimmedPrompt) else {
+            let msg = AppLocalized.text(
+                "agent.send.requires_social_workflow",
+                fallback: "Fuer Analyse mit Workflow: mindestens eine oeffentliche Plattform aktivieren."
+            )
+            showUserToast(msg, style: .error)
+            return
+        }
         guard selectedLevel.isAvailable(for: currentQuotaPlan) else {
             showUserToast(AIExperienceLevel.unavailableMessage, style: .info)
             return
@@ -351,10 +453,7 @@ final class AgentChatViewModel: ObservableObject {
         let levelAtSend = selectedLevel
         let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
         let automationScopeAtSend = selectedAutomationScope.rawValue
-        let socialSetupAtSend = resolveSocialSetupForOutgoing(
-            prompt: trimmedPrompt,
-            mode: modeAtSend
-        )
+        let socialSetupAtSend = resolveSocialSetupForOutgoing(mode: modeAtSend)
         let idempotencyKeyAtSend = executeAutomationAtSend ? UUID().uuidString : ""
         let assistantID = UUID()
         let userMessage = AgentChatMessage(role: .user, text: trimmedPrompt)
@@ -368,7 +467,8 @@ final class AgentChatViewModel: ObservableObject {
                 role: .assistant,
                 text: "",
                 isStreaming: true,
-                resultType: .progress
+                resultType: .progress,
+                responseMode: selectedMode
             )
         )
         draft = ""
@@ -662,7 +762,8 @@ final class AgentChatViewModel: ObservableObject {
                         "agent.queue.placeholder",
                         fallback: "Zwischengespeichert: Diese Anfrage wird automatisch gesendet, sobald deine Verbindung wieder da ist."
                     ),
-                    resultType: .progress
+                    resultType: .progress,
+                    responseMode: AgentExecutionMode(rawValue: request.mode)
                 )
             ]
         }
@@ -762,6 +863,14 @@ final class AgentChatViewModel: ObservableObject {
     }
 
     private func queuePromptForRetry(_ trimmedPrompt: String, attachments: [AgentOutboundAttachment] = []) {
+        guard canSendAgentMessage(trimmedPrompt: trimmedPrompt) else {
+            let msg = AppLocalized.text(
+                "agent.send.requires_social_workflow",
+                fallback: "Fuer Analyse mit Workflow: mindestens eine oeffentliche Plattform aktivieren."
+            )
+            showUserToast(msg, style: .error)
+            return
+        }
         let session = historyStore.ensureSession(
             userKey: currentUserKey,
             source: .agent,
@@ -776,10 +885,7 @@ final class AgentChatViewModel: ObservableObject {
         let levelAtSend = selectedLevel
         let executeAutomationAtSend = shouldTriggerAutomation && canTriggerAutomation
         let automationScopeAtSend = selectedAutomationScope.rawValue
-        let socialSetupAtQueue = resolveSocialSetupForOutgoing(
-            prompt: trimmedPrompt,
-            mode: modeAtSend
-        )
+        let socialSetupAtQueue = resolveSocialSetupForOutgoing(mode: modeAtSend)
         let idempotencyKeyAtQueue = executeAutomationAtSend ? UUID().uuidString : ""
 
         messages.append(userMessage)
@@ -792,7 +898,8 @@ final class AgentChatViewModel: ObservableObject {
                     fallback: "Zwischengespeichert: Diese Anfrage wird automatisch gesendet, sobald deine Verbindung wieder da ist."
                 ),
                 isStreaming: false,
-                resultType: .progress
+                resultType: .progress,
+                responseMode: selectedMode
             )
         )
         draft = ""
@@ -1304,23 +1411,12 @@ final class AgentChatViewModel: ObservableObject {
     }
 
     var shouldShowSocialSetupCard: Bool {
-        selectedMode == .automation && isSocialAnalysisPrompt(draft)
+        selectedMode == .automation
     }
 
-    private func isSocialAnalysisPrompt(_ value: String) -> Bool {
-        let text = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !text.isEmpty else { return false }
-        if text.contains("social_analysis") || text.contains("social analysis") || text.contains("social analyse") {
-            return true
-        }
-        let hasSocial = text.contains("social") || text.contains("instagram") || text.contains("tiktok") || text.contains("youtube")
-        let hasAnalysis = text.contains("analyse") || text.contains("analysis") || text.contains("insight") || text.contains("performance")
-        return hasSocial && hasAnalysis
-    }
-
-    private func resolveSocialSetupForOutgoing(prompt: String, mode: String) -> AgentSocialSetupInput {
+    private func resolveSocialSetupForOutgoing(mode: String) -> AgentSocialSetupInput {
         let normalizedMode = mode.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard normalizedMode == "automation", isSocialAnalysisPrompt(prompt) else {
+        guard normalizedMode == "automation" else {
             return .empty
         }
         return AgentSocialSetupInput(
@@ -1329,7 +1425,11 @@ final class AgentChatViewModel: ObservableObject {
             tiktokEnabled: socialTiktokEnabled,
             tiktokHandle: socialTiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines),
             youtubeEnabled: socialYoutubeEnabled,
-            youtubeHandle: socialYoutubeHandle.trimmingCharacters(in: .whitespacesAndNewlines)
+            youtubeHandle: socialYoutubeHandle.trimmingCharacters(in: .whitespacesAndNewlines),
+            facebookEnabled: socialFacebookEnabled,
+            facebookHandle: socialFacebookHandle.trimmingCharacters(in: .whitespacesAndNewlines),
+            spotifyEnabled: socialSpotifyEnabled,
+            spotifyHandle: socialSpotifyHandle.trimmingCharacters(in: .whitespacesAndNewlines)
         )
     }
 
@@ -1610,7 +1710,7 @@ final class AgentChatViewModel: ObservableObject {
             case .deadlineExceeded:
                 return "Die Agent-Antwort dauert gerade laenger als gewohnt."
             case .resourceExhausted:
-                return AIExperienceLevel.limitReachedMessage
+                return AIExperienceLevel.resourceExhaustedUserMessage(from: error)
             case .invalidArgument:
                 return "Die Anfrage braucht noch etwas mehr Kontext."
             case .failedPrecondition:

@@ -34,4 +34,6 @@ data class AgentMessage(
     val resultType: AgentResultType = AgentResultType.Text,
     val workflowSummary: AgentWorkflowSummary? = null,
     val results: List<AgentResultEntry> = emptyList(),
+    /** Modus der Anfrage, die diese Assistenten-Antwort erzeugt hat (fuer „Weiter in …“). */
+    val responseMode: AgentExecutionMode? = null,
 )

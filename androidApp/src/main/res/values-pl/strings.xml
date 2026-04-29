@@ -1620,6 +1620,10 @@ Message:
     <string name="agent_files_remove_all">Remove all</string>
     <string name="agent_action_new_chat">New chat</string>
     <string name="agent_action_send">Send</string>
+    <string name="agent_send_requires_social_when_workflow">For Analyse with workflow: turn on at least one public profile first.</string>
+    <string name="agent_workflow_social_required_hint">Workflow is on — select at least one platform to send.</string>
+    <string name="agent_continue_in_mode_label">Continue in</string>
+    <string name="agent_continue_in_mode_subtitle">Ready to take this further?</string>
     <string name="agent_prompts_chip">Prompts</string>
     <string name="agent_prompts_title">Quick starts</string>
     <string name="agent_prompts_apply">Apply</string>

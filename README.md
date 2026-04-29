@@ -119,13 +119,13 @@ Diese README ist absichtlich umfassend, aber für schnellen Zugriff strukturiert
 Kurz gelesen:
 
 - Versionen stehen konsistent auf `1.0.0`.
-- Build-Nummern stehen konsistent auf `10018`.
+- Store-Build-IDs stehen auf iOS `10018` und Android `10019`.
 - Release-Ablauf wird zentral im Release-Workflow gepflegt.
 
 | Aspekt | Stand (Repository) |
 | --- | --- |
 | **Produktversion (Repository-Stand)** | `1.0.0` (`VERSION`, iOS `MARKETING_VERSION`, Android `versionName`) |
-| **Build-Identität (Repository-Stand)** | iOS `CURRENT_PROJECT_VERSION=10018`, Android `versionCode=10018` |
+| **Build-Identität (Repository-Stand)** | iOS `CURRENT_PROJECT_VERSION=10018`, Android `versionCode=10019` |
 | **iOS** | Bundle-ID `com.skydown.ios` — siehe Xcode-Projekt und [docs/ios.md](docs/ios.md) |
 | **Android** | Application ID `com.nash.skyos` — siehe [docs/android.md](docs/android.md) |
 | **Backend** | Firebase-Projekt in Client-Konfigurationen referenziert; Functions-Paket `skyos-functions@1.0.0` ([functions/package.json](functions/package.json)) |

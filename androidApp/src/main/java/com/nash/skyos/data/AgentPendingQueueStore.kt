@@ -121,6 +121,10 @@ object AgentPendingQueueStore {
                                 tiktokHandle = item.optString("socialTiktokHandle").trim(),
                                 youtubeEnabled = item.optBoolean("socialYoutubeEnabled", false),
                                 youtubeHandle = item.optString("socialYoutubeHandle").trim(),
+                                facebookEnabled = item.optBoolean("socialFacebookEnabled", false),
+                                facebookHandle = item.optString("socialFacebookHandle").trim(),
+                                spotifyEnabled = item.optBoolean("socialSpotifyEnabled", false),
+                                spotifyHandle = item.optString("socialSpotifyHandle").trim(),
                             ),
                         ),
                     )
@@ -191,6 +195,10 @@ object AgentPendingQueueStore {
                     .put("socialTiktokHandle", entry.socialSetup.tiktokHandle)
                     .put("socialYoutubeEnabled", entry.socialSetup.youtubeEnabled)
                     .put("socialYoutubeHandle", entry.socialSetup.youtubeHandle)
+                    .put("socialFacebookEnabled", entry.socialSetup.facebookEnabled)
+                    .put("socialFacebookHandle", entry.socialSetup.facebookHandle)
+                    .put("socialSpotifyEnabled", entry.socialSetup.spotifyEnabled)
+                    .put("socialSpotifyHandle", entry.socialSetup.spotifyHandle)
                     .put(
                         "history",
                         JSONArray().apply {

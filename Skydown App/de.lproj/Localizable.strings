@@ -12,6 +12,10 @@
 "settings.notifications.toast.disabled" = "Benachrichtigungen sind aus. Du kannst sie in den iOS-Einstellungen aktivieren.";
 "settings.notifications.toast.manage_in_settings" = "Benachrichtigungen verwaltest du in den iOS-Einstellungen.";
 "agent.offline.message" = "Du bist offline. Der Agent macht weiter, sobald die Verbindung zurueck ist.";
+"agent.send.requires_social_workflow" = "Bei Analyse mit Workflow: Mindestens ein oeffentliches Profil aktivieren.";
+"agent.workflow.social_required_hint" = "Workflow aktiv — mindestens eine Plattform waehlen, um zu senden.";
+"agent.continue_in_mode" = "Weiter in";
+"agent.continue_in_mode_subtitle" = "Bereit fuer den naechsten Schritt?";
 "agent.queue.placeholder" = "Warteschlange: Diese Anfrage wird automatisch gesendet, sobald du wieder online bist.";
 "agent.queue.toast.queued" = "Offline gespeichert. Wird automatisch gesendet, sobald du online bist.";
 "agent.queue.toast.sent" = "Anfrage aus der Warteschlange erfolgreich gesendet.";

@@ -87,8 +87,13 @@ data class AgentSocialSetupInput(
     val tiktokHandle: String = "",
     val youtubeEnabled: Boolean = false,
     val youtubeHandle: String = "",
+    val facebookEnabled: Boolean = false,
+    val facebookHandle: String = "",
+    val spotifyEnabled: Boolean = false,
+    val spotifyHandle: String = "",
 ) {
-    fun hasAnySelection(): Boolean = instagramEnabled || tiktokEnabled || youtubeEnabled
+    fun hasAnySelection(): Boolean =
+        instagramEnabled || tiktokEnabled || youtubeEnabled || facebookEnabled || spotifyEnabled
 
     fun toPayloadMap(): Map<String, Any> = mapOf(
         "instagramEnabled" to instagramEnabled,
@@ -97,6 +102,10 @@ data class AgentSocialSetupInput(
         "tiktokHandle" to tiktokHandle,
         "youtubeEnabled" to youtubeEnabled,
         "youtubeHandle" to youtubeHandle,
+        "facebookEnabled" to facebookEnabled,
+        "facebookHandle" to facebookHandle,
+        "spotifyEnabled" to spotifyEnabled,
+        "spotifyHandle" to spotifyHandle,
     )
 }
 

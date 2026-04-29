@@ -267,6 +267,7 @@ class AiConversationSyncRepository(
             "automationMessage" to entry.automationMessage,
             "workflowName" to entry.workflowName,
             "agentRunId" to entry.agentRunId,
+            "executionMode" to entry.executionMode,
             "results" to entry.structuredResults.map { result ->
                 mapOf(
                     "type" to result.type,
@@ -331,6 +332,7 @@ class AiConversationSyncRepository(
         val automationMessage = (data["automationMessage"] as? String).orEmpty().trim()
         val workflowName = (data["workflowName"] as? String).orEmpty().trim()
         val agentRunId = (data["agentRunId"] as? String).orEmpty().trim()
+        val executionMode = (data["executionMode"] as? String).orEmpty().trim()
         val structuredResults = (data["results"] as? List<*>)?.mapNotNull { raw ->
             val row = raw as? Map<*, *> ?: return@mapNotNull null
             AiConversationHistoryResultEntry(
@@ -362,6 +364,7 @@ class AiConversationSyncRepository(
             automationMessage = automationMessage,
             workflowName = workflowName,
             agentRunId = agentRunId,
+            executionMode = executionMode,
             structuredResults = structuredResults,
             createdAtEpochMillis = (data["createdAt"] as? Timestamp)?.toDate()?.time ?: System.currentTimeMillis(),
         )

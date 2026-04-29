@@ -7,6 +7,7 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.functions.HttpsCallableResult
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.delay
 
 private const val APP_CHECK_DEBUG_PACKAGE_NAME = "com.nash.skyos"
 
@@ -21,9 +22,52 @@ suspend fun FirebaseFunctions.callWithAppCheckRetry(
             throw error
         }
 
-        FirebaseAppCheck.getInstance().getToken(true).await()
+        refreshAppCheckTokenForCallableRetry()
         getHttpsCallable(functionName).call(payload).await()
     }
+}
+
+private suspend fun refreshAppCheckTokenForCallableRetry() {
+    // IMPORTANT:
+    // Forcing a fresh token on every retry can trigger Play Integrity / provider rate limits ("Too many attempts").
+    // Prefer cached token first, then force refresh with backoff.
+    try {
+        FirebaseAppCheck.getInstance().getToken(false).await()
+        return
+    } catch (_: Throwable) {
+        // ignore and try forced refresh
+    }
+
+    val delaysMs = intArrayOf(200, 600, 1200)
+    var lastError: Throwable? = null
+    for (delayMs in delaysMs) {
+        try {
+            delay(delayMs.toLong())
+            FirebaseAppCheck.getInstance().getToken(true).await()
+            return
+        } catch (error: Throwable) {
+            lastError = error
+            if (!error.isTooManyAttempts()) {
+                throw error
+            }
+        }
+    }
+
+    throw lastError ?: IllegalStateException("App Check token refresh failed.")
+}
+
+private fun Throwable.isTooManyAttempts(): Boolean {
+    val text = generateSequence<Throwable>(this) { it.cause }
+        .flatMap { error ->
+            sequenceOf(
+                error.message,
+                error.localizedMessage,
+            )
+        }
+        .filterNotNull()
+        .joinToString(" ")
+        .lowercase()
+    return text.contains("too many attempts")
 }
 
 fun Throwable.toAppCheckVerificationMessage(retryActionInstruction: String): String? {
@@ -39,15 +83,18 @@ fun Throwable.toAppCheckVerificationMessage(retryActionInstruction: String): Str
 }
 
 private fun FirebaseFunctionsException.shouldRetryWithFreshAppCheckToken(): Boolean {
-    if (code != FirebaseFunctionsException.Code.FAILED_PRECONDITION) {
-        return false
-    }
-
     val text = localizedMessage.orEmpty().lowercase()
-    return text.contains("app check") ||
-        text.contains("app-check") ||
-        text.contains("app verification") ||
-        text.contains("missing app check token")
+    val looksLikeAppCheck =
+        text.contains("app check") ||
+            text.contains("app-check") ||
+            text.contains("app verification") ||
+            text.contains("missing app check token")
+
+    // Some backends surface App Check failures as INTERNAL with a localized DE/EN message.
+    return looksLikeAppCheck && (
+        code == FirebaseFunctionsException.Code.FAILED_PRECONDITION ||
+            code == FirebaseFunctionsException.Code.INTERNAL
+        )
 }
 
 private fun Throwable.isAppCheckVerificationFailure(): Boolean {
