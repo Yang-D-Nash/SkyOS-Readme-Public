@@ -16,11 +16,11 @@
  *
  * Return: JSON passend zu docs/automation/agent-results-contract.md (results[].text, nicht "content")
  *
- * Version: skyos.activepieces.router.premium.v3.0
+ * Version: skyos.activepieces.router.premium.v3.1
  */
 export const code = async (inputs) => {
   const startedAt = Date.now();
-  const schemaVersion = "skyos.activepieces.router.premium.v3.0";
+  const schemaVersion = "skyos.activepieces.router.premium.v3.1";
 
   const parseJsonSafe = (value) => {
     if (typeof value !== "string") return null;
@@ -248,6 +248,63 @@ export const code = async (inputs) => {
     );
   }
 
+  const returnAnalysisOutputOnly = ({ title, text, action = "social_analysis" }) => {
+    const durationMs = Date.now() - startedAt;
+    const results = [
+      {
+        type: "table",
+        title: "Ausfuehrung",
+        columns: ["Modus", "Aktion", "Status", "HTTP", "Laufzeit ms"],
+        rows: [[String(action), "agent_output", "ok", "skipped", String(durationMs)]],
+      },
+      {
+        type: "text",
+        title,
+        text,
+      },
+    ];
+    const responseForWebhook = {
+      message: "Analyse bereit. Nicht als Notiz gespeichert.",
+      workflowStatus: "completed",
+      private: "",
+      group: "",
+      results,
+    };
+    return {
+      message: responseForWebhook.message,
+      workflowStatus: "completed",
+      results,
+      private: null,
+      group: null,
+      responseForWebhook,
+      responseForWebhookJson: JSON.stringify(responseForWebhook),
+      meta: {
+        schemaVersion,
+        traceId,
+        requestId,
+        uid,
+        mode: effectiveMode,
+        rawMode,
+        socialIntent: socialIntent || null,
+        generatedAt: new Date().toISOString(),
+        savedToNotes: false,
+        persistence: "chat_history_only",
+        actions: [
+          {
+            type: action,
+            functionName: null,
+            status: "completed",
+            httpStatus: null,
+            attemptCount: 0,
+            durationMs,
+            requestId: `${requestId}-${action}`,
+            savedToNotes: false,
+          },
+        ],
+      },
+    };
+  };
+
   // ---------- Routing ----------
   let functionName = null;
   let payload = null;
@@ -335,8 +392,6 @@ export const code = async (inputs) => {
       if (isValidIsoDateTime(dueAt)) payload.dueAt = String(dueAt).trim();
     }
   } else if (effectiveMode === "social_analysis") {
-    functionName = "createNoteFromWorkflow";
-    actionType = "social_analysis";
     const title = clean(
       data?.title || data?.noteTitle,
       "Social / Oeffentliche Profil-Snapshot",
@@ -344,6 +399,19 @@ export const code = async (inputs) => {
     );
     const customContent = clean(data?.content || data?.analysis, "", 5000);
     const bodyText = customContent || buildAutomationNoteBody(data);
+    const saveToNotes = parseBool(
+      data?.saveToNotes ??
+        body?.saveToNotes ??
+        data?.notePreferred ??
+        body?.notePreferred ??
+        data?.persistToNotes ??
+        body?.persistToNotes,
+    );
+    if (!saveToNotes) {
+      return returnAnalysisOutputOnly({ title: title || "Social Analysis", text: bodyText, action: "social_analysis" });
+    }
+    functionName = "createNoteFromWorkflow";
+    actionType = "social_analysis";
     payload = {
       uid,
       title: title || "Social Analysis",

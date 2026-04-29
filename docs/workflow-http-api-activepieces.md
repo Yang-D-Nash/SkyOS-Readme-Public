@@ -99,7 +99,7 @@ v2.5 ergaenzt gegenueber v2.4:
 - direkte Modi `reminder`, `task`, `note` zusaetzlich zu `release`, `briefing`, `content`, `merch`, `social_analysis`
 - strukturierte App-Results mit `type: "reminder"`, `type: "task"` oder `type: "note"`
 - lesbare Success-Messages fuer den User statt generischem `Erledigt. Aktion erfolgreich ausgefuehrt.`
-- `social_analysis` schreibt die echte Agent-Auswertung plus Social-Handles und vorhandene Live-Kontexte als Note, nicht nur einen generischen Platzhalter
+- `social_analysis` gibt die echte Agent-Auswertung plus Social-Handles und vorhandene Live-Kontexte im Agent-Output zurueck; als Note wird sie nur mit `saveToNotes: true` oder `notePreferred: true` gespeichert
 - `private` und `group` bleiben fuer Founder Briefings unveraendert, damit Home `Me/Group` bzw. `Ich/Gruppe` sauber anzeigen kann
 - der Secret Header `x-skyos-workflow-secret` wird nur beim Server-Call gesetzt und nie in der Response ausgegeben
 

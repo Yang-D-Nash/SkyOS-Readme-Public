@@ -30,6 +30,14 @@ export const code = async (inputs) => {
     return fallback;
   };
 
+  const firstCleanWithSource = (entries, fallback = "", max = 5000) => {
+    for (const [source, value] of entries) {
+      const s = clean(value, "", max);
+      if (s) return { value: s, source, length: s.length };
+    }
+    return { value: fallback, source: "missing", length: clean(fallback, "", max).length };
+  };
+
   const parseBool = (value) => {
     if (value === true) return true;
     if (value === false) return false;
@@ -215,6 +223,70 @@ export const code = async (inputs) => {
     return clean(lines.join("\n"), "Social Analysis angefordert.", 5000);
   };
 
+  const returnSocialAnalysisOutput = ({ title, text, savedToNotes = false }) => {
+    const durationMs = Date.now() - startedAt;
+    const results = [
+      {
+        type: "table",
+        title: "Ausfuehrung",
+        columns: ["Mode", "Status", "HTTP", "Cloud ok", "Versuche"],
+        rows: [["social_analysis", "completed", "skipped", "not_applicable", "0"]],
+      },
+      {
+        type: "text",
+        title,
+        text,
+      },
+    ];
+    const responseForWebhook = {
+      message: savedToNotes ? "Analyse bereit und als Notiz gespeichert." : "Analyse bereit. Nicht als Notiz gespeichert.",
+      workflowStatus: "completed",
+      private: "",
+      group: "",
+      results,
+    };
+    return {
+      message: responseForWebhook.message,
+      workflowStatus: "completed",
+      results,
+      private: null,
+      group: null,
+      responseForWebhook,
+      responseForWebhookJson: JSON.stringify(responseForWebhook),
+      meta: {
+        schemaVersion,
+        traceId,
+        requestId,
+        uid,
+        mode: "social_analysis",
+        appExecutionMode: appExecutionMode || null,
+        ...workflowSecretDiagnostics,
+        generatedAt: new Date().toISOString(),
+        functionName: null,
+        actionType: "social_analysis",
+        httpStatus: null,
+        cloudBodyOk: null,
+        reminderId: null,
+        taskId: null,
+        noteId: null,
+        savedToNotes,
+        persistence: savedToNotes ? "note" : "chat_history_only",
+        actions: [
+          {
+            type: "social_analysis",
+            functionName: null,
+            status: "completed",
+            httpStatus: null,
+            attemptCount: 0,
+            durationMs,
+            requestId: `${requestId}-social-analysis`,
+            savedToNotes,
+          },
+        ],
+      },
+    };
+  };
+
   const root = asObject(inputs) || {};
   const bodyCandidate =
     asObject(root.body) ||
@@ -240,16 +312,22 @@ export const code = async (inputs) => {
     "skydown-a6add",
     100,
   );
-  const workflowSecret = firstClean(
+  const workflowSecretInput = firstCleanWithSource(
     [
-      root.workflowSecret,
-      root.SKYOS_WORKFLOW_SECRET,
-      root.secrets?.workflowSecret,
-      root.secrets?.SKYOS_WORKFLOW_SECRET,
+      ["root.workflowSecret", root.workflowSecret],
+      ["root.SKYOS_WORKFLOW_SECRET", root.SKYOS_WORKFLOW_SECRET],
+      ["root.secrets.workflowSecret", root.secrets?.workflowSecret],
+      ["root.secrets.SKYOS_WORKFLOW_SECRET", root.secrets?.SKYOS_WORKFLOW_SECRET],
     ],
     "",
     300,
   );
+  const workflowSecret = workflowSecretInput.value;
+  const workflowSecretDiagnostics = {
+    workflowSecretPresent: Boolean(workflowSecret),
+    workflowSecretSource: workflowSecretInput.source,
+    workflowSecretLength: workflowSecretInput.length,
+  };
 
   const requestId = firstClean(
     [body.requestId, data.requestId, root.requestId],
@@ -297,6 +375,7 @@ export const code = async (inputs) => {
         mode: mode || null,
         uid: uid || null,
         appExecutionMode: appExecutionMode || null,
+        ...workflowSecretDiagnostics,
         reason,
         generatedAt: new Date().toISOString(),
         ...extra,
@@ -434,10 +513,21 @@ export const code = async (inputs) => {
     }
   } else if (mode === "social_analysis") {
     const title = firstClean([data.title, body.title], socialAnalysisTitle(data.socialContext || body.socialContext), 180);
-    functionName = "createNoteFromWorkflow";
-    actionType = "social_analysis";
     outputTitle = title;
     const content = socialAnalysisContent({ data, body });
+    const saveToNotes = parseBool(
+      data.saveToNotes ??
+        body.saveToNotes ??
+        data.notePreferred ??
+        body.notePreferred ??
+        data.persistToNotes ??
+        body.persistToNotes,
+    );
+    if (!saveToNotes) {
+      return returnSocialAnalysisOutput({ title, text: content, savedToNotes: false });
+    }
+    functionName = "createNoteFromWorkflow";
+    actionType = "social_analysis";
     payload = {
       uid,
       title,
@@ -628,6 +718,7 @@ export const code = async (inputs) => {
         uid,
         mode,
         appExecutionMode: appExecutionMode || null,
+        ...workflowSecretDiagnostics,
         generatedAt: new Date().toISOString(),
         functionName,
         actionType,
@@ -682,6 +773,7 @@ export const code = async (inputs) => {
         uid: uid || null,
         mode: mode || null,
         appExecutionMode: appExecutionMode || null,
+        ...workflowSecretDiagnostics,
         generatedAt: new Date().toISOString(),
         error: err instanceof Error ? err.message : "network_or_runtime_error",
       },
