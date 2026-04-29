@@ -61,7 +61,33 @@ Important boundary: these are optional execution routes. They should be:
 - transparent to the user when automation is triggered
 - blocked when kill switches or confirmation policies require it
 
-## 5. Safety and Trust Controls
+## 5. Agent Product Contract
+
+The SkyOS Agent is a saved, account-scoped chatbot/workflow surface, not a disposable prompt box.
+Clients store Agent sessions and entries locally and sync them to Firestore so users can create,
+rename, reopen, continue, and delete conversations. Those conversations also feed the bounded
+memory layer according to the active quota plan and retention window.
+
+Live Agent modes:
+
+- `release` - release planning, launch sequencing, assets, risks, next steps
+- `briefing` - creative/operational briefings for owner, team, content, video, or partners
+- `content` - channel plans, hooks, captions, scripts, CTAs, repurposing
+- `merch` - drop planning, shop copy, product/content checklist
+- `automation` in clients, shown as **Analyse** - social/profile analysis and workflow handoff
+
+Social Analysis supports Instagram, TikTok, YouTube, Facebook/Meta, and Spotify. The backend only
+uses live data when the relevant provider key/token and account permission are valid at request time.
+If a platform rejects the token, lacks scope, rate-limits, or cannot expose a public profile, SkyOS
+must say that clearly and continue with handle/prompt context. It must not invent reach,
+impressions, follower counts, revenue, retention, or engagement metrics.
+
+Owner-facing answers should be concise and shareable. Home `Me` / `Group` briefing buttons request
+fresh server data before rendering. User-facing workflow outputs should be readable in the app and
+can create Tasks, Notes, or Reminders through the documented workflow endpoints when automation is
+enabled and permitted.
+
+## 6. Safety and Trust Controls
 
 SkyOS already contains several real safeguards:
 
@@ -75,7 +101,7 @@ SkyOS already contains several real safeguards:
 
 AI should never silently overstep permission, billing, or privacy expectations.
 
-## 6. FAQ and Support Intelligence
+## 7. FAQ and Support Intelligence
 
 SkyOS includes a FAQ review loop, not only answer generation. This enables:
 
@@ -86,7 +112,7 @@ SkyOS includes a FAQ review loop, not only answer generation. This enables:
 
 This is part of product trust, not only internal tooling.
 
-## 7. Membership and AI Access
+## 8. Membership and AI Access
 
 AI in SkyOS is plan-aware. The system can:
 
@@ -97,7 +123,7 @@ AI in SkyOS is plan-aware. The system can:
 
 The repo positions AI as capability-based membership, not a token shop.
 
-## 8. What AI Is Not Allowed To Be
+## 9. What AI Is Not Allowed To Be
 
 SkyOS AI should not:
 

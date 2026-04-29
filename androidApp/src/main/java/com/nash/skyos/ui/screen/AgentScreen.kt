@@ -1573,6 +1573,15 @@ private fun AgentThreadFollowUpBar(
     onSend: () -> Unit,
 ) {
     val mystic = MaterialTheme.colorScheme.skydownAccentMystic()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val submit: () -> Unit = {
+        if (canSend && !isWorking) {
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+            onSend()
+        }
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Bottom,
@@ -1601,7 +1610,7 @@ private fun AgentThreadFollowUpBar(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(
                 onSend = {
-                    if (canSend && !isWorking) onSend()
+                    submit()
                 },
             ),
         )
@@ -1615,7 +1624,7 @@ private fun AgentThreadFollowUpBar(
             )
         }
         IconButton(
-            onClick = onSend,
+            onClick = submit,
             enabled = canSend && !isWorking,
         ) {
             Icon(
@@ -1911,6 +1920,11 @@ private fun AgentPromptComposerSheet(
                     )
                     BrandStatusChip(
                         text = stringResource(R.string.agent_social_badge_instagram_fallback),
+                        accent = MaterialTheme.colorScheme.tertiary,
+                        isActive = false,
+                    )
+                    BrandStatusChip(
+                        text = stringResource(R.string.agent_social_badge_meta_page),
                         accent = MaterialTheme.colorScheme.tertiary,
                         isActive = false,
                     )

@@ -113,6 +113,11 @@ Instagram Social Analysis nutzt Meta Graph API nur, wenn ein gueltiger, nicht ab
 vorliegt. Wenn Meta den Token ablehnt, arbeitet SkyOS mit Handle + Prompt weiter und markiert die
 Live-Graph-Daten als nicht verfuegbar.
 
+Facebook/Meta Social Analysis nutzt Page-Graph-Daten nur, wenn ein gueltiger Page/User Token
+(`META_FACEBOOK_PAGE_ACCESS_TOKEN`, `META_PAGE_ACCESS_TOKEN` oder `META_GRAPH_ACCESS_TOKEN`) und
+optional eine `META_FACEBOOK_PAGE_ID` / `META_PAGE_ID` vorliegen. Ohne gueltige Page-Berechtigung
+wird kein Reichweiten-/Followerwert geraten; die App bekommt einen expliziten Handle-Kontext.
+
 ## Erwartete Antworten
 
 Erfolg:

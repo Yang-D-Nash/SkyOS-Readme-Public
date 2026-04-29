@@ -64,6 +64,7 @@ const {loadFounderBriefingEnrichment} = require("./src/founder/briefing-enrichme
 const {fetchSpotifyHandleCatalogSummary} = require("./src/agent/spotify-enrichment");
 const {fetchYouTubeHandleCatalogSummary} = require("./src/agent/youtube-enrichment");
 const {resolveInstagramContextForAgent} = require("./src/agent/meta-instagram-enrichment");
+const {resolveFacebookPageContextForAgent} = require("./src/agent/meta-facebook-enrichment");
 const {fetchTikTokHandlePublicSummary} = require("./src/agent/tiktok-enrichment");
 
 admin.initializeApp();
@@ -240,7 +241,7 @@ const agentAttachmentSchema = z.object({
 const agentRequestSchema = z.object({
   prompt: z.string().trim().min(1).max(4000),
   history: z.array(agentTurnSchema).max(24).default([]),
-  mode: z.enum(["release", "briefing", "content", "merch", "automation"]).default("release"),
+  mode: z.enum(["release", "briefing", "content", "merch", "automation", "analysis"]).default("release"),
   aiLevel: z.enum(["standard", "advanced", "pro"]).default("standard"),
   executeAutomation: z.boolean().default(false),
   automationScope: z.enum(["owner", "personal"]).default("owner"),
@@ -617,6 +618,7 @@ const AGENT_MODES = {
   content: "content",
   merch: "merch",
   automation: "automation",
+  analysis: "analysis",
 };
 
 const AI_AGENT_PROVIDERS = {
@@ -14973,6 +14975,18 @@ exports.generateAiVisual = onCall({
 });
 
 function responseFrameworkHint(mode, prompt) {
+  if (mode === "analysis" || detectSocialAnalysisIntent({mode, prompt})) {
+    return [
+      "Antwortformat fuer Social Analyse:",
+      "1) Kurzes Signal in einem Satz.",
+      "2) Datenlage je Plattform: live / eingeschraenkt / nur Handle-Kontext.",
+      "3) Konkrete Befunde aus vorhandenen Live-Daten; keine geschaetzten Kennzahlen.",
+      "4) Drei klare naechste Aktionen fuer Content, Release oder Wachstum.",
+      "5) Optional ein sehr kurzer Copy-/Workflow-Vorschlag.",
+      "Ton: premium, direkt, scanbar; passende Status-Symbole sind erlaubt, aber keine ueberladene Emoji-Sprache.",
+    ].join(" ");
+  }
+
   if (mode === AGENT_MODES.release) {
     return "Antwortformat: Ziel, Release-Phasen, konkrete Schritte mit Reihenfolge, Timing, benoetigte Assets, Risiken, Naechste 3 Schritte.";
   }
@@ -15469,11 +15483,13 @@ function buildSocialProfileContextBlockForPrompt({
   spotifyCatalogSummary = "",
   youtubeCatalogSummary = "",
   instagramGraphSummary = "",
+  facebookMetaSummary = "",
   tiktokPublicSummary = "",
 } = {}) {
   const spotifyEnriched = nonEmptyString(spotifyCatalogSummary) || "";
   const youtubeEnriched = nonEmptyString(youtubeCatalogSummary) || "";
   const instagramEnriched = nonEmptyString(instagramGraphSummary) || "";
+  const facebookEnriched = nonEmptyString(facebookMetaSummary) || "";
   const tiktokEnriched = nonEmptyString(tiktokPublicSummary) || "";
   const profiles = normalizeSocialProfiles(socialProfiles);
   const handlesLine = SOCIAL_PLATFORM_ORDER
@@ -15503,7 +15519,8 @@ function buildSocialProfileContextBlockForPrompt({
         .join(", ");
     lines.push("Ausgewaehlt, aber ohne Handle: " + miss + ". Weise knapp darauf hin.");
   }
-  if (!handlesLine.length && !missing.length && !spotifyEnriched && !youtubeEnriched && !instagramEnriched && !tiktokEnriched) {
+  if (!handlesLine.length && !missing.length && !spotifyEnriched && !youtubeEnriched &&
+    !instagramEnriched && !facebookEnriched && !tiktokEnriched) {
     return "";
   }
   const baseBlock = trimTextMax(
@@ -15519,6 +15536,9 @@ function buildSocialProfileContextBlockForPrompt({
   }
   if (instagramEnriched) {
     out = `${out}\n\n---\nInstagram (Meta)\n${instagramEnriched}\n---\n`;
+  }
+  if (facebookEnriched) {
+    out = `${out}\n\n---\nFacebook/Meta\n${facebookEnriched}\n---\n`;
   }
   if (tiktokEnriched) {
     out = `${out}\n\n---\nTikTok (oeffentliches Profil)\n${tiktokEnriched}\n---\n`;
@@ -15662,7 +15682,7 @@ function detectSocialAnalysisIntent({mode = "", prompt = ""} = {}) {
   if (explicitTerms.some((term) => normalizedPrompt.includes(term))) {
     return true;
   }
-  if (!["briefing", "content", "automation"].includes(normalizedMode)) {
+  if (!["briefing", "content", "automation", "analysis"].includes(normalizedMode)) {
     return false;
   }
   const hasAnalysisWord = /\banaly[sz]e|\banalys[ei]s|\bauswert|\binsight|\bperformance\b/.test(normalizedPrompt);
@@ -15829,6 +15849,7 @@ function buildSocialAnalysisWorkflowContent({
     ["Spotify", socialContext.spotifyPublicCatalogSummary],
     ["YouTube", socialContext.youtubePublicCatalogSummary],
     ["Instagram", socialContext.instagramPublicGraphSummary],
+    ["Facebook/Meta", socialContext.facebookMetaSummary],
     ["TikTok", socialContext.tiktokPublicSummary],
   ]
       .map(([label, value]) => {
@@ -16653,9 +16674,10 @@ exports.skydownAgent = onCall({
     mode: agentInput.mode,
     prompt: agentInput.prompt,
   }) || (
-    nonEmptyString(agentInput.mode)?.toLowerCase() === "automation" &&
+    ["automation", "analysis"].includes(nonEmptyString(agentInput.mode)?.toLowerCase()) &&
     socialSetupForIntent.selectedPlatforms.length > 0
   );
+  const llmMode = isSocialAnalysisIntent ? AGENT_MODES.analysis : agentInput.mode;
   const maxExternalCallsPerRequest = Number.isFinite(Number(agentCore.externalPolicy?.maxExternalCallsPerRequest)) ?
     Number(agentCore.externalPolicy.maxExternalCallsPerRequest) :
     1;
@@ -16990,6 +17012,26 @@ exports.skydownAgent = onCall({
       });
     }
   }
+  let facebookMetaSummary = "";
+  const facebookHandleForEnrichment = nonEmptyString(resolvedSocialState.socialProfiles.facebook) || "";
+  if (facebookHandleForEnrichment) {
+    try {
+      facebookMetaSummary = await resolveFacebookPageContextForAgent({
+        handle: facebookHandleForEnrichment,
+        accessToken: (process.env.META_FACEBOOK_PAGE_ACCESS_TOKEN ||
+          process.env.META_PAGE_ACCESS_TOKEN ||
+          process.env.META_GRAPH_ACCESS_TOKEN ||
+          "").trim(),
+        pageId: (process.env.META_FACEBOOK_PAGE_ID || process.env.META_PAGE_ID || "").trim(),
+        graphVersion: (process.env.META_GRAPH_API_VERSION || "").trim() || undefined,
+      });
+    } catch (error) {
+      logger.warn("Facebook/Meta Kontext fehlgeschlagen.", {
+        error: error instanceof Error ? error.message : `${error}`,
+        uid: request.auth?.uid || null,
+      });
+    }
+  }
   let tiktokPublicSummary = "";
   const tiktokHandleForEnrichment = nonEmptyString(resolvedSocialState.socialProfiles.tiktok) || "";
   if (tiktokHandleForEnrichment) {
@@ -17013,6 +17055,7 @@ exports.skydownAgent = onCall({
     spotifyCatalogSummary,
     youtubeCatalogSummary,
     instagramGraphSummary,
+    facebookMetaSummary,
     tiktokPublicSummary,
   });
   const workspaceContextForLlm = trimTextMax(
@@ -17072,7 +17115,7 @@ exports.skydownAgent = onCall({
   if (runtimeSettings.agentProvider === AI_AGENT_PROVIDERS.manus && !providerFallbackUsed) {
     try {
       const manusResult = await runManusAgent({
-        input: agentInput,
+        input: {...agentInput, mode: llmMode},
         runtimeSettings,
         promptSettings: effectivePromptSettings,
         workspaceContext: workspaceContextForLlm,
@@ -17099,7 +17142,7 @@ exports.skydownAgent = onCall({
     if (apiKey) {
       try {
         reply = await runGrokAgent({
-          input: agentInput,
+          input: {...agentInput, mode: llmMode},
           systemInstruction: effectiveAgentSystemInstruction,
           workspaceContext: workspaceContextForLlm,
           apiKey,
@@ -17132,7 +17175,7 @@ exports.skydownAgent = onCall({
     reply = await skydownAgentFlow({
       prompt: agentInput.prompt,
       history: agentInput.history,
-      mode: agentInput.mode,
+      mode: llmMode,
       executeAutomation: agentInput.executeAutomation,
       systemInstruction: effectiveAgentSystemInstruction,
       workspaceContext: workspaceContextForLlm,
@@ -17221,6 +17264,7 @@ exports.skydownAgent = onCall({
             spotifyPublicCatalogSummary: nonEmptyString(spotifyCatalogSummary) || "",
             youtubePublicCatalogSummary: nonEmptyString(youtubeCatalogSummary) || "",
             instagramPublicGraphSummary: nonEmptyString(instagramGraphSummary) || "",
+            facebookMetaSummary: nonEmptyString(facebookMetaSummary) || "",
             tiktokPublicSummary: nonEmptyString(tiktokPublicSummary) || "",
           },
         });

@@ -11,7 +11,7 @@ enum class AgentExecutionMode(val rawValue: String, val title: String, val place
     Briefing("briefing", "Briefing", "Zum Beispiel: Briefing fuer ein Video-Team."),
     Content("content", "Content", "Zum Beispiel: Content-Plan fuer Reels und Story."),
     Merch("merch", "Merch", "Zum Beispiel: Struktur fuer einen Merch-Drop."),
-    Automation("automation", "Analyse", "Zum Beispiel: Analyse fuer einen Activepieces-Workflow."),
+    Automation("automation", "Analyse", "Zum Beispiel: Instagram, TikTok, YouTube, Meta oder Spotify analysieren."),
 }
 
 enum class AgentAutomationScope(val rawValue: String, val title: String) {
@@ -83,9 +83,9 @@ fun agentQuickPromptsFor(mode: AgentExecutionMode): List<String> = when (mode) {
         "Plane eine Merch-Aktion mit Story, Shop und Follow-up.",
     )
     AgentExecutionMode.Automation -> listOf(
-        "Erstelle eine Activepieces-Uebergabe fuer einen Content-Workflow mit Inputs und Outputs.",
-        "Strukturiere einen Automations-Flow fuer Asset-Freigaben und Social-Copy.",
-        "Mach ein Workflow-Briefing fuer einen Release-Reminder-Prozess.",
-        "Welche Schritte und Fehlerfaelle muss eine Release-Automation abdecken?",
+        "Analysiere Instagram und TikTok: welche Hooks, Formate und naechsten Tests sind sinnvoll?",
+        "Vergleiche YouTube, Meta und Spotify und gib mir eine klare Content-Prioritaet.",
+        "Pruefe dieses Profil fuer Release-Potenzial: Signale, Risiken, naechste drei Schritte.",
+        "Baue aus der Social-Analyse eine speicherbare Note mit Tasks fuer den naechsten Workflow.",
     )
 }

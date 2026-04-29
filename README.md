@@ -264,6 +264,12 @@ Kurzbild:
 | **Profil / Einstellungen** | Konto, Membership, Support, Rechtliches, Trust-Controls |
 | **Productivity** | Reminder (inkl. Push-Pfad), Tasks, Notes; externe Workflows über HTTP (Activepieces) |
 
+Agent-Produktvertrag: gespeicherte Agent-Chats mit CRUD, Owner-Knowledge, Modi `Release`,
+`Briefing`, `Content`, `Merch`, `Analyse` sowie Social Analysis fuer Instagram, TikTok, YouTube,
+Facebook/Meta und Spotify sind in [docs/ai-system.md](docs/ai-system.md) dokumentiert.
+Live-Kennzahlen werden nur angezeigt, wenn sie beim Klick/Request aus einer gueltigen Quelle kommen;
+fehlende API-Scope-/Token-Daten werden sichtbar als nicht verfuegbar markiert.
+
 Detaillierte Product-Maps: [docs/architecture.md](docs/architecture.md).
 
 ---

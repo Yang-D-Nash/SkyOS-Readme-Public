@@ -94,7 +94,7 @@ enum AgentExecutionMode: String, CaseIterable, Identifiable {
         case .merch:
             return "Zum Beispiel: Struktur fuer einen Merch-Drop."
         case .automation:
-            return "Zum Beispiel: Analyse fuer einen Activepieces-Workflow."
+            return "Zum Beispiel: Instagram, TikTok, YouTube, Meta oder Spotify analysieren."
         }
     }
 
@@ -130,10 +130,10 @@ enum AgentExecutionMode: String, CaseIterable, Identifiable {
             ]
         case .automation:
             return [
-                "Erstelle eine n8n-Uebergabe fuer einen Content-Workflow mit Inputs und Outputs.",
-                "Strukturiere einen Automations-Flow fuer Asset-Freigaben und Social-Copy.",
-                "Mach ein Workflow-Briefing fuer einen Release-Reminder-Prozess.",
-                "Welche Schritte und Fehlerfaelle muss eine Release-Automation abdecken?"
+                "Analysiere Instagram und TikTok: welche Hooks, Formate und naechsten Tests sind sinnvoll?",
+                "Vergleiche YouTube, Meta und Spotify und gib mir eine klare Content-Prioritaet.",
+                "Pruefe dieses Profil fuer Release-Potenzial: Signale, Risiken, naechste drei Schritte.",
+                "Baue aus der Social-Analyse eine speicherbare Note mit Tasks fuer den naechsten Workflow."
             ]
         }
     }

@@ -1780,6 +1780,14 @@ private struct AgentThreadFollowUpBar: View {
     let onSend: () -> Void
     let onOpenFullComposer: () -> Void
     let canSend: () -> Bool
+    @FocusState private var isFocused: Bool
+
+    private func submit() {
+        guard canSend(), !isWorking else { return }
+        isFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        onSend()
+    }
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
@@ -1796,6 +1804,9 @@ private struct AgentThreadFollowUpBar: View {
                 axis: .vertical
             )
             .lineLimit(1...4)
+            .focused($isFocused)
+            .submitLabel(.send)
+            .onSubmit(submit)
             .font(.subheadline.weight(.medium))
             .foregroundColor(AppColors.text(for: colorScheme))
             .padding(.horizontal, 12)
@@ -1820,7 +1831,7 @@ private struct AgentThreadFollowUpBar: View {
                 AppLocalized.text("agent.thread.open_full_composer.a11y", fallback: "Einstellungen und Anhaenge")
             )
 
-            Button(action: onSend) {
+            Button(action: submit) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 30, weight: .semibold))
             }
@@ -2098,7 +2109,7 @@ private struct AgentPromptComposerSheet: View {
                             Text(
                                 AppLocalized.text(
                                     "agent.social.provider.status.lines",
-                                    fallback: "YouTube und TikTok sind live. Instagram kann als Fallback laufen, bis Meta-Graph-Scopes freigegeben sind. Spotify kann trotz gueltiger Keys durch Provider-Richtlinien eingeschraenkt sein."
+                                    fallback: "Live-Daten werden nur genutzt, wenn API-Key, Token und Plattformrechte gerade gueltig sind. Sonst arbeitet SkyOS sichtbar mit Handle-Kontext."
                                 )
                             )
                             .font(.caption)
@@ -2107,7 +2118,7 @@ private struct AgentPromptComposerSheet: View {
                             Text(
                                 AppLocalized.text(
                                     "agent.social.scope.workaround",
-                                    fallback: "Scope-Workaround: TikTok/YouTube fuer Live-Daten aktiv lassen, bei blockierten Scopes den Instagram-Handle als Kontext nutzen und Spotify als Referenz-Input eintragen."
+                                    fallback: "Keine geschaetzten Kennzahlen: fehlende Reichweiten, Impressions oder Insights werden als nicht verfuegbar markiert."
                                 )
                             )
                             .font(.caption)
@@ -2121,17 +2132,22 @@ private struct AgentPromptComposerSheet: View {
                                         colorScheme: colorScheme
                                     )
                                     AgentStatusChip(
-                                        text: AppLocalized.text("agent.social.badge.tiktok_live", fallback: "TikTok LIVE"),
+                                        text: AppLocalized.text("agent.social.badge.tiktok_live", fallback: "TikTok API/PUBLIC"),
                                         accent: AppColors.accent(for: colorScheme),
                                         colorScheme: colorScheme
                                     )
                                     AgentStatusChip(
-                                        text: AppLocalized.text("agent.social.badge.instagram_fallback", fallback: "Instagram FALLBACK"),
+                                        text: AppLocalized.text("agent.social.badge.instagram_fallback", fallback: "Instagram GRAPH"),
                                         accent: AppColors.accentMystic(for: colorScheme),
                                         colorScheme: colorScheme
                                     )
                                     AgentStatusChip(
-                                        text: AppLocalized.text("agent.social.badge.spotify_restricted", fallback: "Spotify RESTRICTED"),
+                                        text: AppLocalized.text("agent.social.badge.meta_graph", fallback: "Meta PAGE"),
+                                        accent: AppColors.accentMystic(for: colorScheme),
+                                        colorScheme: colorScheme
+                                    )
+                                    AgentStatusChip(
+                                        text: AppLocalized.text("agent.social.badge.spotify_restricted", fallback: "Spotify WEB API"),
                                         accent: AppColors.secondaryText(for: colorScheme),
                                         colorScheme: colorScheme
                                     )
