@@ -90,6 +90,59 @@ export const code = async (inputs) => {
     const att = Array.isArray(data?.attachments) ? data.attachments.length : 0;
     const sc = formatSocialContextForNote(data?.socialContext);
     const socialContext = asObject(data?.socialContext) || {};
+    const profiles = asObject(socialContext.socialProfiles) || {};
+    const socialLiveStatusLine = ({ platform, label, handle = "", value = "" }) => {
+      const h = clean(handle, "", 240);
+      const text = clean(value, "", 1200);
+      if (!h) return `- ${label}: kein Handle im Payload.`;
+      if (!text) return `- ${label}: Handle vorhanden, Live-API-Daten nicht verfuegbar.`;
+      const lower = text.toLowerCase();
+      if (
+        platform === "spotify" &&
+        (lower.includes("provider restricted") ||
+          lower.includes("policyseitig eingeschraenkt") ||
+          lower.includes("live-katalogfelder bleiben"))
+      ) {
+        return "- Spotify: Referenz erkannt, API-Zugriff eingeschraenkt; keine Live-Katalogfelder.";
+      }
+      if (
+        platform === "tiktok" &&
+        (lower.includes("weicht vom verknuepften") || lower.includes("weicht vom verknüpften"))
+      ) {
+        return `- TikTok: verknuepfter Token-Account weicht von @${h} ab; keine passenden Live-Daten fuer diesen Handle.`;
+      }
+      if (
+        platform === "youtube" &&
+        (lower.includes("kein oeffentlicher kanal") || lower.includes("kein öffentlicher kanal"))
+      ) {
+        return `- YouTube: kein oeffentlicher Kanal zu @${h} gefunden.`;
+      }
+      if (
+        platform === "instagram" &&
+        (lower.includes("ohne graph-api-zugriff") || lower.includes("keine verwertbaren daten"))
+      ) {
+        return `- Instagram: Handle @${h} vorhanden, Graph-/Insight-Daten nicht verfuegbar.`;
+      }
+      if (
+        platform === "facebook" &&
+        (lower.includes("ohne verwertbaren graph-api-zugriff") ||
+          lower.includes("keine verwertbaren page-daten") ||
+          lower.includes("nicht aufloesbar") ||
+          lower.includes("nicht auflösbar"))
+      ) {
+        return "- Facebook/Meta: Handle/Page vorhanden, Graph-Daten nicht verfuegbar.";
+      }
+      if (
+        lower.includes("nicht verfuegbar") ||
+        lower.includes("nicht verfügbar") ||
+        lower.includes("kein passendes") ||
+        lower.includes("nur der handle-bezug") ||
+        lower.includes("nur handle-kontext")
+      ) {
+        return `- ${label}: Handle vorhanden, Live-API-Daten nicht verfuegbar.`;
+      }
+      return `- ${label}: Live-Daten fuer ${platform === "spotify" ? h : "@" + h} erhalten.`;
+    };
     const platformStatus = [
       ["instagram", "Instagram", socialContext.instagramPublicGraphSummary],
       ["tiktok", "TikTok", socialContext.tiktokPublicSummary],
@@ -98,11 +151,7 @@ export const code = async (inputs) => {
       ["spotify", "Spotify", socialContext.spotifyPublicCatalogSummary],
     ]
       .map(([platform, label, value]) => {
-        const hasHandle = clean((asObject(socialContext.socialProfiles) || {})[platform], "", 240);
-        const hasLive = clean(value, "", 1200);
-        if (hasLive) return `- ${label}: Live-Daten erhalten.`;
-        if (hasHandle) return `- ${label}: Handle vorhanden, Live-API-Daten nicht verfuegbar.`;
-        return `- ${label}: kein Handle im Payload.`;
+        return socialLiveStatusLine({ platform, label, handle: profiles[platform], value });
       })
       .join("\n");
     const block = [

@@ -15462,6 +15462,63 @@ const SOCIAL_PLATFORM_LABELS_DE = Object.freeze({
   spotify: "Spotify",
 });
 
+function buildSocialLiveStatusLine({platform, label, handle = "", value = ""} = {}) {
+  const h = nonEmptyString(handle) || "";
+  const text = nonEmptyString(value) || "";
+  if (!h) {
+    return `- ${label}: kein Handle im Payload.`;
+  }
+  if (!text) {
+    return `- ${label}: Handle vorhanden, Live-API-Daten nicht verfuegbar.`;
+  }
+  const lower = text.toLowerCase();
+  if (platform === "spotify" && (
+    lower.includes("provider restricted") ||
+    lower.includes("policyseitig eingeschraenkt") ||
+    lower.includes("live-katalogfelder bleiben")
+  )) {
+    return "- Spotify: Referenz erkannt, API-Zugriff eingeschraenkt; keine Live-Katalogfelder.";
+  }
+  if (platform === "tiktok" && (
+    lower.includes("weicht vom verknuepften") ||
+    lower.includes("weicht vom verknüpften")
+  )) {
+    return `- TikTok: verknuepfter Token-Account weicht von @${h} ab; keine passenden Live-Daten fuer diesen Handle.`;
+  }
+  if (platform === "youtube" && (
+    lower.includes("kein oeffentlicher kanal") ||
+    lower.includes("kein öffentlicher kanal")
+  )) {
+    return `- YouTube: kein oeffentlicher Kanal zu @${h} gefunden.`;
+  }
+  if (platform === "instagram" && (
+    lower.includes("ohne graph-api-zugriff") ||
+    lower.includes("keine verwertbaren daten") ||
+    lower.includes("business discovery") && lower.includes("nicht verfuegbar") ||
+    lower.includes("business discovery") && lower.includes("nicht verfügbar")
+  )) {
+    return `- Instagram: Handle @${h} vorhanden, Graph-/Insight-Daten nicht verfuegbar.`;
+  }
+  if (platform === "facebook" && (
+    lower.includes("ohne verwertbaren graph-api-zugriff") ||
+    lower.includes("keine verwertbaren page-daten") ||
+    lower.includes("nicht aufloesbar") ||
+    lower.includes("nicht auflösbar")
+  )) {
+    return `- Facebook/Meta: Handle/Page vorhanden, Graph-Daten nicht verfuegbar.`;
+  }
+  if (
+    lower.includes("nicht verfuegbar") ||
+    lower.includes("nicht verfügbar") ||
+    lower.includes("kein passendes") ||
+    lower.includes("nur der handle-bezug") ||
+    lower.includes("nur handle-kontext")
+  ) {
+    return `- ${label}: Handle vorhanden, Live-API-Daten nicht verfuegbar.`;
+  }
+  return `- ${label}: Live-Daten fuer ${platform === "spotify" ? h : "@" + h} erhalten.`;
+}
+
 function hasStructuredSocialHandlesInSetup(setup) {
   if (!setup || typeof setup !== "object") {
     return false;
@@ -15521,6 +15578,24 @@ function buildSocialProfileContextBlockForPrompt({
         .map((p) => SOCIAL_PLATFORM_LABELS_DE[p] || p)
         .join(", ");
     lines.push("Ausgewaehlt, aber ohne Handle: " + miss + ". Weise knapp darauf hin.");
+  }
+  const statusLines = SOCIAL_PLATFORM_ORDER
+      .filter((platform) => socialSelectedPlatforms.length === 0 || socialSelectedPlatforms.includes(platform))
+      .map((platform) => {
+        const label = SOCIAL_PLATFORM_LABELS_DE[platform] || platform;
+        const handle = nonEmptyString(profiles[platform]) || "";
+        const value = {
+          instagram: instagramEnriched,
+          tiktok: tiktokEnriched,
+          youtube: youtubeEnriched,
+          facebook: facebookEnriched,
+          spotify: spotifyEnriched,
+        }[platform];
+        return buildSocialLiveStatusLine({platform, label, handle, value});
+      })
+      .filter(Boolean);
+  if (statusLines.length) {
+    lines.push("Datenstatus: " + statusLines.map((line) => line.replace(/^-\s*/, "")).join(" · "));
   }
   if (!handlesLine.length && !missing.length && !spotifyEnriched && !youtubeEnriched &&
     !instagramEnriched && !facebookEnriched && !tiktokEnriched) {
@@ -15865,21 +15940,14 @@ function buildSocialAnalysisWorkflowContent({
       .map((platform) => {
         const label = SOCIAL_PLATFORM_LABELS_DE[platform] || platform;
         const handle = nonEmptyString(profiles[platform]) || "";
-        const liveValue = {
+        const value = {
           instagram: socialContext.instagramPublicGraphSummary,
           tiktok: socialContext.tiktokPublicSummary,
           youtube: socialContext.youtubePublicCatalogSummary,
           facebook: socialContext.facebookMetaSummary,
           spotify: socialContext.spotifyPublicCatalogSummary,
         }[platform];
-        const hasLive = Boolean(nonEmptyString(liveValue));
-        if (hasLive) {
-          return `- ${label}: Live-Daten erhalten.`;
-        }
-        if (handle) {
-          return `- ${label}: Handle vorhanden, Live-API-Daten nicht verfuegbar.`;
-        }
-        return `- ${label}: kein Handle im Payload.`;
+        return buildSocialLiveStatusLine({platform, label, handle, value});
       });
   const lines = [
     "# SkyOS Social Analysis",

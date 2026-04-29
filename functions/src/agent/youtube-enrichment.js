@@ -37,10 +37,6 @@ async function fetchYouTubeHandleCatalogSummary({apiKey, handle}) {
           return formatChannelBlock(j.items[0]);
         }
       }
-      const fromSearch = await searchChannelByQuery(key, parsed.value);
-      if (fromSearch) {
-        return await loadChannelById(key, fromSearch);
-      }
       return "YouTube (Data API): Kein oeffentlicher Kanal zu diesem Handle gefunden.";
     }
     if (parsed.kind === "search") {
