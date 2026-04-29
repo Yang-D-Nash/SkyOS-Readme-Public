@@ -108,6 +108,7 @@ import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberIsCompactAppLayout
+import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownTopBarColors
@@ -142,6 +143,7 @@ fun AiScreen(
     val compactLayout = baseCompactLayout || compactVisualDensity
     val contentMaxWidth = if (compactLayout) 620.dp else 1040.dp
     val listState = rememberLazyListState()
+    val reduceMotion = rememberSkydownReduceMotion()
     val conversationEndItemIndex = if (uiState.messages.isEmpty()) 0 else uiState.messages.size + 1
     val lastMessageRenderSignature = uiState.messages.lastOrNull()?.let { message ->
         "${message.id}:${message.text.length}:${message.imageBytes?.size ?: 0}:${message.isStreaming}"
@@ -215,9 +217,13 @@ fun AiScreen(
     }
     var hasAutoUpgradePrompted by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(conversationEndItemIndex, lastMessageRenderSignature, uiState.isAiEnabled) {
+    LaunchedEffect(conversationEndItemIndex, lastMessageRenderSignature, uiState.isAiEnabled, reduceMotion) {
         if (uiState.isAiEnabled && uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(conversationEndItemIndex)
+            if (reduceMotion) {
+                listState.scrollToItem(conversationEndItemIndex)
+            } else {
+                listState.animateScrollToItem(conversationEndItemIndex)
+            }
         }
     }
 

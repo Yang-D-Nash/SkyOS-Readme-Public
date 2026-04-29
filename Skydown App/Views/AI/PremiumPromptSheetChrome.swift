@@ -133,6 +133,7 @@ struct PremiumPromptPrimaryButton: View {
     let colorScheme: ColorScheme
     let isEnabled: Bool
     let action: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
     var body: some View {
         SkydownBrandActionButton(
@@ -146,7 +147,10 @@ struct PremiumPromptPrimaryButton: View {
             verticalPadding: 12,
             action: action
         )
-        .animation(SkydownMotion.contentReveal, value: isEnabled)
+        .animation(
+            SkydownMotion.preferredContentReveal(accessibilityReduceMotion: accessibilityReduceMotion),
+            value: isEnabled
+        )
     }
 }
 

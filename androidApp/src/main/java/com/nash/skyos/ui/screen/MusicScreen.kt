@@ -2,6 +2,7 @@ package com.nash.skyos.ui.screen
 
 import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -79,6 +80,7 @@ import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownMotionTokens
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.skydownTween
+import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownPressable
@@ -116,14 +118,20 @@ fun MusicScreen(
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val scroll = rememberScrollState()
     val haptics = LocalHapticFeedback.current
+    val reduceMotion = rememberSkydownReduceMotion()
     var catalogMotionReady by remember { mutableStateOf(false) }
     var listStaggerArmed by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        delay(48)
-        catalogMotionReady = true
-        delay(120)
-        listStaggerArmed = true
+    LaunchedEffect(reduceMotion) {
+        if (reduceMotion) {
+            catalogMotionReady = true
+            listStaggerArmed = true
+        } else {
+            delay(48)
+            catalogMotionReady = true
+            delay(120)
+            listStaggerArmed = true
+        }
     }
 
     LaunchedEffect(uiState.selectedArtist) {
@@ -214,7 +222,11 @@ fun MusicScreen(
                 val contentMaxWidth = if (compactVisualDensity) 620.dp else 1080.dp
                 val heroNudge by animateFloatAsState(
                     targetValue = if (catalogMotionReady) 1f else 0f,
-                    animationSpec = spring(dampingRatio = 0.82f, stiffness = 280f),
+                    animationSpec = if (reduceMotion) {
+                        snap()
+                    } else {
+                        spring(dampingRatio = 0.82f, stiffness = 280f)
+                    },
                     label = "heroEnter",
                 )
                 val heroLiftPx = with(LocalDensity.current) { 12.dp.toPx() }
@@ -256,6 +268,7 @@ fun MusicScreen(
                             onOpenArtistPage?.invoke(name)
                         },
                         listStaggerKey = listStaggerArmed,
+                        reduceMotion = reduceMotion,
                     )
                 }
             }
@@ -360,6 +373,7 @@ private fun ArtistPagerCard(
     selectedArtist: String,
     onOpenArtist: (String) -> Unit,
     listStaggerKey: Boolean,
+    reduceMotion: Boolean,
 ) {
     val safeArtists = artists.ifEmpty { listOf(selectedArtist) }
     ArtistButtonHub(
@@ -367,6 +381,7 @@ private fun ArtistPagerCard(
         selectedArtist = selectedArtist,
         onOpenArtist = onOpenArtist,
         listStaggerKey = listStaggerKey,
+        reduceMotion = reduceMotion,
     )
 }
 
@@ -376,12 +391,17 @@ private fun ArtistButtonHub(
     selectedArtist: String,
     onOpenArtist: (String) -> Unit,
     listStaggerKey: Boolean,
+    reduceMotion: Boolean,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val labelLiftPx = with(LocalDensity.current) { 6.dp.toPx() }
     val headerAlpha by animateFloatAsState(
         targetValue = if (listStaggerKey) 1f else 0.35f,
-        animationSpec = skydownTween<Float>(SkydownMotionTokens.premiumAccentTransitionMillis),
+        animationSpec = if (reduceMotion) {
+            snap()
+        } else {
+            skydownTween(SkydownMotionTokens.premiumAccentTransitionMillis)
+        },
         label = "dirEinstiegHeader",
     )
     Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
@@ -401,6 +421,7 @@ private fun ArtistButtonHub(
                         index = index,
                         artist = artist,
                         listStaggerKey = listStaggerKey,
+                        reduceMotion = reduceMotion,
                         selected = artist == selectedArtist,
                         onOpen = { onOpenArtist(artist) },
                     )
@@ -415,14 +436,17 @@ private fun StaggeredArtistEinstiegRow(
     index: Int,
     artist: String,
     listStaggerKey: Boolean,
+    reduceMotion: Boolean,
     selected: Boolean,
     onOpen: () -> Unit,
 ) {
     val context = LocalContext.current
     var rowShown by remember(artist) { mutableStateOf(false) }
-    LaunchedEffect(listStaggerKey) {
+    LaunchedEffect(listStaggerKey, reduceMotion) {
         if (listStaggerKey) {
-            delay(32L * index)
+            if (!reduceMotion) {
+                delay(32L * index)
+            }
             rowShown = true
         } else {
             rowShown = false
@@ -430,10 +454,14 @@ private fun StaggeredArtistEinstiegRow(
     }
     val appear by animateFloatAsState(
         targetValue = if (rowShown) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = 0.86f,
-            stiffness = 420f,
-        ),
+        animationSpec = if (reduceMotion) {
+            snap()
+        } else {
+            spring(
+                dampingRatio = 0.86f,
+                stiffness = 420f,
+            )
+        },
         label = "artistRow$index",
     )
     val colorScheme = MaterialTheme.colorScheme

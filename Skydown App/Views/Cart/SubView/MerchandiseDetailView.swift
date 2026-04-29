@@ -17,7 +17,16 @@ struct MerchandiseDetailView: View {
     let onOpenCart: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingConfirmSheet = false
+
+    private var merchVariantAnimation: Animation {
+        reduceMotion ? .linear(duration: 0.01) : .easeInOut(duration: 0.16)
+    }
+
+    private var merchFooterAnimation: Animation {
+        reduceMotion ? .linear(duration: 0.01) : .easeInOut(duration: 0.18)
+    }
 
     @State private var selectedSize = "M"
     @State private var selectedColor = ""
@@ -282,7 +291,7 @@ struct MerchandiseDetailView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .skydownTactileAction()
-                                .animation(.easeInOut(duration: 0.16), value: selectedSize)
+                                .animation(merchVariantAnimation, value: selectedSize)
                             }
                         }
                     }
@@ -306,7 +315,7 @@ struct MerchandiseDetailView: View {
                                     }
                                     .buttonStyle(.plain)
                                     .skydownTactileAction()
-                                    .animation(.easeInOut(duration: 0.16), value: selectedColor)
+                                    .animation(merchVariantAnimation, value: selectedColor)
                                 }
                             }
                         }
@@ -470,10 +479,10 @@ struct MerchandiseDetailView: View {
                 .padding(.bottom, 14)
             }
             .background(AppColors.cardBackground(for: colorScheme).opacity(0.98))
-            .animation(.easeInOut(duration: 0.18), value: canOrder)
-            .animation(.easeInOut(duration: 0.18), value: selectedQuantity)
-            .animation(.easeInOut(duration: 0.18), value: selectedSize)
-            .animation(.easeInOut(duration: 0.18), value: selectedColor)
+            .animation(merchFooterAnimation, value: canOrder)
+            .animation(merchFooterAnimation, value: selectedQuantity)
+            .animation(merchFooterAnimation, value: selectedSize)
+            .animation(merchFooterAnimation, value: selectedColor)
         }
         .sheet(isPresented: $showingConfirmSheet) {
             MerchFinalConfirmSheet(
@@ -596,6 +605,7 @@ private extension String {
 }
 
 private struct MerchDetailHeroCard: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let colorScheme: ColorScheme
     let itemName: String
     let price: Double
@@ -606,6 +616,10 @@ private struct MerchDetailHeroCard: View {
     let imageURLs: [String]
     @Binding var selectedImageIndex: Int
     let onOpenFullscreen: () -> Void
+
+    private var merchHeroGalleryAnimation: Animation {
+        reduceMotion ? .linear(duration: 0.01) : .easeInOut(duration: 0.22)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
@@ -719,7 +733,7 @@ private struct MerchDetailHeroCard: View {
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.18), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
-        .animation(.easeInOut(duration: 0.22), value: selectedImageIndex)
+        .animation(merchHeroGalleryAnimation, value: selectedImageIndex)
     }
 }
 
@@ -785,6 +799,7 @@ private struct MerchCheckoutConfidenceStrip: View {
 }
 
 private struct MerchFinalConfirmSheet: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let colorScheme: ColorScheme
     let itemName: String
     let selectionSummary: String
@@ -801,6 +816,10 @@ private struct MerchFinalConfirmSheet: View {
         case ready
         case committing
         case success
+    }
+
+    private var successBlockTransition: AnyTransition {
+        reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity)
     }
 
     var body: some View {
@@ -871,7 +890,7 @@ private struct MerchFinalConfirmSheet: View {
                 .padding(.vertical, 8)
                 .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.72))
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous))
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(successBlockTransition)
             }
 
             if confirmState != .success {
@@ -908,7 +927,7 @@ private struct MerchFinalConfirmSheet: View {
             .padding(.top, 20)
             .padding(.bottom, SkydownLayout.cardPadding)
             .background(AppColors.cardBackground(for: colorScheme))
-            .animation(.easeInOut(duration: 0.2), value: confirmState)
+            .animation(SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion), value: confirmState)
             .navigationTitle(AppLocalized.text("shop.detail.confirm.title", fallback: "Confirm order"))
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
@@ -960,15 +979,19 @@ private struct MerchFinalConfirmSheet: View {
 
     private func handleConfirmTap() {
         guard confirmState == .ready else { return }
-        withAnimation(.easeInOut(duration: 0.16)) {
+        let commitEase = reduceMotion ? Animation.linear(duration: 0.01) : Animation.easeInOut(duration: 0.16)
+        let successEase = reduceMotion ? Animation.linear(duration: 0.01) : SkydownMotion.screenTransition
+        withAnimation(commitEase) {
             confirmState = .committing
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-            withAnimation(SkydownMotion.screenTransition) {
+        let stepDelay = reduceMotion ? 0.0 : 0.18
+        DispatchQueue.main.asyncAfter(deadline: .now() + stepDelay) {
+            withAnimation(successEase) {
                 confirmState = .success
             }
             SkydownHaptics.notification(.success)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) {
+            let confirmDelay = reduceMotion ? 0.0 : 0.26
+            DispatchQueue.main.asyncAfter(deadline: .now() + confirmDelay) {
                 onConfirm()
             }
         }

@@ -6,7 +6,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import android.animation.ValueAnimator
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -127,6 +126,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.snap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -168,6 +168,7 @@ import com.nash.skyos.ui.component.OriginalVideoViewerDialog
 import com.nash.skyos.ui.component.SkydownHapticKind
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownMotionTokens
+import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.SkydownPortalChip
 import com.nash.skyos.ui.component.skydownExitTween
 import com.nash.skyos.ui.component.skydownTween
@@ -256,6 +257,16 @@ fun HomeScreen(
     var currentVideoId by rememberSaveable { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val reduceMotion = rememberSkydownReduceMotion()
+    val scrollHomeToMediaCluster: () -> Unit = {
+        coroutineScope.launch {
+            if (reduceMotion) {
+                listState.scrollToItem(homeMediaClusterSectionIndex)
+            } else {
+                listState.animateScrollToItem(homeMediaClusterSectionIndex)
+            }
+        }
+    }
 
     DisposableEffect(audioPlayer) {
         val listener = object : Player.Listener {
@@ -508,11 +519,7 @@ fun HomeScreen(
                                                     BrandPill(
                                                         text = stringResource(R.string.home_utility_music),
                                                         tint = heroPillTint("track"),
-                                                        onClick = {
-                                                            coroutineScope.launch {
-                                                                listState.animateScrollToItem(homeMediaClusterSectionIndex)
-                                                            }
-                                                        },
+                                                        onClick = scrollHomeToMediaCluster,
                                                     )
                                                 }
                                                 else -> Box(
@@ -525,11 +532,7 @@ fun HomeScreen(
                                                     BrandPill(
                                                         text = stringResource(R.string.home_utility_videos),
                                                         tint = heroPillTint("video"),
-                                                        onClick = {
-                                                            coroutineScope.launch {
-                                                                listState.animateScrollToItem(homeMediaClusterSectionIndex)
-                                                            }
-                                                        },
+                                                        onClick = scrollHomeToMediaCluster,
                                                     )
                                                 }
                                             }
@@ -540,19 +543,15 @@ fun HomeScreen(
                         }
                         HomeAnimatedItem(order = 1) {
                             HomeUtilityRow(
-                                onOpenMusic = { coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) } },
-                                onOpenVideos = { coroutineScope.launch { listState.animateScrollToItem(homeMediaClusterSectionIndex) } },
+                                onOpenMusic = scrollHomeToMediaCluster,
+                                onOpenVideos = scrollHomeToMediaCluster,
                                 onOpenMerch = onOpenCart,
                                 onOpenSettings = onOpenSettings,
                             )
                         }
                         HomeAnimatedItem(order = 2) {
                             HomeArtistSocialLinksRow(
-                                onOpenMusic = {
-                                    coroutineScope.launch {
-                                        listState.animateScrollToItem(homeMediaClusterSectionIndex)
-                                    }
-                                },
+                                onOpenMusic = scrollHomeToMediaCluster,
                             )
                         }
                         HomeAnimatedItem(order = 3) {
@@ -1186,6 +1185,17 @@ private fun HomeManageableItemCard(
     onDelete: () -> Unit,
     onSave: () -> Unit,
 ) {
+    val reduceMotion = rememberSkydownReduceMotion()
+    val editRevealEnter = if (reduceMotion) {
+        fadeIn(animationSpec = snap())
+    } else {
+        fadeIn(skydownTween<Float>(SkydownMotionTokens.contentRevealEnterMillis)) + expandVertically()
+    }
+    val editRevealExit = if (reduceMotion) {
+        fadeOut(animationSpec = snap())
+    } else {
+        fadeOut(skydownExitTween<Float>(SkydownMotionTokens.contentRevealExitMillis)) + shrinkVertically()
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1240,8 +1250,8 @@ private fun HomeManageableItemCard(
         }
         AnimatedVisibility(
             visible = isEditing,
-            enter = fadeIn(skydownTween<Float>(SkydownMotionTokens.contentRevealEnterMillis)) + expandVertically(),
-            exit = fadeOut(skydownExitTween<Float>(SkydownMotionTokens.contentRevealExitMillis)) + shrinkVertically(),
+            enter = editRevealEnter,
+            exit = editRevealExit,
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                 OutlinedTextField(
@@ -1795,7 +1805,8 @@ private fun HomeProductivityOverviewCard(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val view = LocalView.current
-    val motionEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
+    val reduceMotion = rememberSkydownReduceMotion()
+    val motionEnabled = !reduceMotion
     val enterSpec = if (motionEnabled) {
         skydownTween<Float>(SkydownMotionTokens.contentRevealEnterMillis)
     } else {
@@ -2717,14 +2728,21 @@ private fun HomeAnimatedItem(
     order: Int,
     content: @Composable () -> Unit,
 ) {
+    val reduceMotion = rememberSkydownReduceMotion()
     var visible by remember(order) { mutableStateOf(false) }
 
-    LaunchedEffect(order) {
-        delay(order.coerceAtMost(4) * SkydownMotionTokens.staggerStepMillis.toLong())
+    LaunchedEffect(order, reduceMotion) {
+        if (!reduceMotion) {
+            delay(order.coerceAtMost(4) * SkydownMotionTokens.staggerStepMillis.toLong())
+        }
         visible = true
     }
 
-    val fadeSpec = skydownTween<Float>(SkydownMotionTokens.contentRevealEnterMillis)
+    val fadeSpec: FiniteAnimationSpec<Float> = if (reduceMotion) {
+        snap()
+    } else {
+        skydownTween(SkydownMotionTokens.contentRevealEnterMillis)
+    }
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(animationSpec = fadeSpec),

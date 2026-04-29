@@ -7,6 +7,7 @@ struct AIView: View {
     @ObservedObject private var membershipCoordinator: AIMembershipCoordinator
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingPromptComposer = false
     @State private var showingConversationSessions = false
     @State private var showingDeleteConversationDialog = false
@@ -195,13 +196,29 @@ struct AIView: View {
                             .scrollDismissesKeyboard(.interactively)
                             .onAppear {
                                 DispatchQueue.main.async {
-                                    proxy.scrollTo("chat-end", anchor: .bottom)
+                                    if reduceMotion {
+                                        var transaction = Transaction()
+                                        transaction.disablesAnimations = true
+                                        withTransaction(transaction) {
+                                            proxy.scrollTo("chat-end", anchor: .bottom)
+                                        }
+                                    } else {
+                                        proxy.scrollTo("chat-end", anchor: .bottom)
+                                    }
                                 }
                             }
                             .onChange(of: scrollToken) { _, _ in
                                 DispatchQueue.main.async {
-                                    withAnimation(.easeOut(duration: 0.25)) {
-                                        proxy.scrollTo("chat-end", anchor: .bottom)
+                                    if reduceMotion {
+                                        var transaction = Transaction()
+                                        transaction.disablesAnimations = true
+                                        withTransaction(transaction) {
+                                            proxy.scrollTo("chat-end", anchor: .bottom)
+                                        }
+                                    } else {
+                                        withAnimation(.easeOut(duration: 0.25)) {
+                                            proxy.scrollTo("chat-end", anchor: .bottom)
+                                        }
                                     }
                                 }
                             }
@@ -307,7 +324,7 @@ struct AIView: View {
         guard !viewModel.phase.isBusy else { return }
         viewModel.composerMode = mode
         viewModel.draft = prompt
-        withAnimation(SkydownMotion.sheetPresentation) {
+        withAnimation(SkydownMotion.preferredSheetPresentation(accessibilityReduceMotion: reduceMotion)) {
             showingPromptComposer = true
         }
     }
@@ -813,6 +830,7 @@ private struct AIStatusChip: View {
 }
 
 private struct AIDisabledCard: View {
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     let colorScheme: ColorScheme
 
     var body: some View {
@@ -848,8 +866,15 @@ private struct AIDisabledCard: View {
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
-        .transition(.opacity.combined(with: .move(edge: .top)))
-        .animation(SkydownMotion.statusTransition, value: colorScheme)
+        .transition(
+            accessibilityReduceMotion
+                ? .opacity
+                : .opacity.combined(with: .move(edge: .top))
+        )
+        .animation(
+            SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: accessibilityReduceMotion),
+            value: colorScheme
+        )
     }
 }
 
@@ -1185,6 +1210,7 @@ private struct AIInlineNotice: View {
     let message: String
     let style: ToastStyle
     let colorScheme: ColorScheme
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
     var body: some View {
         Group {
@@ -1223,9 +1249,11 @@ private struct AIInlineNotice: View {
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
                 .shadow(color: style.color.opacity(0.16), radius: 18, y: 8)
                 .transition(
-                    .move(edge: .bottom)
-                    .combined(with: .opacity)
-                    .combined(with: .scale(scale: 0.97, anchor: .bottom))
+                    accessibilityReduceMotion
+                        ? .opacity
+                        : .move(edge: .bottom)
+                            .combined(with: .opacity)
+                            .combined(with: .scale(scale: 0.97, anchor: .bottom))
                 )
                 .task(id: message + style.title) {
                     SkydownHaptics.announce(message)
@@ -1244,14 +1272,21 @@ private struct AIInlineNotice: View {
                     try? await Task.sleep(for: .seconds(duration))
                     guard !Task.isCancelled else { return }
                     await MainActor.run {
-                        withAnimation(SkydownMotion.statusTransition) {
+                        withAnimation(
+                            SkydownMotion.preferredStatusTransition(
+                                accessibilityReduceMotion: accessibilityReduceMotion
+                            )
+                        ) {
                             isPresented = false
                         }
                     }
                 }
             }
         }
-        .animation(SkydownMotion.statusTransition, value: isPresented)
+        .animation(
+            SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: accessibilityReduceMotion),
+            value: isPresented
+        )
         .accessibilityElement(children: .combine)
     }
 }

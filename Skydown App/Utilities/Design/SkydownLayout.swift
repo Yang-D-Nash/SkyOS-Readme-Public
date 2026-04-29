@@ -38,7 +38,7 @@ enum SkydownLayout {
     static var stackSpacingPill: CGFloat { pillSoftRadius }
     /// Zwischen kompakt und Sektion — gleich `compactRadius` (14).
     static var stackSpacingRelaxed: CGFloat { compactRadius }
-    /// Sektions-Rhythmus — gleich `sectionSpacing` (18).
+    /// Sektions-Rhythmus — gleich `sectionSpacing` (22).
     static var stackSpacingSection: CGFloat { sectionSpacing }
     /// Kein Zwischenraum (`VStack`/`HStack`/`safeAreaInset`-`spacing`).
     static let stackSpacingNone: CGFloat = 0
@@ -95,6 +95,40 @@ enum SkydownMotion {
     static let pressInteraction = Animation.easeOut(duration: 0.18)
     static let sheetPresentation = Animation.timingCurve(0.2, 0.96, 0.3, 1, duration: 0.3)
     static let ambientLoopDuration: Double = 6.2
+
+    // MARK: - Reduce Motion (aligns with Android `rememberSkydownReduceMotion` intent)
+
+    static func preferredScreenTransition(accessibilityReduceMotion: Bool) -> Animation {
+        accessibilityReduceMotion ? .linear(duration: 0.01) : screenTransition
+    }
+
+    static func preferredEmphasizedTransition(accessibilityReduceMotion: Bool) -> Animation {
+        accessibilityReduceMotion ? .linear(duration: 0.01) : emphasizedTransition
+    }
+
+    static func preferredTabContextTransition(accessibilityReduceMotion: Bool) -> Animation {
+        accessibilityReduceMotion ? .linear(duration: 0.01) : tabContextTransition
+    }
+
+    static func preferredStatusTransition(accessibilityReduceMotion: Bool) -> Animation {
+        accessibilityReduceMotion ? .linear(duration: 0.01) : statusTransition
+    }
+
+    static func preferredContentReveal(accessibilityReduceMotion: Bool) -> Animation {
+        accessibilityReduceMotion ? .linear(duration: 0.01) : contentReveal
+    }
+
+    static func preferredSheetPresentation(accessibilityReduceMotion: Bool) -> Animation {
+        accessibilityReduceMotion ? .linear(duration: 0.01) : sheetPresentation
+    }
+
+    static func preferredPressInteraction(accessibilityReduceMotion: Bool) -> Animation {
+        accessibilityReduceMotion ? .linear(duration: 0.01) : pressInteraction
+    }
+
+    static func preferredSmoothScroll(accessibilityReduceMotion: Bool) -> Animation {
+        accessibilityReduceMotion ? .linear(duration: 0.01) : smoothScroll
+    }
 }
 
 enum SkydownMotionAxis {
@@ -248,6 +282,7 @@ struct SkydownTactileButtonStyle: ButtonStyle {
 
 private struct SkydownTactileButtonBody: View {
     let configuration: ButtonStyle.Configuration
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @State private var emittedPressHaptic = false
 
     var body: some View {
@@ -262,7 +297,10 @@ private struct SkydownTactileButtonBody: View {
                 radius: configuration.isPressed ? 4 : 10,
                 y: configuration.isPressed ? 2 : 6
             )
-            .animation(SkydownMotion.pressInteraction, value: configuration.isPressed)
+            .animation(
+                SkydownMotion.preferredPressInteraction(accessibilityReduceMotion: accessibilityReduceMotion),
+                value: configuration.isPressed
+            )
             .onChange(of: configuration.isPressed) { _, isPressed in
                 if isPressed && !emittedPressHaptic {
                     emittedPressHaptic = true
@@ -279,6 +317,7 @@ private struct SkydownTactileButtonBody: View {
 private struct SkydownPressFeedbackModifier: ViewModifier {
     let pressedScale: CGFloat
     let pressedOffsetY: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @State private var isPressed = false
     @State private var emittedPressHaptic = false
 
@@ -294,7 +333,10 @@ private struct SkydownPressFeedbackModifier: ViewModifier {
                 radius: isPressed ? 4 : 10,
                 y: isPressed ? 2 : 6
             )
-            .animation(SkydownMotion.pressInteraction, value: isPressed)
+            .animation(
+                SkydownMotion.preferredPressInteraction(accessibilityReduceMotion: accessibilityReduceMotion),
+                value: isPressed
+            )
             .onLongPressGesture(
                 minimumDuration: 0,
                 maximumDistance: 56,
@@ -334,6 +376,7 @@ private struct SkydownSceneMotionModifier<Trigger: Equatable>: ViewModifier {
     let blurRadius: CGFloat
     @State private var motionProgress: CGFloat = 1
     @State private var hasAnimatedInitialAppearance = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content
@@ -344,7 +387,10 @@ private struct SkydownSceneMotionModifier<Trigger: Equatable>: ViewModifier {
                 y: axis == .vertical ? (1 - motionProgress) * travel : 0
             )
             .blur(radius: (1 - motionProgress) * blurRadius)
-            .animation(SkydownMotion.screenTransition, value: motionProgress)
+            .animation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: reduceMotion),
+                value: motionProgress
+            )
             .task {
                 guard !hasAnimatedInitialAppearance else { return }
                 hasAnimatedInitialAppearance = true
@@ -356,6 +402,14 @@ private struct SkydownSceneMotionModifier<Trigger: Equatable>: ViewModifier {
     }
 
     private func stageEntrance(from startingProgress: CGFloat) {
+        if reduceMotion {
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                motionProgress = 1
+            }
+            return
+        }
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
         withTransaction(transaction) {
@@ -364,7 +418,7 @@ private struct SkydownSceneMotionModifier<Trigger: Equatable>: ViewModifier {
 
         Task { @MainActor in
             await Task.yield()
-            withAnimation(SkydownMotion.screenTransition) {
+            withAnimation(SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: reduceMotion)) {
                 motionProgress = 1
             }
         }
@@ -378,6 +432,7 @@ private struct SkydownSceneActivationModifier: ViewModifier {
     let blurRadius: CGFloat
     @State private var motionProgress: CGFloat = 1
     @State private var hasPrimedInitialState = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content
@@ -388,7 +443,10 @@ private struct SkydownSceneActivationModifier: ViewModifier {
                 y: axis == .vertical ? (1 - motionProgress) * travel : 0
             )
             .blur(radius: (1 - motionProgress) * blurRadius)
-            .animation(SkydownMotion.screenTransition, value: motionProgress)
+            .animation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: reduceMotion),
+                value: motionProgress
+            )
             .task {
                 guard !hasPrimedInitialState else { return }
                 hasPrimedInitialState = true
@@ -403,6 +461,14 @@ private struct SkydownSceneActivationModifier: ViewModifier {
     }
 
     private func stageEntrance(from startingProgress: CGFloat) {
+        if reduceMotion {
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                motionProgress = 1
+            }
+            return
+        }
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
         withTransaction(transaction) {
@@ -411,7 +477,7 @@ private struct SkydownSceneActivationModifier: ViewModifier {
 
         Task { @MainActor in
             await Task.yield()
-            withAnimation(SkydownMotion.screenTransition) {
+            withAnimation(SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: reduceMotion)) {
                 motionProgress = 1
             }
         }

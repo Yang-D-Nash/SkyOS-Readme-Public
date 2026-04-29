@@ -735,6 +735,7 @@ private struct ShopBrowseEntryHint: View {
 }
 
 private struct ShopInfoCard: View {
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     let colorScheme: ColorScheme
     let title: String
     let message: String
@@ -801,8 +802,15 @@ private struct ShopInfoCard: View {
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.085), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
-        .transition(.opacity.combined(with: .move(edge: .top)))
-        .animation(SkydownMotion.statusTransition, value: message)
+        .transition(
+            accessibilityReduceMotion
+                ? .opacity
+                : .opacity.combined(with: .move(edge: .top))
+        )
+        .animation(
+            SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: accessibilityReduceMotion),
+            value: message
+        )
     }
 }
 

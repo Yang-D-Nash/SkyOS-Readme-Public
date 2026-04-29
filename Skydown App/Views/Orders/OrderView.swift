@@ -12,10 +12,30 @@ struct OrderView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("orders.postCheckoutHighlight") private var postCheckoutHighlight = ""
     @State private var orderToDelete: Order?
     @State private var showingDeleteAlert = false
     private let sectionSpacing: CGFloat = 14
+
+    private var orderContentStateAnimation: Animation {
+        SkydownMotion.preferredContentReveal(accessibilityReduceMotion: reduceMotion)
+    }
+
+    private var orderStripTransition: AnyTransition {
+        reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top))
+    }
+
+    private var orderCardTransition: AnyTransition {
+        reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .bottom))
+    }
+
+    private func orderRowInsertionAnimation(index: Int) -> Animation {
+        if reduceMotion {
+            return .linear(duration: 0.01)
+        }
+        return .easeInOut(duration: 0.2).delay(Double(index) * 0.01)
+    }
 
     var body: some View {
         NavigationStack {
@@ -34,7 +54,7 @@ struct OrderView: View {
                         ) {
                             postCheckoutHighlight = ""
                         }
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .transition(orderStripTransition)
                     }
 
                     if viewModel.isLoading {
@@ -52,7 +72,7 @@ struct OrderView: View {
                                     .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
                             }
                         }
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .transition(orderStripTransition)
                     } else if let loadError = viewModel.errorMessage {
                         OrdersInlineStatusStrip(
                             colorScheme: colorScheme,
@@ -81,7 +101,7 @@ struct OrderView: View {
                                 .skydownInteractiveFeedback()
                             }
                         }
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .transition(orderStripTransition)
                     } else if viewModel.orders.isEmpty {
                         OrdersInlineStatusStrip(
                             colorScheme: colorScheme,
@@ -103,7 +123,7 @@ struct OrderView: View {
                                     .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
                             }
                         }
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .transition(orderStripTransition)
                     } else {
                         ForEach(Array(viewModel.orders.enumerated()), id: \.offset) { index, order in
                             OrdersOrderCard(
@@ -122,8 +142,8 @@ struct OrderView: View {
                                     showingDeleteAlert = true
                                 }
                             )
-                            .transition(.opacity.combined(with: .move(edge: .bottom)))
-                            .animation(.easeInOut(duration: 0.2).delay(Double(index) * 0.01), value: viewModel.orders.count)
+                            .transition(orderCardTransition)
+                            .animation(orderRowInsertionAnimation(index: index), value: viewModel.orders.count)
                         }
                     }
                 }
@@ -167,10 +187,10 @@ struct OrderView: View {
                 Text(AppLocalized.text("orders.alert.delete_message", fallback: "This order will be removed from your list. This cannot be undone."))
             })
         }
-        .animation(.easeInOut(duration: 0.22), value: viewModel.isLoading)
-        .animation(.easeInOut(duration: 0.22), value: viewModel.errorMessage != nil)
-        .animation(.easeInOut(duration: 0.22), value: viewModel.orders.isEmpty)
-        .animation(.easeInOut(duration: 0.22), value: viewModel.orders.count)
+        .animation(orderContentStateAnimation, value: viewModel.isLoading)
+        .animation(orderContentStateAnimation, value: viewModel.errorMessage != nil)
+        .animation(orderContentStateAnimation, value: viewModel.orders.isEmpty)
+        .animation(orderContentStateAnimation, value: viewModel.orders.count)
         .fancyToast(isPresented: $viewModel.showToast,
                     message: viewModel.toastMessage,
                     style: viewModel.toastStyle)
@@ -270,6 +290,7 @@ private struct OrdersSectionCard<Content: View>: View {
 }
 
 private struct OrdersInlineStatusStrip<Content: View>: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let colorScheme: ColorScheme
     let icon: String
     let title: String
@@ -297,7 +318,7 @@ private struct OrdersInlineStatusStrip<Content: View>: View {
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
-        .animation(.easeInOut(duration: 0.2), value: title)
+        .animation(SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion), value: title)
     }
 }
 
@@ -814,6 +835,7 @@ private struct OrderMetaBlock: View {
 }
 
 private struct OrdersBadge: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let text: String
     let colorScheme: ColorScheme
 
@@ -822,7 +844,7 @@ private struct OrdersBadge: View {
             text: text,
             tint: AppColors.accent(for: colorScheme)
         )
-        .animation(.easeInOut(duration: 0.18), value: text)
+        .animation(SkydownMotion.preferredContentReveal(accessibilityReduceMotion: reduceMotion), value: text)
     }
 }
 

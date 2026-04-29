@@ -85,6 +85,7 @@ struct HomeViewContent: View {
     @State private var showsFounderBriefingShareSheet = false
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let onOpenCart: () -> Void
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
@@ -120,7 +121,7 @@ struct HomeViewContent: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: SkydownLayout.sectionSpacing) {
-                            let scrollAnimation = SkydownMotion.smoothScroll
+                            let scrollAnimation = SkydownMotion.preferredSmoothScroll(accessibilityReduceMotion: reduceMotion)
                             let openReleaseSection = {
                                 withAnimation(scrollAnimation) {
                                     proxy.scrollTo(HomeSectionAnchor.release.rawValue, anchor: .top)
@@ -820,6 +821,7 @@ private enum HomePresentedSheet: String, Identifiable, Equatable {
 }
 
 private struct HomeManageableItemRow: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let colorScheme: ColorScheme
     let title: String
     let subtitle: String?
@@ -903,12 +905,19 @@ private struct HomeManageableItemRow: View {
                     )
                     .accessibilityLabel(AppLocalized.text("common.save", fallback: "Save"))
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .transition(
+                    reduceMotion
+                        ? .opacity
+                        : .opacity.combined(with: .move(edge: .top))
+                )
             }
         }
         .padding(14)
         .skydownPanelSurface(colorScheme: colorScheme, shadowRadius: 7, shadowYOffset: 3)
-        .animation(SkydownMotion.statusTransition, value: isEditing)
+        .animation(
+            SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion),
+            value: isEditing
+        )
     }
 }
 
@@ -978,6 +987,7 @@ private struct HomeNoteManagerSheet: View {
 }
 
 private struct HomeManageableListSheet<Item: Identifiable>: View where Item.ID == String {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let colorScheme: ColorScheme
     let title: String
     let items: [Item]
@@ -1011,7 +1021,9 @@ private struct HomeManageableListSheet<Item: Identifiable>: View where Item.ID =
                             draftTitle: $draftTitle,
                             fieldPlaceholder: AppLocalized.text("home.manager.rename_placeholder", fallback: "New title"),
                             onEdit: {
-                                withAnimation(SkydownMotion.statusTransition) {
+                                withAnimation(
+                                    SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion)
+                                ) {
                                     editingID = item.id
                                     draftTitle = rowTitle
                                 }
@@ -1025,7 +1037,11 @@ private struct HomeManageableListSheet<Item: Identifiable>: View where Item.ID =
                                 Task {
                                     try? await onUpdateTitle(item.id, normalized)
                                     await MainActor.run {
-                                        withAnimation(SkydownMotion.statusTransition) {
+                                        withAnimation(
+                                            SkydownMotion.preferredStatusTransition(
+                                                accessibilityReduceMotion: reduceMotion
+                                            )
+                                        ) {
                                             editingID = nil
                                         }
                                     }
@@ -1555,6 +1571,22 @@ private struct HomeProductivityOverviewSection: View {
     @State private var showsExtendedSignals = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private var productivityStatusAnimation: Animation {
+        SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion)
+    }
+
+    private var extendedProductivityTransition: AnyTransition {
+        reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top))
+    }
+
+    private var collapsedProductivityTransition: AnyTransition {
+        reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .bottom))
+    }
+
+    private var showLessProductivityTransition: AnyTransition {
+        reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top))
+    }
+
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .none
@@ -1647,11 +1679,11 @@ private struct HomeProductivityOverviewSection: View {
                             items: recentNotes.map { $0.title }
                         )
                     }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(extendedProductivityTransition)
                 } else {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                         Button {
-                            withAnimation(reduceMotion ? .linear(duration: 0.01) : SkydownMotion.statusTransition) {
+                            withAnimation(productivityStatusAnimation) {
                                 SkydownHaptics.selection()
                                 showsExtendedSignals = true
                             }
@@ -1694,21 +1726,14 @@ private struct HomeProductivityOverviewSection: View {
                             )
                         }
                     }
-                    .transition(
-                        reduceMotion
-                            ? .opacity
-                            : .opacity.combined(with: .move(edge: .bottom))
-                    )
+                    .transition(collapsedProductivityTransition)
                 }
             }
-            .animation(
-                reduceMotion ? .linear(duration: 0.01) : SkydownMotion.statusTransition,
-                value: showsExtendedSignals
-            )
+            .animation(productivityStatusAnimation, value: showsExtendedSignals)
 
             if showsExtendedSignals {
                 Button {
-                    withAnimation(reduceMotion ? .linear(duration: 0.01) : SkydownMotion.statusTransition) {
+                    withAnimation(productivityStatusAnimation) {
                         SkydownHaptics.selection()
                         showsExtendedSignals = false
                     }
@@ -1718,11 +1743,7 @@ private struct HomeProductivityOverviewSection: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
-                .transition(
-                    reduceMotion
-                        ? .opacity
-                        : .opacity.combined(with: .move(edge: .top))
-                )
+                .transition(showLessProductivityTransition)
             }
 
             HomeSectionEyebrow(

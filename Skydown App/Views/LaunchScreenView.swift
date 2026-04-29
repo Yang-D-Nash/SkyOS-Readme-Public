@@ -10,6 +10,7 @@ import SwiftUI
 import UIKit
 
 struct LaunchScreenView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase: LaunchPhase = .intro
     @State private var player: AVPlayer?
     @State private var hasCompletedIntro = false
@@ -140,7 +141,7 @@ struct LaunchScreenView: View {
         }
         player?.pause()
         deactivateIntroAudioSession()
-        withAnimation(SkydownMotion.contentReveal) {
+        withAnimation(SkydownMotion.preferredContentReveal(accessibilityReduceMotion: reduceMotion)) {
             phase = .landing
         }
     }
@@ -150,7 +151,7 @@ struct LaunchScreenView: View {
             hasTrackedFirstValueMoment = true
             growthTracker.track("first_value_moment", surface: "launch_entry_\(surfaceName(for: tab))")
         }
-        withAnimation(SkydownMotion.screenTransition) {
+        withAnimation(SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: reduceMotion)) {
             phase = .shell(tab)
         }
     }

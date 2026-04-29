@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -97,6 +98,7 @@ import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.skydownTween
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
+import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.skydownContentPadding
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
@@ -864,7 +866,13 @@ private fun ShopWelcomeQuickEntryCard(
     onOpenLane: (ShopCollabLane) -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val reduceMotion = rememberSkydownReduceMotion()
     val headerInteraction = remember { MutableInteractionSource() }
+    val laneCrossFadeSpec = if (reduceMotion) {
+        snap()
+    } else {
+        skydownTween<Float>(SkydownMotionTokens.selectionCrossFadeMillis)
+    }
     val quickLanes = remember(lanes) {
         val collections = lanes
             .filter { it.id != ShopCollabLane.ALL_ID }
@@ -904,12 +912,12 @@ private fun ShopWelcomeQuickEntryCard(
                 val isActive = lane.id == selectedLaneId
                 val animatedScale by animateFloatAsState(
                     targetValue = if (isActive) 1.0f else 0.985f,
-                    animationSpec = skydownTween<Float>(SkydownMotionTokens.selectionCrossFadeMillis),
+                    animationSpec = laneCrossFadeSpec,
                     label = "shopLaneScale",
                 )
                 val animatedAlpha by animateFloatAsState(
                     targetValue = if (isActive) 1.0f else 0.92f,
-                    animationSpec = skydownTween<Float>(SkydownMotionTokens.selectionCrossFadeMillis),
+                    animationSpec = laneCrossFadeSpec,
                     label = "shopLaneAlpha",
                 )
                 BrandActionButton(
@@ -950,9 +958,30 @@ private fun ShopCollectionDialog(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val listState = rememberLazyListState()
+    val reduceMotion = rememberSkydownReduceMotion()
+    val collectionBannerEnter = if (reduceMotion) {
+        fadeIn(animationSpec = snap())
+    } else {
+        fadeIn(skydownTween<Float>(SkydownMotionTokens.overlayEnterDurationMillis)) + slideInVertically(
+            initialOffsetY = { it / 7 },
+            animationSpec = skydownTween(SkydownMotionTokens.overlayEnterDurationMillis),
+        )
+    }
+    val collectionEmptyEnter = if (reduceMotion) {
+        fadeIn(animationSpec = snap())
+    } else {
+        fadeIn(skydownTween<Float>(SkydownMotionTokens.primaryEnterDurationMillis)) + slideInVertically(
+            initialOffsetY = { it / 8 },
+            animationSpec = skydownTween(SkydownMotionTokens.primaryEnterDurationMillis),
+        )
+    }
     val headerParallax by animateFloatAsState(
         targetValue = -(listState.firstVisibleItemScrollOffset * 0.08f),
-        animationSpec = skydownTween(SkydownMotionTokens.staggerStepMillis * 13),
+        animationSpec = if (reduceMotion) {
+            snap()
+        } else {
+            skydownTween(SkydownMotionTokens.staggerStepMillis * 13)
+        },
         label = "shopCollectionHeaderParallax",
     )
     ModalBottomSheet(
@@ -1014,10 +1043,7 @@ private fun ShopCollectionDialog(
                 item {
                     AnimatedVisibility(
                         visible = true,
-                        enter = fadeIn(skydownTween<Float>(SkydownMotionTokens.overlayEnterDurationMillis)) + slideInVertically(
-                            initialOffsetY = { it / 7 },
-                            animationSpec = skydownTween(SkydownMotionTokens.overlayEnterDurationMillis),
-                        ),
+                        enter = collectionBannerEnter,
                     ) {
                         SkydownCard(
                             contentPadding = PaddingValues(SkydownUiTokens.cardPadding),
@@ -1037,10 +1063,7 @@ private fun ShopCollectionDialog(
                     item {
                         AnimatedVisibility(
                             visible = true,
-                            enter = fadeIn(skydownTween<Float>(SkydownMotionTokens.primaryEnterDurationMillis)) + slideInVertically(
-                                initialOffsetY = { it / 8 },
-                                animationSpec = skydownTween(SkydownMotionTokens.primaryEnterDurationMillis),
-                            ),
+                            enter = collectionEmptyEnter,
                         ) {
                             ShopMessageCard(
                                 title = stringResource(R.string.shop_filter_empty_title),
@@ -1428,11 +1451,16 @@ private fun ShopCollabCarousel(
     }
     val initialPage = safeLanes.indexOfFirst { it.id == selectedLaneId }.takeIf { it >= 0 } ?: 0
     val pagerState = rememberPagerState(initialPage = initialPage) { safeLanes.size }
+    val reduceMotion = rememberSkydownReduceMotion()
 
-    LaunchedEffect(selectedLaneId, safeLanes) {
+    LaunchedEffect(selectedLaneId, safeLanes, reduceMotion) {
         val targetPage = safeLanes.indexOfFirst { it.id == selectedLaneId }.takeIf { it >= 0 } ?: 0
         if (targetPage != pagerState.currentPage) {
-            pagerState.animateScrollToPage(targetPage)
+            if (reduceMotion) {
+                pagerState.scrollToPage(targetPage)
+            } else {
+                pagerState.animateScrollToPage(targetPage)
+            }
         }
     }
 

@@ -15,8 +15,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -143,6 +147,7 @@ import com.nash.skyos.ui.component.SkydownMotionTokens
 import com.nash.skyos.ui.component.SkydownStandardEasing
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.rememberIsCompactAppLayout
+import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
 import com.nash.skyos.ui.component.skydownLuminousSweep
 import com.nash.skyos.ui.component.skydownPanelSurface
@@ -442,6 +447,7 @@ fun SkydownApp(
             } else {
                 0.dp
             }
+            val reduceMotion = rememberSkydownReduceMotion()
 
             fun navigateToTopLevel(route: String, recordHistory: Boolean = true) {
                 if (recordHistory && topLevelRouteHistory.lastOrNull() != route) {
@@ -540,10 +546,10 @@ fun SkydownApp(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(bottom = floatingDockContentPadding),
-                        enterTransition = { skydownEnterTransition() },
-                        exitTransition = { skydownExitTransition() },
-                        popEnterTransition = { skydownEnterTransition() },
-                        popExitTransition = { skydownExitTransition() },
+                        enterTransition = { skydownEnterTransition(reduceMotion) },
+                        exitTransition = { skydownExitTransition(reduceMotion) },
+                        popEnterTransition = { skydownEnterTransition(reduceMotion) },
+                        popExitTransition = { skydownExitTransition(reduceMotion) },
                     ) {
                         composable("home") {
                             HomeScreen(
@@ -747,15 +753,21 @@ private fun SkydownFloatingBottomDock(
     modifier: Modifier = Modifier,
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val reduceMotion = rememberSkydownReduceMotion()
     val isDarkPalette = colorScheme.skydownIsDarkPalette()
     val selectedAccentTarget = destinations.firstOrNull { isSelected(it) }?.accent
         ?: colorScheme.skydownAccent()
-    val selectedAccent by animateColorAsState(
-        targetValue = selectedAccentTarget,
-        animationSpec = tween(
+    val dockColorCrossfade: AnimationSpec<Color> = if (reduceMotion) {
+        snap()
+    } else {
+        tween(
             durationMillis = SkydownMotionTokens.premiumAccentTransitionMillis,
             easing = SkydownStandardEasing,
-        ),
+        )
+    }
+    val selectedAccent by animateColorAsState(
+        targetValue = selectedAccentTarget,
+        animationSpec = dockColorCrossfade,
         label = "bottomDockAccent",
     )
     val dockBorder by animateColorAsState(
@@ -764,18 +776,12 @@ private fun SkydownFloatingBottomDock(
             selectedAccent.copy(alpha = if (isDarkPalette) 0.14f else 0.11f),
             0.28f,
         ),
-        animationSpec = tween(
-            durationMillis = SkydownMotionTokens.premiumAccentTransitionMillis,
-            easing = SkydownStandardEasing,
-        ),
+        animationSpec = dockColorCrossfade,
         label = "bottomDockBorder",
     )
     val dockGlow by animateColorAsState(
         targetValue = selectedAccent.copy(alpha = if (isDarkPalette) 0.075f else 0.055f),
-        animationSpec = tween(
-            durationMillis = SkydownMotionTokens.premiumAccentTransitionMillis,
-            easing = SkydownStandardEasing,
-        ),
+        animationSpec = dockColorCrossfade,
         label = "bottomDockGlow",
     )
     val dockShape = RoundedCornerShape(
@@ -866,9 +872,19 @@ private fun SkydownFloatingBottomDock(
                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    val dockIconMotion = remember {
-                        tween<Float>(
+                    val dockIconMotion: FiniteAnimationSpec<Float> = if (reduceMotion) {
+                        snap()
+                    } else {
+                        tween(
                             durationMillis = SkydownMotionTokens.dockSelectionDurationMillis,
+                            easing = SkydownStandardEasing,
+                        )
+                    }
+                    val dockLabelMotion: FiniteAnimationSpec<Float> = if (reduceMotion) {
+                        snap()
+                    } else {
+                        tween(
+                            durationMillis = SkydownMotionTokens.premiumLabelTransitionMillis,
                             easing = SkydownStandardEasing,
                         )
                     }
@@ -888,10 +904,7 @@ private fun SkydownFloatingBottomDock(
                         )
                         val labelAlpha by animateFloatAsState(
                             targetValue = if (selected) 0.98f else 0.72f,
-                            animationSpec = tween(
-                                durationMillis = SkydownMotionTokens.premiumLabelTransitionMillis,
-                                easing = SkydownStandardEasing,
-                            ),
+                            animationSpec = dockLabelMotion,
                             label = "bottomNavLabelAlpha_${destination.route}",
                         )
                         val selectedBorderAlpha by animateFloatAsState(
@@ -900,10 +913,7 @@ private fun SkydownFloatingBottomDock(
                             } else {
                                 0f
                             },
-                            animationSpec = tween(
-                                durationMillis = SkydownMotionTokens.premiumLabelTransitionMillis,
-                                easing = SkydownStandardEasing,
-                            ),
+                            animationSpec = dockLabelMotion,
                             label = "bottomNavBorderAlpha_${destination.route}",
                         )
 
@@ -1115,7 +1125,10 @@ private fun skydownDockBottomSpacing() = SkydownUiTokens.stackSpacingMicro
 
 private fun skydownPrimaryRouteIndex(route: String?): Int = skydownPrimaryRoutes.indexOf(route)
 
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransition(): EnterTransition {
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransition(reduceMotion: Boolean): EnterTransition {
+    if (reduceMotion) {
+        return fadeIn(animationSpec = tween(durationMillis = 1, easing = LinearEasing))
+    }
     val initialRoute = initialState.destination.route
     val targetRoute = targetState.destination.route
     val initialIndex = skydownPrimaryRouteIndex(initialRoute)
@@ -1173,7 +1186,10 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownEnterTransi
     }
 }
 
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransition(): ExitTransition {
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.skydownExitTransition(reduceMotion: Boolean): ExitTransition {
+    if (reduceMotion) {
+        return fadeOut(animationSpec = tween(durationMillis = 1, easing = LinearEasing))
+    }
     val initialRoute = initialState.destination.route
     val targetRoute = targetState.destination.route
     val initialIndex = skydownPrimaryRouteIndex(initialRoute)

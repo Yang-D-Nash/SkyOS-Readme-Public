@@ -11,6 +11,7 @@ struct ToastModifier: ViewModifier {
     @Binding var isPresented: Bool
     let message: String
     let style: ToastStyle
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
     func body(content: Content) -> some View {
         ZStack(alignment: .bottom) {
@@ -21,7 +22,11 @@ struct ToastModifier: ViewModifier {
                     message: message,
                     style: style,
                     onDismiss: {
-                        withAnimation(SkydownMotion.statusTransition) {
+                        withAnimation(
+                            SkydownMotion.preferredStatusTransition(
+                                accessibilityReduceMotion: accessibilityReduceMotion
+                            )
+                        ) {
                             isPresented = false
                         }
                     }
@@ -29,11 +34,16 @@ struct ToastModifier: ViewModifier {
                     .padding(.horizontal, 14)
                     .padding(.bottom, 18)
                     .transition(
-                        .move(edge: .bottom)
-                        .combined(with: .opacity)
-                        .combined(with: .scale(scale: 0.96, anchor: .bottom))
+                        accessibilityReduceMotion
+                            ? .opacity
+                            : .move(edge: .bottom)
+                                .combined(with: .opacity)
+                                .combined(with: .scale(scale: 0.96, anchor: .bottom))
                     )
-                .animation(SkydownMotion.statusTransition, value: isPresented)
+                .animation(
+                    SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: accessibilityReduceMotion),
+                    value: isPresented
+                )
                 .task(id: message + style.title) {
                     SkydownHaptics.announce(message)
                     #if canImport(UIKit)
@@ -53,7 +63,11 @@ struct ToastModifier: ViewModifier {
                     try? await Task.sleep(for: .seconds(duration))
                     guard !Task.isCancelled else { return }
                     await MainActor.run {
-                        withAnimation(SkydownMotion.statusTransition) {
+                        withAnimation(
+                            SkydownMotion.preferredStatusTransition(
+                                accessibilityReduceMotion: accessibilityReduceMotion
+                            )
+                        ) {
                             isPresented = false
                         }
                     }

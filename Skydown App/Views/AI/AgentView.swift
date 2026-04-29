@@ -16,6 +16,7 @@ struct AgentView: View {
     @ObservedObject private var aiRuntimeSettingsStore = AIRuntimeSettingsStore.shared
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject private var taskStore = TaskStore.shared
     @ObservedObject private var noteStore = NoteStore.shared
     @State private var showingAttachmentImporter = false
@@ -599,12 +600,28 @@ struct AgentView: View {
                             .scrollDismissesKeyboard(.interactively)
                             .onAppear {
                                 DispatchQueue.main.async {
-                                    proxy.scrollTo("agent-chat-end", anchor: .bottom)
+                                    if reduceMotion {
+                                        var transaction = Transaction()
+                                        transaction.disablesAnimations = true
+                                        withTransaction(transaction) {
+                                            proxy.scrollTo("agent-chat-end", anchor: .bottom)
+                                        }
+                                    } else {
+                                        proxy.scrollTo("agent-chat-end", anchor: .bottom)
+                                    }
                                 }
                             }
                             .onChange(of: scrollToken) { _, _ in
-                                withAnimation(.easeOut(duration: 0.25)) {
-                                    proxy.scrollTo("agent-chat-end", anchor: .bottom)
+                                if reduceMotion {
+                                    var transaction = Transaction()
+                                    transaction.disablesAnimations = true
+                                    withTransaction(transaction) {
+                                        proxy.scrollTo("agent-chat-end", anchor: .bottom)
+                                    }
+                                } else {
+                                    withAnimation(.easeOut(duration: 0.25)) {
+                                        proxy.scrollTo("agent-chat-end", anchor: .bottom)
+                                    }
                                 }
                             }
                         }
@@ -1590,6 +1607,7 @@ private struct AgentNoteDetailSheet: View {
 }
 
 private struct AgentDisabledCard: View {
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     let colorScheme: ColorScheme
 
     var body: some View {
@@ -1625,8 +1643,15 @@ private struct AgentDisabledCard: View {
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.12), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
-        .transition(.opacity.combined(with: .move(edge: .top)))
-        .animation(SkydownMotion.statusTransition, value: colorScheme)
+        .transition(
+            accessibilityReduceMotion
+                ? .opacity
+                : .opacity.combined(with: .move(edge: .top))
+        )
+        .animation(
+            SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: accessibilityReduceMotion),
+            value: colorScheme
+        )
     }
 }
 

@@ -27,6 +27,7 @@ struct TrackView: View {
     @State private var showSpotifyPlayer = false
     @Environment(\.openURL) private var openURL
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isPlaying: Bool {
         allowsInAppPreview && (audioManager.currentlyPlayingId == track.trackId)
@@ -173,7 +174,7 @@ struct TrackView: View {
                         expandToFullWidth: true,
                         action: {
                             onSelect()
-                            withAnimation(.easeInOut(duration: 0.20)) {
+                            withAnimation(SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion)) {
                                 audioManager.playPreview(for: track)
                             }
                         }

@@ -3,6 +3,7 @@ package com.nash.skyos.ui.component
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -35,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,7 +62,55 @@ fun ToastHost(
 ) {
     val view = LocalView.current
     val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
-
+    val reduceMotion = rememberSkydownReduceMotion()
+    val toastEnter = remember(reduceMotion) {
+        if (reduceMotion) {
+            fadeIn(animationSpec = snap())
+        } else {
+            slideInVertically(
+                initialOffsetY = { it / 2 },
+                animationSpec = tween(
+                    durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                    easing = LinearOutSlowInEasing,
+                ),
+            ) + fadeIn(
+                animationSpec = tween(
+                    durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                    easing = LinearOutSlowInEasing,
+                ),
+            ) + scaleIn(
+                initialScale = 0.97f,
+                animationSpec = tween(
+                    durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                    easing = LinearOutSlowInEasing,
+                ),
+            )
+        }
+    }
+    val toastExit = remember(reduceMotion) {
+        if (reduceMotion) {
+            fadeOut(animationSpec = snap())
+        } else {
+            slideOutVertically(
+                targetOffsetY = { it / 2 },
+                animationSpec = tween(
+                    durationMillis = SkydownMotionTokens.statusExitDurationMillis,
+                    easing = SkydownExitEasing,
+                ),
+            ) + fadeOut(
+                animationSpec = tween(
+                    durationMillis = SkydownMotionTokens.statusExitDurationMillis,
+                    easing = SkydownExitEasing,
+                ),
+            ) + scaleOut(
+                targetScale = 0.97f,
+                animationSpec = tween(
+                    durationMillis = SkydownMotionTokens.statusExitDurationMillis,
+                    easing = SkydownExitEasing,
+                ),
+            )
+        }
+    }
     LaunchedEffect(message, type) {
         if (!message.isNullOrBlank()) {
             view.performSkydownHaptic(type.hapticKind)
@@ -69,42 +119,8 @@ fun ToastHost(
 
     AnimatedVisibility(
         visible = !message.isNullOrBlank(),
-        enter = slideInVertically(
-            initialOffsetY = { it / 2 },
-            animationSpec = tween(
-                durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
-                easing = LinearOutSlowInEasing,
-            ),
-        ) + fadeIn(
-            animationSpec = tween(
-                durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
-                easing = LinearOutSlowInEasing,
-            ),
-        ) + scaleIn(
-            initialScale = 0.97f,
-            animationSpec = tween(
-                durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
-                easing = LinearOutSlowInEasing,
-            ),
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { it / 2 },
-            animationSpec = tween(
-                durationMillis = SkydownMotionTokens.statusExitDurationMillis,
-                easing = SkydownExitEasing,
-            ),
-        ) + fadeOut(
-            animationSpec = tween(
-                durationMillis = SkydownMotionTokens.statusExitDurationMillis,
-                easing = SkydownExitEasing,
-            ),
-        ) + scaleOut(
-            targetScale = 0.97f,
-            animationSpec = tween(
-                durationMillis = SkydownMotionTokens.statusExitDurationMillis,
-                easing = SkydownExitEasing,
-            ),
-        ),
+        enter = toastEnter,
+        exit = toastExit,
         modifier = modifier,
     ) {
         Row(
@@ -118,12 +134,7 @@ fun ToastHost(
                     spotColor = Color.Black.copy(alpha = 0.20f),
                 )
                 .clip(shape)
-                .animateContentSize(
-                    animationSpec = tween(
-                        durationMillis = SkydownMotionTokens.contentRevealEnterMillis,
-                        easing = SkydownStandardEasing,
-                    ),
-                )
+                .animateContentSize(animationSpec = skydownContentSizeRevealSpec())
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.99f))
                 .background(
                     Brush.linearGradient(

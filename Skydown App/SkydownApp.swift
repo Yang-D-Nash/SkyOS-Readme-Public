@@ -29,8 +29,6 @@ final class SkydownApplicationDelegate: NSObject, UIApplicationDelegate {
 struct SkydownApp: App {
     @UIApplicationDelegateAdaptor(SkydownApplicationDelegate.self) private var appDelegate
     @StateObject private var services: AppServices
-    @State private var didTrackAppOpen = false
-    private let growthTracker = MembershipAnalyticsTracker()
 
     init() {
         AppTypography.configure()
@@ -40,51 +38,67 @@ struct SkydownApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ZStack(alignment: .top) {
-                LaunchScreenView()
-                    .skydownTactileAction()
-                    .skydownPremiumInputSurface()
-                    .environmentObject(services)
-                    .environmentObject(services.featureFlags)
-                    .environmentObject(services.authManager)
-                    .environmentObject(services.cartViewModel)
-                    .environmentObject(services.hostedCheckoutRedirectStore)
-                    .environmentObject(services.aiSubscriptionStore)
-                    .environmentObject(services.networkStatusMonitor)
-                    .environmentObject(services.notificationPermissionStore)
-                    .onOpenURL { url in
-                        if services.hostedCheckoutRedirectStore.handle(url) {
-                            return
-                        }
+            SkydownLaunchShell()
+                .environmentObject(services)
+                .environmentObject(services.featureFlags)
+                .environmentObject(services.authManager)
+                .environmentObject(services.cartViewModel)
+                .environmentObject(services.hostedCheckoutRedirectStore)
+                .environmentObject(services.aiSubscriptionStore)
+                .environmentObject(services.networkStatusMonitor)
+                .environmentObject(services.notificationPermissionStore)
+        }
+    }
+}
 
-                        _ = GIDSignIn.sharedInstance.handle(url)
+private struct SkydownLaunchShell: View {
+    @EnvironmentObject private var services: AppServices
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+    @State private var didTrackAppOpen = false
+    private let growthTracker = MembershipAnalyticsTracker()
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            LaunchScreenView()
+                .skydownTactileAction()
+                .skydownPremiumInputSurface()
+                .onOpenURL { url in
+                    if services.hostedCheckoutRedirectStore.handle(url) {
+                        return
                     }
 
-                if !services.networkStatusMonitor.isOnline {
-                    ConnectivityStatusBanner(
-                        title: AppLocalized.text("offline.banner.title", fallback: "Offline"),
-                        message: AppLocalized.text(
-                            "offline.banner.message",
-                            fallback: "No connection. You are seeing cached content and can continue navigating."
-                        )
+                    _ = GIDSignIn.sharedInstance.handle(url)
+                }
+
+            if !services.networkStatusMonitor.isOnline {
+                ConnectivityStatusBanner(
+                    title: AppLocalized.text("offline.banner.title", fallback: "Offline"),
+                    message: AppLocalized.text(
+                        "offline.banner.message",
+                        fallback: "No connection. You are seeing cached content and can continue navigating."
                     )
-                    .padding(.top, SkydownLayout.stackSpacingPill)
-                    .transition(
-                        .move(edge: .top)
+                )
+                .padding(.top, SkydownLayout.stackSpacingPill)
+                .transition(
+                    accessibilityReduceMotion
+                        ? .opacity
+                        : .move(edge: .top)
                         .combined(with: .opacity)
                         .combined(with: .scale(scale: 0.985, anchor: .top))
-                    )
-                }
+                )
             }
-            .animation(SkydownMotion.statusTransition, value: services.networkStatusMonitor.isOnline)
-            .onAppear {
-                guard !didTrackAppOpen else { return }
-                didTrackAppOpen = true
-                growthTracker.track("app_open", surface: "app_start")
-            }
-            .task {
-                await services.notificationPermissionStore.requestAuthorizationIfNeededOnLaunch()
-            }
+        }
+        .animation(
+            SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: accessibilityReduceMotion),
+            value: services.networkStatusMonitor.isOnline
+        )
+        .onAppear {
+            guard !didTrackAppOpen else { return }
+            didTrackAppOpen = true
+            growthTracker.track("app_open", surface: "app_start")
+        }
+        .task {
+            await services.notificationPermissionStore.requestAuthorizationIfNeededOnLaunch()
         }
     }
 }

@@ -8,9 +8,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.AnimatedVisibility
 import com.nash.skyos.ui.component.SkydownStandardEasing
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import com.nash.skyos.ui.component.SkydownMotionTokens
+import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -210,6 +212,25 @@ fun VideoHubScreen(
         mutableStateOf(autoplayInitialSelection && !initialSelectedVideoId.isNullOrBlank())
     }
     val listState = rememberLazyListState()
+    val reduceMotion = rememberSkydownReduceMotion()
+    val scrollVideoHubToEquipment: () -> Unit = {
+        coroutineScope.launch {
+            if (reduceMotion) {
+                listState.scrollToItem(2)
+            } else {
+                listState.animateScrollToItem(2)
+            }
+        }
+    }
+    val scrollVideoHubToCollaborations: () -> Unit = {
+        coroutineScope.launch {
+            if (reduceMotion) {
+                listState.scrollToItem(3)
+            } else {
+                listState.animateScrollToItem(3)
+            }
+        }
+    }
     val fallbackSelectedVideo = uiState.videos.firstOrNull { it.supportsInlinePlayback } ?: uiState.videos.firstOrNull()
     val selectedVideo = uiState.videos.firstOrNull { it.id == selectedVideoId } ?: fallbackSelectedVideo
     val openVideoPlayer: () -> Unit = {
@@ -440,16 +461,8 @@ fun VideoHubScreen(
                             inAppOriginalUrl = url
                         },
                         onOpenVideos = openVideoPlayer,
-                        onOpenEquipment = {
-                            coroutineScope.launch {
-                                listState.animateScrollToItem(2)
-                            }
-                        },
-                        onOpenCollaborations = {
-                            coroutineScope.launch {
-                                listState.animateScrollToItem(3)
-                            }
-                        },
+                        onOpenEquipment = scrollVideoHubToEquipment,
+                        onOpenCollaborations = scrollVideoHubToCollaborations,
                     )
                 }
 
@@ -2882,13 +2895,14 @@ private fun VideoReelViewerDialog(
         pageCount = { videos.size.coerceAtLeast(1) },
     )
     val coroutineScope = rememberCoroutineScope()
+    val reduceMotion = rememberSkydownReduceMotion()
     var isTransitioning by remember { mutableStateOf(true) }
     var isVideoPlaying by remember { mutableStateOf(false) }
     val currentVideo = videos.getOrNull(pagerState.currentPage)
     val currentVideoSupportsPlayback =
         currentVideo != null && !currentVideo.usesEmbeddedPreview && currentVideo.nativePlaybackUrl.isNotBlank()
 
-    LaunchedEffect(pagerState.currentPage, videos) {
+    LaunchedEffect(pagerState.currentPage, videos, reduceMotion) {
         val video = videos.getOrNull(pagerState.currentPage)
         video?.let(onSelectVideo)
         isTransitioning = true
@@ -2903,7 +2917,7 @@ private fun VideoReelViewerDialog(
             reelPlayer.play()
             isVideoPlaying = true
         }
-        delay(220)
+        delay(if (reduceMotion) 0 else 220)
         isTransitioning = false
     }
 
@@ -3148,7 +3162,13 @@ private fun VideoReelViewerDialog(
                     canGoToNextClip = pagerState.currentPage < videos.lastIndex,
                     onPreviousClip = {
                         val targetPage = (pagerState.currentPage - 1).coerceAtLeast(0)
-                        coroutineScope.launch { pagerState.animateScrollToPage(targetPage) }
+                        coroutineScope.launch {
+                            if (reduceMotion) {
+                                pagerState.scrollToPage(targetPage)
+                            } else {
+                                pagerState.animateScrollToPage(targetPage)
+                            }
+                        }
                     },
                     onRewind = { reelPlayer.seekByAppOffset(-10_000L) },
                     onPlayPause = {
@@ -3164,7 +3184,13 @@ private fun VideoReelViewerDialog(
                     onForward = { reelPlayer.seekByAppOffset(10_000L) },
                     onNextClip = {
                         val targetPage = (pagerState.currentPage + 1).coerceAtMost(videos.lastIndex)
-                        coroutineScope.launch { pagerState.animateScrollToPage(targetPage) }
+                        coroutineScope.launch {
+                            if (reduceMotion) {
+                                pagerState.scrollToPage(targetPage)
+                            } else {
+                                pagerState.animateScrollToPage(targetPage)
+                            }
+                        }
                     },
                     onClose = onDismiss,
                 )
@@ -3174,10 +3200,14 @@ private fun VideoReelViewerDialog(
                 visible = isTransitioning,
                 modifier = Modifier.align(Alignment.Center),
                 enter = fadeIn(
-                    animationSpec = tween(
-                        durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
-                        easing = SkydownStandardEasing,
-                    ),
+                    animationSpec = if (reduceMotion) {
+                        snap()
+                    } else {
+                        tween(
+                            durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                            easing = SkydownStandardEasing,
+                        )
+                    },
                 ),
             ) {
                 Row(

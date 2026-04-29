@@ -92,6 +92,7 @@ private enum TopBarPreset {
 struct MainTabView: View {
     @AppStorage("colorScheme") private var colorScheme: String = "system"
     @Environment(\.colorScheme) private var systemColorScheme
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @EnvironmentObject private var services: AppServices
     @EnvironmentObject private var featureFlags: FeatureFlagsService
     @EnvironmentObject private var authManager: AuthManager
@@ -168,7 +169,10 @@ struct MainTabView: View {
                 }
         }
         .preferredColorScheme(preferredScheme)
-        .animation(SkydownMotion.tabContextTransition, value: selectedTab)
+        .animation(
+            SkydownMotion.preferredTabContextTransition(accessibilityReduceMotion: accessibilityReduceMotion),
+            value: selectedTab
+        )
         .onChange(of: hasAIAccess) { _, allowed in
             if !allowed {
                 showsWorkflowWorkspace = false
@@ -225,14 +229,22 @@ struct MainTabView: View {
                         onOpenSettings: { presentSettings() },
                         onGuestSignIn: { presentLogin(.standard) },
                         onOpenWorkflow: hasAIAccess ? {
-                            withAnimation(SkydownMotion.screenTransition) {
+                            withAnimation(
+                                SkydownMotion.preferredScreenTransition(
+                                    accessibilityReduceMotion: accessibilityReduceMotion
+                                )
+                            ) {
                                 showsWorkflowWorkspace = true
                                 selectedTab = .tools
                             }
                         } : nil,
                         onOpenWorkflowWithPrompt: (hasAIAccess && isOwner) ? { prompt in
                             pendingAgentPrefillPrompt = prompt
-                            withAnimation(SkydownMotion.screenTransition) {
+                            withAnimation(
+                                SkydownMotion.preferredScreenTransition(
+                                    accessibilityReduceMotion: accessibilityReduceMotion
+                                )
+                            ) {
                                 showsWorkflowWorkspace = true
                                 selectedTab = .tools
                             }
@@ -270,7 +282,11 @@ struct MainTabView: View {
                         onOpenSettings: { presentSettings() },
                         onOpenAutomationSettings: { presentSettings(initialAdminWorkspaceRawValue: "Automation") },
                         onOpenHomeProductivityFromAgent: { target in
-                            withAnimation(SkydownMotion.screenTransition) {
+                            withAnimation(
+                                SkydownMotion.preferredScreenTransition(
+                                    accessibilityReduceMotion: accessibilityReduceMotion
+                                )
+                            ) {
                                 showsWorkflowWorkspace = false
                                 selectedTab = .hub
                             }
@@ -299,7 +315,9 @@ struct MainTabView: View {
         Binding(
             get: { selectedTab },
             set: { newTab in
-                withAnimation(SkydownMotion.screenTransition) {
+                withAnimation(
+                    SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+                ) {
                     selectedTab = newTab
                 }
                 if modalPresentation.activeItem == .settings {
@@ -318,7 +336,9 @@ struct MainTabView: View {
 
     private func exitAITools() {
         let fallbackTab = lastNonToolsTab == .tools ? .hub : lastNonToolsTab
-        withAnimation(SkydownMotion.screenTransition) {
+        withAnimation(
+            SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+        ) {
             showsWorkflowWorkspace = false
             selectedTab = fallbackTab
         }
@@ -344,7 +364,11 @@ struct MainTabView: View {
                 initialAdminWorkspaceRawValue: settingsInitialAdminWorkspaceRawValue,
                 onOpenAgentWithPrompt: { prompt in
                     pendingAgentPrefillPrompt = prompt
-                    withAnimation(SkydownMotion.screenTransition) {
+                    withAnimation(
+                        SkydownMotion.preferredScreenTransition(
+                            accessibilityReduceMotion: accessibilityReduceMotion
+                        )
+                    ) {
                         showsWorkflowWorkspace = true
                         modalPresentation.updatePresentedItem(nil)
                         selectedTab = .tools
@@ -385,6 +409,7 @@ private struct DeferredSettingsPresentation: View {
     @Binding var colorScheme: String
     let initialAdminWorkspaceRawValue: String?
     let onOpenAgentWithPrompt: ((String) -> Void)?
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var isReady = false
 
@@ -432,7 +457,9 @@ private struct DeferredSettingsPresentation: View {
         .task {
             guard !isReady else { return }
             await Task.yield()
-            withAnimation(SkydownMotion.statusTransition) {
+            withAnimation(
+                SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
                 isReady = true
             }
         }
@@ -693,6 +720,7 @@ private struct SessionToolbarIconButton: View {
 }
 
 private struct ZweizweiTabView: View {
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
@@ -742,7 +770,9 @@ private struct ZweizweiTabView: View {
                                     onSurfaceTap: {
                                         catalogInitialArtist = "JANNO"
                                         catalogAutoPresentArtistPage = false
-                                        withAnimation(SkydownMotion.screenTransition) {
+                                        withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
                                             destination = .catalog
                                         }
                                     }
@@ -755,7 +785,9 @@ private struct ZweizweiTabView: View {
                                             onTap: {
                                                 catalogInitialArtist = "JANNO"
                                                 catalogAutoPresentArtistPage = false
-                                                withAnimation(SkydownMotion.screenTransition) {
+                                                withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
                                                     destination = .catalog
                                                 }
                                             }
@@ -765,7 +797,9 @@ private struct ZweizweiTabView: View {
                                             colorScheme: colorScheme,
                                             tint: AppColors.accentMystic(for: colorScheme),
                                             onTap: {
-                                                withAnimation(SkydownMotion.screenTransition) {
+                                                withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
                                                     destination = .nicma
                                                 }
                                             }
@@ -800,7 +834,9 @@ private struct ZweizweiTabView: View {
                                     ) {
                                         catalogInitialArtist = "JANNO"
                                         catalogAutoPresentArtistPage = false
-                                        withAnimation(SkydownMotion.screenTransition) {
+                                        withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
                                             destination = .catalog
                                         }
                                     }
@@ -811,7 +847,9 @@ private struct ZweizweiTabView: View {
                                             accent: AppColors.accentMystic(for: colorScheme),
                                             accessibilityID: "music.hub.open_studio"
                                         ) {
-                                            withAnimation(SkydownMotion.screenTransition) {
+                                            withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
                                                 destination = .nicma
                                             }
                                         }
@@ -870,7 +908,9 @@ private struct ZweizweiTabView: View {
                     onBack: {
                         catalogInitialArtist = nil
                         catalogAutoPresentArtistPage = false
-                        withAnimation(SkydownMotion.screenTransition) {
+                        withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
                             destination = .hub
                         }
                     },
@@ -883,7 +923,9 @@ private struct ZweizweiTabView: View {
 
             case .nicma:
                 NicmaProducerView {
-                    withAnimation(SkydownMotion.screenTransition) {
+                    withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
                         destination = .hub
                     }
                 }
@@ -1011,7 +1053,9 @@ private struct ZweizweiTabView: View {
         guard let artistName = destination.artistPageName else { return }
         catalogInitialArtist = artistName
         catalogAutoPresentArtistPage = true
-        withAnimation(SkydownMotion.screenTransition) {
+        withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
             self.destination = .catalog
         }
     }
@@ -1338,6 +1382,7 @@ private struct AIHubView: View {
     @State private var showsMembershipToast = false
     @State private var membershipToastMessage = ""
     @State private var membershipToastStyle: ToastStyle = .info
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var aiSubscriptionStore: NativeAISubscriptionStore
     @EnvironmentObject private var authManager: AuthManager
@@ -1409,7 +1454,9 @@ private struct AIHubView: View {
         guard !trimmed.isEmpty else { return }
         guard authManager.userSession != nil,
               featureFlags.allowsAIAccess(for: authManager.userSession) else { return }
-        withAnimation(SkydownMotion.screenTransition) {
+        withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
             membershipCoordinator.closeMembership()
             showsWorkflowWorkspace = false
             isAgentSurfaceReady = false
@@ -1418,7 +1465,9 @@ private struct AIHubView: View {
     }
 
     private func selectMode(_ newMode: AIHubMode) {
-        withAnimation(SkydownMotion.screenTransition) {
+        withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
             membershipCoordinator.closeMembership()
             showsWorkflowWorkspace = false
             if newMode == .agent, mode != .agent {
@@ -1467,7 +1516,9 @@ private struct AIHubView: View {
                             showsWorkflowWorkspace: showsWorkflowWorkspace,
                             onSelectMode: selectMode,
                             onToggleWorkflow: {
-                                withAnimation(SkydownMotion.screenTransition) {
+                                withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
                                     membershipCoordinator.closeMembership()
                                     showsWorkflowWorkspace.toggle()
                                 }
@@ -1497,7 +1548,9 @@ private struct AIHubView: View {
                                     colorScheme: colorScheme,
                                     onOpenSettings: onOpenAutomationSettings
                                 ) {
-                                    withAnimation(SkydownMotion.screenTransition) {
+                                    withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
                                         showsWorkflowWorkspace = false
                                     }
                                 }

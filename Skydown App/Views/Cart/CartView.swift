@@ -17,6 +17,7 @@ struct CartView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject private var commerceSettingsStore = CommerceSettingsStore.shared
     @ObservedObject private var merchStoreStatusStore = MerchStoreStatusStore.shared
     @ObservedObject private var paymentMethodSettingsStore = PaymentMethodSettingsStore.shared
@@ -53,7 +54,26 @@ struct CartView: View {
     @State private var showOptionalMessageField = false
 
     private let defaultMessageText = AppLocalized.text("cart.default.message", fallback: "Ich interessiere mich fuer die Artikel in meinem Warenkorb.")
-    private let optionalRevealAnimation = Animation.easeInOut(duration: 0.18)
+
+    private var optionalRevealAnimation: Animation {
+        reduceMotion ? .linear(duration: 0.01) : .easeInOut(duration: 0.18)
+    }
+
+    private var cartFormLiftAnimation: Animation {
+        reduceMotion ? .linear(duration: 0.01) : .easeInOut(duration: 0.2)
+    }
+
+    private var cartMicroLiftAnimation: Animation {
+        reduceMotion ? .linear(duration: 0.01) : .easeInOut(duration: 0.18)
+    }
+
+    private var cartLayoutSyncAnimation: Animation {
+        reduceMotion ? .linear(duration: 0.01) : .easeInOut(duration: 0.22)
+    }
+
+    private var cartRevealFieldTransition: AnyTransition {
+        reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top))
+    }
 
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -178,7 +198,7 @@ struct CartView: View {
                             itemName: handover.itemName,
                             variantSummary: handover.variantSummary
                         )
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .transition(cartRevealFieldTransition)
                     }
 
                     if authManager.userSession == nil {
@@ -283,7 +303,7 @@ struct CartView: View {
                                             colorScheme: colorScheme,
                                             keyboard: .phonePad
                                         )
-                                        .transition(.opacity.combined(with: .move(edge: .top)))
+                                        .transition(cartRevealFieldTransition)
                                     } else {
                                         CartOptionalRevealButton(
                                             title: AppLocalized.text("cart.contact.add_whatsapp", fallback: "WhatsApp hinzufuegen"),
@@ -327,7 +347,7 @@ struct CartView: View {
                                             text: $shippingAddressExtra,
                                             colorScheme: colorScheme
                                         )
-                                        .transition(.opacity.combined(with: .move(edge: .top)))
+                                        .transition(cartRevealFieldTransition)
                                     } else {
                                         CartOptionalRevealButton(
                                             title: AppLocalized.text("cart.shipping.add_address_extra", fallback: "Adresszusatz hinzufuegen"),
@@ -382,7 +402,7 @@ struct CartView: View {
                                         }
                                     }
                                 }
-                                .transition(.opacity.combined(with: .move(edge: .top)))
+                                .transition(cartRevealFieldTransition)
                             } else if !availableCheckoutMethods.isEmpty {
                                 CartSectionCard(
                                     title: AppLocalized.text("cart.payment.select_title", fallback: "Zahlart waehlen"),
@@ -425,7 +445,7 @@ struct CartView: View {
                                             RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
                                                 .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
                                         )
-                                        .transition(.opacity.combined(with: .move(edge: .top)))
+                                        .transition(cartRevealFieldTransition)
                                 } else {
                                     CartOptionalRevealButton(
                                         title: AppLocalized.text("cart.message.add_optional", fallback: "Hinweis hinzufuegen (optional)"),
@@ -557,9 +577,9 @@ struct CartView: View {
                 hostedCheckoutRedirectStore.clear()
             }
         }
-        .animation(.easeInOut(duration: 0.22), value: isCheckoutAvailable)
-        .animation(.easeInOut(duration: 0.22), value: availableCheckoutMethods.count)
-        .animation(.easeInOut(duration: 0.22), value: cartVM.handoverContext)
+        .animation(cartLayoutSyncAnimation, value: isCheckoutAvailable)
+        .animation(cartLayoutSyncAnimation, value: availableCheckoutMethods.count)
+        .animation(cartLayoutSyncAnimation, value: cartVM.handoverContext)
         .sheet(item: activePresentedSheetBinding) { sheet in
             switch sheet {
             case .login(let context):
@@ -615,7 +635,7 @@ struct CartView: View {
 
     private func submitOrderAsync() async -> Bool {
         guard !isSubmitting else { return false }
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(cartFormLiftAnimation) {
             isSubmitting = true
         }
 
@@ -624,14 +644,14 @@ struct CartView: View {
                 AppLocalized.text("cart.toast.select_payment_first", fallback: "Please select a payment method first."),
                 style: .error
             )
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(cartFormLiftAnimation) {
                 isSubmitting = false
             }
             return false
         }
         if let shippingError = pricingSummary.shippingError {
             cartVM.showUserToast(shippingError, style: .error)
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(cartFormLiftAnimation) {
                 isSubmitting = false
             }
             return false
@@ -655,7 +675,7 @@ struct CartView: View {
                 isCheckoutAvailable: isCheckoutAvailable
             ) {
                 openURL(session.checkoutURL)
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(cartFormLiftAnimation) {
                     isSubmitting = false
                 }
                 postCheckoutHighlight = isZeroCostHostedCheckout
@@ -664,7 +684,7 @@ struct CartView: View {
                 return true
             }
 
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(cartFormLiftAnimation) {
                 isSubmitting = false
             }
             return false
@@ -695,7 +715,7 @@ struct CartView: View {
             )
         }
 
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(cartFormLiftAnimation) {
             isSubmitting = false
         }
         return didSubmit
@@ -897,10 +917,19 @@ private struct PricingSummaryCard: View {
 }
 
 private struct PaymentMethodSelectionCard: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let colorScheme: ColorScheme
     let methods: [String]
     @Binding var selectedMethod: String
     let isZeroCostOrder: Bool
+
+    private var paymentSelectionAnimation: Animation {
+        reduceMotion ? .linear(duration: 0.01) : .easeInOut(duration: 0.18)
+    }
+
+    private var paymentHintTransition: AnyTransition {
+        reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
@@ -920,7 +949,7 @@ private struct PaymentMethodSelectionCard: View {
             ) {
                 ForEach(methods, id: \.self) { method in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.18)) {
+                        withAnimation(paymentSelectionAnimation) {
                         selectedMethod = method
                         }
                         SkydownHaptics.selection()
@@ -975,7 +1004,7 @@ private struct PaymentMethodSelectionCard: View {
                     }
                     .buttonStyle(.plain)
                     .skydownTactileAction()
-                    .animation(.easeInOut(duration: 0.18), value: selectedMethod)
+                    .animation(paymentSelectionAnimation, value: selectedMethod)
                 }
             }
 
@@ -987,10 +1016,10 @@ private struct PaymentMethodSelectionCard: View {
                 )
                     .font(.caption.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(paymentHintTransition)
             }
         }
-        .animation(.easeInOut(duration: 0.18), value: selectedMethod)
+        .animation(paymentSelectionAnimation, value: selectedMethod)
     }
 
     private func paymentRouteDetail(for method: String) -> String {
@@ -1297,6 +1326,7 @@ private struct CartSectionCard<Content: View>: View {
 }
 
 private struct CartInlineStatusStrip<Content: View>: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let colorScheme: ColorScheme
     let icon: String
     let title: String
@@ -1324,7 +1354,7 @@ private struct CartInlineStatusStrip<Content: View>: View {
                 .stroke(AppColors.accent(for: colorScheme).opacity(0.10), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
-        .animation(.easeInOut(duration: 0.2), value: title)
+        .animation(SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion), value: title)
     }
 }
 
@@ -1675,6 +1705,7 @@ private struct CartCheckoutSafetyZone: View {
 }
 
 private struct CartSubmitBar: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let colorScheme: ColorScheme
     let itemCount: Int
     let totalPrice: Double
@@ -1721,7 +1752,7 @@ private struct CartSubmitBar: View {
                     action: onSubmit
                 )
                 .frame(minWidth: 132, minHeight: 44)
-                .animation(.easeInOut(duration: 0.2), value: isSubmitting)
+                .animation(SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion), value: isSubmitting)
                 .accessibilityLabel(isSubmitting ? "Checkout wird vorbereitet" : buttonTitle)
                 .accessibilityHint(isSubmitting ? "Bitte kurz warten" : "Oeffnet die finale Bestaetigung")
             }
@@ -1742,11 +1773,12 @@ private struct CartSubmitBar: View {
             .transition(.opacity)
         }
         .background(AppColors.cardBackground(for: colorScheme).opacity(0.98))
-        .animation(.easeInOut(duration: 0.2), value: isSubmitting)
+        .animation(SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion), value: isSubmitting)
     }
 }
 
 private struct CartBadge: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let text: String
     let colorScheme: ColorScheme
     var isEmphasized: Bool = false
@@ -1778,6 +1810,6 @@ private struct CartBadge: View {
                         lineWidth: 1
                     )
             )
-            .animation(.easeInOut(duration: 0.18), value: text)
+            .animation(SkydownMotion.preferredContentReveal(accessibilityReduceMotion: reduceMotion), value: text)
     }
 }

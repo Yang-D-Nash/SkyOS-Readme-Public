@@ -2,6 +2,7 @@ package com.nash.skyos.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -22,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -37,45 +39,60 @@ fun ConnectivityStatusBanner(
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(SkydownUiTokens.compactRadius)
+    val reduceMotion = rememberSkydownReduceMotion()
+    val enterTransition = remember(reduceMotion) {
+        if (reduceMotion) {
+            fadeIn(animationSpec = snap())
+        } else {
+            slideInVertically(
+                initialOffsetY = { -it / 2 },
+                animationSpec = tween(
+                    durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                    easing = LinearOutSlowInEasing,
+                ),
+            ) + fadeIn(
+                animationSpec = tween(
+                    durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                    easing = LinearOutSlowInEasing,
+                ),
+            ) + scaleIn(
+                initialScale = 0.985f,
+                animationSpec = tween(
+                    durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                    easing = LinearOutSlowInEasing,
+                ),
+            )
+        }
+    }
+    val exitTransition = remember(reduceMotion) {
+        if (reduceMotion) {
+            fadeOut(animationSpec = snap())
+        } else {
+            slideOutVertically(
+                targetOffsetY = { -it / 2 },
+                animationSpec = tween(
+                    durationMillis = SkydownMotionTokens.statusExitDurationMillis,
+                    easing = SkydownExitEasing,
+                ),
+            ) + fadeOut(
+                animationSpec = tween(
+                    durationMillis = SkydownMotionTokens.statusExitDurationMillis,
+                    easing = SkydownExitEasing,
+                ),
+            ) + scaleOut(
+                targetScale = 0.985f,
+                animationSpec = tween(
+                    durationMillis = SkydownMotionTokens.statusExitDurationMillis,
+                    easing = SkydownExitEasing,
+                ),
+            )
+        }
+    }
 
     AnimatedVisibility(
         visible = visible,
-        enter = slideInVertically(
-            initialOffsetY = { -it / 2 },
-            animationSpec = tween(
-                durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
-                easing = LinearOutSlowInEasing,
-            ),
-        ) + fadeIn(
-            animationSpec = tween(
-                durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
-                easing = LinearOutSlowInEasing,
-            ),
-        ) + scaleIn(
-            initialScale = 0.985f,
-            animationSpec = tween(
-                durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
-                easing = LinearOutSlowInEasing,
-            ),
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { -it / 2 },
-            animationSpec = tween(
-                durationMillis = SkydownMotionTokens.statusExitDurationMillis,
-                easing = SkydownExitEasing,
-            ),
-        ) + fadeOut(
-            animationSpec = tween(
-                durationMillis = SkydownMotionTokens.statusExitDurationMillis,
-                easing = SkydownExitEasing,
-            ),
-        ) + scaleOut(
-            targetScale = 0.985f,
-            animationSpec = tween(
-                durationMillis = SkydownMotionTokens.statusExitDurationMillis,
-                easing = SkydownExitEasing,
-            ),
-        ),
+        enter = enterTransition,
+        exit = exitTransition,
         modifier = modifier,
     ) {
         Row(

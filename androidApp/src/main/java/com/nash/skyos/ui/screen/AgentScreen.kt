@@ -137,6 +137,7 @@ import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.skydownContentPadding
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberIsCompactAppLayout
+import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.theme.skydownAccent
@@ -172,6 +173,7 @@ fun AgentScreen(
     val listVerticalSpacing = if (showTopBar) sectionSpacing else if (compactLayout) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingPill
     val contentMaxWidth = if (compactLayout) 620.dp else 1040.dp
     val listState = rememberLazyListState()
+    val reduceMotion = rememberSkydownReduceMotion()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -242,9 +244,13 @@ fun AgentScreen(
         Unit
     }
 
-    LaunchedEffect(messageRenderToken) {
+    LaunchedEffect(messageRenderToken, reduceMotion) {
         if (uiState.isAgentEnabled && uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.messages.size)
+            if (reduceMotion) {
+                listState.scrollToItem(uiState.messages.size)
+            } else {
+                listState.animateScrollToItem(uiState.messages.size)
+            }
         }
     }
 

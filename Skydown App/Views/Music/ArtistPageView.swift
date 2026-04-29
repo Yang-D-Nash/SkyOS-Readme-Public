@@ -8,6 +8,7 @@ struct ArtistPageView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var tracksViewModel = ArtistPageTracksViewModel()
     @StateObject private var audioManager = AudioPlayerManager()
 
@@ -1071,7 +1072,7 @@ struct ArtistPageView: View {
                 .onTapGesture {
                     isMiniBarDismissed = false
                     selectedTrackID = spotlightTrack.trackId
-                    withAnimation(.easeInOut(duration: 0.20)) {
+                    withAnimation(SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion)) {
                         audioManager.playPreview(for: spotlightTrack)
                     }
                 }

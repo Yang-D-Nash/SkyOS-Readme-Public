@@ -93,16 +93,21 @@ struct HomeUtilityRow: View {
 
 private struct HomeRevealModifier: ViewModifier {
     let order: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isVisible = false
+
+    private var revealAnimation: Animation {
+        if reduceMotion {
+            return .linear(duration: 0.01)
+        }
+        return SkydownMotion.contentReveal.delay(Double(order) * SkydownMotion.listStaggerDelay)
+    }
 
     func body(content: Content) -> some View {
         content
             .opacity(isVisible ? 1 : 0)
-            .offset(y: isVisible ? 0 : 10)
-            .animation(
-                SkydownMotion.contentReveal.delay(Double(order) * SkydownMotion.listStaggerDelay),
-                value: isVisible
-            )
+            .offset(y: reduceMotion || isVisible ? 0 : 10)
+            .animation(revealAnimation, value: isVisible)
             .onAppear { isVisible = true }
     }
 }

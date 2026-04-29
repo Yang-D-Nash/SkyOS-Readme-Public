@@ -7,6 +7,8 @@ import android.net.Uri
 import android.webkit.WebView
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -108,8 +110,11 @@ fun TrackRow(
         TrackRowPresentation.Secondary -> 15.dp
         TrackRowPresentation.Featured -> 16.dp
     }
-    val selectionTween = remember {
-        tween<Color>(durationMillis = SkydownMotionTokens.selectionCrossFadeMillis, easing = SkydownStandardEasing)
+    val reduceMotion = rememberSkydownReduceMotion()
+    val selectionColorSpec: FiniteAnimationSpec<Color> = if (reduceMotion) {
+        snap()
+    } else {
+        tween(durationMillis = SkydownMotionTokens.selectionCrossFadeMillis, easing = SkydownStandardEasing)
     }
     val playingSurface = isPlaying && allowInAppPreview
     val containerColor by animateColorAsState(
@@ -132,7 +137,7 @@ fun TrackRow(
                 },
             )
         },
-        animationSpec = selectionTween,
+        animationSpec = selectionColorSpec,
         label = "track_container",
     )
     val contentColor = if (playingSurface) {
@@ -160,7 +165,7 @@ fun TrackRow(
                 },
             )
         },
-        animationSpec = selectionTween,
+        animationSpec = selectionColorSpec,
         label = "track_border",
     )
     val cardShape = when (presentation) {
@@ -176,7 +181,7 @@ fun TrackRow(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .animateContentSize()
+            .animateContentSize(animationSpec = skydownContentSizeRevealSpec())
             .testTag("music.track.row")
             .clickable(onClick = onSelectTrack),
         shape = cardShape,

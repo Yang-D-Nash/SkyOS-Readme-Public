@@ -21,6 +21,7 @@ private enum VideoHubSectionAnchor: String {
 struct VideoHubView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
     @StateObject private var viewModel = SkydownVideoHubViewModel()
     @StateObject private var playbackManager = VideoPlaybackManager()
@@ -65,19 +66,25 @@ struct VideoHubView: View {
                             openVideoPlayer()
                         },
                         onOpenEquipment: {
-                            withAnimation(SkydownMotion.smoothScroll) {
+                            let scrollAnimation = SkydownMotion.preferredSmoothScroll(accessibilityReduceMotion: reduceMotion)
+                            withAnimation(scrollAnimation) {
                                 scrollProxy.scrollTo(VideoHubSectionAnchor.equipment.rawValue, anchor: .top)
                             }
                         },
                         onOpenCollaborations: {
-                            withAnimation(SkydownMotion.smoothScroll) {
+                            let scrollAnimation = SkydownMotion.preferredSmoothScroll(accessibilityReduceMotion: reduceMotion)
+                            withAnimation(scrollAnimation) {
                                 scrollProxy.scrollTo(VideoHubSectionAnchor.collaborations.rawValue, anchor: .top)
                             }
                         }
                     )
                     if viewModel.isAdmin && showingUploadComposer {
                         uploadCard
-                            .transition(.move(edge: .top).combined(with: .opacity))
+                            .transition(
+                                reduceMotion
+                                    ? .opacity
+                                    : .move(edge: .top).combined(with: .opacity)
+                            )
                     }
                     playerCard
                     VideoEquipmentCard(
@@ -106,7 +113,7 @@ struct VideoHubView: View {
                     colorScheme: colorScheme,
                     isUploadOpen: showingUploadComposer
                 ) {
-                    withAnimation(SkydownMotion.screenTransition) {
+                    withAnimation(SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: reduceMotion)) {
                         showingUploadComposer.toggle()
                     }
                 }
@@ -166,7 +173,7 @@ struct VideoHubView: View {
                         verticalPadding: 8,
                         expandToFullWidth: false,
                         action: {
-                            withAnimation(SkydownMotion.screenTransition) {
+                            withAnimation(SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: reduceMotion)) {
                                 showingUploadComposer.toggle()
                             }
                         }
@@ -883,7 +890,7 @@ struct VideoHubView: View {
                         action: {
                             editingVideoID = nil
                             showingAdminEditor = false
-                            withAnimation(SkydownMotion.screenTransition) {
+                            withAnimation(SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: reduceMotion)) {
                                 showingUploadComposer = true
                             }
                         }
@@ -938,7 +945,7 @@ struct VideoHubView: View {
                             }
                         },
                         onEdit: {
-                            withAnimation(SkydownMotion.screenTransition) {
+                            withAnimation(SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: reduceMotion)) {
                                 editingVideoID = editingVideoID == video.id ? nil : video.id
                             }
                         },
@@ -966,7 +973,7 @@ struct VideoHubView: View {
                             video: video,
                             colorScheme: colorScheme,
                             onCancel: {
-                                withAnimation(SkydownMotion.screenTransition) {
+                                withAnimation(SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: reduceMotion)) {
                                     editingVideoID = nil
                                 }
                             },
@@ -979,13 +986,17 @@ struct VideoHubView: View {
                                         notes: notes,
                                         isPublic: isPublic
                                     )
-                                    withAnimation(SkydownMotion.screenTransition) {
+                                    withAnimation(SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: reduceMotion)) {
                                         editingVideoID = nil
                                     }
                                 }
                             }
                         )
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .transition(
+                            reduceMotion
+                                ? .opacity
+                                : .move(edge: .top).combined(with: .opacity)
+                        )
                     }
                 }
             }
@@ -1768,10 +1779,19 @@ private struct VideoReelViewer: View {
     let videos: [SkydownVideoHubItem]
     let initialIndex: Int
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var currentIndex: Int
     @State private var player = AVPlayer()
     @State private var isTransitioning = false
     @State private var isPlaying = false
+
+    private var reelPreparingOverlayShowAnimation: Animation {
+        SkydownMotion.preferredEmphasizedTransition(accessibilityReduceMotion: reduceMotion)
+    }
+
+    private var reelPreparingOverlayHideAnimation: Animation {
+        SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion)
+    }
 
     init(
         videos: [SkydownVideoHubItem],
@@ -1956,23 +1976,25 @@ private struct VideoReelViewer: View {
             }
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 0.16)) {
+            withAnimation(reelPreparingOverlayShowAnimation) {
                 isTransitioning = true
             }
             playCurrent()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
-                withAnimation(.easeInOut(duration: 0.18)) {
+            let outDelay = reduceMotion ? 0.0 : 0.28
+            DispatchQueue.main.asyncAfter(deadline: .now() + outDelay) {
+                withAnimation(reelPreparingOverlayHideAnimation) {
                     isTransitioning = false
                 }
             }
         }
         .onChange(of: currentIndex) { _, _ in
-            withAnimation(.easeInOut(duration: 0.14)) {
+            withAnimation(reelPreparingOverlayShowAnimation) {
                 isTransitioning = true
             }
             playCurrent()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
-                withAnimation(.easeInOut(duration: 0.18)) {
+            let outDelay = reduceMotion ? 0.0 : 0.24
+            DispatchQueue.main.asyncAfter(deadline: .now() + outDelay) {
+                withAnimation(reelPreparingOverlayHideAnimation) {
                     isTransitioning = false
                 }
             }

@@ -1,11 +1,23 @@
 package com.nash.skyos.ui.component
 
+import android.animation.ValueAnimator
+import android.content.Context
+import android.provider.Settings
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -14,6 +26,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntSize
 
 /**
  * Calm “premium” motion language aligned with iOS `SkydownMotion`: ease-out, ~150–280ms,
@@ -67,6 +81,74 @@ fun <T> skydownExitTween(
     delayMillis = delayMillis,
     easing = SkydownExitEasing,
 )
+
+/**
+ * Parity with iOS `accessibilityReduceMotion` until the app pins Compose UI with [androidx.compose.ui.platform.LocalReduceMotion].
+ * Combines [ValueAnimator.areAnimatorsEnabled] (animator duration scale) with window/transition scales so OEM
+ * “remove animations” / transition-only tuning is respected when it does not zero the animator scale alone.
+ */
+fun readSkydownReduceMotion(context: Context): Boolean {
+    if (!ValueAnimator.areAnimatorsEnabled()) {
+        return true
+    }
+    return try {
+        val resolver = context.applicationContext.contentResolver
+        val transition = Settings.Global.getFloat(resolver, Settings.Global.TRANSITION_ANIMATION_SCALE, 1f)
+        val window = Settings.Global.getFloat(resolver, Settings.Global.WINDOW_ANIMATION_SCALE, 1f)
+        transition == 0f || window == 0f
+    } catch (_: Throwable) {
+        false
+    }
+}
+
+@Composable
+fun rememberSkydownReduceMotion(): Boolean {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var reduceMotion by remember { mutableStateOf(readSkydownReduceMotion(context)) }
+    DisposableEffect(lifecycleOwner, context) {
+        reduceMotion = readSkydownReduceMotion(context)
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                reduceMotion = readSkydownReduceMotion(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    return reduceMotion
+}
+
+/**
+ * Spec for `Modifier.animateContentSize`: instant when reduce motion is preferred,
+ * otherwise the standard content-reveal tween (Cart / Order strips, track rows, toasts).
+ */
+@Composable
+fun skydownContentSizeRevealSpec(): FiniteAnimationSpec<IntSize> {
+    val reduceMotion = rememberSkydownReduceMotion()
+    return if (reduceMotion) {
+        snap()
+    } else {
+        tween(
+            durationMillis = SkydownMotionTokens.contentRevealEnterMillis,
+            easing = SkydownStandardEasing,
+        )
+    }
+}
+
+/**
+ * Fade spec for `Crossfade` and similar small surface swaps
+ * (parity with iOS `SkydownMotion.preferredStatusTransition` feel).
+ */
+@Composable
+fun skydownCrossfadeSpec(): FiniteAnimationSpec<Float> {
+    val reduceMotion = rememberSkydownReduceMotion()
+    return if (reduceMotion) {
+        snap()
+    } else {
+        skydownTween(SkydownMotionTokens.statusEnterDurationMillis)
+    }
+}
 
 @Composable
 fun Modifier.skydownLuminousSweep(

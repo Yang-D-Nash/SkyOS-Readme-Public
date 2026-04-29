@@ -64,6 +64,7 @@ import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
+import com.nash.skyos.ui.component.skydownContentSizeRevealSpec
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
@@ -994,7 +995,7 @@ private fun CartInlineStatusStrip(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
                 RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
             )
-            .animateContentSize()
+            .animateContentSize(animationSpec = skydownContentSizeRevealSpec())
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
@@ -1230,7 +1231,7 @@ private fun CartInfoPill(text: String) {
         modifier = Modifier
             .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-            .animateContentSize()
+            .animateContentSize(animationSpec = skydownContentSizeRevealSpec())
             .padding(horizontal = 12.dp, vertical = 7.dp),
     ) {
         Text(

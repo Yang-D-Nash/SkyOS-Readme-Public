@@ -100,6 +100,7 @@ struct MusicView: View {
     @EnvironmentObject private var services: AppServices
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let brand: MusicExperienceBrand
     let onBack: (() -> Void)?
@@ -211,11 +212,15 @@ struct MusicView: View {
                 }
                 .onAppear {
                     stageMotionTrigger += 1
-                    withAnimation(
-                        .spring(response: 0.52, dampingFraction: 0.88, blendDuration: 0.1)
-                        .delay(0.05)
-                    ) {
+                    if reduceMotion {
                         listMotionRevealed = true
+                    } else {
+                        withAnimation(
+                            .spring(response: 0.52, dampingFraction: 0.88, blendDuration: 0.1)
+                            .delay(0.05)
+                        ) {
+                            listMotionRevealed = true
+                        }
                     }
                     if autoPresentArtistPageOnAppear && brand.showsArtistPages && !hasAutoPresentedArtistPage {
                         presentSheet(.artistPage)
@@ -365,7 +370,10 @@ struct MusicView: View {
             }
         }
         .accessibilityIdentifier("music.catalog.hero")
-        .animation(SkydownMotion.statusTransition, value: selectedArtist)
+        .animation(
+            SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion),
+            value: selectedArtist
+        )
     }
 
     @ViewBuilder
@@ -405,9 +413,9 @@ struct MusicView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 .opacity(listMotionRevealed ? 1 : 0.4)
-                .offset(y: listMotionRevealed ? 0 : 4)
+                .offset(y: reduceMotion || listMotionRevealed ? 0 : 4)
                 .animation(
-                    .spring(response: 0.44, dampingFraction: 0.9),
+                    SkydownMotion.preferredContentReveal(accessibilityReduceMotion: reduceMotion),
                     value: listMotionRevealed
                 )
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
@@ -438,7 +446,7 @@ struct MusicView: View {
     private func artistToPageButton(artist: String, rowIndex: Int) -> some View {
         let accent = catalogEntryAccent(for: artist)
         let isSelected = selectedArtist == artist
-        let stagger = Double(rowIndex) * SkydownMotion.listStaggerDelay
+        let stagger = reduceMotion ? 0 : Double(rowIndex) * SkydownMotion.listStaggerDelay
         let spotifyURL = spotifyURLForArtist(artist)
         return VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
             Text(artist)
@@ -449,7 +457,9 @@ struct MusicView: View {
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Button {
-                    withAnimation(SkydownMotion.emphasizedTransition) {
+                    withAnimation(
+                        SkydownMotion.preferredEmphasizedTransition(accessibilityReduceMotion: reduceMotion)
+                    ) {
                         selectedArtist = artist
                     }
                     presentSheet(.artistPage)
@@ -524,14 +534,18 @@ struct MusicView: View {
         .skydownTactileAction()
         .accessibilityIdentifier("music.artist.open_page.\(artist)")
         .opacity(listMotionRevealed ? 1 : 0)
-        .offset(y: listMotionRevealed ? 0 : 10)
-        .scaleEffect(listMotionRevealed ? 1 : 0.985, anchor: .topLeading)
+        .offset(y: reduceMotion || listMotionRevealed ? 0 : 10)
+        .scaleEffect(reduceMotion || listMotionRevealed ? 1 : 0.985, anchor: .topLeading)
         .animation(
-            .spring(response: 0.48, dampingFraction: 0.86, blendDuration: 0.05)
-            .delay(stagger),
+            reduceMotion
+                ? .linear(duration: 0.01)
+                : .spring(response: 0.48, dampingFraction: 0.86, blendDuration: 0.05).delay(stagger),
             value: listMotionRevealed
         )
-        .animation(SkydownMotion.statusTransition, value: isSelected)
+        .animation(
+            SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: reduceMotion),
+            value: isSelected
+        )
     }
 
     private func spotifyURLForArtist(_ artist: String) -> String? {

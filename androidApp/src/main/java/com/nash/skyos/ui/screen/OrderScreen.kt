@@ -1,5 +1,6 @@
 package com.nash.skyos.ui.screen
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -53,6 +54,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownUiTokens
+import com.nash.skyos.ui.component.skydownContentSizeRevealSpec
+import com.nash.skyos.ui.component.skydownCrossfadeSpec
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
@@ -143,66 +146,76 @@ fun OrderScreen(
                     )
                 }
 
-                if (uiState.isLoading && uiState.orders.isEmpty()) {
-                    item {
-                        OrdersInlineStatusStrip(
-                            icon = Icons.Default.Sync,
-                            title = stringResource(R.string.order_syncing_title),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.order_syncing_line1),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                text = stringResource(R.string.order_syncing_line2),
-                                modifier = Modifier.padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
+                if (uiState.orders.isEmpty()) {
+                    item(key = "orders_empty_state") {
+                        val emptyPhase = when {
+                            uiState.isLoading -> OrdersEmptyPhase.Loading
+                            uiState.errorMessage != null -> OrdersEmptyPhase.Error
+                            else -> OrdersEmptyPhase.Empty
                         }
-                    }
-                } else if (uiState.errorMessage != null && uiState.orders.isEmpty()) {
-                    item {
-                        OrdersInlineStatusStrip(
-                            icon = Icons.Default.Sync,
-                            title = stringResource(R.string.order_unavailable_title),
-                        ) {
-                            Text(
-                                text = uiState.errorMessage
-                                    ?: stringResource(R.string.order_error_generic),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
-                            )
-                            Text(
-                                text = stringResource(R.string.order_error_retry),
-                                modifier = Modifier.padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            )
-                            BrandActionButton(
-                                text = stringResource(R.string.order_action_reload),
-                                onClick = viewModel::refreshOrders,
-                                accent = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 12.dp),
-                                filled = false,
-                            )
-                        }
-                    }
-                } else if (uiState.orders.isEmpty()) {
-                    item {
-                        OrdersInlineStatusStrip(
-                            icon = Icons.Default.ShoppingBag,
-                            title = stringResource(R.string.order_empty_title),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.order_empty_title),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                text = stringResource(R.string.order_empty_subtitle),
-                                modifier = Modifier.padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
+                        Crossfade(
+                            targetState = emptyPhase,
+                            modifier = Modifier.fillMaxWidth(),
+                            animationSpec = skydownCrossfadeSpec(),
+                            label = "orders_empty_crossfade",
+                        ) { phase ->
+                            when (phase) {
+                                OrdersEmptyPhase.Loading -> OrdersInlineStatusStrip(
+                                    icon = Icons.Default.Sync,
+                                    title = stringResource(R.string.order_syncing_title),
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.order_syncing_line1),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.order_syncing_line2),
+                                        modifier = Modifier.padding(top = 8.dp),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                    )
+                                }
+
+                                OrdersEmptyPhase.Error -> OrdersInlineStatusStrip(
+                                    icon = Icons.Default.Sync,
+                                    title = stringResource(R.string.order_unavailable_title),
+                                ) {
+                                    Text(
+                                        text = uiState.errorMessage
+                                            ?: stringResource(R.string.order_error_generic),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.order_error_retry),
+                                        modifier = Modifier.padding(top = 8.dp),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    )
+                                    BrandActionButton(
+                                        text = stringResource(R.string.order_action_reload),
+                                        onClick = viewModel::refreshOrders,
+                                        accent = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(top = 12.dp),
+                                        filled = false,
+                                    )
+                                }
+
+                                OrdersEmptyPhase.Empty -> OrdersInlineStatusStrip(
+                                    icon = Icons.Default.ShoppingBag,
+                                    title = stringResource(R.string.order_empty_title),
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.order_empty_title),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.order_empty_subtitle),
+                                        modifier = Modifier.padding(top = 8.dp),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                    )
+                                }
+                            }
                         }
                     }
                 } else {
@@ -241,6 +254,12 @@ fun OrderScreen(
             )
         }
     }
+}
+
+private enum class OrdersEmptyPhase {
+    Loading,
+    Error,
+    Empty,
 }
 
 private fun formatOrderDate(timestampEpochMillis: Long): String {
@@ -322,7 +341,7 @@ private fun OrdersInlineStatusStrip(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
                 RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
             )
-            .animateContentSize()
+            .animateContentSize(animationSpec = skydownContentSizeRevealSpec())
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
     ) {
@@ -844,7 +863,7 @@ private fun OrderStatusPill(
     Box(
         modifier = Modifier
             .background(background, RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
-            .animateContentSize()
+            .animateContentSize(animationSpec = skydownContentSizeRevealSpec())
             .padding(horizontal = 13.dp, vertical = 8.dp),
     ) {
         Text(

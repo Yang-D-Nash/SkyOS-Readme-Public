@@ -21,6 +21,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var environmentColorScheme
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
 
     @ObservedObject private var aiVisualReferenceLibrary = AIVisualReferenceLibraryStore.shared
@@ -2975,9 +2976,18 @@ struct SettingsView: View {
                                 RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
                                     .stroke(AppColors.accent(for: effectiveColorScheme).opacity(0.12), lineWidth: 1)
                             )
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+                            .transition(
+                                accessibilityReduceMotion
+                                    ? .opacity
+                                    : .opacity.combined(with: .move(edge: .top))
+                            )
                         }
-                        .animation(SkydownMotion.statusTransition, value: aiStudioFAQEntriesDraft.count)
+                        .animation(
+                            SkydownMotion.preferredStatusTransition(
+                                accessibilityReduceMotion: accessibilityReduceMotion
+                            ),
+                            value: aiStudioFAQEntriesDraft.count
+                        )
 
                         SkydownBrandActionButton(
                             title: AppLocalized.text("settings.ai_studio.faq_base.save", fallback: "Save FAQ base"),
@@ -3139,7 +3149,12 @@ struct SettingsView: View {
                                     .stroke(AppColors.accent(for: effectiveColorScheme).opacity(0.12), lineWidth: 1)
                             )
                         }
-                        .animation(SkydownMotion.statusTransition, value: aiOwnerInspirationEntriesDraft.count)
+                        .animation(
+                            SkydownMotion.preferredStatusTransition(
+                                accessibilityReduceMotion: accessibilityReduceMotion
+                            ),
+                            value: aiOwnerInspirationEntriesDraft.count
+                        )
 
                         SkydownBrandActionButton(
                             title: AppLocalized.text("settings.ai_studio.owner_inspiration.save", fallback: "Save ideas & inspiration"),
@@ -4687,7 +4702,9 @@ struct SettingsView: View {
     }
 
     private func removeAIStudioFAQEntry(_ id: String) {
-        withAnimation(SkydownMotion.statusTransition) {
+        withAnimation(
+            SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+        ) {
             aiStudioFAQEntriesDraft.removeAll { $0.id == id }
         }
     }
@@ -4735,7 +4752,9 @@ struct SettingsView: View {
     }
 
     private func removeAIOwnerInspirationEntry(_ id: String) {
-        withAnimation(SkydownMotion.statusTransition) {
+        withAnimation(
+            SkydownMotion.preferredStatusTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+        ) {
             aiOwnerInspirationEntriesDraft.removeAll { $0.id == id }
         }
     }
@@ -6704,6 +6723,7 @@ private struct SettingsUtilityAction {
 }
 
 private struct SettingsUtilityRow: View {
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     let colorScheme: ColorScheme
     let actions: [SettingsUtilityAction]
 
@@ -6736,7 +6756,11 @@ private struct SettingsUtilityRow: View {
             }
         }
         .padding(.top, 2)
-        .transition(.opacity.combined(with: .move(edge: .top)))
+        .transition(
+            accessibilityReduceMotion
+                ? .opacity
+                : .opacity.combined(with: .move(edge: .top))
+        )
     }
 }
 

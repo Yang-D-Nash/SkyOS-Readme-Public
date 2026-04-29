@@ -1,6 +1,8 @@
 package com.nash.skyos.ui.component
 
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -208,10 +210,15 @@ fun Modifier.skydownPressable(
     interactionSource: MutableInteractionSource,
     pressedScale: Float = 0.98f,
 ): Modifier = composed {
+    val reduceMotion = rememberSkydownReduceMotion()
     val isPressed by interactionSource.collectIsPressedAsState()
     val view = LocalView.current
     var emittedPressHaptic by remember(interactionSource) { mutableStateOf(false) }
-    val pressSpec = skydownTween<Float>(SkydownMotionTokens.pressDurationMillis)
+    val pressSpec: FiniteAnimationSpec<Float> = if (reduceMotion) {
+        snap()
+    } else {
+        skydownTween(SkydownMotionTokens.pressDurationMillis)
+    }
     val animatedScale by animateFloatAsState(
         targetValue = if (isPressed) pressedScale else 1f,
         animationSpec = pressSpec,

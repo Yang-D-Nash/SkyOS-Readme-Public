@@ -88,6 +88,7 @@ import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.YouTubePlayerDialog
+import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
 import com.nash.skyos.ui.component.skydownContentPadding
@@ -147,6 +148,7 @@ fun ArtistPageScreen(
     val compactVisualDensity = rememberUsesCompactVisualDensity()
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
     val listState = rememberLazyListState()
+    val reduceMotion = rememberSkydownReduceMotion()
     val visualStyle = artistPageVisualStyle(brand = brand, artistName = routeArtistName)
     // Studio: kompakter Hub (Preise, Links). Music: vollwertige Artist Page (Katalog, Songs) — eigenes Firestore-Dokument `nicma-nicma-music`.
     val isNicmaStudioPage = brand == ArtistPageBrand.Nicma && isNicmaStudioProfile(routeArtistName)
@@ -698,7 +700,11 @@ fun ArtistPageScreen(
                             heroVideoPlayer = heroVideoPlayer,
                             onSurfaceClick = {
                                 coroutineScope.launch {
-                                    listState.animateScrollToItem(postHeroScrollItemIndex)
+                                    if (reduceMotion) {
+                                        listState.scrollToItem(postHeroScrollItemIndex)
+                                    } else {
+                                        listState.animateScrollToItem(postHeroScrollItemIndex)
+                                    }
                                 }
                             },
                         )
