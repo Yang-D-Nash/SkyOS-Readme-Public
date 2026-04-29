@@ -194,6 +194,7 @@ export const code = async (inputs) => {
       ["Spotify", ctx.spotifyPublicCatalogSummary],
       ["YouTube", ctx.youtubePublicCatalogSummary],
       ["Instagram", ctx.instagramPublicGraphSummary],
+      ["Facebook/Meta", ctx.facebookMetaSummary],
       ["TikTok", ctx.tiktokPublicSummary],
     ]
       .map(([label, value]) => {
@@ -201,6 +202,21 @@ export const code = async (inputs) => {
         return text ? `## ${label} Live-Kontext\n${text}` : "";
       })
       .filter(Boolean);
+    const liveStatus = [
+      ["instagram", "Instagram", ctx.instagramPublicGraphSummary],
+      ["tiktok", "TikTok", ctx.tiktokPublicSummary],
+      ["youtube", "YouTube", ctx.youtubePublicCatalogSummary],
+      ["facebook", "Facebook/Meta", ctx.facebookMetaSummary],
+      ["spotify", "Spotify", ctx.spotifyPublicCatalogSummary],
+    ]
+      .filter(([platform]) => selected.length === 0 || selected.includes(platform))
+      .map(([platform, label, value]) => {
+        const hasHandle = Boolean(clean(profiles[platform], "", 240));
+        const hasLive = Boolean(clean(value, "", 1200));
+        if (hasLive) return `- ${label}: Live-Daten erhalten.`;
+        if (hasHandle) return `- ${label}: Handle vorhanden, Live-API-Daten nicht verfuegbar.`;
+        return `- ${label}: kein Handle im Payload.`;
+      });
     const direct = firstClean(
       [data?.content, body?.content, data?.analysis, body?.analysis, data?.description, body?.description],
       "",
@@ -212,6 +228,9 @@ export const code = async (inputs) => {
       "",
       "## Agent-Auswertung",
       firstClean([data?.reply, body?.reply], "Keine Agent-Auswertung im Payload.", 2400),
+      "",
+      "## Datenstatus",
+      ...(liveStatus.length ? liveStatus : ["- Kein Plattformstatus im Payload."]),
       "",
       "## Anfrage",
       firstClean([data?.prompt, body?.prompt], "Keine Anfrage im Payload.", 600),
@@ -227,19 +246,13 @@ export const code = async (inputs) => {
     const durationMs = Date.now() - startedAt;
     const results = [
       {
-        type: "table",
-        title: "Ausfuehrung",
-        columns: ["Mode", "Status", "HTTP", "Cloud ok", "Versuche"],
-        rows: [["social_analysis", "completed", "skipped", "not_applicable", "0"]],
-      },
-      {
         type: "text",
         title,
         text,
       },
     ];
     const responseForWebhook = {
-      message: savedToNotes ? "Analyse bereit und als Notiz gespeichert." : "Analyse bereit. Nicht als Notiz gespeichert.",
+      message: savedToNotes ? "Analyse bereit und als Notiz gespeichert." : "Analyse bereit. Im Verlauf nutzbar; als Notiz nur bei Bedarf speichern.",
       workflowStatus: "completed",
       private: "",
       group: "",
@@ -609,7 +622,7 @@ export const code = async (inputs) => {
     const noteId = responseBody && typeof responseBody === "object" ? responseBody.noteId : null;
     const deduplicated = responseBody && typeof responseBody === "object" ? responseBody.deduplicated : null;
 
-    const results = [
+    const results = actionType === "social_analysis" ? [] : [
       {
         type: "table",
         title: "Ausfuehrung",
@@ -646,6 +659,23 @@ export const code = async (inputs) => {
           type: "text",
           title: "Hinweis",
           text: "Briefing erfolgreich aufgerufen, aber private/group leer. Pruefe founder_daily_kpis und Rechte.",
+        });
+      }
+    } else if (actionType === "social_analysis") {
+      const analysisText = clean(payload?.content, "", 12000);
+      if (analysisText) {
+        results.push({
+          type: "text",
+          title: outputTitle || payload.title || "Social Analysis",
+          text: analysisText,
+        });
+      }
+      if (noteId) {
+        results.push({
+          type: "note",
+          id: String(noteId),
+          title: outputTitle || payload.title || "Social Analysis",
+          text: buildStatusText({ actionType, ok, title: outputTitle || payload.title || "Social Analysis" }),
         });
       }
     } else if (reminderId) {

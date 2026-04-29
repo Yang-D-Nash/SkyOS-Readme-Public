@@ -2790,7 +2790,7 @@ private struct AgentStructuredResultsView: View {
     private var visibleResults: [AgentResultEntry] {
         results.filter { result in
             let kind = result.agentOutputKind
-            return kind != "text" && kind != "workflow" && result.hasVisibleAgentOutput
+            return kind != "workflow" && result.hasVisibleAgentOutput
         }
     }
 
@@ -3299,9 +3299,13 @@ private struct AgentFallbackResultCard: View {
 private struct AgentFallbackResultText: View {
     let result: AgentResultEntry
     let colorScheme: ColorScheme
+    private var displayText: AttributedString {
+        let raw = result.agentFallbackText
+        return (try? AttributedString(markdown: raw)) ?? AttributedString(raw)
+    }
 
     var body: some View {
-        Text(result.agentFallbackText)
+        Text(displayText)
             .font(.subheadline)
             .foregroundColor(AppColors.text(for: colorScheme))
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -3341,6 +3345,9 @@ private extension AgentResultEntry {
         }
         if let host = agentURL?.host, !host.isEmpty {
             return host
+        }
+        if agentOutputKind == "text" {
+            return AppLocalized.text("agent.result.text_output", fallback: "Agent-Ausgabe")
         }
         return agentOutputKind.uppercased()
     }

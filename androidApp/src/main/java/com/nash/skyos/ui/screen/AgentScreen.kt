@@ -2696,7 +2696,7 @@ private fun AgentStructuredResults(
 ) {
     val visibleResults = results.filter { result ->
         val kind = result.agentOutputKind()
-        kind != "text" && kind != "workflow" && result.hasVisibleAgentOutput()
+        kind != "workflow" && result.hasVisibleAgentOutput()
     }
     if (visibleResults.isNotEmpty()) {
         Column(
@@ -3045,7 +3045,7 @@ private fun AgentFallbackResultCard(result: AgentResultEntry) {
 @Composable
 private fun AgentFallbackResultText(result: AgentResultEntry) {
     Text(
-        text = result.agentFallbackText(),
+        text = result.agentReadableFallbackText(),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
@@ -3085,6 +3085,7 @@ private fun AgentResultEntry.agentSubtitle(): String {
     if (mimeType.isNotBlank()) return mimeType.trim()
     val host = runCatching { Uri.parse(url).host }.getOrNull()
     if (!host.isNullOrBlank()) return host
+    if (agentOutputKind() == "text") return "Agent-Ausgabe"
     return agentOutputKind().uppercase()
 }
 
@@ -3093,6 +3094,27 @@ private fun AgentResultEntry.agentFallbackText(): String {
         .firstOrNull { it.isNotBlank() }
         ?.trim()
         ?: agentDisplayTitle("Output ready.")
+}
+
+private fun AgentResultEntry.agentReadableFallbackText(): String {
+    return agentFallbackText()
+        .lineSequence()
+        .map { rawLine ->
+            val trimmed = rawLine.trim()
+            when {
+                trimmed == "---" -> ""
+                trimmed.startsWith("### ") -> trimmed.removePrefix("### ").trim()
+                trimmed.startsWith("## ") -> trimmed.removePrefix("## ").trim()
+                trimmed.startsWith("# ") -> trimmed.removePrefix("# ").trim()
+                else -> trimmed
+            }
+                .replace("**", "")
+                .replace("*", "")
+                .replace("`", "")
+        }
+        .joinToString("\n")
+        .replace(Regex("\n{3,}"), "\n\n")
+        .trim()
 }
 
 @Composable

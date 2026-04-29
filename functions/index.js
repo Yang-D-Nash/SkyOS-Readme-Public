@@ -8113,45 +8113,48 @@ function buildFounderGroupBriefing({
   const costSentence = Number.isFinite(firebaseCostToday) ?
     `Echte Kosten im KI-/Nutzungstrack: ${formatEur(firebaseCostToday)}.` :
     "Echte Kosten im KI-/Nutzungstrack: aktuell nicht verfuegbar; Schaetzwerte werden nicht angezeigt.";
-  const analysisSentences = [
-    `Fuer ${date} im Blick: ${formatFounderEur(revenueToday)} Umsatz. ${costSentence}`,
-    `Aktivitaet 24h: ${formatFounderNumber(activeUsers24h)} Nutzer, ${formatFounderNumber(newUsers24h)} neu — zeigt, ob Traction und Nutzen zusammenlaufen.`,
+  const signalLines = [
+    `- Umsatz heute: ${formatFounderEur(revenueToday)}.`,
+    `- ${costSentence}`,
+    `- Aktivitaet 24h: ${formatFounderNumber(activeUsers24h)} Nutzer, ${formatFounderNumber(newUsers24h)} neu.`,
     Number.isFinite(retentionD1Pct) ?
-      `D1-Retention: ${formatPercent(retentionD1Pct)} — fruehes Signal, ob Neuzugaenge wiederkommen.` :
-      "D1-Retention: Zahl folgt, sobald Analytics voll angebunden ist; bis dahin Fokus auf Aktivitaet und Qualitaet des Onboardings.",
+      `- D1-Retention: ${formatPercent(retentionD1Pct)}.` :
+      "- D1-Retention: Zahl folgt, sobald Analytics voll angebunden ist.",
     sortedRisks.length ?
-      `Wenn heute eins bremst: ${sortedRisks[0].title} (Stufe ${sortedRisks[0].severity}) — dort lohnt klare Prioritaet statt flaechendeckender Arbeit.` :
-      "Fokus: Eintraege in founder_risks sichtbar halten, damit das Team dieselbe Richtung sieht — ohne Leerstand wirkt alles reibungslos, bis es nicht tut.",
+      `- Wichtigster Blocker: ${sortedRisks[0].title} (Stufe ${sortedRisks[0].severity}).` :
+      "- Wichtigster Blocker: kein Eintrag in founder_risks.",
   ];
 
   const stepWhats = trimTextMax(nonEmptyString(sortedRisks[0]?.nextStep) || "naechster Schritt festlegen", 100);
-  const whatsappLines = [];
-  whatsappLines.push(`*Kurz-Update (zum Weiterleiten, WhatsApp-tauglich)*`);
-  whatsappLines.push(`Umsatz heute ${formatFounderEur(revenueToday)} · echte Kosten ${formatFounderActualCost(firebaseCostToday)}.`);
-  whatsappLines.push(
+  const shareLines = [];
+  shareLines.push(`Umsatz heute ${formatFounderEur(revenueToday)} · echte Kosten ${formatFounderActualCost(firebaseCostToday)}.`);
+  shareLines.push(
       `Aktiv 24h: ${formatFounderNumber(activeUsers24h)} · neu: ${formatFounderNumber(newUsers24h)}.`,
   );
-  whatsappLines.push(
+  shareLines.push(
       sortedRisks.length ?
         `Wichtigster Blocker: ${sortedRisks[0].title} — sinnvoller naechster Schritt: ${stepWhats}.` :
         "Risiken: Kein Eintrag in founder_risks — besser ein klares Thema nennen als stilles Restrisiko.",
   );
-  whatsappLines.push(
+  shareLines.push(
       highlightsSafe.length ?
         `Highlight: ${nonEmptyString(highlightsSafe[0]?.title) || "Highlight"}.` :
         "Highlights: Optional einen Sieg in founder_highlights festhalten — teamtauglich und motivierend.",
   );
-  whatsappLines.push(
+  shareLines.push(
       sortedTasks.length ?
         `Fokus heute: ${trimTextMax(nonEmptyString(sortedTasks[0]?.title) || "Aufgabe", 120)}` :
         "Aufgaben: In der Queue ist nichts Sichtbares — entweder wirklich Luft, oder Warteliste/Staging pruefen.",
   );
-  whatsappLines.push("Einen Blocker heute sichtbar anpacken, dann ist der Fortschritt morgen messbar.");
+  shareLines.push("Einen Blocker heute sichtbar anpacken, dann ist der Fortschritt morgen messbar.");
 
   const teamExtra = buildFounderEnrichmentGroupSnippet(enrichment);
   return [
-    analysisSentences.join(" "),
-    whatsappLines.join("\n") + (nonEmptyString(teamExtra) ? "\n" + teamExtra : ""),
+    `# Team Update — ${date}`,
+    "## Live-Signale",
+    signalLines.join("\n"),
+    "## Zum Weiterleiten",
+    shareLines.map((line) => `- ${line}`).join("\n") + (nonEmptyString(teamExtra) ? "\n" + teamExtra : ""),
     buildFounderBriefingFooter({date, kpis}),
   ].join("\n\n");
 }
@@ -15857,11 +15860,35 @@ function buildSocialAnalysisWorkflowContent({
         return text ? `## ${label} Live-Kontext\n${trimTextMax(text, 1200)}` : "";
       })
       .filter(Boolean);
+  const dataStatusLines = SOCIAL_PLATFORM_ORDER
+      .filter((platform) => selected.length === 0 || selected.includes(platform))
+      .map((platform) => {
+        const label = SOCIAL_PLATFORM_LABELS_DE[platform] || platform;
+        const handle = nonEmptyString(profiles[platform]) || "";
+        const liveValue = {
+          instagram: socialContext.instagramPublicGraphSummary,
+          tiktok: socialContext.tiktokPublicSummary,
+          youtube: socialContext.youtubePublicCatalogSummary,
+          facebook: socialContext.facebookMetaSummary,
+          spotify: socialContext.spotifyPublicCatalogSummary,
+        }[platform];
+        const hasLive = Boolean(nonEmptyString(liveValue));
+        if (hasLive) {
+          return `- ${label}: Live-Daten erhalten.`;
+        }
+        if (handle) {
+          return `- ${label}: Handle vorhanden, Live-API-Daten nicht verfuegbar.`;
+        }
+        return `- ${label}: kein Handle im Payload.`;
+      });
   const lines = [
     "# SkyOS Social Analysis",
     "",
     "## Agent-Auswertung",
     trimTextMax(nonEmptyString(reply) || "Keine Agent-Auswertung im Payload.", 2400),
+    "",
+    "## Datenstatus",
+    ...(dataStatusLines.length ? dataStatusLines : ["- Kein Plattformstatus im Payload."]),
     "",
     "## Anfrage",
     trimTextMax(nonEmptyString(prompt) || "Keine Anfrage im Payload.", 600),

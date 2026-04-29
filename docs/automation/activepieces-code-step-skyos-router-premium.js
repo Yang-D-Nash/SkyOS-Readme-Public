@@ -89,6 +89,22 @@ export const code = async (inputs) => {
     const scope = clean(data?.automationScope, "", 40);
     const att = Array.isArray(data?.attachments) ? data.attachments.length : 0;
     const sc = formatSocialContextForNote(data?.socialContext);
+    const socialContext = asObject(data?.socialContext) || {};
+    const platformStatus = [
+      ["instagram", "Instagram", socialContext.instagramPublicGraphSummary],
+      ["tiktok", "TikTok", socialContext.tiktokPublicSummary],
+      ["youtube", "YouTube", socialContext.youtubePublicCatalogSummary],
+      ["facebook", "Facebook/Meta", socialContext.facebookMetaSummary],
+      ["spotify", "Spotify", socialContext.spotifyPublicCatalogSummary],
+    ]
+      .map(([platform, label, value]) => {
+        const hasHandle = clean((asObject(socialContext.socialProfiles) || {})[platform], "", 240);
+        const hasLive = clean(value, "", 1200);
+        if (hasLive) return `- ${label}: Live-Daten erhalten.`;
+        if (hasHandle) return `- ${label}: Handle vorhanden, Live-API-Daten nicht verfuegbar.`;
+        return `- ${label}: kein Handle im Payload.`;
+      })
+      .join("\n");
     const block = [
       "## SkyOS · Agent Automation",
       "",
@@ -100,6 +116,9 @@ export const code = async (inputs) => {
       "",
       "### Agent-Antwort (Snapshot)",
       reply || "—",
+      "",
+      "### Datenstatus",
+      platformStatus || "—",
       "",
       "### Social-Kontext",
       sc,
@@ -252,19 +271,13 @@ export const code = async (inputs) => {
     const durationMs = Date.now() - startedAt;
     const results = [
       {
-        type: "table",
-        title: "Ausfuehrung",
-        columns: ["Modus", "Aktion", "Status", "HTTP", "Laufzeit ms"],
-        rows: [[String(action), "agent_output", "ok", "skipped", String(durationMs)]],
-      },
-      {
         type: "text",
         title,
         text,
       },
     ];
     const responseForWebhook = {
-      message: "Analyse bereit. Nicht als Notiz gespeichert.",
+      message: "Analyse bereit. Im Verlauf nutzbar; als Notiz nur bei Bedarf speichern.",
       workflowStatus: "completed",
       private: "",
       group: "",
@@ -489,7 +502,7 @@ export const code = async (inputs) => {
       12000,
     );
 
-    const results = [
+    const results = actionType === "social_analysis" ? [] : [
       {
         type: "table",
         title: "Ausfuehrung",
@@ -504,7 +517,25 @@ export const code = async (inputs) => {
       },
     ];
 
-    if (ok && (actionType === "social_analysis" || actionType === "automation")) {
+    if (ok && actionType === "social_analysis") {
+      const text = clean(payload?.content, "", 5000);
+      if (text) {
+        results.push({
+          type: "text",
+          title: clean(payload?.title, "Social Analysis", 180),
+          text,
+        });
+      }
+      const noteId = clean(responseBody?.noteId, "", 120);
+      if (noteId) {
+        results.push({
+          type: "note",
+          id: noteId,
+          title: clean(payload?.title, "Social Analysis", 180),
+          text: "Analyse als Notiz gespeichert.",
+        });
+      }
+    } else if (ok && actionType === "automation") {
       const summary = `Notiz in Firebase angelegt (${actionType}). requestId: ${String(payload?.requestId || requestId)}`;
       results.push({
         type: "text",
