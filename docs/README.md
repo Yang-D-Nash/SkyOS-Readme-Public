@@ -1,48 +1,50 @@
-# SkyOS Documentation
+# SkyOS Dokumentation
 
-This folder is the working foundation for SkyOS as a product, a codebase, and an operating
-system for the team behind it. The goal is simple: a developer, partner, reviewer, investor,
-support contact, or founder should be able to understand what SkyOS is, how it is built, and
-how it is operated without reverse-engineering the repository.
+Dieser Ordner ist die Arbeitsgrundlage für SkyOS als Produkt, Codebase und Betriebssystem für das
+Team dahinter. Ziel ist einfach: Entwickler, Partner, Reviewer, Investoren, Support und Founder
+sollen verstehen können, was SkyOS ist, wie es gebaut ist und wie es betrieben wird, ohne das
+Repository rückwärts entschlüsseln zu müssen.
 
-## Start Here
+## Hier starten
 
-- [architecture.md](architecture.md) - complete product and system map
-- [transparency-reengineering.md](transparency-reengineering.md) - German transparency and rebuild dossier: what is public, what needs own accounts, what must stay secret
-- [backend.md](backend.md) - Firebase, Functions, rules, runtime controls, and backend authority
-- [ios.md](ios.md) - iOS setup, signing, run, and QA
-- [android.md](android.md) - Android setup, Compose build flow, and Fold testing guidance
-- [ai-system.md](ai-system.md) - AI assistant, FAQ, visual generation, agent runtime, and safety
-- [commerce.md](commerce.md) - merch, orders, checkout, shipping, payment rails, and memberships
-- [owner-admin.md](owner-admin.md) - owner workflows, controls, kill switches, and release governance
-- [deployment.md](deployment.md) - deploy flow, selective deploys, rollback basics, and post-deploy checks
-- [incident-runbook.md](incident-runbook.md) - incident scenarios, roles, severity, comms, rollback vs. hotfix
-- [ci.md](ci.md) - CI jobs, path filters, quality gates, and trigger behavior
-- [release-checklist.md](release-checklist.md) - release readiness gate across product, legal, analytics, and trust
-- [branding.md](branding.md) - product naming, voice, assets, and copy rules
-- [brand-architecture-and-launch-positioning.md](brand-architecture-and-launch-positioning.md) - final SkyOS/Skydown hierarchy, launch hero, visible vs. secondary features, Apple/Notion-style framing, differentiation
-- [workflow-http-api-activepieces.md](workflow-http-api-activepieces.md) - Activepieces HTTP setup for Reminder, Task, and Note creation
-- [automation/activepieces-minimal-app-flow.md](automation/activepieces-minimal-app-flow.md) - minimal Activepieces flow for **Agent-Automation** (sync URL, Return Response, app contract)
-- [automation/chatgpt-prompt-activepieces-skyos.md](automation/chatgpt-prompt-activepieces-skyos.md) - **copy-paste prompt** for ChatGPT to draft three AP workflows (Agent webhook, callbacks, workflow API)
-- [faq.md](faq.md) - user-facing operational answers and support guidance
-- [store/README.md](store/README.md) - App Store and Google Play presence, screenshots, and review prep
+- [architecture.md](architecture.md) - vollständige Produkt- und Systemkarte
+- [transparency-reengineering.md](transparency-reengineering.md) - deutsches Transparenz- und Reengineering-Dossier: was öffentlich ist, welche eigenen Accounts nötig sind und was geheim bleiben muss
+- [backend.md](backend.md) - Firebase, Functions, Regeln, Runtime-Steuerung und Backend-Autorität
+- [ios.md](ios.md) - iOS-Setup, Signing, Starten und QA
+- [android.md](android.md) - Android-Setup, Compose-Build-Flow und Fold-Testhinweise
+- [ai-system.md](ai-system.md) - AI-Assistent, FAQ, Visual Generation, Agent Runtime und Sicherheit
+- [ai-guide.md](ai-guide.md) - Deutsche AI-Anleitung für Nutzer und Entwickler: Möglichkeiten, Backend-Ablauf, Limits und Erwartungen
+- [commerce.md](commerce.md) - Merch, Orders, Checkout, Versand, Payment-Rails und Memberships
+- [owner-admin.md](owner-admin.md) - Owner-Workflows, Steuerung, Kill-Switches und Release-Governance
+- [deployment.md](deployment.md) - Deploy-Ablauf, selektive Deploys, Rollback-Grundlagen und Checks nach dem Deploy
+- [incident-runbook.md](incident-runbook.md) - Incident-Szenarien, Rollen, Schweregrade, Kommunikation, Rollback vs. Hotfix
+- [ci.md](ci.md) - CI-Jobs, Pfadfilter, Quality Gates und Trigger-Verhalten
+- [release-checklist.md](release-checklist.md) - Release-Readiness-Gate über Produkt, Recht, Analytics und Vertrauen
+- [branding.md](branding.md) - Produktnamen, Tonalität, Assets und Copy-Regeln
+- [brand-architecture-and-launch-positioning.md](brand-architecture-and-launch-positioning.md) - finale SkyOS/Skydown-Hierarchie, Launch-Hero, sichtbare vs. sekundäre Features, Apple/Notion-artiges Framing und Differenzierung
+- [workflow-http-api-activepieces.md](workflow-http-api-activepieces.md) - Activepieces-HTTP-Setup für Reminder-, Task- und Note-Erstellung
+- [automation/activepieces-minimal-app-flow.md](automation/activepieces-minimal-app-flow.md) - minimaler Activepieces-Flow für **Agent-Automation** mit Sync-URL, Return Response und App-Vertrag
+- [automation/chatgpt-prompt-activepieces-skyos.md](automation/chatgpt-prompt-activepieces-skyos.md) - **Copy-Paste-Prompt** für ChatGPT, um drei Activepieces-Workflows zu entwerfen: Agent Webhook, Callbacks und Workflow API
+- [faq.md](faq.md) - nutzerseitige Antworten für Betrieb, Support und typische Fragen
+- [store/README.md](store/README.md) - App-Store- und Google-Play-Auftritt, Screenshots und Review-Vorbereitung
 
-## Current Release Entry
+## Aktueller Release-Einstieg
 
-As of 2026-04-27, SkyOS is documented as a `1.0.0` release candidate for the productivity
-automation launch. Reminder + Push, Tasks, Notes, and Activepieces creation endpoints are the live
-workflow surface; longer-lived memory and deeper follow-up automations remain coming next. Public
-store rollout still depends on store-console, legal, URL, asset upload/mapping, and real-device
-smoke items outside the repo.
+Stand 2026-04-29 ist SkyOS als `1.0.0` Release Candidate für den Productivity- und
+Automation-Launch dokumentiert und in den Store-Konsolen für interne/TestFlight-Pfade hochgeladen.
+Reminder mit Push, Tasks, Notes und Activepieces-Erstellungsendpunkte sind die live ausgewiesene
+Workflow-Fläche. Längerfristige Memory-Funktionen und tiefere Follow-up-Automationen bleiben bewusst
+als nächster Schritt markiert. Der öffentliche Store-Rollout hängt weiterhin von Store-Konsole,
+Recht, URLs, Asset-Mapping und echten Geräte-Smokes außerhalb des Repos ab.
 
-- [release/app-release-workflow.md](release/app-release-workflow.md) - **step-by-step App Store release** (iOS/Android/backend scope); **maintain this file** when the release process changes
-- [release/store-upload-runbook.md](release/store-upload-runbook.md) - current build identity, upload state, blockers, hashes, and next console clicks
-- [release-checklist.md](release-checklist.md) - generic go/no-go checklist for every release candidate
-- [../manual-test-checklist.md](../manual-test-checklist.md) - role and platform smoke matrix for manual release validation
-- [beta-distribution.md](beta-distribution.md) - external tester access path and 5-minute feedback script
-- [workflow-http-api-activepieces.md](workflow-http-api-activepieces.md) - server-side HTTP workflow API and secret header contract
+- [release/app-release-workflow.md](release/app-release-workflow.md) - **Schritt-für-Schritt App-Store-Release** für iOS, Android und Backend; **diese Datei pflegen**, wenn sich der Release-Prozess ändert
+- [release/store-upload-runbook.md](release/store-upload-runbook.md) - aktuelle Build-Identität, Upload-Status, Blocker, Hashes und nächste Console-Klicks
+- [release-checklist.md](release-checklist.md) - generische Go/No-Go-Checkliste für jeden Release Candidate
+- [../manual-test-checklist.md](../manual-test-checklist.md) - Rollen- und Plattform-Smoke-Matrix für manuelle Release-Validierung
+- [beta-distribution.md](beta-distribution.md) - Zugangspfad für externe Tester und 5-Minuten-Feedback-Skript
+- [workflow-http-api-activepieces.md](workflow-http-api-activepieces.md) - serverseitige HTTP-Workflow-API und Secret-Header-Vertrag
 
-## Legal And Trust
+## Recht und Vertrauen
 
 - [legal/terms.md](legal/terms.md)
 - [legal/privacy.md](legal/privacy.md)
@@ -51,7 +53,7 @@ smoke items outside the repo.
 - [legal/AI_USAGE_NOTICE.md](legal/AI_USAGE_NOTICE.md)
 - [compliance/README.md](compliance/README.md)
 
-## Supporting References
+## Ergänzende Referenzen
 
 - [design/SKYOS_EXPERIENCE_PRINCIPLES.md](design/SKYOS_EXPERIENCE_PRINCIPLES.md)
 - [localization-terminology-glossary.md](localization-terminology-glossary.md)
@@ -64,14 +66,14 @@ smoke items outside the repo.
 - [store/screenshots.md](store/screenshots.md)
 - [store/review-prep.md](store/review-prep.md)
 
-## Compatibility Notes
+## Kompatibilitätshinweise
 
-Older upper-case docs such as `DEVELOPER_GUIDE.md`, `OWNER_GUIDE.md`, `LEGAL_OVERVIEW.md`, and
-`RELEASE_CHECKLIST.md` remain in the repository as compatibility entry points. The canonical
-versions now live in the lower-case files listed above.
+Ältere Dokumente in Großbuchstaben wie `DEVELOPER_GUIDE.md`, `OWNER_GUIDE.md`,
+`LEGAL_OVERVIEW.md` und `RELEASE_CHECKLIST.md` bleiben im Repository, damit ältere Verweise weiter
+funktionieren. Die kanonischen Versionen leben inzwischen in den kleingeschriebenen Dateien oben.
 
-## Operating Standard
+## Betriebsstandard
 
-If a change affects user trust, product behavior, permissions, billing, legal text, or release
-process, the relevant document should be updated in the same pull request or commit. SkyOS should
-not rely on tribal knowledge.
+Wenn eine Änderung Nutzervertrauen, Produktverhalten, Berechtigungen, Billing, Rechtstexte oder den
+Release-Prozess betrifft, sollte das passende Dokument im gleichen Pull Request oder Commit
+aktualisiert werden. SkyOS sollte sich nicht auf stilles Teamwissen verlassen.
