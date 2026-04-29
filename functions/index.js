@@ -15767,26 +15767,120 @@ function extractSocialAnalysisTopFindings(results = []) {
   return Array.from(new Set(findings)).slice(0, 6);
 }
 
+function extractTopFindingsFromText(text = "") {
+  const raw = nonEmptyString(text) || "";
+  if (!raw) {
+    return [];
+  }
+  return raw
+      .split(/\n+/g)
+      .map((line) => line.replace(/^[-*#0-9.\s]+/, "").trim())
+      .filter((line) => line.length > 16)
+      .slice(0, 6)
+      .map((line) => trimTextMax(line, 280));
+}
+
+function buildSocialAnalysisWorkflowTitle(socialContext = {}) {
+  const selected = Array.isArray(socialContext.selectedPlatforms) ?
+    socialContext.selectedPlatforms :
+    [];
+  const profiles = normalizeSocialProfiles(socialContext.socialProfiles);
+  const platforms = selected.length ?
+    selected :
+    SOCIAL_PLATFORM_ORDER.filter((platform) => nonEmptyString(profiles[platform]));
+  const labels = platforms
+      .map((platform) => SOCIAL_PLATFORM_LABELS_DE[platform] || platform)
+      .filter(Boolean)
+      .slice(0, 4);
+  return labels.length ?
+    `Social Analysis: ${labels.join(", ")}` :
+    "Social Analysis";
+}
+
+function buildSocialAnalysisWorkflowContent({
+  prompt = "",
+  reply = "",
+  socialContext = {},
+} = {}) {
+  const profiles = normalizeSocialProfiles(socialContext.socialProfiles);
+  const selected = Array.isArray(socialContext.selectedPlatforms) ?
+    socialContext.selectedPlatforms :
+    [];
+  const missing = Array.isArray(socialContext.missingPlatforms) ?
+    socialContext.missingPlatforms :
+    [];
+  const profileLines = SOCIAL_PLATFORM_ORDER
+      .map((platform) => {
+        const handle = nonEmptyString(profiles[platform]) || "";
+        if (!handle) {
+          return "";
+        }
+        const label = SOCIAL_PLATFORM_LABELS_DE[platform] || platform;
+        return platform === "spotify" ? `${label}: ${handle}` : `${label}: @${handle}`;
+      })
+      .filter(Boolean);
+  const selectedLabels = selected
+      .map((platform) => SOCIAL_PLATFORM_LABELS_DE[platform] || platform)
+      .filter(Boolean);
+  const missingLabels = missing
+      .map((platform) => SOCIAL_PLATFORM_LABELS_DE[platform] || platform)
+      .filter(Boolean);
+  const contextBlocks = [
+    ["Spotify", socialContext.spotifyPublicCatalogSummary],
+    ["YouTube", socialContext.youtubePublicCatalogSummary],
+    ["Instagram", socialContext.instagramPublicGraphSummary],
+    ["TikTok", socialContext.tiktokPublicSummary],
+  ]
+      .map(([label, value]) => {
+        const text = nonEmptyString(value) || "";
+        return text ? `## ${label} Live-Kontext\n${trimTextMax(text, 1200)}` : "";
+      })
+      .filter(Boolean);
+  const lines = [
+    "# SkyOS Social Analysis",
+    "",
+    "## Agent-Auswertung",
+    trimTextMax(nonEmptyString(reply) || "Keine Agent-Auswertung im Payload.", 2400),
+    "",
+    "## Anfrage",
+    trimTextMax(nonEmptyString(prompt) || "Keine Anfrage im Payload.", 600),
+  ];
+  if (profileLines.length) {
+    lines.push("", "## Accounts", ...profileLines.map((line) => `- ${line}`));
+  }
+  if (selectedLabels.length) {
+    lines.push("", `Ausgewaehlte Plattformen: ${selectedLabels.join(", ")}.`);
+  }
+  if (missingLabels.length) {
+    lines.push(`Ausgewaehlt, aber ohne Handle: ${missingLabels.join(", ")}.`);
+  }
+  if (contextBlocks.length) {
+    lines.push("", ...contextBlocks);
+  }
+  return trimTextMax(lines.join("\n"), 5000);
+}
+
 async function persistSocialAnalysisToMemoryProfile({
   uid,
   socialProfiles = {},
   prompt = "",
+  reply = "",
   automation = {},
 }) {
   const resolvedUid = nonEmptyString(uid);
   if (!resolvedUid) {
     return {stored: false, reason: "missing_uid"};
   }
-  if (automation.triggered !== true) {
-    return {stored: false, reason: "not_triggered"};
-  }
-  const normalizedStatus = normalizeAutomationWorkflowStatus(automation.workflowStatus, "failed");
-  if (normalizedStatus !== "completed") {
+  const automationTriggered = automation.triggered === true;
+  const normalizedStatus = normalizeAutomationWorkflowStatus(automation.workflowStatus, "completed");
+  if (automationTriggered && normalizedStatus !== "completed") {
     return {stored: false, reason: "not_completed"};
   }
-  const summary = extractSocialAnalysisSummaryText(automation.results);
+  const replySummary = trimTextMax(nonEmptyString(reply) || "", 1200);
+  const summary = extractSocialAnalysisSummaryText(automation.results) || replySummary;
   const topFindings = extractSocialAnalysisTopFindings(automation.results);
-  if (!summary && topFindings.length === 0) {
+  const fallbackFindings = topFindings.length ? topFindings : extractTopFindingsFromText(replySummary);
+  if (!summary && fallbackFindings.length === 0) {
     return {stored: false, reason: "empty_results"};
   }
   const profileRef = admin.firestore()
@@ -15798,10 +15892,10 @@ async function persistSocialAnalysisToMemoryProfile({
     socialProfiles: normalizeSocialProfiles(socialProfiles),
     socialAnalysisLast: {
       prompt: trimTextMax(nonEmptyString(prompt) || "", 500),
-      workflowName: trimTextMax(nonEmptyString(automation.workflowName) || "Social Analysis", 180),
+      workflowName: trimTextMax(nonEmptyString(automation.workflowName) || "SkyOS Social Analysis", 180),
       requestId: trimTextMax(nonEmptyString(automation.requestId) || "", 120),
       summary,
-      topFindings,
+      topFindings: fallbackFindings,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     },
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -15988,28 +16082,42 @@ async function maybeTriggerAgentAutomation({
 
   try {
     const memorySnapshot = await loadUserMemorySnapshot(auth.uid).catch(() => null);
+    const safeSocialContext = socialContext && typeof socialContext === "object" && !Array.isArray(socialContext) ?
+      socialContext :
+      {};
+    const isSocialAnalysisWorkflow = nonEmptyString(safeSocialContext.intent)?.toLowerCase() === "social_analysis";
+    const socialAnalysisWorkflowContent = isSocialAnalysisWorkflow ?
+      buildSocialAnalysisWorkflowContent({prompt, reply, socialContext: safeSocialContext}) :
+      "";
+    const automationData = {
+      mode,
+      prompt,
+      reply,
+      history: history.slice(-8),
+      automationScope,
+      attachments: Array.isArray(attachments) ? attachments : [],
+      socialContext: safeSocialContext,
+      memory: memorySnapshot || {
+        profileSummary: "",
+        goals: [],
+        habits: [],
+        moodLogs: [],
+        recentAgentHistory: [],
+      },
+    };
+    if (isSocialAnalysisWorkflow) {
+      automationData.title = buildSocialAnalysisWorkflowTitle(safeSocialContext);
+      automationData.content = socialAnalysisWorkflowContent;
+      automationData.analysis = socialAnalysisWorkflowContent;
+      automationData.description = socialAnalysisWorkflowContent;
+    }
     const automationResult = await triggerWorkflowAutomationWebhook({
       trigger: `agent_${mode}`,
       source: "agent",
       auth,
       automationScope,
       runtimePolicy: runtimeSettings?.bot?.agentCore?.externalPolicy || {},
-      data: {
-        mode,
-        prompt,
-        reply,
-        history: history.slice(-8),
-        automationScope,
-        attachments: Array.isArray(attachments) ? attachments : [],
-        socialContext: socialContext && typeof socialContext === "object" ? socialContext : {},
-        memory: memorySnapshot || {
-          profileSummary: "",
-          goals: [],
-          habits: [],
-          moodLogs: [],
-          recentAgentHistory: [],
-        },
-      },
+      data: automationData,
     });
 
     return {
@@ -17149,6 +17257,7 @@ exports.skydownAgent = onCall({
         uid: request.auth.uid,
         socialProfiles,
         prompt: agentInput.prompt,
+        reply,
         automation,
       });
       socialAnalysisStored = persistedSocialAnalysis.stored === true;

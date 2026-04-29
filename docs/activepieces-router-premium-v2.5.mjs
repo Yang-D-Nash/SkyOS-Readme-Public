@@ -83,6 +83,13 @@ export const code = async (inputs) => {
     if (explicitProductivity) return explicitProductivity;
 
     const m = clean(rawMode, "", 80).toLowerCase();
+    const socialIntent = clean(
+      data?.socialContext?.intent || body?.socialContext?.intent,
+      "",
+      80,
+    ).toLowerCase();
+    if (socialIntent === "social_analysis") return "social_analysis";
+
     const allowedDirect = ["release", "briefing", "merch", "social_analysis", "reminder", "task", "note"];
     if (allowedDirect.includes(m)) return m;
 
@@ -134,6 +141,78 @@ export const code = async (inputs) => {
     }
     if (actionType === "briefing") return "Briefing bereit.";
     return "Workflow abgeschlossen.";
+  };
+
+  const socialAnalysisTitle = (socialContext) => {
+    const ctx = asObject(socialContext) || {};
+    const labels = {
+      instagram: "Instagram",
+      tiktok: "TikTok",
+      youtube: "YouTube",
+      facebook: "Facebook",
+      spotify: "Spotify",
+    };
+    const profiles = asObject(ctx.socialProfiles) || {};
+    const selected = Array.isArray(ctx.selectedPlatforms) ? ctx.selectedPlatforms : [];
+    const platforms = (selected.length ? selected : Object.keys(labels).filter((key) => clean(profiles[key], "", 240)))
+      .map((key) => labels[key] || key)
+      .filter(Boolean)
+      .slice(0, 4);
+    return platforms.length ? `Social Analysis: ${platforms.join(", ")}` : "Social Analysis";
+  };
+
+  const socialAnalysisContent = ({ data, body }) => {
+    const ctx = asObject(data?.socialContext) || asObject(body?.socialContext) || {};
+    const profiles = asObject(ctx.socialProfiles) || {};
+    const selected = Array.isArray(ctx.selectedPlatforms) ? ctx.selectedPlatforms : [];
+    const missing = Array.isArray(ctx.missingPlatforms) ? ctx.missingPlatforms : [];
+    const labels = {
+      instagram: "Instagram",
+      tiktok: "TikTok",
+      youtube: "YouTube",
+      facebook: "Facebook",
+      spotify: "Spotify",
+    };
+    const accountLines = Object.keys(labels)
+      .map((platform) => {
+        const handle = clean(profiles[platform], "", 240);
+        if (!handle) return "";
+        return platform === "spotify" ? `- ${labels[platform]}: ${handle}` : `- ${labels[platform]}: @${handle}`;
+      })
+      .filter(Boolean);
+    const selectedLabels = selected.map((platform) => labels[platform] || platform).filter(Boolean);
+    const missingLabels = missing.map((platform) => labels[platform] || platform).filter(Boolean);
+    const liveBlocks = [
+      ["Spotify", ctx.spotifyPublicCatalogSummary],
+      ["YouTube", ctx.youtubePublicCatalogSummary],
+      ["Instagram", ctx.instagramPublicGraphSummary],
+      ["TikTok", ctx.tiktokPublicSummary],
+    ]
+      .map(([label, value]) => {
+        const text = clean(value, "", 1200);
+        return text ? `## ${label} Live-Kontext\n${text}` : "";
+      })
+      .filter(Boolean);
+    const direct = firstClean(
+      [data?.content, body?.content, data?.analysis, body?.analysis, data?.description, body?.description],
+      "",
+      5000,
+    );
+    if (direct) return direct;
+    const lines = [
+      "# SkyOS Social Analysis",
+      "",
+      "## Agent-Auswertung",
+      firstClean([data?.reply, body?.reply], "Keine Agent-Auswertung im Payload.", 2400),
+      "",
+      "## Anfrage",
+      firstClean([data?.prompt, body?.prompt], "Keine Anfrage im Payload.", 600),
+    ];
+    if (accountLines.length) lines.push("", "## Accounts", ...accountLines);
+    if (selectedLabels.length) lines.push("", `Ausgewaehlte Plattformen: ${selectedLabels.join(", ")}.`);
+    if (missingLabels.length) lines.push(`Ausgewaehlt, aber ohne Handle: ${missingLabels.join(", ")}.`);
+    if (liveBlocks.length) lines.push("", ...liveBlocks);
+    return clean(lines.join("\n"), "Social Analysis angefordert.", 5000);
   };
 
   const root = asObject(inputs) || {};
@@ -354,18 +433,15 @@ export const code = async (inputs) => {
       if (outputDueAt) payload.dueAt = outputDueAt;
     }
   } else if (mode === "social_analysis") {
-    const title = firstClean([data.title, body.title], "Social Analysis", 180);
+    const title = firstClean([data.title, body.title], socialAnalysisTitle(data.socialContext || body.socialContext), 180);
     functionName = "createNoteFromWorkflow";
     actionType = "social_analysis";
     outputTitle = title;
+    const content = socialAnalysisContent({ data, body });
     payload = {
       uid,
       title,
-      content: firstClean(
-        [data.content, body.content, data.analysis, body.analysis],
-        "Social Analysis angefordert. Bitte Performance, Muster, Chancen und naechste Tests dokumentieren.",
-        5000,
-      ),
+      content,
       source: "activepieces",
       requestId: `${requestId}-social-analysis`,
     };
