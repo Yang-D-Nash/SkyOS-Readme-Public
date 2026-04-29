@@ -252,8 +252,8 @@
     <string name="membership_creator_activate">Activate Creator</string>
     <string name="membership_restore">Restore purchases</string>
     <string name="membership_decide_later">Decide later</string>
-    <string name="agent_empty_title">What should we build next?</string>
-    <string name="agent_empty_subtitle">One clear task is enough. The agent structures the rest calmly.</string>
+    <string name="agent_empty_title">What should become clear?</string>
+    <string name="agent_empty_subtitle">One signal is enough. The agent turns it into structure and action.</string>
     <string name="agent_workspace_hero_title">SkyOS Agent</string>
     <string name="agent_workspace_hero_status_on">Agent on</string>
     <string name="agent_workspace_hero_status_off">Agent paused</string>
@@ -431,8 +431,8 @@
     <string name="home_content_signal_video_activity">Video activity: %1$s</string>
     <string name="home_federated_content">Content: %1$s</string>
 
-    <string name="landing_home_subtitle">Open music, videos and merch.</string>
-    <string name="landing_home_detail">Choose where you want to start.</string>
+    <string name="landing_home_subtitle">A calm operating system for AI, reminders, tasks, notes, music and video.</string>
+    <string name="landing_home_detail">Choose the first clear step.</string>
     <string name="landing_home_recommended">Start with Home</string>
     <string name="landing_home_tap">Tap to open</string>
     <string name="landing_home_open">Open Home</string>
@@ -449,7 +449,7 @@
     <string name="landing_eyebrow_store">Store</string>
     <string name="home_hero_title">SkyOS</string>
     <string name="home_hero_live_count">%1$d/%2$d live</string>
-    <string name="home_hero_detail">Open music, videos or merch.</string>
+    <string name="home_hero_detail">Start with a signal: reminder, task, note, AI, music or video.</string>
     <string name="home_productivity_today">Today</string>
     <string name="home_productivity_upcoming">Upcoming</string>
     <string name="home_productivity_open_tasks">Open Tasks</string>
@@ -1664,8 +1664,8 @@ Message:
     <string name="agent_sessions_title">Agent chats</string>
     <string name="agent_membership_trigger">Trigger: %1$s</string>
     <string name="agent_membership_billing_unavailable">Play Billing is not configured live for this build yet.</string>
-    <string name="agent_empty_header_title">Answers in the chat. Saves beside them.</string>
-    <string name="agent_empty_header_subtitle">Store follow-ups in Tasks or Notes from the productivity dock. Reminders with push work from the agent or Home quick actions.</string>
+    <string name="agent_empty_header_title">Thinking in the chat. Action beside it.</string>
+    <string name="agent_empty_header_subtitle">Turn follow-ups into Tasks or Notes. Reminder push stays live from Agent and Home.</string>
     <string name="agent_prompt_open">Open prompt</string>
     <string name="agent_fab_working">Working</string>
     <string name="agent_thread_followup_placeholder">Follow up in this thread…</string>

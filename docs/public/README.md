@@ -22,6 +22,8 @@ Apple and Android platforms.
 - Transparent membership and restore flows before any paid user commitment.
 - AI features that keep user intent, limits, and disclosure visible.
 - Legal, privacy, and support access that are reachable from the app.
+- Technical transparency for builders: the public documentation explains the architecture, rebuild
+  path, account requirements, and secret boundaries without publishing private credentials.
 
 ## Platform Direction
 
@@ -32,6 +34,12 @@ consistency and native UI where it matters for platform quality.
 
 SkyOS is preparing its first public release. Store availability, supported regions, pricing, and
 official policy URLs will be announced through the live store listings and public support channels.
+
+## Transparency
+
+The technical source of truth for rebuild and review is the repository documentation. It should make
+the system understandable without exposing production secrets, private keys, live user data, or store
+account access.
 
 ## Support
 

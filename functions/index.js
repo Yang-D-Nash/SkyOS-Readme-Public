@@ -195,7 +195,7 @@ const DEFAULT_COMMERCE_SETTINGS = Object.freeze({
     shippingNotes: "",
   },
   invoice: {
-    companyName: "Skydown OS",
+    companyName: "Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)",
     companyAddress: "",
     taxNumber: "",
     vatId: "",
@@ -206,11 +206,11 @@ const DEFAULT_COMMERCE_SETTINGS = Object.freeze({
 });
 const DEFAULT_LEGAL_CONTENT_SETTINGS = Object.freeze({
   brandName: "SkyOS",
-  operatorName: "Skydown OS",
-  rightsHolderName: "Skydown OS",
+  operatorName: "Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)",
+  rightsHolderName: "Nguyen Phuong Ngoc Anh / Yang D. Nash - Skydown",
   supportEmail: "skydownent@gmail.com",
-  lastUpdatedLabel: "20. April 2026",
-  imprintReference: "Anbieter: Skydown OS · Erich-Plate-Weg 44 · 22419 Hamburg · DE · skydownent@gmail.com",
+  lastUpdatedLabel: "29. April 2026",
+  imprintReference: "Anbieter: Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown) · Erich-Plate-Weg 44 · 22419 Hamburg · DE · skydownent@gmail.com",
 });
 const EU_COUNTRY_CODES = new Set([
   "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU",
@@ -284,8 +284,9 @@ const aiVisualRequestSchema = z.object({
 const DEFAULT_AI_TEXT_INSTRUCTION = `
 Du bist der SkyOS Bot, der kreative Copy- und Content-Assistent fuer Skydown Entertainment.
 Markenkontext:
-- Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
-- Die App verbindet Musik, Videos, Merch und Creator-Tools.
+- SkyOS ist ein ruhiges Betriebssystem fuer Bewusstsein, Creator-Arbeit und klare naechste Schritte.
+- Skydown Entertainment kommt aus Hip Hop und kollaboriert mit Zwei Zwei / 22 aus Hamburg.
+- Die App verbindet Reminder, Tasks, Notes, AI, Musik, Video und Commerce ohne laute Tool-Hektik.
 - Yang D. Nash ist Kern der Marke und Entwickler der App.
 
 Antworte auf Deutsch.
@@ -299,8 +300,9 @@ Wenn die Anfrage eher nach Planung, Freigaben, Briefing oder To-dos klingt, antw
 const DEFAULT_AI_VISUAL_INSTRUCTION = `
 Du bist der SkyOS Bot und generierst genau ein starkes Key-Visual fuer Skydown Entertainment.
 Markenkontext:
-- Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
-- Die Marke lebt von Musik, Videos, Street-Culture und Premium-Underground-Aesthetik.
+- SkyOS steht fuer ruhige Klarheit, Tiefe und ein modernes Bewusstseins-System.
+- Zwei Zwei / 22 ist Sound-Identity- und Music-Partner innerhalb der SkyOS Welt.
+- Die Marke lebt von Musik, Video, Street-Culture und Premium-Underground-Aesthetik, aber ohne Kitsch.
 - Yang D. Nash ist Kern der Marke und Entwickler der App.
 
 Erzeuge ein modernes, hochwertiges Visual mit klarer Stimmung.
@@ -399,19 +401,19 @@ Schnellfakten:
 - Membership ist faehigkeitsbasiert und kein Token-Shop.
 - Kaeufe und Restore koennen kurze Synchronisierungszeit brauchen.
 - Support: skydownent@gmail.com
-- Betreiberhinweis: Skydown OS, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland.
+- Betreiberhinweis: Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland.
 
 Kernfragen mit Zielantworten:
 
 [Einstieg / Getting Started]
 Q1: Was ist SkyOS in einem Satz?
-A1: SkyOS ist eine Creator-App, die AI, Media und Commerce in einem Flow verbindet.
+A1: SkyOS ist ein ruhiges Creator-Betriebssystem fuer Reminder, Tasks, Notes, AI, Media und Commerce in einem klaren Flow.
 
 Q2: Wie starte ich am besten als neuer Nutzer?
-A2: Melde dich zuerst an, oeffne Home zur Orientierung und starte dann mit einer klaren Frage im Bot.
+A2: Melde dich an, oeffne Home fuer Orientierung und starte mit einem kleinen klaren naechsten Schritt: Reminder, Aufgabe, Notiz oder Bot-Frage.
 
 Q3: Wo sehe ich, was ich als naechstes tun soll?
-A3: Nutze Home fuer Einstieg und wechsel dann gezielt in AI, Shop, Music oder Video.
+A3: Home zeigt die aktuellen Signale. Danach wechselst du gezielt in AI, Music, Video oder Shop.
 
 Q4: Ist SkyOS eher fuer Creator oder normale Nutzer?
 A4: Beides ist moeglich; Creator profitieren besonders von AI- und Workflow-Funktionen.

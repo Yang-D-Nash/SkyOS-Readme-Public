@@ -32,6 +32,7 @@ Diese README ist absichtlich umfassend, aber für schnellen Zugriff strukturiert
 | Ich will... | Direktlink |
 | --- | --- |
 | Projekt und Architektur in 3 Minuten verstehen | [Status und Release-Reife](#status-und-release-reife), [Architekturüberblick](#architekturüberblick), [Projektstruktur](#projektstruktur) |
+| Transparent nachvollziehen oder nachbauen | [Transparenz und Verantwortlichkeiten](#transparenz-und-verantwortlichkeiten), [Transparenz- und Reengineering-Dossier](docs/transparency-reengineering.md) |
 | Lokal starten und bauen | [Voraussetzungen](#voraussetzungen), [Erstinstallation](#erstinstallation-auf-neuer-maschine), [Lokale Entwicklung](#lokale-entwicklung) |
 | Productivity-Launch (Reminder, Tasks, Notes, Activepieces) | [Release-Übersicht](#release-übersicht-productivity--automation-launch) |
 | Release sicher durchführen | [Production-Checkliste](#production-checkliste), [App-Store-Release-Workflow](#app-store-release-workflow-verbindlich), [Deployment und Rollback](#deployment-und-rollback) |
@@ -118,6 +119,7 @@ Version **1.0.0**, iOS `CURRENT_PROJECT_VERSION=10018`, Android `versionCode=100
 | **Store-Einreichungen** | Accounts, Verträge, Richtlinien-Compliance und finale Inhalte sind Organisationspflichten; die technische Basis liefert dieses Repo. |
 | **Sicherheits- und Kostenentscheidungen** | Kritische Aktionen (Payments, Rollen, KI-Hochlast, Public-Mirror) brauchen bewusstes Operations-Handling, siehe [Sicherheit](#sicherheit), [Deployment und Rollback](#deployment-und-rollback), [docs/owner-admin.md](docs/owner-admin.md). |
 | **Datenverarbeitung** | Bewertung gegenüber Endnutzern erfolgt über Produkt, Policies und Anbieter-Verträge; technische Einordnung in [docs/compliance/README.md](docs/compliance/README.md) und [docs/backend.md](docs/backend.md). |
+| **Nachvollziehbarkeit / Nachbau** | Das öffentliche Bauplan-Dossier liegt in [docs/transparency-reengineering.md](docs/transparency-reengineering.md): Architektur, Accounts, Rebuild-Pfad, Datenmodell, Secrets-Grenzen und Mindestchecks. |
 
 **Kurz:** Technik ist hier transparent dokumentiert. Rechts- und Plattformverantwortung bleibt bei der Organisation, die das Produkt betreibt.
 
@@ -127,6 +129,7 @@ Version **1.0.0**, iOS `CURRENT_PROJECT_VERSION=10018`, Android `versionCode=100
 <summary>Vollständige Navigation ausklappen</summary>
 
 - [Transparenz und Verantwortlichkeiten](#transparenz-und-verantwortlichkeiten)
+- [Transparenz- und Reengineering-Dossier](docs/transparency-reengineering.md)
 - [Status und Release-Reife](#status-und-release-reife)
 - [Grenzen der README und bewusst offene Punkte](#grenzen-der-readme-und-bewusst-offene-punkte)
 - [Kritische Daten- und Steuerflüsse](#kritische-daten--und-steuerflüsse)
@@ -958,6 +961,7 @@ Auszug wichtiger Verweise:
 | Thema | Datei |
 | --- | --- |
 | Architektur | [docs/architecture.md](docs/architecture.md) |
+| Transparenz / Nachbau | [docs/transparency-reengineering.md](docs/transparency-reengineering.md) |
 | Backend | [docs/backend.md](docs/backend.md) |
 | iOS | [docs/ios.md](docs/ios.md) |
 | Android | [docs/android.md](docs/android.md) |

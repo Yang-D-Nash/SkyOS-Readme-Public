@@ -239,8 +239,8 @@
     <string name="membership_creator_activate">Creator aktivieren</string>
     <string name="membership_restore">Käufe wiederherstellen</string>
     <string name="membership_decide_later">Später entscheiden</string>
-    <string name="agent_empty_title">Was bauen wir als nächstes?</string>
-    <string name="agent_empty_subtitle">Eine klare Aufgabe reicht. Der Agent strukturiert den Rest ruhig.</string>
+    <string name="agent_empty_title">Was soll klar werden?</string>
+    <string name="agent_empty_subtitle">Ein Signal reicht. Der Agent macht daraus Struktur und Handlung.</string>
     <string name="agent_workspace_hero_title">SkyOS-Agent</string>
     <string name="agent_workspace_hero_status_on">Agent aktiv</string>
     <string name="agent_workspace_hero_status_off">Agent pausiert</string>
@@ -406,8 +406,8 @@
     <string name="home_content_signal_new_drop">Neuer Release aktiv: %1$s</string>
     <string name="home_content_signal_video_activity">Video-Aktivität: %1$s</string>
     <string name="home_federated_content">Inhalt: %1$s</string>
-    <string name="landing_home_subtitle">Musik, Videos und Merch direkt öffnen.</string>
-    <string name="landing_home_detail">Wähle, wo du starten willst.</string>
+    <string name="landing_home_subtitle">Ein ruhiges Betriebssystem für KI, Reminder, Aufgaben, Notizen, Musik und Video.</string>
+    <string name="landing_home_detail">Wähle den ersten klaren Schritt.</string>
     <string name="landing_home_recommended">Start mit Home</string>
     <string name="landing_home_tap">Tippen zum Öffnen</string>
     <string name="landing_home_open">Home öffnen</string>
@@ -424,7 +424,7 @@
     <string name="landing_eyebrow_store">Speichern</string>
     <string name="home_hero_title">SkyOS</string>
     <string name="home_hero_live_count">%1$d/%2$d aktiv</string>
-    <string name="home_hero_detail">Musik, Videos oder Merch öffnen.</string>
+    <string name="home_hero_detail">Starte mit einem Signal: Reminder, Aufgabe, Notiz, KI, Musik oder Video.</string>
     <string name="home_productivity_today">Heute</string>
     <string name="home_productivity_upcoming">Anstehend</string>
     <string name="home_productivity_open_tasks">Offene Aufgaben</string>
@@ -1587,8 +1587,8 @@ Nachricht:
     <string name="agent_sessions_title">Agenten-Chats</string>
     <string name="agent_membership_trigger">Auslöser: %1$s</string>
     <string name="agent_membership_billing_unavailable">Play Billing ist für diesen Build noch nicht live konfiguriert.</string>
-    <string name="agent_empty_header_title">Antworten im Chat. Festhalten daneben.</string>
-    <string name="agent_empty_header_subtitle">Folgeaufgaben speicherst du über Aufgaben oder Notizen in der Produktivitätsleiste. Reminder mit Push über den Agent oder Home-Kurzaktionen.</string>
+    <string name="agent_empty_header_title">Denken im Chat. Handeln daneben.</string>
+    <string name="agent_empty_header_subtitle">Folgepunkte werden zu Aufgaben oder Notizen. Reminder mit Push bleiben live in Agent und Home.</string>
     <string name="agent_prompt_open">Eingabe offen</string>
     <string name="agent_fab_working">Arbeiten</string>
     <string name="agent_thread_followup_placeholder">Im Thread weiterschreiben …</string>

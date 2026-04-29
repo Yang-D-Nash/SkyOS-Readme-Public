@@ -8,6 +8,7 @@ how it is operated without reverse-engineering the repository.
 ## Start Here
 
 - [architecture.md](architecture.md) - complete product and system map
+- [transparency-reengineering.md](transparency-reengineering.md) - German transparency and rebuild dossier: what is public, what needs own accounts, what must stay secret
 - [backend.md](backend.md) - Firebase, Functions, rules, runtime controls, and backend authority
 - [ios.md](ios.md) - iOS setup, signing, run, and QA
 - [android.md](android.md) - Android setup, Compose build flow, and Fold testing guidance

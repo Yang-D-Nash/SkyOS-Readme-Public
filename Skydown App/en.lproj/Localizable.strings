@@ -181,8 +181,8 @@
 "ai.retry_in" = "Please retry in about";
 "ai.usage.warning.critical" = "Quota is almost used up.";
 "ai.usage.warning.high" = "Usage is approaching the limit.";
-"ai.empty.title" = "What do you need?";
-"ai.empty.subtitle" = "Write briefly and start calmly.";
+"ai.empty.title" = "What should become clear?";
+"ai.empty.subtitle" = "Name the signal. SkyOS turns it into a calm next step.";
 "ai.empty.memory" = "Your history stays per account, so the bot does not restart from zero each time.";
 "ai.bot.paused" = "SkyOS Bot paused";
 "ai.bot.paused.detail" = "The rest of the app stays available. The bot continues once re-enabled.";
@@ -204,8 +204,8 @@
 "agent.prefill.create_reminder" = "Create a reminder for ";
 "agent.prefill.create_task" = "Create a task for ";
 "agent.prefill.create_note" = "Create a note about ";
-"agent.empty.header.title" = "Answers in the chat. Saves beside them.";
-"agent.empty.header.subtitle" = "Store follow-ups in Tasks or Notes from the productivity dock. Reminders with push work from the agent or Home quick actions.";
+"agent.empty.header.title" = "Thinking in the chat. Action beside it.";
+"agent.empty.header.subtitle" = "Turn follow-ups into Tasks or Notes. Reminder push stays live from Agent and Home.";
 "settings.membership_ops.title" = "Membership Control";
 "settings.membership_ops.subtitle" = "Owner area for KPIs, experiments, and learnings.";
 "settings.membership_ops.loading" = "Loading membership control...";
@@ -477,8 +477,8 @@
 "home.federated.content" = "Content: %@";
 
 
-"landing.home.subtitle" = "Open music, videos and merch.";
-"landing.home.detail" = "Choose where you want to start.";
+"landing.home.subtitle" = "A calm operating system for AI, reminders, tasks, notes, music and video.";
+"landing.home.detail" = "Choose the first clear step.";
 "landing.home.recommended" = "Start with Home";
 "landing.home.tap" = "Tap to open";
 "landing.home.open" = "Open Home";
@@ -496,7 +496,7 @@
 
 "home.hero.title" = "SkyOS";
 "home.hero.live_count" = "%d/%d live";
-"home.hero.detail" = "Open music, videos or merch.";
+"home.hero.detail" = "Start with a signal: reminder, task, note, AI, music or video.";
 "home.productivity.today" = "Today";
 "home.productivity.upcoming" = "Upcoming";
 "home.productivity.open_tasks" = "Open Tasks";

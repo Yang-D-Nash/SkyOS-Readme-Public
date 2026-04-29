@@ -181,8 +181,8 @@
 "ai.retry_in" = "Bitte in etwa erneut versuchen in";
 "ai.usage.warning.critical" = "Kontingent fast aufgebraucht.";
 "ai.usage.warning.high" = "Kontingent steigt Richtung Limit.";
-"ai.empty.title" = "Was brauchst du?";
-"ai.empty.subtitle" = "Kurz schreiben und ruhig starten.";
+"ai.empty.title" = "Was soll klar werden?";
+"ai.empty.subtitle" = "Benenne das Signal. SkyOS formt daraus den ruhigen naechsten Schritt.";
 "ai.empty.memory" = "Dein Verlauf bleibt pro Konto aktiv, damit der Bot nicht jedes Mal bei null startet.";
 "ai.bot.paused" = "SkyOS Bot pausiert";
 "ai.bot.paused.detail" = "Rest der App bleibt nutzbar. Der Bot folgt, sobald er wieder freigeschaltet ist.";
@@ -204,8 +204,8 @@
 "agent.prefill.create_reminder" = "Erstelle eine Erinnerung fuer ";
 "agent.prefill.create_task" = "Erstelle eine Aufgabe fuer ";
 "agent.prefill.create_note" = "Erstelle eine Notiz zu ";
-"agent.empty.header.title" = "Antworten im Chat. Festhalten daneben.";
-"agent.empty.header.subtitle" = "Folgeaufgaben speicherst du ueber Aufgaben oder Notizen in der Produktivitaetsleiste. Reminder mit Push ueber den Agent oder Home-Kurzaktionen.";
+"agent.empty.header.title" = "Denken im Chat. Handeln daneben.";
+"agent.empty.header.subtitle" = "Folgepunkte werden zu Aufgaben oder Notizen. Reminder mit Push bleiben live in Agent und Home.";
 "settings.membership_ops.title" = "Membership-Steuerung";
 "settings.membership_ops.subtitle" = "Owner-Bereich fuer KPIs, Experimente und Learnings.";
 "settings.membership_ops.loading" = "Membership-Steuerung wird geladen...";
@@ -477,8 +477,8 @@
 "home.federated.content" = "Inhalt: %@";
 
 
-"landing.home.subtitle" = "Musik, Videos und Merch direkt oeffnen.";
-"landing.home.detail" = "Waehle, wo du starten willst.";
+"landing.home.subtitle" = "Ein ruhiges Betriebssystem fuer KI, Reminder, Aufgaben, Notizen, Musik und Video.";
+"landing.home.detail" = "Waehle den ersten klaren Schritt.";
 "landing.home.recommended" = "Start mit Home";
 "landing.home.tap" = "Tippen zum Oeffnen";
 "landing.home.open" = "Home oeffnen";
@@ -496,7 +496,7 @@
 
 "home.hero.title" = "SkyOS Start";
 "home.hero.live_count" = "%d/%d aktiv";
-"home.hero.detail" = "Musik, Videos oder Merch oeffnen.";
+"home.hero.detail" = "Starte mit einem Signal: Reminder, Aufgabe, Notiz, KI, Musik oder Video.";
 "home.productivity.today" = "Heute";
 "home.productivity.upcoming" = "Anstehend";
 "home.productivity.open_tasks" = "Offene Aufgaben";
