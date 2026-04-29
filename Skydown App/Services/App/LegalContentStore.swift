@@ -2,13 +2,13 @@ import Foundation
 import FirebaseFirestore
 
 private let defaultLegalBrandName = "SkyOS"
-private let defaultLegalOperatorName = "Ngoc Anh Nguyen (Yang D. Nash - Skydown)"
-private let defaultLegalRightsHolderName = "Ngoc Anh Nguyen (Yang D. Nash - Skydown)"
+private let defaultLegalOperatorName = "Skydown (Betreiber), vertreten durch Yang D. Nash"
+private let defaultLegalRightsHolderName = "Skydown / Yang D. Nash"
 private let legacyLegalOperatorName = "Skydown"
 private let legacyLegalRightsHolderName = "Skydown"
 private let defaultLegalSupportEmail = "skydownent@gmail.com"
 private let defaultLegalLastUpdatedLabel = "25. April 2026"
-private let defaultLegalImprintReference = "Anbieter: Ngoc Anh Nguyen (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
+private let defaultLegalImprintReference = "Anbieterkennzeichnung: Skydown (Betreiber), vertreten durch Yang D. Nash, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
 private let legacyLegalImprintReference = "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
 
 struct LegalContentSettings: Codable, Equatable {

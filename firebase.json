@@ -17,5 +17,26 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": "site",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "cleanUrls": true,
+    "redirects": [
+      {
+        "source": "/legal/terms",
+        "destination": "/terms.html",
+        "type": 301
+      },
+      {
+        "source": "/legal/privacy",
+        "destination": "/privacy.html",
+        "type": 301
+      }
+    ]
   }
 }

@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -536,6 +537,15 @@ fun HomeScreen(
                             )
                         }
                         HomeAnimatedItem(order = 2) {
+                            HomeArtistSocialLinksRow(
+                                onOpenMusic = {
+                                    coroutineScope.launch {
+                                        listState.animateScrollToItem(homeMediaClusterSectionIndex)
+                                    }
+                                },
+                            )
+                        }
+                        HomeAnimatedItem(order = 3) {
                             HomeProductivityOverviewCard(
                                 remindersToday = uiState.dueTodayReminders,
                                 remindersUpcoming = uiState.upcomingReminders,
@@ -620,7 +630,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    HomeAnimatedItem(order = 3) {
+                    HomeAnimatedItem(order = 4) {
                         val homeMediaColorScheme = MaterialTheme.colorScheme
                         Column(
                             modifier = Modifier
@@ -707,7 +717,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    HomeAnimatedItem(order = 4) {
+                    HomeAnimatedItem(order = 5) {
                         Text(
                             text = stringResource(R.string.home_hero_tagline),
                             style = MaterialTheme.typography.bodySmall,
@@ -1573,6 +1583,139 @@ private fun HomeUtilityRow(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeArtistSocialLinksRow(
+    onOpenMusic: () -> Unit,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val context = LocalContext.current
+    val view = LocalView.current
+    data class ArtistSocialEntry(
+        val title: String,
+        val subtitle: String? = null,
+        val instagramUrl: String,
+    )
+    val entries = listOf(
+        ArtistSocialEntry(
+            title = "Yang D. Nash",
+            subtitle = "Inhaber / Betreiber",
+            instagramUrl = "https://www.instagram.com/y.d.nash/",
+        ),
+        ArtistSocialEntry(
+            title = "Skydown",
+            instagramUrl = "https://www.instagram.com/skydown_entertainment/",
+        ),
+        ArtistSocialEntry(
+            title = "Zweizwei",
+            instagramUrl = "https://www.instagram.com/zweizwei_music/",
+        ),
+    )
+    val instagramTint = colorScheme.skydownAccentHighlight().copy(alpha = 0.94f)
+    val artistPageTint = colorScheme.skydownAccent().copy(alpha = 0.94f)
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+    ) {
+        Text(
+            text = stringResource(R.string.home_artist_links_title),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = colorScheme.onSurface.copy(alpha = 0.50f),
+        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+        ) {
+            entries.forEach { entry ->
+                Text(
+                    text = entry.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colorScheme.onSurface,
+                )
+                entry.subtitle?.let { subtitle ->
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colorScheme.onSurface.copy(alpha = 0.66f),
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+                ) {
+                    HomeArtistSocialButton(
+                        label = "Artist Page",
+                        icon = Icons.Default.Person,
+                        tint = artistPageTint,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        view.performSkydownHaptic(SkydownHapticKind.Selection)
+                        // Keep users in flow: jump to music cluster.
+                        onOpenMusic()
+                    }
+                    HomeArtistSocialButton(
+                        label = stringResource(R.string.home_artist_links_instagram),
+                        icon = Icons.Default.PhotoCamera,
+                        tint = instagramTint,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        view.performSkydownHaptic(SkydownHapticKind.Selection)
+                        openExternalLink(context, entry.instagramUrl)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeArtistSocialButton(
+    label: String,
+    icon: ImageVector,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
+        color = MaterialTheme.colorScheme.skydownSecondaryBackground().copy(alpha = 0.72f),
+        border = BorderStroke(1.dp, tint.copy(alpha = 0.22f)),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 11.dp, vertical = 9.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(tint.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(13.dp),
+                    tint = tint,
+                )
+            }
+            Text(
+                text = label,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = tint,
+                style = MaterialTheme.typography.labelMedium,
+            )
         }
     }
 }

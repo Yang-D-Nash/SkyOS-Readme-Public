@@ -588,6 +588,7 @@ fun AgentScreen(
                         onSocialFacebookHandleChanged = viewModel::updateSocialFacebookHandle,
                         onSocialSpotifyEnabledChanged = viewModel::updateSocialSpotifyEnabled,
                         onSocialSpotifyHandleChanged = viewModel::updateSocialSpotifyHandle,
+                        onResetSocialSetup = viewModel::resetSocialSetup,
                         onAddFiles = {
                             showPromptComposer = false
                             attachmentPicker.launch(arrayOf("*/*"))
@@ -1684,6 +1685,7 @@ private fun AgentPromptComposerSheet(
     onSocialFacebookHandleChanged: (String) -> Unit,
     onSocialSpotifyEnabledChanged: (Boolean) -> Unit,
     onSocialSpotifyHandleChanged: (String) -> Unit,
+    onResetSocialSetup: () -> Unit,
     onAddFiles: () -> Unit,
     onRemoveAttachment: (AgentInputAttachment) -> Unit,
     onClearAttachments: () -> Unit,
@@ -1807,12 +1809,21 @@ private fun AgentPromptComposerSheet(
         )
 
         if (showSocialSetupCard) {
-            Text(
-                text = stringResource(R.string.agent_social_setup_title),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.tertiary,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.agent_social_setup_title),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+                TextButton(onClick = onResetSocialSetup) {
+                    Text(stringResource(R.string.agent_social_reset))
+                }
+            }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1826,6 +1837,47 @@ private fun AgentPromptComposerSheet(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 )
+                Text(
+                    text = stringResource(R.string.agent_social_provider_status_title),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+                )
+                Text(
+                    text = stringResource(R.string.agent_social_provider_status_lines),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                )
+                Text(
+                    text = stringResource(R.string.agent_social_scope_workaround_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.88f),
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    BrandStatusChip(
+                        text = stringResource(R.string.agent_social_badge_youtube_live),
+                        accent = MaterialTheme.colorScheme.primary,
+                        isActive = true,
+                    )
+                    BrandStatusChip(
+                        text = stringResource(R.string.agent_social_badge_tiktok_live),
+                        accent = MaterialTheme.colorScheme.primary,
+                        isActive = true,
+                    )
+                    BrandStatusChip(
+                        text = stringResource(R.string.agent_social_badge_instagram_fallback),
+                        accent = MaterialTheme.colorScheme.tertiary,
+                        isActive = false,
+                    )
+                    BrandStatusChip(
+                        text = stringResource(R.string.agent_social_badge_spotify_restricted),
+                        accent = MaterialTheme.colorScheme.secondary,
+                        isActive = false,
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1948,6 +2000,11 @@ private fun AgentPromptComposerSheet(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         placeholder = { Text(stringResource(R.string.agent_social_spotify_hint)) },
+                    )
+                    Text(
+                        text = stringResource(R.string.agent_social_spotify_helper),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
                     )
                 }
             }

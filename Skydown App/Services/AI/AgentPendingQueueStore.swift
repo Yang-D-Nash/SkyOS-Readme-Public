@@ -89,6 +89,7 @@ final class AgentPendingQueueStore {
     static let shared = AgentPendingQueueStore()
 
     private let key = "agent_pending_queue_entries"
+    private let socialSetupPrefix = "agent_social_setup_"
     private let maximumEntries = 80
     private let maximumAgeDays = 14
     private let defaults: UserDefaults
@@ -145,6 +146,24 @@ final class AgentPendingQueueStore {
 
     func clearEntries(for userKey: String?, sessionID: String?) {
         saveEntries([], for: userKey, sessionID: sessionID)
+    }
+
+    func saveSocialSetup(_ setup: AgentSocialSetupInput, for userKey: String?) {
+        let normalizedUserKey = normalizeUserKey(userKey)
+        let key = socialSetupPrefix + normalizedUserKey
+        if let data = try? JSONEncoder().encode(setup) {
+            defaults.set(data, forKey: key)
+        }
+    }
+
+    func socialSetup(for userKey: String?) -> AgentSocialSetupInput {
+        let normalizedUserKey = normalizeUserKey(userKey)
+        let key = socialSetupPrefix + normalizedUserKey
+        guard let data = defaults.data(forKey: key),
+              let setup = try? JSONDecoder().decode(AgentSocialSetupInput.self, from: data) else {
+            return .empty
+        }
+        return setup
     }
 
     func migrateLegacyEntries(for userKey: String?, to sessionID: String?) {

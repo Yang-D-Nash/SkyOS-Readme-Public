@@ -153,6 +153,12 @@ struct HomeViewContent: View {
                                 )
                                 .homeReveal(2)
 
+                                HomeArtistSocialLinksRow(
+                                    colorScheme: colorScheme,
+                                    onOpenArtistPage: { _ in openReleaseSection() }
+                                )
+                                    .homeReveal(3)
+
                                 HomeProductivityOverviewSection(
                                     colorScheme: colorScheme,
                                     remindersToday: viewModel.dueTodayReminders,
@@ -231,7 +237,7 @@ struct HomeViewContent: View {
                                         }
                                     }
                                 )
-                                .homeReveal(3)
+                                .homeReveal(4)
                             }
                             .background {
                                 LinearGradient(
@@ -254,7 +260,7 @@ struct HomeViewContent: View {
                                 onOpenVideoHub: openVideoHubFromMediaCluster(video:),
                                 onOpenOriginal: openOriginalFromMediaCluster(video:)
                             )
-                            .homeReveal(3)
+                            .homeReveal(4)
 
                             Text(
                                 AppLocalized.text(
@@ -266,7 +272,7 @@ struct HomeViewContent: View {
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 6)
-                                .homeReveal(4)
+                                .homeReveal(5)
                         }
                         .frame(maxWidth: contentWidth, alignment: .leading)
                         .padding(.horizontal, layout.horizontalPadding)

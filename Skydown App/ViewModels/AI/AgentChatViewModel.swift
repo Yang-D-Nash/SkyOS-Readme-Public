@@ -173,16 +173,16 @@ final class AgentChatViewModel: ObservableObject {
     @Published var selectedLevel: AIExperienceLevel = .standard
     @Published var selectedAutomationScope: AgentAutomationScope = .owner
     @Published var shouldTriggerAutomation = false
-    @Published var socialInstagramEnabled = false
-    @Published var socialInstagramHandle = ""
-    @Published var socialTiktokEnabled = false
-    @Published var socialTiktokHandle = ""
-    @Published var socialYoutubeEnabled = false
-    @Published var socialYoutubeHandle = ""
-    @Published var socialFacebookEnabled = false
-    @Published var socialFacebookHandle = ""
-    @Published var socialSpotifyEnabled = false
-    @Published var socialSpotifyHandle = ""
+    @Published var socialInstagramEnabled = false { didSet { persistSocialSetupDraft() } }
+    @Published var socialInstagramHandle = "" { didSet { persistSocialSetupDraft() } }
+    @Published var socialTiktokEnabled = false { didSet { persistSocialSetupDraft() } }
+    @Published var socialTiktokHandle = "" { didSet { persistSocialSetupDraft() } }
+    @Published var socialYoutubeEnabled = false { didSet { persistSocialSetupDraft() } }
+    @Published var socialYoutubeHandle = "" { didSet { persistSocialSetupDraft() } }
+    @Published var socialFacebookEnabled = false { didSet { persistSocialSetupDraft() } }
+    @Published var socialFacebookHandle = "" { didSet { persistSocialSetupDraft() } }
+    @Published var socialSpotifyEnabled = false { didSet { persistSocialSetupDraft() } }
+    @Published var socialSpotifyHandle = "" { didSet { persistSocialSetupDraft() } }
     @Published private(set) var canTriggerAutomation = false
     /// When false, the global "App-Flow" (owner webhook) is hidden; use personal automation only.
     @Published private(set) var canUseGlobalOwnerAutomationFlow = false
@@ -225,6 +225,7 @@ final class AgentChatViewModel: ObservableObject {
     private var activeRequestContext: InFlightRequestContext?
     private var currentQuotaPlan: UserQuotaPlan = .free
     private let firestore = Firestore.firestore()
+    private var isRestoringSocialSetup = false
 
     private struct PendingAgentRequest {
         let prompt: String
@@ -318,6 +319,7 @@ final class AgentChatViewModel: ObservableObject {
         stopRemoteHistoryObservation = nil
         currentUserID = normalizedUserID
         currentUserKey = normalizedUserKey
+        restoreSocialSetupDraft()
         restoreConversationState()
         hydrateRemoteHistoryIfNeeded(preferredSessionID: currentSessionID)
         startRemoteHistoryObservation()
@@ -1446,6 +1448,57 @@ final class AgentChatViewModel: ObservableObject {
             spotifyEnabled: socialSpotifyEnabled,
             spotifyHandle: Self.normalizeSocialHandleForOutbound(socialSpotifyHandle)
         )
+    }
+
+    private func persistSocialSetupDraft() {
+        guard !isRestoringSocialSetup else { return }
+        pendingQueueStore.saveSocialSetup(
+            AgentSocialSetupInput(
+                instagramEnabled: socialInstagramEnabled,
+                instagramHandle: socialInstagramHandle,
+                tiktokEnabled: socialTiktokEnabled,
+                tiktokHandle: socialTiktokHandle,
+                youtubeEnabled: socialYoutubeEnabled,
+                youtubeHandle: socialYoutubeHandle,
+                facebookEnabled: socialFacebookEnabled,
+                facebookHandle: socialFacebookHandle,
+                spotifyEnabled: socialSpotifyEnabled,
+                spotifyHandle: socialSpotifyHandle
+            ),
+            for: currentUserKey
+        )
+    }
+
+    private func restoreSocialSetupDraft() {
+        isRestoringSocialSetup = true
+        let setup = pendingQueueStore.socialSetup(for: currentUserKey)
+        socialInstagramEnabled = setup.instagramEnabled
+        socialInstagramHandle = setup.instagramHandle
+        socialTiktokEnabled = setup.tiktokEnabled
+        socialTiktokHandle = setup.tiktokHandle
+        socialYoutubeEnabled = setup.youtubeEnabled
+        socialYoutubeHandle = setup.youtubeHandle
+        socialFacebookEnabled = setup.facebookEnabled
+        socialFacebookHandle = setup.facebookHandle
+        socialSpotifyEnabled = setup.spotifyEnabled
+        socialSpotifyHandle = setup.spotifyHandle
+        isRestoringSocialSetup = false
+    }
+
+    func resetSocialSetup() {
+        isRestoringSocialSetup = true
+        socialInstagramEnabled = false
+        socialInstagramHandle = ""
+        socialTiktokEnabled = false
+        socialTiktokHandle = ""
+        socialYoutubeEnabled = false
+        socialYoutubeHandle = ""
+        socialFacebookEnabled = false
+        socialFacebookHandle = ""
+        socialSpotifyEnabled = false
+        socialSpotifyHandle = ""
+        isRestoringSocialSetup = false
+        persistSocialSetupDraft()
     }
 
     private func memoryEnrichedPrompt(from userPrompt: String) async -> String {

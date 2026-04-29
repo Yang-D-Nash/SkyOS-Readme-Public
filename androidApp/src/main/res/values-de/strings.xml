@@ -100,6 +100,7 @@
     <string name="settings_legal_subscription">Abo- und Mitgliedschaftsbedingungen</string>
     <string name="settings_legal_ai_usage">KI-Nutzungshinweis</string>
     <string name="settings_legal_imprint">Impressum / Unternehmen</string>
+    <string name="settings_legal_skydown_link_cta">Skydown-Link oeffnen</string>
     <string name="settings_legal_support_cta">Support-Anfrage senden</string>
     <string name="settings_legal_availability_note">Alle Hilfe- und Rechtstexte sind direkt in der App abrufbar.</string>
     <string name="settings_legal_support_email_placeholder">Echte, öffentlich erreichbare Support-Adresse (kein Beispiel-Domain-Platzhalter).</string>
@@ -394,6 +395,9 @@
     <string name="home_utility_merch">Merch</string>
     <string name="home_explore_title">Oeffnen</string>
     <string name="home_explore_subtitle">Musik, Videos, Merch, Einstellungen.</string>
+    <string name="home_artist_links_title">Artist-Links</string>
+    <string name="home_artist_links_instagram">Instagram</string>
+    <string name="home_artist_links_spotify">Spotify</string>
     <string name="home_utility_create">Erstellen</string>
     <string name="home_utility_orders">Bestellungen</string>
     <string name="home_utility_search">Suche</string>
@@ -1410,6 +1414,9 @@
     <string name="music_hub_catalog_title">Katalog</string>
     <string name="music_hub_studio_title">Studio</string>
     <string name="music_hub_artist_links_title">Künstler-Links</string>
+    <string name="music_entry_artist_links_title">Künstler-Links</string>
+    <string name="music_entry_artist_links_instagram">Instagram</string>
+    <string name="music_entry_artist_links_spotify">Spotify</string>
     <string name="music_hub_status_active">Aktiv</string>
     <string name="music_hub_subtitle">Veröffentlichungen, Künstler, Beats.</string>
     <string name="music_hub_detail">Direkter Zugang zu Songs, Beats und Studio.</string>
@@ -1987,33 +1994,5 @@
     <string name="settings_command_hint_lab">Lab fuer AI Runtime, Guardrails und Automation.</string>
     <string name="settings_command_hint_vault">Vault fuer Nutzer, Zugriffe und Membership-Policy.</string>
     <string name="settings_automation_studio_label">Automation Studio</string>
-
-    <!-- sync_localizations -->
-    <string name="agent_bubble_open_in_home">In Home oeffnen</string>
-
-    <!-- sync_localizations -->
-    <string name="settings_command_nav_membership_ops">Membership ops</string>
-    <string name="settings_command_nav_payments">Payments</string>
-    <string name="settings_command_nav_runtime">Runtime</string>
-    <string name="settings_command_nav_shopify">Shopify</string>
-    <string name="settings_command_nav_users">Users</string>
-    <string name="settings_knowledge_drive_ids_hint">Eine ID pro Zeile oder komma-separiert.</string>
-    <string name="settings_knowledge_drive_ids_label">Allowed Shared Drive IDs</string>
-    <string name="settings_knowledge_folder_ids_hint">Eine ID pro Zeile oder komma-separiert.</string>
-    <string name="settings_knowledge_folder_ids_label">Allowed Folder IDs</string>
-    <string name="settings_owner_inspiration_badge_entries">Einträge %1$d</string>
-    <string name="settings_owner_inspiration_badge_published_count">Published %1$d</string>
-    <string name="settings_owner_inspiration_details_label">Inspiration / Details</string>
-    <string name="settings_owner_inspiration_new">Neu</string>
-    <string name="settings_owner_inspiration_publish_all">Alle publishen</string>
-    <string name="settings_owner_inspiration_published_toggle">Published</string>
-    <string name="settings_owner_inspiration_remove_entry">Eintrag entfernen</string>
-    <string name="settings_owner_inspiration_save">Ideen &amp; Inspiration speichern</string>
-    <string name="settings_owner_inspiration_status_draft">Entwurf</string>
-    <string name="settings_owner_inspiration_status_published">Published</string>
-    <string name="settings_owner_inspiration_tags_label">Tags (komma-separiert)</string>
-    <string name="settings_owner_inspiration_title_label">Titel</string>
-    <string name="settings_owner_inspiration_title_placeholder">z. B. Midnight Street Capsule</string>
-    <string name="settings_owner_inspiration_unpublish_all">Alle entpublishen</string>
 
 </resources>

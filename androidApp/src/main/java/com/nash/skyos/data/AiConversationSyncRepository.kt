@@ -267,7 +267,6 @@ class AiConversationSyncRepository(
             "automationMessage" to entry.automationMessage,
             "workflowName" to entry.workflowName,
             "agentRunId" to entry.agentRunId,
-            "executionMode" to entry.executionMode,
             "results" to entry.structuredResults.map { result ->
                 mapOf(
                     "type" to result.type,

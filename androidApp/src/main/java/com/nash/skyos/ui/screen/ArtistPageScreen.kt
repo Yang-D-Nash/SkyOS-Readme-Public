@@ -3,6 +3,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,7 +24,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.MusicNote
@@ -36,6 +38,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -84,8 +87,6 @@ import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
-import com.nash.skyos.ui.component.TrackRow
-import com.nash.skyos.ui.component.TrackRowPresentation
 import com.nash.skyos.ui.component.YouTubePlayerDialog
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
@@ -231,6 +232,11 @@ fun ArtistPageScreen(
     val spotlightTrack = remember(tracks, selectedTrackId) {
         tracks.firstOrNull { it.trackId == selectedTrackId } ?: tracks.firstOrNull()
     }
+    val nowPlayingTrack = remember(tracks, currentlyPlayingId) {
+        val playingId = currentlyPlayingId ?: return@remember null
+        tracks.firstOrNull { it.trackId == playingId }
+    }
+    val miniBarTrack = nowPlayingTrack ?: spotlightTrack
 
     val currentEditableImageUrl: (ArtistPageImageTarget) -> String = { target ->
         when (target) {
@@ -725,7 +731,7 @@ fun ArtistPageScreen(
                     item {
                         ArtistPageTracksCard(
                             artistName = routeArtistName,
-                            tracks = tracks.take(5),
+                            tracks = tracks.take(3),
                             isLoading = isLoadingTracks,
                             errorMessage = tracksError,
                             selectedTrackId = selectedTrackId,
@@ -903,8 +909,37 @@ fun ArtistPageScreen(
                 type = feedbackType,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = if (miniBarTrack != null) 138.dp else 16.dp),
             )
+
+            miniBarTrack?.let { track ->
+                ArtistNowPlayingMiniBar(
+                    track = track,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 16.dp, vertical = 70.dp),
+                    onOpenSpotify = {
+                        spotifyUrlForTrack(track)?.let { url ->
+                            openExternalLink(context, url)
+                        }
+                    },
+                    onPlayPause = {
+                        if (currentlyPlayingId == track.trackId) {
+                            currentlyPlayingId = null
+                            currentPreviewUrl = null
+                        } else if (!track.previewUrl.isNullOrBlank()) {
+                            selectedTrackId = track.trackId
+                            currentlyPlayingId = track.trackId
+                            currentPreviewUrl = track.previewUrl
+                        }
+                    },
+                    isPlaying = currentlyPlayingId == track.trackId,
+                    onStop = {
+                        currentlyPlayingId = null
+                        currentPreviewUrl = null
+                    },
+                )
+            }
         }
     }
 
@@ -962,6 +997,73 @@ fun ArtistPageScreen(
 private enum class ArtistPageImageTarget {
     Profile,
     Hero,
+}
+
+@Composable
+private fun ArtistNowPlayingMiniBar(
+    track: Track,
+    modifier: Modifier = Modifier,
+    onOpenSpotify: () -> Unit,
+    onPlayPause: () -> Unit,
+    isPlaying: Boolean,
+    onStop: () -> Unit,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        border = BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.28f)),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.GraphicEq,
+                contentDescription = null,
+                tint = SpotifyGreen,
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
+            ) {
+                Text(
+                    text = "Now Playing",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                )
+                Text(
+                    text = track.trackName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+            }
+            IconButton(onClick = onPlayPause) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Filled.GraphicEq else Icons.Filled.PlayCircleFilled,
+                    contentDescription = if (isPlaying) "Pause preview" else "Play preview",
+                    tint = SpotifyGreen,
+                )
+            }
+            IconButton(onClick = onOpenSpotify) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                    contentDescription = "Open in Spotify",
+                    tint = SpotifyGreen,
+                )
+            }
+            IconButton(onClick = onStop) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Stop preview",
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -1106,8 +1208,8 @@ private fun ArtistPageSpotlightCard(
             )
             Text(
                 text = page.tagline ?: stringResource(R.string.artist_spotlight_fallback_tagline, page.artistName),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
             )
 
             spotlightTrack?.let { track ->
@@ -1211,23 +1313,75 @@ private fun ArtistPageTracksCard(
                 else -> {
                     Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
                         tracks.forEachIndexed { index, track ->
-                            val presentation = when (index) {
-                                0 -> TrackRowPresentation.Featured
-                                1 -> TrackRowPresentation.Secondary
-                                else -> TrackRowPresentation.Catalog
-                            }
-                            TrackRow(
+                            ArtistCompactTrackRow(
                                 track = track,
                                 isPlaying = currentlyPlayingId == track.trackId,
                                 isSelected = selectedTrackId == track.trackId,
                                 onSelectTrack = { onSelectTrack(track.trackId) },
                                 onPlayToggle = { onPlayToggle(track) },
-                                presentation = presentation,
                             )
+                            if (index < tracks.lastIndex) {
+                                androidx.compose.material3.HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ArtistCompactTrackRow(
+    track: Track,
+    isPlaying: Boolean,
+    isSelected: Boolean,
+    onSelectTrack: () -> Unit,
+    onPlayToggle: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
+            .clickable { onSelectTrack() }
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AsyncImage(
+            model = track.artworkUrl100,
+            contentDescription = null,
+            modifier = Modifier
+                .size(42.dp)
+                .clip(RoundedCornerShape(SkydownUiTokens.microCorner)),
+            contentScale = ContentScale.Crop,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
+        ) {
+            Text(
+                text = track.trackName,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                color = if (isSelected) SpotifyGreen else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = track.collectionName ?: "",
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+            )
+        }
+        IconButton(onClick = onPlayToggle) {
+            Icon(
+                imageVector = if (isPlaying) Icons.Filled.GraphicEq else Icons.Filled.PlayCircleFilled,
+                contentDescription = if (isPlaying) "Pause preview" else "Play preview",
+                tint = SpotifyGreen,
+            )
         }
     }
 }
@@ -1431,7 +1585,7 @@ private fun artistConnectLinks(page: ArtistPageUi): List<ArtistPageLinkUi> {
                     subtitle = stringResource(R.string.artist_connect_instagram_subtitle, page.artistName),
                     url = it,
                     kind = ArtistPageLinkKind.Instagram,
-                    icon = Icons.Default.CameraAlt,
+                    icon = Icons.Default.PhotoCamera,
                     accentColor = InstagramPink,
                     backgroundColor = InstagramPink.copy(alpha = 0.14f),
                     foregroundColor = onSurface,
@@ -1467,6 +1621,22 @@ private fun artistConnectLinks(page: ArtistPageUi): List<ArtistPageLinkUi> {
             )
         }
     }
+}
+
+private fun spotifyUrlForTrack(track: Track): String? {
+    val trackId = track.spotifyTrackId?.trim().orEmpty()
+    if (trackId.isNotEmpty()) {
+        return "https://open.spotify.com/track/$trackId"
+    }
+    val artistId = track.spotifyArtistId?.trim().orEmpty()
+    if (artistId.isNotEmpty()) {
+        return "https://open.spotify.com/artist/$artistId"
+    }
+    val external = track.externalUrl?.trim().orEmpty()
+    if (external.contains("spotify.com", ignoreCase = true)) {
+        return external
+    }
+    return null
 }
 
 @Composable

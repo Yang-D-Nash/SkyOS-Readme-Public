@@ -77,6 +77,61 @@ async function fetchInstagramGraphUserSummary({
 }
 
 /**
+ * @param {object} p
+ * @param {string} p.accessToken
+ * @param {string} p.igUserId
+ * @param {string} p.username
+ * @param {string} [p.graphVersion]
+ * @returns {Promise<string>}
+ */
+async function fetchInstagramGraphBusinessDiscoverySummary({
+  accessToken,
+  igUserId,
+  username,
+  graphVersion = DEFAULT_GRAPH_VERSION,
+}) {
+  const t = (accessToken || "").trim();
+  const id = (igUserId || "").trim();
+  const u = normalizeInstagramUsername(username);
+  if (!t || !id || !u) {
+    return "";
+  }
+  const discoveryFields = [
+    "username",
+    "name",
+    "biography",
+    "followers_count",
+    "follows_count",
+    "media_count",
+    "profile_picture_url",
+  ].join(",");
+  const fields = `business_discovery.username(${u}){${discoveryFields}}`;
+  const base = "https://graph.facebook.com";
+  const url = `${base}/${graphVersion}/${encodeURIComponent(id)}?` +
+    `fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(t)}`;
+  try {
+    const c = new AbortController();
+    const timer = setTimeout(() => c.abort(), 12_000);
+    const r = await fetch(url, {method: "GET", signal: c.signal});
+    clearTimeout(timer);
+    if (!r.ok) {
+      return "";
+    }
+    const j = await r.json();
+    if (j.error) {
+      return "";
+    }
+    const bd = j.business_discovery;
+    if (!bd || typeof bd !== "object") {
+      return "";
+    }
+    return formatGraphIgBusinessDiscoveryBlock(bd);
+  } catch {
+    return "";
+  }
+}
+
+/**
  * @param {string} handle aus resolveSocialProfiles
  * @param {string} [accessToken]
  * @param {string} [igUserId]
@@ -93,16 +148,30 @@ async function resolveInstagramContextForAgent({
   if (!h) {
     return "";
   }
+  const normalized = normalizeInstagramUsername(h);
   const t = (accessToken || process.env.META_IG_USER_ACCESS_TOKEN || "").trim();
   const id = (igUserId || process.env.META_IG_USER_ID || "").trim();
   if (t && id) {
-    const fromApi = await fetchInstagramGraphUserSummary({
+    if (normalized) {
+      const discovery = await fetchInstagramGraphBusinessDiscoverySummary({
+        accessToken: t,
+        igUserId: id,
+        username: normalized,
+        graphVersion,
+      });
+      if (discovery) {
+        return discovery;
+      }
+    }
+    // Fallback to connected account profile (kept for backwards compatibility),
+    // but label it clearly to avoid mixing it up with handle-specific discovery.
+    const ownProfile = await fetchInstagramGraphUserSummary({
       accessToken: t,
       igUserId: id,
       graphVersion,
     });
-    if (fromApi) {
-      return fromApi;
+    if (ownProfile) {
+      return ownProfile + `\nHinweis: Handle-spezifische Discovery fuer @${normalized || h} war nicht verfuegbar.`;
     }
     return buildInstagramContextWithoutToken(h) +
       " (Graph-Aufruf fehlgeschlagen oder Berechtigungen/IDs pruefen.)";
@@ -112,6 +181,7 @@ async function resolveInstagramContextForAgent({
 
 module.exports = {
   buildInstagramContextWithoutToken,
+  fetchInstagramGraphBusinessDiscoverySummary,
   fetchInstagramGraphUserSummary,
   resolveInstagramContextForAgent,
 };
@@ -131,4 +201,28 @@ function formatGraphIgUserBlock(j) {
 
 function trimDesc(s) {
   return (String(s) || "").replace(/\s+/g, " ").trim().slice(0, 500);
+}
+
+function normalizeInstagramUsername(raw) {
+  const s = String(raw || "").trim();
+  if (!s) {
+    return "";
+  }
+  const withoutAt = s.replace(/^@+/, "");
+  const fromUrl = withoutAt.match(/instagram\.com\/([a-zA-Z0-9._]+)/i);
+  const base = (fromUrl ? fromUrl[1] : withoutAt).split(/[/?#]/)[0];
+  return base.replace(/[^a-zA-Z0-9._]/g, "").slice(0, 30);
+}
+
+function formatGraphIgBusinessDiscoveryBlock(j) {
+  const parts = [
+    "Instagram Graph API (business discovery, oeffentl. Profilfelder, Stand Abfrage):",
+    j.username ? "Username: @" + j.username : null,
+    j.name && j.name !== j.username ? "Name: " + j.name : null,
+    j.biography != null && `${j.biography}`.length ? "Bio: " + trimDesc(j.biography) : null,
+    j.followers_count != null ? "Follower (Katalog, ca.): " + j.followers_count : null,
+    j.follows_count != null ? "Folge ich: " + j.follows_count : null,
+    j.media_count != null ? "Beitraege (Zaehler): " + j.media_count : null,
+  ].filter(Boolean);
+  return parts.join("\n");
 }

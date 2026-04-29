@@ -10,13 +10,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 
 private const val defaultLegalBrandName = "SkyOS"
-private const val defaultLegalOperatorName = "Ngoc Anh Nguyen (Yang D. Nash - Skydown)"
-private const val defaultLegalRightsHolderName = "Ngoc Anh Nguyen (Yang D. Nash - Skydown)"
+private const val defaultLegalOperatorName = "Skydown (Betreiber), vertreten durch Yang D. Nash"
+private const val defaultLegalRightsHolderName = "Skydown / Yang D. Nash"
 private const val legacyLegalOperatorName = "Skydown"
 private const val legacyLegalRightsHolderName = "Skydown"
 private const val defaultLegalSupportEmail = "skydownent@gmail.com"
 private const val defaultLegalLastUpdatedLabel = "25. April 2026"
-private const val defaultLegalImprintReference = "Anbieterkennzeichnung: Ngoc Anh Nguyen (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
+private const val defaultLegalImprintReference = "Anbieterkennzeichnung: Skydown (Betreiber), vertreten durch Yang D. Nash, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
 private const val legacyLegalImprintReference = "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
 private const val defaultMasterNumberMeaning = "Die Meisterzahl 22 gilt als Master Builder: visionaer, praktisch und umsetzungsstark. Sie verbindet Inspiration mit Disziplin und macht aus Ideen reale, belastbare Strukturen."
 private const val defaultBrandManifesto = "Dort, wo der Himmel faellt, beginnt unser Denken.\nWas zerbricht, offenbart Tiefe - nicht Verlust.\nWir hoeren auf das, was nicht laut ist: Wandel, Stille, Sinn.\nUnser Handeln wurzelt im Inneren, wo Klarheit entsteht.\nNicht im Machen liegt unsere Kraft, sondern im Verstehen.\nDenn wir glauben: Der Himmel faellt nicht auf uns - er oeffnet sich in uns."

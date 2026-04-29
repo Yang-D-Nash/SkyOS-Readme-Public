@@ -99,6 +99,7 @@ struct MusicView: View {
     @State private var listMotionRevealed = false
     @EnvironmentObject private var services: AppServices
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
 
     let brand: MusicExperienceBrand
     let onBack: (() -> Void)?
@@ -388,6 +389,7 @@ struct MusicView: View {
         }
     }
 
+
     private var artistEinstiegSection: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             Text("Direkter Einstieg")
@@ -428,48 +430,88 @@ struct MusicView: View {
         let accent = catalogEntryAccent(for: artist)
         let isSelected = selectedArtist == artist
         let stagger = Double(rowIndex) * SkydownMotion.listStaggerDelay
-        return Button {
-            withAnimation(SkydownMotion.emphasizedTransition) {
-                selectedArtist = artist
+        let instagramURL = instagramURLForArtist(artist)
+        return VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
+            Text(artist)
+                .font(AppTypography.musicArtistName)
+                .tracking(0.28)
+                .lineLimit(1)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            HStack(spacing: SkydownLayout.stackSpacingPill) {
+                Button {
+                    withAnimation(SkydownMotion.emphasizedTransition) {
+                        selectedArtist = artist
+                    }
+                    presentSheet(.artistPage)
+                } label: {
+                    HStack(spacing: SkydownLayout.stackSpacingTick) {
+                        Image(systemName: isSelected ? "person.crop.circle.fill.badge.checkmark" : "person.crop.circle")
+                            .font(.caption.weight(.semibold))
+                        Text("Artist Page")
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                            .fill(
+                                isSelected
+                                ? accent.opacity(colorScheme == .dark ? 0.22 : 0.14)
+                                : AppColors.secondaryBackground(for: colorScheme)
+                            )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                            .stroke(accent.opacity(isSelected ? 0.55 : 0.35), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(isSelected ? accent : AppColors.text(for: colorScheme))
+
+                Button {
+                    if let instagramURL, let url = URL(string: instagramURL) {
+                        openURL(url)
+                    }
+                } label: {
+                    HStack(spacing: SkydownLayout.stackSpacingTick) {
+                        Image(systemName: "camera.circle.fill")
+                            .font(.caption.weight(.semibold))
+                        Text("Instagram")
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                            .fill(AppColors.secondaryBackground(for: colorScheme))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                            .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.35), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                .opacity(instagramURL == nil ? 0.5 : 1)
             }
-            presentSheet(.artistPage)
-        } label: {
-            HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                Image(systemName: isSelected ? "arrow.up.right.circle.fill" : "arrow.up.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(
-                        isSelected
-                        ? accent
-                        : AppColors.text(for: colorScheme)
-                    )
-                Text(artist)
-                    .font(AppTypography.musicArtistName)
-                    .tracking(0.28)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }
-            .foregroundColor(AppColors.text(for: colorScheme))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 11)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
-                    .fill(
-                        isSelected
-                        ? accent.opacity(colorScheme == .dark ? 0.22 : 0.14)
-                        : AppColors.secondaryBackground(for: colorScheme)
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
-                    .stroke(
-                        accent.opacity(isSelected ? 0.55 : 0.35),
-                        lineWidth: 1
-                    )
-            )
-            .skydownLuminousSweep(cornerRadius: SkydownLayout.compactRadius, accent: accent, alpha: colorScheme == .dark ? 0.1 : 0.07)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                .fill(AppColors.secondaryBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                .stroke(accent.opacity(isSelected ? 0.45 : 0.26), lineWidth: 1)
+        )
+        .skydownLuminousSweep(cornerRadius: SkydownLayout.compactRadius, accent: accent, alpha: colorScheme == .dark ? 0.1 : 0.07)
         .skydownTactileAction()
         .accessibilityIdentifier("music.artist.open_page.\(artist)")
         .opacity(listMotionRevealed ? 1 : 0)
@@ -481,6 +523,19 @@ struct MusicView: View {
             value: listMotionRevealed
         )
         .animation(SkydownMotion.statusTransition, value: isSelected)
+    }
+
+    private func instagramURLForArtist(_ artist: String) -> String? {
+        switch artist {
+        case "JANNO": return "https://www.instagram.com/janno_official_/"
+        case "Yang D. Nash": return "https://www.instagram.com/y.d.nash/"
+        case "ThaDude": return "https://www.instagram.com/thadude_offizielle/"
+        case "MAVE": return "https://www.instagram.com/mave040_official/"
+        case "TANGAJOE007": return "https://www.instagram.com/tangajoe007/"
+        case "Zweizwei", "22 Music": return "https://www.instagram.com/zweizwei_music/"
+        case "Skydown": return "https://www.instagram.com/skydown_entertainment/"
+        default: return nil
+        }
     }
 
     private func artistButton(for artist: String) -> some View {

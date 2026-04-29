@@ -38,6 +38,11 @@ async function fetchSpotifyHandleCatalogSummary({clientId, clientSecret, handle,
       if (sRes.status === 404 || sRes.status === 429) {
         return "";
       }
+      if (sRes.status === 403) {
+        return "Spotify (Reference accepted, provider restricted): Die Referenz wurde erkannt, " +
+        "aber der Spotify Web API Zugriff ist fuer diese App aktuell policyseitig eingeschraenkt. " +
+        "Nutze die Referenz im Prompt-Kontext; Live-Katalogfelder bleiben bis zur Provider-Freigabe leer.";
+      }
       if (!sRes.ok) {
         return "";
       }
@@ -58,6 +63,11 @@ async function fetchSpotifyHandleCatalogSummary({clientId, clientSecret, handle,
       spotifyRequest(aUrl, access),
       spotifyRequest(tUrl, access),
     ]);
+    if (aRes.status === 403 || tRes.status === 403) {
+      return "Spotify (Reference accepted, provider restricted): Die Referenz wurde erkannt, " +
+      "aber der Spotify Web API Zugriff ist fuer diese App aktuell policyseitig eingeschraenkt. " +
+      "Nutze die Referenz im Prompt-Kontext; Live-Katalogfelder bleiben bis zur Provider-Freigabe leer.";
+    }
     if (!aRes.ok) {
       return "";
     }

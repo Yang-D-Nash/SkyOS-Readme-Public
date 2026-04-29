@@ -191,7 +191,28 @@ object ArtistPagesStore {
                 ),
                 SetOptions.merge(),
             ).await()
+            syncMirroredNicmaSocialLinksIfNeeded(page)
         }
+    }
+
+    private suspend fun syncMirroredNicmaSocialLinksIfNeeded(page: ArtistPageUi) {
+        if (page.brand != ArtistPageBrand.Nicma) return
+        val normalizedArtistName = page.artistName.trim().lowercase()
+        val targetArtistName = when (normalizedArtistName) {
+            "nicma music" -> "NICMA STUDIO"
+            "nicma studio" -> "NICMA MUSIC"
+            else -> return
+        }
+        val targetDocumentId = artistPageDocumentId(ArtistPageBrand.Nicma, targetArtistName)
+        collection.document(targetDocumentId).set(
+            mapOf(
+                "instagramURL" to page.instagramURL.trimmedOrNull(),
+                "spotifyURL" to page.spotifyURL.trimmedOrNull(),
+                "youtubeURL" to page.youtubeURL.trimmedOrNull(),
+                "updatedAt" to Timestamp.now(),
+            ),
+            SetOptions.merge(),
+        ).await()
     }
 
     private fun startObservation() {

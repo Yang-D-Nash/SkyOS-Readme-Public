@@ -170,6 +170,7 @@ class AgentViewModel : ViewModel() {
                     currentUserId = userId
                     currentUserKey = userKey
                     currentSessionId = null
+                    restoreSocialSetupDraft()
                     if (!userId.isNullOrBlank()) {
                         taskListener = taskRepository.observeTasks(userId) { result ->
                             result.onSuccess { tasks ->
@@ -213,6 +214,31 @@ class AgentViewModel : ViewModel() {
                     pruneRemoteHistoryIfNeeded()
                 }
             }
+        }
+    }
+
+    private fun persistSocialSetupDraft() {
+        AgentPendingQueueStore.saveSocialSetupDraft(
+            userKey = currentUserKey,
+            socialSetup = resolveSocialSetupFromState(_uiState.value),
+        )
+    }
+
+    private fun restoreSocialSetupDraft() {
+        val setup = AgentPendingQueueStore.loadSocialSetupDraft(currentUserKey)
+        _uiState.update {
+            it.copy(
+                socialInstagramEnabled = setup.instagramEnabled,
+                socialInstagramHandle = setup.instagramHandle,
+                socialTiktokEnabled = setup.tiktokEnabled,
+                socialTiktokHandle = setup.tiktokHandle,
+                socialYoutubeEnabled = setup.youtubeEnabled,
+                socialYoutubeHandle = setup.youtubeHandle,
+                socialFacebookEnabled = setup.facebookEnabled,
+                socialFacebookHandle = setup.facebookHandle,
+                socialSpotifyEnabled = setup.spotifyEnabled,
+                socialSpotifyHandle = setup.spotifyHandle,
+            )
         }
     }
 
@@ -262,42 +288,70 @@ class AgentViewModel : ViewModel() {
 
     fun updateSocialInstagramEnabled(enabled: Boolean) {
         _uiState.update { it.copy(socialInstagramEnabled = enabled) }
+        persistSocialSetupDraft()
     }
 
     fun updateSocialInstagramHandle(handle: String) {
         _uiState.update { it.copy(socialInstagramHandle = handle) }
+        persistSocialSetupDraft()
     }
 
     fun updateSocialTiktokEnabled(enabled: Boolean) {
         _uiState.update { it.copy(socialTiktokEnabled = enabled) }
+        persistSocialSetupDraft()
     }
 
     fun updateSocialTiktokHandle(handle: String) {
         _uiState.update { it.copy(socialTiktokHandle = handle) }
+        persistSocialSetupDraft()
     }
 
     fun updateSocialYoutubeEnabled(enabled: Boolean) {
         _uiState.update { it.copy(socialYoutubeEnabled = enabled) }
+        persistSocialSetupDraft()
     }
 
     fun updateSocialYoutubeHandle(handle: String) {
         _uiState.update { it.copy(socialYoutubeHandle = handle) }
+        persistSocialSetupDraft()
     }
 
     fun updateSocialFacebookEnabled(enabled: Boolean) {
         _uiState.update { it.copy(socialFacebookEnabled = enabled) }
+        persistSocialSetupDraft()
     }
 
     fun updateSocialFacebookHandle(handle: String) {
         _uiState.update { it.copy(socialFacebookHandle = handle) }
+        persistSocialSetupDraft()
     }
 
     fun updateSocialSpotifyEnabled(enabled: Boolean) {
         _uiState.update { it.copy(socialSpotifyEnabled = enabled) }
+        persistSocialSetupDraft()
     }
 
     fun updateSocialSpotifyHandle(handle: String) {
         _uiState.update { it.copy(socialSpotifyHandle = handle) }
+        persistSocialSetupDraft()
+    }
+
+    fun resetSocialSetup() {
+        _uiState.update {
+            it.copy(
+                socialInstagramEnabled = false,
+                socialInstagramHandle = "",
+                socialTiktokEnabled = false,
+                socialTiktokHandle = "",
+                socialYoutubeEnabled = false,
+                socialYoutubeHandle = "",
+                socialFacebookEnabled = false,
+                socialFacebookHandle = "",
+                socialSpotifyEnabled = false,
+                socialSpotifyHandle = "",
+            )
+        }
+        persistSocialSetupDraft()
     }
 
     private fun hasAnySocialToggleOn(): Boolean {
@@ -1509,7 +1563,10 @@ class AgentViewModel : ViewModel() {
         if (mode.trim().lowercase() != "automation") {
             return AgentSocialSetupInput()
         }
-        val state = _uiState.value
+        return resolveSocialSetupFromState(_uiState.value)
+    }
+
+    private fun resolveSocialSetupFromState(state: AgentUiState): AgentSocialSetupInput {
         return AgentSocialSetupInput(
             instagramEnabled = state.socialInstagramEnabled,
             instagramHandle = normalizeSocialHandleForOutbound(state.socialInstagramHandle),

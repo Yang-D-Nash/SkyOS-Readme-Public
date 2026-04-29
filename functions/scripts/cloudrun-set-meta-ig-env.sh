@@ -71,21 +71,28 @@ fi
 if [[ -z "${META_IG_USER_ID:-}" ]]; then
   read -r -p "META_IG_USER_ID (Instagram Business id, Zahl): " META_IG_USER_ID
 fi
-read -r -s -p "META_IG_USER_ACCESS_TOKEN: "
-echo ""
-META_IG_USER_ACCESS_TOKEN="${REPLY:-}"
+if [[ -z "${META_IG_USER_ACCESS_TOKEN:-}" ]]; then
+  read -r -s -p "META_IG_USER_ACCESS_TOKEN: "
+  echo ""
+  META_IG_USER_ACCESS_TOKEN="${REPLY:-}"
+fi
 GRAPH_VERSION="${META_GRAPH_API_VERSION:-v25.0}"
 
-# Eine Variable pro Update (Vermeidet Kommata in langen Token-Strings)
+if [[ -z "${META_IG_USER_ID}" ]]; then
+  echo "Fehler: META_IG_USER_ID fehlt. Abbruch ohne Deployment."
+  exit 1
+fi
+
+if [[ -z "${META_IG_USER_ACCESS_TOKEN}" ]]; then
+  echo "Fehler: META_IG_USER_ACCESS_TOKEN fehlt. Abbruch ohne Deployment."
+  echo "Hinweis: Ohne Token liefert Social Analysis nur Handle-basierten Fallback."
+  exit 1
+fi
+
+# Eine einzige Service-Revision, robust fuer Sonderzeichen via benutzerdefiniertem Delimiter.
 gcloud run services update "${SERVICE}" \
   --region="${REGION}" --project="${PROJECT}" \
-  --update-env-vars "META_IG_USER_ID=${META_IG_USER_ID}"
-gcloud run services update "${SERVICE}" \
-  --region="${REGION}" --project="${PROJECT}" \
-  --update-env-vars "META_GRAPH_API_VERSION=${GRAPH_VERSION}"
-gcloud run services update "${SERVICE}" \
-  --region="${REGION}" --project="${PROJECT}" \
-  --update-env-vars "META_IG_USER_ACCESS_TOKEN=${META_IG_USER_ACCESS_TOKEN}"
+  --update-env-vars "^#^META_IG_USER_ID=${META_IG_USER_ID}#META_GRAPH_API_VERSION=${GRAPH_VERSION}#META_IG_USER_ACCESS_TOKEN=${META_IG_USER_ACCESS_TOKEN}"
 
 echo "Fertig. Cloud Run startet eine neue Revision; 1–2 Min warten, dann App testen."
 echo "Hinweis: Token erscheint in Cloud-Run-Env-Variablen (einsehbar mit Projektzugriff). Fuer Produkion spaeter: Secret Manager."

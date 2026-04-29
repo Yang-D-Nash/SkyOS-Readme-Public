@@ -768,6 +768,21 @@ struct SettingsView: View {
                                 .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                             Button {
+                                guard let url = URL(string: "https://www.instagram.com/skydown_entertainment/") else {
+                                    return
+                                }
+                                openURL(url)
+                            } label: {
+                                Label(
+                                    AppLocalized.text("settings.legal.skydown_link_cta", fallback: "Open Skydown link"),
+                                    systemImage: "link"
+                                )
+                                .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .skydownInteractiveFeedback()
+
+                            Button {
                                 #if targetEnvironment(simulator)
                                 if canPresentInAppMailComposer {
                                     presentSheet(.mailComposer)

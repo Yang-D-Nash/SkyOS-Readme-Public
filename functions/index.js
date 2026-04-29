@@ -63,6 +63,7 @@ const {loadFounderBriefingEnrichment} = require("./src/founder/briefing-enrichme
 const {fetchSpotifyHandleCatalogSummary} = require("./src/agent/spotify-enrichment");
 const {fetchYouTubeHandleCatalogSummary} = require("./src/agent/youtube-enrichment");
 const {resolveInstagramContextForAgent} = require("./src/agent/meta-instagram-enrichment");
+const {fetchTikTokHandlePublicSummary} = require("./src/agent/tiktok-enrichment");
 
 admin.initializeApp();
 void enableFirebaseTelemetry().catch((error) => {
@@ -96,6 +97,9 @@ const AGENT_EXTERNAL_AUDIT_COLLECTION = "agentExternalBridgeAudit";
 const AUTOMATION_IDEMPOTENCY_TTL_MS = 60 * 60 * 1000;
 const AUTOMATION_IDEMPOTENCY_KEY_MIN_LEN = 8;
 const PERSONAL_AGENT_PROFILE_DOCUMENT_PREFIX = "agentProfile_";
+const TIKTOK_OAUTH_STATE_COLLECTION = "tiktokOAuthState";
+const TIKTOK_OAUTH_TOKEN_COLLECTION = "adminConfig";
+const TIKTOK_OAUTH_TOKEN_DOCUMENT = "tiktokOAuth";
 const AI_PROMPT_SETTINGS_COLLECTION = "adminConfig";
 const AI_PROMPT_SETTINGS_DOCUMENT = "aiPromptSettings";
 const AI_STUDIO_FAQ_KNOWLEDGE_COLLECTION = "adminConfig";
@@ -253,7 +257,7 @@ const agentRequestSchema = z.object({
     facebookEnabled: z.boolean().optional().default(false),
     facebookHandle: z.string().trim().max(120).optional().default(""),
     spotifyEnabled: z.boolean().optional().default(false),
-    spotifyHandle: z.string().trim().max(120).optional().default(""),
+    spotifyHandle: z.string().trim().max(240).optional().default(""),
   }).optional(),
 });
 
@@ -346,10 +350,36 @@ Antworte auf Deutsch, klar, modern und konkret.
 Du hilfst bei Release-Planung, Briefings, Content-Strategie, Videography, Merch-Drops, Kampagnenideen, To-dos, Freigaben und naechsten Schritten.
 Arbeite pragmatisch statt generisch.
 Keine langen Vorreden. Keine leeren Motivationssaetze.
-Wenn du planen sollst, liefere eine umsetzbare Struktur.
-Wenn du ein Briefing schreiben sollst, liefere ein copy-pastebares Briefing.
-Wenn Infos fehlen, triff sinnvolle Annahmen und kennzeichne sie kurz. Frage nur dann gezielt nach, wenn ohne die Info ein schlechter Plan entstehen wuerde.
-Bevorzuge kurze klare Abschnitte wie Ziel, Deliverables, Schritte, Timing, Assets, Risiken, Naechste Schritte.
+Arbeite immer in einem "Premium-Flow": klar, knapp, direkt nutzbar.
+
+Antwortformat (Default):
+1) Ziel (1-2 Saetze)
+2) Konkrete Deliverables (Bullet-Liste, keine Wiederholungen)
+3) Naechste Schritte (nummeriert, direkt ausfuehrbar)
+4) Optional: Risiken/Abhaengigkeiten (nur wenn wirklich relevant)
+
+Qualitaetsregeln:
+- Kein Blabla, keine Floskeln, kein Motivations-Text.
+- Jede Antwort endet mit klaren Next Steps.
+- Wenn Infos fehlen: sinnvolle Annahmen treffen und kurz markieren.
+- Rueckfragen nur stellen, wenn ohne diese Info ein schlechter oder falscher Output entsteht.
+- Bevorzuge kurze Abschnitte und aktive Verben.
+
+Wenn der Nutzer ein Briefing will:
+- Liefere ein copy-pastebares Briefing mit Ziel, Scope, Deliverables, Deadline, Owner, Review-Kriterien.
+
+Wenn der Nutzer Planung will:
+- Liefere eine umsetzbare Struktur mit Reihenfolge, Prioritaet und Entscheidungspunkten.
+
+Wenn Social-/Plattform-Analyse gefragt ist:
+- Trenne die Ausgabe strikt pro Plattform (Instagram, TikTok, YouTube, Spotify, Facebook), nur fuer aktivierte Plattformen.
+- Pro Plattform genau diese Reihenfolge:
+  - Status
+  - Was sicher vorliegt (Fakten)
+  - Interpretation
+  - Konkrete Aktion (naechster Schritt)
+- Keine Plattformen vermischen.
+- Bei Fallback/Restricted klar benennen, was trotzdem moeglich ist (z. B. referenzbasierte Auswertung) und was fehlt.
 `.trim();
 
 const DEFAULT_AI_FAQ_KNOWLEDGE_BASE = `
@@ -7121,6 +7151,147 @@ exports.agentRunStatusCallback = onRequest({
     response.status(500).json({ok: false, error: "internal_error"});
   }
 });
+
+exports.tiktokAuthStart = onRequest({
+  region: "us-central1",
+  timeoutSeconds: 30,
+}, async (request, response) => {
+  if (request.method !== "GET") {
+    response.status(405).send("Method Not Allowed");
+    return;
+  }
+  const clientKey = resolveTikTokClientKey();
+  const redirectUri = resolveTikTokRedirectUri();
+  const scopes = resolveTikTokOauthScopes();
+  if (!clientKey || !redirectUri) {
+    response.status(500).json({
+      ok: false,
+      error: "tiktok_oauth_not_configured",
+      hint: "Set TIKTOK_CLIENT_KEY and TIKTOK_REDIRECT_URI env vars.",
+    });
+    return;
+  }
+  const uid = nonEmptyString(request.query.uid || "");
+  const state = crypto.randomBytes(24).toString("hex");
+  const now = Date.now();
+  await admin.firestore().collection(TIKTOK_OAUTH_STATE_COLLECTION).doc(state).set({
+    uid,
+    createdAtMs: now,
+    expiresAtMs: now + (10 * 60 * 1000),
+  });
+  const params = new URLSearchParams({
+    client_key: clientKey,
+    response_type: "code",
+    scope: scopes.join(","),
+    redirect_uri: redirectUri,
+    state,
+  });
+  response.redirect(`https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`);
+});
+
+exports.tiktokOAuthCallback = onRequest({
+  region: "us-central1",
+  timeoutSeconds: 60,
+}, async (request, response) => {
+  if (request.method !== "GET") {
+    response.status(405).send("Method Not Allowed");
+    return;
+  }
+  const code = nonEmptyString(request.query.code || "");
+  const state = nonEmptyString(request.query.state || "");
+  const err = nonEmptyString(request.query.error || "");
+  const errDesc = nonEmptyString(request.query.error_description || "");
+  if (err) {
+    response.status(400).send(`TikTok OAuth failed: ${err}${errDesc ? ` - ${errDesc}` : ""}`);
+    return;
+  }
+  if (!code || !state) {
+    response.status(400).send("Missing code/state.");
+    return;
+  }
+  const stateRef = admin.firestore().collection(TIKTOK_OAUTH_STATE_COLLECTION).doc(state);
+  const stateSnap = await stateRef.get();
+  if (!stateSnap.exists) {
+    response.status(400).send("Invalid OAuth state.");
+    return;
+  }
+  const stateData = stateSnap.data() || {};
+  const expiresAtMs = Number(stateData.expiresAtMs || 0);
+  if (!Number.isFinite(expiresAtMs) || Date.now() > expiresAtMs) {
+    await stateRef.delete().catch(() => null);
+    response.status(400).send("OAuth state expired.");
+    return;
+  }
+  const clientKey = resolveTikTokClientKey();
+  const clientSecret = resolveTikTokClientSecret();
+  const redirectUri = resolveTikTokRedirectUri();
+  if (!clientKey || !clientSecret || !redirectUri) {
+    response.status(500).send("TikTok OAuth config missing (client key/secret/redirect).");
+    return;
+  }
+  try {
+    const tokenData = await exchangeTikTokAuthorizationCode({
+      clientKey,
+      clientSecret,
+      redirectUri,
+      code,
+    });
+    const uid = nonEmptyString(stateData.uid || "");
+    await admin.firestore().collection(TIKTOK_OAUTH_TOKEN_COLLECTION).doc(TIKTOK_OAUTH_TOKEN_DOCUMENT).set({
+      platform: "tiktok",
+      accessToken: nonEmptyString(tokenData.access_token),
+      refreshToken: nonEmptyString(tokenData.refresh_token),
+      tokenType: nonEmptyString(tokenData.token_type),
+      scope: nonEmptyString(tokenData.scope),
+      openId: nonEmptyString(tokenData.open_id),
+      expiresInSec: Number(tokenData.expires_in || 0) || 0,
+      refreshExpiresInSec: Number(tokenData.refresh_expires_in || 0) || 0,
+      connectedUid: uid || "",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+    await stateRef.delete().catch(() => null);
+    response.status(200).send("TikTok verbunden. Du kannst das Fenster schliessen.");
+  } catch (error) {
+    logger.error("TikTok OAuth callback failed.", {
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+    response.status(500).send("TikTok OAuth token exchange failed.");
+  }
+});
+
+async function exchangeTikTokAuthorizationCode({
+  clientKey,
+  clientSecret,
+  redirectUri,
+  code,
+}) {
+  const body = new URLSearchParams({
+    client_key: clientKey,
+    client_secret: clientSecret,
+    code,
+    grant_type: "authorization_code",
+    redirect_uri: redirectUri,
+  });
+  const c = new AbortController();
+  const timer = setTimeout(() => c.abort(), 15_000);
+  try {
+    const res = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
+      method: "POST",
+      signal: c.signal,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: body.toString(),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json || json.error) {
+      throw new Error(`tiktok_oauth_exchange_failed:${res.status}`);
+    }
+    return json;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 exports.createReminderFromWorkflow = onRequest({
   region: "us-central1",
@@ -14986,6 +15157,15 @@ function normalizeSocialHandle(value) {
   return trimTextMax(raw.replace(/^@+/, "").replace(/\s+/g, ""), 120).toLowerCase();
 }
 
+function normalizeSpotifyReference(value) {
+  const raw = nonEmptyString(value) || "";
+  if (!raw) {
+    return "";
+  }
+  // Spotify refs can be URL/URI/ID/query and may be case-sensitive (base62 IDs).
+  return trimTextMax(raw.replace(/^@+/, "").trim(), 240);
+}
+
 const SOCIAL_PLATFORM_ORDER = Object.freeze([
   "instagram",
   "tiktok",
@@ -15001,7 +15181,7 @@ function normalizeSocialProfiles(value = {}) {
     tiktok: normalizeSocialHandle(source.tiktok || source.tiktokHandle),
     youtube: normalizeSocialHandle(source.youtube || source.youtubeHandle || source.youtubeChannel),
     facebook: normalizeSocialHandle(source.facebook || source.facebookHandle),
-    spotify: normalizeSocialHandle(source.spotify || source.spotifyHandle),
+    spotify: normalizeSpotifyReference(source.spotify || source.spotifyHandle),
   };
 }
 
@@ -15015,13 +15195,15 @@ function extractSocialProfilesFromPrompt(prompt = "") {
     tiktok: /(?:tiktok|tt)\s*[:=]\s*@?([a-z0-9._-]{2,60})/i,
     youtube: /(?:youtube|yt)\s*[:=]\s*@?([a-z0-9._-]{2,80})/i,
     facebook: /(?:facebook|fb)\s*[:=]\s*@?([a-z0-9._-]{2,80})/i,
-    spotify: /(?:spotify|sp)\s*[:=]\s*@?([a-z0-9._-]{2,100})/i,
+    spotify: /(?:spotify|sp)\s*[:=]\s*([^\n\r]{2,240})/i,
   };
   const extracted = {};
   for (const [platform, pattern] of Object.entries(patterns)) {
     const match = text.match(pattern);
     if (match && match[1]) {
-      const normalized = normalizeSocialHandle(match[1]);
+      const normalized = platform === "spotify" ?
+        normalizeSpotifyReference(match[1]) :
+        normalizeSocialHandle(match[1]);
       if (normalized) {
         extracted[platform] = normalized;
       }
@@ -15054,7 +15236,7 @@ function normalizeSocialSetupInput(value = {}) {
     facebookEnabled: source.facebookEnabled === true,
     facebookHandle: normalizeSocialHandle(source.facebookHandle),
     spotifyEnabled: source.spotifyEnabled === true,
-    spotifyHandle: normalizeSocialHandle(source.spotifyHandle),
+    spotifyHandle: normalizeSpotifyReference(source.spotifyHandle),
   };
   return {
     ...setup,
@@ -15100,10 +15282,12 @@ function buildSocialProfileContextBlockForPrompt({
   spotifyCatalogSummary = "",
   youtubeCatalogSummary = "",
   instagramGraphSummary = "",
+  tiktokPublicSummary = "",
 } = {}) {
   const spotifyEnriched = nonEmptyString(spotifyCatalogSummary) || "";
   const youtubeEnriched = nonEmptyString(youtubeCatalogSummary) || "";
   const instagramEnriched = nonEmptyString(instagramGraphSummary) || "";
+  const tiktokEnriched = nonEmptyString(tiktokPublicSummary) || "";
   const profiles = normalizeSocialProfiles(socialProfiles);
   const handlesLine = SOCIAL_PLATFORM_ORDER
       .map((platform) => {
@@ -15112,6 +15296,9 @@ function buildSocialProfileContextBlockForPrompt({
           return "";
         }
         const label = SOCIAL_PLATFORM_LABELS_DE[platform] || platform;
+        if (platform === "spotify") {
+          return `${label}: ${handle}`;
+        }
         return `${label}: @${handle}`;
       })
       .filter(Boolean);
@@ -15129,7 +15316,7 @@ function buildSocialProfileContextBlockForPrompt({
         .join(", ");
     lines.push("Ausgewaehlt, aber ohne Handle: " + miss + ". Weise knapp darauf hin.");
   }
-  if (!handlesLine.length && !missing.length && !spotifyEnriched && !youtubeEnriched && !instagramEnriched) {
+  if (!handlesLine.length && !missing.length && !spotifyEnriched && !youtubeEnriched && !instagramEnriched && !tiktokEnriched) {
     return "";
   }
   const baseBlock = trimTextMax(
@@ -15146,7 +15333,48 @@ function buildSocialProfileContextBlockForPrompt({
   if (instagramEnriched) {
     out = `${out}\n\n---\nInstagram (Meta)\n${instagramEnriched}\n---\n`;
   }
+  if (tiktokEnriched) {
+    out = `${out}\n\n---\nTikTok (oeffentliches Profil)\n${tiktokEnriched}\n---\n`;
+  }
   return trimTextMax(out, 6000);
+}
+
+function resolveTikTokClientKey() {
+  return nonEmptyString(process.env.TIKTOK_CLIENT_KEY) || "";
+}
+
+function resolveTikTokClientSecret() {
+  return nonEmptyString(process.env.TIKTOK_CLIENT_SECRET) || "";
+}
+
+function resolveTikTokRedirectUri() {
+  const explicit = nonEmptyString(process.env.TIKTOK_REDIRECT_URI) || "";
+  if (explicit) {
+    return explicit;
+  }
+  return "https://us-central1-skydown-a6add.cloudfunctions.net/tiktokOAuthCallback";
+}
+
+function resolveTikTokOauthScopes() {
+  const raw = nonEmptyString(process.env.TIKTOK_OAUTH_SCOPES) || "user.info.profile,user.info.stats,video.list";
+  return raw.split(/[,\s]+/).map((s) => nonEmptyString(s)).filter(Boolean);
+}
+
+async function loadTikTokAccessTokenForAgent() {
+  const envToken = nonEmptyString(process.env.TIKTOK_USER_ACCESS_TOKEN) || "";
+  if (envToken) {
+    return envToken;
+  }
+  try {
+    const snap = await admin.firestore().collection(TIKTOK_OAUTH_TOKEN_COLLECTION).doc(TIKTOK_OAUTH_TOKEN_DOCUMENT).get();
+    if (!snap.exists) {
+      return "";
+    }
+    const data = snap.data() || {};
+    return nonEmptyString(data.accessToken) || "";
+  } catch {
+    return "";
+  }
 }
 
 async function resolveAgentSocialProfileStateForRequest({
@@ -16467,6 +16695,22 @@ exports.skydownAgent = onCall({
       });
     }
   }
+  let tiktokPublicSummary = "";
+  const tiktokHandleForEnrichment = nonEmptyString(resolvedSocialState.socialProfiles.tiktok) || "";
+  if (tiktokHandleForEnrichment) {
+    try {
+      const tiktokAccessToken = await loadTikTokAccessTokenForAgent();
+      tiktokPublicSummary = await fetchTikTokHandlePublicSummary({
+        handle: tiktokHandleForEnrichment,
+        accessToken: tiktokAccessToken,
+      });
+    } catch (error) {
+      logger.warn("TikTok Kontext-Anreicherung fehlgeschlagen.", {
+        error: error instanceof Error ? error.message : `${error}`,
+        uid: request.auth?.uid || null,
+      });
+    }
+  }
   const socialContextBlock = buildSocialProfileContextBlockForPrompt({
     socialProfiles: resolvedSocialState.socialProfiles,
     socialSelectedPlatforms: resolvedSocialState.socialSelectedPlatforms,
@@ -16474,6 +16718,7 @@ exports.skydownAgent = onCall({
     spotifyCatalogSummary,
     youtubeCatalogSummary,
     instagramGraphSummary,
+    tiktokPublicSummary,
   });
   const workspaceContextForLlm = trimTextMax(
       `${nonEmptyString(workspaceContext) || ""}${socialContextBlock}`,
@@ -16681,6 +16926,7 @@ exports.skydownAgent = onCall({
             spotifyPublicCatalogSummary: nonEmptyString(spotifyCatalogSummary) || "",
             youtubePublicCatalogSummary: nonEmptyString(youtubeCatalogSummary) || "",
             instagramPublicGraphSummary: nonEmptyString(instagramGraphSummary) || "",
+            tiktokPublicSummary: nonEmptyString(tiktokPublicSummary) || "",
           },
         });
         automation = {

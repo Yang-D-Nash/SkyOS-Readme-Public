@@ -25,6 +25,7 @@ data class AgentPendingQueueEntry(
 object AgentPendingQueueStore {
     private const val preferencesName = "agent_pending_queue"
     private const val entriesKey = "entries"
+    private const val socialSetupPrefix = "social_setup_"
     private const val maximumEntries = 80
     private const val maximumAgeMillis = 14L * 24L * 60L * 60L * 1000L
 
@@ -70,6 +71,55 @@ object AgentPendingQueueStore {
 
     fun clearEntriesForSession(userKey: String?, sessionId: String?) {
         saveEntriesForSession(userKey, sessionId, emptyList())
+    }
+
+    fun saveSocialSetupDraft(userKey: String?, socialSetup: AgentSocialSetupInput) {
+        check(::sharedPreferences.isInitialized) {
+            "AgentPendingQueueStore.initialize(context) must be called before writing."
+        }
+        val key = socialSetupKey(userKey)
+        sharedPreferences.edit()
+            .putString(
+                key,
+                JSONObject()
+                    .put("socialInstagramEnabled", socialSetup.instagramEnabled)
+                    .put("socialInstagramHandle", socialSetup.instagramHandle)
+                    .put("socialTiktokEnabled", socialSetup.tiktokEnabled)
+                    .put("socialTiktokHandle", socialSetup.tiktokHandle)
+                    .put("socialYoutubeEnabled", socialSetup.youtubeEnabled)
+                    .put("socialYoutubeHandle", socialSetup.youtubeHandle)
+                    .put("socialFacebookEnabled", socialSetup.facebookEnabled)
+                    .put("socialFacebookHandle", socialSetup.facebookHandle)
+                    .put("socialSpotifyEnabled", socialSetup.spotifyEnabled)
+                    .put("socialSpotifyHandle", socialSetup.spotifyHandle)
+                    .toString(),
+            )
+            .apply()
+    }
+
+    fun loadSocialSetupDraft(userKey: String?): AgentSocialSetupInput {
+        check(::sharedPreferences.isInitialized) {
+            "AgentPendingQueueStore.initialize(context) must be called before reading."
+        }
+        val raw = sharedPreferences.getString(socialSetupKey(userKey), null).orEmpty()
+        if (raw.isBlank()) {
+            return AgentSocialSetupInput()
+        }
+        return runCatching {
+            val o = JSONObject(raw)
+            AgentSocialSetupInput(
+                instagramEnabled = o.optBoolean("socialInstagramEnabled", false),
+                instagramHandle = o.optString("socialInstagramHandle").trim(),
+                tiktokEnabled = o.optBoolean("socialTiktokEnabled", false),
+                tiktokHandle = o.optString("socialTiktokHandle").trim(),
+                youtubeEnabled = o.optBoolean("socialYoutubeEnabled", false),
+                youtubeHandle = o.optString("socialYoutubeHandle").trim(),
+                facebookEnabled = o.optBoolean("socialFacebookEnabled", false),
+                facebookHandle = o.optString("socialFacebookHandle").trim(),
+                spotifyEnabled = o.optBoolean("socialSpotifyEnabled", false),
+                spotifyHandle = o.optString("socialSpotifyHandle").trim(),
+            )
+        }.getOrDefault(AgentSocialSetupInput())
     }
 
     private fun pruneExpiredEntries() {
@@ -239,5 +289,9 @@ object AgentPendingQueueStore {
 
     private fun normalizeSessionId(sessionId: String?): String {
         return sessionId?.trim().orEmpty()
+    }
+
+    private fun socialSetupKey(userKey: String?): String {
+        return socialSetupPrefix + normalizeUserKey(userKey)
     }
 }

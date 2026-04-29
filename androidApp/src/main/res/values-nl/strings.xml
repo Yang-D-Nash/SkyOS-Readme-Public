@@ -2066,4 +2066,21 @@ Message:
     <string name="settings_owner_inspiration_title_placeholder">e.g. Midnight Street Capsule</string>
     <string name="settings_owner_inspiration_unpublish_all">Unpublish all</string>
 
+    <!-- sync_localizations -->
+    <string name="agent_social_provider_status_lines">YouTube and TikTok are live. Instagram can fall back until Meta Graph scopes are approved. Spotify may be restricted by provider policy even with valid keys.</string>
+    <string name="agent_social_provider_status_title">Current provider status</string>
+    <string name="agent_social_scope_workaround_hint">Scope workaround: keep TikTok/YouTube enabled for live data, use Instagram handle context when scopes are blocked, and enter Spotify as reference input.</string>
+
+    <!-- sync_localizations -->
+    <string name="agent_social_spotify_helper">Premium UX tip: Spotify references work without @handle. Example: spotify:artist:1Xyo4u8uXC1ZmMpatF05PJ</string>
+
+    <!-- sync_localizations -->
+    <string name="agent_social_badge_instagram_fallback">Instagram FALLBACK</string>
+    <string name="agent_social_badge_spotify_restricted">Spotify RESTRICTED</string>
+    <string name="agent_social_badge_tiktok_live">TikTok LIVE</string>
+    <string name="agent_social_badge_youtube_live">YouTube LIVE</string>
+
+    <!-- sync_localizations -->
+    <string name="agent_social_reset">Reset</string>
+
 </resources>

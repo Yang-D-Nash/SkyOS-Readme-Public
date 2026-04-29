@@ -1,3 +1,4 @@
 node_modules/
 .env.meta.local
 .env.meta
+.env.tiktok.local

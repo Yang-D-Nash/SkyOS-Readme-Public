@@ -134,6 +134,7 @@
 "settings.legal.subscription_terms" = "Subscription terms";
 "settings.legal.ai_usage" = "AI usage notice";
 "settings.legal.imprint" = "Imprint / company info";
+"settings.legal.skydown_link_cta" = "Open Skydown link";
 "policy.title.agb" = "Terms & Conditions (AGB)";
 "policy.title.privacy" = "Privacy policy";
 "policy.title.termsOfService" = "Terms of use";
@@ -468,6 +469,9 @@
 "home.utility.settings" = "Settings";
 "home.explore.title" = "Open";
 "home.explore.subtitle" = "Music, videos, merch, settings.";
+"home.artist_links.title" = "Artist links";
+"home.artist_links.instagram" = "Instagram";
+"home.artist_links.spotify" = "Spotify";
 "home.content_signal.new_drop" = "New drop active: %@";
 "home.content_signal.video_activity" = "Video activity: %@";
 "home.federated.content" = "Content: %@";
@@ -743,6 +747,15 @@
 "agent.section.social" = "Social setup";
 "agent.section.social.footnote" = "Optional: only enable the platforms to analyse now.";
 "agent.social.handles.explainer" = "Only enabled channels are included. You can use @handles — @ is normalized on send.";
+"agent.social.provider.status.title" = "Current provider status";
+"agent.social.provider.status.lines" = "YouTube and TikTok are live. Instagram can fall back until Meta Graph scopes are approved. Spotify may be restricted by provider policy even with valid keys.";
+"agent.social.scope.workaround" = "Scope workaround: keep TikTok/YouTube enabled for live data, use Instagram handle context when scopes are blocked, and enter Spotify as reference input.";
+"agent.social.spotify.helper" = "Premium UX tip: Spotify references work without @handle. Example: spotify:artist:1Xyo4u8uXC1ZmMpatF05PJ";
+"agent.social.badge.youtube_live" = "YouTube LIVE";
+"agent.social.badge.tiktok_live" = "TikTok LIVE";
+"agent.social.badge.instagram_fallback" = "Instagram FALLBACK";
+"agent.social.badge.spotify_restricted" = "Spotify RESTRICTED";
+"agent.social.reset" = "Reset";
 "agent.section.input" = "Input";
 "agent.section.input.footnote" = "Task, expectation, links. One clear sentence is often enough.";
 "agent.section.attachments" = "Attachments";
@@ -827,6 +840,9 @@
 "music.hub.section.direct_entry" = "Direct entry";
 "music.hub.section.artist_links" = "Artist links";
 "music.hub.link.active" = "Active";
+"music.entry.artist_links.title" = "Artist links";
+"music.entry.artist_links.instagram" = "Instagram";
+"music.entry.artist_links.spotify" = "Spotify";
 "ai.hub.badge.agent" = "Agent";
 "ai.hub.badge.visuals" = "Visuals";
 "ai.hub.restricted.title" = "AI is currently disabled";

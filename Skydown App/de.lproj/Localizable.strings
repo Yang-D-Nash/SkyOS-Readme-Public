@@ -134,6 +134,7 @@
 "settings.legal.subscription_terms" = "Abo- und Mitgliedschaftsbedingungen";
 "settings.legal.ai_usage" = "KI-Nutzungshinweis";
 "settings.legal.imprint" = "Impressum / Unternehmen";
+"settings.legal.skydown_link_cta" = "Skydown-Link oeffnen";
 "policy.title.agb" = "AGB (Allgemeine Geschaeftsbedingungen)";
 "policy.title.privacy" = "Datenschutzerklaerung";
 "policy.title.termsOfService" = "Nutzungsbedingungen";
@@ -468,6 +469,9 @@
 "home.utility.settings" = "Einstellungen";
 "home.explore.title" = "Oeffnen";
 "home.explore.subtitle" = "Musik, Videos, Merch, Einstellungen.";
+"home.artist_links.title" = "Artist-Links";
+"home.artist_links.instagram" = "Instagram";
+"home.artist_links.spotify" = "Spotify";
 "home.content_signal.new_drop" = "Neuer Release aktiv: %@";
 "home.content_signal.video_activity" = "Video-Aktivitaet: %@";
 "home.federated.content" = "Inhalt: %@";
@@ -742,6 +746,15 @@
 "agent.section.ideas.footnote" = "Einstiegstexte anpassen und weiterschreiben.";
 "agent.section.social" = "Social Setup";
 "agent.social.handles.explainer" = "Nur aktivierte Kanaele werden eingeordnet. Du darfst @Handles nutzen — @ wird bei der Uebermittlung normalisiert.";
+"agent.social.provider.status.title" = "Aktueller Provider-Status";
+"agent.social.provider.status.lines" = "YouTube und TikTok liefern live Daten. Instagram kann als Fallback laufen, bis Meta-Graph-Scopes freigegeben sind. Spotify kann trotz gueltiger Keys durch Provider-Policy eingeschraenkt sein.";
+"agent.social.scope.workaround" = "Scope-Workaround: TikTok/YouTube fuer Live-Daten aktiv lassen, bei blockierten Scopes Instagram ueber Handle-Kontext nutzen und Spotify als Referenz eingeben.";
+"agent.social.spotify.helper" = "Premium UX Tipp: Spotify-Referenzen funktionieren ohne @Handle. Beispiel: spotify:artist:1Xyo4u8uXC1ZmMpatF05PJ";
+"agent.social.badge.youtube_live" = "YouTube LIVE";
+"agent.social.badge.tiktok_live" = "TikTok LIVE";
+"agent.social.badge.instagram_fallback" = "Instagram FALLBACK";
+"agent.social.badge.spotify_restricted" = "Spotify RESTRICTED";
+"agent.social.reset" = "Zuruecksetzen";
 "agent.section.social.footnote" = "Optional: aktiviere nur die Plattformen, die jetzt analysiert werden sollen.";
 "agent.section.input" = "Eingabe";
 "agent.section.input.footnote" = "Aufgabe, Erwartung, ggf. Links. Ein fester Satz reicht oft.";
@@ -827,6 +840,9 @@
 "music.hub.section.direct_entry" = "Direkter Einstieg";
 "music.hub.section.artist_links" = "Artist Links";
 "music.hub.link.active" = "Aktiv";
+"music.entry.artist_links.title" = "Artist-Links";
+"music.entry.artist_links.instagram" = "Instagram";
+"music.entry.artist_links.spotify" = "Spotify";
 "ai.hub.badge.agent" = "Agent";
 "ai.hub.badge.visuals" = "Visuals";
 "ai.hub.restricted.title" = "KI derzeit gesperrt";

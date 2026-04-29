@@ -68,6 +68,30 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
 
         let documentID = artistPageDocumentID(brand: page.brand, artistName: page.artistName)
         try await firestore.collection(collectionName).document(documentID).setData(payload, merge: true)
+        try await syncMirroredNicmaSocialLinksIfNeeded(page)
+    }
+
+    private func syncMirroredNicmaSocialLinksIfNeeded(_ page: ArtistPage) async throws {
+        guard page.brand == .nicma else { return }
+        let normalizedName = page.artistName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let targetArtistName: String
+        switch normalizedName {
+        case "nicma music":
+            targetArtistName = "NICMA STUDIO"
+        case "nicma studio":
+            targetArtistName = "NICMA MUSIC"
+        default:
+            return
+        }
+
+        let mirroredPayload: [String: Any] = [
+            "instagramURL": page.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? NSNull(),
+            "spotifyURL": page.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? NSNull(),
+            "youtubeURL": page.youtubeURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? NSNull(),
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+        let targetDocumentID = artistPageDocumentID(brand: .nicma, artistName: targetArtistName)
+        try await firestore.collection(collectionName).document(targetDocumentID).setData(mirroredPayload, merge: true)
     }
 
     private static func firstURLString(_ data: [String: Any], _ keys: String...) -> String? {

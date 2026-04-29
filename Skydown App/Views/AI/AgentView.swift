@@ -105,6 +105,9 @@ struct AgentView: View {
                         showingAttachmentImporter = true
                     }
                 },
+                onResetSocialSetup: {
+                    viewModel.resetSocialSetup()
+                },
                 onRemoveAttachment: removeAttachment,
                 onClearAttachments: { inputAttachments.removeAll() },
                 onSend: {
@@ -1670,6 +1673,7 @@ private struct AgentPromptComposerSheet: View {
     let quickPrompts: [String]
     let onDismiss: () -> Void
     let onAddFiles: () -> Void
+    let onResetSocialSetup: () -> Void
     let onRemoveAttachment: (AgentInputAttachment) -> Void
     let onClearAttachments: () -> Void
     let onSend: () -> Void
@@ -1845,21 +1849,80 @@ private struct AgentPromptComposerSheet: View {
 
                 if shouldShowSocialSetupCard {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                        PremiumPromptSectionHeader(
-                            title: AppLocalized.text("agent.section.social", fallback: "Social setup"),
-                            footnote: AppLocalized.text("agent.section.social.footnote", fallback: "Optional: only enable the platforms to analyse now."),
-                            accent: agentAccent,
-                            colorScheme: colorScheme
-                        )
+                        HStack(alignment: .center) {
+                            PremiumPromptSectionHeader(
+                                title: AppLocalized.text("agent.section.social", fallback: "Social setup"),
+                                footnote: AppLocalized.text("agent.section.social.footnote", fallback: "Optional: only enable the platforms to analyse now."),
+                                accent: agentAccent,
+                                colorScheme: colorScheme
+                            )
+                            Spacer()
+                            Button(AppLocalized.text("agent.social.reset", fallback: "Reset")) {
+                                onResetSocialSetup()
+                            }
+                            .font(.caption.weight(.semibold))
+                        }
                         PremiumPromptCard(colorScheme: colorScheme) {
                             Text(
                                 AppLocalized.text(
                                     "agent.social.handles.explainer",
-                                    fallback: "Only enabled channels are included. You can use @handles — @ is normalized on send."
+                                    fallback: "Only enabled channels are included. Instagram/TikTok/YouTube/Meta use handles. Spotify uses a reference (URI, artist URL, artist ID, or search text)."
                                 )
                             )
                             .font(.caption)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                            Text(
+                                AppLocalized.text(
+                                    "agent.social.provider.status.title",
+                                    fallback: "Current provider status"
+                                )
+                            )
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AppColors.text(for: colorScheme).opacity(0.82))
+
+                            Text(
+                                AppLocalized.text(
+                                    "agent.social.provider.status.lines",
+                                    fallback: "YouTube and TikTok are live. Instagram can fall back until Meta Graph scopes are approved. Spotify may be restricted by provider policy even with valid keys."
+                                )
+                            )
+                            .font(.caption)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                            Text(
+                                AppLocalized.text(
+                                    "agent.social.scope.workaround",
+                                    fallback: "Scope workaround: keep TikTok/YouTube enabled for live data, use Instagram handle context when scopes are blocked, and enter Spotify as reference input."
+                                )
+                            )
+                            .font(.caption)
+                            .foregroundColor(agentAccent.opacity(0.9))
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    AgentStatusChip(
+                                        text: AppLocalized.text("agent.social.badge.youtube_live", fallback: "YouTube LIVE"),
+                                        accent: AppColors.accent(for: colorScheme),
+                                        colorScheme: colorScheme
+                                    )
+                                    AgentStatusChip(
+                                        text: AppLocalized.text("agent.social.badge.tiktok_live", fallback: "TikTok LIVE"),
+                                        accent: AppColors.accent(for: colorScheme),
+                                        colorScheme: colorScheme
+                                    )
+                                    AgentStatusChip(
+                                        text: AppLocalized.text("agent.social.badge.instagram_fallback", fallback: "Instagram FALLBACK"),
+                                        accent: AppColors.accentMystic(for: colorScheme),
+                                        colorScheme: colorScheme
+                                    )
+                                    AgentStatusChip(
+                                        text: AppLocalized.text("agent.social.badge.spotify_restricted", fallback: "Spotify RESTRICTED"),
+                                        accent: AppColors.secondaryText(for: colorScheme),
+                                        colorScheme: colorScheme
+                                    )
+                                }
+                            }
 
                             Toggle(isOn: $socialInstagramEnabled) {
                                 Text(AppLocalized.text("agent.platform.instagram", fallback: "Instagram"))
@@ -1933,10 +1996,18 @@ private struct AgentPromptComposerSheet: View {
                             if socialSpotifyEnabled {
                                 SocialHandleTextField(
                                     colorScheme: colorScheme,
-                                    accessibilityLabel: AppLocalized.text("agent.a11y.spotify_handle", fallback: "Artist / profile handle or ID (optional)"),
-                                    placeholder: "@artist oder ID",
+                                    accessibilityLabel: AppLocalized.text("agent.a11y.spotify_handle", fallback: "Spotify reference (URI, URL, ID, or search text, optional)"),
+                                    placeholder: "spotify:artist:... oder open.spotify.com/artist/...",
                                     text: $socialSpotifyHandle
                                 )
+                                Text(
+                                    AppLocalized.text(
+                                        "agent.social.spotify.helper",
+                                        fallback: "Premium UX tip: Spotify references work without @handle. Example: spotify:artist:1Xyo4u8uXC1ZmMpatF05PJ"
+                                    )
+                                )
+                                .font(.caption2)
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             }
                         }
                     }

@@ -150,7 +150,7 @@ struct ArtistPageView: View {
     }
 
     private var topTracks: [Track] {
-        Array(tracksViewModel.tracks.prefix(5))
+        Array(tracksViewModel.tracks.prefix(3))
     }
 
     /// Leer, wenn der Banner allein reicht (Tag zeigt N LIVE).
@@ -171,6 +171,15 @@ struct ArtistPageView: View {
 
     private var spotlightTrack: Track? {
         tracksViewModel.tracks.first { $0.trackId == selectedTrackID } ?? tracksViewModel.tracks.first
+    }
+
+    private var nowPlayingTrack: Track? {
+        guard let currentId = audioManager.currentlyPlayingId else { return nil }
+        return tracksViewModel.tracks.first { $0.trackId == currentId }
+    }
+
+    private var miniBarTrack: Track? {
+        nowPlayingTrack ?? spotlightTrack
     }
 
     private var linkCount: Int {
@@ -242,6 +251,16 @@ struct ArtistPageView: View {
                 .padding(.bottom, SkydownLayout.screenBottomPadding)
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
+            .safeAreaInset(edge: .bottom) {
+                if let miniBarTrack {
+                    nowPlayingMiniBar(
+                        track: miniBarTrack,
+                        isPlaying: audioManager.currentlyPlayingId == miniBarTrack.trackId
+                    )
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        .padding(.bottom, 54)
+                }
+            }
             .navigationTitle(displayPage.artistName)
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
@@ -342,6 +361,122 @@ struct ArtistPageView: View {
         ) { _ in
             heroVideoPlayer.seek(to: .zero)
             heroVideoPlayer.play()
+        }
+    }
+
+    private func nowPlayingMiniBar(track: Track, isPlaying: Bool) -> some View {
+        HStack(spacing: SkydownLayout.stackSpacingCompact) {
+            ArtistEqualizerPulse(
+                isActive: isPlaying,
+                tint: AppColors.spotify(for: colorScheme)
+            )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Now Playing")
+                    .font(.caption2.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                Text(track.trackName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+
+            if let spotifyURL = spotifyURL(for: track) {
+                Link(destination: spotifyURL) {
+                    Image(systemName: "arrow.up.forward")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.spotify(for: colorScheme))
+                        .padding(8)
+                        .background(
+                            Circle()
+                                .fill(AppColors.spotifySurface(for: colorScheme))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+
+            Button {
+                selectedTrackID = track.trackId
+                audioManager.playPreview(for: track)
+            } label: {
+                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.spotify(for: colorScheme))
+                    .padding(8)
+                    .background(
+                        Circle()
+                            .fill(AppColors.spotifySurface(for: colorScheme))
+                    )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                audioManager.stop()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .padding(8)
+                    .background(
+                        Circle()
+                            .fill(AppColors.secondaryBackground(for: colorScheme))
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
+                .fill(AppColors.cardBackground(for: colorScheme).opacity(0.96))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
+                .stroke(AppColors.spotify(for: colorScheme).opacity(0.24), lineWidth: 1)
+        )
+    }
+
+    private func spotifyURL(for track: Track) -> URL? {
+        if let trackID = track.spotifyTrackID?.trimmingCharacters(in: .whitespacesAndNewlines), !trackID.isEmpty {
+            return URL(string: "https://open.spotify.com/track/\(trackID)")
+        }
+        if let artistID = track.spotifyArtistID?.trimmingCharacters(in: .whitespacesAndNewlines), !artistID.isEmpty {
+            return URL(string: "https://open.spotify.com/artist/\(artistID)")
+        }
+        if let external = track.externalURL?.trimmingCharacters(in: .whitespacesAndNewlines), external.contains("spotify.com") {
+            return URL(string: external)
+        }
+        return nil
+    }
+
+    private struct ArtistEqualizerPulse: View {
+        let isActive: Bool
+        let tint: Color
+        @State private var animate = false
+
+        var body: some View {
+            HStack(spacing: 2) {
+                ForEach(0..<3, id: \.self) { index in
+                    Capsule(style: .continuous)
+                        .fill(tint.opacity(isActive ? 0.9 : 0.45))
+                        .frame(width: 3, height: 12)
+                        .scaleEffect(
+                            y: isActive
+                                ? (animate ? 1.2 - CGFloat(index) * 0.15 : 0.55 + CGFloat(index) * 0.1)
+                                : 0.65
+                        )
+                        .animation(
+                            isActive
+                                ? .easeInOut(duration: 0.45).repeatForever(autoreverses: true).delay(Double(index) * 0.08)
+                                : .easeOut(duration: 0.2),
+                            value: animate
+                        )
+                }
+            }
+            .frame(width: 16, height: 14, alignment: .center)
+            .onAppear { animate = true }
         }
     }
 
@@ -837,7 +972,7 @@ struct ArtistPageView: View {
             )
 
             Text(displayPage.tagline ?? "\(displayPage.artistName) auf \(brand.displayTitle) entdecken.")
-                .font(.title3.weight(.bold))
+                .font(.title3.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             if let spotlightTrack {
@@ -918,15 +1053,11 @@ struct ArtistPageView: View {
                 )
             } else {
                 ForEach(Array(topTracks.enumerated()), id: \.1.trackId) { index, track in
-                    TrackView(
-                        track: track,
-                        audioManager: audioManager,
-                        isSelected: selectedTrackID == track.trackId,
-                        onSelect: {
-                            selectedTrackID = track.trackId
-                        },
-                        presentation: index == 0 ? .featured : (index == 1 ? .secondary : .catalog)
-                    )
+                    minimalTrackRow(track: track)
+                    if index < topTracks.count - 1 {
+                        Divider()
+                            .overlay(AppColors.secondaryText(for: colorScheme).opacity(0.16))
+                    }
                 }
             }
         }
@@ -936,6 +1067,42 @@ struct ArtistPageView: View {
             accent: AppColors.accent(for: colorScheme),
             cornerRadius: SkydownLayout.cardCornerRadius
         )
+    }
+
+    private func minimalTrackRow(track: Track) -> some View {
+        let isSelected = selectedTrackID == track.trackId
+        return Button {
+            selectedTrackID = track.trackId
+            audioManager.playPreview(for: track)
+        } label: {
+            HStack(spacing: SkydownLayout.stackSpacingCompact) {
+                AsyncImage(url: URL(string: track.artworkUrl100 ?? "")) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    RoundedRectangle(cornerRadius: SkydownLayout.microCorner, style: .continuous)
+                        .fill(AppColors.secondaryBackground(for: colorScheme))
+                }
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.microCorner, style: .continuous))
+
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
+                    Text(track.trackName)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .lineLimit(1)
+                    Text(track.collectionName ?? displayPage.artistName)
+                        .font(.caption)
+                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: isSelected ? "speaker.wave.2.fill" : "play.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.spotify(for: colorScheme).opacity(isSelected ? 1 : 0.8))
+            }
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.plain)
     }
 
     private var linksCard: some View {
@@ -1170,7 +1337,7 @@ struct ArtistPageView: View {
                     title: "Instagram",
                     subtitle: pageForConnect.artistName,
                     url: instagramURL,
-                    systemImage: "camera.fill",
+                    systemImage: "camera.circle.fill",
                     tint: AppColors.instagramStart(for: colorScheme),
                     backgroundColor: AppColors.instagramStart(for: colorScheme),
                     foregroundColor: .white

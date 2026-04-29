@@ -5197,6 +5197,17 @@ fun SettingsScreen(
                             modifier = Modifier.padding(top = 12.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
+                        OutlinedButton(
+                            onClick = {
+                                openExternalLink(context, "https://www.instagram.com/skydown_entertainment/")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp),
+                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                        ) {
+                            Text(stringResource(R.string.settings_legal_skydown_link_cta))
+                        }
                         Button(
                             onClick = {
                                 openSupportEmail(

@@ -28,6 +28,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ArrowOutward
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -53,8 +55,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
@@ -413,6 +417,7 @@ private fun StaggeredArtistEinstiegRow(
     selected: Boolean,
     onOpen: () -> Unit,
 ) {
+    val context = LocalContext.current
     var rowShown by remember(artist) { mutableStateOf(false) }
     LaunchedEffect(listStaggerKey) {
         if (listStaggerKey) {
@@ -434,6 +439,7 @@ private fun StaggeredArtistEinstiegRow(
     val liftPx = with(LocalDensity.current) { 10.dp.toPx() }
     val interaction = remember(artist) { MutableInteractionSource() }
     val accent = musicCatalogEntryAccent(artist, colorScheme)
+    val instagramUrl = musicInstagramUrlForArtist(artist)
     val isDark = colorScheme.skydownIsDarkPalette()
     val background = if (selected) {
         accent.copy(alpha = if (isDark) 0.22f else 0.14f)
@@ -461,30 +467,90 @@ private fun StaggeredArtistEinstiegRow(
         color = background,
         border = BorderStroke(1.dp, accent.copy(alpha = borderAlpha)),
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 46.dp)
                 .padding(horizontal = 12.dp, vertical = 11.dp),
-            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick),
         ) {
-            Icon(
-                imageVector = Icons.Default.ArrowOutward,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = if (selected) accent else colorScheme.onSurface,
-            )
             Text(
                 text = artist,
-                modifier = Modifier.weight(1f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = colorScheme.onSurface,
                 style = SkydownMusicArtistNameTextStyle,
             )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+            ) {
+                MusicEinstiegActionButton(
+                    label = "Artist Page",
+                    icon = if (selected) Icons.Default.Person else Icons.Default.ArrowOutward,
+                    tint = accent,
+                    modifier = Modifier.weight(1f),
+                    selected = selected,
+                    onClick = onOpen,
+                )
+                MusicEinstiegActionButton(
+                    label = "Instagram",
+                    icon = Icons.Default.PhotoCamera,
+                    tint = colorScheme.skydownAccentHighlight(),
+                    modifier = Modifier.weight(1f),
+                    selected = false,
+                    onClick = {
+                        instagramUrl?.let { openExternalLink(context, it) }
+                    },
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun MusicEinstiegActionButton(
+    label: String,
+    icon: ImageVector,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
+        color = if (selected) tint.copy(alpha = 0.14f) else MaterialTheme.colorScheme.skydownSecondaryBackground(),
+        border = BorderStroke(1.dp, tint.copy(alpha = if (selected) 0.45f else 0.28f)),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 9.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = tint)
+            Text(
+                text = label,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.labelMedium,
+                color = tint,
+            )
+        }
+    }
+}
+
+private fun musicInstagramUrlForArtist(artist: String): String? = when (artist) {
+    "JANNO" -> "https://www.instagram.com/janno_official_/"
+    "Yang D. Nash" -> "https://www.instagram.com/y.d.nash/"
+    "ThaDude" -> "https://www.instagram.com/thadude_offizielle/"
+    "MAVE" -> "https://www.instagram.com/mave040_official/"
+    "TANGAJOE007" -> "https://www.instagram.com/tangajoe007/"
+    "Zweizwei", "22 Music" -> "https://www.instagram.com/zweizwei_music/"
+    "Skydown" -> "https://www.instagram.com/skydown_entertainment/"
+    else -> null
 }
 
 private fun musicCatalogEntryAccent(artist: String, colorScheme: ColorScheme): Color = when (artist) {

@@ -129,3 +129,135 @@ extension View {
         modifier(HomeRevealModifier(order: order))
     }
 }
+
+struct HomeArtistSocialLinksRow: View {
+    let colorScheme: ColorScheme
+    let onOpenArtistPage: (String) -> Void
+
+    private struct ArtistSocialEntry: Identifiable {
+        let id: String
+        let title: String
+        let subtitle: String?
+        let instagramURL: String
+        let spotifyURL: String?
+    }
+
+    private let entries: [ArtistSocialEntry] = [
+        ArtistSocialEntry(
+            id: "yang-d-nash",
+            title: "Yang D. Nash",
+            subtitle: "Inhaber / Betreiber",
+            instagramURL: "https://www.instagram.com/y.d.nash/",
+            spotifyURL: nil
+        ),
+        ArtistSocialEntry(
+            id: "zweizwei",
+            title: "Zweizwei",
+            subtitle: nil,
+            instagramURL: "https://www.instagram.com/zweizwei_music/",
+            spotifyURL: nil
+        ),
+        ArtistSocialEntry(
+            id: "skydown",
+            title: "Skydown",
+            subtitle: nil,
+            instagramURL: "https://www.instagram.com/skydown_entertainment/",
+            spotifyURL: nil
+        )
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
+            Text(AppLocalized.text("home.artist_links.title", fallback: "Artist links"))
+                .font(.caption2.weight(.medium))
+                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.44))
+                .textCase(.uppercase)
+
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                ForEach(entries) { entry in
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
+                        Text(entry.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                        if let subtitle = entry.subtitle {
+                            Text(subtitle)
+                                .font(.caption)
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        }
+
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
+                            socialButton(
+                                title: AppLocalized.text("home.artist_links.instagram", fallback: "Instagram"),
+                                icon: "camera.circle.fill",
+                                urlString: entry.instagramURL,
+                                tint: AppColors.accentHighlight(for: colorScheme)
+                            )
+                            artistPageButton(
+                                title: "Artist Page",
+                                icon: "person.crop.circle",
+                                tint: AppColors.accent(for: colorScheme)
+                            ) {
+                                onOpenArtistPage(entry.title)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func socialButton(title: String, icon: String, urlString: String, tint: Color) -> some View {
+        if let url = URL(string: urlString) {
+            Link(destination: url) {
+                HStack(spacing: SkydownLayout.stackSpacingTick) {
+                    Image(systemName: icon)
+                        .font(.caption.weight(.semibold))
+                    Text(title)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
+                        .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.58))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
+                        .stroke(tint.opacity(0.18), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(tint)
+        }
+    }
+
+    private func artistPageButton(title: String, icon: String, tint: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: SkydownLayout.stackSpacingTick) {
+                Image(systemName: icon)
+                    .font(.caption.weight(.semibold))
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
+                    .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.58))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
+                    .stroke(tint.opacity(0.18), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .foregroundColor(tint)
+    }
+
+}
