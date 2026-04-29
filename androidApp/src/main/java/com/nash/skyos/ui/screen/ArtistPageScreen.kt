@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,8 +29,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayCircleFilled
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,7 +37,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -81,6 +77,7 @@ import com.nash.skyos.data.StudioPriceItemUi
 import com.nash.skyos.data.mediaAttributionContext
 import com.nash.skyos.ui.component.BrandArtwork
 import com.nash.skyos.ui.component.BrandHeroCard
+import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.BrandSectionBanner
 import com.nash.skyos.ui.component.EditableImageFieldCard
 import com.nash.skyos.ui.component.EditableVideoFieldCard
@@ -508,13 +505,16 @@ fun ArtistPageScreen(
                 actions = {
                     if (canEdit) {
                         if (isEditing) {
-                            TextButton(
+                            BrandActionButton(
+                                text = stringResource(R.string.common_cancel),
                                 onClick = ::discardEditing,
+                                accent = MaterialTheme.colorScheme.primary,
+                                filled = false,
+                                compact = true,
                                 enabled = !isSaving && !isUploadingAsset,
-                            ) {
-                                Text(stringResource(R.string.common_cancel))
-                            }
-                            Button(
+                            )
+                            BrandActionButton(
+                                text = stringResource(R.string.common_save),
                                 onClick = {
                                     coroutineScope.launch {
                                         isSaving = true
@@ -564,21 +564,11 @@ fun ArtistPageScreen(
                                         }
                                     }
                                 },
+                                accent = MaterialTheme.colorScheme.primary,
+                                compact = true,
                                 enabled = !isSaving && !isUploadingAsset,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-                                    contentColor = MaterialTheme.colorScheme.onSurface,
-                                ),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                            ) {
-                                Text(
-                                    if (isSaving) {
-                                        stringResource(R.string.artist_action_saving)
-                                    } else {
-                                        stringResource(R.string.common_save)
-                                    }
-                                )
-                            }
+                                isLoading = isSaving,
+                            )
                         } else {
                             IconButton(
                                 onClick = ::beginEditing,
@@ -1212,7 +1202,8 @@ private fun ArtistPageLinksCard(
                 }
 
                 secondaryLinks.forEach { link ->
-                    Button(
+                    val linkShape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius)
+                    Surface(
                         onClick = {
                             if (link.kind == ArtistPageLinkKind.YouTube) {
                                 onOpenYouTube(
@@ -1229,6 +1220,7 @@ private fun ArtistPageLinksCard(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clip(linkShape)
                             .background(
                                 brush = Brush.linearGradient(
                                     colors = listOf(
@@ -1239,38 +1231,41 @@ private fun ArtistPageLinksCard(
                                     start = Offset.Zero,
                                     end = Offset.Infinite,
                                 ),
-                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                             ),
-                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent,
-                            contentColor = link.foregroundColor,
-                        ),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                        shape = linkShape,
+                        color = Color.Transparent,
                         border = BorderStroke(1.dp, link.accentColor.copy(alpha = 0.22f)),
                     ) {
-                        Icon(link.icon, contentDescription = null, tint = link.accentColor)
-                        Column(
+                        Row(
                             modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 10.dp),
-                            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = link.title,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                text = link.subtitle,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = link.foregroundColor.copy(alpha = 0.74f),
+                            Icon(link.icon, contentDescription = null, tint = link.accentColor)
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 10.dp),
+                                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
+                            ) {
+                                Text(
+                                    text = link.title,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = link.foregroundColor,
+                                )
+                                Text(
+                                    text = link.subtitle,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = link.foregroundColor.copy(alpha = 0.74f),
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.52f),
                             )
                         }
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.52f),
-                        )
                     }
                 }
             }

@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,15 +31,12 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PermMedia
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -54,6 +50,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -69,6 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.nash.skyos.R
+import com.nash.skyos.data.AppContainer
 import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownTopBarTitle
@@ -99,6 +97,7 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val legalSettings by AppContainer.legalContentRepository.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var feedbackType by remember { mutableStateOf(ToastType.Info) }
@@ -179,7 +178,7 @@ fun ProfileScreen(
                             openExternalUri(
                                 context = context,
                                 uri = it,
-                                missingMessage = "Instagram konnte nicht geoeffnet werden.",
+                                missingMessage = context.getString(R.string.profile_open_instagram_failed),
                             )
                         }
                     },
@@ -188,7 +187,7 @@ fun ProfileScreen(
                             openExternalUri(
                                 context = context,
                                 uri = it,
-                                missingMessage = "WhatsApp konnte nicht geoeffnet werden.",
+                                missingMessage = context.getString(R.string.profile_open_whatsapp_failed),
                             )
                         }
                     },
@@ -228,14 +227,14 @@ fun ProfileScreen(
                 if (uiState.isUploadingAvatar || uiState.isUploadingMedia) {
                     ProfileUploadStatusCard(
                         title = if (uiState.isUploadingAvatar) {
-                            "Profilbild wird hochgeladen"
+                            stringResource(R.string.profile_upload_avatar_title)
                         } else {
-                            "Galeriebild wird hochgeladen"
+                            stringResource(R.string.profile_upload_gallery_title)
                         },
                         detail = if (uiState.isUploadingAvatar) {
-                            "Dein Avatar wird gerade vorbereitet, hochgeladen und direkt im Profil uebernommen."
+                            stringResource(R.string.profile_upload_avatar_detail)
                         } else {
-                            "Das Bild landet gleich in deiner Galerie und wird danach automatisch angezeigt."
+                            stringResource(R.string.profile_upload_gallery_detail)
                         },
                     )
                 }
@@ -258,7 +257,7 @@ fun ProfileScreen(
                 )
 
                 ProfileTrustCard(
-                    supportEmail = uiState.currentUser?.email.orEmpty(),
+                    supportEmail = legalSettings.resolvedSupportEmail,
                     onSupport = onOpenSettings,
                     onOpenSettings = onOpenSettings,
                 )
@@ -305,28 +304,26 @@ fun ProfileScreen(
                             )
 
                             Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
-                                OutlinedButton(
+                                BrandActionButton(
+                                    text = stringResource(R.string.common_cancel),
                                     onClick = { viewModel.setEditing(false) },
+                                    accent = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f),
+                                    filled = false,
                                     enabled = !uiState.isSavingProfile,
-                                ) {
-                                    Text(stringResource(R.string.common_cancel))
-                                }
-                                Button(
+                                )
+                                BrandActionButton(
+                                    text = if (uiState.isSavingProfile) {
+                                        stringResource(R.string.profile_saving)
+                                    } else {
+                                        stringResource(R.string.common_save)
+                                    },
                                     onClick = viewModel::saveProfile,
+                                    accent = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f),
-                                    enabled = !uiState.isSavingProfile,
-                                ) {
-                                    Icon(Icons.Default.Save, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        if (uiState.isSavingProfile) {
-                                            stringResource(R.string.profile_saving)
-                                        } else {
-                                            stringResource(R.string.common_save)
-                                        },
-                                    )
-                                }
+                                    icon = Icons.Default.Save,
+                                    isLoading = uiState.isSavingProfile,
+                                )
                             }
                         }
                     }
@@ -610,12 +607,13 @@ private fun ProfileDashboardCard(
     uiState: com.nash.skyos.ui.viewmodel.ProfileUiState,
 ) {
     val user = uiState.currentUser
-    val membership = user?.resolvedQuotaPlan?.rawValue?.replace('_', ' ')?.replaceFirstChar { it.uppercase() } ?: "Free"
+    val membership = user?.resolvedQuotaPlan?.rawValue?.replace('_', ' ')?.replaceFirstChar { it.uppercase() }
+        ?: stringResource(R.string.profile_plan_free)
     val aiStatus = when {
-        user == null -> "Gastmodus"
-        !user.aiAccessEnabled -> "KI pausiert"
-        !user.aiSubscriptionProvider.isNullOrBlank() -> "Premium aktiv"
-        else -> "Basis aktiv"
+        user == null -> stringResource(R.string.profile_ai_status_guest)
+        !user.aiAccessEnabled -> stringResource(R.string.profile_ai_status_paused)
+        !user.aiSubscriptionProvider.isNullOrBlank() -> stringResource(R.string.profile_ai_status_premium)
+        else -> stringResource(R.string.profile_ai_status_base)
     }
 
     SkydownCard {
@@ -656,13 +654,13 @@ private fun ProfileQuickActionsCard(
             )
 
             if (canEdit) {
-                Button(
+                BrandActionButton(
+                    text = if (isEditing) stringResource(R.string.profile_done) else stringResource(R.string.profile_edit),
                     onClick = onToggleEdit,
+                    accent = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.fillMaxWidth(),
                     enabled = canTriggerPrimaryActions,
-                ) {
-                    Text(if (isEditing) stringResource(R.string.profile_done) else stringResource(R.string.profile_edit))
-                }
+                )
             }
 
         }
@@ -674,7 +672,7 @@ private fun ProfileHistoryCard(
     uiState: com.nash.skyos.ui.viewmodel.ProfileUiState,
 ) {
     val latest = uiState.filteredItems.maxByOrNull { it.createdAtEpochMillis }?.createdAtEpochMillis
-    val latestLabel = latest?.let { formatProfileDate(it) } ?: "Noch keine Aktivitaet"
+    val latestLabel = latest?.let { formatProfileDate(it) } ?: stringResource(R.string.profile_history_none_yet)
     val memberSince = uiState.currentUser?.registrationDateEpochMillis?.let(::formatProfileDate) ?: "-"
 
     SkydownCard {
@@ -687,7 +685,10 @@ private fun ProfileHistoryCard(
             )
             ProfileHistoryRow(stringResource(R.string.profile_history_latest_created), latestLabel)
             ProfileHistoryRow(stringResource(R.string.profile_history_member_since), memberSince)
-            ProfileHistoryRow(stringResource(R.string.profile_history_current_plan), "Plan ${profilePlanTitle(uiState.currentUser)}")
+            ProfileHistoryRow(
+                stringResource(R.string.profile_history_current_plan),
+                stringResource(R.string.profile_plan_prefix, profilePlanTitle(uiState.currentUser)),
+            )
         }
     }
 }
@@ -713,8 +714,20 @@ private fun ProfileTrustCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            OutlinedButton(onClick = onSupport, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.profile_support)) }
-            OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.profile_privacy_account)) }
+            BrandActionButton(
+                text = stringResource(R.string.profile_support),
+                onClick = onSupport,
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth(),
+                filled = false,
+            )
+            BrandActionButton(
+                text = stringResource(R.string.profile_privacy_account),
+                onClick = onOpenSettings,
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth(),
+                filled = false,
+            )
         }
     }
 }
@@ -810,27 +823,14 @@ private fun ProfileSocialButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit,
 ) {
-    Button(
+    BrandActionButton(
+        text = title,
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.12f),
-            contentColor = androidx.compose.ui.graphics.Color.White,
-        ),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-        modifier = Modifier
-            .clip(RoundedCornerShape(SkydownUiTokens.compactRadius)),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 0.dp,
-            focusedElevation = 0.dp,
-            hoveredElevation = 0.dp,
-            disabledElevation = 0.dp,
-        ),
-    ) {
-        Icon(icon, contentDescription = null)
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(title)
-    }
+        accent = Color.White,
+        icon = icon,
+        filled = false,
+        compact = true,
+    )
 }
 
 @Composable
@@ -869,26 +869,14 @@ private fun ProfileGalleryActionButton(
     onClick: () -> Unit,
     enabled: Boolean = true,
 ) {
-    Button(
+    BrandActionButton(
+        text = title,
         onClick = onClick,
+        accent = MaterialTheme.colorScheme.primary,
+        icon = icon,
+        compact = true,
         enabled = enabled,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.92f),
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-        ),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 0.dp,
-            focusedElevation = 0.dp,
-            hoveredElevation = 0.dp,
-            disabledElevation = 0.dp,
-        ),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-    ) {
-        Icon(icon, contentDescription = null)
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(title)
-    }
+    )
 }
 
 @Composable
@@ -1146,6 +1134,6 @@ private fun profilePlanTitle(user: User?): String {
 
 private fun formatProfileDate(epochMillis: Long): String {
     return runCatching {
-        SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).format(Date(epochMillis))
+        SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(epochMillis))
     }.getOrDefault("-")
 }

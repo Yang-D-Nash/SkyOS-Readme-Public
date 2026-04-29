@@ -1,7 +1,9 @@
 package com.nash.skyos.ui.screen
 
 import android.content.Context
+import android.content.res.Configuration
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,22 +25,23 @@ import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,14 +49,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nash.skyos.R
 import com.nash.skyos.ui.component.AppTopBarSessionActions
 import com.nash.skyos.ui.component.SectionHeader
+import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -65,6 +72,7 @@ import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.data.CheckoutRedirectStore
 import com.nash.skyos.data.ShippingService
 import com.nash.skyos.ui.viewmodel.CartViewModel
+import com.skydown.shared.model.PlatformContactEmails
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -82,7 +90,12 @@ fun CartScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val checkoutRedirectEvent by CheckoutRedirectStore.latestEvent.collectAsStateWithLifecycle()
     val appContext = LocalContext.current
+    val configuration = LocalConfiguration.current
     val coroutineScope = rememberCoroutineScope()
+    val defaultCartMessage = rememberSaveable { com.nash.skyos.ui.model.CartUiState().message }
+    var showOptionalContactFields by rememberSaveable { mutableStateOf(false) }
+    var showOptionalAddressFields by rememberSaveable { mutableStateOf(false) }
+    var showOptionalMessageField by rememberSaveable { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val pricing = cartPricingSummary(uiState)
     val hasOrderItems = uiState.items.isNotEmpty()
@@ -127,6 +140,8 @@ fun CartScreen(
         else -> stringResource(R.string.cart_total_detail_shipping_included, shippingZoneLabel)
     }
     val sectionSpacing = rememberSkydownScreenSectionSpacing()
+    val prefersCompactPulseLayout = configuration.screenWidthDp < 420 ||
+        configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
         if (uiState.errorMessage != null || uiState.successMessage != null) {
@@ -139,6 +154,26 @@ fun CartScreen(
         val event = checkoutRedirectEvent ?: return@LaunchedEffect
         viewModel.handleCheckoutRedirect(event.status)
         CheckoutRedirectStore.clear()
+    }
+
+    LaunchedEffect(uiState.whatsApp) {
+        if (uiState.whatsApp.isNotBlank()) {
+            showOptionalContactFields = true
+        }
+    }
+
+    LaunchedEffect(uiState.shippingAddressExtra) {
+        if (uiState.shippingAddressExtra.isNotBlank()) {
+            showOptionalAddressFields = true
+        }
+    }
+
+    LaunchedEffect(uiState.message) {
+        if (uiState.message.isNotBlank() &&
+            uiState.message != defaultCartMessage
+        ) {
+            showOptionalMessageField = true
+        }
     }
 
     Scaffold(
@@ -211,6 +246,7 @@ fun CartScreen(
                         paymentDetail = checkoutPaymentDetail,
                         totalTitle = checkoutTotalTitle,
                         totalDetail = checkoutTotalDetail,
+                        compactLayout = prefersCompactPulseLayout,
                     )
                 }
 
@@ -232,23 +268,15 @@ fun CartScreen(
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
                             )
-                            Button(
+                            BrandActionButton(
+                                text = stringResource(R.string.auth_cart_login_cta),
                                 onClick = onOpenLogin,
+                                accent = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 14.dp),
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Login,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Text(
-                                    text = stringResource(R.string.auth_cart_login_cta),
-                                    modifier = Modifier.padding(start = 8.dp),
-                                )
-                            }
+                                icon = Icons.AutoMirrored.Filled.Login,
+                            )
                         }
                     }
                 } else {
@@ -313,194 +341,183 @@ fun CartScreen(
                             color = cartItem.color,
                             quantity = cartItem.quantity,
                             price = (cartItem.unitPrice ?: cartItem.item.price) * cartItem.quantity,
+                            onQuantityChange = { delta ->
+                                viewModel.updateItemQuantity(
+                                    itemId = cartItem.item.id.orEmpty(),
+                                    size = cartItem.size,
+                                    color = cartItem.color,
+                                    delta = delta,
+                                )
+                            },
                             onRemove = { viewModel.removeItem(cartItem.item.id.orEmpty(), cartItem.size, cartItem.color) },
                         )
                     }
 
-                    item {
-                        SkydownCard {
-                            SectionHeader(stringResource(R.string.cart_contact_title))
-                            Text(
-                                text = stringResource(R.string.cart_contact_subtitle),
-                                modifier = Modifier.padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
-                            OutlinedTextField(
-                                value = uiState.name,
-                                onValueChange = viewModel::updateName,
-                                label = { Text(stringResource(R.string.cart_field_name_required)) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 14.dp),
-                                singleLine = true,
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            )
-                            OutlinedTextField(
-                                value = uiState.email,
-                                onValueChange = viewModel::updateEmail,
-                                label = { Text(stringResource(R.string.cart_field_email_required)) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp),
-                                singleLine = true,
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            )
-                            OutlinedTextField(
-                                value = uiState.whatsApp,
-                                onValueChange = viewModel::updateWhatsApp,
-                                label = { Text(stringResource(R.string.cart_field_whatsapp_optional)) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp),
-                                singleLine = true,
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            )
+                    if (uiState.items.isEmpty()) {
+                        item {
+                            SkydownCard {
+                                SectionHeader(stringResource(R.string.cart_selection_title))
+                                Text(
+                                    text = stringResource(R.string.cart_selection_empty),
+                                    modifier = Modifier.padding(top = 8.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                )
+                                BrandActionButton(
+                                    text = stringResource(R.string.cart_action_continue_shopping),
+                                    onClick = { onBack?.invoke() },
+                                    accent = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 14.dp),
+                                    enabled = onBack != null,
+                                )
+                            }
                         }
-                    }
-
-                    item {
-                        SkydownCard {
-                            SectionHeader(stringResource(R.string.cart_shipping_title))
-                            Text(
-                                text = stringResource(R.string.cart_shipping_subtitle),
-                                modifier = Modifier.padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
-                            OutlinedTextField(
-                                value = uiState.shippingStreet,
-                                onValueChange = viewModel::updateShippingStreet,
-                                label = { Text(stringResource(R.string.cart_field_street_required)) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 14.dp),
-                                singleLine = true,
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            )
-                            OutlinedTextField(
-                                value = uiState.shippingAddressExtra,
-                                onValueChange = viewModel::updateShippingAddressExtra,
-                                label = { Text(stringResource(R.string.cart_field_address_extra_optional)) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp),
-                                singleLine = true,
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            )
-                            OutlinedTextField(
-                                value = uiState.shippingPostalCode,
-                                onValueChange = viewModel::updateShippingPostalCode,
-                                label = { Text(stringResource(R.string.cart_field_postal_required)) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp),
-                                singleLine = true,
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            )
-                            OutlinedTextField(
-                                value = uiState.shippingCity,
-                                onValueChange = viewModel::updateShippingCity,
-                                label = { Text(stringResource(R.string.cart_field_city_required)) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp),
-                                singleLine = true,
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            )
-                            OutlinedTextField(
-                                value = uiState.shippingCountry,
-                                onValueChange = viewModel::updateShippingCountry,
-                                label = { Text(stringResource(R.string.cart_field_country)) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 12.dp),
-                                singleLine = true,
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            )
-                        }
-                    }
-
-                    item {
-                        SkydownCard {
-                            SectionHeader(stringResource(R.string.cart_message_title))
-                            Text(
-                                text = stringResource(R.string.cart_message_subtitle),
-                                modifier = Modifier.padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                            )
-                            OutlinedTextField(
-                                value = uiState.message,
-                                onValueChange = viewModel::updateMessage,
-                                label = { Text(stringResource(R.string.cart_field_message)) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 14.dp),
-                                minLines = 4,
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            )
-                        }
-                    }
-
-                    item {
-                        PricingSummaryCard(
-                            summary = pricing,
-                            shippingZoneLabel = shippingZoneLabel,
-                            shippingNote = uiState.commerceSettings.shipping.shippingNotes,
-                            companyName = uiState.commerceSettings.invoice.companyName,
-                        )
-                    }
-
-                    item {
-                        SkydownCard {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
-                                    Text(
-                                        text = stringResource(R.string.cart_checkout_title),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
+                    } else {
+                        item {
+                            SkydownCard {
+                                SectionHeader(stringResource(R.string.cart_contact_title))
+                                Text(
+                                    text = stringResource(R.string.cart_contact_subtitle),
+                                    modifier = Modifier.padding(top = 8.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                )
+                                CartSingleLineField(
+                                    value = uiState.name,
+                                    onValueChange = viewModel::updateName,
+                                    labelRes = R.string.cart_field_name_required,
+                                    topPadding = 14.dp,
+                                )
+                                CartSingleLineField(
+                                    value = uiState.email,
+                                    onValueChange = viewModel::updateEmail,
+                                    labelRes = R.string.cart_field_email_required,
+                                )
+                                if (showOptionalContactFields || uiState.whatsApp.isNotBlank()) {
+                                    CartSingleLineField(
+                                        value = uiState.whatsApp,
+                                        onValueChange = viewModel::updateWhatsApp,
+                                        labelRes = R.string.cart_field_whatsapp_optional,
                                     )
-                                    Text(
-                                        text = if (isZeroCostOrder && uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
-                                            stringResource(R.string.cart_checkout_zero_eur_hint)
-                                        } else if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
-                                            stringResource(R.string.cart_checkout_stripe_live_hint)
-                                        } else {
-                                            stringResource(R.string.cart_checkout_followup_hint)
-                                        },
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                } else {
+                                    CartOptionalRevealButton(
+                                        onClick = { showOptionalContactFields = true },
+                                        labelRes = R.string.cart_contact_add_whatsapp,
                                     )
                                 }
-                                CartInfoPill(text = stringResource(R.string.cart_items_count, uiState.items.size))
                             }
+                        }
 
-                            Button(
-                                onClick = {
-                                    val orderSnapshot = uiState
-                                    coroutineScope.launch {
-                                        if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
-                                            val result = viewModel.startHostedCheckout()
-                                            result.getOrNull()?.let { session ->
-                                                openExternalUrl(appContext, session.checkoutUrl)
-                                            }
-                                        } else {
-                                            val result = viewModel.submitOrder()
-                                            if (result.isSuccess) {
-                                                openOrderEmail(appContext, orderSnapshot)
-                                            }
-                                        }
-                                    }
-                                },
-                                enabled = viewModel.isFormValid() && !uiState.isSubmitting,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 14.dp),
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            ) {
+                        item {
+                            SkydownCard {
+                                SectionHeader(stringResource(R.string.cart_shipping_title))
                                 Text(
-                                    if (uiState.isSubmitting) {
+                                    text = stringResource(R.string.cart_shipping_subtitle),
+                                    modifier = Modifier.padding(top = 8.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                )
+                                CartSingleLineField(
+                                    value = uiState.shippingStreet,
+                                    onValueChange = viewModel::updateShippingStreet,
+                                    labelRes = R.string.cart_field_street_required,
+                                    topPadding = 14.dp,
+                                )
+                                if (showOptionalAddressFields || uiState.shippingAddressExtra.isNotBlank()) {
+                                    CartSingleLineField(
+                                        value = uiState.shippingAddressExtra,
+                                        onValueChange = viewModel::updateShippingAddressExtra,
+                                        labelRes = R.string.cart_field_address_extra_optional,
+                                    )
+                                } else {
+                                    CartOptionalRevealButton(
+                                        onClick = { showOptionalAddressFields = true },
+                                        labelRes = R.string.cart_shipping_add_address_extra,
+                                    )
+                                }
+                                CartSingleLineField(
+                                    value = uiState.shippingPostalCode,
+                                    onValueChange = viewModel::updateShippingPostalCode,
+                                    labelRes = R.string.cart_field_postal_required,
+                                )
+                                CartSingleLineField(
+                                    value = uiState.shippingCity,
+                                    onValueChange = viewModel::updateShippingCity,
+                                    labelRes = R.string.cart_field_city_required,
+                                )
+                                CartSingleLineField(
+                                    value = uiState.shippingCountry,
+                                    onValueChange = viewModel::updateShippingCountry,
+                                    labelRes = R.string.cart_field_country,
+                                )
+                            }
+                        }
+
+                        item {
+                            SkydownCard {
+                                SectionHeader(stringResource(R.string.cart_message_title))
+                                Text(
+                                    text = stringResource(R.string.cart_message_subtitle),
+                                    modifier = Modifier.padding(top = 8.dp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                )
+                                if (showOptionalMessageField ||
+                                    (uiState.message.isNotBlank() &&
+                                        uiState.message != defaultCartMessage)
+                                ) {
+                                    CartMessageField(
+                                        value = uiState.message,
+                                        onValueChange = viewModel::updateMessage,
+                                        labelRes = R.string.cart_field_message,
+                                        topPadding = 14.dp,
+                                    )
+                                } else {
+                                    CartOptionalRevealButton(
+                                        onClick = { showOptionalMessageField = true },
+                                        labelRes = R.string.cart_message_add_optional,
+                                        topPadding = 14.dp,
+                                    )
+                                }
+                            }
+                        }
+
+                        item {
+                            PricingSummaryCard(
+                                summary = pricing,
+                                shippingZoneLabel = shippingZoneLabel,
+                                shippingNote = uiState.commerceSettings.shipping.shippingNotes,
+                                companyName = uiState.commerceSettings.invoice.companyName,
+                            )
+                        }
+
+                        item {
+                            SkydownCard {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
+                                        Text(
+                                            text = stringResource(R.string.cart_checkout_title),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                        Text(
+                                            text = if (isZeroCostOrder && uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
+                                                stringResource(R.string.cart_checkout_zero_eur_hint)
+                                            } else if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
+                                                stringResource(R.string.cart_checkout_stripe_live_hint)
+                                            } else {
+                                                stringResource(R.string.cart_checkout_followup_hint)
+                                            },
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                        )
+                                    }
+                                    CartInfoPill(text = stringResource(R.string.cart_items_count, uiState.items.size))
+                                }
+
+                                BrandActionButton(
+                                    text = if (uiState.isSubmitting) {
                                         stringResource(R.string.cart_action_preparing)
                                     } else if (isZeroCostOrder && uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
                                         stringResource(R.string.cart_action_confirm_order)
@@ -509,25 +526,34 @@ fun CartScreen(
                                     } else {
                                         stringResource(R.string.cart_action_review_order)
                                     },
-                                )
-                            }
-
-                            if (uiState.items.isEmpty()) {
-                                OutlinedButton(
-                                    onClick = {},
-                                    enabled = false,
+                                    onClick = {
+                                        val orderSnapshot = uiState
+                                        coroutineScope.launch {
+                                            if (uiState.selectedPaymentMethod in listOf("Stripe", "Klarna")) {
+                                                val result = viewModel.startHostedCheckout()
+                                                result.getOrNull()?.let { session ->
+                                                    openExternalUrl(appContext, session.checkoutUrl)
+                                                }
+                                            } else {
+                                                val result = viewModel.submitOrder()
+                                                if (result.isSuccess) {
+                                                    openOrderEmail(appContext, orderSnapshot)
+                                                }
+                                            }
+                                        }
+                                    },
+                                    accent = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = 10.dp),
-                                    shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                                ) {
-                                    Text(stringResource(R.string.cart_action_add_items_first))
-                                }
+                                        .padding(top = 14.dp),
+                                    enabled = viewModel.isFormValid(),
+                                    isLoading = uiState.isSubmitting,
+                                )
                             }
                         }
-                    }
-                    item {
-                        CheckoutSafetyZone()
+                        item {
+                            CheckoutSafetyZone()
+                        }
                     }
                 }
             }
@@ -543,6 +569,61 @@ fun CartScreen(
             )
         }
     }
+}
+
+@Composable
+private fun CartSingleLineField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    labelRes: Int,
+    topPadding: Dp = 12.dp,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(stringResource(labelRes)) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = topPadding),
+        singleLine = true,
+        shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
+    )
+}
+
+@Composable
+private fun CartMessageField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    labelRes: Int,
+    topPadding: Dp = 12.dp,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(stringResource(labelRes)) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = topPadding),
+        minLines = 4,
+        shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
+    )
+}
+
+@Composable
+private fun CartOptionalRevealButton(
+    onClick: () -> Unit,
+    labelRes: Int,
+    topPadding: Dp = 12.dp,
+) {
+    BrandActionButton(
+        text = stringResource(labelRes),
+        onClick = onClick,
+        accent = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .padding(top = topPadding)
+            .fillMaxWidth(),
+        filled = false,
+    )
 }
 
 @Composable
@@ -754,19 +835,23 @@ private fun PaymentMethodSelectionCard(
                         }
                     }
                 }
-                if (isSelected) {
-                    FilledTonalButton(
-                        onClick = { onSelect(method) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                    ) {
-                        content()
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { onSelect(method) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
+                Surface(
+                    onClick = { onSelect(method) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    },
+                    border = if (isSelected) {
+                        null
+                    } else {
+                        BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.28f))
+                    },
+                ) {
+                    Box(
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
                     ) {
                         content()
                     }
@@ -833,33 +918,65 @@ private fun CheckoutPulseCard(
     paymentDetail: String,
     totalTitle: String,
     totalDetail: String,
+    compactLayout: Boolean,
 ) {
     SkydownCard {
         SectionHeader(stringResource(R.string.cart_checkout_pulse_title))
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
-            CheckoutSignalCard(
-                title = stringResource(R.string.cart_pulse_status),
-                value = readinessTitle,
-                detail = readinessDetail,
-                modifier = Modifier.weight(1f),
-            )
-            CheckoutSignalCard(
-                title = stringResource(R.string.cart_pulse_payment),
-                value = paymentTitle,
-                detail = paymentDetail,
-                modifier = Modifier.weight(1f),
-            )
-            CheckoutSignalCard(
-                title = stringResource(R.string.cart_pulse_total),
-                value = totalTitle,
-                detail = totalDetail,
-                modifier = Modifier.weight(1f),
-            )
+            if (compactLayout) {
+                CheckoutSignalCard(
+                    title = stringResource(R.string.cart_pulse_status),
+                    value = readinessTitle,
+                    detail = readinessDetail,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
+                ) {
+                    CheckoutSignalCard(
+                        title = stringResource(R.string.cart_pulse_payment),
+                        value = paymentTitle,
+                        detail = paymentDetail,
+                        modifier = Modifier.weight(1f),
+                    )
+                    CheckoutSignalCard(
+                        title = stringResource(R.string.cart_pulse_total),
+                        value = totalTitle,
+                        detail = totalDetail,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
+                ) {
+                    CheckoutSignalCard(
+                        title = stringResource(R.string.cart_pulse_status),
+                        value = readinessTitle,
+                        detail = readinessDetail,
+                        modifier = Modifier.weight(1f),
+                    )
+                    CheckoutSignalCard(
+                        title = stringResource(R.string.cart_pulse_payment),
+                        value = paymentTitle,
+                        detail = paymentDetail,
+                        modifier = Modifier.weight(1f),
+                    )
+                    CheckoutSignalCard(
+                        title = stringResource(R.string.cart_pulse_total),
+                        value = totalTitle,
+                        detail = totalDetail,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
         }
     }
 }
@@ -924,7 +1041,8 @@ private fun CheckoutSignalCard(
             text = value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            maxLines = 1,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = detail,
@@ -1037,6 +1155,7 @@ private fun CartItemCard(
     color: String?,
     quantity: Int,
     price: Double,
+    onQuantityChange: (Int) -> Unit,
     onRemove: () -> Unit,
 ) {
     SkydownCard {
@@ -1069,21 +1188,37 @@ private fun CartItemCard(
             )
         }
 
-        FilledTonalButton(
-            onClick = onRemove,
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
-            shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.Default.DeleteOutline,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
+            BrandActionButton(
+                text = stringResource(R.string.cart_quantity_decrease),
+                onClick = { onQuantityChange(-1) },
+                accent = MaterialTheme.colorScheme.tertiary,
+                filled = false,
+                compact = true,
+                enabled = quantity > 1,
             )
-            Text(
+            BrandActionButton(
+                text = stringResource(R.string.cart_quantity_increase),
+                onClick = { onQuantityChange(1) },
+                accent = MaterialTheme.colorScheme.tertiary,
+                filled = false,
+                compact = true,
+                enabled = quantity < 10,
+            )
+            BrandActionButton(
                 text = stringResource(R.string.common_remove),
-                modifier = Modifier.padding(start = 8.dp),
+                onClick = onRemove,
+                accent = MaterialTheme.colorScheme.error,
+                icon = Icons.Default.DeleteOutline,
+                filled = false,
+                compact = true,
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -1232,7 +1367,7 @@ private fun openOrderEmail(
     )
     openEmailDraft(
         context = context,
-        recipients = listOf("skydownent@gmail.com"),
+        recipients = listOf(PlatformContactEmails.DEFAULT_SUPPORT_EMAIL),
         subject = subject,
         body = body,
     )

@@ -29,6 +29,7 @@ private struct LegacyAIShareSheet: UIViewControllerRepresentable {
 
 private struct DesktopAIShareSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     let activityItems: [Any]
     @State private var showingExporter = false
     @State private var exportDocument: ShareExportDocument?
@@ -56,28 +57,58 @@ private struct DesktopAIShareSheet: View {
                     .foregroundColor(.secondary)
 
                 if let sharedText {
-                    Button(AppLocalized.text("share.copy_text", fallback: "Copy text")) {
-                        UIPasteboard.general.string = sharedText
-                        statusMessage = AppLocalized.text("share.text_copied", fallback: "Text copied")
-                    }
-                    .buttonStyle(.borderedProminent)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("share.copy_text", fallback: "Copy text"),
+                        systemImage: "doc.on.doc",
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 11,
+                        action: {
+                            UIPasteboard.general.string = sharedText
+                            statusMessage = AppLocalized.text("share.text_copied", fallback: "Text copied")
+                        }
+                    )
 
                     ShareLink(item: sharedText) {
-                        Label(
-                            AppLocalized.text("share.share_text", fallback: "Share text"),
-                            systemImage: "square.and.arrow.up"
+                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.subheadline.weight(.semibold))
+                            Text(AppLocalized.text("share.share_text", fallback: "Share text"))
+                                .font(.subheadline.weight(.semibold))
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .background(AppColors.secondaryBackground(for: colorScheme))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
+                                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
                         )
+                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
+                    .skydownInteractiveFeedback()
+                    .skydownTactileAction()
                 }
 
                 if let sharedImage, let pngData = sharedImage.pngData() {
-                    Button(AppLocalized.text("share.save_image", fallback: "Save image")) {
-                        exportDocument = ShareExportDocument(data: pngData, contentType: .png)
-                        exportFilename = "SkyOS-Image"
-                        showingExporter = true
-                    }
-                    .buttonStyle(.borderedProminent)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("share.save_image", fallback: "Save image"),
+                        systemImage: "square.and.arrow.down",
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 11,
+                        action: {
+                            exportDocument = ShareExportDocument(data: pngData, contentType: .png)
+                            exportFilename = "SkyOS-Image"
+                            showingExporter = true
+                        }
+                    )
                 }
 
                 if sharedText == nil && sharedImage == nil {
@@ -95,11 +126,22 @@ private struct DesktopAIShareSheet: View {
             }
             .padding(20)
             .navigationTitle(AppLocalized.text("share.title", fallback: "Share"))
+            .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(AppLocalized.text("share.close", fallback: "Close")) {
-                        dismiss()
-                    }
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("share.close", fallback: "Close"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.nash.skyos.data
 
+import com.skydown.shared.model.PlatformContactEmails
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -14,10 +15,12 @@ private const val defaultLegalOperatorName = "Skydown (Betreiber), vertreten dur
 private const val defaultLegalRightsHolderName = "Skydown / Yang D. Nash"
 private const val legacyLegalOperatorName = "Skydown"
 private const val legacyLegalRightsHolderName = "Skydown"
-private const val defaultLegalSupportEmail = "skydownent@gmail.com"
+private val defaultLegalSupportEmail = PlatformContactEmails.DEFAULT_SUPPORT_EMAIL
 private const val defaultLegalLastUpdatedLabel = "25. April 2026"
-private const val defaultLegalImprintReference = "Anbieterkennzeichnung: Skydown (Betreiber), vertreten durch Yang D. Nash, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
-private const val legacyLegalImprintReference = "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
+private val defaultLegalImprintReference =
+    "Anbieterkennzeichnung: Skydown (Betreiber), vertreten durch Yang D. Nash, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: ${PlatformContactEmails.DEFAULT_SUPPORT_EMAIL}."
+private val legacyLegalImprintReference =
+    "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: ${PlatformContactEmails.DEFAULT_SUPPORT_EMAIL}."
 private const val defaultMasterNumberMeaning = "Die Meisterzahl 22 gilt als Master Builder: visionaer, praktisch und umsetzungsstark. Sie verbindet Inspiration mit Disziplin und macht aus Ideen reale, belastbare Strukturen."
 private const val defaultBrandManifesto = "Dort, wo der Himmel faellt, beginnt unser Denken.\nWas zerbricht, offenbart Tiefe - nicht Verlust.\nWir hoeren auf das, was nicht laut ist: Wandel, Stille, Sinn.\nUnser Handeln wurzelt im Inneren, wo Klarheit entsteht.\nNicht im Machen liegt unsere Kraft, sondern im Verstehen.\nDenn wir glauben: Der Himmel faellt nicht auf uns - er oeffnet sich in uns."
 private const val defaultSymbolicNumericCode = "1337-514-731"

@@ -220,7 +220,7 @@
 				};
 			};
 			buildConfigurationList = 907EC69C2E31628C00BF5234 /* Build configuration list for PBXProject "Skydown App" */;
-			developmentRegion = en;
+			developmentRegion = de;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,

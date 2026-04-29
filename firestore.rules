@@ -37,6 +37,7 @@ service cloud.firestore {
       return signedIn() && effectiveRole() == "owner";
     }
 
+    // Owner e-mail literal must stay in sync with shared/.../PlatformContactEmails.kt (OWNER_EMAIL).
     function isOwnerEmail() {
       return signedIn()
         && request.auth.token.keys().hasAny(["email"])

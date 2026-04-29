@@ -42,8 +42,8 @@ struct CartView: View {
     @State private var shippingAddressExtra = ""
     @State private var shippingPostalCode = ""
     @State private var shippingCity = ""
-    @State private var shippingCountry = "Deutschland"
-    @State private var message = "Ich interessiere mich fuer die Artikel in meinem Warenkorb."
+    @State private var shippingCountry = AppLocalized.text("cart.default.country", fallback: "Deutschland")
+    @State private var message = AppLocalized.text("cart.default.message", fallback: "Ich interessiere mich fuer die Artikel in meinem Warenkorb.")
     @State private var showCheckoutConfirmSheet = false
     @State private var isSubmitting = false
     @State private var sheetPresentation = SkydownQueuedPresentation<CartPresentedSheet>()
@@ -52,7 +52,8 @@ struct CartView: View {
     @State private var showOptionalAddressFields = false
     @State private var showOptionalMessageField = false
 
-    private let defaultMessageText = "Ich interessiere mich fuer die Artikel in meinem Warenkorb."
+    private let defaultMessageText = AppLocalized.text("cart.default.message", fallback: "Ich interessiere mich fuer die Artikel in meinem Warenkorb.")
+    private let optionalRevealAnimation = Animation.easeInOut(duration: 0.18)
 
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -132,30 +133,32 @@ struct CartView: View {
             includedTax: includedTax,
             total: total,
             zoneLabel: shippingQuote.zone.rawValue,
-            shippingError: shippingQuote.countryCode == "--" ? "Lieferland bitte kurz ergaenzen, damit Versand und Gesamtpreis exakt berechnet werden." : nil
+            shippingError: shippingQuote.countryCode == "--"
+                ? AppLocalized.text("cart.shipping.error.country_missing", fallback: "Bitte Lieferland ergaenzen, damit Versand und Gesamtpreis korrekt berechnet werden.")
+                : nil
         )
     }
 
     private var checkoutReadinessTitle: String {
-        if canSubmitOrder { return "Alles bereit" }
+        if canSubmitOrder { return AppLocalized.text("cart.readiness.ready", fallback: "Alles bereit") }
         if authManager.userSession == nil {
             return AppLocalized.text("auth.cart.readiness.missing_account", fallback: "Account needed")
         }
-        if !isCheckoutAvailable { return "Kurz pausiert" }
-        if !isFormValid { return "Angaben offen" }
-        if !availableCheckoutMethods.isEmpty && selectedPaymentMethod.isEmpty { return "Zahlart offen" }
-        return "Kurz pruefen"
+        if !isCheckoutAvailable { return AppLocalized.text("cart.readiness.paused", fallback: "Pausiert") }
+        if !isFormValid { return AppLocalized.text("cart.readiness.fields_open", fallback: "Angaben offen") }
+        if !availableCheckoutMethods.isEmpty && selectedPaymentMethod.isEmpty { return AppLocalized.text("cart.readiness.payment_open", fallback: "Zahlart offen") }
+        return AppLocalized.text("cart.readiness.review", fallback: "Kurz pruefen")
     }
 
     private var checkoutReadinessDetail: String {
-        if canSubmitOrder { return "Du kannst jetzt sicher fortfahren." }
+        if canSubmitOrder { return AppLocalized.text("cart.readiness.detail.ready", fallback: "Du kannst jetzt sicher fortfahren.") }
         if authManager.userSession == nil {
             return AppLocalized.text("auth.cart.readiness.detail_unsigned", fallback: "Sign in to align checkout and order updates with your profile.")
         }
-        if !isCheckoutAvailable { return "Der Checkout startet wieder nach der Oeffnung." }
-        if !isFormValid { return "Bitte fehlende Pflichtfelder ergaenzen." }
-        if !availableCheckoutMethods.isEmpty && selectedPaymentMethod.isEmpty { return "Bitte eine Zahlart waehlen." }
-        return "Ein kurzer Check, dann weiter."
+        if !isCheckoutAvailable { return AppLocalized.text("cart.readiness.detail.paused", fallback: "Der Checkout startet wieder, sobald der Store geoeffnet ist.") }
+        if !isFormValid { return AppLocalized.text("cart.readiness.detail.fields_open", fallback: "Bitte fehlende Pflichtfelder ergaenzen.") }
+        if !availableCheckoutMethods.isEmpty && selectedPaymentMethod.isEmpty { return AppLocalized.text("cart.readiness.detail.payment_open", fallback: "Bitte eine Zahlart waehlen.") }
+        return AppLocalized.text("cart.readiness.detail.review", fallback: "Ein kurzer Check, dann weiter.")
     }
 
     var body: some View {
@@ -180,51 +183,48 @@ struct CartView: View {
 
                     if authManager.userSession == nil {
                         CartSectionCard(
-                            title: AppLocalized.text("auth.cart.login.title", fallback: "Ready to check out"),
+                            title: AppLocalized.text("auth.cart.login.title", fallback: "Bereit fuer den Checkout"),
                             colorScheme: colorScheme
                         ) {
                             Text(
                                 AppLocalized.text(
                                     "auth.cart.login.subtitle",
-                                    fallback: "Sign in to secure this cart and complete your order when it feels right."
+                                    fallback: "Melde dich an, um den Warenkorb zu sichern und deine Bestellung entspannt abzuschliessen."
                                 )
                             )
                                 .font(.body)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                            Button {
-                                presentSheet(.login(.cart))
-                            } label: {
-                                Label(
-                                    AppLocalized.text("auth.cart.login.cta", fallback: "Continue with account"),
-                                    systemImage: "person.crop.circle.fill.badge.plus"
-                                )
-                                    .font(.headline)
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(AppColors.accent(for: colorScheme))
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("auth.cart.login.cta", fallback: "Weiter mit Konto"),
+                                systemImage: "person.crop.circle.fill.badge.plus",
+                                accent: AppColors.accent(for: colorScheme),
+                                colorScheme: colorScheme,
+                                action: { presentSheet(.login(.cart)) }
+                            )
                             .padding(.top, 4)
                         }
                     } else {
                         CartSectionCard(
-                            title: "Deine Auswahl",
+                            title: AppLocalized.text("cart.selection.title", fallback: "Deine Auswahl"),
                             colorScheme: colorScheme
                         ) {
                             if cartVM.items.isEmpty {
                                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                                    Text("Dein Warenkorb ist noch leer.")
+                                    Text(AppLocalized.text("cart.selection.empty.title", fallback: "Dein Warenkorb ist leer."))
                                         .font(.body.weight(.semibold))
                                         .foregroundColor(AppColors.text(for: colorScheme))
-                                    Text("Waehle im Shop einen Artikel und komme danach direkt hierher zum Abschluss.")
+                                    Text(AppLocalized.text("cart.selection.empty.body", fallback: "Waehle im Shop einen Artikel und komme danach zum Checkout zurueck."))
                                         .font(.footnote)
                                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                                    Button("Weiter shoppen") {
-                                        SkydownHaptics.selection()
-                                        dismiss()
-                                    }
-                                    .font(.subheadline.weight(.semibold))
-                                    .buttonStyle(.bordered)
+                                    SkydownBrandActionButton(
+                                        title: AppLocalized.text("cart_action_continue_shopping", fallback: "Continue shopping"),
+                                        accent: AppColors.accent(for: colorScheme),
+                                        colorScheme: colorScheme,
+                                        font: .subheadline.weight(.semibold),
+                                        verticalPadding: 12,
+                                        action: { dismiss() }
+                                    )
                                     .padding(.top, 2)
                                 }
                             } else {
@@ -243,196 +243,206 @@ struct CartView: View {
                             }
                         }
 
-                        CartSectionCard(
-                            title: "Bestellsumme",
-                            colorScheme: colorScheme
-                        ) {
-                            PricingSummaryCard(
-                                colorScheme: colorScheme,
-                                summary: pricingSummary,
-                                shippingNote: commerceSettingsStore.settings.shipping.shippingNotes,
-                                companyName: commerceSettingsStore.settings.invoice.companyName
-                            )
-                        }
-
-                        CartSectionCard(
-                            title: "Kontaktdaten",
-                            colorScheme: colorScheme
-                        ) {
-                            VStack(spacing: SkydownLayout.stackSpacingPill) {
-                                HStack(spacing: SkydownLayout.stackSpacingPill) {
-                                    CartInputField(
-                                        title: "Name*",
-                                        text: $name,
-                                        colorScheme: colorScheme
-                                    )
-                                    CartInputField(
-                                        title: "E-Mail*",
-                                        text: $email,
-                                        colorScheme: colorScheme,
-                                        keyboard: .emailAddress,
-                                        autocapitalization: .never
-                                    )
-                                }
-
-                                if showOptionalContactFields || !whatsApp.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    CartInputField(
-                                        title: "WhatsApp (optional)",
-                                        text: $whatsApp,
-                                        colorScheme: colorScheme,
-                                        keyboard: .phonePad
-                                    )
-                                    .transition(.opacity.combined(with: .move(edge: .top)))
-                                } else {
-                                    Button("WhatsApp hinzufügen") {
-                                        SkydownHaptics.selection()
-                                        withAnimation(.easeInOut(duration: 0.18)) {
-                                            showOptionalContactFields = true
-                                        }
-                                    }
-                                    .font(.caption.weight(.semibold))
-                                    .buttonStyle(.bordered)
-                                }
-                            }
-                            .padding(.top, 4)
-                        }
-
-                        CartSectionCard(
-                            title: "Lieferadresse",
-                            colorScheme: colorScheme
-                        ) {
-                            VStack(spacing: SkydownLayout.stackSpacingPill) {
-                                CartInputField(
-                                    title: "Strasse, Hausnr.*",
-                                    text: $shippingStreet,
-                                    colorScheme: colorScheme
-                                )
-                                HStack(spacing: SkydownLayout.stackSpacingPill) {
-                                    CartInputField(
-                                        title: "PLZ*",
-                                        text: $shippingPostalCode,
-                                        colorScheme: colorScheme,
-                                        keyboard: .numbersAndPunctuation
-                                    )
-                                    CartInputField(
-                                        title: "Ort*",
-                                        text: $shippingCity,
-                                        colorScheme: colorScheme
-                                    )
-                                }
-                                if showOptionalAddressFields || !shippingAddressExtra.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    CartInputField(
-                                        title: "Adresszusatz (optional)",
-                                        text: $shippingAddressExtra,
-                                        colorScheme: colorScheme
-                                    )
-                                    .transition(.opacity.combined(with: .move(edge: .top)))
-                                } else {
-                                    Button("Adresszusatz hinzufügen") {
-                                        SkydownHaptics.selection()
-                                        withAnimation(.easeInOut(duration: 0.18)) {
-                                            showOptionalAddressFields = true
-                                        }
-                                    }
-                                    .font(.caption.weight(.semibold))
-                                    .buttonStyle(.bordered)
-                                }
-                                CartInputField(
-                                    title: "Land",
-                                    text: $shippingCountry,
-                                    colorScheme: colorScheme
-                                )
-                            }
-                            .padding(.top, 4)
-                        }
-
-                        if !isCheckoutAvailable {
-                            CartInlineStatusStrip(
-                                colorScheme: colorScheme,
-                                icon: "pause.circle.fill",
-                                title: "Checkout pausiert"
-                            ) {
-                                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                                    Text("Der Checkout ist kurz pausiert. Deine Auswahl bleibt sicher gespeichert.")
-                                        .font(.footnote.weight(.medium))
-                                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                                        .fixedSize(horizontal: false, vertical: true)
-                                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                                        Button("Einstellungen") {
-                                            SkydownHaptics.selection()
-                                            onOpenSettings()
-                                        }
-                                        .font(.caption.weight(.semibold))
-                                        .buttonStyle(.bordered)
-                                        Button("Shop ansehen") {
-                                            SkydownHaptics.selection()
-                                            dismiss()
-                                        }
-                                        .font(.caption.weight(.semibold))
-                                        .buttonStyle(.bordered)
-                                    }
-                                }
-                            }
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        } else if !availableCheckoutMethods.isEmpty {
+                        if !cartVM.items.isEmpty {
                             CartSectionCard(
-                                title: "Zahlart waehlen",
+                                title: AppLocalized.text("cart.summary.title", fallback: "Bestellsumme"),
                                 colorScheme: colorScheme
                             ) {
-                                PaymentMethodSelectionCard(
+                                PricingSummaryCard(
                                     colorScheme: colorScheme,
-                                    methods: availableCheckoutMethods,
-                                    selectedMethod: $selectedPaymentMethod,
-                                    isZeroCostOrder: !cartVM.items.isEmpty && pricingSummary.total <= 0.01
+                                    summary: pricingSummary,
+                                    shippingNote: commerceSettingsStore.settings.shipping.shippingNotes,
+                                    companyName: commerceSettingsStore.settings.invoice.companyName
                                 )
                             }
 
-                            if !selectedPaymentMethod.isEmpty {
+                            CartSectionCard(
+                                title: AppLocalized.text("cart.contact.title", fallback: "Kontaktdaten"),
+                                colorScheme: colorScheme
+                            ) {
+                                VStack(spacing: SkydownLayout.stackSpacingPill) {
+                                    HStack(spacing: SkydownLayout.stackSpacingPill) {
+                                        CartInputField(
+                                            title: "Name*",
+                                            text: $name,
+                                            colorScheme: colorScheme
+                                        )
+                                        CartInputField(
+                                            title: "E-Mail*",
+                                            text: $email,
+                                            colorScheme: colorScheme,
+                                            keyboard: .emailAddress,
+                                            autocapitalization: .never
+                                        )
+                                    }
+
+                                    if showOptionalContactFields || !whatsApp.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                        CartInputField(
+                                            title: "WhatsApp (optional)",
+                                            text: $whatsApp,
+                                            colorScheme: colorScheme,
+                                            keyboard: .phonePad
+                                        )
+                                        .transition(.opacity.combined(with: .move(edge: .top)))
+                                    } else {
+                                        CartOptionalRevealButton(
+                                            title: AppLocalized.text("cart.contact.add_whatsapp", fallback: "WhatsApp hinzufuegen"),
+                                            colorScheme: colorScheme
+                                        ) {
+                                            withAnimation(optionalRevealAnimation) {
+                                                showOptionalContactFields = true
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(.top, 4)
+                            }
+
+                            CartSectionCard(
+                                title: AppLocalized.text("cart.shipping.title", fallback: "Lieferadresse"),
+                                colorScheme: colorScheme
+                            ) {
+                                VStack(spacing: SkydownLayout.stackSpacingPill) {
+                                    CartInputField(
+                                        title: "Strasse, Hausnr.*",
+                                        text: $shippingStreet,
+                                        colorScheme: colorScheme
+                                    )
+                                    HStack(spacing: SkydownLayout.stackSpacingPill) {
+                                        CartInputField(
+                                            title: "PLZ*",
+                                            text: $shippingPostalCode,
+                                            colorScheme: colorScheme,
+                                            keyboard: .numbersAndPunctuation
+                                        )
+                                        CartInputField(
+                                            title: "Ort*",
+                                            text: $shippingCity,
+                                            colorScheme: colorScheme
+                                        )
+                                    }
+                                    if showOptionalAddressFields || !shippingAddressExtra.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                        CartInputField(
+                                            title: "Adresszusatz (optional)",
+                                            text: $shippingAddressExtra,
+                                            colorScheme: colorScheme
+                                        )
+                                        .transition(.opacity.combined(with: .move(edge: .top)))
+                                    } else {
+                                        CartOptionalRevealButton(
+                                            title: AppLocalized.text("cart.shipping.add_address_extra", fallback: "Adresszusatz hinzufuegen"),
+                                            colorScheme: colorScheme
+                                        ) {
+                                            withAnimation(optionalRevealAnimation) {
+                                                showOptionalAddressFields = true
+                                            }
+                                        }
+                                    }
+                                    CartInputField(
+                                        title: "Land",
+                                        text: $shippingCountry,
+                                        colorScheme: colorScheme
+                                    )
+                                }
+                                .padding(.top, 4)
+                            }
+
+                            if !isCheckoutAvailable {
+                                CartInlineStatusStrip(
+                                    colorScheme: colorScheme,
+                                    icon: "pause.circle.fill",
+                                    title: AppLocalized.text("cart_checkout_paused_title", fallback: "Checkout pausiert")
+                                ) {
+                                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
+                                        Text(AppLocalized.text("cart_checkout_paused_body", fallback: "Der Checkout ist kurz pausiert. Deine Auswahl bleibt gespeichert."))
+                                            .font(.footnote.weight(.medium))
+                                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                            .fixedSize(horizontal: false, vertical: true)
+                                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                                            SkydownBrandActionButton(
+                                                title: AppLocalized.text("common.settings", fallback: "Einstellungen"),
+                                                accent: AppColors.accent(for: colorScheme),
+                                                colorScheme: colorScheme,
+                                                role: .muted,
+                                                font: .caption.weight(.semibold),
+                                                cornerRadius: SkydownLayout.compactRadius,
+                                                verticalPadding: 8,
+                                                action: onOpenSettings
+                                            )
+                                            SkydownBrandActionButton(
+                                                title: AppLocalized.text("cart.action.open_shop", fallback: "Shop ansehen"),
+                                                accent: AppColors.accent(for: colorScheme),
+                                                colorScheme: colorScheme,
+                                                role: .muted,
+                                                font: .caption.weight(.semibold),
+                                                cornerRadius: SkydownLayout.compactRadius,
+                                                verticalPadding: 8,
+                                                action: { dismiss() }
+                                            )
+                                        }
+                                    }
+                                }
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            } else if !availableCheckoutMethods.isEmpty {
                                 CartSectionCard(
-                                    title: "Zahlungsinfo",
+                                    title: AppLocalized.text("cart.payment.select_title", fallback: "Zahlart waehlen"),
                                     colorScheme: colorScheme
                                 ) {
-                                    SelectedPaymentMethodInfoCard(
+                                    PaymentMethodSelectionCard(
                                         colorScheme: colorScheme,
-                                        settings: paymentMethodSettingsStore.settings,
-                                        selectedMethod: selectedPaymentMethod,
+                                        methods: availableCheckoutMethods,
+                                        selectedMethod: $selectedPaymentMethod,
                                         isZeroCostOrder: !cartVM.items.isEmpty && pricingSummary.total <= 0.01
                                     )
                                 }
-                            }
-                        }
 
-                        CartSectionCard(
-                            title: "Nachricht",
-                            colorScheme: colorScheme
-                        ) {
-                            if showOptionalMessageField || hasCustomMessage {
-                                TextEditor(text: $message)
-                                    .frame(minHeight: 108)
-                                    .padding(14)
-                                    .background(AppColors.secondaryBackground(for: colorScheme))
-                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
-                                            .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
-                                    )
-                                    .transition(.opacity.combined(with: .move(edge: .top)))
-                            } else {
-                                Button("Hinweis hinzufügen (optional)") {
-                                    SkydownHaptics.selection()
-                                    withAnimation(.easeInOut(duration: 0.18)) {
-                                        showOptionalMessageField = true
+                                if !selectedPaymentMethod.isEmpty {
+                                    CartSectionCard(
+                                        title: AppLocalized.text("cart.payment.info_title", fallback: "Zahlungsinfo"),
+                                        colorScheme: colorScheme
+                                    ) {
+                                        SelectedPaymentMethodInfoCard(
+                                            colorScheme: colorScheme,
+                                            settings: paymentMethodSettingsStore.settings,
+                                            selectedMethod: selectedPaymentMethod,
+                                            isZeroCostOrder: !cartVM.items.isEmpty && pricingSummary.total <= 0.01
+                                        )
                                     }
                                 }
-                                .font(.caption.weight(.semibold))
-                                .buttonStyle(.bordered)
                             }
-                        }
 
-                        CartCheckoutSafetyZone(
-                            colorScheme: colorScheme,
-                            supportMailbox: supportMailbox
-                        )
+                            CartSectionCard(
+                                title: AppLocalized.text("cart.message.title", fallback: "Nachricht"),
+                                colorScheme: colorScheme
+                            ) {
+                                if showOptionalMessageField || hasCustomMessage {
+                                    TextEditor(text: $message)
+                                        .frame(minHeight: 108)
+                                        .padding(14)
+                                        .background(AppColors.secondaryBackground(for: colorScheme))
+                                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
+                                                .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
+                                        )
+                                        .transition(.opacity.combined(with: .move(edge: .top)))
+                                } else {
+                                    CartOptionalRevealButton(
+                                        title: AppLocalized.text("cart.message.add_optional", fallback: "Hinweis hinzufuegen (optional)"),
+                                        colorScheme: colorScheme
+                                    ) {
+                                        withAnimation(optionalRevealAnimation) {
+                                            showOptionalMessageField = true
+                                        }
+                                    }
+                                }
+                            }
+
+                            CartCheckoutSafetyZone(
+                                colorScheme: colorScheme,
+                                supportMailbox: supportMailbox
+                            )
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -443,18 +453,25 @@ struct CartView: View {
             .scrollDismissesKeyboard(.interactively)
             .skydownDismissKeyboardOnTap()
             .background(backgroundGradient.ignoresSafeArea())
-            .navigationTitle("Warenkorb")
+            .navigationTitle(AppLocalized.text("cart_title", fallback: "Warenkorb"))
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .skydownKeyboardDismissToolbar()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.headline.weight(.bold))
-                    }
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.back", fallback: "Zurueck"),
+                        systemImage: "chevron.backward",
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -466,7 +483,7 @@ struct CartView: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: SkydownLayout.stackSpacingNone) {
-                if authManager.userSession != nil {
+                if authManager.userSession != nil && !cartVM.items.isEmpty {
                     CartSubmitBar(
                         colorScheme: colorScheme,
                         itemCount: cartVM.items.count,
@@ -474,13 +491,19 @@ struct CartView: View {
                         readinessTitle: checkoutReadinessTitle,
                         readinessDetail: checkoutReadinessDetail,
                         buttonTitle: isZeroCostHostedCheckout
-                            ? "Bestellung bestaetigen"
-                            : (isHostedCheckoutSelection ? "Sicher fortfahren" : "Bestellung pruefen"),
+                            ? AppLocalized.text("cart.action.confirm_order", fallback: "Confirm order")
+                            : (
+                                isHostedCheckoutSelection
+                                    ? AppLocalized.text("cart.action.continue_securely", fallback: "Continue securely")
+                                    : AppLocalized.text("cart.action.review_order", fallback: "Review order")
+                            ),
                         trustHint: isZeroCostHostedCheckout
-                            ? "Fuer diesen 0-EUR-Testartikel ist keine Zahlung noetig. Die Bestellung wird direkt bestaetigt."
-                            : (isHostedCheckoutSelection
-                                ? "Sichere Weiterleitung mit klarer Rueckmeldung."
-                                : "Sichere Uebermittlung, Support ist erreichbar."),
+                            ? AppLocalized.text("cart.trust.zero_eur", fallback: "For this 0 EUR test item, no payment is needed. The order is confirmed directly.")
+                            : (
+                                isHostedCheckoutSelection
+                                    ? AppLocalized.text("cart.trust.redirect", fallback: "Secure redirect with clear feedback.")
+                                    : AppLocalized.text("cart.trust.submit", fallback: "Secure submission with support available.")
+                            ),
                         isReady: canSubmitOrder,
                         isSubmitting: isSubmitting
                     ) {
@@ -505,14 +528,29 @@ struct CartView: View {
 
                 switch event.status {
                 case .success:
-                    cartVM.showUserToast("Checkout abgeschlossen. Wir pruefen jetzt die Zahlungsbestaetigung und aktualisieren den Status hier.", style: .success)
-                    postCheckoutHighlight = "Checkout abgeschlossen. Wir halten dich hier ueber Zahlung und Versandstatus auf dem Laufenden."
+                    cartVM.showUserToast(
+                        AppLocalized.text("cart.toast.checkout_completed", fallback: "Checkout completed. We are now verifying payment confirmation and updating status here."),
+                        style: .success
+                    )
+                    postCheckoutHighlight = AppLocalized.text(
+                        "cart.highlight.checkout_completed",
+                        fallback: "Checkout completed. We keep you updated here on payment and shipping status."
+                    )
                 case .cancel:
                     if restoredCart {
-                        cartVM.showUserToast("Checkout abgebrochen. Dein Warenkorb wurde wiederhergestellt.", style: .info)
-                        postCheckoutHighlight = "Checkout abgebrochen. Deine Auswahl ist wieder im Warenkorb."
+                        cartVM.showUserToast(
+                            AppLocalized.text("cart.toast.checkout_cancelled_restored", fallback: "Checkout cancelled. Your cart has been restored."),
+                            style: .info
+                        )
+                        postCheckoutHighlight = AppLocalized.text(
+                            "cart.highlight.checkout_cancelled_restored",
+                            fallback: "Checkout cancelled. Your selection is back in the cart."
+                        )
                     } else {
-                        cartVM.showUserToast("Checkout abgebrochen. Die Bestellung bleibt unbezahlt.", style: .info)
+                        cartVM.showUserToast(
+                            AppLocalized.text("cart.toast.checkout_cancelled_unpaid", fallback: "Checkout cancelled. The order remains unpaid."),
+                            style: .info
+                        )
                     }
                 }
 
@@ -582,7 +620,10 @@ struct CartView: View {
         }
 
         guard availableCheckoutMethods.isEmpty || !selectedPaymentMethod.isEmpty else {
-            cartVM.showUserToast("Bitte waehle zuerst eine Zahlart.", style: .error)
+            cartVM.showUserToast(
+                AppLocalized.text("cart.toast.select_payment_first", fallback: "Please select a payment method first."),
+                style: .error
+            )
             withAnimation(.easeInOut(duration: 0.2)) {
                 isSubmitting = false
             }
@@ -618,8 +659,8 @@ struct CartView: View {
                     isSubmitting = false
                 }
                 postCheckoutHighlight = isZeroCostHostedCheckout
-                    ? "Bestellung bestaetigt. Status und Shop-Sync erscheinen hier direkt."
-                    : "Checkout gestartet. Nach der Zahlungsbestaetigung siehst du hier direkt den aktuellen Status."
+                    ? AppLocalized.text("cart.toast.order_confirmed_sync", fallback: "Order confirmed. Status and shop sync appear here directly.")
+                    : AppLocalized.text("cart.toast.checkout_started_status", fallback: "Checkout started. After payment confirmation, you see current status here.")
                 return true
             }
 
@@ -648,7 +689,10 @@ struct CartView: View {
 
         if didSubmit {
             presentOrderMailDraft(draft)
-            postCheckoutHighlight = "Bestellung uebermittelt. Das Team bestaetigt jetzt Zahlung und Versandschritt."
+            postCheckoutHighlight = AppLocalized.text(
+                "cart.highlight.order_submitted",
+                fallback: "Order submitted. The team now confirms payment and shipping step."
+            )
         }
 
         withAnimation(.easeInOut(duration: 0.2)) {
@@ -671,7 +715,9 @@ struct CartView: View {
         let postalAndCity = [shippingPostalCode.trimmedForAddress, shippingCity.trimmedForAddress]
             .filter { !$0.isEmpty }
             .joined(separator: " ")
-        let country = shippingCountry.trimmedForAddress.isEmpty ? "Deutschland" : shippingCountry.trimmedForAddress
+        let country = shippingCountry.trimmedForAddress.isEmpty
+            ? AppLocalized.text("cart.default.country", fallback: "Germany")
+            : shippingCountry.trimmedForAddress
 
         return [topLine, extraLine, postalAndCity, country]
             .filter { !$0.isEmpty }
@@ -692,7 +738,7 @@ struct CartView: View {
     }
 
     private var supportMailbox: String {
-        "skydownent@gmail.com"
+        PlatformContactEmails.defaultSupportEmail
     }
 
     private func makeOrderMailDraft(items: [CartItem]) -> OrderMailDraft {
@@ -700,41 +746,46 @@ struct CartView: View {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .takeIfNotBlank()
         let itemSummary = items.isEmpty
-            ? "- Keine Artikel"
+            ? "- \(AppLocalized.text("cart.mail.items.none", fallback: "No items"))"
             : items.map { cartItem in
                 let linePrice = cartItem.effectiveUnitPrice * Double(cartItem.quantity)
-                let colorPart = cartItem.color?.takeIfNotBlank().map { " | Farbe: \($0)" } ?? ""
-                return "- \(cartItem.item.name) | Groesse: \(cartItem.size)\(colorPart) | Menge: \(cartItem.quantity) | Preis: \(String(format: "EUR %.2f", linePrice))"
+                let colorPart = cartItem.color?.takeIfNotBlank().map {
+                    " | \(AppLocalized.text("cart.mail.field.color", fallback: "Color")): \($0)"
+                } ?? ""
+                return "- \(cartItem.item.name) | \(AppLocalized.text("cart.mail.field.size", fallback: "Size")): \(cartItem.size)\(colorPart) | \(AppLocalized.text("cart.mail.field.quantity", fallback: "Quantity")): \(cartItem.quantity) | \(AppLocalized.text("cart.mail.field.price", fallback: "Price")): \(String(format: "EUR %.2f", linePrice))"
             }.joined(separator: "\n")
         let orderTotal = items.reduce(0.0) { partialResult, cartItem in
             partialResult + cartItem.effectiveUnitPrice * Double(cartItem.quantity)
         }
-        let subject = preferredEmail.map { "Neue Bestellung - \($0)" } ?? "Neue Bestellung"
+        let subject = preferredEmail.map {
+            AppLocalized.text("cart.mail.subject.with_email", fallback: "New order - %@")
+                .replacingOccurrences(of: "%@", with: $0)
+        } ?? AppLocalized.text("cart.mail.subject", fallback: "New order")
         let body = """
-        Hallo SkyOS-Team,
+        \(AppLocalized.text("cart.mail.greeting", fallback: "Hello SkyOS team,"))
 
-        es wurde eine neue Bestellung in SkyOS vorbereitet.
+        \(AppLocalized.text("cart.mail.intro", fallback: "a new order has been prepared in SkyOS."))
 
-        Name: \(name.isEmpty ? "Nicht angegeben" : name)
-        E-Mail: \(email.isEmpty ? "Nicht angegeben" : email)
-        WhatsApp: \(whatsApp.isEmpty ? "Nicht angegeben" : whatsApp)
-        Adresse:
-        \(composedShippingAddress.isEmpty ? "Nicht angegeben" : composedShippingAddress)
+        \(AppLocalized.text("cart.mail.field.name", fallback: "Name")): \(name.isEmpty ? AppLocalized.text("cart.mail.value.not_provided", fallback: "Not provided") : name)
+        \(AppLocalized.text("cart.mail.field.email", fallback: "Email")): \(email.isEmpty ? AppLocalized.text("cart.mail.value.not_provided", fallback: "Not provided") : email)
+        WhatsApp: \(whatsApp.isEmpty ? AppLocalized.text("cart.mail.value.not_provided", fallback: "Not provided") : whatsApp)
+        \(AppLocalized.text("cart.mail.field.shipping_address", fallback: "Shipping address")):
+        \(composedShippingAddress.isEmpty ? AppLocalized.text("cart.mail.value.not_provided", fallback: "Not provided") : composedShippingAddress)
 
-        Warenkorb:
+        \(AppLocalized.text("cart.mail.field.items", fallback: "Cart")):
         \(itemSummary)
 
-        Zwischensumme: \(String(format: "EUR %.2f", orderTotal))
-        Versandzone: \(pricingSummary.zoneLabel)
-        Versand: \(String(format: "EUR %.2f", pricingSummary.shipping))
-        Enthaltene MwSt. (\(String(format: "%.1f", pricingSummary.taxRate))%): \(String(format: "EUR %.2f", pricingSummary.includedTax))
-        Gesamt: \(String(format: "EUR %.2f", pricingSummary.total))
+        \(AppLocalized.text("cart.pricing.subtotal", fallback: "Subtotal")): \(String(format: "EUR %.2f", orderTotal))
+        \(AppLocalized.text("cart.pricing.shipping_zone", fallback: "Shipping zone")): \(pricingSummary.zoneLabel)
+        \(AppLocalized.text("cart.pricing.shipping", fallback: "Shipping")): \(String(format: "EUR %.2f", pricingSummary.shipping))
+        \(AppLocalized.text("cart.pricing.tax_included", fallback: "Included VAT")) (\(String(format: "%.1f", pricingSummary.taxRate))%): \(String(format: "EUR %.2f", pricingSummary.includedTax))
+        \(AppLocalized.text("cart.pricing.total", fallback: "Total")): \(String(format: "EUR %.2f", pricingSummary.total))
 
-        Zahlart:
-        \(selectedPaymentMethod.isEmpty ? "Noch offen / per Rueckkontakt" : selectedPaymentMethod)
+        \(AppLocalized.text("cart.mail.field.payment", fallback: "Payment")):
+        \(selectedPaymentMethod.isEmpty ? AppLocalized.text("cart.mail.payment.pending", fallback: "Pending / via follow-up") : selectedPaymentMethod)
 
-        Nachricht:
-        \(message.isEmpty ? "Keine zusaetzliche Nachricht." : message)
+        \(AppLocalized.text("cart.mail.field.message", fallback: "Message")):
+        \(message.isEmpty ? AppLocalized.text("cart.mail.message.none", fallback: "No additional message.") : message)
         """
 
         return OrderMailDraft(
@@ -753,13 +804,13 @@ struct CartView: View {
         let encodedSubject = draft.subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedBody = draft.body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         guard let url = URL(string: "mailto:\(supportMailbox)?subject=\(encodedSubject)&body=\(encodedBody)") else {
-            cartVM.showUserToast("Die Mail-App konnte nicht vorbereitet werden.", style: .error)
+            cartVM.showUserToast(AppLocalized.text("cart.mail.error.prepare", fallback: "Could not prepare the mail app."), style: .error)
             return
         }
 
         openURL(url) { accepted in
             if !accepted {
-                cartVM.showUserToast("Die Mail-App konnte nicht geoeffnet werden.", style: .error)
+                cartVM.showUserToast(AppLocalized.text("cart.mail.error.open", fallback: "Could not open the mail app."), style: .error)
             }
         }
     }
@@ -809,7 +860,10 @@ private struct PricingSummaryCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
-            Text("Rechnung über \(companyName.takeIfNotBlank() ?? "Ngoc Anh Nguyen (Yang D. Nash - Skydown)").")
+            Text(
+                AppLocalized.text("cart.invoice.company", fallback: "Invoice by %@")
+                    .replacingOccurrences(of: "%@", with: companyName.takeIfNotBlank() ?? "Ngoc Anh Nguyen (Yang D. Nash - Skydown)")
+            )
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -854,7 +908,7 @@ private struct PaymentMethodSelectionCard: View {
                 Image(systemName: "lock.shield")
                     .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
-                Text("Sichere Zahlungswahl")
+                Text(AppLocalized.text("cart.payment.secure_selection", fallback: "Secure payment selection"))
                     .font(.caption.weight(.semibold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -882,7 +936,7 @@ private struct PaymentMethodSelectionCard: View {
                                     .lineLimit(2)
                                 Spacer(minLength: 0)
                                 if isSelected {
-                                    Text("Ausgewählt")
+                                    Text(AppLocalized.text("common.selected", fallback: "Selected"))
                                         .font(.caption2.weight(.bold))
                                         .foregroundColor(AppColors.accent(for: colorScheme))
                                 }
@@ -928,8 +982,8 @@ private struct PaymentMethodSelectionCard: View {
             if !selectedMethod.isEmpty {
                 Text(
                     isZeroCostOrder && ["Stripe", "Klarna"].contains(selectedMethod)
-                        ? "Fuer diesen 0-EUR-Testartikel wird keine Zahlung geoeffnet."
-                        : "Deine Zahlungswahl wird im naechsten Schritt sicher fortgefuehrt."
+                        ? AppLocalized.text("cart.payment.zero_hint", fallback: "For this 0 EUR test item, no payment is opened.")
+                        : AppLocalized.text("cart.payment.next_step_hint", fallback: "Your payment choice continues securely in the next step.")
                 )
                     .font(.caption.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -942,15 +996,15 @@ private struct PaymentMethodSelectionCard: View {
     private func paymentRouteDetail(for method: String) -> String {
         switch method {
         case "Stripe":
-            return "Karte, Apple Pay, Google Pay und weitere sichere Optionen"
+            return AppLocalized.text("cart.route.detail.stripe", fallback: "Card, Apple Pay, Google Pay, and more secure options")
         case "Klarna":
-            return "Klarna via Stripe"
+            return AppLocalized.text("cart.route.detail.klarna", fallback: "Klarna via Stripe")
         case "PayPal":
-            return "PayPal Rueckmeldung"
+            return AppLocalized.text("cart.route.detail.paypal", fallback: "PayPal follow-up")
         case "Bankueberweisung":
-            return "Direkte Ueberweisung"
+            return AppLocalized.text("cart.route.detail.bank", fallback: "Direct bank transfer")
         default:
-            return "Verfuegbare Zahlungsroute"
+            return AppLocalized.text("cart.route.detail.default", fallback: "Available payment route")
         }
     }
 }
@@ -974,12 +1028,12 @@ private struct SelectedPaymentMethodInfoCard: View {
 
             switch selectedMethod {
             case "PayPal":
-                Text("PayPal startet nach kurzer Bestaetigung durch das Team.")
+                Text(AppLocalized.text("cart.payment.paypal.start", fallback: "PayPal starts after a short team confirmation."))
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                 if settings.paypal.accountHint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("PayPal-Link wird bei der Rueckmeldung geteilt.")
+                    Text(AppLocalized.text("cart.payment.paypal.link_followup", fallback: "PayPal link is shared in the follow-up."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 } else {
@@ -987,16 +1041,16 @@ private struct SelectedPaymentMethodInfoCard: View {
                 }
 
             case "Bankueberweisung":
-                Text("Ueberweisung mit klaren Bankdaten fuer diese Bestellung.")
+                Text(AppLocalized.text("cart.payment.bank.intro", fallback: "Bank transfer with clear account details for this order."))
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                     if !settings.bankTransfer.accountHolder.isEmpty {
-                        paymentInfoLine("Kontoinhaber", settings.bankTransfer.accountHolder)
+                        paymentInfoLine(AppLocalized.text("cart.payment.bank.account_holder", fallback: "Account holder"), settings.bankTransfer.accountHolder)
                     }
                     if !settings.bankTransfer.bankName.isEmpty {
-                        paymentInfoLine("Bank", settings.bankTransfer.bankName)
+                        paymentInfoLine(AppLocalized.text("cart.payment.bank.name", fallback: "Bank"), settings.bankTransfer.bankName)
                     }
                     if !settings.bankTransfer.iban.isEmpty {
                         paymentInfoLine("IBAN", settings.bankTransfer.iban)
@@ -1005,15 +1059,15 @@ private struct SelectedPaymentMethodInfoCard: View {
                         paymentInfoLine("BIC", settings.bankTransfer.bic)
                     }
                     if !settings.bankTransfer.paymentInstructions.isEmpty {
-                        paymentInfoLine("Hinweis", settings.bankTransfer.paymentInstructions)
+                        paymentInfoLine(AppLocalized.text("cart.payment.bank.note", fallback: "Note"), settings.bankTransfer.paymentInstructions)
                     }
                 }
 
             case "Stripe":
                 Text(
                     isZeroCostOrder
-                        ? "Fuer diesen 0-EUR-Testartikel ist keine Zahlung noetig. Die Bestellung wird direkt bestaetigt."
-                        : "Stripe startet danach den sicheren Live-Checkout. Je nach Geraet und Verfuegbarkeit koennen Karte, Apple Pay, Google Pay oder weitere kompatible Zahlarten erscheinen."
+                        ? AppLocalized.text("cart.payment.stripe.zero", fallback: "For this 0 EUR test item, no payment is needed. The order is confirmed directly.")
+                        : AppLocalized.text("cart.payment.stripe.standard", fallback: "Stripe then opens secure live checkout. Depending on device and availability, card, Apple Pay, Google Pay, and other compatible methods may appear.")
                 )
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1021,8 +1075,8 @@ private struct SelectedPaymentMethodInfoCard: View {
             case "Klarna":
                 Text(
                     isZeroCostOrder
-                        ? "Fuer diesen 0-EUR-Testartikel ist keine Zahlung noetig. Die Bestellung wird direkt bestaetigt."
-                        : "Klarna wird danach sicher ueber Stripe fortgefuehrt."
+                        ? AppLocalized.text("cart.payment.klarna.zero", fallback: "For this 0 EUR test item, no payment is needed. The order is confirmed directly.")
+                        : AppLocalized.text("cart.payment.klarna.standard", fallback: "Klarna then continues securely via Stripe.")
                 )
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1035,15 +1089,15 @@ private struct SelectedPaymentMethodInfoCard: View {
 
     private var paymentTrustLine: String {
         if isZeroCostOrder && ["Stripe", "Klarna"].contains(selectedMethod) {
-            return "Kein Zahlbetrag. Direkte Bestellbestaetigung mit klarem Status."
+            return AppLocalized.text("cart.payment.trust.zero", fallback: "No payment amount. Direct order confirmation with clear status.")
         }
         switch selectedMethod {
         case "Stripe", "Klarna":
-            return "Sicherer Checkout mit geschuetzter Weiterleitung."
+            return AppLocalized.text("cart.payment.trust.hosted", fallback: "Secure checkout with protected redirect.")
         case "PayPal", "Bankueberweisung":
-            return "Klare Zahlungsroute mit direkter Rueckmeldung."
+            return AppLocalized.text("cart.payment.trust.followup", fallback: "Clear payment route with direct follow-up.")
         default:
-            return "Sichere Zahlungsabwicklung."
+            return AppLocalized.text("cart.payment.trust.default", fallback: "Secure payment handling.")
         }
     }
 
@@ -1120,12 +1174,12 @@ private struct CartHeroCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: SkydownLayout.stackSpacingComfortable) {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                Text("Warenkorb")
+                Text(AppLocalized.text("cart_title", fallback: "Cart"))
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Text("Ruhig pruefen, sicher abschliessen.")
+                Text(AppLocalized.text("cart.hero.subtitle", fallback: "Review calmly, finish securely."))
                     .font(.body)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -1150,8 +1204,17 @@ private struct CartHeroCard: View {
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.14 : 0.08), radius: 12, y: 5)
         .overlay(alignment: .bottomLeading) {
             HStack(spacing: SkydownLayout.stackSpacingCompact) {
-                CartBadge(text: "\(itemCount) Artikel", colorScheme: colorScheme)
-                CartBadge(text: isLoggedIn ? "Konto aktiv" : "Gast", colorScheme: colorScheme)
+                CartBadge(
+                    text: AppLocalized.text("cart.items.count_format", fallback: "%d items")
+                        .replacingOccurrences(of: "%d", with: "\(itemCount)"),
+                    colorScheme: colorScheme
+                )
+                CartBadge(
+                    text: isLoggedIn
+                        ? AppLocalized.text("cart.account.active", fallback: "Account active")
+                        : AppLocalized.text("cart.account.guest", fallback: "Guest"),
+                    colorScheme: colorScheme
+                )
                 if itemCount > 0 {
                     CartBadge(text: String(format: "EUR %.2f", totalPrice), colorScheme: colorScheme)
                 }
@@ -1185,7 +1248,7 @@ private struct CartHandoverStrip: View {
                 .foregroundColor(AppColors.accent(for: colorScheme))
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
-                Text("Gerade hinzugefuegt")
+                Text(AppLocalized.text("cart.handover.just_added", fallback: "Just added"))
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 Text(itemName)
@@ -1313,12 +1376,19 @@ private struct CartItemCard: View {
                     onQuantityChange(1)
                 }
                 Spacer()
-                Button(action: onRemove) {
-                    Label("Entfernen", systemImage: "trash")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                }
-                .buttonStyle(.plain)
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("cart.line_item.remove", fallback: "Entfernen"),
+                    systemImage: "trash",
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    font: .caption2.weight(.semibold),
+                    cornerRadius: SkydownLayout.tightRadius,
+                    verticalPadding: 6,
+                    expandToFullWidth: false,
+                    action: onRemove
+                )
+                .skydownInteractiveFeedback()
                 .accessibilityLabel("Artikel entfernen")
                 .accessibilityHint("Entfernt den Artikel aus dem Warenkorb")
             }
@@ -1382,6 +1452,29 @@ private struct CartInputField: View {
     }
 }
 
+private struct CartOptionalRevealButton: View {
+    let title: String
+    let colorScheme: ColorScheme
+    let action: () -> Void
+
+    var body: some View {
+        SkydownBrandActionButton(
+            title: title,
+            accent: AppColors.accent(for: colorScheme),
+            colorScheme: colorScheme,
+            role: .muted,
+            font: .caption.weight(.semibold),
+            cornerRadius: SkydownLayout.denseRadius,
+            verticalPadding: 7,
+            expandToFullWidth: false,
+            action: {
+                SkydownHaptics.selection()
+                action()
+            }
+        )
+    }
+}
+
 private struct CartCheckoutConfirmSheet: View {
     let colorScheme: ColorScheme
     let items: [CartItem]
@@ -1401,11 +1494,9 @@ private struct CartCheckoutConfirmSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
-                Text("Bestellung bestaetigen")
-                    .font(.title3.weight(.bold))
-                    .foregroundColor(AppColors.text(for: colorScheme))
                 Text(
                     isZeroCostOrder
                         ? "Fuer diesen 0-EUR-Testartikel wird die Bestellung direkt bestaetigt."
@@ -1464,48 +1555,68 @@ private struct CartCheckoutConfirmSheet: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
-            Text("Sicherer Ablauf, klare Rueckmeldung und Support bei Bedarf.")
+            Text(AppLocalized.text("cart.confirm.safety_hint", fallback: "Secure flow, clear feedback, and support when needed."))
                 .font(.caption.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
-                Button("Abbrechen", action: onCancel)
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity, minHeight: 46)
-                    .background(AppColors.secondaryBackground(for: colorScheme))
-                    .foregroundColor(AppColors.text(for: colorScheme))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
-                            .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
-                    .disabled(isSubmitting)
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("common.cancel", fallback: "Cancel"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    isEnabled: !isSubmitting,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 14,
+                    expandToFullWidth: true,
+                    action: onCancel
+                )
+                .skydownInteractiveFeedback()
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button(action: onConfirm) {
-                    if isSubmitting {
-                        ProgressView()
-                            .tint(.white)
-                            .frame(maxWidth: .infinity, minHeight: 46)
-                    } else {
-                        Text(
-                            isZeroCostOrder
-                                ? "Bestellung bestaetigen"
-                                : (isHostedCheckout ? "Sicher fortfahren" : "Bestellung senden")
-                        )
-                            .font(.subheadline.weight(.bold))
-                            .frame(maxWidth: .infinity, minHeight: 46)
-                    }
+                SkydownBrandActionButton(
+                    title: isZeroCostOrder
+                        ? "Bestellung bestaetigen"
+                        : (isHostedCheckout ? "Sicher fortfahren" : "Bestellung senden"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isLoading: isSubmitting,
+                    font: .subheadline.weight(.bold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 14,
+                    expandToFullWidth: true,
+                    action: onConfirm
+                )
+                .skydownInteractiveFeedback()
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, SkydownLayout.cardPadding)
+            .background(AppColors.cardBackground(for: colorScheme))
+            .navigationTitle(AppLocalized.text("cart.confirm.title", fallback: "Confirm order"))
+            .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.done", fallback: "Done"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        isEnabled: !isSubmitting,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: onCancel
+                    )
+                    .skydownInteractiveFeedback()
                 }
-                .background(AppColors.accent(for: colorScheme))
-                .foregroundColor(.white)
-                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
-                .disabled(isSubmitting)
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-        .padding(.bottom, SkydownLayout.cardPadding)
-        .background(AppColors.cardBackground(for: colorScheme))
     }
 }
 
@@ -1515,8 +1626,8 @@ private struct CartCheckoutSafetyZone: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSnug) {
-            safetyLine("lock.shield.fill", "Sichere Zahlwege und klare Weiterleitung im naechsten Schritt.")
-            safetyLine("doc.text.magnifyingglass", "Daten und Gesamtpreis pruefen wir vor dem Senden noch einmal.")
+            safetyLine("lock.shield.fill", AppLocalized.text("cart.safety.payment", fallback: "Secure payment paths and clear redirect in the next step."))
+            safetyLine("doc.text.magnifyingglass", AppLocalized.text("cart.safety.review", fallback: "Data and total are reviewed once more before sending."))
             safetyLine(
                 "book.pages",
                 AppLocalized.text(
@@ -1529,7 +1640,10 @@ private struct CartCheckoutSafetyZone: View {
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
                     .padding(.top, 2)
-                    Text("Support direkt erreichbar: \(supportMailbox)")
+                    Text(
+                        AppLocalized.text("cart.safety.support", fallback: "Support directly reachable: %@")
+                            .replacingOccurrences(of: "%@", with: supportMailbox)
+                    )
                     .font(.caption.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
                     .textSelection(.enabled)
@@ -1595,29 +1709,18 @@ private struct CartSubmitBar: View {
 
                 Spacer()
 
-                Button(action: onSubmit) {
-                    if isSubmitting {
-                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                            ProgressView()
-                                .tint(.white)
-                                .scaleEffect(0.9)
-                            Text("Wird vorbereitet")
-                                .font(.subheadline.weight(.semibold))
-                        }
-                        .frame(minWidth: 132, minHeight: 44)
-                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                    } else {
-                        Text(buttonTitle)
-                            .font(.subheadline.weight(.bold))
-                            .frame(minWidth: 132, minHeight: 44)
-                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColors.accent(for: colorScheme))
-                .disabled(!isReady || isSubmitting)
-                .controlSize(.large)
-                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
+                SkydownBrandActionButton(
+                    title: isSubmitting ? "Wird vorbereitet" : buttonTitle,
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isEnabled: isReady,
+                    isLoading: isSubmitting,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 10,
+                    action: onSubmit
+                )
+                .frame(minWidth: 132, minHeight: 44)
                 .animation(.easeInOut(duration: 0.2), value: isSubmitting)
                 .accessibilityLabel(isSubmitting ? "Checkout wird vorbereitet" : buttonTitle)
                 .accessibilityHint(isSubmitting ? "Bitte kurz warten" : "Oeffnet die finale Bestaetigung")

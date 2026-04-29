@@ -145,6 +145,27 @@ class CartAndOrderUseCaseTest {
         assertOrderItemMatches(orderItems[0], "Cap", 1, "One Size")
         assertOrderItemMatches(orderItems[1], "Tee", 3, "M")
         assertNotEquals(orderItems[0].id, orderItems[1].id)
+        assertEquals("cap-1", orderItems[0].productId)
+        assertEquals("tee-2", orderItems[1].productId)
+        assertEquals(cartItems[0].color, orderItems[0].color)
+    }
+
+    @Test
+    fun mapCartItems_generatesStableIds_forSameInput() {
+        val cartItems = listOf(
+            CartUseCase.addItem(
+                currentItems = emptyList(),
+                item = merchandiseItem(id = "hoodie-10", name = "Hoodie"),
+                size = "L",
+                color = " Black ",
+                quantity = 2,
+            ).first(),
+        )
+
+        val firstMapping = OrderUseCase.mapCartItems(cartItems)
+        val secondMapping = OrderUseCase.mapCartItems(cartItems)
+
+        assertEquals(firstMapping.first().id, secondMapping.first().id)
     }
 
     private fun assertOrderItemMatches(orderItem: OrderItem, name: String, quantity: Int, size: String) {

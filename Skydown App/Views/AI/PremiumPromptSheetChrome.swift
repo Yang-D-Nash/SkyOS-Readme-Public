@@ -31,7 +31,7 @@ struct PremiumPromptSheetHeader: View {
                 }
                 .buttonStyle(.plain)
                 .skydownTactileAction()
-                .accessibilityLabel("Schliessen")
+                .accessibilityLabel(AppLocalized.text("common.close", fallback: "Close"))
             }
 
             HStack(alignment: .center, spacing: SkydownLayout.stackSpacingLoft) {
@@ -135,33 +135,17 @@ struct PremiumPromptPrimaryButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                Spacer(minLength: 0)
-                Image(systemName: systemImage)
-                    .font(.system(size: 16, weight: .semibold))
-            }
-            .foregroundColor(.white)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius + 2, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [accent, accent.opacity(0.88)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
-            .opacity(isEnabled ? 1 : 0.5)
-        }
-        .buttonStyle(.plain)
-        .disabled(!isEnabled)
-        .skydownTactileAction()
+        SkydownBrandActionButton(
+            title: title,
+            systemImage: systemImage,
+            accent: accent,
+            colorScheme: colorScheme,
+            isEnabled: isEnabled,
+            font: .subheadline.weight(.semibold),
+            cornerRadius: SkydownLayout.buttonCornerRadius + 2,
+            verticalPadding: 12,
+            action: action
+        )
         .animation(SkydownMotion.contentReveal, value: isEnabled)
     }
 }

@@ -16,11 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nash.skyos.R
 import com.nash.skyos.data.GoogleSignInManager
+import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.GoogleAuthButton
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -145,16 +144,14 @@ fun LoginScreen(
                     style = SkydownPanelTitleTextStyle,
                     color = colorScheme.skydownText(),
                 )
-                TextButton(
+                BrandActionButton(
+                    text = stringResource(R.string.auth_close),
                     onClick = onClose,
+                    accent = colorScheme.primary,
+                    filled = false,
+                    compact = true,
                     enabled = !isAuthBusy,
-                ) {
-                    Text(
-                        stringResource(R.string.auth_close),
-                        style = SkydownBodyCaptionTextStyle,
-                        color = colorScheme.skydownSecondaryText().copy(alpha = 0.88f),
-                    )
-                }
+                )
             }
 
             SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(SkydownUiTokens.panelPadding)) {
@@ -236,16 +233,16 @@ fun LoginScreen(
                     visualTransformation = PasswordVisualTransformation(),
                     shape = MaterialTheme.shapes.large,
                 )
-                Button(
+                BrandActionButton(
+                    text = if (uiState.isLoading) stringResource(R.string.auth_login_loading) else stringResource(R.string.auth_sign_in),
                     onClick = { viewModel.signIn(onClose) },
+                    accent = colorScheme.primary,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     enabled = !isAuthBusy,
-                    shape = MaterialTheme.shapes.large,
-                ) {
-                    Text(if (uiState.isLoading) stringResource(R.string.auth_login_loading) else stringResource(R.string.auth_sign_in))
-                }
+                    isLoading = uiState.isLoading,
+                )
                 GoogleAuthButton(
                     text = if (uiState.isGoogleLoading) stringResource(R.string.auth_google_loading) else stringResource(R.string.auth_sign_in_google),
                     isLoading = uiState.isGoogleLoading,
@@ -266,13 +263,16 @@ fun LoginScreen(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                TextButton(
+                BrandActionButton(
+                    text = stringResource(R.string.auth_no_account_register),
                     onClick = onOpenRegistration,
-                    modifier = Modifier.padding(top = 10.dp),
+                    accent = colorScheme.tertiary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp),
+                    filled = false,
                     enabled = !isAuthBusy,
-                ) {
-                    Text(stringResource(R.string.auth_no_account_register))
-                }
+                )
             }
 
             ToastHost(

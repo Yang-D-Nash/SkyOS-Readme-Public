@@ -170,10 +170,19 @@ struct MusicView: View {
                 .toolbar {
                     if let onBack {
                         ToolbarItem(placement: .topBarLeading) {
-                            Button(action: onBack) {
-                                Image(systemName: "chevron.left")
-                                    .font(.headline.weight(.bold))
-                            }
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("common.back", fallback: "Zurueck"),
+                                systemImage: "chevron.backward",
+                                accent: AppColors.accent(for: colorScheme),
+                                colorScheme: colorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 8,
+                                expandToFullWidth: false,
+                                action: onBack
+                            )
+                            .skydownInteractiveFeedback()
                         }
                     }
 

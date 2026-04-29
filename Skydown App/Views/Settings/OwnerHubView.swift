@@ -67,17 +67,19 @@ struct OwnerHubView: View {
                     Text(AppLocalized.text("owner.hub.briefing.body", fallback: "Opens AI → Agent with a structured briefing in the draft. Tap compose to send, refine the reply, then capture follow-ups in Tasks or Notes from the productivity dock—or reminders from Home."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    Button {
-                        onOpenAgentWithPrompt?(Self.dailyBriefingPrompt)
-                    } label: {
-                        Text(AppLocalized.text("owner.hub.briefing.cta", fallback: "Start briefing in Agent"))
-                            .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppColors.accentMystic(for: colorScheme))
-                    .disabled(onOpenAgentWithPrompt == nil)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("owner.hub.briefing.cta", fallback: "Start briefing in Agent"),
+                        systemImage: "arrow.right.circle.fill",
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme,
+                        isEnabled: onOpenAgentWithPrompt != nil,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 11,
+                        action: {
+                            onOpenAgentWithPrompt?(Self.dailyBriefingPrompt)
+                        }
+                    )
                     .accessibilityIdentifier("owner.hub.briefing.cta")
                 }
                 .padding(14)
@@ -115,6 +117,7 @@ struct OwnerHubView: View {
         )
         .navigationTitle(AppLocalized.text("owner.hub.nav_title", fallback: "Owner"))
         .navigationBarTitleDisplayMode(.inline)
+        .skydownNavigationChrome(colorScheme: colorScheme)
     }
 
     /// Daily Briefing Agent prompt. Keep verbatim in sync with `OwnerHubPrompts.dailyBriefing` in shared Kotlin.

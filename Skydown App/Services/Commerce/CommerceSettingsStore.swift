@@ -19,7 +19,7 @@ struct CommerceInvoiceSettings: Equatable {
     var vatId: String = ""
     var taxRate: Double = 19.0
     var invoicePrefix: String = "SD"
-    var supportEmail: String = "skydownent@gmail.com"
+    var supportEmail: String = PlatformContactEmails.defaultSupportEmail
 }
 
 struct CommerceSettings: Equatable {
@@ -86,7 +86,7 @@ final class FirestoreCommerceSettingsService: CommerceSettingsServicing {
                 vatId: invoice["vatId"] as? String ?? "",
                 taxRate: decodeDouble(invoice["taxRate"], fallback: 19.0),
                 invoicePrefix: invoice["invoicePrefix"] as? String ?? "SD",
-                supportEmail: invoice["supportEmail"] as? String ?? "skydownent@gmail.com"
+                supportEmail: invoice["supportEmail"] as? String ?? PlatformContactEmails.defaultSupportEmail
             )
         )
     }

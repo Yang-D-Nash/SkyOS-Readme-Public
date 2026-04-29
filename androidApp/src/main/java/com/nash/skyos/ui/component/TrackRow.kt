@@ -26,13 +26,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -383,34 +379,31 @@ fun TrackRow(
                     ) {
                         if (hasPreviewCta) {
                             val toggle = requireNotNull(onPlayToggle)
-                            Button(
+                            BrandActionButton(
+                                text = if (playingSurface) {
+                                    stringResource(R.string.track_action_preview_pause)
+                                } else {
+                                    stringResource(R.string.track_action_preview_listen)
+                                },
                                 onClick = {
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     toggle()
                                 },
+                                accent = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                                ),
-                            ) {
-                                Icon(
-                                    imageVector = if (playingSurface) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = null,
-                                )
-                                Text(
-                                    text = if (playingSurface) "Pause" else "Anhoeren",
-                                    modifier = Modifier.padding(start = 6.dp),
-                                )
-                            }
+                                icon = if (playingSurface) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            )
                         }
 
                         if (hasDirectSpotifyTrack) {
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = stringResource(R.string.track_action_open_spotify),
                                 onClick = {
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     showSpotifyPlayer = true
                                 },
+                                accent = SpotifyGreen,
+                                filled = false,
                                 modifier = if (hasPreviewCta) {
                                     Modifier
                                         .weight(1f)
@@ -422,18 +415,14 @@ fun TrackRow(
                                         .testTag("music.track.spotify.open")
                                         .semantics { contentDescription = openSpotifyPlayerContentDescription }
                                 },
-                                border = BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.48f)),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = SpotifyGreen,
-                                ),
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.track_action_open_spotify),
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            }
+                            )
                         } else if (hasSpotifyArtistLink || hasSpotifySearch) {
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = if (hasSpotifyArtistLink) {
+                                    stringResource(R.string.track_pill_spotify_artist)
+                                } else {
+                                    stringResource(R.string.track_pill_spotify_search)
+                                },
                                 onClick = {
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     openTrackInSpotify(
@@ -443,21 +432,10 @@ fun TrackRow(
                                         externalUrl = track.externalUrl,
                                     )
                                 },
+                                accent = SpotifyGreen,
+                                filled = false,
                                 modifier = if (hasPreviewCta) Modifier.weight(1f) else Modifier.fillMaxWidth(),
-                                border = BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.48f)),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = SpotifyGreen,
-                                ),
-                            ) {
-                                Text(
-                                    text = if (hasSpotifyArtistLink) {
-                                        stringResource(R.string.track_pill_spotify_artist)
-                                    } else {
-                                        stringResource(R.string.track_pill_spotify_search)
-                                    },
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                            }
+                            )
                         }
                     }
 
@@ -653,7 +631,8 @@ private fun SpotifyEmbedDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
-                    FilledTonalButton(
+                    BrandActionButton(
+                        text = stringResource(R.string.track_action_spotify_app),
                         onClick = {
                             openTrackInSpotify(
                                 context = context,
@@ -662,24 +641,18 @@ private fun SpotifyEmbedDialog(
                                 externalUrl = track.externalUrl,
                             )
                         },
+                        accent = SpotifyGreen,
                         modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                            contentDescription = null,
-                        )
-                        Text(
-                            text = stringResource(R.string.track_action_spotify_app),
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
+                        icon = Icons.AutoMirrored.Filled.OpenInNew,
+                    )
 
-                    OutlinedButton(
+                    BrandActionButton(
+                        text = stringResource(R.string.common_close),
                         onClick = onDismiss,
+                        accent = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.common_close))
-                    }
+                        filled = false,
+                    )
                 }
             }
         }

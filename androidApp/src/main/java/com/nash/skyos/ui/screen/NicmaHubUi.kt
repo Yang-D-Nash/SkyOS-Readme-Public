@@ -1,16 +1,14 @@
 package com.nash.skyos.ui.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -20,14 +18,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nash.skyos.R
 import com.nash.skyos.data.StudioPriceItemUi
+import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.BrandHeroCard
 import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.SectionHeader
@@ -126,21 +123,24 @@ fun NicmaProfileSelectorRow(
     ) {
         nicmaProfileOptions.forEach { profile ->
             val selected = profile == selectedProfile
-            OutlinedButton(
+            Surface(
                 onClick = { onSelectProfile(profile) },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-                colors = if (selected) {
-                    ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f),
-                    )
+                color = if (selected) {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f)
                 } else {
-                    ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                    )
+                    MaterialTheme.colorScheme.surface
                 },
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = if (selected) 0.34f else 0.22f),
+                ),
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
                     Text(
                         text = profile,
                         style = MaterialTheme.typography.labelLarge,
@@ -299,22 +299,16 @@ fun NicmaPriceListEditorCard(
                 }
             }
         }
-        OutlinedButton(
+        BrandActionButton(
+            text = stringResource(R.string.nicma_price_entry_add),
             onClick = onAdd,
-            enabled = enabled,
+            accent = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
-            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Add,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.nicma_price_entry_add))
-        }
+            icon = Icons.Filled.Add,
+            enabled = enabled,
+        )
     }
 }
 
@@ -377,7 +371,8 @@ fun StudioPriceItemEditorDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            BrandActionButton(
+                text = stringResource(R.string.common_apply),
                 onClick = {
                     onConfirm(
                         StudioPriceItemUi(
@@ -387,15 +382,19 @@ fun StudioPriceItemEditorDialog(
                         ),
                     )
                 },
+                accent = MaterialTheme.colorScheme.primary,
                 enabled = canSave,
-            ) {
-                Text(stringResource(R.string.common_apply))
-            }
+                compact = true,
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.common_cancel))
-            }
+            BrandActionButton(
+                text = stringResource(R.string.common_cancel),
+                onClick = onDismiss,
+                accent = MaterialTheme.colorScheme.primary,
+                filled = false,
+                compact = true,
+            )
         },
     )
 }
@@ -465,13 +464,13 @@ fun NicmaStudioInlineLinkRow(
         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
     ) {
         links.forEach { link ->
-            OutlinedButton(
+            BrandActionButton(
+                text = link.label,
                 onClick = { onOpenLink(link.url) },
-                shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-            ) {
-                Text(link.label, style = MaterialTheme.typography.labelLarge)
-            }
+                accent = MaterialTheme.colorScheme.primary,
+                filled = false,
+                compact = true,
+            )
         }
     }
 }
@@ -492,38 +491,38 @@ fun NicmaContactCard(
             modifier = Modifier.padding(top = 8.dp),
         )
 
-        OutlinedButton(
+        BrandActionButton(
+            text = stringResource(R.string.nicma_instagram_label),
             onClick = { onOpenLink(instagramUrl) },
+            accent = MaterialTheme.colorScheme.primary,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-        ) {
-            Text(stringResource(R.string.nicma_instagram_label))
-        }
+            filled = false,
+        )
 
         spotifyUrl?.takeIf { it.isNotBlank() }?.let { url ->
-            OutlinedButton(
+            BrandActionButton(
+                text = stringResource(R.string.common_spotify),
                 onClick = { onOpenLink(url) },
+                accent = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp),
-                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-            ) {
-                Text(stringResource(R.string.common_spotify))
-            }
+                filled = false,
+            )
         }
 
         youtubeUrl?.takeIf { it.isNotBlank() }?.let { url ->
-            OutlinedButton(
+            BrandActionButton(
+                text = stringResource(R.string.common_youtube),
                 onClick = { onOpenLink(url) },
+                accent = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp),
-                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-            ) {
-                Text(stringResource(R.string.common_youtube))
-            }
+                filled = false,
+            )
         }
     }
 }

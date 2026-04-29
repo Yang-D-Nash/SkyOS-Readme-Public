@@ -80,9 +80,9 @@ struct MerchandiseDetailView: View {
     private var optionSummary: String {
         let colorCount = availableColors.isEmpty ? 0 : availableColors.count
         if colorCount > 0 {
-            return "\(availableSizes.count) Groessen • \(colorCount) Farben"
+            return "\(availableSizes.count) \(AppLocalized.text("shop.detail.options.sizes", fallback: "sizes")) • \(colorCount) \(AppLocalized.text("shop.detail.options.colors", fallback: "colors"))"
         }
-        return "\(availableSizes.count) Groessen"
+        return "\(availableSizes.count) \(AppLocalized.text("shop.detail.options.sizes", fallback: "sizes"))"
     }
 
     private var totalPriceLabel: String {
@@ -143,34 +143,34 @@ struct MerchandiseDetailView: View {
 
     private var readinessTitle: String {
         if canOrder {
-            return "Bereit"
+            return AppLocalized.text("shop.detail.readiness.ready", fallback: "Bereit")
         }
         if authManager.userSession == nil {
-            return "Login"
+            return AppLocalized.text("shop.detail.readiness.login", fallback: "Login")
         }
         if !storeIsOpen {
-            return "Store pausiert"
+            return AppLocalized.text("shop.detail.readiness.store_paused", fallback: "Store pausiert")
         }
         if !item.available {
-            return "Nicht live"
+            return AppLocalized.text("shop.detail.readiness.not_live", fallback: "Nicht live")
         }
-        return "Auswahl pruefen"
+        return AppLocalized.text("shop.detail.readiness.check_selection", fallback: "Auswahl pruefen")
     }
 
     private var readinessDetail: String {
         if canOrder {
-            return "Bereit für Warenkorb"
+            return AppLocalized.text("shop.detail.readiness.detail.ready", fallback: "Bereit fuer den Warenkorb")
         }
         if authManager.userSession == nil {
-            return "Login nötig"
+            return AppLocalized.text("shop.detail.readiness.detail.login_required", fallback: "Login erforderlich")
         }
         if !storeIsOpen {
-            return "Drop zu"
+            return AppLocalized.text("shop.detail.readiness.detail.store_paused", fallback: "Store pausiert")
         }
         if !item.available {
-            return "Offline"
+            return AppLocalized.text("shop.detail.readiness.detail.not_live", fallback: "Nicht live")
         }
-        return "Variante wählen"
+        return AppLocalized.text("shop.detail.readiness.detail.choose_variant", fallback: "Variante waehlen")
     }
 
     private func addToCart() {
@@ -185,14 +185,14 @@ struct MerchandiseDetailView: View {
 
     private func continueShoppingAfterSuccess() {
         showingConfirmSheet = false
-        toastMessage = "Im Warenkorb aktualisiert"
+        toastMessage = AppLocalized.text("shop.detail.toast.cart_updated", fallback: "Warenkorb aktualisiert")
         toastStyle = .success
         showToast = true
     }
 
     private func goToCartAfterSuccess() {
         showingConfirmSheet = false
-        toastMessage = "Im Warenkorb aktualisiert"
+        toastMessage = AppLocalized.text("shop.detail.toast.cart_updated", fallback: "Warenkorb aktualisiert")
         toastStyle = .success
         showToast = true
         pendingRouteToCart = true
@@ -221,8 +221,12 @@ struct MerchandiseDetailView: View {
                     colorScheme: colorScheme,
                     readinessTitle: readinessTitle,
                     readinessDetail: readinessDetail,
-                    accountTitle: authManager.userSession != nil ? "Aktiv" : "Login",
-                    accountDetail: authManager.userSession != nil ? "Checkout in-app" : "Dann bestellen",
+                    accountTitle: authManager.userSession != nil
+                        ? AppLocalized.text("shop.detail.account.active", fallback: "Aktiv")
+                        : AppLocalized.text("shop.detail.account.login", fallback: "Login"),
+                    accountDetail: authManager.userSession != nil
+                        ? AppLocalized.text("shop.detail.account.detail.in_app", fallback: "Checkout in der App")
+                        : AppLocalized.text("shop.detail.account.detail.login_to_order", fallback: "Zum Bestellen anmelden"),
                     selectionTitle: selectionSummary,
                     selectionDetail: optionSummary
                 )
@@ -235,23 +239,33 @@ struct MerchandiseDetailView: View {
                 )
 
                 if let story = item.description.trimmedNonEmpty {
-                    MerchDetailSectionCard(title: "Story", colorScheme: colorScheme) {
+                    MerchDetailSectionCard(title: AppLocalized.text("shop.detail.section.story", fallback: "Story"), colorScheme: colorScheme) {
                         Text(story)
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                         HStack(spacing: SkydownLayout.stackSpacingPill) {
-                            MerchDetailBadge(text: storeIsOpen ? "Live" : "Pause", colorScheme: colorScheme)
-                            MerchDetailBadge(text: item.available ? "Sichtbar" : "Offline", colorScheme: colorScheme)
+                            MerchDetailBadge(
+                                text: storeIsOpen
+                                    ? AppLocalized.text("shop.detail.badge.live", fallback: "Live")
+                                    : AppLocalized.text("shop.detail.badge.paused", fallback: "Pausiert"),
+                                colorScheme: colorScheme
+                            )
+                            MerchDetailBadge(
+                                text: item.available
+                                    ? AppLocalized.text("shop.detail.badge.visible", fallback: "Sichtbar")
+                                    : AppLocalized.text("shop.detail.badge.offline", fallback: "Offline"),
+                                colorScheme: colorScheme
+                            )
                         }
                     }
                 }
 
-                MerchDetailSectionCard(title: "Produkt", colorScheme: colorScheme) {
+                MerchDetailSectionCard(title: AppLocalized.text("shop.detail.section.product", fallback: "Produkt"), colorScheme: colorScheme) {
                     MerchandiseItemView(item: item)
                 }
 
-                MerchDetailSectionCard(title: "Größe", colorScheme: colorScheme) {
+                MerchDetailSectionCard(title: AppLocalized.text("shop.detail.section.size", fallback: "Groesse"), colorScheme: colorScheme) {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: SkydownLayout.stackSpacingMicro) {
                             ForEach(availableSizes, id: \.self) { size in
@@ -275,7 +289,7 @@ struct MerchandiseDetailView: View {
                 }
 
                 if !availableColors.isEmpty {
-                    MerchDetailSectionCard(title: "Farbe", colorScheme: colorScheme) {
+                    MerchDetailSectionCard(title: AppLocalized.text("shop.detail.section.color", fallback: "Farbe"), colorScheme: colorScheme) {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                 ForEach(availableColors, id: \.self) { color in
@@ -299,7 +313,7 @@ struct MerchandiseDetailView: View {
                     }
                 }
 
-                MerchDetailSectionCard(title: "Anzahl", colorScheme: colorScheme) {
+                MerchDetailSectionCard(title: AppLocalized.text("shop.detail.section.quantity", fallback: "Quantity"), colorScheme: colorScheme) {
                     HStack(spacing: SkydownLayout.stackSpacingRelaxed) {
                         Button {
                             if selectedQuantity > 1 { selectedQuantity -= 1 }
@@ -319,7 +333,7 @@ struct MerchandiseDetailView: View {
                                 .font(.title2.weight(.bold))
                                 .foregroundColor(AppColors.text(for: colorScheme))
 
-                            Text("Stück")
+                            Text(AppLocalized.text("shop.detail.quantity.unit", fallback: "pcs"))
                                 .font(.caption)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         }
@@ -341,26 +355,26 @@ struct MerchandiseDetailView: View {
                 }
 
                 if authManager.userSession == nil {
-                    MerchDetailSectionCard(title: "Hinweis", colorScheme: colorScheme) {
-                        Text("Warenkorb = Konto nötig. Alles in-app.")
+                    MerchDetailSectionCard(title: AppLocalized.text("shop.detail.section.notice", fallback: "Notice"), colorScheme: colorScheme) {
+                        Text(AppLocalized.text("shop.detail.notice.login_required", fallback: "Sign in to use cart and checkout in app."))
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
                 } else if !storeIsOpen {
-                    MerchDetailSectionCard(title: "Store pausiert", colorScheme: colorScheme) {
-                        Text("Store zu — sichtbar, kein Kauf.")
+                    MerchDetailSectionCard(title: AppLocalized.text("shop.detail.section.store_paused", fallback: "Store paused"), colorScheme: colorScheme) {
+                        Text(AppLocalized.text("shop.detail.notice.store_paused", fallback: "Store is paused. Products stay visible, checkout is unavailable."))
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
                 } else if !item.available {
-                    MerchDetailSectionCard(title: "Nicht verfuegbar", colorScheme: colorScheme) {
-                        Text("Nicht kaufbar — bei Live-Drop wieder.")
+                    MerchDetailSectionCard(title: AppLocalized.text("shop.detail.section.unavailable", fallback: "Unavailable"), colorScheme: colorScheme) {
+                        Text(AppLocalized.text("shop.detail.notice.unavailable", fallback: "This drop is currently unavailable for checkout."))
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
                 } else if !item.variants.isEmpty && resolvedVariant == nil {
-                    MerchDetailSectionCard(title: "Variante fehlt", colorScheme: colorScheme) {
-                        Text("Variante nicht verfügbar — Größe/Farbe prüfen.")
+                    MerchDetailSectionCard(title: AppLocalized.text("shop.detail.section.variant_missing", fallback: "Variant missing"), colorScheme: colorScheme) {
+                        Text(AppLocalized.text("shop.detail.notice.variant_missing", fallback: "Selected variant is unavailable. Check size and color."))
                             .font(.body)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
@@ -378,9 +392,18 @@ struct MerchandiseDetailView: View {
         .skydownNavigationChrome(colorScheme: colorScheme)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Schliessen") {
-                    dismiss()
-                }
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("common.close", fallback: "Close"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 8,
+                    expandToFullWidth: false,
+                    action: { dismiss() }
+                )
+                .skydownInteractiveFeedback()
                 .accessibilityIdentifier("shop.merch.detail.close")
             }
         }
@@ -391,7 +414,7 @@ struct MerchandiseDetailView: View {
 
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
-                        Text("Auswahl")
+                        Text(AppLocalized.text("shop.detail.footer.selection", fallback: "Selection"))
                             .font(.caption2.weight(.bold))
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         Text(selectionSummary)
@@ -401,7 +424,7 @@ struct MerchandiseDetailView: View {
                     }
                     Spacer(minLength: 0)
                     VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingHairline) {
-                        Text("Gesamt")
+                        Text(AppLocalized.text("shop.detail.footer.total", fallback: "Total"))
                             .font(.caption2.weight(.bold))
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         Text(totalPriceLabel)
@@ -411,40 +434,24 @@ struct MerchandiseDetailView: View {
                 }
                 .padding(.horizontal, 20)
 
-                Button(orderButtonTitle) {
-                    if canOrder {
-                        SkydownHaptics.selection()
-                        showingConfirmSheet = true
-                    }
-                }
-                .font(.headline)
-                .frame(minHeight: 44)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(
-                    canOrder
-                        ? AppColors.accent(for: colorScheme)
-                        : AppColors.secondaryBackground(for: colorScheme)
+                SkydownBrandActionButton(
+                    title: orderButtonTitle,
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isEnabled: canOrder,
+                    font: .headline,
+                    cornerRadius: SkydownLayout.cardCornerRadius,
+                    verticalPadding: 14,
+                    action: { showingConfirmSheet = true }
                 )
-                .foregroundColor(
-                    canOrder
-                        ? .white
-                        : AppColors.secondaryText(for: colorScheme)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
-                        .stroke(
-                            canOrder
-                                ? Color.clear
-                                : AppColors.accent(for: colorScheme).opacity(0.12),
-                            lineWidth: 1
-                        )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
-                .disabled(!canOrder)
+                .frame(minHeight: 50)
                 .padding(.horizontal, 20)
 
-                Text(canOrder ? "Sicher kaufen · \(selectionSummary)" : "Vor dem Kauf: Auswahl und Status pruefen")
+                Text(
+                    canOrder
+                        ? AppLocalized.text("shop.detail.footer.secure_buy", fallback: "Secure buy · %@").replacingOccurrences(of: "%@", with: selectionSummary)
+                        : AppLocalized.text("shop.detail.footer.prebuy_check", fallback: "Before purchase: check selection and status")
+                )
                     .font(.caption.weight(.semibold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -458,6 +465,7 @@ struct MerchandiseDetailView: View {
                     qualityLine: qualityConfidenceLine
                 )
                 .padding(.horizontal, 20)
+                .padding(.top, 2)
 
                 .padding(.bottom, 14)
             }
@@ -511,9 +519,19 @@ struct MerchandiseDetailView: View {
                 )
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Schliessen") {
-                            showingFullscreenGallery = false
-                        }
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("common.close", fallback: "Close"),
+                            systemImage: "xmark",
+                            accent: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: false,
+                            action: { showingFullscreenGallery = false }
+                        )
+                        .skydownInteractiveFeedback()
                     }
                 }
                 .toolbarBackground(.hidden, for: .navigationBar)
@@ -539,15 +557,15 @@ struct MerchandiseDetailView: View {
 
     private var orderButtonTitle: String {
         if authManager.userSession == nil {
-            return "Konto nötig"
+            return AppLocalized.text("shop.detail.cta.account_required", fallback: "Account required")
         }
         if !storeIsOpen {
-            return "Store zu"
+            return AppLocalized.text("shop.detail.cta.store_closed", fallback: "Store paused")
         }
         if !item.available {
-            return "Nicht verfügbar"
+            return AppLocalized.text("shop.detail.cta.unavailable", fallback: "Unavailable")
         }
-        return "Jetzt sichern · \(totalPriceLabel)"
+        return AppLocalized.text("shop.detail.cta.secure_now", fallback: "Secure now · %@").replacingOccurrences(of: "%@", with: totalPriceLabel)
     }
 }
 
@@ -640,13 +658,23 @@ private struct MerchDetailHeroCard: View {
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
                 MerchDetailBadge(text: String(format: "EUR %.2f", price), colorScheme: colorScheme)
-                MerchDetailBadge(text: isLoggedIn ? "Konto aktiv" : "Login noetig", colorScheme: colorScheme)
-                MerchDetailBadge(text: storeIsOpen && isAvailable ? "Bereit" : "Prüfen", colorScheme: colorScheme)
+                MerchDetailBadge(
+                    text: isLoggedIn
+                        ? AppLocalized.text("shop.detail.badge.account_active", fallback: "Account active")
+                        : AppLocalized.text("shop.detail.badge.login_required", fallback: "Login required"),
+                    colorScheme: colorScheme
+                )
+                MerchDetailBadge(
+                    text: storeIsOpen && isAvailable
+                        ? AppLocalized.text("shop.detail.badge.ready", fallback: "Ready")
+                        : AppLocalized.text("shop.detail.badge.check", fallback: "Check"),
+                    colorScheme: colorScheme
+                )
             }
 
             HStack(alignment: .top, spacing: SkydownLayout.stackSpacingComfortable) {
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                    Text("Merch Drop")
+                    Text(AppLocalized.text("shop.detail.hero.kicker", fallback: "Merch drop"))
                         .font(.caption.weight(.bold))
                         .tracking(1.2)
                         .foregroundColor(AppColors.accent(for: colorScheme))
@@ -656,7 +684,7 @@ private struct MerchDetailHeroCard: View {
                         .fontWeight(.bold)
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Jetzt kuratiert sichern.")
+                    Text(AppLocalized.text("shop.detail.hero.subtitle", fallback: "Curated selection, ready when you are."))
                         .font(.body)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -776,21 +804,19 @@ private struct MerchFinalConfirmSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
-                Text("Kauf bestaetigen")
-                    .font(.title3.weight(.bold))
-                    .foregroundColor(AppColors.text(for: colorScheme))
-                Text("Pruefe kurz deine Auswahl. Danach liegt der Artikel im Warenkorb.")
+                Text(AppLocalized.text("shop.detail.confirm.subtitle", fallback: "Quickly review your selection before adding to cart."))
                     .font(.footnote)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                detailRow(title: "Artikel", value: itemName)
-                detailRow(title: "Auswahl", value: selectionSummary)
-                detailRow(title: "Stueckpreis", value: unitPriceLabel)
-                detailRow(title: "Gesamt", value: totalPriceLabel, emphasize: true)
+                detailRow(title: AppLocalized.text("shop.detail.confirm.item", fallback: "Item"), value: itemName)
+                detailRow(title: AppLocalized.text("shop.detail.confirm.selection", fallback: "Selection"), value: selectionSummary)
+                detailRow(title: AppLocalized.text("shop.detail.confirm.unit_price", fallback: "Unit price"), value: unitPriceLabel)
+                detailRow(title: AppLocalized.text("shop.detail.confirm.total", fallback: "Total"), value: totalPriceLabel, emphasize: true)
             }
             .padding(14)
             .background(AppColors.secondaryBackground(for: colorScheme))
@@ -806,7 +832,7 @@ private struct MerchFinalConfirmSheet: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.subheadline.weight(.bold))
                             .foregroundColor(AppColors.accent(for: colorScheme))
-                        Text("Warenkorb aktualisiert. Waehle deinen naechsten Schritt.")
+                        Text(AppLocalized.text("shop.detail.confirm.success", fallback: "Cart updated. Choose your next step."))
                             .font(.caption.weight(.semibold))
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         Spacer(minLength: 0)
@@ -817,29 +843,28 @@ private struct MerchFinalConfirmSheet: View {
                     }
 
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
-                        Button("Weiter shoppen") {
-                            SkydownHaptics.selection()
-                            onContinueShopping()
-                        }
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(AppColors.cardBackground(for: colorScheme))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
-                                .stroke(AppColors.accent(for: colorScheme).opacity(0.14), lineWidth: 1)
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("shop.detail.confirm.continue_shopping", fallback: "Continue shopping"),
+                            accent: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.compactRadius,
+                            verticalPadding: 12,
+                            action: onContinueShopping
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
+                        .frame(minHeight: 44)
 
-                        Button("Zum Warenkorb") {
-                            SkydownHaptics.notification(.success)
-                            onGoToCart()
-                        }
-                        .font(.subheadline.weight(.bold))
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(AppColors.accent(for: colorScheme))
-                        .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("shop.detail.confirm.go_to_cart", fallback: "Go to cart"),
+                            accent: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            font: .subheadline.weight(.bold),
+                            cornerRadius: SkydownLayout.compactRadius,
+                            verticalPadding: 12,
+                            action: onGoToCart
+                        )
+                        .frame(minHeight: 44)
                     }
                 }
                 .padding(.horizontal, 12)
@@ -851,34 +876,60 @@ private struct MerchFinalConfirmSheet: View {
 
             if confirmState != .success {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
-                    Button("Abbrechen", action: onCancel)
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity, minHeight: 46)
-                        .background(AppColors.secondaryBackground(for: colorScheme))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
-                                .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
-                        .disabled(confirmState != .ready)
-                        .opacity(confirmState == .ready ? 1.0 : 0.6)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.cancel", fallback: "Cancel"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        isEnabled: confirmState == .ready,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 12,
+                        action: onCancel
+                    )
+                    .frame(minHeight: 46)
 
-                    Button(confirmButtonTitle, action: handleConfirmTap)
-                        .font(.subheadline.weight(.bold))
-                        .frame(maxWidth: .infinity, minHeight: 46)
-                        .background(confirmButtonBackground)
-                        .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
-                        .disabled(confirmState != .ready)
+                    SkydownBrandActionButton(
+                        title: confirmButtonTitle,
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        isEnabled: confirmState == .ready || confirmState == .committing,
+                        isLoading: confirmState == .committing,
+                        font: .subheadline.weight(.bold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 12,
+                        action: handleConfirmTap
+                    )
+                    .frame(minHeight: 46)
+                }
+            }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, SkydownLayout.cardPadding)
+            .background(AppColors.cardBackground(for: colorScheme))
+            .animation(.easeInOut(duration: 0.2), value: confirmState)
+            .navigationTitle(AppLocalized.text("shop.detail.confirm.title", fallback: "Confirm order"))
+            .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.done", fallback: "Done"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        isEnabled: confirmState != .committing,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: onCancel
+                    )
+                    .skydownInteractiveFeedback()
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-        .padding(.bottom, SkydownLayout.cardPadding)
-        .background(AppColors.cardBackground(for: colorScheme))
-        .animation(.easeInOut(duration: 0.2), value: confirmState)
     }
 
     private func detailRow(title: String, value: String, emphasize: Bool = false) -> some View {
@@ -898,28 +949,17 @@ private struct MerchFinalConfirmSheet: View {
     private var confirmButtonTitle: String {
         switch confirmState {
         case .ready:
-            return quantity > 1 ? "Jetzt sichern (\(quantity)x)" : "Jetzt sichern"
+            let base = AppLocalized.text("shop.detail.confirm.button.secure_now", fallback: "Secure now")
+            return quantity > 1 ? "\(base) (\(quantity)x)" : base
         case .committing:
-            return "Wird hinzugefuegt..."
+            return AppLocalized.text("shop.detail.confirm.button.adding", fallback: "Adding...")
         case .success:
-            return "Hinzugefuegt"
-        }
-    }
-
-    private var confirmButtonBackground: Color {
-        switch confirmState {
-        case .ready:
-            return AppColors.accent(for: colorScheme)
-        case .committing:
-            return AppColors.accent(for: colorScheme).opacity(0.82)
-        case .success:
-            return AppColors.accentHighlight(for: colorScheme)
+            return AppLocalized.text("shop.detail.confirm.button.added", fallback: "Added")
         }
     }
 
     private func handleConfirmTap() {
         guard confirmState == .ready else { return }
-        SkydownHaptics.selection()
         withAnimation(.easeInOut(duration: 0.16)) {
             confirmState = .committing
         }
@@ -1004,6 +1044,7 @@ private struct MerchDetailFullscreenGalleryView: View {
         .background(Color.black.ignoresSafeArea())
         .navigationTitle(itemName)
         .navigationBarTitleDisplayMode(.inline)
+        .skydownNavigationChrome(colorScheme: .dark)
     }
 }
 
@@ -1061,11 +1102,11 @@ private struct MerchDetailReadinessStrip: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-            Text("Überblick")
+            Text(AppLocalized.text("shop.detail.overview.title", fallback: "Overview"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Auswahl, Konto und Verfügbarkeit.")
+            Text(AppLocalized.text("shop.detail.overview.subtitle", fallback: "Selection, account, and availability."))
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -1126,7 +1167,7 @@ private struct MerchDetailTrustModule: View {
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                Text("Trust")
+                Text(AppLocalized.text("shop.detail.trust.title", fallback: "Trust"))
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.accentHighlight(for: colorScheme))
                     .padding(.horizontal, 8)

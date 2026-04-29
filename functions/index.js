@@ -17,6 +17,7 @@ const net = require("node:net");
 const {assertAppCheck} = require("./src/security/app-check");
 const {
   BILLING_LOCKDOWN_REASON_PREFIX,
+  DEFAULT_SUPPORT_EMAIL,
   OWNER_EMAIL,
 } = require("./src/security/constants");
 const {
@@ -17974,8 +17975,9 @@ exports.notifyOrderCreated = onDocumentCreated({
     return;
   }
 
-  const recipient = process.env.ORDER_NOTIFICATION_TO || "skydownent@gmail.com";
-  const from = process.env.ORDER_NOTIFICATION_FROM || "Skydown Orders <skydownent@gmail.com>";
+  const recipient = process.env.ORDER_NOTIFICATION_TO || DEFAULT_SUPPORT_EMAIL;
+  const from =
+    process.env.ORDER_NOTIFICATION_FROM || `Skydown Orders <${DEFAULT_SUPPORT_EMAIL}>`;
   const {subject, text} = formatOrderNotification(event.params.orderId, data);
 
   const transporter = nodemailer.createTransport(connectionUrl);

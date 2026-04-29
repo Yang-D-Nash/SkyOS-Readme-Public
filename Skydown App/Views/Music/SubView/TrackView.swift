@@ -162,24 +162,24 @@ struct TrackView: View {
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
                 if allowsInAppPreview, track.previewUrl != nil {
-                    Button {
-                        onSelect()
-                        withAnimation(.easeInOut(duration: 0.20)) {
-                            audioManager.playPreview(for: track)
+                    SkydownBrandActionButton(
+                        title: isPlaying ? "Preview pausieren" : "Preview anhoeren",
+                        systemImage: isPlaying ? "pause.fill" : "play.fill",
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        font: AppTypography.buttonLabel,
+                        cornerRadius: SkydownLayout.compactRadius,
+                        verticalPadding: 12,
+                        expandToFullWidth: true,
+                        action: {
+                            onSelect()
+                            withAnimation(.easeInOut(duration: 0.20)) {
+                                audioManager.playPreview(for: track)
+                            }
                         }
-                    } label: {
-                        Label(
-                            isPlaying ? "Preview pausieren" : "Preview anhoeren",
-                            systemImage: isPlaying ? "pause.fill" : "play.fill"
-                        )
-                        .font(AppTypography.buttonLabel)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(AppColors.accent(for: colorScheme))
-                        .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
-                    }
-                    .skydownTactileAction()
+                    )
+                    .skydownInteractiveFeedback()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 if hasDirectSpotifyTrack {

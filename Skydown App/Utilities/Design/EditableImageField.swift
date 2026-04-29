@@ -107,15 +107,19 @@ struct EditableImageField: View {
                 }
             }
 
-            HStack(spacing: SkydownLayout.stackSpacingPill) {
-                Button(action: onPickImage) {
-                    Label(buttonTitle, systemImage: "photo.badge.plus")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .tint(AppColors.accentMystic(for: colorScheme))
-                .disabled(isUploading)
-            }
+            SkydownBrandActionButton(
+                title: buttonTitle,
+                systemImage: "photo.badge.plus",
+                accent: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                role: .muted,
+                isEnabled: !isUploading,
+                isLoading: isUploading,
+                font: .subheadline.weight(.semibold),
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 11,
+                action: onPickImage
+            )
 
             if !imageURL.isEmpty {
                 Button(AppLocalized.text("media.remove_image", fallback: "Remove image"), role: .destructive) {

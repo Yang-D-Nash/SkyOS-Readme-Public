@@ -15,7 +15,7 @@ enum UserRole: String, Codable, CaseIterable {
     case subadmin
     case user
 
-    static let ownerEmail = "nash.lioncorna@gmail.com"
+    static let ownerEmail = PlatformContactEmails.ownerEmail
 
     static func resolve(from rawValue: String?, isAdmin: Bool, email: String? = nil) -> UserRole {
         if normalizedEmail(email) == ownerEmail {

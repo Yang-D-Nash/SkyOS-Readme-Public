@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
@@ -51,21 +52,17 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.DisposableEffect
@@ -91,6 +88,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import com.nash.skyos.R
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
@@ -480,6 +481,8 @@ fun VideoHubScreen(
                 item {
                     VideoCollaborationsCard(
                         items = uiState.publicConfig.collaborationItems,
+                        isAdmin = uiState.isAdmin,
+                        onOpenEditor = { showAdminSheet = true },
                         onOpenLink = { url -> openExternalLink(context, url) },
                     )
                 }
@@ -981,6 +984,8 @@ private fun VideoFormatCard() {
 @Composable
 private fun VideoCollaborationsCard(
     items: List<ProducedWithArtist>,
+    isAdmin: Boolean,
+    onOpenEditor: () -> Unit,
     onOpenLink: (String) -> Unit,
 ) {
     val accent = MaterialTheme.colorScheme.skydownAccentMystic()
@@ -1006,10 +1011,25 @@ private fun VideoCollaborationsCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 modifier = Modifier.padding(top = 14.dp),
             )
+            if (isAdmin) {
+                BrandActionButton(
+                    text = stringResource(R.string.video_admin_open_editor),
+                    onClick = onOpenEditor,
+                    accent = accent,
+                    modifier = Modifier.padding(top = 12.dp),
+                    filled = false,
+                )
+                Text(
+                    text = stringResource(R.string.video_admin_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
         } else {
             Column(
                 modifier = Modifier.padding(top = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
             ) {
                 items.forEach { artist ->
                     ProducedWithArtistRow(
@@ -1206,22 +1226,21 @@ private fun VideoEquipmentDetailSheet(
                     )
                 }
 
-                OutlinedButton(
+                BrandActionButton(
+                    text = stringResource(R.string.video_image_fullscreen),
                     onClick = { onOpenImageFullscreen(item.imageUrl.orEmpty()) },
+                    accent = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
-                ) {
-                    Text(stringResource(R.string.video_image_fullscreen))
-                }
+                    filled = false,
+                )
             }
 
-            Button(
+            BrandActionButton(
+                text = stringResource(R.string.common_close),
                 onClick = onDismiss,
+                accent = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
-            ) {
-                Text(stringResource(R.string.common_close))
-            }
+            )
         }
     }
 }
@@ -1352,24 +1371,26 @@ private fun VideoPublicConfigEditorCard(
                             onImageUrlChange = { onUpdateEquipmentImageUrl(item.id, it) },
                             onRemoveImage = { onRemoveEquipmentImage(item.id) },
                         )
-                        OutlinedButton(
+                        BrandActionButton(
+                            text = stringResource(R.string.video_remove_entry),
                             onClick = { onRemoveEquipment(item.id) },
+                            accent = MaterialTheme.colorScheme.error,
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(stringResource(R.string.video_remove_entry))
-                        }
+                            filled = false,
+                        )
                     }
                 }
             }
 
-            OutlinedButton(
+            BrandActionButton(
+                text = stringResource(R.string.video_add_equipment),
                 onClick = onAddEquipment,
+                accent = equipmentAccent,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 4.dp),
-            ) {
-                Text(stringResource(R.string.video_add_equipment))
-            }
+                filled = false,
+            )
         }
 
         VideoControlDeckCard(
@@ -1466,43 +1487,38 @@ private fun VideoPublicConfigEditorCard(
                             label = { Text(stringResource(R.string.video_field_youtube_url)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        OutlinedButton(
+                        BrandActionButton(
+                            text = stringResource(R.string.video_remove_collab),
                             onClick = { onRemoveCollaboration(item.id) },
+                            accent = MaterialTheme.colorScheme.error,
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(stringResource(R.string.video_remove_collab))
-                        }
+                            filled = false,
+                        )
                     }
                 }
             }
 
-            OutlinedButton(
+            BrandActionButton(
+                text = stringResource(R.string.video_add_collab),
                 onClick = onAddCollaboration,
+                accent = collabAccent,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 4.dp),
-            ) {
-                Text(stringResource(R.string.video_add_collab))
-            }
+                filled = false,
+            )
         }
 
-        Button(
+        BrandActionButton(
+            text = stringResource(R.string.video_save_changes),
             onClick = onSave,
+            accent = adminAccent,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-        ) {
-            if (uiState.isSavingPublicConfig) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            } else {
-                Text(stringResource(R.string.video_save_changes))
-            }
-        }
+            isLoading = uiState.isSavingPublicConfig,
+            enabled = !uiState.isSavingPublicConfig,
+        )
     }
 }
 
@@ -1518,161 +1534,101 @@ private fun ProducedWithArtistRow(
     val spotifyTitle = stringResource(R.string.video_artist_social_spotify)
     val instagramTitle = stringResource(R.string.video_artist_social_instagram)
     val youtubeTitle = stringResource(R.string.video_artist_social_youtube)
-    val collabBadge = stringResource(R.string.video_badge_collab)
-    Box(
+    val socialPendingTitle = stringResource(R.string.video_artist_social_pending)
+    val highlightPendingTitle = stringResource(R.string.video_collab_highlight_pending)
+    val roleLabel = artist.role.ifBlank { collabRoleDefault }
+    val hasSocialLinks = !artist.spotifyArtistId.isNullOrBlank() ||
+        !artist.instagramUrl.isNullOrBlank() ||
+        !artist.youtubeUrl.isNullOrBlank()
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(164.dp)
             .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
                         colorScheme.skydownCardBackground().copy(alpha = 0.98f),
-                        collabAccent.copy(alpha = 0.16f),
-                        highlightAccent.copy(alpha = 0.10f),
+                        collabAccent.copy(alpha = 0.08f),
                     ),
                 ),
             )
             .border(
-                width = 1.dp,
-                color = collabAccent.copy(alpha = 0.22f),
+                width = 0.8.dp,
+                color = collabAccent.copy(alpha = 0.10f),
                 shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-            ),
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .size(60.dp)
+                .clip(RoundedCornerShape(16.dp))
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            collabAccent,
-                            colorScheme.skydownAccent(),
+                            collabAccent.copy(alpha = 0.80f),
+                            colorScheme.skydownAccent().copy(alpha = 0.70f),
                         ),
                     ),
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = artist.name.take(1).uppercase(),
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Black,
-                color = Color.White,
-            )
+            if (!artist.imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = artist.imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Text(
+                    text = artist.name.take(1).uppercase(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                )
+            }
         }
-
-        if (!artist.imageUrl.isNullOrBlank()) {
-            AsyncImage(
-                model = artist.imageUrl,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.08f),
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.56f),
-                        ),
-                    ),
-                ),
-        )
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
-                        .background(Color.Black.copy(alpha = 0.20f))
-                        .padding(horizontal = 8.dp, vertical = 5.dp),
-                ) {
-                    Text(
-                        text = artist.role.uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.94f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
-                        .background(highlightAccent.copy(alpha = 0.22f))
-                        .padding(horizontal = 8.dp, vertical = 5.dp),
-                ) {
-                    Text(
-                        text = collabBadge,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White.copy(alpha = 0.94f),
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                if (artist.vibe.isNotBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
-                            .background(collabAccent.copy(alpha = 0.82f))
-                            .padding(horizontal = 8.dp, vertical = 5.dp),
-                    ) {
-                        Text(
-                            text = artist.vibe,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = colorScheme.onSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = if (artist.vibe.isNotBlank()) {
+                    "$roleLabel · ${artist.vibe}"
+                } else {
+                    roleLabel
+                },
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
 
             Text(
                 text = artist.name,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Black,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
 
-            if (artist.highlight.isNotBlank()) {
-                Text(
-                    text = artist.highlight,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White.copy(alpha = 0.90f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                text = if (artist.highlight.isNotBlank()) artist.highlight else highlightPendingTitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
-                VideoPill(text = artist.role.ifBlank { collabRoleDefault }, isActive = true)
-                if (artist.vibe.isNotBlank()) {
-                    VideoPill(text = artist.vibe, isActive = false)
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+            ) {
                 artist.spotifyArtistId?.takeIf { it.isNotBlank() }?.let { spotifyArtistId ->
                     SocialActionChip(
                         title = spotifyTitle,
@@ -1713,6 +1669,9 @@ private fun ProducedWithArtistRow(
                         onClick = { onOpenLink(youtubeUrl) },
                     )
                 }
+                if (!hasSocialLinks) {
+                    VideoPill(text = socialPendingTitle, isActive = false)
+                }
             }
         }
     }
@@ -1731,21 +1690,26 @@ private fun SocialActionChip(
         modifier = Modifier
             .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(gradient)
+            .heightIn(min = 28.dp)
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                contentDescription = title
+            }
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick,
             )
             .skydownPressable(interactionSource)
-            .padding(horizontal = 10.dp, vertical = 7.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(horizontal = 9.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = title,
+            contentDescription = null,
             tint = Color.White,
-            modifier = Modifier.size(13.dp),
+            modifier = Modifier.size(12.dp),
         )
         Text(
             text = title,
@@ -1904,9 +1868,13 @@ private fun VideoUploadCard(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                             )
                         }
-                        TextButton(onClick = { onRemoveFile(file) }) {
-                            Text(stringResource(R.string.video_action_remove))
-                        }
+                        BrandActionButton(
+                            text = stringResource(R.string.video_action_remove),
+                            onClick = { onRemoveFile(file) },
+                            accent = MaterialTheme.colorScheme.error,
+                            filled = false,
+                            compact = true,
+                        )
                     }
                 }
             }
@@ -2241,22 +2209,15 @@ private fun VideoLibraryCard(
                 color = colorScheme.onSurface.copy(alpha = 0.64f),
             )
             if (uiState.isAdmin) {
-                Button(
+                BrandActionButton(
+                    text = stringResource(R.string.video_lib_new_video),
                     onClick = onCreateVideo,
+                    accent = colorScheme.skydownAccentMystic(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("video.hub.owner.create"),
-                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Movie,
-                        contentDescription = null,
-                    )
-                    Text(
-                        text = stringResource(R.string.video_lib_new_video),
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+                    icon = Icons.Default.Movie,
+                )
             }
         }
 
@@ -2406,38 +2367,33 @@ private fun VideoOwnerEditPanel(
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill)) {
-            OutlinedButton(
+            BrandActionButton(
+                text = if (isPublic) {
+                    stringResource(R.string.common_public)
+                } else {
+                    stringResource(R.string.common_private)
+                },
                 onClick = { isPublic = !isPublic },
+                accent = colorScheme.skydownAccentMystic(),
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-            ) {
-                Icon(
-                    imageVector = if (isPublic) Icons.Default.CheckCircle else Icons.Default.Close,
-                    contentDescription = null,
-                )
-                Text(
-                    text = if (isPublic) {
-                        stringResource(R.string.common_public)
-                    } else {
-                        stringResource(R.string.common_private)
-                    },
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-            Button(
+                icon = if (isPublic) Icons.Default.CheckCircle else Icons.Default.Close,
+                filled = false,
+            )
+            BrandActionButton(
+                text = stringResource(R.string.video_action_save),
                 onClick = { onSave(title, projectName, notes, isPublic) },
+                accent = colorScheme.skydownAccent(),
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-            ) {
-                Text(stringResource(R.string.video_action_save))
-            }
+            )
         }
-        TextButton(
+        BrandActionButton(
+            text = stringResource(R.string.video_action_cancel),
             onClick = onCancel,
+            accent = colorScheme.primary,
             modifier = Modifier.align(Alignment.End),
-        ) {
-            Text(stringResource(R.string.video_action_cancel))
-        }
+            filled = false,
+            compact = true,
+        )
     }
 }
 
@@ -2789,99 +2745,77 @@ private fun VideoLibraryRow(
 
             if (isAdmin) {
                 if (video.supportsInlinePlayback) {
-                    Button(
+                    BrandActionButton(
+                        text = when {
+                            isSelected && video.usesEmbeddedPreview -> stringResource(R.string.video_btn_active_in_preview)
+                            isSelected -> stringResource(R.string.video_btn_active_in_player)
+                            video.usesEmbeddedPreview -> stringResource(R.string.video_btn_load_in_preview)
+                            else -> stringResource(R.string.video_btn_load_in_player)
+                        },
                         onClick = onSelect,
+                        accent = providerAccent,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                    ) {
-                        Text(
-                            when {
-                                isSelected && video.usesEmbeddedPreview -> stringResource(R.string.video_btn_active_in_preview)
-                                isSelected -> stringResource(R.string.video_btn_active_in_player)
-                                video.usesEmbeddedPreview -> stringResource(R.string.video_btn_load_in_preview)
-                                else -> stringResource(R.string.video_btn_load_in_player)
-                            },
-                        )
-                    }
+                    )
                 } else if (video.openUrl.isNotBlank()) {
-                    OutlinedButton(
+                    BrandActionButton(
+                        text = video.originalActionLabel,
                         onClick = onOpenOriginal,
+                        accent = providerAccent,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                    ) {
-                        Text(video.originalActionLabel)
-                    }
+                        filled = false,
+                    )
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill)) {
-                    OutlinedButton(
+                    BrandActionButton(
+                        text = if (video.isHomeFeatured) {
+                            stringResource(R.string.video_btn_home_on)
+                        } else {
+                            stringResource(R.string.video_btn_home_add)
+                        },
                         onClick = onToggleHomeFeatured,
+                        accent = colorScheme.primary,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Home,
-                            contentDescription = null,
-                        )
-                        Text(
-                            text = if (video.isHomeFeatured) {
-                                stringResource(R.string.video_btn_home_on)
-                            } else {
-                                stringResource(R.string.video_btn_home_add)
-                            },
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
+                        icon = Icons.Default.Home,
+                        filled = false,
+                    )
 
-                    OutlinedButton(
+                    BrandActionButton(
+                        text = stringResource(R.string.video_action_edit),
                         onClick = onEdit,
+                        accent = colorScheme.primary,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Sync,
-                            contentDescription = null,
-                        )
-                        Text(
-                            text = stringResource(R.string.video_action_edit),
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
+                        icon = Icons.Default.Sync,
+                        filled = false,
+                    )
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill)) {
-                    OutlinedButton(
+                    BrandActionButton(
+                        text = stringResource(R.string.video_action_delete),
                         onClick = onDelete,
+                        accent = MaterialTheme.colorScheme.error,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = null,
-                        )
-                        Text(
-                            text = stringResource(R.string.video_action_delete),
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
+                        icon = Icons.Default.Delete,
+                        filled = false,
+                    )
                 }
             } else {
                 if (video.supportsInlinePlayback) {
-                    Button(
+                    BrandActionButton(
+                        text = videoHubInlineCompactActionLabelText(video),
                         onClick = onOpenReel,
+                        accent = providerAccent,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                    ) {
-                        Text(videoHubInlineCompactActionLabelText(video))
-                    }
+                    )
                 } else if (video.opensOriginalInApp) {
-                    OutlinedButton(
+                    BrandActionButton(
+                        text = video.originalActionLabel,
                         onClick = onOpenOriginal,
+                        accent = providerAccent,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                    ) {
-                        Text(video.originalActionLabel)
-                    }
+                        filled = false,
+                    )
                 }
             }
         }

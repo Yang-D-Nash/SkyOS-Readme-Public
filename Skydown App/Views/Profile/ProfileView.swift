@@ -70,9 +70,19 @@ struct ProfileView: View {
             .skydownKeyboardDismissToolbar()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(localized("common.close", "Close")) {
-                        dismiss()
-                    }
+                    SkydownBrandActionButton(
+                        title: localized("common.close", "Close"),
+                        systemImage: "xmark",
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
                     .accessibilityIdentifier("profile.close")
                 }
             }
@@ -204,15 +214,15 @@ struct ProfileView: View {
     private var currentUploadStatus: (title: String, detail: String)? {
         if viewModel.isUploadingAvatar {
             return (
-                "Profilbild wird hochgeladen",
-                "Dein Avatar wird gerade vorbereitet, hochgeladen und direkt im Profil uebernommen."
+                localized("profile.upload.avatar.title", "Uploading profile image"),
+                localized("profile.upload.avatar.detail", "Your avatar is being prepared and uploaded.")
             )
         }
 
         if viewModel.isUploadingMedia {
             return (
-                "Galeriebild wird hochgeladen",
-                "Das Bild landet gleich in deiner Galerie und wird danach automatisch angezeigt."
+                localized("profile.upload.gallery.title", "Uploading gallery image"),
+                localized("profile.upload.gallery.detail", "The image will appear in your gallery in a moment.")
             )
         }
 
@@ -224,28 +234,28 @@ struct ProfileView: View {
     }
 
     private var aiSystemStatusTitle: String {
-        guard let user = viewModel.currentUser else { return "Gastmodus" }
-        if !user.aiAccessEnabled { return "KI pausiert" }
-        if user.hasActiveAISubscription { return "Premium aktiv" }
-        return "Basis aktiv"
+        guard let user = viewModel.currentUser else { return localized("profile.ai_status.guest", "Guest mode") }
+        if !user.aiAccessEnabled { return localized("profile.ai_status.paused", "AI paused") }
+        if user.hasActiveAISubscription { return localized("profile.ai_status.premium", "Premium active") }
+        return localized("profile.ai_status.base", "Base active")
     }
 
     private var membershipStatusTitle: String {
-        guard let user = viewModel.currentUser else { return "Nicht angemeldet" }
+        guard let user = viewModel.currentUser else { return localized("profile.membership.not_signed_in", "Not signed in") }
         if let plan = user.resolvedAISubscriptionPlan {
-            return "Plan \(plan.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)"
+            return "\(localized("profile.membership.plan_prefix", "Plan")) \(plan.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)"
         }
-        return "Plan \(planTitle)"
+        return "\(localized("profile.membership.plan_prefix", "Plan")) \(planTitle)"
     }
 
     private var latestGalleryDateLabel: String {
         guard let latest = viewModel.filteredItems.sorted(by: { $0.createdAt > $1.createdAt }).first else {
-            return "Noch keine Aktivitaet"
+            return localized("profile.history.none_yet", "No activity yet")
         }
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
-        formatter.locale = Locale(identifier: "de_DE")
+        formatter.locale = Locale.current
         return formatter.string(from: latest.createdAt)
     }
 
@@ -254,7 +264,7 @@ struct ProfileView: View {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
-        formatter.locale = Locale(identifier: "de_DE")
+        formatter.locale = Locale.current
         return formatter.string(from: user.registrationDate)
     }
 
@@ -303,9 +313,9 @@ struct ProfileView: View {
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
-                    ProfileMetaPill(title: "Rolle", value: roleTitle)
+                    ProfileMetaPill(title: localized("profile.role", "Role"), value: roleTitle)
                         .accessibilityIdentifier("profile.role_pill")
-                    ProfileMetaPill(title: "Plan", value: planTitle)
+                    ProfileMetaPill(title: localized("profile.plan", "Plan"), value: planTitle)
                         .accessibilityIdentifier("profile.plan_pill")
                 }
 
@@ -604,16 +614,21 @@ struct ProfileView: View {
                 .font(.footnote.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            Button {
-                let support = legalContentStore.settings.resolvedSupportEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !support.isEmpty, let url = URL(string: "mailto:\(support)") else { return }
-                openURL(url)
-            } label: {
-                Label(localized("profile.support_contact", "Contact support"), systemImage: "envelope.fill")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.bordered)
-            .skydownInteractiveFeedback()
+            SkydownBrandActionButton(
+                title: localized("profile.support_contact", "Contact support"),
+                systemImage: "envelope.fill",
+                accent: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                role: .muted,
+                font: .subheadline.weight(.semibold),
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 11,
+                action: {
+                    let support = legalContentStore.settings.resolvedSupportEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !support.isEmpty, let url = URL(string: "mailto:\(support)") else { return }
+                    openURL(url)
+                }
+            )
 
             quickActionButton(
                 title: localized("profile.privacy_account", "Privacy & account"),
@@ -646,31 +661,22 @@ struct ProfileView: View {
         enabled: Bool = true,
         action: @escaping () -> Void
     ) -> some View {
-        Group {
-            if emphasis == .primary {
-                Button(action: action) {
-                    Label(title, systemImage: systemImage)
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 11)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColors.accent(for: colorScheme))
-                .skydownInteractiveFeedback()
-                .disabled(!enabled)
-            } else {
-                Button(action: action) {
-                    Label(title, systemImage: systemImage)
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                }
-                .buttonStyle(.bordered)
-                .tint(AppColors.accent(for: colorScheme))
-                .skydownInteractiveFeedback()
-                .disabled(!enabled)
-            }
-        }
+        let role: SkydownBrandActionButton.Role = emphasis == .primary ? .primary : .muted
+        let accentColor = emphasis == .primary
+            ? AppColors.accent(for: colorScheme)
+            : AppColors.accentMystic(for: colorScheme)
+        return SkydownBrandActionButton(
+            title: title,
+            systemImage: systemImage,
+            accent: accentColor,
+            colorScheme: colorScheme,
+            role: role,
+            isEnabled: enabled,
+            font: .subheadline.weight(.semibold),
+            cornerRadius: SkydownLayout.denseRadius,
+            verticalPadding: emphasis == .primary ? 11 : 9,
+            action: action
+        )
         .opacity(enabled ? 1 : 0.58)
     }
 
@@ -728,30 +734,16 @@ struct ProfileView: View {
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
             }
 
-            Button {
-                Task {
-                    await viewModel.saveProfile()
-                }
-            } label: {
-                HStack {
-                    Spacer()
-                    if viewModel.isSavingProfile {
-                        ProgressView()
-                            .tint(.white)
-                    } else {
-                        Text(localized("common.save", "Save"))
-                            .font(.headline.weight(.bold))
-                    }
-                    Spacer()
-                }
-                .padding(.vertical, 14)
-                .background(AppColors.accent(for: colorScheme))
-                .foregroundColor(.white)
-                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .skydownTactileAction()
-            .disabled(viewModel.isSavingProfile)
+            SkydownBrandActionButton(
+                title: localized("common.save", "Save"),
+                accent: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                isLoading: viewModel.isSavingProfile,
+                font: .headline,
+                cornerRadius: SkydownLayout.messageBubbleRadius,
+                verticalPadding: 14,
+                action: { Task { await viewModel.saveProfile() } }
+            )
             .accessibilityIdentifier("profile.edit.save")
         }
         .padding(SkydownLayout.cardPadding)
@@ -776,31 +768,30 @@ struct ProfileView: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
-                Button {
-                    Task {
-                        await viewModel.uploadAvatar(data: ProfileUITestFixtures.sampleJPEG)
-                    }
-                } label: {
-                    Text(localized("profile.ui_test.avatar_fixture", "Avatar fixture"))
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColors.accent(for: colorScheme))
+                SkydownBrandActionButton(
+                    title: localized("profile.ui_test.avatar_fixture", "Avatar fixture"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isEnabled: !(viewModel.isUploadingAvatar || viewModel.isUploadingMedia),
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 10,
+                    action: { Task { await viewModel.uploadAvatar(data: ProfileUITestFixtures.sampleJPEG) } }
+                )
                 .accessibilityIdentifier("ui_test.profile.upload_avatar_fixture")
-                .disabled(viewModel.isUploadingAvatar || viewModel.isUploadingMedia)
 
-                Button {
-                    Task {
-                        await viewModel.uploadGalleryImage(data: ProfileUITestFixtures.sampleJPEG)
-                    }
-                } label: {
-                    Text(localized("profile.ui_test.gallery_fixture", "Gallery fixture"))
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .tint(AppColors.accentMystic(for: colorScheme))
+                SkydownBrandActionButton(
+                    title: localized("profile.ui_test.gallery_fixture", "Gallery fixture"),
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    isEnabled: !(viewModel.isUploadingAvatar || viewModel.isUploadingMedia),
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 10,
+                    action: { Task { await viewModel.uploadGalleryImage(data: ProfileUITestFixtures.sampleJPEG) } }
+                )
                 .accessibilityIdentifier("ui_test.profile.upload_gallery_fixture")
-                .disabled(viewModel.isUploadingAvatar || viewModel.isUploadingMedia)
             }
         }
         .padding(SkydownLayout.cardPadding)

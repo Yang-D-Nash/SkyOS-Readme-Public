@@ -27,7 +27,7 @@ enum class UserRole(val rawValue: String) {
         get() = UserQuotaPlan.defaultPlanFor(this).aiHistoryRetentionDays
 
     companion object {
-        const val OWNER_EMAIL = "nash.lioncorna@gmail.com"
+        const val OWNER_EMAIL = PlatformContactEmails.OWNER_EMAIL
 
         fun resolve(rawValue: String?, isAdmin: Boolean, email: String? = null): UserRole {
             if (email?.trim()?.lowercase() == OWNER_EMAIL) {

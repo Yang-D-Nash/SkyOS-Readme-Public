@@ -1,5 +1,6 @@
 package com.nash.skyos.data
 
+import com.skydown.shared.model.PlatformContactEmails
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -24,7 +25,7 @@ data class CommerceInvoiceSettings(
     val vatId: String = "",
     val taxRate: Double = 19.0,
     val invoicePrefix: String = "SD",
-    val supportEmail: String = "skydownent@gmail.com",
+    val supportEmail: String = PlatformContactEmails.DEFAULT_SUPPORT_EMAIL,
 )
 
 data class CommerceSettings(
@@ -80,7 +81,7 @@ private fun Map<String, Any>.toCommerceSettings(): CommerceSettings {
             vatId = invoice["vatId"] as? String ?: "",
             taxRate = invoice["taxRate"].asDouble(19.0),
             invoicePrefix = invoice["invoicePrefix"] as? String ?: "SD",
-            supportEmail = invoice["supportEmail"] as? String ?: "skydownent@gmail.com",
+            supportEmail = invoice["supportEmail"] as? String ?: PlatformContactEmails.DEFAULT_SUPPORT_EMAIL,
         ),
     )
 }

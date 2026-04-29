@@ -137,11 +137,16 @@ struct HomeDailyOpsStrip: View {
             )
                 .font(.footnote)
                 .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
-            Button(action: triggerPriorityAction) {
-                Label(priorityTitle, systemImage: "target").font(.caption.weight(.bold)).frame(maxWidth: .infinity)
-            }
-            .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
-            .buttonStyle(.borderedProminent).tint(priorityAccent).controlSize(.small)
+            SkydownBrandActionButton(
+                title: priorityTitle,
+                systemImage: "target",
+                accent: priorityAccent,
+                colorScheme: colorScheme,
+                font: .caption.weight(.bold),
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 8,
+                action: triggerPriorityAction
+            )
             Text(priorityHint)
                 .font(.caption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.85))
@@ -157,20 +162,6 @@ struct HomeCommandDockStrip: View {
     let onOpenCart: () -> Void
     let onOpenSettings: () -> Void
     private var priorityAccent: Color { priorityTarget == "music" ? AppColors.accent(for: colorScheme) : AppColors.accentHighlight(for: colorScheme) }
-    private func actionTint(_ target: String) -> Color {
-        switch target {
-        case "agent":
-            return AppColors.accentMystic(for: colorScheme).opacity((onOpenWorkflow != nil) ? 1.0 : 0.4)
-        case "music":
-            let base = AppColors.accent(for: colorScheme)
-            return priorityTarget == "music" ? base : base.opacity(0.55)
-        case "visuals":
-            let base = AppColors.accentHighlight(for: colorScheme)
-            return priorityTarget == "visuals" ? base : base.opacity(0.55)
-        default:
-            return AppColors.accent(for: colorScheme)
-        }
-    }
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             HStack(spacing: SkydownLayout.stackSpacingDense) {
@@ -194,31 +185,48 @@ struct HomeCommandDockStrip: View {
                 .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.72))
             HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 if let onOpenWorkflow {
-                    Button(
-                        AppLocalized.text("home.command.ai_agent", fallback: "AI agent"),
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("home.command.ai_agent", fallback: "AI agent"),
+                        systemImage: "sparkles",
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme,
+                        isEnabled: true,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: true,
                         action: onOpenWorkflow
                     )
-                        .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
-                        .buttonStyle(.borderedProminent)
-                        .tint(actionTint("agent"))
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                Button(
-                    AppLocalized.text("home.command.cart", fallback: "Cart"),
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("home.command.cart", fallback: "Cart"),
+                    systemImage: "bag",
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    font: .caption.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 8,
+                    expandToFullWidth: true,
                     action: onOpenCart
                 )
-                    .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
-                    .buttonStyle(.bordered)
-                    .tint(actionTint("music"))
-                Button(
-                    AppLocalized.text("home.command.settings", fallback: "Settings"),
+                .frame(maxWidth: .infinity, alignment: .leading)
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("home.command.settings", fallback: "Settings"),
+                    systemImage: "gearshape",
+                    accent: AppColors.accentHighlight(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    font: .caption.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 8,
+                    expandToFullWidth: true,
                     action: onOpenSettings
                 )
-                    .simultaneousGesture(TapGesture().onEnded { SkydownHaptics.selection() })
-                    .buttonStyle(.bordered)
-                    .tint(actionTint("visuals"))
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .controlSize(.small)
         }
         .padding(.top, 2)
     }

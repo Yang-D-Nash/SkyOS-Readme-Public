@@ -270,37 +270,76 @@ struct ArtistPageView: View {
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(onBack == nil ? "Schliessen" : "Zurueck") {
-                        if let onBack {
-                            onBack()
-                        } else {
-                            dismiss()
+                    SkydownBrandActionButton(
+                        title: onBack == nil
+                            ? AppLocalized.text("common.close", fallback: "Schliessen")
+                            : AppLocalized.text("common.back", fallback: "Zurueck"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: {
+                            if let onBack {
+                                onBack()
+                            } else {
+                                dismiss()
+                            }
                         }
-                    }
+                    )
+                    .skydownInteractiveFeedback()
                 }
 
                 if canEdit {
                     ToolbarItem(placement: .topBarTrailing) {
                         if isEditing {
-                            HStack(spacing: SkydownLayout.stackSpacingPill) {
-                                Button("Abbrechen") {
-                                    discardEditing()
-                                }
-                                .disabled(isSaving || isUploadingHeroVideo || activeImageUploadTarget != nil)
+                            HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                                SkydownBrandActionButton(
+                                    title: AppLocalized.text("common.cancel", fallback: "Abbrechen"),
+                                    accent: AppColors.accent(for: colorScheme),
+                                    colorScheme: colorScheme,
+                                    role: .muted,
+                                    isEnabled: !isSaving && !isUploadingHeroVideo && activeImageUploadTarget == nil,
+                                    font: .caption.weight(.semibold),
+                                    cornerRadius: SkydownLayout.denseRadius,
+                                    verticalPadding: 8,
+                                    expandToFullWidth: false,
+                                    action: discardEditing
+                                )
+                                .skydownInteractiveFeedback()
                                 .accessibilityIdentifier("artist.page.edit.cancel")
 
-                                Button(isSaving ? "Speichert..." : "Speichern") {
-                                    Task { await savePage() }
-                                }
-                                .disabled(isSaving || isUploadingHeroVideo || activeImageUploadTarget != nil)
+                                SkydownBrandActionButton(
+                                    title: isSaving ? "Speichert..." : AppLocalized.text("common.save", fallback: "Speichern"),
+                                    accent: AppColors.accent(for: colorScheme),
+                                    colorScheme: colorScheme,
+                                    isEnabled: !isSaving && !isUploadingHeroVideo && activeImageUploadTarget == nil,
+                                    isLoading: isSaving,
+                                    font: .caption.weight(.semibold),
+                                    cornerRadius: SkydownLayout.denseRadius,
+                                    verticalPadding: 8,
+                                    expandToFullWidth: false,
+                                    action: { Task { await savePage() } }
+                                )
+                                .skydownInteractiveFeedback()
                                 .accessibilityIdentifier("artist.page.edit.save")
                             }
                         } else {
-                            Button {
-                                beginEditing()
-                            } label: {
-                                Image(systemName: "pencil")
-                            }
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("common.edit", fallback: "Bearbeiten"),
+                                systemImage: "pencil",
+                                accent: AppColors.accent(for: colorScheme),
+                                colorScheme: colorScheme,
+                                role: .muted,
+                                font: .caption.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 8,
+                                expandToFullWidth: false,
+                                action: beginEditing
+                            )
+                            .skydownInteractiveFeedback()
                             .accessibilityLabel("Bearbeiten")
                             .accessibilityIdentifier("artist.page.edit.open")
                         }
@@ -1141,7 +1180,7 @@ struct ArtistPageView: View {
         let primaryConnectLinks = socialLinks.filter { $0.kind == .instagram || $0.kind == .spotify }
         let secondaryConnectLinks = socialLinks.filter { $0.kind != .instagram && $0.kind != .spotify }
 
-        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+        return VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             ArtistSectionBanner(
                 title: "Connect",
                 subtitle: "Instagram, Spotify, YouTube",
@@ -1353,15 +1392,18 @@ struct ArtistPageView: View {
             )
 
             if isUITestMode {
-                Button {
-                    Task { await uploadHeroVideoFixture() }
-                } label: {
-                    Label("UI Test: Hero-Video Fixture", systemImage: "video.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(artistSecondaryAccent)
-                .disabled(isUploadingHeroVideo || isSaving)
+                SkydownBrandActionButton(
+                    title: "UI Test: Hero-Video Fixture",
+                    systemImage: "video.fill",
+                    accent: artistSecondaryAccent,
+                    colorScheme: colorScheme,
+                    isEnabled: !isUploadingHeroVideo && !isSaving,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 11,
+                    action: { Task { await uploadHeroVideoFixture() } }
+                )
+                .skydownInteractiveFeedback()
                 .accessibilityIdentifier("ui_test.artist.hero_video.upload_fixture")
             }
 

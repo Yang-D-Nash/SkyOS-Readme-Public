@@ -9,6 +9,7 @@ import SwiftUI
 
 struct PolicyView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
     let title: String
     let text: String
     /// Optional line shown under the title, e.g. "Stand: …"
@@ -104,6 +105,22 @@ struct PolicyView: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.done", fallback: "Done"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
+                }
+            }
             .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         }
     }

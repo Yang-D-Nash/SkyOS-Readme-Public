@@ -333,12 +333,14 @@ Diese Namen werden als **Firebase Secrets** (Secret Manager) gebunden — siehe 
 | `GCLOUD_PROJECT` / `GOOGLE_CLOUD_PROJECT` | Laufzeit-Projektkontext (Google Cloud) |
 | `BILLING_BUDGET_TOPIC` | Optional; Pub/Sub-Topic, Default im Code: `billing-budget-alerts` |
 | `ORDER_NOTIFICATION_TO` / `ORDER_NOTIFICATION_FROM` | E-Mail-Benachrichtigungen Bestellungen |
+| `SKYOS_SUPPORT_EMAIL` / `SKYDOWN_SUPPORT_EMAIL` | Optional; Default-Support-Inbox in Functions (`DEFAULT_SUPPORT_EMAIL`), im Repo abgestimmt mit `PlatformContactEmails` im Shared-Modul |
 
 Vollständige, **automatisch** erzeugbare Env-Liste existiert im Repo nicht; bei Refactors von `functions/index.js` lohnt ein Skript oder ein Block in [docs/backend.md](docs/backend.md) (siehe [Grenzen](#grenzen-der-readme-und-bewusst-offene-punkte)).
 
 ### Owner-E-Mail (Server)
 
 - `SKYOS_OWNER_EMAIL` oder `SKYDOWN_OWNER_EMAIL` — Logik in [functions/src/security/constants.js](functions/src/security/constants.js); fester technischer Default nur als Fallback, **für Betrieb muss explizit gesetzt werden**.
+- `SKYOS_SUPPORT_EMAIL` oder `SKYDOWN_SUPPORT_EMAIL` — optional; Default-Support-Inbox (`DEFAULT_SUPPORT_EMAIL` in derselben Datei), abgestimmt mit [PlatformContactEmails.kt](shared/src/commonMain/kotlin/com/skydown/shared/model/PlatformContactEmails.kt).
 
 ---
 
@@ -772,7 +774,7 @@ Berechnete Hilfsrechte in [`User.kt`](shared/src/commonMain/kotlin/com/skydown/s
 
 ### Owner-Konto und E-Mail-Auflösung
 
-- Im **Shared-Code** existiert `UserRole.Companion.OWNER_EMAIL` (technische Konstante) — dient u. a. `UserRole.resolve(...)` zur Erzwingung der Rolle **Owner** bei dieser E-Mail ([`User.kt`](shared/src/commonMain/kotlin/com/skydown/shared/model/User.kt)).
+- Im **Shared-Code** sind die In-Repo-Defaults in [`PlatformContactEmails.kt`](shared/src/commonMain/kotlin/com/skydown/shared/model/PlatformContactEmails.kt) zentralisiert; `UserRole.Companion.OWNER_EMAIL` verweist darauf und dient u. a. `UserRole.resolve(...)` zur Erzwingung der Rolle **Owner** bei dieser E-Mail ([`User.kt`](shared/src/commonMain/kotlin/com/skydown/shared/model/User.kt)). **Firestore/Storage Rules** enthalten dieselbe Owner-Adresse als Literal in `isOwnerEmail()` — bei Änderung alle drei Stellen gemeinsam anpassen.
 - Im **Backend** ist die Plattform-Identität in `OWNER_EMAIL` aus Umgebung (`SKYOS_OWNER_EMAIL` / `SKYDOWN_OWNER_EMAIL`) mit Fallback in [`functions/src/security/constants.js`](functions/src/security/constants.js) hinterlegt. **Für den Live-Betrieb** muss die Umgebung den gewünschten Owner eindeutig setzen — kein Deduplizieren fremder Mails in dieser README.
 - `setUserRoleClaims` lehnt es ab, jemanden auf `owner` zu setzen, der **nicht** das feste Owner-Konto ist (siehe HttpsError-Pfad in [`roles.js`](functions/src/security/roles.js)).
 

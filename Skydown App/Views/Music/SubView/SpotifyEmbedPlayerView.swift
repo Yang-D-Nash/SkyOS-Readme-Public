@@ -6,6 +6,7 @@ struct SpotifyEmbedPlayerView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         NavigationStack {
@@ -22,32 +23,60 @@ struct SpotifyEmbedPlayerView: View {
             }
             .navigationTitle(track.trackName)
             .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Fertig") {
-                        dismiss()
-                    }
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.done", fallback: "Fertig"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
                 }
 
                 if let appURL = spotifyAppURL(track: track) {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            openURL(appURL) { accepted in
-                                if !accepted, let webURL = spotifyWebURL(track: track) {
-                                    openURL(webURL)
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("common.open_link", fallback: "Open"),
+                            systemImage: "arrow.up.forward.circle",
+                            accent: AppColors.spotify(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: false,
+                            action: {
+                                openURL(appURL) { accepted in
+                                    if !accepted, let webURL = spotifyWebURL(track: track) {
+                                        openURL(webURL)
+                                    }
                                 }
                             }
-                        } label: {
-                            Image(systemName: "arrow.up.forward.circle")
-                        }
+                        )
+                        .skydownInteractiveFeedback()
                     }
                 } else if let webURL = spotifyWebURL(track: track) {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            openURL(webURL)
-                        } label: {
-                            Image(systemName: "arrow.up.forward.circle")
-                        }
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("common.open_link", fallback: "Open"),
+                            systemImage: "arrow.up.forward.circle",
+                            accent: AppColors.spotify(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: false,
+                            action: { openURL(webURL) }
+                        )
+                        .skydownInteractiveFeedback()
                     }
                 }
             }

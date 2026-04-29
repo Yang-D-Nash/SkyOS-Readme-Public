@@ -89,49 +89,44 @@ struct LoginView: View {
                         .accessibilityIdentifier("login.error")
                 }
 
-                Button {
-                    Task { await signInAndHydrateSession() }
-                } label: {
-                    if viewModel.isLoading {
-                        ProgressView().progressViewStyle(.circular).tint(.white)
-                    } else {
-                        Text(localized("auth.sign_in", "Sign in")).font(.headline)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(AppColors.accent(for: colorScheme))
-                .cornerRadius(SkydownLayout.cardCornerRadius)
-                .foregroundColor(.white)
-                .opacity(viewModel.isSignInButtonDisabled ? 0.6 : 1.0)
-                .disabled(viewModel.isSignInButtonDisabled)
+                SkydownBrandActionButton(
+                    title: localized("auth.sign_in", "Sign in"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isEnabled: !viewModel.isSignInButtonDisabled,
+                    isLoading: viewModel.isLoading,
+                    action: { Task { await signInAndHydrateSession() } }
+                )
+                .skydownInteractiveFeedback()
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .accessibilityIdentifier("login.submit")
 
-                Button {
-                    Task { await signInWithGoogleAndHydrateSession() }
-                } label: {
-                    HStack(spacing: SkydownLayout.stackSpacingCompact) {
-                        Image(systemName: "globe")
-                        Text(localized("auth.sign_in_google", "Sign in with Google"))
-                            .font(.headline)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(AppColors.secondaryBackground(for: colorScheme))
-                    .cornerRadius(SkydownLayout.cardCornerRadius)
-                    .foregroundColor(AppColors.text(for: colorScheme))
-                }
-                .disabled(viewModel.isLoading)
+                SkydownBrandActionButton(
+                    title: localized("auth.sign_in_google", "Sign in with Google"),
+                    systemImage: "globe",
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    isEnabled: !viewModel.isLoading,
+                    action: { Task { await signInWithGoogleAndHydrateSession() } }
+                )
+                .skydownInteractiveFeedback()
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .accessibilityIdentifier("login.google")
 
-                Button {
-                    showingRegistrationSheet = true
-                } label: {
-                    Text(localized("auth.no_account_register", "No account yet? Register"))
-                        .foregroundColor(AppColors.accent(for: colorScheme))
-                }
+                SkydownBrandActionButton(
+                    title: localized("auth.no_account_register", "No account yet? Register"),
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    isEnabled: !viewModel.isLoading,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.cardCornerRadius,
+                    verticalPadding: 12,
+                    action: { showingRegistrationSheet = true }
+                )
+                .skydownInteractiveFeedback()
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .accessibilityIdentifier("login.open_registration")
                 .sheet(isPresented: $showingRegistrationSheet) {
                     RegistrationSheet()
@@ -146,6 +141,22 @@ struct LoginView: View {
             .navigationTitle(localized("auth.login.title", "Sign in"))
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    SkydownBrandActionButton(
+                        title: localized("common.cancel", "Cancel"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
+                }
+            }
             .skydownKeyboardDismissToolbar()
             .onChange(of: viewModel.isAuthenticated) { _, newValue in
                 if newValue { dismiss() }

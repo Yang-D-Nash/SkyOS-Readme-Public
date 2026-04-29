@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.animation.ValueAnimator
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -14,6 +15,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -36,6 +38,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -64,8 +67,6 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -76,7 +77,6 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDialog
@@ -106,6 +106,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -124,6 +125,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.animation.core.snap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -164,6 +168,7 @@ import com.nash.skyos.ui.component.OriginalVideoViewerDialog
 import com.nash.skyos.ui.component.SkydownHapticKind
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownMotionTokens
+import com.nash.skyos.ui.component.SkydownPortalChip
 import com.nash.skyos.ui.component.skydownExitTween
 import com.nash.skyos.ui.component.skydownTween
 import com.nash.skyos.ui.component.SkydownTopBarTitle
@@ -230,11 +235,13 @@ fun HomeScreen(
     }
 
     val context = LocalContext.current
+    val view = LocalView.current
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val mediaContext = remember(context) { context.mediaAttributionContext() }
     var inAppOriginalVideoUrl by rememberSaveable { mutableStateOf<String?>(null) }
-    var inAppOriginalVideoTitle by rememberSaveable { mutableStateOf("Original") }
+    val defaultOriginalVideoTitle = stringResource(R.string.video_label_original)
+    var inAppOriginalVideoTitle by rememberSaveable { mutableStateOf(defaultOriginalVideoTitle) }
     val audioPlayer = remember(mediaContext) {
         ExoPlayer.Builder(mediaContext).build().apply {
             playWhenReady = true
@@ -554,6 +561,8 @@ fun HomeScreen(
                                 remindersUpcoming = uiState.upcomingReminders,
                                 openTasks = uiState.openTasks,
                                 recentNotes = uiState.recentNotes,
+                                syncPaused = uiState.syncPaused,
+                                recoverableError = uiState.recoverableError,
                                 onRequestFounderBriefing = if (onOpenWorkflowWithPrompt == null) null else { mode ->
                                     if (founderBriefingModeInFlight != null) return@HomeProductivityOverviewCard
                                     if (currentUser == null) {
@@ -566,9 +575,13 @@ fun HomeScreen(
                                         val uid = FirebaseAuth.getInstance().currentUser?.uid
                                         if (uid.isNullOrBlank()) {
                                             founderBriefingModeInFlight = null
-                                            founderBriefingFeedbackMessage = "Bitte zuerst anmelden."
+                                            founderBriefingFeedbackMessage = context.getString(R.string.home_owner_briefing_error_login)
                                             founderBriefingFeedbackIsError = true
-                                            Toast.makeText(context, "Bitte zuerst anmelden.", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.home_owner_briefing_error_login),
+                                                Toast.LENGTH_SHORT,
+                                            ).show()
                                             return@launch
                                         }
                                         val result = try {
@@ -576,27 +589,35 @@ fun HomeScreen(
                                         } catch (error: Throwable) {
                                             founderBriefingModeInFlight = null
                                             val message = error.message?.trim().takeUnless { it.isNullOrBlank() }
-                                                ?: "Briefing derzeit nicht verfuegbar."
+                                                ?: context.getString(R.string.home_owner_briefing_error_unavailable)
                                             founderBriefingFeedbackMessage = message
                                             founderBriefingFeedbackIsError = true
                                             founderBriefingSheet = FounderBriefingSheetState(
                                                 mode = mode,
-                                                title = if (mode == FounderBriefingMode.Private) "Founder Analyse" else "Team Update",
+                                                title = if (mode == FounderBriefingMode.Private) {
+                                                    context.getString(R.string.home_owner_briefing_title_private)
+                                                } else {
+                                                    context.getString(R.string.home_owner_briefing_title_group)
+                                                },
                                                 body = message,
                                             )
                                             return@launch
                                         }
                                         founderBriefingModeInFlight = null
                                         if (result == null) {
-                                            founderBriefingFeedbackMessage = "Briefing hat keinen Inhalt geliefert."
+                                            founderBriefingFeedbackMessage = context.getString(R.string.home_owner_briefing_error_empty)
                                             founderBriefingFeedbackIsError = true
                                             founderBriefingSheet = FounderBriefingSheetState(
                                                 mode = mode,
-                                                title = if (mode == FounderBriefingMode.Private) "Founder Analyse" else "Team Update",
-                                                body = "ANDROID_PARSER_V6: Kein Text geliefert.",
+                                                title = if (mode == FounderBriefingMode.Private) {
+                                                    context.getString(R.string.home_owner_briefing_title_private)
+                                                } else {
+                                                    context.getString(R.string.home_owner_briefing_title_group)
+                                                },
+                                                body = context.getString(R.string.home_owner_briefing_empty_body),
                                             )
                                         } else {
-                                            founderBriefingFeedbackMessage = "Briefing erfolgreich erstellt."
+                                            founderBriefingFeedbackMessage = context.getString(R.string.home_owner_briefing_success)
                                             founderBriefingFeedbackIsError = false
                                             founderBriefingSheet = result
                                         }
@@ -625,6 +646,10 @@ fun HomeScreen(
                                 },
                                 onCreateNote = {
                                     openHomeProductivityCapture("note")
+                                },
+                                onRetryRecovery = {
+                                    view.performSkydownHaptic(SkydownHapticKind.Selection)
+                                    viewModel.refresh()
                                 },
                             )
                         }
@@ -711,7 +736,7 @@ fun HomeScreen(
                                 videoPlayer.pause()
                                 videoPlayer.seekTo(0)
                                 currentVideoId = null
-                                inAppOriginalVideoTitle = video.title.ifBlank { "Original" }
+                                inAppOriginalVideoTitle = video.title.ifBlank { defaultOriginalVideoTitle }
                                 inAppOriginalVideoUrl = originalUrl
                             },
                         )
@@ -847,18 +872,22 @@ fun HomeScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                                     ) {
-                                        TextButton(
+                                        BrandActionButton(
+                                            text = stringResource(R.string.home_sheet_reminder_pick_date),
                                             onClick = { taskShowDatePicker = true },
+                                            accent = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.weight(1f),
-                                        ) {
-                                            Text(stringResource(R.string.home_sheet_reminder_pick_date))
-                                        }
-                                        TextButton(
+                                            filled = false,
+                                            compact = true,
+                                        )
+                                        BrandActionButton(
+                                            text = stringResource(R.string.home_sheet_reminder_pick_time),
                                             onClick = { taskShowTimePicker = true },
+                                            accent = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.weight(1f),
-                                        ) {
-                                            Text(stringResource(R.string.home_sheet_reminder_pick_time))
-                                        }
+                                            filled = false,
+                                            compact = true,
+                                        )
                                     }
                                 }
                                 BrandActionButton(
@@ -875,6 +904,7 @@ fun HomeScreen(
                                     },
                                     accent = MaterialTheme.colorScheme.tertiary,
                                     modifier = Modifier.fillMaxWidth(),
+                                    enabled = taskTitleDraft.isNotBlank(),
                                 )
                                 if (taskShowDatePicker) {
                                     val datePickerState = rememberDatePickerState(
@@ -883,7 +913,8 @@ fun HomeScreen(
                                     DatePickerDialog(
                                         onDismissRequest = { taskShowDatePicker = false },
                                         confirmButton = {
-                                            TextButton(
+                                            BrandActionButton(
+                                                text = stringResource(android.R.string.ok),
                                                 onClick = {
                                                     datePickerState.selectedDateMillis?.let { selectedDay ->
                                                         val cur = java.util.Calendar.getInstance().apply { timeInMillis = taskDueMillis }
@@ -895,12 +926,19 @@ fun HomeScreen(
                                                     }
                                                     taskShowDatePicker = false
                                                 },
-                                            ) { Text(stringResource(android.R.string.ok)) }
+                                                accent = MaterialTheme.colorScheme.primary,
+                                                filled = false,
+                                                compact = true,
+                                            )
                                         },
                                         dismissButton = {
-                                            TextButton(onClick = { taskShowDatePicker = false }) {
-                                                Text(stringResource(R.string.common_cancel))
-                                            }
+                                            BrandActionButton(
+                                                text = stringResource(R.string.common_cancel),
+                                                onClick = { taskShowDatePicker = false },
+                                                accent = MaterialTheme.colorScheme.primary,
+                                                filled = false,
+                                                compact = true,
+                                            )
                                         },
                                     ) {
                                         DatePicker(state = datePickerState)
@@ -917,7 +955,8 @@ fun HomeScreen(
                                         TimePickerDialog(
                                             onDismissRequest = { taskShowTimePicker = false },
                                             confirmButton = {
-                                                TextButton(
+                                                BrandActionButton(
+                                                    text = stringResource(android.R.string.ok),
                                                     onClick = {
                                                         val c = java.util.Calendar.getInstance().apply { timeInMillis = taskDueMillis }
                                                         c.set(java.util.Calendar.HOUR_OF_DAY, timeState.hour)
@@ -927,12 +966,19 @@ fun HomeScreen(
                                                         taskDueMillis = c.timeInMillis
                                                         taskShowTimePicker = false
                                                     },
-                                                ) { Text(stringResource(android.R.string.ok)) }
+                                                    accent = MaterialTheme.colorScheme.primary,
+                                                    filled = false,
+                                                    compact = true,
+                                                )
                                             },
                                             dismissButton = {
-                                                TextButton(onClick = { taskShowTimePicker = false }) {
-                                                    Text(stringResource(R.string.common_cancel))
-                                                }
+                                                BrandActionButton(
+                                                    text = stringResource(R.string.common_cancel),
+                                                    onClick = { taskShowTimePicker = false },
+                                                    accent = MaterialTheme.colorScheme.primary,
+                                                    filled = false,
+                                                    compact = true,
+                                                )
                                             },
                                             title = {
                                                 Text(stringResource(R.string.home_sheet_reminder_pick_time))
@@ -1030,6 +1076,7 @@ fun HomeScreen(
                                     },
                                     accent = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.fillMaxWidth(),
+                                    enabled = noteTitleDraft.isNotBlank() || noteContentDraft.isNotBlank(),
                                 )
                             }
                         }
@@ -1055,7 +1102,11 @@ fun HomeScreen(
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            text = if (sheet.mode == FounderBriefingMode.Private) "Private Founder Analyse" else "Team Update fuer WhatsApp",
+                            text = if (sheet.mode == FounderBriefingMode.Private) {
+                                stringResource(R.string.home_owner_briefing_caption_private)
+                            } else {
+                                stringResource(R.string.home_owner_briefing_caption_group)
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
                         )
@@ -1090,7 +1141,7 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         ) {
                             BrandActionButton(
-                                text = "WhatsApp",
+                                text = stringResource(R.string.home_owner_briefing_action_whatsapp),
                                 onClick = { shareFounderBriefingToWhatsApp(context, sheet.body) },
                                 accent = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f),
@@ -1098,7 +1149,7 @@ fun HomeScreen(
                             BrandActionButton(
                                 text = stringResource(R.string.agent_action_copy),
                                 onClick = {
-                                    copyAiText(context, "Founder Briefing", sheet.body)
+                                    copyAiText(context, context.getString(R.string.home_owner_briefing_copy_label), sheet.body)
                                     Toast.makeText(
                                         context,
                                         context.getString(R.string.agent_feedback_copied),
@@ -1107,13 +1158,15 @@ fun HomeScreen(
                                 },
                                 accent = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.weight(1f),
+                                filled = false,
                             )
-                        }
-                        TextButton(
-                            onClick = { shareAiText(context, sheet.title, sheet.body) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(stringResource(R.string.agent_action_share))
+                            BrandActionButton(
+                                text = stringResource(R.string.agent_action_share),
+                                onClick = { shareAiText(context, sheet.title, sheet.body) },
+                                accent = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f),
+                                filled = false,
+                            )
                         }
                     }
                 }
@@ -1198,12 +1251,13 @@ private fun HomeManageableItemCard(
                     singleLine = true,
                     label = { Text(stringResource(R.string.home_manager_rename_placeholder)) },
                 )
-                Button(
+                BrandActionButton(
+                    text = stringResource(R.string.common_save),
                     onClick = onSave,
+                    accent = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.common_save))
-                }
+                    compact = true,
+                )
             }
         }
     }
@@ -1215,48 +1269,18 @@ private fun HomeReminderManagerSheet(
     onUpdate: (String, String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
-    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
-    var draftTitle by rememberSaveable { mutableStateOf("") }
     val whenFormatter = remember {
         DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault())
     }
 
-    if (reminders.isEmpty()) {
-        Text(
-            text = stringResource(R.string.home_manager_empty),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
-            modifier = Modifier.padding(vertical = 6.dp),
-        )
-        return
-    }
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
-    ) {
-        reminders.forEach { reminder ->
-            HomeManageableItemCard(
-                title = reminder.title,
-                subtitle = reminder.dueAt?.let { whenFormatter.format(it) },
-                isEditing = editingId == reminder.id,
-                draftTitle = draftTitle,
-                onDraftTitleChange = { draftTitle = it },
-                onEdit = {
-                    editingId = reminder.id
-                    draftTitle = reminder.title
-                },
-                onDelete = { onDelete(reminder.id) },
-                onSave = {
-                    val normalized = draftTitle.trim()
-                    if (normalized.isNotBlank()) {
-                        onUpdate(reminder.id, normalized)
-                        editingId = null
-                    }
-                },
-            )
-        }
-    }
+    HomeManageableListSheet(
+        items = reminders,
+        itemId = { it.id },
+        itemTitle = { it.title },
+        itemSubtitle = { reminder -> reminder.dueAt?.let { whenFormatter.format(it) } },
+        onUpdate = onUpdate,
+        onDelete = onDelete,
+    )
 }
 
 @Composable
@@ -1265,45 +1289,14 @@ private fun HomeTaskManagerSheet(
     onUpdate: (String, String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
-    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
-    var draftTitle by rememberSaveable { mutableStateOf("") }
-
-    if (tasks.isEmpty()) {
-        Text(
-            text = stringResource(R.string.home_manager_empty),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
-            modifier = Modifier.padding(vertical = 6.dp),
-        )
-        return
-    }
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
-    ) {
-        tasks.forEach { task ->
-            HomeManageableItemCard(
-                title = task.title,
-                subtitle = null,
-                isEditing = editingId == task.id,
-                draftTitle = draftTitle,
-                onDraftTitleChange = { draftTitle = it },
-                onEdit = {
-                    editingId = task.id
-                    draftTitle = task.title
-                },
-                onDelete = { onDelete(task.id) },
-                onSave = {
-                    val normalized = draftTitle.trim()
-                    if (normalized.isNotBlank()) {
-                        onUpdate(task.id, normalized)
-                        editingId = null
-                    }
-                },
-            )
-        }
-    }
+    HomeManageableListSheet(
+        items = tasks,
+        itemId = { it.id },
+        itemTitle = { it.title },
+        itemSubtitle = { null },
+        onUpdate = onUpdate,
+        onDelete = onDelete,
+    )
 }
 
 @Composable
@@ -1312,13 +1305,33 @@ private fun HomeNoteManagerSheet(
     onUpdate: (String, String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
-    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
-    var draftTitle by rememberSaveable { mutableStateOf("") }
     val whenFormatter = remember {
         DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, Locale.getDefault())
     }
 
-    if (notes.isEmpty()) {
+    HomeManageableListSheet(
+        items = notes,
+        itemId = { it.id },
+        itemTitle = { it.title },
+        itemSubtitle = { note -> note.updatedAt?.let { whenFormatter.format(it) } },
+        onUpdate = onUpdate,
+        onDelete = onDelete,
+    )
+}
+
+@Composable
+private fun <T> HomeManageableListSheet(
+    items: List<T>,
+    itemId: (T) -> String,
+    itemTitle: (T) -> String,
+    itemSubtitle: (T) -> String?,
+    onUpdate: (String, String) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var draftTitle by rememberSaveable { mutableStateOf("") }
+
+    if (items.isEmpty()) {
         Text(
             text = stringResource(R.string.home_manager_empty),
             style = MaterialTheme.typography.bodySmall,
@@ -1332,22 +1345,24 @@ private fun HomeNoteManagerSheet(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
     ) {
-        notes.forEach { note ->
+        items.forEach { item ->
+            val id = itemId(item)
+            val title = itemTitle(item)
             HomeManageableItemCard(
-                title = note.title,
-                subtitle = note.updatedAt?.let { whenFormatter.format(it) },
-                isEditing = editingId == note.id,
+                title = title,
+                subtitle = itemSubtitle(item),
+                isEditing = editingId == id,
                 draftTitle = draftTitle,
                 onDraftTitleChange = { draftTitle = it },
                 onEdit = {
-                    editingId = note.id
-                    draftTitle = note.title
+                    editingId = id
+                    draftTitle = title
                 },
-                onDelete = { onDelete(note.id) },
+                onDelete = { onDelete(id) },
                 onSave = {
                     val normalized = draftTitle.trim()
                     if (normalized.isNotBlank()) {
-                        onUpdate(note.id, normalized)
+                        onUpdate(id, normalized)
                         editingId = null
                     }
                 },
@@ -1408,18 +1423,22 @@ private fun HomeReminderCaptureSheet(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
-        TextButton(
+        BrandActionButton(
+            text = stringResource(R.string.home_sheet_reminder_pick_date),
             onClick = { showDatePicker = true },
+            accent = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f),
-        ) {
-            Text(stringResource(R.string.home_sheet_reminder_pick_date))
-        }
-        TextButton(
+            filled = false,
+            compact = true,
+        )
+        BrandActionButton(
+            text = stringResource(R.string.home_sheet_reminder_pick_time),
             onClick = { showTimePicker = true },
+            accent = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f),
-        ) {
-            Text(stringResource(R.string.home_sheet_reminder_pick_time))
-        }
+            filled = false,
+            compact = true,
+        )
     }
     BrandActionButton(
         text = stringResource(R.string.home_sheet_add),
@@ -1431,6 +1450,7 @@ private fun HomeReminderCaptureSheet(
         },
         accent = MaterialTheme.colorScheme.tertiary,
         modifier = Modifier.fillMaxWidth(),
+        enabled = titleDraft.isNotBlank(),
     )
 
     if (showDatePicker) {
@@ -1438,7 +1458,8 @@ private fun HomeReminderCaptureSheet(
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(
+                BrandActionButton(
+                    text = stringResource(android.R.string.ok),
                     onClick = {
                         datePickerState.selectedDateMillis?.let { selectedDay ->
                             val cur = Calendar.getInstance().apply { timeInMillis = dueMillis }
@@ -1450,14 +1471,19 @@ private fun HomeReminderCaptureSheet(
                         }
                         showDatePicker = false
                     },
-                ) {
-                    Text(stringResource(android.R.string.ok))
-                }
+                    accent = MaterialTheme.colorScheme.primary,
+                    filled = false,
+                    compact = true,
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
+                BrandActionButton(
+                    text = stringResource(R.string.common_cancel),
+                    onClick = { showDatePicker = false },
+                    accent = MaterialTheme.colorScheme.primary,
+                    filled = false,
+                    compact = true,
+                )
             },
         ) {
             DatePicker(state = datePickerState)
@@ -1475,7 +1501,8 @@ private fun HomeReminderCaptureSheet(
             TimePickerDialog(
                 onDismissRequest = { showTimePicker = false },
                 confirmButton = {
-                    TextButton(
+                    BrandActionButton(
+                        text = stringResource(android.R.string.ok),
                         onClick = {
                             val c = Calendar.getInstance().apply { timeInMillis = dueMillis }
                             c.set(Calendar.HOUR_OF_DAY, timeState.hour)
@@ -1483,14 +1510,19 @@ private fun HomeReminderCaptureSheet(
                             dueMillis = c.timeInMillis
                             showTimePicker = false
                         },
-                    ) {
-                        Text(stringResource(android.R.string.ok))
-                    }
+                        accent = MaterialTheme.colorScheme.primary,
+                        filled = false,
+                        compact = true,
+                    )
                 },
                 dismissButton = {
-                    TextButton(onClick = { showTimePicker = false }) {
-                        Text(stringResource(R.string.common_cancel))
-                    }
+                    BrandActionButton(
+                        text = stringResource(R.string.common_cancel),
+                        onClick = { showTimePicker = false },
+                        accent = MaterialTheme.colorScheme.primary,
+                        filled = false,
+                        compact = true,
+                    )
                 },
                 title = {
                     Text(stringResource(R.string.home_sheet_reminder_pick_time))
@@ -1510,7 +1542,6 @@ private fun HomeUtilityRow(
     onOpenSettings: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val view = LocalView.current
     data class UtilityItem(
         val id: String,
         val label: String,
@@ -1548,43 +1579,12 @@ private fun HomeUtilityRow(
         ) {
             items(items) { item ->
                 val tint = utilityTint(item.id)
-                Surface(
-                    onClick = {
-                        view.performSkydownHaptic(SkydownHapticKind.Selection)
-                        item.action()
-                    },
-                    shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
-                    color = colorScheme.skydownSecondaryBackground().copy(alpha = 0.72f),
-                    border = BorderStroke(1.dp, tint.copy(alpha = 0.22f)),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp),
-                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(tint.copy(alpha = 0.14f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = null,
-                                modifier = Modifier.size(13.dp),
-                                tint = tint,
-                            )
-                        }
-                        Text(
-                            item.label,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = tint,
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    }
-                }
+                SkydownPortalChip(
+                    label = item.label,
+                    icon = item.icon,
+                    tint = tint,
+                    onClick = item.action,
+                )
             }
         }
     }
@@ -1600,6 +1600,7 @@ private fun HomeArtistSocialLinksRow(
     val artistPages by ArtistPagesStore.pages.collectAsStateWithLifecycle()
     data class ArtistSocialEntry(
         val title: String,
+        val isPrimaryProfile: Boolean = false,
         val subtitle: String? = null,
         val instagramUrl: String,
         val spotifyUrl: String? = null,
@@ -1610,7 +1611,8 @@ private fun HomeArtistSocialLinksRow(
     val entries = listOf(
         ArtistSocialEntry(
             title = "Yang D. Nash",
-            subtitle = "Inhaber / Betreiber",
+            isPrimaryProfile = true,
+            subtitle = stringResource(R.string.home_artist_primary_subtitle),
             instagramUrl = resolvedHomeSocialUrl(
                 yangPage.instagramURL,
                 fallback = "https://www.instagram.com/y.d.nash/",
@@ -1647,7 +1649,7 @@ private fun HomeArtistSocialLinksRow(
             verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             entries.forEach { entry ->
-                if (entry.title == "Yang D. Nash") {
+                if (entry.isPrimaryProfile) {
                     Text(
                         text = entry.title,
                         style = MaterialTheme.typography.titleSmall,
@@ -1666,7 +1668,7 @@ private fun HomeArtistSocialLinksRow(
                         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     ) {
                         HomeArtistSocialButton(
-                            label = "Artist Page",
+                            label = stringResource(R.string.home_artist_links_artist_page),
                             icon = Icons.Default.Person,
                             tint = artistPageTint,
                             modifier = Modifier.weight(1f),
@@ -1776,6 +1778,8 @@ private fun HomeProductivityOverviewCard(
     remindersUpcoming: List<com.nash.skyos.ui.model.ProductivityReminderItem>,
     openTasks: List<com.nash.skyos.ui.model.ProductivityTaskItem>,
     recentNotes: List<com.nash.skyos.ui.model.ProductivityNoteItem>,
+    syncPaused: Boolean,
+    recoverableError: String?,
     onRequestFounderBriefing: ((FounderBriefingMode) -> Unit)?,
     founderBriefingModeInFlight: FounderBriefingMode?,
     founderBriefingFeedbackMessage: String?,
@@ -1787,15 +1791,104 @@ private fun HomeProductivityOverviewCard(
     onCreateReminder: () -> Unit,
     onCreateTask: () -> Unit,
     onCreateNote: () -> Unit,
+    onRetryRecovery: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val view = LocalView.current
+    val motionEnabled = remember { ValueAnimator.areAnimatorsEnabled() }
+    val enterSpec = if (motionEnabled) {
+        skydownTween<Float>(SkydownMotionTokens.contentRevealEnterMillis)
+    } else {
+        snap()
+    }
+    val exitSpec = if (motionEnabled) {
+        skydownExitTween<Float>(SkydownMotionTokens.contentRevealExitMillis)
+    } else {
+        snap()
+    }
+    val enterSizeSpec = if (motionEnabled) {
+        skydownTween<IntSize>(SkydownMotionTokens.contentRevealEnterMillis)
+    } else {
+        snap()
+    }
+    val exitSizeSpec = if (motionEnabled) {
+        skydownExitTween<IntSize>(SkydownMotionTokens.contentRevealExitMillis)
+    } else {
+        snap()
+    }
     var showsExtendedSignals by rememberSaveable { mutableStateOf(false) }
+    val hiddenSectionCount = 3
+    val hasNoProductivitySignals = remindersToday.isEmpty() && remindersUpcoming.isEmpty() && openTasks.isEmpty() && recentNotes.isEmpty()
     SkydownCard(contentPadding = PaddingValues(12.dp)) {
-        Text(
+        HomeSectionEyebrow(
             text = stringResource(R.string.home_productivity_ask_anything),
-            style = MaterialTheme.typography.labelSmall,
-            color = colorScheme.onSurface.copy(alpha = 0.56f),
+            emphasis = HomeSectionEyebrowEmphasis.Strong,
         )
+        if (syncPaused || !recoverableError.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Surface(
+                shape = RoundedCornerShape(SkydownUiTokens.pillSoftRadius),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.84f),
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = recoverableError?.takeIf { it.isNotBlank() }
+                            ?: stringResource(R.string.home_recovery_sync_paused),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                        modifier = Modifier.weight(1f),
+                    )
+                    BrandActionButton(
+                        text = stringResource(R.string.common_retry),
+                        onClick = onRetryRecovery,
+                        accent = MaterialTheme.colorScheme.primary,
+                        filled = false,
+                        compact = true,
+                    )
+                }
+            }
+        }
+        if (hasNoProductivitySignals) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Surface(
+                shape = RoundedCornerShape(SkydownUiTokens.pillSoftRadius),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.84f),
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = stringResource(R.string.home_productivity_empty_prompt),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+                    )
+                }
+            }
+        }
         Spacer(modifier = Modifier.height(8.dp))
         HomeProductivityListRow(
             title = stringResource(R.string.home_productivity_today),
@@ -1807,59 +1900,109 @@ private fun HomeProductivityOverviewCard(
                     ?: item.title
             },
         )
-        if (showsExtendedSignals) {
-            HomeProductivityListRow(
-                title = stringResource(R.string.home_productivity_upcoming),
-                emptyText = stringResource(R.string.home_productivity_empty_upcoming),
-                onOpen = onOpenUpcoming,
-                count = remindersUpcoming.size,
-                items = remindersUpcoming.map { it.title },
-            )
-            HomeProductivityTaskListRow(
-                title = stringResource(R.string.home_productivity_open_tasks),
-                emptyText = stringResource(R.string.home_productivity_empty_tasks),
-                onOpen = onOpenTasks,
-                count = openTasks.size,
-                tasks = openTasks,
-            )
-            HomeProductivityListRow(
-                title = stringResource(R.string.home_productivity_recent_notes),
-                emptyText = stringResource(R.string.home_productivity_empty_notes),
-                onOpen = onOpenNotes,
-                count = recentNotes.size,
-                items = recentNotes.map { it.title },
-            )
-        } else {
-            val rCount = remindersToday.size + remindersUpcoming.size
-            TextButton(onClick = { showsExtendedSignals = true }, contentPadding = PaddingValues(0.dp)) {
+        AnimatedVisibility(
+            visible = showsExtendedSignals,
+            enter = fadeIn(enterSpec) + expandVertically(animationSpec = enterSizeSpec),
+            exit = fadeOut(exitSpec) + shrinkVertically(animationSpec = exitSizeSpec),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill)) {
+                HomeProductivityListRow(
+                    title = stringResource(R.string.home_productivity_upcoming),
+                    emptyText = stringResource(R.string.home_productivity_empty_upcoming),
+                    onOpen = onOpenUpcoming,
+                    count = remindersUpcoming.size,
+                    items = remindersUpcoming.map { it.title },
+                )
+                HomeProductivityTaskListRow(
+                    title = stringResource(R.string.home_productivity_open_tasks),
+                    emptyText = stringResource(R.string.home_productivity_empty_tasks),
+                    onOpen = onOpenTasks,
+                    count = openTasks.size,
+                    tasks = openTasks,
+                )
+                HomeProductivityListRow(
+                    title = stringResource(R.string.home_productivity_recent_notes),
+                    emptyText = stringResource(R.string.home_productivity_empty_notes),
+                    onOpen = onOpenNotes,
+                    count = recentNotes.size,
+                    items = recentNotes.map { it.title },
+                )
+            }
+        }
+        AnimatedVisibility(
+            visible = !showsExtendedSignals,
+            enter = fadeIn(enterSpec) + expandVertically(animationSpec = enterSizeSpec),
+            exit = fadeOut(exitSpec) + shrinkVertically(animationSpec = exitSizeSpec),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline)) {
+                val rCount = remindersToday.size + remindersUpcoming.size
                 Row(
+                    modifier = Modifier.clickable {
+                        view.performSkydownHaptic(SkydownHapticKind.Selection)
+                        showsExtendedSignals = true
+                    },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = stringResource(R.string.home_productivity_collapse_summary, 3, rCount, openTasks.size, recentNotes.size),
+                        text = stringResource(
+                            R.string.home_productivity_collapse_summary,
+                            hiddenSectionCount,
+                            rCount,
+                            openTasks.size,
+                            recentNotes.size,
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
                     )
                 }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
+                ) {
+                    HomeCollapsedMetricChip(
+                        title = stringResource(R.string.home_productivity_upcoming),
+                        count = remindersUpcoming.size,
+                        onClick = onOpenUpcoming,
+                        modifier = Modifier.weight(1f),
+                    )
+                    HomeCollapsedMetricChip(
+                        title = stringResource(R.string.home_productivity_open_tasks),
+                        count = openTasks.size,
+                        onClick = onOpenTasks,
+                        modifier = Modifier.weight(1f),
+                    )
+                    HomeCollapsedMetricChip(
+                        title = stringResource(R.string.home_productivity_recent_notes),
+                        count = recentNotes.size,
+                        onClick = onOpenNotes,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
-        if (showsExtendedSignals) {
-            TextButton(onClick = { showsExtendedSignals = false }, contentPadding = PaddingValues(0.dp)) {
-                Text(
-                    text = stringResource(R.string.home_productivity_show_less_sections),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
-                )
-            }
+        AnimatedVisibility(
+            visible = showsExtendedSignals,
+            enter = fadeIn(enterSpec),
+            exit = fadeOut(exitSpec),
+        ) {
+            Text(
+                text = stringResource(R.string.home_productivity_show_less_sections),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                modifier = Modifier.clickable {
+                    view.performSkydownHaptic(SkydownHapticKind.Selection)
+                    showsExtendedSignals = false
+                },
+            )
         }
         Spacer(modifier = Modifier.height(6.dp))
-        Text(
+        HomeSectionEyebrow(
             text = stringResource(R.string.home_productivity_quick_hint),
-            style = MaterialTheme.typography.labelSmall,
-            color = colorScheme.onSurface.copy(alpha = 0.52f),
+            emphasis = HomeSectionEyebrowEmphasis.Subtle,
         )
         Spacer(modifier = Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
@@ -1891,6 +2034,64 @@ private fun HomeProductivityOverviewCard(
     }
 }
 
+private enum class HomeSectionEyebrowEmphasis { Strong, Subtle }
+
+@Composable
+private fun HomeSectionEyebrow(
+    text: String,
+    emphasis: HomeSectionEyebrowEmphasis,
+) {
+    val alpha = when (emphasis) {
+        HomeSectionEyebrowEmphasis.Strong -> 0.56f
+        HomeSectionEyebrowEmphasis.Subtle -> 0.52f
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+    )
+}
+
+@Composable
+private fun HomeCollapsedMetricChip(
+    title: String,
+    count: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val view = LocalView.current
+    Surface(
+        modifier = modifier
+            .defaultMinSize(minHeight = 34.dp)
+            .semantics { contentDescription = "$title, $count" },
+        shape = RoundedCornerShape(SkydownUiTokens.pillSoftRadius),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)),
+        onClick = {
+            view.performSkydownHaptic(SkydownHapticKind.Selection)
+            onClick()
+        },
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            HomeCountBadge(count = count)
+        }
+    }
+}
+
 @Composable
 private fun HomeOwnerWorkflowRow(
     onRequestFounderBriefing: (FounderBriefingMode) -> Unit,
@@ -1913,7 +2114,7 @@ private fun HomeOwnerWorkflowRow(
         if (founderBriefingModeInFlight != null) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             Text(
-                text = "Founder Briefing wird erstellt...",
+                text = stringResource(R.string.home_owner_workflows_progress),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -1931,7 +2132,7 @@ private fun HomeOwnerWorkflowRow(
         Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
             HomeQuickActionChip(
                 text = if (founderBriefingModeInFlight == FounderBriefingMode.Private) {
-                    "Wird erstellt..."
+                    stringResource(R.string.home_owner_workflows_creating)
                 } else {
                     stringResource(R.string.home_owner_workflows_private_analysis)
                 },
@@ -1943,7 +2144,7 @@ private fun HomeOwnerWorkflowRow(
             )
             HomeQuickActionChip(
                 text = if (founderBriefingModeInFlight == FounderBriefingMode.Group) {
-                    "Wird erstellt..."
+                    stringResource(R.string.home_owner_workflows_creating)
                 } else {
                     stringResource(R.string.home_owner_workflows_group_update)
                 },
@@ -1970,17 +2171,19 @@ private fun HomeProductivityTaskListRow(
     val maxVisibleItems = 2
     var isExpanded by rememberSaveable(tasks.size, title) { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick)) {
-        TextButton(onClick = onOpen, contentPadding = PaddingValues(0.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense), verticalAlignment = Alignment.CenterVertically) {
-                Text(text = title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                HomeCountBadge(count = count)
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    modifier = Modifier.size(14.dp),
-                )
-            }
+        Row(
+            modifier = Modifier.clickable(onClick = onOpen),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+            HomeCountBadge(count = count)
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.size(14.dp),
+            )
         }
         if (tasks.isEmpty()) {
             Text(emptyText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.56f))
@@ -2013,18 +2216,17 @@ private fun HomeProductivityTaskListRow(
                 }
             }
             if (tasks.size > maxVisibleItems) {
-                TextButton(onClick = { isExpanded = !isExpanded }, contentPadding = PaddingValues(0.dp)) {
-                    Text(
-                        text = if (isExpanded) {
-                            stringResource(R.string.home_productivity_show_less)
-                        } else {
-                            stringResource(R.string.home_productivity_more_count, tasks.size - maxVisibleItems)
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
-                    )
-                }
+                Text(
+                    text = if (isExpanded) {
+                        stringResource(R.string.home_productivity_show_less)
+                    } else {
+                        stringResource(R.string.home_productivity_more_count, tasks.size - maxVisibleItems)
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                    modifier = Modifier.clickable { isExpanded = !isExpanded },
+                )
             }
         }
     }
@@ -2041,17 +2243,19 @@ private fun HomeProductivityListRow(
     val maxVisibleItems = 2
     var isExpanded by rememberSaveable(title, items.size) { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick)) {
-        TextButton(onClick = onOpen, contentPadding = PaddingValues(0.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense), verticalAlignment = Alignment.CenterVertically) {
-                Text(text = title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                HomeCountBadge(count = count)
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    modifier = Modifier.size(14.dp),
-                )
-            }
+        Row(
+            modifier = Modifier.clickable(onClick = onOpen),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+            HomeCountBadge(count = count)
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.size(14.dp),
+            )
         }
         if (items.isEmpty()) {
             Text(emptyText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.56f))
@@ -2067,18 +2271,17 @@ private fun HomeProductivityListRow(
                 )
             }
             if (items.size > maxVisibleItems) {
-                TextButton(onClick = { isExpanded = !isExpanded }, contentPadding = PaddingValues(0.dp)) {
-                    Text(
-                        text = if (isExpanded) {
-                            stringResource(R.string.home_productivity_show_less)
-                        } else {
-                            stringResource(R.string.home_productivity_more_count, items.size - maxVisibleItems)
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
-                    )
-                }
+                Text(
+                    text = if (isExpanded) {
+                        stringResource(R.string.home_productivity_show_less)
+                    } else {
+                        stringResource(R.string.home_productivity_more_count, items.size - maxVisibleItems)
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                    modifier = Modifier.clickable { isExpanded = !isExpanded },
+                )
             }
         }
     }
@@ -2110,8 +2313,13 @@ private fun HomeQuickActionChip(
     isLoading: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    val accessibilityLabel = remember(text, countBadge) {
+        if (countBadge != null) "$text, $countBadge" else text
+    }
     Surface(
-        modifier = modifier,
+        modifier = modifier
+            .defaultMinSize(minHeight = 44.dp)
+            .semantics { contentDescription = accessibilityLabel },
         shape = RoundedCornerShape(SkydownUiTokens.pillSoftRadius),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
         onClick = onClick,
@@ -2217,13 +2425,16 @@ private fun HomeLiveSignalSurface(
         ?.takeIf { it.isNotBlank() }
         ?.let { stringResource(R.string.home_federated_content, it) }
     val federatedSignals = buildList {
-        aiUsageWarning?.takeIf { it.isNotBlank() }?.let { add("AI: $it") }
-        if (creatorLimitZone == true) add("AI: Creator limit zone reached.")
-        if (agentRunning == true) add("AI: Agent currently running.")
-        if (workflowWaiting == true) add("AI: Workflow waiting for next step.")
-        newOrderHint?.takeIf { it.isNotBlank() }?.let { add("Commerce: $it") }
-        if (syncPaused == true) add("System: Sync currently paused.")
-        recoverableError?.takeIf { it.isNotBlank() }?.let { add("System: $it") }
+        aiUsageWarning?.takeIf { it.isNotBlank() }
+            ?.let { add(stringResource(R.string.home_signal_ai_usage, it)) }
+        if (creatorLimitZone == true) add(stringResource(R.string.home_signal_ai_creator_limit))
+        if (agentRunning == true) add(stringResource(R.string.home_signal_ai_agent_running))
+        if (workflowWaiting == true) add(stringResource(R.string.home_signal_ai_workflow_waiting))
+        newOrderHint?.takeIf { it.isNotBlank() }
+            ?.let { add(stringResource(R.string.home_signal_commerce, it)) }
+        if (syncPaused == true) add(stringResource(R.string.home_signal_system_sync_paused))
+        recoverableError?.takeIf { it.isNotBlank() }
+            ?.let { add(stringResource(R.string.home_signal_system_error, it)) }
         contentFederatedLine?.let { add(it) }
     }
     val colorScheme = MaterialTheme.colorScheme
@@ -3051,20 +3262,25 @@ private data class FounderBriefingSheetState(
 /**
  * Eine Zeile Status aus [briefingMeta] (Cloud Function), fuer Private + Group.
  */
-private fun formatBriefingMetaLine(raw: Any?): String? {
+private fun formatBriefingMetaLine(
+    context: Context,
+    raw: Any?,
+): String? {
     val m = raw as? Map<*, *> ?: return null
     if (m.isEmpty()) return null
     val parts = ArrayList<String>(4)
-    (m["businessDate"] as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let { parts.add("Berichtstag $it") }
+    (m["businessDate"] as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let {
+        parts.add(context.getString(R.string.home_owner_briefing_meta_report_day, it))
+    }
     when (val q = (m["dataQuality"] as? String)?.trim()?.lowercase().orEmpty()) {
-        "complete" -> parts.add("Daten vollstaendig")
-        "partial" -> parts.add("Teildaten")
-        "no_kpi_doc" -> parts.add("KPI-Dokument fehlt")
+        "complete" -> parts.add(context.getString(R.string.home_owner_briefing_meta_data_complete))
+        "partial" -> parts.add(context.getString(R.string.home_owner_briefing_meta_data_partial))
+        "no_kpi_doc" -> parts.add(context.getString(R.string.home_owner_briefing_meta_kpi_doc_missing))
         else -> if (q.isNotEmpty()) parts.add(q)
     }
     (m["kpiUpdatedAt"] as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let { k ->
         val short = if (k.length > 36) k.take(36) + "…" else k
-        parts.add("KPI $short")
+        parts.add(context.getString(R.string.home_owner_briefing_meta_kpi_label, short))
     }
     if (parts.isEmpty()) return null
     return parts.joinToString(" · ")
@@ -3526,9 +3742,7 @@ private suspend fun requestFounderBriefingFromCallable(
             "DBG preview=${privatePreview.isNotBlank()} private=${privateText.isNotBlank()} group=${groupText.isNotBlank()} fallback=${fallbackText.isNotBlank()} $msgHint keys=${resolvedRoot.keys.joinToString(",")}"
         val userMessage = when {
             errMessage.isNotBlank() && !isUnusableAsCallableBriefingText(errMessage) -> errMessage
-            else ->
-                "Kein Briefing-Text. Die Cloud Function liefert leere Inhalte (private / results). " +
-                    "In den Functions-Logs pruefen, ob der Webhook-Response den vollstaendigen Body inkl. private oder results[].content hat."
+            else -> context.getString(R.string.home_owner_briefing_empty_body)
         }
         Log.e("FounderBriefing", "Briefing leer. $debugSummary | callableMessage=$errMessage")
         throw IllegalStateException(userMessage)
@@ -3538,9 +3752,13 @@ private suspend fun requestFounderBriefingFromCallable(
         ?: bodyMap?.get("briefingMeta")
     return FounderBriefingSheetState(
         mode = mode,
-        title = if (mode == FounderBriefingMode.Private) "Founder Analyse" else "Team Update",
+        title = if (mode == FounderBriefingMode.Private) {
+            context.getString(R.string.home_owner_briefing_title_private)
+        } else {
+            context.getString(R.string.home_owner_briefing_title_group)
+        },
         body = text,
-        metaLine = formatBriefingMetaLine(rawBriefingMeta),
+        metaLine = formatBriefingMetaLine(context, rawBriefingMeta),
     )
 }
 

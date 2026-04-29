@@ -54,13 +54,8 @@ struct AgentView: View {
     }
 
     var body: some View {
-        Group {
-            if showsNavigation {
-                navigationContent
-            } else {
-                content
-            }
-        }
+        let rootContent = showsNavigation ? AnyView(navigationContent) : AnyView(content)
+        rootContent
         .fancyToast(
             isPresented: $viewModel.showToast,
             message: viewModel.toastMessage,
@@ -121,7 +116,7 @@ struct AgentView: View {
         }
         .sheet(isPresented: $showingConversationSessions) {
             AIConversationSessionsSheet(
-                title: AppLocalized.text("agent.chats.sheet.title", fallback: "Agent Chats"),
+                title: AppLocalized.text("agent.chats.sheet.title", fallback: "Agent-Chats"),
                 accent: AppColors.accentMystic(for: colorScheme),
                 colorScheme: colorScheme,
                 sessions: viewModel.sessions,
@@ -149,29 +144,33 @@ struct AgentView: View {
                         showingTaskSurface = false
                         viewModel.draft = AppLocalized.text(
                             "agent.prefill.create_task",
-                            fallback: "Create a task for "
+                            fallback: "Erstelle eine Aufgabe fuer "
                         )
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                             showingPromptComposer = true
                         }
                     } label: {
+                        let taskTitle = AppLocalized.text("home.quick.create_task", fallback: "Aufgabe erstellen")
+                        let taskHint = AppLocalized.text("home.quick.hint", fallback: "Tippe auf eine Aktion, um mit einem gefuehrten Prompt im Agent zu starten.")
+                        let primaryTextColor = AppColors.text(for: colorScheme)
+                        let secondaryTextColor = AppColors.secondaryText(for: colorScheme)
                         HStack(spacing: SkydownLayout.stackSpacingPill) {
                             Image(systemName: "wand.and.stars.inverse")
                                 .font(.subheadline.weight(.bold))
                                 .foregroundColor(AppColors.accentHighlight(for: colorScheme))
                             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
-                                Text(AppLocalized.text("home.quick.create_task", fallback: "Create Task"))
+                                Text(taskTitle)
                                     .font(.subheadline.weight(.bold))
-                                    .foregroundColor(AppColors.text(for: colorScheme))
-                                Text(AppLocalized.text("home.quick.hint", fallback: "Tap an action to start with a guided prompt in Agent."))
+                                    .foregroundColor(primaryTextColor)
+                                Text(taskHint)
                                     .font(.caption2)
-                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                    .foregroundColor(secondaryTextColor)
                                     .lineLimit(1)
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption.weight(.bold))
-                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                .foregroundColor(secondaryTextColor)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
@@ -195,7 +194,7 @@ struct AgentView: View {
                         onCreate: { title, details in
                             try await taskStore.create(title: title, details: details)
                             viewModel.showToastMessage(
-                                AppLocalized.text("tasks.created", fallback: "Task created"),
+                                AppLocalized.text("tasks.created", fallback: "Aufgabe erstellt"),
                                 style: .success
                             )
                         },
@@ -205,7 +204,7 @@ struct AgentView: View {
                             } else {
                                 try await taskStore.markCompleted(taskID: task.id)
                                 viewModel.showToastMessage(
-                                    AppLocalized.text("tasks.completed", fallback: "Task completed"),
+                                    AppLocalized.text("tasks.completed", fallback: "Aufgabe erledigt"),
                                     style: .success
                                 )
                             }
@@ -218,8 +217,25 @@ struct AgentView: View {
                     .padding(.top, 8)
                 }
                 .background(backgroundGradient.ignoresSafeArea())
-                .navigationTitle(AppLocalized.text("tasks.title", fallback: "Tasks"))
+                .navigationTitle(AppLocalized.text("tasks.title", fallback: "Aufgaben"))
                 .navigationBarTitleDisplayMode(.inline)
+                .skydownNavigationChrome(colorScheme: colorScheme)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("common.done", fallback: "Done"),
+                            accent: AppColors.accentMystic(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: false,
+                            action: { showingTaskSurface = false }
+                        )
+                        .skydownInteractiveFeedback()
+                    }
+                }
             }
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
@@ -231,29 +247,33 @@ struct AgentView: View {
                         showingNoteSurface = false
                         viewModel.draft = AppLocalized.text(
                             "agent.prefill.create_note",
-                            fallback: "Create a note about "
+                            fallback: "Erstelle eine Notiz zu "
                         )
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                             showingPromptComposer = true
                         }
                     } label: {
+                        let noteTitle = AppLocalized.text("home.quick.create_note", fallback: "Notiz erstellen")
+                        let noteHint = AppLocalized.text("home.quick.hint", fallback: "Tippe auf eine Aktion, um mit einem gefuehrten Prompt im Agent zu starten.")
+                        let primaryTextColor = AppColors.text(for: colorScheme)
+                        let secondaryTextColor = AppColors.secondaryText(for: colorScheme)
                         HStack(spacing: SkydownLayout.stackSpacingPill) {
                             Image(systemName: "sparkles")
                                 .font(.subheadline.weight(.bold))
                                 .foregroundColor(AppColors.accentMystic(for: colorScheme))
                             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
-                                Text(AppLocalized.text("home.quick.create_note", fallback: "Create Note"))
+                                Text(noteTitle)
                                     .font(.subheadline.weight(.bold))
-                                    .foregroundColor(AppColors.text(for: colorScheme))
-                                Text(AppLocalized.text("home.quick.hint", fallback: "Tap an action to start with a guided prompt in Agent."))
+                                    .foregroundColor(primaryTextColor)
+                                Text(noteHint)
                                     .font(.caption2)
-                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                    .foregroundColor(secondaryTextColor)
                                     .lineLimit(1)
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption.weight(.bold))
-                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                .foregroundColor(secondaryTextColor)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
@@ -277,7 +297,7 @@ struct AgentView: View {
                         onCreate: { title, content in
                             try await noteStore.create(title: title, content: content)
                             viewModel.showToastMessage(
-                                AppLocalized.text("notes.saved", fallback: "Note saved"),
+                                AppLocalized.text("notes.saved", fallback: "Notiz gespeichert"),
                                 style: .success
                             )
                         },
@@ -292,8 +312,25 @@ struct AgentView: View {
                     .padding(.top, 8)
                 }
                 .background(backgroundGradient.ignoresSafeArea())
-                .navigationTitle(AppLocalized.text("notes.title", fallback: "Notes"))
+                .navigationTitle(AppLocalized.text("notes.title", fallback: "Notizen"))
                 .navigationBarTitleDisplayMode(.inline)
+                .skydownNavigationChrome(colorScheme: colorScheme)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("common.done", fallback: "Done"),
+                            accent: AppColors.accentMystic(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: false,
+                            action: { showingNoteSurface = false }
+                        )
+                        .skydownInteractiveFeedback()
+                    }
+                }
             }
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
@@ -305,14 +342,14 @@ struct AgentView: View {
                 onSave: { updatedTitle, updatedContent in
                     try await noteStore.update(noteID: note.id, title: updatedTitle, content: updatedContent)
                     viewModel.showToastMessage(
-                        AppLocalized.text("notes.saved", fallback: "Note saved"),
+                        AppLocalized.text("notes.saved", fallback: "Notiz gespeichert"),
                         style: .success
                     )
                 },
                 onDelete: {
                     try await noteStore.delete(noteID: note.id)
                     viewModel.showToastMessage(
-                        AppLocalized.text("notes.saved", fallback: "Note saved"),
+                        AppLocalized.text("notes.saved", fallback: "Notiz gespeichert"),
                         style: .success
                     )
                     selectedNote = nil
@@ -322,15 +359,15 @@ struct AgentView: View {
             .presentationDragIndicator(.visible)
         }
         .confirmationDialog(
-            AppLocalized.text("agent.delete_chat.title", fallback: "Delete active chat?"),
+            AppLocalized.text("agent.delete_chat.title", fallback: "Aktiven Chat loeschen?"),
             isPresented: $showingDeleteConversationDialog,
             titleVisibility: .visible
         ) {
-            Button(AppLocalized.text("agent.delete_chat.confirm", fallback: "Delete"), role: .destructive) {
+            Button(AppLocalized.text("agent.delete_chat.confirm", fallback: "Loeschen"), role: .destructive) {
                 viewModel.deleteActiveConversation()
                 showingConversationSessions = false
             }
-            Button(AppLocalized.text("common.cancel", fallback: "Cancel"), role: .cancel) { }
+            Button(AppLocalized.text("common.cancel", fallback: "Abbrechen"), role: .cancel) { }
         }
         .task(id: sessionObservationKey) {
             viewModel.configureUser(user: authManager.userSession)
@@ -349,6 +386,10 @@ struct AgentView: View {
         }
         .onChange(of: viewModel.revenueUsage?.warningLevel) { _, level in
             handleCriticalUsageWarning(level)
+        }
+        .onChange(of: viewModel.lastIntegrationIssue) { _, message in
+            guard shouldPromptUpgrade(for: message) else { return }
+            membershipCoordinator.openMembership(reason: .featureLocked, surface: "agent_chat")
         }
         .onAppear {
             renameDraft = viewModel.activeSessionTitle
@@ -376,6 +417,17 @@ struct AgentView: View {
         guard level == "critical" else { return }
         autoPresentedUpgradeHint = true
         membershipCoordinator.openMembership(reason: .criticalUsage, surface: "agent_chat")
+    }
+
+    private func shouldPromptUpgrade(for message: String?) -> Bool {
+        guard let message else { return false }
+        let lowered = message.lowercased()
+        return lowered.contains("abo")
+            || lowered.contains("membership")
+            || lowered.contains("pro oder creator")
+            || lowered.contains("subscription")
+            || lowered.contains("upgrade")
+            || lowered.contains("plan")
     }
 
     private var sessionObservationKey: String {
@@ -408,9 +460,14 @@ struct AgentView: View {
                 if !activeSessionSummary.preview.isEmpty {
                     return activeSessionSummary.preview
                 }
-                return activeSessionSummary.promptCount == 0 ? "Noch leer" : "\(activeSessionSummary.promptCount) Anfragen"
+                    return activeSessionSummary.promptCount == 0
+                        ? AppLocalized.text("agent.session.subtitle.empty", fallback: "Leer")
+                        : String(
+                            format: AppLocalized.text("agent.session.subtitle.request_count", fallback: "%d Anfragen"),
+                            activeSessionSummary.promptCount
+                        )
             }
-            return "Noch leer"
+            return AppLocalized.text("agent.session.subtitle.empty", fallback: "Leer")
         }()
         let pinnedSessionStrip = AIConversationSessionStrip(
             title: viewModel.activeSessionTitle,
@@ -428,7 +485,7 @@ struct AgentView: View {
         return ZStack(alignment: .bottom) {
             AgentAccessibilityMarker(
                 identifier: "agent.screen.root",
-                label: AppLocalized.text("agent.a11y.screen", fallback: "Agent screen")
+                label: AppLocalized.text("agent.a11y.screen", fallback: "Agent-Bildschirm")
             )
 
             if !viewModel.lastAgentRunId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -463,6 +520,21 @@ struct AgentView: View {
                     )
                     .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                     .padding(.bottom, 8)
+
+                    if let errorMessage = Optional(viewModel.lastIntegrationIssue),
+                       !errorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        AgentInlineErrorCard(
+                            message: errorMessage,
+                            showUpgradeAction: shouldPromptUpgrade(for: errorMessage),
+                            colorScheme: colorScheme,
+                            onRetry: { viewModel.refreshActiveConversation() },
+                            onUpgrade: {
+                                membershipCoordinator.openMembership(reason: .featureLocked, surface: "agent_chat")
+                            }
+                        )
+                        .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                        .padding(.bottom, 8)
+                    }
 
                     if viewModel.messages.isEmpty {
                         Spacer(minLength: 0)
@@ -646,13 +718,13 @@ private struct AgentPlanPreviewCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-            Text(AppLocalized.text("ai.membership.plans.title_short", fallback: "AI Membership"))
+            Text(AppLocalized.text("ai.membership.plans.title_short", fallback: "AI-Mitgliedschaft"))
                 .font(.caption2.weight(.bold))
                 .foregroundColor(AppColors.accentMystic(for: colorScheme))
             Text(AppLocalized.text("ai.membership.plans.tiers", fallback: "Free, Pro, Creator"))
                 .font(.subheadline.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
-            Text(AppLocalized.text("agent.membership.caption", fallback: "Creator unlocks workflows and premium output."))
+            Text(AppLocalized.text("agent.membership.caption", fallback: "Creator schaltet Workflows und Premium-Output frei."))
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -682,7 +754,7 @@ private struct AgentRevenueUsageCard: View {
                     .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accentHighlight(for: colorScheme))
                 Spacer()
-                Text("\(usage.remaining)/\(usage.limit) \(AppLocalized.text("ai.membership.open", fallback: "open"))")
+                Text("\(usage.remaining)/\(usage.limit) \(AppLocalized.text("ai.membership.open", fallback: "offen"))")
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -691,8 +763,8 @@ private struct AgentRevenueUsageCard: View {
             if usage.warningLevel != "ok" {
                 Text(
                     usage.warningLevel == "critical"
-                        ? AppLocalized.text("agent.usage.warning.critical", fallback: "Close to the limit. Upgrade keeps workflows steady.")
-                        : AppLocalized.text("agent.usage.warning.high", fallback: "High usage detected. Everything is stable, but monitored.")
+                        ? AppLocalized.text("agent.usage.warning.critical", fallback: "Du bist nah am Limit. Ein Upgrade haelt Workflows stabil.")
+                        : AppLocalized.text("agent.usage.warning.high", fallback: "Hohe Auslastung erkannt. Alles bleibt stabil, wird aber beobachtet.")
                 )
                     .font(.caption.weight(.semibold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -707,7 +779,7 @@ private struct AgentRevenueUsageCard: View {
                 RetryLaterCard(retryAfterSeconds: usage.retryAfterSeconds, colorScheme: colorScheme)
             }
             if !usage.suggestedUpgrade.isEmpty {
-                Text("\(AppLocalized.text("ai.membership.next_step", fallback: "Next step")): \(usage.suggestedUpgrade.uppercased())")
+                Text("\(AppLocalized.text("ai.membership.next_step", fallback: "Naechster Schritt")): \(usage.suggestedUpgrade.uppercased())")
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.accentHighlight(for: colorScheme))
             }
@@ -768,7 +840,7 @@ private struct RetryLaterCard: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        Text("\(AppLocalized.text("ai.retry_in", fallback: "Please retry in about")) \(retryAfterSeconds)s.")
+        Text("\(AppLocalized.text("ai.retry_in", fallback: "Bitte versuche es in etwa erneut in")) \(retryAfterSeconds)s.")
             .font(.caption2)
             .foregroundColor(AppColors.secondaryText(for: colorScheme))
             .padding(.horizontal, 9)
@@ -788,44 +860,100 @@ struct AgentMembershipSheet: View {
     let onRestore: () -> Void
     let onManage: () -> Void
 
+    @Environment(\.dismiss) private var dismiss
+
+    private var planActionsEnabled: Bool {
+        !(isLoadingProducts || isSyncing)
+    }
+
     var body: some View {
-        ScrollView {
+        NavigationStack {
+            ScrollView {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-                Text(AppLocalized.text("ai.membership.sheet.title", fallback: "SkyOS AI Membership"))
-                    .font(.title3.weight(.black))
-                    .foregroundColor(AppColors.text(for: colorScheme))
-                Text(AppLocalized.text("agent.membership.sheet.subtitle", fallback: "Upgrade as progress, never as pressure."))
+                Text(AppLocalized.text("agent.membership.sheet.subtitle", fallback: "Upgrade als Fortschritt, nie als Druck."))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                AgentPlanTile(title: AppLocalized.text("membership.plan.free", fallback: "Free"), detail: AppLocalized.text("ai.membership.free_detail", fallback: "Core bot, fewer images, light agent"), colorScheme: colorScheme)
-                AgentPlanTile(title: AppLocalized.text("membership.plan.pro", fallback: "Pro"), detail: AppLocalized.text("ai.membership.pro_detail", fallback: "More reach, stronger agent, creator daily flow"), colorScheme: colorScheme)
-                AgentPlanTile(title: AppLocalized.text("membership.plan.creator", fallback: "Creator"), detail: AppLocalized.text("ai.membership.creator_detail", fallback: "Workflow depth, premium outputs, priority"), colorScheme: colorScheme)
-                Text(AppLocalized.text("ai.membership.annual_coming", fallback: "Annual option is coming next in native billing."))
+                AgentPlanTile(title: AppLocalized.text("membership.plan.free", fallback: "Free"), detail: AppLocalized.text("ai.membership.free_detail", fallback: "Kern-Bot, weniger Bilder, leichter Agent"), colorScheme: colorScheme)
+                AgentPlanTile(title: AppLocalized.text("membership.plan.pro", fallback: "Pro"), detail: AppLocalized.text("ai.membership.pro_detail", fallback: "Mehr Reichweite, staerkerer Agent, Creator-Tagesflow"), colorScheme: colorScheme)
+                AgentPlanTile(title: AppLocalized.text("membership.plan.creator", fallback: "Creator"), detail: AppLocalized.text("ai.membership.creator_detail", fallback: "Workflow-Tiefe, Premium-Outputs, Prioritaet"), colorScheme: colorScheme)
+                Text(AppLocalized.text("ai.membership.annual_coming", fallback: "Eine Jahresoption folgt als naechstes im nativen Billing."))
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                Button(activePurchasePlan == .creator ? AppLocalized.text("membership.pro.starting", fallback: "Starting Pro...") : AppLocalized.text("membership.pro.activate", fallback: "Activate Pro")) {
-                    onSelectPlan(.creator)
+                SkydownBrandActionButton(
+                    title: activePurchasePlan == .creator
+                        ? AppLocalized.text("membership.pro.starting", fallback: "Pro wird gestartet...")
+                        : AppLocalized.text("membership.pro.activate", fallback: "Pro aktivieren"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    isEnabled: planActionsEnabled,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 11,
+                    action: { onSelectPlan(.creator) }
+                )
+                SkydownBrandActionButton(
+                    title: activePurchasePlan == .studio
+                        ? AppLocalized.text("membership.creator.starting", fallback: "Creator wird gestartet...")
+                        : AppLocalized.text("membership.creator.activate", fallback: "Creator aktivieren"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isEnabled: planActionsEnabled,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 11,
+                    action: { onSelectPlan(.studio) }
+                )
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("membership.restore", fallback: "Kaeufe wiederherstellen"),
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: true,
+                        action: onRestore
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("membership.manage", fallback: "Mitgliedschaft verwalten"),
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: onManage
+                    )
                 }
-                .buttonStyle(.bordered)
-                .disabled(isLoadingProducts || isSyncing)
-
-                Button(activePurchasePlan == .studio ? AppLocalized.text("membership.creator.starting", fallback: "Starting Creator...") : AppLocalized.text("membership.creator.activate", fallback: "Activate Creator")) {
-                    onSelectPlan(.studio)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(isLoadingProducts || isSyncing)
-
-                Button(AppLocalized.text("membership.restore", fallback: "Restore purchases")) { onRestore() }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                Button(AppLocalized.text("membership.manage", fallback: "Manage subscription")) { onManage() }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
             }
             .padding()
+            }
+            .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+            .navigationTitle(AppLocalized.text("ai.membership.sheet.title", fallback: "SkyOS AI-Mitgliedschaft"))
+            .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.done", fallback: "Done"),
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
+                }
+            }
         }
-        .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
     }
 }
 
@@ -987,14 +1115,14 @@ private struct AgentProductivityDockCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-            Text(AppLocalized.text("agent.productivity.header", fallback: "Productivity surfaces"))
+            Text(AppLocalized.text("agent.productivity.header", fallback: "Produktivitaetsbereiche"))
                 .font(.subheadline.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Button(action: onOpenTasks) {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
-                        Text(AppLocalized.text("tasks.title", fallback: "Tasks"))
+                        Text(AppLocalized.text("tasks.title", fallback: "Aufgaben"))
                             .font(.caption.weight(.semibold))
                         Text(String(openTaskCount))
                             .font(.title3.weight(.black))
@@ -1008,7 +1136,7 @@ private struct AgentProductivityDockCard: View {
 
                 Button(action: onOpenNotes) {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
-                        Text(AppLocalized.text("notes.title", fallback: "Notes"))
+                        Text(AppLocalized.text("notes.title", fallback: "Notizen"))
                             .font(.caption.weight(.semibold))
                         Text(String(noteCount))
                             .font(.title3.weight(.black))
@@ -1036,17 +1164,17 @@ private struct AgentFeatureStatusCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-            Text(AppLocalized.text("agent.feature_status.live_title", fallback: "LIVE TODAY"))
+            Text(AppLocalized.text("agent.feature_status.live_title", fallback: "HEUTE LIVE"))
                 .font(.caption2.weight(.black))
                 .foregroundColor(AppColors.accentMystic(for: colorScheme))
-            Text(AppLocalized.text("agent.feature_status.live_body", fallback: "Reminders + push, tasks + notes"))
+            Text(AppLocalized.text("agent.feature_status.live_body", fallback: "Erinnerungen + Push, Aufgaben + Notizen"))
                 .font(.subheadline.weight(.bold))
                 .foregroundColor(AppColors.text(for: colorScheme))
-            Text(AppLocalized.text("agent.feature_status.next_title", fallback: "COMING NEXT"))
+            Text(AppLocalized.text("agent.feature_status.next_title", fallback: "ALS NAECHSTES"))
                 .font(.caption2.weight(.black))
                 .foregroundColor(AppColors.accentHighlight(for: colorScheme))
                 .padding(.top, 2)
-            Text(AppLocalized.text("agent.feature_status.next_body", fallback: "Profile memory & follow-ups"))
+            Text(AppLocalized.text("agent.feature_status.next_body", fallback: "Profilspeicher & Follow-ups"))
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -1078,10 +1206,14 @@ private struct AgentTaskSectionCard: View {
         return formatter
     }()
 
+    private var canAddTask: Bool {
+        !createTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             HStack {
-                Text(AppLocalized.text("tasks.title", fallback: "Tasks"))
+                Text(AppLocalized.text("tasks.title", fallback: "Aufgaben"))
                     .font(.subheadline.weight(.bold))
                     .foregroundColor(AppColors.text(for: colorScheme))
                 Spacer()
@@ -1095,11 +1227,11 @@ private struct AgentTaskSectionCard: View {
             }
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
-                Text(AppLocalized.text("tasks.create_with_ai", fallback: "Create tasks with AI"))
+                Text(AppLocalized.text("tasks.create_with_ai", fallback: "Aufgaben mit AI erstellen"))
                     .font(.caption2.weight(.semibold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 TextField(
-                    AppLocalized.text("tasks.input.title_hint", fallback: "Task title (e.g. Send invoice)"),
+                    AppLocalized.text("tasks.input.title_hint", fallback: "Aufgabentitel (z. B. Rechnung senden)"),
                     text: $createTitle
                 )
                 .padding(.horizontal, 10)
@@ -1108,7 +1240,7 @@ private struct AgentTaskSectionCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
 
                 TextField(
-                    AppLocalized.text("tasks.input.details_hint", fallback: "Optional details"),
+                    AppLocalized.text("tasks.input.details_hint", fallback: "Optionale Details"),
                     text: $createDetails
                 )
                 .padding(.horizontal, 10)
@@ -1116,26 +1248,34 @@ private struct AgentTaskSectionCard: View {
                 .background(AppColors.cardBackground(for: colorScheme))
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
 
-                Button(AppLocalized.text("tasks.input.add", fallback: "Add task")) {
-                    let title = createTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let details = createDetails.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !title.isEmpty else { return }
-                    Task {
-                        try? await onCreate(title, details)
-                        createTitle = ""
-                        createDetails = ""
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("tasks.input.add", fallback: "Aufgabe hinzufuegen"),
+                    systemImage: "plus.circle.fill",
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isEnabled: canAddTask,
+                    font: .caption.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 9,
+                    action: {
+                        let title = createTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let details = createDetails.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !title.isEmpty else { return }
+                        Task {
+                            try? await onCreate(title, details)
+                            createTitle = ""
+                            createDetails = ""
+                        }
                     }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(createTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                )
             }
 
             if tasks.isEmpty {
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
-                    Text(AppLocalized.text("tasks.empty", fallback: "No tasks yet"))
+                    Text(AppLocalized.text("tasks.empty", fallback: "Noch keine Aufgaben"))
                         .font(.footnote.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    Text(AppLocalized.text("tasks.create_with_ai", fallback: "Create tasks with AI"))
+                    Text(AppLocalized.text("tasks.create_with_ai", fallback: "Aufgaben mit AI erstellen"))
                         .font(.caption)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -1179,15 +1319,15 @@ private struct AgentTaskSectionCard: View {
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button(
                                 task.status == .completed
-                                    ? AppLocalized.text("tasks.action.open", fallback: "Open")
-                                    : AppLocalized.text("tasks.action.complete", fallback: "Complete")
+                                    ? AppLocalized.text("tasks.action.open", fallback: "Offen")
+                                    : AppLocalized.text("tasks.action.complete", fallback: "Erledigen")
                             ) {
                                 Task { try? await onToggleStatus(task) }
                             }
                             .tint(.green)
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(AppLocalized.text("common.delete", fallback: "Delete"), role: .destructive) {
+                            Button(AppLocalized.text("common.delete", fallback: "Loeschen"), role: .destructive) {
                                 Task { try? await onDelete(task) }
                             }
                         }
@@ -1237,10 +1377,16 @@ private struct AgentNoteSectionCard: View {
         }
     }
 
+    private var canAddNote: Bool {
+        let title = createTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let content = createContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !title.isEmpty || !content.isEmpty
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             HStack {
-                Text(AppLocalized.text("notes.title", fallback: "Notes"))
+                Text(AppLocalized.text("notes.title", fallback: "Notizen"))
                     .font(.subheadline.weight(.bold))
                     .foregroundColor(AppColors.text(for: colorScheme))
                 Spacer()
@@ -1254,11 +1400,11 @@ private struct AgentNoteSectionCard: View {
             }
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
-                Text(AppLocalized.text("notes.create_with_ai", fallback: "Create notes with AI"))
+                Text(AppLocalized.text("notes.create_with_ai", fallback: "Notizen mit AI erstellen"))
                     .font(.caption2.weight(.semibold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 TextField(
-                    AppLocalized.text("notes.input.title_hint", fallback: "Note title (e.g. Project ideas)"),
+                    AppLocalized.text("notes.input.title_hint", fallback: "Notiztitel (z. B. Projektideen)"),
                     text: $createTitle
                 )
                 .padding(.horizontal, 10)
@@ -1267,7 +1413,7 @@ private struct AgentNoteSectionCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
 
                 TextField(
-                    AppLocalized.text("notes.input.content_hint", fallback: "Write a quick note..."),
+                    AppLocalized.text("notes.input.content_hint", fallback: "Kurze Notiz schreiben..."),
                     text: $createContent,
                     axis: .vertical
                 )
@@ -1277,24 +1423,29 @@ private struct AgentNoteSectionCard: View {
                 .background(AppColors.cardBackground(for: colorScheme))
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
 
-                Button(AppLocalized.text("notes.input.add", fallback: "Add note")) {
-                    let title = createTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let content = createContent.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !title.isEmpty || !content.isEmpty else { return }
-                    Task {
-                        try? await onCreate(title, content)
-                        createTitle = ""
-                        createContent = ""
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("notes.input.add", fallback: "Notiz hinzufuegen"),
+                    systemImage: "plus.circle.fill",
+                    accent: AppColors.accentHighlight(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isEnabled: canAddNote,
+                    font: .caption.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 9,
+                    action: {
+                        let title = createTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let content = createContent.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !title.isEmpty || !content.isEmpty else { return }
+                        Task {
+                            try? await onCreate(title, content)
+                            createTitle = ""
+                            createContent = ""
+                        }
                     }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(
-                    createTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                    createContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 )
             }
 
-            TextField(AppLocalized.text("common.search", fallback: "Search"), text: $searchText)
+            TextField(AppLocalized.text("common.search", fallback: "Suchen"), text: $searchText)
                 .textInputAutocapitalization(.never)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
@@ -1303,10 +1454,10 @@ private struct AgentNoteSectionCard: View {
 
             if filteredNotes.isEmpty {
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
-                    Text(AppLocalized.text("notes.empty", fallback: "No notes yet"))
+                    Text(AppLocalized.text("notes.empty", fallback: "Noch keine Notizen"))
                         .font(.footnote.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                    Text(AppLocalized.text("notes.create_with_ai", fallback: "Create notes with AI"))
+                    Text(AppLocalized.text("notes.create_with_ai", fallback: "Notizen mit AI erstellen"))
                         .font(.caption)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -1336,7 +1487,7 @@ private struct AgentNoteSectionCard: View {
                         .listRowInsets(EdgeInsets(top: 6, leading: 2, bottom: 6, trailing: 2))
                         .listRowBackground(Color.clear)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(AppLocalized.text("common.delete", fallback: "Delete"), role: .destructive) {
+                            Button(AppLocalized.text("common.delete", fallback: "Loeschen"), role: .destructive) {
                                 Task { try? await onDelete(note) }
                             }
                         }
@@ -1370,39 +1521,70 @@ private struct AgentNoteDetailSheet: View {
     @State private var contentText: String = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-            Text(AppLocalized.text("notes.title", fallback: "Notes"))
-                .font(.headline.weight(.bold))
-            TextField(AppLocalized.text("notes.field.title", fallback: "Title"), text: $titleText)
-                .padding(10)
-                .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
-            TextField(AppLocalized.text("notes.field.content", fallback: "Content"), text: $contentText, axis: .vertical)
-                .lineLimit(6...12)
-                .padding(10)
-                .background(AppColors.cardBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
-            HStack {
-                Button(AppLocalized.text("common.delete", fallback: "Delete"), role: .destructive) {
-                    Task {
-                        try? await onDelete()
-                        dismiss()
+        NavigationStack {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
+                TextField(AppLocalized.text("notes.field.title", fallback: "Titel"), text: $titleText)
+                    .padding(10)
+                    .background(AppColors.cardBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
+                TextField(AppLocalized.text("notes.field.content", fallback: "Inhalt"), text: $contentText, axis: .vertical)
+                    .lineLimit(6...12)
+                    .padding(10)
+                    .background(AppColors.cardBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
+                HStack {
+                    Button(AppLocalized.text("common.delete", fallback: "Loeschen"), role: .destructive) {
+                        Task {
+                            try? await onDelete()
+                            dismiss()
+                        }
                     }
+                    Spacer()
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.save", fallback: "Speichern"),
+                        systemImage: "checkmark.circle.fill",
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 10,
+                        expandToFullWidth: false,
+                        action: {
+                            Task {
+                                try? await onSave(titleText, contentText)
+                                dismiss()
+                            }
+                        }
+                    )
+                    .skydownInteractiveFeedback()
                 }
-                Spacer()
-                Button(AppLocalized.text("common.save", fallback: "Save")) {
-                    Task {
-                        try? await onSave(titleText, contentText)
-                        dismiss()
-                    }
-                }
-                .buttonStyle(.borderedProminent)
             }
-        }
-        .padding()
-        .onAppear {
-            titleText = note.title
-            contentText = note.content
+            .padding()
+            .onAppear {
+                titleText = note.title
+                contentText = note.content
+            }
+            .navigationTitle(AppLocalized.text("notes.title", fallback: "Notizen"))
+            .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.done", fallback: "Done"),
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .skydownPremiumInputSurface()
         }
     }
 }
@@ -1416,11 +1598,11 @@ private struct AgentDisabledCard: View {
                 Image(systemName: "lock.fill")
                     .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                Text(AppLocalized.text("agent.paused", fallback: "SkyOS Agent paused"))
+                Text(AppLocalized.text("agent.paused", fallback: "SkyOS Agent pausiert"))
                     .font(.subheadline.weight(.bold))
                     .foregroundColor(AppColors.text(for: colorScheme))
                 Spacer(minLength: 0)
-                Text(AppLocalized.text("common.status.idle", fallback: "Idle"))
+                Text(AppLocalized.text("common.status.idle", fallback: "Leerlauf"))
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
                     .padding(.horizontal, 8)
@@ -1431,7 +1613,7 @@ private struct AgentDisabledCard: View {
                     )
             }
 
-            Text(AppLocalized.text("agent.paused.detail", fallback: "The rest of the app stays available. The agent continues once re-enabled."))
+            Text(AppLocalized.text("agent.paused.detail", fallback: "Der Rest der App bleibt verfuegbar. Der Agent laeuft weiter, sobald er wieder aktiviert ist."))
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 .fixedSize(horizontal: false, vertical: true)
@@ -1522,7 +1704,7 @@ private struct AgentPromptFab: View {
 
                 Text(
                     isWorking
-                        ? AppLocalized.text("agent.fab.state.working", fallback: "Working")
+                        ? AppLocalized.text("agent.fab.state.working", fallback: "Arbeitet")
                         : AppLocalized.text("agent.fab.state.idle", fallback: "Agent")
                 )
                     .font(.subheadline.weight(.black))
@@ -1546,7 +1728,7 @@ private struct AgentPromptFab: View {
         }
         .buttonStyle(.plain)
         .skydownTactileAction()
-        .accessibilityLabel(AppLocalized.text("agent.a11y.open_prompt", fallback: "Open prompt"))
+        .accessibilityLabel(AppLocalized.text("agent.a11y.open_prompt", fallback: "Prompt oeffnen"))
         .accessibilityIdentifier("agent.prompt.open")
     }
 }
@@ -1702,7 +1884,7 @@ private struct AgentPromptComposerSheet: View {
         else { return nil }
         return AppLocalized.text(
             "agent.workflow.social_required_hint",
-            fallback: "Workflow is on — select at least one platform to send."
+            fallback: "Workflow ist aktiv — waehle mindestens eine Plattform zum Senden."
         )
     }
 
@@ -1719,11 +1901,11 @@ private struct AgentPromptComposerSheet: View {
     @ViewBuilder
     private var agentSettingsDropdownRows: some View {
         HStack(alignment: .center) {
-            Text(AppLocalized.text("agent.settings.mode", fallback: "Mode"))
+            Text(AppLocalized.text("agent.settings.mode", fallback: "Modus"))
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
             Spacer(minLength: 12)
-            Picker(AppLocalized.text("agent.picker.mode", fallback: "Mode"), selection: $selectedMode) {
+            Picker(AppLocalized.text("agent.picker.mode", fallback: "Modus"), selection: $selectedMode) {
                 ForEach(AgentExecutionMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
@@ -1741,11 +1923,11 @@ private struct AgentPromptComposerSheet: View {
                 .padding(.leading, 8)
             if canUseGlobalOwnerAutomationFlow {
                 HStack(alignment: .center) {
-                    Text(AppLocalized.text("agent.settings.scope", fallback: "Scope"))
+                    Text(AppLocalized.text("agent.settings.scope", fallback: "Bereich"))
                         .font(.subheadline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     Spacer(minLength: 12)
-                    Picker(AppLocalized.text("agent.picker.scope", fallback: "Scope"), selection: $selectedAutomationScope) {
+                    Picker(AppLocalized.text("agent.picker.scope", fallback: "Bereich"), selection: $selectedAutomationScope) {
                         ForEach(agentAutomationScopeChoices) { scope in
                             Text(scope.title).tag(scope)
                         }
@@ -1765,7 +1947,7 @@ private struct AgentPromptComposerSheet: View {
                 Text(
                     canUseGlobalOwnerAutomationFlow
                         ? AppLocalized.text("agent.automation.workflow", fallback: "Workflow")
-                        : AppLocalized.text("agent.automation.workflow.personal", fallback: "Personal workflow")
+                        : AppLocalized.text("agent.automation.workflow.personal", fallback: "Persoenlicher Workflow")
                 )
                     .font(.subheadline)
                     .foregroundColor(AppColors.text(for: colorScheme))
@@ -1777,18 +1959,18 @@ private struct AgentPromptComposerSheet: View {
             .accessibilityLabel(
                 canUseGlobalOwnerAutomationFlow
                     ? (shouldTriggerAutomation
-                        ? AppLocalized.text("agent.a11y.workflow.on", fallback: "Workflow active")
-                        : AppLocalized.text("agent.a11y.workflow.off", fallback: "Start workflow"))
+                        ? AppLocalized.text("agent.a11y.workflow.on", fallback: "Workflow aktiv")
+                        : AppLocalized.text("agent.a11y.workflow.off", fallback: "Workflow starten"))
                     : (shouldTriggerAutomation
-                        ? AppLocalized.text("agent.a11y.personal_workflow.on", fallback: "Personal workflow active")
-                        : AppLocalized.text("agent.a11y.personal_workflow.off", fallback: "Start personal workflow"))
+                        ? AppLocalized.text("agent.a11y.personal_workflow.on", fallback: "Persoenlicher Workflow aktiv")
+                        : AppLocalized.text("agent.a11y.personal_workflow.off", fallback: "Persoenlichen Workflow starten"))
             )
         }
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection + 2) {
                 AgentAccessibilityMarker(
                     identifier: "agent.prompt.sheet",
                     label: AppLocalized.text("agent.a11y.prompt_composer", fallback: "Agent prompt composer")
@@ -1797,7 +1979,7 @@ private struct AgentPromptComposerSheet: View {
                 PremiumPromptSheetHeader(
                     iconSystemName: "wand.and.stars",
                     title: AppLocalized.text("agent.sheet.composer_title", fallback: "Agent"),
-                    subtitle: AppLocalized.text("agent.sheet.composer_subtitle", fallback: "Mode and more in the dropdowns — one send is enough."),
+                    subtitle: AppLocalized.text("agent.sheet.composer_subtitle", fallback: "Modus und mehr in den Dropdowns — ein Senden reicht."),
                     accent: agentAccent,
                     colorScheme: colorScheme,
                     onDismiss: onDismiss
@@ -1817,8 +1999,8 @@ private struct AgentPromptComposerSheet: View {
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     PremiumPromptSectionHeader(
-                        title: AppLocalized.text("agent.section.settings", fallback: "Settings"),
-                        footnote: AppLocalized.text("agent.section.settings.footnote", fallback: "One line per option — easy to scan."),
+                        title: AppLocalized.text("agent.section.settings", fallback: "Einstellungen"),
+                        footnote: AppLocalized.text("agent.section.settings.footnote", fallback: "Eine Zeile pro Option — leicht scanbar."),
                         accent: agentAccent,
                         colorScheme: colorScheme
                     )
@@ -1884,7 +2066,7 @@ private struct AgentPromptComposerSheet: View {
                             Text(
                                 AppLocalized.text(
                                     "agent.social.provider.status.lines",
-                                    fallback: "YouTube and TikTok are live. Instagram can fall back until Meta Graph scopes are approved. Spotify may be restricted by provider policy even with valid keys."
+                                    fallback: "YouTube und TikTok sind live. Instagram kann als Fallback laufen, bis Meta-Graph-Scopes freigegeben sind. Spotify kann trotz gueltiger Keys durch Provider-Richtlinien eingeschraenkt sein."
                                 )
                             )
                             .font(.caption)
@@ -1893,7 +2075,7 @@ private struct AgentPromptComposerSheet: View {
                             Text(
                                 AppLocalized.text(
                                     "agent.social.scope.workaround",
-                                    fallback: "Scope workaround: keep TikTok/YouTube enabled for live data, use Instagram handle context when scopes are blocked, and enter Spotify as reference input."
+                                    fallback: "Scope-Workaround: TikTok/YouTube fuer Live-Daten aktiv lassen, bei blockierten Scopes den Instagram-Handle als Kontext nutzen und Spotify als Referenz-Input eintragen."
                                 )
                             )
                             .font(.caption)
@@ -2015,8 +2197,8 @@ private struct AgentPromptComposerSheet: View {
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     PremiumPromptSectionHeader(
-                        title: AppLocalized.text("agent.section.input", fallback: "Input"),
-                        footnote: AppLocalized.text("agent.section.input.footnote", fallback: "Task, expectation, links. One clear sentence is often enough."),
+                        title: AppLocalized.text("agent.section.input", fallback: "Eingabe"),
+                        footnote: AppLocalized.text("agent.section.input.footnote", fallback: "Aufgabe, Erwartung, Links. Ein klarer Satz reicht oft aus."),
                         accent: agentAccent,
                         colorScheme: colorScheme
                     )
@@ -2103,7 +2285,7 @@ private struct AgentPromptComposerSheet: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     PremiumPromptPrimaryButton(
                         title: AppLocalized.text("agent.primary.send", fallback: "Send"),
                         systemImage: "arrow.up.circle.fill",
@@ -2123,8 +2305,8 @@ private struct AgentPromptComposerSheet: View {
                 }
             }
             .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
-            .padding(.top, 10)
-            .padding(.bottom, 28)
+            .padding(.top, 12)
+            .padding(.bottom, 34)
         }
         .background(
             AppColors.primaryBackground(for: colorScheme)
@@ -2135,6 +2317,72 @@ private struct AgentPromptComposerSheet: View {
                 isFocused = true
             }
         }
+    }
+}
+
+private struct AgentInlineErrorCard: View {
+    let message: String
+    let showUpgradeAction: Bool
+    let colorScheme: ColorScheme
+    let onRetry: () -> Void
+    let onUpgrade: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.accentHighlight(for: colorScheme))
+                Text(AppLocalized.text("agent.error.title", fallback: "Agent needs attention"))
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Spacer(minLength: 0)
+            }
+
+            Text(message)
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .lineLimit(3)
+
+            HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("agent.error.retry", fallback: "Retry"),
+                    systemImage: "arrow.clockwise",
+                    accent: AppColors.accentHighlight(for: colorScheme),
+                    colorScheme: colorScheme,
+                    font: .caption.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 8,
+                    expandToFullWidth: showUpgradeAction,
+                    action: onRetry
+                )
+                .frame(maxWidth: showUpgradeAction ? .infinity : nil, alignment: .leading)
+
+                if showUpgradeAction {
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("agent.error.upgrade", fallback: "Upgrade"),
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: onUpgrade
+                    )
+                }
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
+                .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.9))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
+                .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.25), lineWidth: 1)
+        )
     }
 }
 

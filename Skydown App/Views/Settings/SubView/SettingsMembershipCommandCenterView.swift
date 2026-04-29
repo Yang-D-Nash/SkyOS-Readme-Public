@@ -49,10 +49,17 @@ struct SettingsMembershipCommandCenterView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     ForEach(MembershipOpsTab.allCases) { tab in
-                        Button(tab.rawValue) { selectedTab = tab }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .tint(selectedTab == tab ? AppColors.accent(for: colorScheme) : AppColors.secondaryText(for: colorScheme))
+                        SkydownBrandActionButton(
+                            title: tab.rawValue,
+                            accent: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: selectedTab == tab ? .primary : .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 7,
+                            expandToFullWidth: false,
+                            action: { selectedTab = tab }
+                        )
                     }
                 }
             }
@@ -115,31 +122,48 @@ struct SettingsMembershipCommandCenterView: View {
                                 .font(.caption)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                                Button(t("settings.membership_ops.start_experiment", "Start experiment")) {
-                                    Task {
-                                        let result = await store.startExperiment(for: recommendation)
-                                        switch result {
-                                        case .success:
-                                            onFeedback(t("settings.membership_ops.experiment_started", "Experiment started."), .success)
-                                        case .failure(let error):
-                                            onFeedback(error.localizedDescription, .error)
+                                SkydownBrandActionButton(
+                                    title: t("settings.membership_ops.start_experiment", "Start experiment"),
+                                    accent: AppColors.accent(for: colorScheme),
+                                    colorScheme: colorScheme,
+                                    font: .caption.weight(.semibold),
+                                    cornerRadius: SkydownLayout.denseRadius,
+                                    verticalPadding: 9,
+                                    expandToFullWidth: true,
+                                    action: {
+                                        Task {
+                                            let result = await store.startExperiment(for: recommendation)
+                                            switch result {
+                                            case .success:
+                                                onFeedback(t("settings.membership_ops.experiment_started", "Experiment started."), .success)
+                                            case .failure(let error):
+                                                onFeedback(error.localizedDescription, .error)
+                                            }
                                         }
                                     }
-                                }
-                                .buttonStyle(.borderedProminent)
-                                Button(t("settings.membership_ops.reject", "Reject")) {
-                                    Task {
-                                        let result = await store.rejectRecommendation(recommendation)
-                                        switch result {
-                                        case .success:
-                                            onFeedback(t("settings.membership_ops.recommendation_rejected", "Recommendation rejected."), .warning)
-                                        case .failure(let error):
-                                            onFeedback(error.localizedDescription, .error)
+                                )
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                SkydownBrandActionButton(
+                                    title: t("settings.membership_ops.reject", "Reject"),
+                                    accent: AppColors.accentMystic(for: colorScheme),
+                                    colorScheme: colorScheme,
+                                    role: .muted,
+                                    font: .caption.weight(.semibold),
+                                    cornerRadius: SkydownLayout.denseRadius,
+                                    verticalPadding: 9,
+                                    expandToFullWidth: false,
+                                    action: {
+                                        Task {
+                                            let result = await store.rejectRecommendation(recommendation)
+                                            switch result {
+                                            case .success:
+                                                onFeedback(t("settings.membership_ops.recommendation_rejected", "Recommendation rejected."), .warning)
+                                            case .failure(let error):
+                                                onFeedback(error.localizedDescription, .error)
+                                            }
                                         }
                                     }
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
+                                )
                             }
                         }
                     }
@@ -157,28 +181,34 @@ struct SettingsMembershipCommandCenterView: View {
             SettingsInputField(title: "Cancel Delta", text: $cancelDeltaDraft, colorScheme: colorScheme, placeholder: "-0.02")
             SettingsInputField(title: "Observed Days", text: $observedDaysDraft, colorScheme: colorScheme, placeholder: "14")
             SettingsInputField(title: "Learnings", text: $learningsDraft, colorScheme: colorScheme, placeholder: "Kurz und konkret.")
-            Button(t("settings.membership_ops.complete_experiment", "Complete experiment")) {
-                Task {
-                    let result = await store.completeExperiment(
-                        lifecycleId: lifecycleIdDraft.trimmingCharacters(in: .whitespacesAndNewlines),
-                        cvrDelta: Double(cvrDeltaDraft) ?? 0,
-                        annualDelta: Double(annualDeltaDraft) ?? 0,
-                        creatorDelta: Double(creatorDeltaDraft) ?? 0,
-                        cancelDelta: Double(cancelDeltaDraft) ?? 0,
-                        observedWindowDays: Int(observedDaysDraft) ?? 14,
-                        success: (Double(cvrDeltaDraft) ?? 0) > 0,
-                        learnings: learningsDraft
-                    )
-                    switch result {
-                    case .success:
-                        onFeedback(t("settings.membership_ops.experiment_completed", "Experiment completed."), .success)
-                    case .failure(let error):
-                        onFeedback(error.localizedDescription, .error)
+            SkydownBrandActionButton(
+                title: t("settings.membership_ops.complete_experiment", "Complete experiment"),
+                accent: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                font: .subheadline.weight(.semibold),
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 11,
+                action: {
+                    Task {
+                        let result = await store.completeExperiment(
+                            lifecycleId: lifecycleIdDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                            cvrDelta: Double(cvrDeltaDraft) ?? 0,
+                            annualDelta: Double(annualDeltaDraft) ?? 0,
+                            creatorDelta: Double(creatorDeltaDraft) ?? 0,
+                            cancelDelta: Double(cancelDeltaDraft) ?? 0,
+                            observedWindowDays: Int(observedDaysDraft) ?? 14,
+                            success: (Double(cvrDeltaDraft) ?? 0) > 0,
+                            learnings: learningsDraft
+                        )
+                        switch result {
+                        case .success:
+                            onFeedback(t("settings.membership_ops.experiment_completed", "Experiment completed."), .success)
+                        case .failure(let error):
+                            onFeedback(error.localizedDescription, .error)
+                        }
                     }
                 }
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColors.accent(for: colorScheme))
+            )
         }
     }
 
@@ -238,44 +268,59 @@ struct SettingsMembershipCommandCenterView: View {
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                     HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                        Button(t("common.save", "Save")) {
-                            Task {
-                                let payload: [String: Any] = [
-                                    "cooldownDaysCompleted": Int(cooldownDaysCompletedDraft) ?? 10,
-                                    "cooldownDaysRejected": Int(cooldownDaysRejectedDraft) ?? 21,
-                                    "cooldownDaysProposed": Int(cooldownDaysProposedDraft) ?? 7,
-                                    "similarityStrictness": similarityStrictnessDraft.trimmingCharacters(in: .whitespacesAndNewlines),
-                                    "recurringPenalty": Double(recurringPenaltyDraft) ?? 0.18,
-                                    "freshnessFloor": Double(freshnessFloorDraft) ?? 0.20,
-                                    "duplicateMergeWindowDays": Int(duplicateMergeWindowDaysDraft) ?? 14
-                                ]
-                                let result = await store.saveHygieneControls(values: payload, resetToDefaults: false)
-                                switch result {
-                                case .success:
-                                    hydrateHygieneDrafts()
-                                    onFeedback(t("settings.membership_ops.hygiene.saved", "Hygiene controls saved."), .success)
-                                case .failure(let error):
-                                    onFeedback(error.localizedDescription, .error)
+                        SkydownBrandActionButton(
+                            title: t("common.save", "Save"),
+                            accent: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 9,
+                            expandToFullWidth: true,
+                            action: {
+                                Task {
+                                    let payload: [String: Any] = [
+                                        "cooldownDaysCompleted": Int(cooldownDaysCompletedDraft) ?? 10,
+                                        "cooldownDaysRejected": Int(cooldownDaysRejectedDraft) ?? 21,
+                                        "cooldownDaysProposed": Int(cooldownDaysProposedDraft) ?? 7,
+                                        "similarityStrictness": similarityStrictnessDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                                        "recurringPenalty": Double(recurringPenaltyDraft) ?? 0.18,
+                                        "freshnessFloor": Double(freshnessFloorDraft) ?? 0.20,
+                                        "duplicateMergeWindowDays": Int(duplicateMergeWindowDaysDraft) ?? 14
+                                    ]
+                                    let result = await store.saveHygieneControls(values: payload, resetToDefaults: false)
+                                    switch result {
+                                    case .success:
+                                        hydrateHygieneDrafts()
+                                        onFeedback(t("settings.membership_ops.hygiene.saved", "Hygiene controls saved."), .success)
+                                    case .failure(let error):
+                                        onFeedback(error.localizedDescription, .error)
+                                    }
                                 }
                             }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppColors.accent(for: colorScheme))
-
-                        Button(t("settings.membership_ops.hygiene.reset_defaults", "Reset defaults")) {
-                            Task {
-                                let result = await store.saveHygieneControls(values: [:], resetToDefaults: true)
-                                switch result {
-                                case .success:
-                                    hydrateHygieneDrafts()
-                                    onFeedback(t("settings.membership_ops.hygiene.defaults_restored", "Default hygiene restored."), .success)
-                                case .failure(let error):
-                                    onFeedback(error.localizedDescription, .error)
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        SkydownBrandActionButton(
+                            title: t("settings.membership_ops.hygiene.reset_defaults", "Reset defaults"),
+                            accent: AppColors.accentMystic(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 9,
+                            expandToFullWidth: false,
+                            action: {
+                                Task {
+                                    let result = await store.saveHygieneControls(values: [:], resetToDefaults: true)
+                                    switch result {
+                                    case .success:
+                                        hydrateHygieneDrafts()
+                                        onFeedback(t("settings.membership_ops.hygiene.defaults_restored", "Default hygiene restored."), .success)
+                                    case .failure(let error):
+                                        onFeedback(error.localizedDescription, .error)
+                                    }
                                 }
                             }
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                        )
                     }
                 }
             }
@@ -298,18 +343,25 @@ struct SettingsMembershipCommandCenterView: View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 ForEach(["7d", "30d", "90d", "all"], id: \.self) { range in
-                    Button(range) {
-                        timelineRange = range
-                        Task {
-                            let result = await store.loadTimeline(range: range)
-                            if case .failure(let error) = result {
-                                onFeedback(error.localizedDescription, .error)
+                    SkydownBrandActionButton(
+                        title: range,
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: timelineRange == range ? .primary : .muted,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 7,
+                        expandToFullWidth: false,
+                        action: {
+                            timelineRange = range
+                            Task {
+                                let result = await store.loadTimeline(range: range)
+                                if case .failure(let error) = result {
+                                    onFeedback(error.localizedDescription, .error)
+                                }
                             }
                         }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(timelineRange == range ? AppColors.accent(for: colorScheme) : AppColors.secondaryText(for: colorScheme))
+                    )
                 }
             }
 
@@ -341,14 +393,21 @@ struct SettingsMembershipCommandCenterView: View {
                                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             }
                             if let recommendationId = row["recommendationId"] as? String, !recommendationId.isEmpty {
-                                Button(t("settings.membership_ops.timeline.rerun", "Re-run similar experiment")) {
-                                    lifecycleIdDraft = "lifecycle_\(recommendationId)_\(Int(Date().timeIntervalSince1970 * 1000))"
-                                    learningsDraft = "Re-run based on timeline insight for \(recommendationId)."
-                                    selectedTab = .experiments
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                                .tint(AppColors.secondaryText(for: colorScheme))
+                                SkydownBrandActionButton(
+                                    title: t("settings.membership_ops.timeline.rerun", "Re-run similar experiment"),
+                                    accent: AppColors.accentMystic(for: colorScheme),
+                                    colorScheme: colorScheme,
+                                    role: .muted,
+                                    font: .caption.weight(.semibold),
+                                    cornerRadius: SkydownLayout.denseRadius,
+                                    verticalPadding: 8,
+                                    expandToFullWidth: false,
+                                    action: {
+                                        lifecycleIdDraft = "lifecycle_\(recommendationId)_\(Int(Date().timeIntervalSince1970 * 1000))"
+                                        learningsDraft = "Re-run based on timeline insight for \(recommendationId)."
+                                        selectedTab = .experiments
+                                    }
+                                )
                             }
                         }
                     }

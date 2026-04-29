@@ -2,7 +2,6 @@ package com.nash.skyos.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -10,11 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
@@ -109,19 +106,20 @@ fun YouTubePlayerDialog(
                     .padding(top = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             ) {
-                FilledTonalButton(
+                BrandActionButton(
+                    text = stringResource(R.string.youtube_watch),
                     onClick = { onOpenExternal(externalUrl) },
+                    accent = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.youtube_watch))
-                }
+                )
 
-                OutlinedButton(
+                BrandActionButton(
+                    text = stringResource(R.string.common_close),
                     onClick = onDismiss,
+                    accent = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.common_close))
-                }
+                    filled = false,
+                )
             }
         }
     }

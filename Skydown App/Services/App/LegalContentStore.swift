@@ -6,10 +6,12 @@ private let defaultLegalOperatorName = "Skydown (Betreiber), vertreten durch Yan
 private let defaultLegalRightsHolderName = "Skydown / Yang D. Nash"
 private let legacyLegalOperatorName = "Skydown"
 private let legacyLegalRightsHolderName = "Skydown"
-private let defaultLegalSupportEmail = "skydownent@gmail.com"
+private let defaultLegalSupportEmail = PlatformContactEmails.defaultSupportEmail
 private let defaultLegalLastUpdatedLabel = "25. April 2026"
-private let defaultLegalImprintReference = "Anbieterkennzeichnung: Skydown (Betreiber), vertreten durch Yang D. Nash, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
-private let legacyLegalImprintReference = "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: skydownent@gmail.com."
+private let defaultLegalImprintReference =
+    "Anbieterkennzeichnung: Skydown (Betreiber), vertreten durch Yang D. Nash, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: \(PlatformContactEmails.defaultSupportEmail)."
+private let legacyLegalImprintReference =
+    "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: \(PlatformContactEmails.defaultSupportEmail)."
 
 struct LegalContentSettings: Codable, Equatable {
     var brandName: String = defaultLegalBrandName

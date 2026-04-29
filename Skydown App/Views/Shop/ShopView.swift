@@ -21,8 +21,6 @@ struct ShopView: View {
     private let onGuestSignIn: (() -> Void)?
     @State private var selectedItem: MerchandiseItem?
     @State private var selectedCollabLaneID = MerchandiseCollabLane.allID
-    @State private var openedCollectionLane: MerchandiseCollabLane?
-    @State private var pendingCollectionItem: MerchandiseItem?
     @Environment(\.colorScheme) private var colorScheme
 
     init(
@@ -107,7 +105,7 @@ struct ShopView: View {
 
     private func shopLaneTitle(_ lane: MerchandiseCollabLane) -> String {
         if lane.id == MerchandiseCollabLane.allID {
-            return AppLocalized.text("shop.lane.all_drops_title", fallback: "All pieces")
+            return AppLocalized.text("shop.lane.all_drops_title", fallback: "Alle Artikel")
         }
         return lane.title
     }
@@ -125,7 +123,7 @@ struct ShopView: View {
                 Group {
                     if viewModel.isLoading {
                         ProgressView {
-                            Text(AppLocalized.text("shop.loading", fallback: "Opening the shop…"))
+                            Text(AppLocalized.text("shop.loading", fallback: "Shop wird geoeffnet…"))
                         }
                         .tint(AppColors.accent(for: colorScheme))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -149,14 +147,23 @@ struct ShopView: View {
                                     selectedLaneID: selectedCollabLaneID
                                 ) { lane in
                                     selectedCollabLaneID = lane.id
-                                    openedCollectionLane = lane
                                 }
 
                                 if !filteredMerchandiseItems.isEmpty {
+                                    ShopMerchOpeningBlock(
+                                        showFeatured: featuredDropItem != nil || !editorialPickItems.isEmpty,
+                                        colorScheme: colorScheme,
+                                        featuredItem: featuredDropItem,
+                                        editorialPicks: editorialPickItems,
+                                        onOpenItem: { selectedItem = $0 }
+                                    )
+                                    .padding(.bottom, 2)
+
                                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSnug) {
-                                        Text(AppLocalized.text("shop.section.pieces", fallback: "Pieces"))
+                                        Text(AppLocalized.text("shop.section.pieces", fallback: "Artikel"))
                                             .font(.caption.weight(.semibold))
                                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                                            .padding(.top, 2)
 
                                         LazyVStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSnug) {
                                             ForEach(Array(filteredMerchandiseItems.enumerated()), id: \.element.id) { index, item in
@@ -168,6 +175,7 @@ struct ShopView: View {
                                                 ) {
                                                     selectedItem = $0
                                                 }
+                                                .padding(.top, index == 2 ? 8 : 0)
                                             }
                                         }
                                     }
@@ -196,17 +204,17 @@ struct ShopView: View {
                                         )
                                         ShopInfoCard(
                                             colorScheme: colorScheme,
-                                            title: AppLocalized.text("auth.merch.login.banner_title", fallback: "Orders & account"),
+                                            title: AppLocalized.text("auth.merch.login.banner_title", fallback: "Bestellungen & Konto"),
                                             message: [errorMessage, benefit].joined(separator: "\n\n"),
-                                            actionTitle: AppLocalized.text("auth.merch.login.cta", fallback: "Continue with account"),
+                                            actionTitle: AppLocalized.text("auth.merch.login.cta", fallback: "Weiter mit Konto"),
                                             action: onOpenLogin
                                         )
                                     } else {
                                         ShopInfoCard(
                                             colorScheme: colorScheme,
-                                            title: AppLocalized.text("shop.error.title", fallback: "Store unavailable"),
+                                            title: AppLocalized.text("shop.error.title", fallback: "Store nicht verfuegbar"),
                                             message: errorMessage,
-                                            actionTitle: AppLocalized.text("shop.error.reload", fallback: "Try again"),
+                                            actionTitle: AppLocalized.text("shop.error.reload", fallback: "Erneut versuchen"),
                                             action: {
                                                 viewModel.fetchData()
                                             }
@@ -217,8 +225,8 @@ struct ShopView: View {
                                 if !viewModel.isStoreOpen && !isAdmin {
                                     ShopInfoCard(
                                         colorScheme: colorScheme,
-                                        title: AppLocalized.text("shop.paused.title", fallback: "Checkout is paused"),
-                                        message: AppLocalized.text("shop.paused.body", fallback: "You can still explore products.")
+                                        title: AppLocalized.text("shop.paused.title", fallback: "Checkout pausiert"),
+                                        message: AppLocalized.text("shop.paused.body", fallback: "Du kannst Produkte weiterhin ansehen.")
                                     )
                                 }
 
@@ -226,15 +234,15 @@ struct ShopView: View {
                                     ShopInfoCard(
                                         colorScheme: colorScheme,
                                         title: viewModel.isSyncingCatalog
-                                            ? AppLocalized.text("shop.empty.title.loading", fallback: "Opening the shelf")
-                                            : AppLocalized.text("shop.empty.title.idle", fallback: "The shelf is quiet"),
+                                            ? AppLocalized.text("shop.empty.title.loading", fallback: "Regal wird geladen")
+                                            : AppLocalized.text("shop.empty.title.idle", fallback: "Das Regal ist aktuell leer"),
                                         message: isAdmin
                                             ? (viewModel.isSyncingCatalog
-                                                ? AppLocalized.text("shop.empty.body.loading.admin", fallback: "Updating catalog.")
-                                                : AppLocalized.text("shop.empty.body.idle.guest", fallback: "When new pieces go live, they show up here."))
+                                                ? AppLocalized.text("shop.empty.body.loading.admin", fallback: "Katalog wird aktualisiert.")
+                                                : AppLocalized.text("shop.empty.body.idle.guest", fallback: "Sobald neue Artikel live sind, erscheinen sie hier."))
                                             : (viewModel.isSyncingCatalog
-                                                ? AppLocalized.text("shop.empty.body.loading.guest", fallback: "We are loading products.")
-                                                : AppLocalized.text("shop.empty.body.idle.guest", fallback: "When new pieces go live, they show up here."))
+                                                ? AppLocalized.text("shop.empty.body.loading.guest", fallback: "Produkte werden geladen.")
+                                                : AppLocalized.text("shop.empty.body.idle.guest", fallback: "Sobald neue Artikel live sind, erscheinen sie hier."))
                                     )
                                 }
                             }
@@ -268,7 +276,7 @@ struct ShopView: View {
                         VStack(spacing: SkydownLayout.stackSpacingSingle) {
                             Text("Shop")
                                 .font(.headline)
-                            Text(AppLocalized.text("shop.topbar.subtitle", fallback: "Curated drops & collections"))
+                            Text(AppLocalized.text("shop.topbar.subtitle", fallback: "Kuratiert: Drops & Kollektionen"))
                                 .font(.caption2)
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         }
@@ -304,25 +312,6 @@ struct ShopView: View {
                             .background(AppColors.primaryBackground(for: colorScheme))
                     }
                 }
-                .sheet(item: $openedCollectionLane) { lane in
-                    ShopCollectionLanePage(
-                        lane: lane,
-                        allItems: viewModel.merchandiseItems,
-                        colorScheme: colorScheme,
-                        onOpenItem: { item in
-                            pendingCollectionItem = item
-                            openedCollectionLane = nil
-                        },
-                        onDismiss: {
-                            openedCollectionLane = nil
-                        }
-                    )
-                }
-                .onChange(of: openedCollectionLane) { _, lane in
-                    guard lane == nil, let item = pendingCollectionItem else { return }
-                    pendingCollectionItem = nil
-                    selectedItem = item
-                }
             }
         }
         .fancyToast(
@@ -350,11 +339,11 @@ private struct ShopHeroCard: View {
 
     private var computedDetail: String {
         if isSyncingCatalog {
-            return AppLocalized.text("shop.hero.detail.updating", fallback: "Refreshing the catalog.")
+            return AppLocalized.text("shop.hero.detail.updating", fallback: "Katalog wird aktualisiert.")
         }
         return isStoreOpen
-            ? AppLocalized.text("shop.hero.detail.checkout_on", fallback: "You can finish purchases from the cart when you are ready.")
-            : AppLocalized.text("shop.hero.detail.checkout_off", fallback: "Browsing stays on — checkout is paused for now.")
+            ? AppLocalized.text("shop.hero.detail.checkout_on", fallback: "Du kannst den Kauf im Warenkorb abschliessen, wenn du bereit bist.")
+            : AppLocalized.text("shop.hero.detail.checkout_off", fallback: "Stoebern bleibt aktiv — Checkout ist vorerst pausiert.")
     }
 
     private var heroDetail: String? {
@@ -369,7 +358,7 @@ private struct ShopHeroCard: View {
             eyebrow: screenHeaderSettingsStore.settings.resolvedShopEyebrow ?? "SKY OS",
             title: screenHeaderSettingsStore.settings.resolvedShopTitle ?? "Merch",
             subtitle: screenHeaderSettingsStore.settings.resolvedShopSubtitle
-                ?? AppLocalized.text("shop.hero.subtitle.fallback", fallback: "Drops, collabs, and the live catalog."),
+                ?? AppLocalized.text("shop.hero.subtitle.fallback", fallback: "Drops, Collabs und der Live-Katalog."),
             detail: heroDetail,
             backgroundImageURL: screenHeaderSettingsStore.settings.resolvedShopImageURL,
             accent: AppColors.accentHighlight(for: colorScheme),
@@ -382,27 +371,27 @@ private struct ShopHeroCard: View {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ShopBadge(
                         text: (isSyncingCatalog || isUpdatingStoreState)
-                            ? AppLocalized.text("shop.hero.pill.updating", fallback: "Updating")
+                            ? AppLocalized.text("shop.hero.pill.updating", fallback: "Aktualisiert")
                             : (itemCount == 1
-                                ? AppLocalized.text("shop.hero.pill.product_one", fallback: "1 product")
+                                ? AppLocalized.text("shop.hero.pill.product_one", fallback: "1 Produkt")
                                 : String(
-                                    format: AppLocalized.text("shop.hero.pill.product_other", fallback: "%d products"),
+                                    format: AppLocalized.text("shop.hero.pill.product_other", fallback: "%d Produkte"),
                                     itemCount
                                 )),
                         colorScheme: colorScheme
                     )
                     ShopBadge(
                         text: isStoreOpen
-                            ? AppLocalized.text("shop.hero.pill.checkout_on", fallback: "Checkout on")
-                            : AppLocalized.text("shop.hero.pill.checkout_off", fallback: "Checkout paused"),
+                            ? AppLocalized.text("shop.hero.pill.checkout_on", fallback: "Checkout an")
+                            : AppLocalized.text("shop.hero.pill.checkout_off", fallback: "Checkout pausiert"),
                         colorScheme: colorScheme
                     )
                     if laneCount > 0 {
                         ShopBadge(
                             text: laneCount == 1
-                                ? AppLocalized.text("shop.hero.pill.collection_one", fallback: "1 collection")
+                                ? AppLocalized.text("shop.hero.pill.collection_one", fallback: "1 Kollektion")
                                 : String(
-                                    format: AppLocalized.text("shop.hero.pill.collection_other", fallback: "%d collections"),
+                                    format: AppLocalized.text("shop.hero.pill.collection_other", fallback: "%d Kollektionen"),
                                     laneCount
                                 ),
                             colorScheme: colorScheme
@@ -410,8 +399,8 @@ private struct ShopHeroCard: View {
                     }
                     ShopBadge(
                         text: isLoggedIn
-                            ? AppLocalized.text("shop.hero.pill.account", fallback: "Signed in")
-                            : AppLocalized.text("shop.hero.pill.guest", fallback: "Browsing as guest"),
+                            ? AppLocalized.text("shop.hero.pill.account", fallback: "Angemeldet")
+                            : AppLocalized.text("shop.hero.pill.guest", fallback: "Als Gast"),
                         colorScheme: colorScheme
                     )
                 }
@@ -467,8 +456,8 @@ private struct ShopWelcomeQuickEntryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             HomeActionButton(
-                title: "Willkommen im Store · Alle Drops",
-                subtitle: "Kompletter Katalog",
+                title: AppLocalized.text("shop.welcome.all_drops_title", fallback: "Welcome to the store · All drops"),
+                subtitle: AppLocalized.text("shop.welcome.all_drops_subtitle", fallback: "Complete catalog"),
                 icon: "bag.fill",
                 colorScheme: colorScheme,
                 brand: .neutral,
@@ -481,7 +470,9 @@ private struct ShopWelcomeQuickEntryCard: View {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                 ForEach(quickLanes, id: \.id) { lane in
                     HomeActionButton(
-                        title: lane.id == selectedLaneID ? "Aktiv · \(lane.title)" : lane.title,
+                        title: lane.id == selectedLaneID
+                            ? String(format: AppLocalized.text("shop.welcome.active_lane", fallback: "Active · %@"), lane.title)
+                            : lane.title,
                         subtitle: lane.subtitle,
                         icon: "bag.fill",
                         colorScheme: colorScheme,
@@ -514,7 +505,7 @@ private struct ShopCollectionLanePage: View {
 
     private var laneTitle: String {
         if lane.id == MerchandiseCollabLane.allID {
-            return AppLocalized.text("shop.lane.all_drops_title", fallback: "All pieces")
+            return AppLocalized.text("shop.lane.all_drops_title", fallback: "Alle Artikel")
         }
         return lane.title
     }
@@ -531,8 +522,8 @@ private struct ShopCollectionLanePage: View {
                     if laneItems.isEmpty {
                         ShopInfoCard(
                             colorScheme: colorScheme,
-                            title: AppLocalized.text("shop.filter.empty.title", fallback: "Nothing in this view"),
-                            message: AppLocalized.text("shop.filter.empty.body", fallback: "There is no visible product in this collection right now.")
+                            title: AppLocalized.text("shop.filter.empty.title", fallback: "Nichts in dieser Ansicht"),
+                            message: AppLocalized.text("shop.filter.empty.body", fallback: "Aktuell ist in dieser Kollektion kein sichtbares Produkt vorhanden.")
                         )
                     } else {
                         LazyVStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSnug) {
@@ -564,7 +555,18 @@ private struct ShopCollectionLanePage: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Zurueck", action: onDismiss)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.back", fallback: "Zurueck"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: onDismiss
+                    )
+                    .skydownInteractiveFeedback()
                 }
             }
         }
@@ -620,10 +622,10 @@ private struct ShopAdminControlsPanel: View {
                     .font(.caption.weight(.semibold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
-                    Text(AppLocalized.text("shop.admin.title", fallback: "Store control"))
+                    Text(AppLocalized.text("shop.admin.title", fallback: "Store-Steuerung"))
                         .font(AppTypography.sectionHeadline)
                         .foregroundColor(AppColors.text(for: colorScheme))
-                    Text(AppLocalized.text("shop.admin.subtitle", fallback: "Store status and refresh."))
+                    Text(AppLocalized.text("shop.admin.subtitle", fallback: "Store-Status und Aktualisierung."))
                         .font(AppTypography.bodyCaption)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -642,13 +644,13 @@ private struct ShopAdminControlsPanel: View {
             HStack(spacing: SkydownLayout.stackSpacingPill) {
                 HomeActionButton(
                     title: isUpdatingStoreState
-                        ? AppLocalized.text("shop.admin.store.updating", fallback: "Updating store…")
+                        ? AppLocalized.text("shop.admin.store.updating", fallback: "Store wird aktualisiert…")
                         : (isStoreOpen
-                            ? AppLocalized.text("shop.admin.store.close", fallback: "Close store")
-                            : AppLocalized.text("shop.admin.store.open", fallback: "Open store")),
+                            ? AppLocalized.text("shop.admin.store.close", fallback: "Store schliessen")
+                            : AppLocalized.text("shop.admin.store.open", fallback: "Store oeffnen")),
                     subtitle: isStoreOpen
-                        ? AppLocalized.text("shop.admin.store.close.hint", fallback: "Pause orders.")
-                        : AppLocalized.text("shop.admin.store.open.hint", fallback: "Enable orders."),
+                        ? AppLocalized.text("shop.admin.store.close.hint", fallback: "Bestellungen pausieren.")
+                        : AppLocalized.text("shop.admin.store.open.hint", fallback: "Bestellungen aktivieren."),
                     icon: isStoreOpen ? "pause.fill" : "play.fill",
                     colorScheme: colorScheme,
                     brand: .neutral,
@@ -658,9 +660,9 @@ private struct ShopAdminControlsPanel: View {
 
                 HomeActionButton(
                     title: isSyncingCatalog
-                        ? AppLocalized.text("shop.admin.syncing", fallback: "Syncing…")
-                        : AppLocalized.text("shop.admin.sync", fallback: "Sync"),
-                    subtitle: AppLocalized.text("shop.admin.sync.hint", fallback: "Sync catalog from Shopify."),
+                        ? AppLocalized.text("shop.admin.syncing", fallback: "Synchronisiert…")
+                        : AppLocalized.text("shop.admin.sync", fallback: "Synchronisieren"),
+                    subtitle: AppLocalized.text("shop.admin.sync.hint", fallback: "Katalog mit Shopify synchronisieren."),
                     icon: "arrow.triangle.2.circlepath",
                     colorScheme: colorScheme,
                     brand: .neutral,
@@ -749,7 +751,7 @@ private struct ShopInfoCard: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
                 Spacer(minLength: 0)
-                Text("Info")
+                Text(AppLocalized.text("shop.info.badge", fallback: "Info"))
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.accent(for: colorScheme))
                     .padding(.horizontal, 7)

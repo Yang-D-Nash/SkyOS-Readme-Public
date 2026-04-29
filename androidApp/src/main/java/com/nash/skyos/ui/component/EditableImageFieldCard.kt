@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -12,9 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,12 +62,12 @@ fun EditableImageFieldCard(
                 AsyncImage(
                     model = imageUrl,
                     contentDescription = title,
-                    modifier = Modifier.matchParentSize(),
+                    modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
                 Box(
                     modifier = Modifier
-                        .matchParentSize()
+                        .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
@@ -130,7 +129,7 @@ fun EditableImageFieldCard(
             if (isUploading) {
                 Box(
                     modifier = Modifier
-                        .matchParentSize()
+                        .fillMaxSize()
                         .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.62f)),
                 )
                 Column(
@@ -151,16 +150,19 @@ fun EditableImageFieldCard(
             }
         }
 
-        OutlinedButton(
+        BrandActionButton(
+            text = resolvedButtonLabel,
             onClick = onPickImage,
+            accent = MaterialTheme.colorScheme.primary,
             modifier = Modifier.fillMaxWidth(),
+            icon = Icons.Default.Photo,
             enabled = enabled && !isUploading,
-        ) {
-            Text(resolvedButtonLabel)
-        }
+            isLoading = isUploading,
+        )
 
         if (imageUrl.isNotBlank()) {
-            TextButton(
+            BrandActionButton(
+                text = stringResource(R.string.editable_image_remove),
                 onClick = {
                     if (onRemoveImage != null) {
                         onRemoveImage()
@@ -168,11 +170,11 @@ fun EditableImageFieldCard(
                         onImageUrlChange("")
                     }
                 },
+                accent = MaterialTheme.colorScheme.error,
                 modifier = Modifier.fillMaxWidth(),
+                filled = false,
                 enabled = enabled && !isUploading,
-            ) {
-                Text(stringResource(R.string.editable_image_remove))
-            }
+            )
         }
     }
 }

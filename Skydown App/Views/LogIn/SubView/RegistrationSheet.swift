@@ -69,15 +69,33 @@ struct RegistrationSheet: View {
                     .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
                     HStack(spacing: SkydownLayout.stackSpacingCompact) {
-                        Button(localized("auth.register.legal.open_terms", "Open AGB")) {
-                            activeLegalDocument = .terms
-                        }
-                        .buttonStyle(.bordered)
+                        SkydownBrandActionButton(
+                            title: localized("auth.register.legal.open_terms", "Open AGB"),
+                            accent: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 10,
+                            expandToFullWidth: true,
+                            action: { activeLegalDocument = .terms }
+                        )
+                        .skydownInteractiveFeedback()
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                        Button(localized("auth.register.legal.open_privacy", "Open Privacy")) {
-                            activeLegalDocument = .privacy
-                        }
-                        .buttonStyle(.bordered)
+                        SkydownBrandActionButton(
+                            title: localized("auth.register.legal.open_privacy", "Open Privacy"),
+                            accent: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 10,
+                            expandToFullWidth: true,
+                            action: { activeLegalDocument = .privacy }
+                        )
+                        .skydownInteractiveFeedback()
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .listRowBackground(AppColors.primaryBackground(for: colorScheme))
                 }
@@ -88,38 +106,40 @@ struct RegistrationSheet: View {
                         .listRowBackground(Color.clear)
                 }
 
-                Button {
-                    Task {
-                        if await viewModel.registerUser() {
-                            dismiss()
-                        }
-                    }
-                } label: {
-                    if viewModel.isLoading {
-                        ProgressView()
-                    } else {
-                        Text(localized("auth.register", "Register"))
-                    }
-                }
-                .disabled(viewModel.isRegistrationButtonDisabled)
-                .listRowBackground(AppColors.primaryBackground(for: colorScheme))
-
-                Section {
-                    Button {
+                SkydownBrandActionButton(
+                    title: localized("auth.register", "Register"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isEnabled: !viewModel.isRegistrationButtonDisabled,
+                    isLoading: viewModel.isLoading,
+                    action: {
                         Task {
-                            if await viewModel.signInWithGoogle() {
+                            if await viewModel.registerUser() {
                                 dismiss()
                             }
                         }
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Label(localized("auth.register_google", "Register with Google"), systemImage: "globe")
-                                .font(.headline)
-                            Spacer()
-                        }
                     }
-                    .disabled(viewModel.isLoading)
+                )
+                .skydownInteractiveFeedback()
+                .listRowBackground(AppColors.primaryBackground(for: colorScheme))
+
+                Section {
+                    SkydownBrandActionButton(
+                        title: localized("auth.register_google", "Register with Google"),
+                        systemImage: "globe",
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        isEnabled: !viewModel.isLoading,
+                        action: {
+                            Task {
+                                if await viewModel.signInWithGoogle() {
+                                    dismiss()
+                                }
+                            }
+                        }
+                    )
+                    .skydownInteractiveFeedback()
                     .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
                     Text(localized("auth.register.google_hint", "Google: account on first sign-in."))
@@ -138,7 +158,18 @@ struct RegistrationSheet: View {
             .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(localized("common.cancel", "Cancel")) { dismiss() }
+                    SkydownBrandActionButton(
+                        title: localized("common.cancel", "Cancel"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
                 }
             }
             .skydownKeyboardDismissToolbar()

@@ -20,35 +20,17 @@ struct SubmitSectionView: View {
 
     var body: some View {
         Section {
-            Button {
-                showConfirmationDialog = true
-            } label: {
-                Text(isSubmitting ? "Sende Bestellung..." : "Bestellung abschicken")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(
-                        submitEnabled
-                            ? AppColors.accent(for: colorScheme)
-                            : AppColors.secondaryBackground(for: colorScheme)
-                    )
-                    .foregroundColor(
-                        submitEnabled
-                            ? .white
-                            : AppColors.secondaryText(for: colorScheme)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
-                            .stroke(
-                                submitEnabled
-                                    ? Color.clear
-                                    : AppColors.accent(for: colorScheme).opacity(0.12),
-                                lineWidth: 1
-                            )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
-            }
-            .disabled(!isFormValid || isSubmitting)
+            SkydownBrandActionButton(
+                title: isSubmitting ? "Sende Bestellung..." : "Bestellung abschicken",
+                accent: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                isEnabled: submitEnabled,
+                isLoading: isSubmitting,
+                font: .headline,
+                cornerRadius: SkydownLayout.messageBubbleRadius,
+                verticalPadding: 14,
+                action: { showConfirmationDialog = true }
+            )
             .confirmationDialog(
                 "Bestätigung senden",
                 isPresented: $showConfirmationDialog,

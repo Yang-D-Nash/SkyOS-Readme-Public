@@ -80,56 +80,36 @@ struct AIConversationSessionStrip: View {
             .disabled(isBusy)
 
             if showsManagementActions {
-                AIConversationToolbarButton(
-                    systemName: "arrow.clockwise",
-                    title: AppLocalized.text("ai.sessions.a11y.refresh", fallback: "Refresh chat"),
+                SkydownBrandActionButton(
+                    title: "",
+                    systemImage: "arrow.clockwise",
                     accent: accent,
                     colorScheme: colorScheme,
+                    role: .muted,
+                    isEnabled: !isBusy,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 8,
+                    expandToFullWidth: false,
                     action: onRefreshChat
                 )
-                .disabled(isBusy)
+                .skydownInteractiveFeedback()
+                .accessibilityLabel(AppLocalized.text("ai.sessions.a11y.refresh", fallback: "Refresh chat"))
             }
 
             if showsManagementActions {
-                AIConversationToolbarButton(
-                    systemName: "trash",
-                    title: AppLocalized.text("ai.sessions.a11y.delete", fallback: "Delete chat"),
-                    accent: .red,
-                    isDestructive: true,
-                    colorScheme: colorScheme,
-                    action: onDeleteChat
-                )
+                Button(role: .destructive, action: onDeleteChat) {
+                    Image(systemName: "trash")
+                        .font(.subheadline.weight(.bold))
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
                 .disabled(isBusy || !canDelete)
                 .opacity(canDelete ? 1 : 0.46)
+                .skydownTactileAction()
+                .accessibilityLabel(AppLocalized.text("ai.sessions.a11y.delete", fallback: "Delete chat"))
             }
         }
-    }
-}
-
-private struct AIConversationToolbarButton: View {
-    let systemName: String
-    let title: String
-    let accent: Color
-    var isDestructive: Bool = false
-    let colorScheme: ColorScheme
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.subheadline.weight(.black))
-                .foregroundColor(isDestructive ? .red : AppColors.text(for: colorScheme))
-                .frame(width: 46, height: 46)
-                .background(.ultraThinMaterial)
-                .overlay(
-                    Circle()
-                        .stroke(accent.opacity(0.14), lineWidth: 1)
-                )
-                .clipShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .skydownTactileAction()
-        .accessibilityLabel(title)
     }
 }
 
@@ -144,6 +124,8 @@ struct AIConversationSessionsSheet: View {
     let onSelectSession: (UUID) -> Void
     let onRenameActiveSession: () -> Void
     let onDeleteActiveSession: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
 
     private var activeSession: AIScriptHistorySessionSummary? {
         sessions.first { $0.id == activeSessionID }
@@ -176,11 +158,19 @@ struct AIConversationSessionsSheet: View {
 
                                 Spacer(minLength: 0)
 
-                                Button(action: onRenameActiveSession) {
-                                    Text(AppLocalized.text("ai.sessions.rename", fallback: "Rename"))
-                                        .font(.caption.weight(.bold))
-                                }
-                                .disabled(isBusy || renameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                SkydownBrandActionButton(
+                                    title: AppLocalized.text("ai.sessions.rename", fallback: "Rename"),
+                                    accent: accent,
+                                    colorScheme: colorScheme,
+                                    role: .muted,
+                                    isEnabled: !isBusy && !renameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                                    font: .caption.weight(.semibold),
+                                    cornerRadius: SkydownLayout.denseRadius,
+                                    verticalPadding: 8,
+                                    expandToFullWidth: false,
+                                    action: onRenameActiveSession
+                                )
+                                .skydownInteractiveFeedback()
                             }
                         }
                     }
@@ -217,6 +207,23 @@ struct AIConversationSessionsSheet: View {
             .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.done", fallback: "Done"),
+                        accent: accent,
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
+                }
+            }
         }
     }
 }

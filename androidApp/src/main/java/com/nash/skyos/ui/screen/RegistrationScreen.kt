@@ -14,13 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +40,7 @@ import com.nash.skyos.data.AppContainer
 import com.nash.skyos.data.MembershipAnalyticsTracker
 import com.nash.skyos.data.LegalContentSettings
 import com.nash.skyos.data.GoogleSignInManager
+import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.GoogleAuthButton
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -151,16 +150,14 @@ fun RegistrationScreen(
                     style = SkydownPanelTitleTextStyle,
                     color = colorScheme.skydownText(),
                 )
-                TextButton(
+                BrandActionButton(
+                    text = stringResource(R.string.auth_close),
                     onClick = onClose,
+                    accent = colorScheme.primary,
+                    filled = false,
+                    compact = true,
                     enabled = !isAuthBusy,
-                ) {
-                    Text(
-                        stringResource(R.string.auth_close),
-                        style = SkydownBodyCaptionTextStyle,
-                        color = colorScheme.skydownSecondaryText().copy(alpha = 0.88f),
-                    )
-                }
+                )
             }
 
             SkydownCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(SkydownUiTokens.panelPadding)) {
@@ -265,34 +262,38 @@ fun RegistrationScreen(
                     modifier = Modifier.padding(top = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
-                    TextButton(
+                    BrandActionButton(
+                        text = stringResource(R.string.auth_register_open_terms),
                         onClick = { activeLegalDocument.value = SettingsLegalDocumentType.TermsAndConditions },
+                        accent = colorScheme.tertiary,
+                        filled = false,
+                        compact = true,
                         enabled = !isAuthBusy,
-                    ) {
-                        Text(stringResource(R.string.auth_register_open_terms))
-                    }
-                    TextButton(
+                    )
+                    BrandActionButton(
+                        text = stringResource(R.string.auth_register_open_privacy),
                         onClick = { activeLegalDocument.value = SettingsLegalDocumentType.PrivacyPolicy },
+                        accent = colorScheme.tertiary,
+                        filled = false,
+                        compact = true,
                         enabled = !isAuthBusy,
-                    ) {
-                        Text(stringResource(R.string.auth_register_open_privacy))
-                    }
+                    )
                 }
-                Button(
+                BrandActionButton(
+                    text = if (uiState.isLoading) stringResource(R.string.auth_register_loading) else stringResource(R.string.auth_register),
                     onClick = {
                         viewModel.register {
                             growthTracker.track("signup_complete", surface = "registration_sheet")
                             onClose()
                         }
                     },
+                    accent = colorScheme.primary,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     enabled = !isAuthBusy && uiState.acceptedTerms && uiState.acceptedPrivacyPolicy,
-                    shape = MaterialTheme.shapes.large,
-                ) {
-                    Text(if (uiState.isLoading) stringResource(R.string.auth_register_loading) else stringResource(R.string.auth_register))
-                }
+                    isLoading = uiState.isLoading,
+                )
                 GoogleAuthButton(
                     text = if (uiState.isGoogleLoading) {
                         stringResource(R.string.auth_google_loading)

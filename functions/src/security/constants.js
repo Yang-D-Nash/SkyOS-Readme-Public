@@ -10,6 +10,13 @@ const OWNER_EMAIL = (() => {
   return trimmed || "nash.lioncorna@gmail.com";
 })();
 
+/** Keep default in sync with `PlatformContactEmails.DEFAULT_SUPPORT_EMAIL` in shared KMP. */
+const DEFAULT_SUPPORT_EMAIL = (() => {
+  const raw = process.env.SKYOS_SUPPORT_EMAIL || process.env.SKYDOWN_SUPPORT_EMAIL || "";
+  const trimmed = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  return trimmed || "skydownent@gmail.com";
+})();
+
 const USER_ROLES = Object.freeze({
   owner: "owner",
   admin: "admin",
@@ -73,6 +80,7 @@ module.exports = {
   APP_CHECK_MODES,
   BILLING_LOCKDOWN_REASON_PREFIX,
   DEFAULT_RUNTIME_CONFIG,
+  DEFAULT_SUPPORT_EMAIL,
   OWNER_EMAIL,
   RUNTIME_CONFIG_PATH,
   SECURITY_LIMITS,

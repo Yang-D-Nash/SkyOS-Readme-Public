@@ -272,6 +272,7 @@
     <string name="home_manager_empty">All clear.</string>
     <string name="home_manager_rename_placeholder">New title</string>
     <string name="common_refresh">Refresh</string>
+    <string name="common_retry">Spróbuj ponownie</string>
     <string name="common_search">Search</string>
     <string name="settings_ai_runtime_save">Save AI runtime</string>
     <string name="settings_membership_ops_subtitle">Membership control for owner/admin. KPIs, experiments, and learnings in one place.</string>
@@ -437,6 +438,7 @@
     <string name="home_productivity_open_tasks">Open Tasks</string>
     <string name="home_productivity_recent_notes">Recent Notes</string>
     <string name="home_productivity_ask_anything">Ask SkyOS anything</string>
+    <string name="home_productivity_empty_prompt">Brak aktywnych elementow. Zacznij od szybkiego przypomnienia, zadania lub notatki.</string>
     <string name="home_productivity_empty_today">No reminders due today</string>
     <string name="home_productivity_empty_upcoming">No upcoming reminders</string>
     <string name="home_productivity_empty_tasks">No open tasks</string>
@@ -451,10 +453,26 @@
     <string name="home_quick_hint">In Agent, this opens the composer with a guided workflow prompt.</string>
     <string name="home_owner_workflows_title">Owner shortcuts</string>
     <string name="home_owner_workflows_subtitle">Opens AI → Agent with a seeded prompt. Tap compose to send, read the reply, then save in Tasks or Notes from the AI productivity dock—or add reminders from Home.</string>
+    <string name="home_owner_workflows_private_analysis">Private</string>
+    <string name="home_owner_workflows_group_update">Team</string>
+    <string name="home_owner_workflows_progress">Creating founder briefing...</string>
+    <string name="home_owner_workflows_creating">Creating...</string>
     <string name="home_owner_workflows_plan">Plan</string>
     <string name="home_owner_workflows_followup">Follow-up</string>
     <string name="home_owner_workflows_summarize">Summarize</string>
+    <string name="home_owner_briefing_error_login">Please sign in first.</string>
+    <string name="home_owner_briefing_error_unavailable">Briefing is temporarily unavailable.</string>
+    <string name="home_owner_briefing_error_empty">Briefing returned no content.</string>
+    <string name="home_owner_briefing_empty_body">The run completed, but no text was returned. Please try again.</string>
+    <string name="home_owner_briefing_success">Briefing created.</string>
+    <string name="home_owner_briefing_title_private">Founder Analysis</string>
+    <string name="home_owner_briefing_title_group">Team Update</string>
+    <string name="home_owner_briefing_caption_private">Private founder analysis</string>
+    <string name="home_owner_briefing_caption_group">Team update for sharing</string>
+    <string name="home_owner_briefing_action_whatsapp">WhatsApp</string>
+    <string name="home_owner_briefing_copy_label">Founder Briefing</string>
     <string name="home_productivity_quick_hint">Tap a shortcut to open a calm capture sheet on Home — no tab switch.</string>
+    <string name="home_recovery_sync_paused">Synchronizacja jest obecnie wstrzymana.</string>
     <string name="home_sheet_reminder_hint">Pick a clear title, then set date and time. SkyOS uses the exact timestamp for push scheduling.</string>
     <string name="home_sheet_reminder_title_hint">Reminder title</string>
     <string name="home_sheet_reminder_when">When</string>
@@ -464,74 +482,74 @@
     <string name="home_sheet_note_hint">Use a short title and keep the first line specific.</string>
     <string name="home_sheet_add">Add</string>
 
-    <string name="order_topbar_title">Orders</string>
-    <string name="order_topbar_subtitle">Status, counts, and backlog at a glance.</string>
-    <string name="order_action_close">Close</string>
-    <string name="order_syncing_title">Syncing</string>
-    <string name="order_syncing_line1">Updating orders…</string>
-    <string name="order_syncing_line2">The overview is refreshing safely.</string>
-    <string name="order_unavailable_title">Orders unavailable</string>
-    <string name="order_error_generic">We couldn’t load orders.</string>
-    <string name="order_error_retry">Please try again in a moment.</string>
-    <string name="order_action_reload">Reload</string>
-    <string name="order_empty_title">No orders yet</string>
-    <string name="order_empty_subtitle">New orders appear here automatically with the current status.</string>
-    <string name="order_overview_title">Order overview</string>
-    <string name="order_overview_subtitle">Status and backlog in one place so you can check faster.</string>
-    <string name="order_pill_done">%1$d done</string>
-    <string name="order_pill_open">%1$d open</string>
-    <string name="order_status_done">Done</string>
-    <string name="order_status_open">Open</string>
-    <string name="order_pieces">%1$d items</string>
-    <string name="order_label_contact">Contact</string>
+    <string name="order_topbar_title">Zamówienia</string>
+    <string name="order_topbar_subtitle">Status, liczby i zaległości w jednym miejscu.</string>
+    <string name="order_action_close">Zamknij</string>
+    <string name="order_syncing_title">Synchronizacja</string>
+    <string name="order_syncing_line1">Aktualizowanie zamówień…</string>
+    <string name="order_syncing_line2">Przegląd jest bezpiecznie odświeżany.</string>
+    <string name="order_unavailable_title">Zamówienia niedostępne</string>
+    <string name="order_error_generic">Nie udało się wczytać zamówień.</string>
+    <string name="order_error_retry">Spróbuj ponownie za chwilę.</string>
+    <string name="order_action_reload">Spróbuj ponownie</string>
+    <string name="order_empty_title">Brak zamówień</string>
+    <string name="order_empty_subtitle">Nowe zamówienia pojawią się tutaj automatycznie z aktualnym statusem.</string>
+    <string name="order_overview_title">Podsumowanie zamówień</string>
+    <string name="order_overview_subtitle">Status i zaległości w jednym miejscu, żeby szybciej sprawdzić.</string>
+    <string name="order_pill_done">%1$d zakończonych</string>
+    <string name="order_pill_open">%1$d otwartych</string>
+    <string name="order_status_done">Zakończone</string>
+    <string name="order_status_open">Otwarte</string>
+    <string name="order_pieces">%1$d szt.</string>
+    <string name="order_label_contact">Kontakt</string>
     <string name="order_label_whatsapp">WhatsApp</string>
-    <string name="order_label_address">Address</string>
-    <string name="order_label_payment_method">Payment method</string>
-    <string name="order_label_payment_provider">Provider</string>
-    <string name="order_label_payment_status">Payment status</string>
-    <string name="order_label_payment_reference">Payment ref.</string>
-    <string name="order_label_shipping_zone">Shipping zone</string>
-    <string name="order_label_fulfillment">Carrier</string>
-    <string name="order_label_fulfillment_status">Shipping status</string>
-    <string name="order_label_shopify_order">Store order</string>
-    <string name="order_label_shopify_id">Store reference</string>
-    <string name="order_label_shopify_sync">Store sync</string>
-    <string name="order_label_stripe_checkout">Checkout status</string>
-    <string name="order_label_checkout_ref">Checkout ref.</string>
+    <string name="order_label_address">Adres</string>
+    <string name="order_label_payment_method">Metoda płatności</string>
+    <string name="order_label_payment_provider">Dostawca płatności</string>
+    <string name="order_label_payment_status">Status płatności</string>
+    <string name="order_label_payment_reference">Referencja płatności</string>
+    <string name="order_label_shipping_zone">Strefa wysyłki</string>
+    <string name="order_label_fulfillment">Przewoźnik</string>
+    <string name="order_label_fulfillment_status">Status wysyłki</string>
+    <string name="order_label_shopify_order">Zamówienie sklepu</string>
+    <string name="order_label_shopify_id">Referencja sklepu</string>
+    <string name="order_label_shopify_sync">Synchronizacja sklepu</string>
+    <string name="order_label_stripe_checkout">Status checkoutu</string>
+    <string name="order_label_checkout_ref">Referencja checkoutu</string>
     <string name="order_label_stripe_pi">Payment intent</string>
-    <string name="order_label_account_email">Account email</string>
-    <string name="order_message">Message</string>
-    <string name="order_sum_title">Order total</string>
-    <string name="order_subtotal">Subtotal</string>
-    <string name="order_shipping">Shipping</string>
-    <string name="order_tax_included">incl. VAT</string>
-    <string name="order_line_tax">EUR %1$s at %2$s%%</string>
-    <string name="order_total">Total</string>
-    <string name="order_size">Size %1$s</string>
-    <string name="order_color">Color %1$s</string>
+    <string name="order_label_account_email">E-mail konta</string>
+    <string name="order_message">Wiadomość</string>
+    <string name="order_sum_title">Suma zamówienia</string>
+    <string name="order_subtotal">Suma częściowa</string>
+    <string name="order_shipping">Wysyłka</string>
+    <string name="order_tax_included">Z VAT</string>
+    <string name="order_line_tax">EUR %1$s przy %2$s%%</string>
+    <string name="order_total">Razem</string>
+    <string name="order_size">Rozmiar %1$s</string>
+    <string name="order_color">Kolor %1$s</string>
     <string name="order_item_qty">×%1$d</string>
     <string name="order_price_eur">EUR %1$s</string>
-    <string name="order_action_confirming">Confirming…</string>
-    <string name="order_action_mark_paid">Mark payment as received</string>
-    <string name="order_action_reopen">Reopen order</string>
-    <string name="order_action_complete">Mark as completed</string>
-    <string name="order_action_remove">Remove</string>
-    <string name="order_state_pending">Under review</string>
-    <string name="order_state_open">Open</string>
-    <string name="order_state_confirmed">Confirmed</string>
-    <string name="order_state_paid">Paid</string>
-    <string name="order_state_processing">Processing</string>
-    <string name="order_state_fulfilled">Shipped</string>
-    <string name="order_state_unfulfilled">Not shipped</string>
-    <string name="order_state_succeeded">Completed</string>
-    <string name="order_state_failed">Unsuccessful</string>
-    <string name="order_state_expired">Expired</string>
-    <string name="order_state_canceled">Canceled</string>
+    <string name="order_action_confirming">Potwierdzanie…</string>
+    <string name="order_action_mark_paid">Oznacz płatność jako otrzymaną</string>
+    <string name="order_action_reopen">Otwórz zamówienie ponownie</string>
+    <string name="order_action_complete">Oznacz jako zakończone</string>
+    <string name="order_action_remove">Usuń</string>
+    <string name="order_state_pending">Oczekuje</string>
+    <string name="order_state_open">Otwarte</string>
+    <string name="order_state_confirmed">Potwierdzone</string>
+    <string name="order_state_paid">Opłacone</string>
+    <string name="order_state_processing">W realizacji</string>
+    <string name="order_state_fulfilled">Wysłane</string>
+    <string name="order_state_unfulfilled">Niewysłane</string>
+    <string name="order_state_succeeded">Zakończone</string>
+    <string name="order_state_failed">Nieudane</string>
+    <string name="order_state_expired">Wygasłe</string>
+    <string name="order_state_canceled">Anulowane</string>
     <plurals name="order_pill_order_count">
-        <item quantity="one">%d order</item>
-        <item quantity="few">%d orders</item>
-        <item quantity="many">%d orders</item>
-        <item quantity="other">%d orders</item>
+        <item quantity="one">%d zamówienie</item>
+        <item quantity="few">%d zamówienia</item>
+        <item quantity="many">%d zamówień</item>
+        <item quantity="other">%d zamówień</item>
     </plurals>
 
     <string name="common_close">Close</string>
@@ -1230,146 +1248,146 @@
     <string name="launch_press_back_again_to_exit">Press back again to exit</string>
     <string name="common_back">Back</string>
     <string name="common_remove">Remove</string>
-    <string name="cart_title">Cart</string>
-    <string name="cart_subtitle">Review calmly, checkout securely.</string>
-    <string name="cart_checkout_paused_title">Checkout paused</string>
-    <string name="cart_checkout_paused_body">The merchandise store is currently paused. Your selection stays visible, but new orders unlock again once the store opens.</string>
-    <string name="cart_checkout_paused_hint">Try again later or contact support in settings.</string>
-    <string name="cart_selection_title">Your selection</string>
-    <string name="cart_selection_empty">No items in your cart yet. As soon as you add something, your selection appears here.</string>
-    <string name="cart_selection_review">Check quantities, sizes, and prices before submitting the order.</string>
-    <string name="cart_contact_title">Contact details</string>
-    <string name="cart_contact_subtitle">So we can reach you quickly about your order.</string>
-    <string name="cart_field_name_required">Name*</string>
-    <string name="cart_field_email_required">Email*</string>
-    <string name="cart_field_whatsapp_optional">WhatsApp (optional)</string>
-    <string name="cart_shipping_title">Shipping address</string>
-    <string name="cart_shipping_subtitle">The shipping address is required for feedback, delivery, and order handling.</string>
-    <string name="cart_field_street_required">Street and number*</string>
-    <string name="cart_field_address_extra_optional">Address extra (optional)</string>
-    <string name="cart_field_postal_required">Postal code*</string>
-    <string name="cart_field_city_required">City*</string>
-    <string name="cart_field_country">Country</string>
-    <string name="cart_message_title">Message</string>
-    <string name="cart_message_subtitle">Optional: delivery notes, availability, or special requests help the team assign your order quickly.</string>
-    <string name="cart_field_message">Message</string>
-    <string name="cart_items_count">%1$d items</string>
-    <string name="cart_account_active">Account active</string>
-    <string name="cart_guest">Guest</string>
-    <string name="cart_payment_methods_title">Payment methods</string>
-    <string name="cart_payment_methods_paused">The merchandise store is currently paused. Payment methods and checkout become active again once the store opens.</string>
-    <string name="cart_payment_methods_none_visible">No payment method is currently visible to customers. Until then, merch checkout remains request and callback based.</string>
-    <string name="cart_payment_methods_active_now">These payment methods are currently active:</string>
-    <string name="cart_summary_title">Order summary</string>
-    <string name="cart_summary_subtotal">Subtotal</string>
-    <string name="cart_summary_shipping_zone">Shipping zone</string>
-    <string name="cart_summary_shipping">Shipping</string>
-    <string name="cart_summary_tax_included">incl. VAT (%1$s%%)</string>
-    <string name="cart_summary_total">Total</string>
-    <string name="cart_shipping_zone_pending">Pending</string>
-    <string name="cart_shipping_zone_check_country">Check country</string>
-    <string name="cart_email_not_provided">Not provided</string>
-    <string name="cart_email_payment_pending">Pending / callback follow-up</string>
-    <string name="cart_email_no_additional_message">No additional message.</string>
-    <string name="cart_email_subject_with_email">New order - %1$s</string>
-    <string name="cart_email_subject">New order</string>
-    <string name="cart_email_no_items">- No items</string>
-    <string name="cart_email_item_color_part"> | Color: %1$s</string>
-    <string name="cart_email_item_line">- %1$s | Size: %2$s%3$s | Qty: %4$d | Price: EUR %5$s</string>
-    <string name="cart_email_country_default">Germany</string>
-    <string name="cart_email_body_template">Hello SkyOS team,
+    <string name="cart_title">Koszyk</string>
+    <string name="cart_subtitle">Spokojnie sprawdź, bezpiecznie zapłać.</string>
+    <string name="cart_checkout_paused_title">Płatność wstrzymana</string>
+    <string name="cart_checkout_paused_body">Sklep z merch jest wstrzymany. Twój wybór pozostaje widoczny; nowe zamówienia wrócą po ponownym otwarciu.</string>
+    <string name="cart_checkout_paused_hint">Spróbuj później lub skontaktuj się z pomocą w Ustawieniach.</string>
+    <string name="cart_selection_title">Twój wybór</string>
+    <string name="cart_selection_empty">Koszyk jest pusty. Gdy coś dodasz, pojawi się tutaj.</string>
+    <string name="cart_selection_review">Sprawdź ilości, rozmiary i ceny przed wysłaniem zamówienia.</string>
+    <string name="cart_contact_title">Dane kontaktowe</string>
+    <string name="cart_contact_subtitle">Abyśmy mogli szybko odezwać się w sprawie zamówienia.</string>
+    <string name="cart_field_name_required">Imię i nazwisko*</string>
+    <string name="cart_field_email_required">E-mail*</string>
+    <string name="cart_field_whatsapp_optional">WhatsApp (opcjonalnie)</string>
+    <string name="cart_shipping_title">Adres dostawy</string>
+    <string name="cart_shipping_subtitle">Adres jest potrzebny do dostawy i obsługi zamówienia.</string>
+    <string name="cart_field_street_required">Ulica i numer*</string>
+    <string name="cart_field_address_extra_optional">Dodatkowy adres (opcjonalnie)</string>
+    <string name="cart_field_postal_required">Kod pocztowy*</string>
+    <string name="cart_field_city_required">Miasto*</string>
+    <string name="cart_field_country">Kraj</string>
+    <string name="cart_message_title">Wiadomość</string>
+    <string name="cart_message_subtitle">Opcjonalnie: uwagi do dostawy, dostępność lub prośby specjalne pomagają zespołowi.</string>
+    <string name="cart_field_message">Wiadomość</string>
+    <string name="cart_items_count">%1$d szt.</string>
+    <string name="cart_account_active">Konto aktywne</string>
+    <string name="cart_guest">Gość</string>
+    <string name="cart_payment_methods_title">Metody płatności</string>
+    <string name="cart_payment_methods_paused">Sklep jest wstrzymany. Metody płatności i checkout wrócą po ponownym otwarciu.</string>
+    <string name="cart_payment_methods_none_visible">Żadna metoda płatności nie jest teraz widoczna dla klientów. Checkout pozostaje na żądanie i callback.</string>
+    <string name="cart_payment_methods_active_now">Te metody płatności są aktywne:</string>
+    <string name="cart_summary_title">Podsumowanie zamówienia</string>
+    <string name="cart_summary_subtotal">Suma częściowa</string>
+    <string name="cart_summary_shipping_zone">Strefa wysyłki</string>
+    <string name="cart_summary_shipping">Wysyłka</string>
+    <string name="cart_summary_tax_included">Z VAT (%1$s%%)</string>
+    <string name="cart_summary_total">Razem</string>
+    <string name="cart_shipping_zone_pending">Oczekuje</string>
+    <string name="cart_shipping_zone_check_country">Sprawdź kraj</string>
+    <string name="cart_email_not_provided">Nie podano</string>
+    <string name="cart_email_payment_pending">Oczekuje / follow-up callback</string>
+    <string name="cart_email_no_additional_message">Brak dodatkowej wiadomości.</string>
+    <string name="cart_email_subject_with_email">Nowe zamówienie - %1$s</string>
+    <string name="cart_email_subject">Nowe zamówienie</string>
+    <string name="cart_email_no_items">- Brak pozycji</string>
+    <string name="cart_email_item_color_part"> | Kolor: %1$s</string>
+    <string name="cart_email_item_line">- %1$s | Rozmiar: %2$s%3$s | Ilość: %4$d | Cena: EUR %5$s</string>
+    <string name="cart_email_country_default">Niemcy</string>
+    <string name="cart_email_body_template">Witaj zespole SkyOS,
 
-A new order has been prepared in SkyOS.
+Przygotowano nowe zamówienie w SkyOS.
 
-Name: %1$s
-Email: %2$s
+Imię i nazwisko: %1$s
+E-mail: %2$s
 WhatsApp: %3$s
-Address:
+Adres:
 %4$s
 
-Cart:
+Koszyk:
 %5$s
 
-Subtotal: EUR %6$s
-Shipping: EUR %7$s
-Included VAT (%8$s%%): EUR %9$s
-Total: EUR %10$s
+Suma częściowa: EUR %6$s
+Wysyłka: EUR %7$s
+VAT w cenie (%8$s%%): EUR %9$s
+Razem: EUR %10$s
 
-Payment method:
+Metoda płatności:
 %11$s
 
-Message:
+Wiadomość:
 %12$s</string>
-    <string name="cart_checkout_link_open_failed">Could not open checkout link.</string>
-    <string name="cart_invoice_contact_line">Invoice and feedback run through %1$s.</string>
+    <string name="cart_checkout_link_open_failed">Nie można otworzyć linku płatności.</string>
+    <string name="cart_invoice_contact_line">Faktury i opinie: %1$s.</string>
     <string name="cart_invoice_contact_fallback_company">Ngoc Anh Nguyen (Yang D. Nash - Skydown)</string>
-    <string name="cart_select_payment_title">Choose payment method</string>
-    <string name="cart_select_payment_subtitle">Choose the payment method for this order.</string>
-    <string name="cart_selected">Selected</string>
-    <string name="cart_available">Available</string>
-    <string name="cart_zero_eur_no_payment">No payment is opened for this 0-EUR test item.</string>
-    <string name="cart_klarna_checkout_hint">After submitting, Klarna opens a secure live checkout via Stripe.</string>
-    <string name="cart_stripe_checkout_hint">On compatible devices, Stripe automatically shows the safest available options such as card or wallets.</string>
-    <string name="cart_safety_title">Security before checkout</string>
-    <string name="cart_safety_line_one">Secure payment routes and clear forwarding in the next step.</string>
-    <string name="cart_safety_line_two">Data and total price are checked again before sending.</string>
-    <string name="cart_safety_line_three">Support is always reachable in settings.</string>
+    <string name="cart_select_payment_title">Wybierz metodę płatności</string>
+    <string name="cart_select_payment_subtitle">Wybierz metodę płatności dla tego zamówienia.</string>
+    <string name="cart_selected">Wybrano</string>
+    <string name="cart_available">Dostępne</string>
+    <string name="cart_zero_eur_no_payment">Brak płatności dla testowej pozycji 0 EUR.</string>
+    <string name="cart_klarna_checkout_hint">Po wysłaniu Klarna otwiera bezpieczny checkout na żywo przez Stripe.</string>
+    <string name="cart_stripe_checkout_hint">Na zgodnych urządzeniach Stripe pokazuje najbezpieczniejsze opcje (karta, portfele).</string>
+    <string name="cart_safety_title">Bezpieczeństwo przed płatnością</string>
+    <string name="cart_safety_line_one">Bezpieczne ścieżki płatności i jasny kolejny krok.</string>
+    <string name="cart_safety_line_two">Dane i suma są ponownie sprawdzane przed wysłaniem.</string>
+    <string name="cart_safety_line_three">Pomoc zawsze w Ustawieniach.</string>
     <string name="cart_pulse_status">Status</string>
-    <string name="cart_pulse_payment">Payment</string>
-    <string name="cart_pulse_total">Total</string>
-    <string name="cart_payment_info_title">Payment info</string>
-    <string name="cart_bank_account_holder">Account holder</string>
+    <string name="cart_pulse_payment">Płatność</string>
+    <string name="cart_pulse_total">Razem</string>
+    <string name="cart_payment_info_title">Informacje o płatności</string>
+    <string name="cart_bank_account_holder">Posiadacz rachunku</string>
     <string name="cart_bank_name">Bank</string>
-    <string name="cart_bank_note">Note</string>
-    <string name="cart_size_value">Size %1$s</string>
+    <string name="cart_bank_note">Notatka</string>
+    <string name="cart_size_value">Rozmiar %1$s</string>
     <string name="cart_quantity_value">x%1$d</string>
-    <string name="cart_readiness_preparing">Preparing</string>
-    <string name="cart_readiness_ready">Ready</string>
-    <string name="cart_readiness_sign_in_missing">Sign-in missing</string>
-    <string name="cart_readiness_paused">Temporarily paused</string>
-    <string name="cart_readiness_payment_open">Payment open</string>
-    <string name="cart_readiness_fields_open">Fields open</string>
-    <string name="cart_readiness_check">Check quickly</string>
-    <string name="cart_readiness_detail_preparing">We are safely validating all details now.</string>
-    <string name="cart_readiness_detail_ready">You can continue securely now.</string>
-    <string name="cart_readiness_detail_sign_in">Please sign in first.</string>
-    <string name="cart_readiness_detail_paused">Checkout resumes after reopening.</string>
-    <string name="cart_readiness_detail_payment">Please choose a payment method.</string>
-    <string name="cart_readiness_detail_fields">Please complete required fields.</string>
-    <string name="cart_readiness_detail_check">One quick check, then continue.</string>
+    <string name="cart_readiness_preparing">Przygotowanie</string>
+    <string name="cart_readiness_ready">Gotowe</string>
+    <string name="cart_readiness_sign_in_missing">Brak logowania</string>
+    <string name="cart_readiness_paused">Tymczasowo wstrzymane</string>
+    <string name="cart_readiness_payment_open">Wybierz płatność</string>
+    <string name="cart_readiness_fields_open">Uzupełnij pola</string>
+    <string name="cart_readiness_check">Szybka kontrola</string>
+    <string name="cart_readiness_detail_preparing">Bezpiecznie sprawdzamy dane.</string>
+    <string name="cart_readiness_detail_ready">Możesz bezpiecznie kontynuować.</string>
+    <string name="cart_readiness_detail_sign_in">Najpierw się zaloguj.</string>
+    <string name="cart_readiness_detail_paused">Checkout wznowi się po ponownym otwarciu.</string>
+    <string name="cart_readiness_detail_payment">Wybierz metodę płatności.</string>
+    <string name="cart_readiness_detail_fields">Uzupełnij wymagane pola.</string>
+    <string name="cart_readiness_detail_check">Krótka kontrola i dalej.</string>
     <string name="cart_payment_callback">Callback</string>
-    <string name="cart_payment_choose">Choose</string>
-    <string name="cart_total_empty">Empty</string>
-    <string name="cart_total_detail_empty">Cart currently empty</string>
-    <string name="cart_total_detail_zero_payment">%1$s · no payment amount</string>
-    <string name="cart_total_detail_shipping_included">%1$s incl. shipping</string>
-    <string name="cart_checkout_title">Checkout</string>
-    <string name="cart_checkout_zero_eur_hint">No payment is required for this 0-EUR test item.</string>
-    <string name="cart_checkout_stripe_live_hint">Stripe opens secure live checkout afterwards.</string>
-    <string name="cart_checkout_followup_hint">We follow up afterwards via email or WhatsApp.</string>
-    <string name="cart_action_preparing">Preparing…</string>
-    <string name="cart_action_confirm_order">Confirm order</string>
-    <string name="cart_action_continue_securely">Continue securely</string>
-    <string name="cart_action_review_order">Review order</string>
-    <string name="cart_action_add_items_first">Add items first</string>
-    <string name="cart_methods_trust_bank_transfer">Bank details and exact instructions follow directly from the team after order confirmation.</string>
-    <string name="cart_methods_trust_stripe_klarna">Stripe and Klarna run as secure live checkout. Depending on device and Stripe setup, additional wallets such as Apple Pay or Google Pay may appear in Stripe.</string>
-    <string name="cart_methods_trust_stripe">Stripe runs as secure live checkout. Depending on device and Stripe setup, cards and wallets such as Apple Pay or Google Pay may appear there.</string>
-    <string name="cart_methods_trust_klarna">Klarna currently runs as secure live checkout through Stripe.</string>
-    <string name="cart_methods_trust_paypal">PayPal is currently visible only for callback and confirmed handoff.</string>
-    <string name="cart_checkout_pulse_title">Checkout pulse</string>
-    <string name="cart_payment_info_paypal_body">PayPal is used here as a secure manual handoff. For a direct flow, it is best to provide a PayPal.Me link.</string>
-    <string name="cart_payment_info_paypal_missing">No PayPal.Me link or business email is stored in the admin area yet.</string>
-    <string name="cart_payment_info_bank_body">Bank transfer runs directly without gateway costs. The stored details apply to this order.</string>
-    <string name="cart_payment_info_stripe_zero_eur">No payment is required for this 0-EUR test item. The order is confirmed directly.</string>
-    <string name="cart_payment_info_klarna_body">After submit, Klarna starts secure live checkout via Stripe and confirms payment automatically in the backend.</string>
-    <string name="cart_payment_info_stripe_body">After submit, Stripe starts secure live checkout. On compatible devices, cards and wallets such as Apple Pay or Google Pay may appear.</string>
-    <string name="cart_route_stripe">Secure live checkout for cards and compatible wallets.</string>
-    <string name="cart_route_klarna">Klarna starts via the Stripe flow.</string>
-    <string name="cart_route_paypal">Manual PayPal handoff with callback.</string>
-    <string name="cart_route_bank_transfer">Direct route without gateway costs.</string>
-    <string name="cart_route_callback">Payment method follows via callback.</string>
-    <string name="cart_route_default">Payment route for this order.</string>
+    <string name="cart_payment_choose">Wybierz</string>
+    <string name="cart_total_empty">Pusty</string>
+    <string name="cart_total_detail_empty">Koszyk jest pusty</string>
+    <string name="cart_total_detail_zero_payment">%1$s · brak kwoty płatności</string>
+    <string name="cart_total_detail_shipping_included">%1$s z wysyłką</string>
+    <string name="cart_checkout_title">Płatność</string>
+    <string name="cart_checkout_zero_eur_hint">Brak płatności dla testowej pozycji 0 EUR.</string>
+    <string name="cart_checkout_stripe_live_hint">Stripe potem otwiera bezpieczny checkout na żywo.</string>
+    <string name="cart_checkout_followup_hint">Kontaktujemy się potem e-mailem lub WhatsApp.</string>
+    <string name="cart_action_preparing">Przygotowanie…</string>
+    <string name="cart_action_confirm_order">Potwierdź zamówienie</string>
+    <string name="cart_action_continue_securely">Kontynuuj bezpiecznie</string>
+    <string name="cart_action_review_order">Sprawdź zamówienie</string>
+    <string name="cart_action_add_items_first">Najpierw dodaj produkty</string>
+    <string name="cart_methods_trust_bank_transfer">Dane bankowe i instrukcje od zespołu po potwierdzeniu.</string>
+    <string name="cart_methods_trust_stripe_klarna">Stripe i Klarna jako bezpieczny checkout. Mogą pojawić się Apple Pay lub Google Pay.</string>
+    <string name="cart_methods_trust_stripe">Stripe jako bezpieczny checkout. Karty i portfele jak Apple Pay lub Google Pay mogą się pojawić.</string>
+    <string name="cart_methods_trust_klarna">Klarna jako bezpieczny checkout przez Stripe.</string>
+    <string name="cart_methods_trust_paypal">PayPal tylko dla callback i potwierdzonego przekazania.</string>
+    <string name="cart_checkout_pulse_title">Puls checkoutu</string>
+    <string name="cart_payment_info_paypal_body">PayPal to bezpieczne ręczne przekazanie. Do pełnego przepływu najlepiej link PayPal.Me.</string>
+    <string name="cart_payment_info_paypal_missing">Brak PayPal.Me lub firmowego e-maila w panelu admina.</string>
+    <string name="cart_payment_info_bank_body">Przelew bezpośredni bez opłat bramki. Zapisane dane dotyczą tego zamówienia.</string>
+    <string name="cart_payment_info_stripe_zero_eur">Brak płatności za pozycję testową 0 EUR; zamówienie potwierdzane od razu.</string>
+    <string name="cart_payment_info_klarna_body">Po wysłaniu Klarna uruchamia checkout przez Stripe i potwierdza płatność w backendzie.</string>
+    <string name="cart_payment_info_stripe_body">Po wysłaniu Stripe uruchamia bezpieczny checkout. Karty i portfele mogą się pojawić.</string>
+    <string name="cart_route_stripe">Bezpieczny checkout na żywo dla kart i portfeli.</string>
+    <string name="cart_route_klarna">Klarna przez przepływ Stripe.</string>
+    <string name="cart_route_paypal">Ręczne przekazanie PayPal z callback.</string>
+    <string name="cart_route_bank_transfer">Bezpośrednia ścieżka bez opłat bramki.</string>
+    <string name="cart_route_callback">Metoda płatności następuje przez callback.</string>
+    <string name="cart_route_default">Ścieżka płatności dla tego zamówienia.</string>
     <string name="ai_sessions_title">AI chats</string>
     <string name="ai_brand_title">SkyOS AI</string>
     <string name="ai_brand_subtitle">Copy, release ideas, and visual prompts in one calm flow.</string>
@@ -2037,8 +2055,6 @@ Message:
     <string name="agent_thread_followup_placeholder">Follow up in this thread…</string>
     <string name="agent_thread_open_full_composer_a11y">Mode, workflow, attachments</string>
     <string name="agent_thread_send_a11y">Send</string>
-    <string name="home_owner_workflows_group_update">Team</string>
-    <string name="home_owner_workflows_private_analysis">Private</string>
 
     <!-- sync_localizations -->
     <string name="agent_bubble_open_in_home">Open in Home</string>
@@ -2085,4 +2101,18 @@ Message:
     <!-- sync_localizations -->
     <string name="agent_social_reset">Reset</string>
 
+    <string name="home_artist_primary_subtitle">Właściciel / operator</string>
+    <string name="home_artist_links_artist_page">Strona artysty</string>
+    <string name="home_owner_briefing_meta_report_day">Dzień raportu %1$s</string>
+    <string name="home_owner_briefing_meta_data_complete">Dane kompletne</string>
+    <string name="home_owner_briefing_meta_data_partial">Dane częściowe</string>
+    <string name="home_owner_briefing_meta_kpi_doc_missing">Brak dokumentu KPI</string>
+    <string name="home_owner_briefing_meta_kpi_label">KPI %1$s</string>
+    <string name="home_signal_ai_usage">AI: %1$s</string>
+    <string name="home_signal_ai_creator_limit">AI: osiągnięto strefę limitu Creator.</string>
+    <string name="home_signal_ai_agent_running">AI: agent jest obecnie uruchomiony.</string>
+    <string name="home_signal_ai_workflow_waiting">AI: workflow czeka na kolejny krok.</string>
+    <string name="home_signal_commerce">Commerce: %1$s</string>
+    <string name="home_signal_system_sync_paused">System: synchronizacja jest obecnie wstrzymana.</string>
+    <string name="home_signal_system_error">System: %1$s</string>
 </resources>

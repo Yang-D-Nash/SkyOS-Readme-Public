@@ -22,12 +22,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -69,7 +67,6 @@ import com.nash.skyos.ui.theme.skydownLuminanceLift
 import com.nash.skyos.ui.theme.skydownSecondaryBackground
 import com.nash.skyos.ui.theme.skydownSecondaryText
 import com.nash.skyos.ui.theme.skydownText
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.semantics.Role
 import java.util.Locale
 
@@ -696,7 +693,6 @@ fun BrandActionButton(
         PaddingValues(horizontal = 16.dp, vertical = 12.dp)
     }
     val filledContentColor = if (accent.perceivedBrightness() < 0.58f) Color.White else MaterialTheme.colorScheme.skydownDeepInk()
-    val iconTint = if (filled) filledContentColor else accent
     val filledBrush = Brush.linearGradient(
         colors = listOf(
             accent.copy(alpha = if (buttonEnabled) 1f else 0.42f),
@@ -717,10 +713,13 @@ fun BrandActionButton(
             MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
         ),
     )
+    val filledLabelColor = if (buttonEnabled) filledContentColor else filledContentColor.copy(alpha = 0.72f)
+    val outlineLabelColor = if (buttonEnabled) accent else accent.copy(alpha = 0.42f)
 
     if (filled) {
-        Button(
+        Surface(
             onClick = onClick,
+            enabled = buttonEnabled,
             modifier = modifier
                 .heightIn(min = if (compact) 40.dp else 46.dp)
                 .shadow(
@@ -737,43 +736,45 @@ fun BrandActionButton(
                     shape = shape,
                 )
                 .skydownPressable(interactionSource, pressedScale = if (compact) 0.984f else 0.98f),
-            enabled = buttonEnabled,
             shape = shape,
+            color = Color.Transparent,
+            contentColor = filledLabelColor,
             interactionSource = interactionSource,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Transparent,
-                contentColor = filledContentColor,
-                disabledContainerColor = Color.Transparent,
-                disabledContentColor = filledContentColor.copy(alpha = 0.72f),
-            ),
-            contentPadding = contentPadding,
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(if (compact) 16.dp else 18.dp),
-                    strokeWidth = 2.dp,
-                    color = filledContentColor,
-                )
-            } else if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+            Row(
+                modifier = Modifier.padding(contentPadding),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start,
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                        strokeWidth = 2.dp,
+                        color = filledLabelColor,
+                    )
+                } else if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = filledLabelColor,
+                        modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                    )
+                }
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = filledLabelColor,
+                    modifier = Modifier.padding(start = if (icon != null || isLoading) 8.dp else 0.dp),
                 )
             }
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(start = if (icon != null || isLoading) 8.dp else 0.dp),
-            )
         }
     } else {
-        OutlinedButton(
+        Surface(
             onClick = onClick,
+            enabled = buttonEnabled,
             modifier = modifier
                 .heightIn(min = if (compact) 40.dp else 46.dp)
                 .clip(shape)
@@ -789,43 +790,40 @@ fun BrandActionButton(
                     shape = shape,
                 )
                 .skydownPressable(interactionSource, pressedScale = if (compact) 0.986f else 0.982f),
-            enabled = buttonEnabled,
             shape = shape,
+            color = Color.Transparent,
+            contentColor = outlineLabelColor,
             interactionSource = interactionSource,
-            border = BorderStroke(
-                width = 0.dp,
-                color = Color.Transparent,
-            ),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = Color.Transparent,
-                contentColor = accent,
-                disabledContainerColor = Color.Transparent,
-                disabledContentColor = accent.copy(alpha = 0.42f),
-            ),
-            contentPadding = contentPadding,
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(if (compact) 16.dp else 18.dp),
-                    strokeWidth = 2.dp,
-                    color = accent,
-                )
-            } else if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+            Row(
+                modifier = Modifier.padding(contentPadding),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start,
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                        strokeWidth = 2.dp,
+                        color = outlineLabelColor,
+                    )
+                } else if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = outlineLabelColor,
+                        modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                    )
+                }
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = outlineLabelColor,
+                    modifier = Modifier.padding(start = if (icon != null || isLoading) 8.dp else 0.dp),
                 )
             }
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(start = if (icon != null || isLoading) 8.dp else 0.dp),
-            )
         }
     }
 }

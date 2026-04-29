@@ -579,15 +579,17 @@ struct SettingsView: View {
                                     .textSelection(.enabled)
                                     .accessibilityIdentifier("settings.current_email")
 
-                                Button {
-                                    presentSheet(.profileEditor)
-                                } label: {
-                                    Label(AppLocalized.text("settings.profile.edit", fallback: "Edit profile"), systemImage: "person.crop.circle")
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.borderedProminent)
+                                SkydownBrandActionButton(
+                                    title: AppLocalized.text("settings.profile.edit", fallback: "Edit profile"),
+                                    systemImage: "person.crop.circle",
+                                    accent: AppColors.accent(for: effectiveColorScheme),
+                                    colorScheme: effectiveColorScheme,
+                                    font: .subheadline.weight(.semibold),
+                                    cornerRadius: SkydownLayout.denseRadius,
+                                    verticalPadding: 11,
+                                    action: { presentSheet(.profileEditor) }
+                                )
                                 .skydownInteractiveFeedback()
-                                .tint(AppColors.accent(for: effectiveColorScheme))
                                 .accessibilityIdentifier("settings.open_profile_editor")
 
                                 VStack(spacing: SkydownLayout.stackSpacingPill) {
@@ -597,22 +599,26 @@ struct SettingsView: View {
                                         Label(AppLocalized.text("settings.logout", fallback: "Log out"), systemImage: "person.crop.circle.badge.xmark")
                                             .frame(maxWidth: .infinity)
                                     }
-                                    .buttonStyle(.borderedProminent)
                                     .skydownInteractiveFeedback()
                                     .accessibilityIdentifier("settings.logout")
 
-                                    Button {
-                                        Task {
-                                            await authManager.signOut()
-                                            await MainActor.run {
-                                                presentSheet(.login(.settings))
+                                    SkydownBrandActionButton(
+                                        title: AppLocalized.text("settings.switch_account", fallback: "Switch account"),
+                                        accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                        colorScheme: effectiveColorScheme,
+                                        role: .muted,
+                                        font: .subheadline.weight(.semibold),
+                                        cornerRadius: SkydownLayout.denseRadius,
+                                        verticalPadding: 11,
+                                        action: {
+                                            Task {
+                                                await authManager.signOut()
+                                                await MainActor.run {
+                                                    presentSheet(.login(.settings))
+                                                }
                                             }
                                         }
-                                    } label: {
-                                        Text(AppLocalized.text("settings.switch_account", fallback: "Switch account"))
-                                            .frame(maxWidth: .infinity)
-                                    }
-                                    .buttonStyle(.bordered)
+                                    )
                                     .skydownInteractiveFeedback()
                                     .accessibilityIdentifier("settings.switch_account")
 
@@ -622,32 +628,36 @@ struct SettingsView: View {
                                         Label(AppLocalized.text("settings.delete_account", fallback: "Delete account"), systemImage: "person.fill.xmark")
                                             .frame(maxWidth: .infinity)
                                     }
-                                    .buttonStyle(.bordered)
                                     .skydownInteractiveFeedback()
                                 }
                             }
                         } else {
                             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-                                Button {
-                                    presentSheet(.login(.settings))
-                                } label: {
-                                    Label(AppLocalized.text("auth.sign_in", fallback: "Sign in"), systemImage: "person.crop.circle.fill.badge.plus")
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.borderedProminent)
+                                SkydownBrandActionButton(
+                                    title: AppLocalized.text("auth.sign_in", fallback: "Sign in"),
+                                    systemImage: "person.crop.circle.fill.badge.plus",
+                                    accent: AppColors.accent(for: effectiveColorScheme),
+                                    colorScheme: effectiveColorScheme,
+                                    font: .subheadline.weight(.semibold),
+                                    cornerRadius: SkydownLayout.denseRadius,
+                                    verticalPadding: 11,
+                                    action: { presentSheet(.login(.settings)) }
+                                )
                                 .skydownInteractiveFeedback()
-                                .tint(AppColors.accent(for: effectiveColorScheme))
                                 .accessibilityIdentifier("settings.open_login")
 
-                                Button {
-                                    presentSheet(.registration)
-                                } label: {
-                                    Label(AppLocalized.text("auth.register", fallback: "Register"), systemImage: "person.crop.circle.badge.plus")
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.bordered)
+                                SkydownBrandActionButton(
+                                    title: AppLocalized.text("auth.register", fallback: "Register"),
+                                    systemImage: "person.crop.circle.badge.plus",
+                                    accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                    colorScheme: effectiveColorScheme,
+                                    role: .muted,
+                                    font: .subheadline.weight(.semibold),
+                                    cornerRadius: SkydownLayout.denseRadius,
+                                    verticalPadding: 11,
+                                    action: { presentSheet(.registration) }
+                                )
                                 .skydownInteractiveFeedback()
-                                .tint(AppColors.accentMystic(for: effectiveColorScheme))
                                 .accessibilityIdentifier("settings.open_registration")
                             }
                         }
@@ -721,88 +731,144 @@ struct SettingsView: View {
                                 .font(.headline)
                                 .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                            Button(AppLocalized.text("settings.faq_guide", fallback: "FAQ / Guide")) {
-                                presentSheet(.appGuide)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.faq_guide", fallback: "FAQ / Guide"),
+                                systemImage: "questionmark.circle",
+                                accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 10,
+                                action: { presentSheet(.appGuide) }
+                            )
                             .skydownInteractiveFeedback()
 
-                            Button(AppLocalized.text("settings.terms_local", fallback: "Terms (local)")) {
-                                presentSheet(.termsAndConditions)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.terms_local", fallback: "Terms (local)"),
+                                systemImage: "doc.text",
+                                accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 10,
+                                action: { presentSheet(.termsAndConditions) }
+                            )
                             .skydownInteractiveFeedback()
 
-                            Button(AppLocalized.text("settings.privacy", fallback: "Privacy")) {
-                                presentSheet(.privacyPolicy)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.privacy", fallback: "Privacy"),
+                                systemImage: "hand.raised",
+                                accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 10,
+                                action: { presentSheet(.privacyPolicy) }
+                            )
                             .skydownInteractiveFeedback()
 
-                            Button(AppLocalized.text("settings.terms", fallback: "Terms")) {
-                                presentSheet(.termsOfService)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.terms", fallback: "Terms"),
+                                systemImage: "doc.plaintext",
+                                accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 10,
+                                action: { presentSheet(.termsOfService) }
+                            )
                             .skydownInteractiveFeedback()
 
-                            Button(AppLocalized.text("settings.legal.subscription_terms", fallback: "Subscription terms")) {
-                                presentSheet(.subscriptionTerms)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.legal.subscription_terms", fallback: "Subscription terms"),
+                                systemImage: "creditcard",
+                                accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 10,
+                                action: { presentSheet(.subscriptionTerms) }
+                            )
                             .skydownInteractiveFeedback()
 
-                            Button(AppLocalized.text("settings.legal.ai_usage", fallback: "AI usage notice")) {
-                                presentSheet(.aiUsageNotice)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.legal.ai_usage", fallback: "AI usage notice"),
+                                systemImage: "cpu",
+                                accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 10,
+                                action: { presentSheet(.aiUsageNotice) }
+                            )
                             .skydownInteractiveFeedback()
 
-                            Button(AppLocalized.text("settings.legal.imprint", fallback: "Imprint / company info")) {
-                                presentSheet(.imprintInfo)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.legal.imprint", fallback: "Imprint / company info"),
+                                systemImage: "building.columns",
+                                accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 10,
+                                action: { presentSheet(.imprintInfo) }
+                            )
                             .skydownInteractiveFeedback()
 
                             Text(legalContentStore.settings.resolvedSupportEmail)
                                 .font(.subheadline)
                                 .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                            Button {
-                                guard let url = URL(string: "https://www.instagram.com/skydown_entertainment/") else {
-                                    return
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.legal.skydown_link_cta", fallback: "Open Skydown link"),
+                                systemImage: "link",
+                                accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 10,
+                                action: {
+                                    guard let url = URL(string: "https://www.instagram.com/skydown_entertainment/") else {
+                                        return
+                                    }
+                                    openURL(url)
                                 }
-                                openURL(url)
-                            } label: {
-                                Label(
-                                    AppLocalized.text("settings.legal.skydown_link_cta", fallback: "Open Skydown link"),
-                                    systemImage: "link"
-                                )
-                                .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
+                            )
                             .skydownInteractiveFeedback()
 
-                            Button {
-                                #if targetEnvironment(simulator)
-                                if canPresentInAppMailComposer {
-                                    presentSheet(.mailComposer)
-                                } else {
-                                    showToastMessage("Mail kann im Simulator nicht gesendet werden", style: .error)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.support.send", fallback: "Send support request"),
+                                systemImage: "envelope.fill",
+                                accent: AppColors.accent(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 11,
+                                action: {
+                                    #if targetEnvironment(simulator)
+                                    if canPresentInAppMailComposer {
+                                        presentSheet(.mailComposer)
+                                    } else {
+                                        showToastMessage("Mail kann im Simulator nicht gesendet werden", style: .error)
+                                    }
+                                    #else
+                                    if SkydownPlatform.isDesktop {
+                                        openMailAppFallback()
+                                    } else {
+                                        showingMailOptions = true
+                                    }
+                                    #endif
                                 }
-                                #else
-                                if SkydownPlatform.isDesktop {
-                                    openMailAppFallback()
-                                } else {
-                                    showingMailOptions = true
-                                }
-                                #endif
-                            } label: {
-                                Label(AppLocalized.text("settings.support.send", fallback: "Send support request"), systemImage: "envelope.fill")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.borderedProminent)
+                            )
                             .skydownInteractiveFeedback()
-                            .tint(AppColors.accent(for: effectiveColorScheme))
 
                             if isOwnerUser {
                                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
@@ -898,13 +964,17 @@ struct SettingsView: View {
                                         minHeight: 140
                                     )
 
-                                    Button(action: saveLegalContentSettings) {
-                                        Label(AppLocalized.text("settings.legal.save", fallback: "Save legal content"), systemImage: "doc.text.fill")
-                                            .frame(maxWidth: .infinity)
-                                    }
-                                    .buttonStyle(.borderedProminent)
+                                    SkydownBrandActionButton(
+                                        title: AppLocalized.text("settings.legal.save", fallback: "Save legal content"),
+                                        systemImage: "doc.text.fill",
+                                        accent: AppColors.accentHighlight(for: effectiveColorScheme),
+                                        colorScheme: effectiveColorScheme,
+                                        font: .subheadline.weight(.semibold),
+                                        cornerRadius: SkydownLayout.denseRadius,
+                                        verticalPadding: 11,
+                                        action: saveLegalContentSettings
+                                    )
                                     .skydownInteractiveFeedback()
-                                    .tint(AppColors.accentHighlight(for: effectiveColorScheme))
                                 }
                             }
 
@@ -933,11 +1003,19 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Label(AppLocalized.text("common.close", fallback: "Close"), systemImage: "xmark")
-                    }
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.close", fallback: "Close"),
+                        systemImage: "xmark",
+                        accent: AppColors.accent(for: effectiveColorScheme),
+                        colorScheme: effectiveColorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
                     .accessibilityIdentifier("settings.close")
                 }
             }
@@ -1006,6 +1084,10 @@ struct SettingsView: View {
         }
         .fancyToast(isPresented: $showToast, message: toastMessage, style: toastStyle)
         .onAppear {
+            // Keep Settings cognitively light on entry: always reopen in Personal first.
+            if activeSettingsRootArea != .user {
+                activeSettingsRootArea = .user
+            }
             systemLanguage = AppLanguageSupport.currentSystemLanguageDisplayName()
             manusByosStore.setUserMode(userID: authManager.userSession?.id)
             manusByosAPIKeyDraft = ""
@@ -1346,36 +1428,36 @@ struct SettingsView: View {
                 )
 
                 VStack(spacing: SkydownLayout.stackSpacingPill) {
-                    Button {
-                        Task { await runControlCenterHealthCheck() }
-                    } label: {
-                        Label(
-                            isRunningControlCenterCheck ? "System wird geprueft ..." : "System pruefen",
-                            systemImage: "waveform.path.ecg"
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
+                    SkydownBrandActionButton(
+                        title: isRunningControlCenterCheck ? "System wird geprueft ..." : "System pruefen",
+                        systemImage: "waveform.path.ecg",
+                        accent: AppColors.accentMystic(for: effectiveColorScheme),
+                        colorScheme: effectiveColorScheme,
+                        isEnabled: !isRunningControlCenterCheck,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 11,
+                        action: { Task { await runControlCenterHealthCheck() } }
+                    )
                     .skydownInteractiveFeedback()
-                    .tint(AppColors.accentMystic(for: effectiveColorScheme))
-                    .disabled(isRunningControlCenterCheck)
 
-                    Button {
-                        if authManager.userSession == nil {
-                            presentSheet(.login(.settings))
-                        } else {
-                            presentSheet(.adminWorkspace(.automation))
+                    SkydownBrandActionButton(
+                        title: authManager.userSession == nil ? "Anmelden und Agent-Service starten" : "Agent-Service oeffnen",
+                        systemImage: "bolt.horizontal.circle",
+                        accent: AppColors.accent(for: effectiveColorScheme),
+                        colorScheme: effectiveColorScheme,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 11,
+                        action: {
+                            if authManager.userSession == nil {
+                                presentSheet(.login(.settings))
+                            } else {
+                                presentSheet(.adminWorkspace(.automation))
+                            }
                         }
-                    } label: {
-                        Label(
-                            authManager.userSession == nil ? "Anmelden und Agent-Service starten" : "Agent-Service oeffnen",
-                            systemImage: "bolt.horizontal.circle"
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
+                    )
                     .skydownInteractiveFeedback()
-                    .tint(AppColors.accent(for: effectiveColorScheme))
 
                     SettingsUtilityRow(
                         colorScheme: effectiveColorScheme,
@@ -1441,15 +1523,18 @@ struct SettingsView: View {
                         )
                     }
                 } else {
-                    Button {
-                        presentSheet(.login(.settings))
-                    } label: {
-                        Label(AppLocalized.text("auth.sign_in", fallback: "Sign in"), systemImage: "person.crop.circle.fill.badge.plus")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("auth.sign_in", fallback: "Sign in"),
+                        systemImage: "person.crop.circle.fill.badge.plus",
+                        accent: AppColors.accent(for: effectiveColorScheme),
+                        colorScheme: effectiveColorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 11,
+                        action: { presentSheet(.login(.settings)) }
+                    )
                     .skydownInteractiveFeedback()
-                    .tint(AppColors.accent(for: effectiveColorScheme))
                 }
             }
         }
@@ -1504,81 +1589,131 @@ struct SettingsView: View {
 
                 if activeOwnerConsoleArea == .ops {
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
-                        Button { presentSheet(.adminWorkspace(.payments)) } label: {
-                            Label(AppLocalized.text("settings.command_nav_payments", fallback: "Payments"), systemImage: "creditcard")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("settings.command_nav_payments", fallback: "Payments"),
+                            systemImage: "creditcard",
+                            accent: AppColors.accent(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            role: .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 9,
+                            expandToFullWidth: true,
+                            action: { presentSheet(.adminWorkspace(.payments)) }
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .skydownInteractiveFeedback()
 
-                        Button { presentSheet(.adminWorkspace(.shopify)) } label: {
-                            Label(AppLocalized.text("settings.command_nav_shopify", fallback: "Shopify"), systemImage: "bag")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("settings.command_nav_shopify", fallback: "Shopify"),
+                            systemImage: "bag",
+                            accent: AppColors.accentMystic(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            role: .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 9,
+                            expandToFullWidth: true,
+                            action: { presentSheet(.adminWorkspace(.shopify)) }
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .skydownInteractiveFeedback()
                     }
                 }
 
                 if activeOwnerConsoleArea == .aiRuntime {
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
-                        Button { presentSheet(.adminWorkspace(.aiPrompts)) } label: {
-                            Label(AppLocalized.text("settings.command_nav_runtime", fallback: "Runtime"), systemImage: "sparkles")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("settings.command_nav_runtime", fallback: "Runtime"),
+                            systemImage: "sparkles",
+                            accent: AppColors.accentHighlight(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            role: .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 9,
+                            expandToFullWidth: true,
+                            action: { presentSheet(.adminWorkspace(.aiPrompts)) }
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .skydownInteractiveFeedback()
 
-                        Button { presentSheet(.adminWorkspace(.automation)) } label: {
-                            Label(
-                                AppLocalized.text("settings.command.automation_studio", fallback: "Automation Studio"),
-                                systemImage: "bolt"
-                            )
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("settings.command.automation_studio", fallback: "Automation Studio"),
+                            systemImage: "bolt",
+                            accent: AppColors.accentMystic(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            role: .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 9,
+                            expandToFullWidth: true,
+                            action: { presentSheet(.adminWorkspace(.automation)) }
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .skydownInteractiveFeedback()
                     }
                 }
 
                 if activeOwnerConsoleArea == .governance {
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
-                        Button { presentSheet(.adminWorkspace(.users)) } label: {
-                            Label(AppLocalized.text("settings.command_nav_users", fallback: "Users"), systemImage: "person.2")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("settings.command_nav_users", fallback: "Users"),
+                            systemImage: "person.2",
+                            accent: AppColors.accent(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            role: .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 9,
+                            expandToFullWidth: true,
+                            action: { presentSheet(.adminWorkspace(.users)) }
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .skydownInteractiveFeedback()
 
-                        Button { presentSheet(.adminWorkspace(.membershipOps)) } label: {
-                            Label(AppLocalized.text("settings.command_nav_membership_ops", fallback: "Membership ops"), systemImage: "chart.xyaxis.line")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("settings.command_nav_membership_ops", fallback: "Membership ops"),
+                            systemImage: "chart.xyaxis.line",
+                            accent: AppColors.accentHighlight(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            role: .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 9,
+                            expandToFullWidth: true,
+                            action: { presentSheet(.adminWorkspace(.membershipOps)) }
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .skydownInteractiveFeedback()
                     }
                 }
 
-                Button {
-                    presentSheet(.adminWorkspace(.users))
-                } label: {
-                    Label(
-                        AppLocalized.text("settings.owner.open_all_admin_areas", fallback: "Open all admin areas"),
-                        systemImage: "rectangle.grid.2x2"
-                    )
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("settings.owner.open_all_admin_areas", fallback: "Open all admin areas"),
+                    systemImage: "rectangle.grid.2x2",
+                    accent: AppColors.accentMystic(for: effectiveColorScheme),
+                    colorScheme: effectiveColorScheme,
+                    role: .muted,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 11,
+                    action: { presentSheet(.adminWorkspace(.users)) }
+                )
                 .skydownInteractiveFeedback()
                 .accessibilityIdentifier("settings.owner.open_workspace")
 
-                Button {
-                    presentSheet(.orders)
-                } label: {
-                    Label(AppLocalized.text("settings.orders.open", fallback: "Open orders"), systemImage: "suitcase.cart")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("settings.orders.open", fallback: "Open orders"),
+                    systemImage: "suitcase.cart",
+                    accent: AppColors.accent(for: effectiveColorScheme),
+                    colorScheme: effectiveColorScheme,
+                    role: .muted,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 11,
+                    action: { presentSheet(.orders) }
+                )
                 .skydownInteractiveFeedback()
                 .accessibilityIdentifier("settings.owner.open_orders")
             }
@@ -1618,15 +1753,17 @@ struct SettingsView: View {
                     }
                 }
 
-                Button {
-                    presentSheet(.adminWorkspace(.automation))
-                } label: {
-                    Label(AppLocalized.text("settings.agent_service.manage", fallback: "Manage agent service"), systemImage: "bolt.horizontal.circle")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("settings.agent_service.manage", fallback: "Manage agent service"),
+                    systemImage: "bolt.horizontal.circle",
+                    accent: AppColors.accent(for: effectiveColorScheme),
+                    colorScheme: effectiveColorScheme,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 11,
+                    action: { presentSheet(.adminWorkspace(.automation)) }
+                )
                 .skydownInteractiveFeedback()
-                .tint(AppColors.accent(for: effectiveColorScheme))
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                     Text(AppLocalized.text("settings.workflow_status.title", fallback: "Workflow status"))
@@ -1919,13 +2056,17 @@ struct SettingsView: View {
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                    Button(action: saveScreenHeaderSettings) {
-                        Label(AppLocalized.text("settings.admin.headers.save", fallback: "Save headers"), systemImage: "photo.on.rectangle.angled")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("settings.admin.headers.save", fallback: "Save headers"),
+                        systemImage: "photo.on.rectangle.angled",
+                        accent: AppColors.accent(for: effectiveColorScheme),
+                        colorScheme: effectiveColorScheme,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 11,
+                        action: saveScreenHeaderSettings
+                    )
                     .skydownInteractiveFeedback()
-                    .tint(AppColors.accent(for: effectiveColorScheme))
                 }
 
             case .shopify:
@@ -1957,23 +2098,29 @@ struct SettingsView: View {
                     )
 
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
-                        Button {
-                            Task {
-                                await shopifyAdminSettingsStore.refreshAvailableCollections(force: true)
-                                if let message = shopifyAdminSettingsStore.collectionsErrorMessage {
-                                    showToastMessage("Shopify-Collections konnten nicht geladen werden: \(message)", style: .error)
+                        SkydownBrandActionButton(
+                            title: shopifyAdminSettingsStore.isLoadingCollections ? "Collections laden..." : "Collections abrufen",
+                            systemImage: "arrow.clockwise",
+                            accent: AppColors.accentMystic(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            role: .muted,
+                            isEnabled: !shopifyAdminSettingsStore.isLoadingCollections,
+                            isLoading: shopifyAdminSettingsStore.isLoadingCollections,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 9,
+                            expandToFullWidth: true,
+                            action: {
+                                Task {
+                                    await shopifyAdminSettingsStore.refreshAvailableCollections(force: true)
+                                    if let message = shopifyAdminSettingsStore.collectionsErrorMessage {
+                                        showToastMessage("Shopify-Collections konnten nicht geladen werden: \(message)", style: .error)
+                                    }
                                 }
                             }
-                        } label: {
-                            Label(
-                                shopifyAdminSettingsStore.isLoadingCollections ? "Collections laden..." : "Collections abrufen",
-                                systemImage: "arrow.clockwise"
-                            )
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .skydownInteractiveFeedback()
-                        .disabled(shopifyAdminSettingsStore.isLoadingCollections)
 
                         if shopifyAdminSettingsStore.availableCollections.isEmpty == false {
                             SettingsBadge(
@@ -2035,22 +2182,34 @@ struct SettingsView: View {
                     )
 
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
-                        Button(action: saveShopifyAdminSettings) {
-                            Label(AppLocalized.text("settings.shopify.save", fallback: "Save Shopify"), systemImage: "shippingbox.and.arrow.backward")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("settings.shopify.save", fallback: "Save Shopify"),
+                            systemImage: "shippingbox.and.arrow.backward",
+                            accent: AppColors.accent(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 11,
+                            expandToFullWidth: true,
+                            action: saveShopifyAdminSettings
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .skydownInteractiveFeedback()
-                        .tint(AppColors.accent(for: effectiveColorScheme))
 
                         if let url = shopifyCatalogURL {
-                            Button {
-                                openURL(url)
-                            } label: {
-                                Label(AppLocalized.text("common.open_link", fallback: "Open link"), systemImage: "arrow.up.right.square")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("common.open_link", fallback: "Open link"),
+                                systemImage: "arrow.up.right.square",
+                                accent: AppColors.accentMystic(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 11,
+                                expandToFullWidth: true,
+                                action: { openURL(url) }
+                            )
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .skydownInteractiveFeedback()
                         }
                     }
@@ -2281,15 +2440,14 @@ struct SettingsView: View {
                         keyboardType: .emailAddress
                     )
 
-                    Button {
-                        saveCommerceSettings()
-                    } label: {
-                        Label(AppLocalized.text("settings.commerce.save_shipping_invoice", fallback: "Save shipping and invoice"), systemImage: "shippingbox.and.arrow.backward")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("settings.commerce.save_shipping_invoice", fallback: "Save shipping and invoice"),
+                        systemImage: "shippingbox.and.arrow.backward",
+                        accent: AppColors.accentMystic(for: effectiveColorScheme),
+                        colorScheme: effectiveColorScheme,
+                        action: saveCommerceSettings
+                    )
                     .skydownInteractiveFeedback()
-                    .tint(AppColors.accentMystic(for: effectiveColorScheme))
                 }
 
             case .visuals:
@@ -2462,28 +2620,30 @@ struct SettingsView: View {
                     }
 
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
-                        Button(action: saveAutomationSettings) {
-                            Label(
-                                isSavingAutomationSettings ? "Speichert..." : "Workflow speichern",
-                                systemImage: isSavingAutomationSettings ? "arrow.triangle.2.circlepath.circle.fill" : "bolt.circle.fill"
-                            )
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
+                        SkydownBrandActionButton(
+                            title: isSavingAutomationSettings ? "Speichert..." : "Workflow speichern",
+                            systemImage: isSavingAutomationSettings ? "arrow.triangle.2.circlepath.circle.fill" : "bolt.circle.fill",
+                            accent: AppColors.accentHighlight(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            isEnabled: automationSaveDisabledReasons.isEmpty,
+                            isLoading: isSavingAutomationSettings,
+                            action: saveAutomationSettings
+                        )
                         .skydownInteractiveFeedback()
-                        .tint(AppColors.accentHighlight(for: effectiveColorScheme))
-                        .disabled(!automationSaveDisabledReasons.isEmpty)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                        Button(action: runAutomationTest) {
-                            Label(
-                                isRunningAutomationTest ? "Test laeuft..." : "Test senden",
-                                systemImage: isRunningAutomationTest ? "hourglass.circle.fill" : "paperplane.fill"
-                            )
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
+                        SkydownBrandActionButton(
+                            title: isRunningAutomationTest ? "Test laeuft..." : "Test senden",
+                            systemImage: isRunningAutomationTest ? "hourglass.circle.fill" : "paperplane.fill",
+                            accent: AppColors.accentHighlight(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            role: .muted,
+                            isEnabled: automationTestDisabledReasons.isEmpty,
+                            isLoading: isRunningAutomationTest,
+                            action: runAutomationTest
+                        )
                         .skydownInteractiveFeedback()
-                        .disabled(!automationTestDisabledReasons.isEmpty)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
                     Divider()
@@ -2530,33 +2690,40 @@ struct SettingsView: View {
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
-                        Button(action: saveManusBYOSSettings) {
-                            Label(AppLocalized.text("settings.manus.save", fallback: "Save Manus"), systemImage: "lock.shield")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .skydownInteractiveFeedback()
-                        .tint(AppColors.accent(for: effectiveColorScheme))
-
-                        Button(action: clearManusBYOSAPIKey) {
-                            Label(AppLocalized.text("settings.manus.remove_key", fallback: "Remove key"), systemImage: "trash")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .skydownInteractiveFeedback()
-                        .disabled(!manusByosStore.settings.hasAPIKey && manusByosAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-
-                    Button(action: validateManusBYOSKey) {
-                        Label(
-                            isValidatingManusKey ? "Prueft..." : "Validate Manus Key",
-                            systemImage: "checkmark.shield"
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("settings.manus.save", fallback: "Save Manus"),
+                            systemImage: "lock.shield",
+                            accent: AppColors.accent(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            action: saveManusBYOSSettings
                         )
-                        .frame(maxWidth: .infinity)
+                        .skydownInteractiveFeedback()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("settings.manus.remove_key", fallback: "Remove key"),
+                            systemImage: "trash",
+                            accent: AppColors.accent(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            role: .muted,
+                            isEnabled: manusByosStore.settings.hasAPIKey || !manusByosAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                            action: clearManusBYOSAPIKey
+                        )
+                        .skydownInteractiveFeedback()
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .buttonStyle(.bordered)
+
+                    SkydownBrandActionButton(
+                        title: isValidatingManusKey ? "Prueft..." : "Validate Manus Key",
+                        systemImage: "checkmark.shield",
+                        accent: AppColors.accent(for: effectiveColorScheme),
+                        colorScheme: effectiveColorScheme,
+                        role: .muted,
+                        isEnabled: !isValidatingManusKey && !resolveEffectiveManusKey().isEmpty,
+                        isLoading: isValidatingManusKey,
+                        action: validateManusBYOSKey
+                    )
                     .skydownInteractiveFeedback()
-                    .disabled(isValidatingManusKey || resolveEffectiveManusKey().isEmpty)
                 }
 
             case .aiPrompts:
@@ -2665,34 +2832,52 @@ struct SettingsView: View {
                         }
 
                         HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                            Button {
-                                appendAIStudioFAQEntry()
-                            } label: {
-                                Label(AppLocalized.text("settings.ai_studio.faq_base.new", fallback: "New"), systemImage: "plus")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.ai_studio.faq_base.new", fallback: "New"),
+                                systemImage: "plus",
+                                accent: AppColors.accent(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 11,
+                                expandToFullWidth: true,
+                                action: appendAIStudioFAQEntry
+                            )
                             .skydownInteractiveFeedback()
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                            Button {
-                                publishAllAIStudioFAQEntries()
-                            } label: {
-                                Label(AppLocalized.text("settings.ai_studio.faq_base.publish_all", fallback: "Publish all"), systemImage: "checkmark.seal")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.ai_studio.faq_base.publish_all", fallback: "Publish all"),
+                                systemImage: "checkmark.seal",
+                                accent: AppColors.accent(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                isEnabled: !aiStudioFAQEntriesDraft.isEmpty,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 11,
+                                expandToFullWidth: true,
+                                action: publishAllAIStudioFAQEntries
+                            )
                             .skydownInteractiveFeedback()
-                            .disabled(aiStudioFAQEntriesDraft.isEmpty)
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                            Button {
-                                unpublishAllAIStudioFAQEntries()
-                            } label: {
-                                Label(AppLocalized.text("settings.ai_studio.faq_base.unpublish_all", fallback: "Unpublish all"), systemImage: "xmark.seal")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.ai_studio.faq_base.unpublish_all", fallback: "Unpublish all"),
+                                systemImage: "xmark.seal",
+                                accent: AppColors.accent(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                isEnabled: !aiStudioFAQEntriesDraft.isEmpty,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 11,
+                                expandToFullWidth: true,
+                                action: unpublishAllAIStudioFAQEntries
+                            )
                             .skydownInteractiveFeedback()
-                            .disabled(aiStudioFAQEntriesDraft.isEmpty)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
                         if aiStudioFAQEntriesDraft.isEmpty {
@@ -2781,7 +2966,6 @@ struct SettingsView: View {
                                 } label: {
                                     Label(AppLocalized.text("settings.ai_studio.faq_base.remove_entry", fallback: "Remove entry"), systemImage: "trash")
                                 }
-                                .buttonStyle(.bordered)
                                 .skydownInteractiveFeedback()
                             }
                             .padding(12)
@@ -2795,12 +2979,13 @@ struct SettingsView: View {
                         }
                         .animation(SkydownMotion.statusTransition, value: aiStudioFAQEntriesDraft.count)
 
-                        Button(action: saveAIStudioFAQEntries) {
-                            Label(AppLocalized.text("settings.ai_studio.faq_base.save", fallback: "Save FAQ base"), systemImage: "checkmark.seal")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppColors.accentHighlight(for: effectiveColorScheme))
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("settings.ai_studio.faq_base.save", fallback: "Save FAQ base"),
+                            systemImage: "checkmark.seal",
+                            accent: AppColors.accentHighlight(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            action: saveAIStudioFAQEntries
+                        )
                         .skydownInteractiveFeedback()
 
                         if let storeError = aiFaqKnowledgeStudioStore.lastErrorMessage, !storeError.isEmpty {
@@ -2848,34 +3033,52 @@ struct SettingsView: View {
                         }
 
                         HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                            Button {
-                                appendAIOwnerInspirationEntry()
-                            } label: {
-                                Label(AppLocalized.text("settings.ai_studio.owner_inspiration.new", fallback: "New"), systemImage: "plus")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.ai_studio.owner_inspiration.new", fallback: "New"),
+                                systemImage: "plus",
+                                accent: AppColors.accent(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 11,
+                                expandToFullWidth: true,
+                                action: appendAIOwnerInspirationEntry
+                            )
                             .skydownInteractiveFeedback()
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                            Button {
-                                publishAllAIOwnerInspirationEntries()
-                            } label: {
-                                Label(AppLocalized.text("settings.ai_studio.owner_inspiration.publish_all", fallback: "Publish all"), systemImage: "checkmark.seal")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.ai_studio.owner_inspiration.publish_all", fallback: "Publish all"),
+                                systemImage: "checkmark.seal",
+                                accent: AppColors.accent(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                isEnabled: !aiOwnerInspirationEntriesDraft.isEmpty,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 11,
+                                expandToFullWidth: true,
+                                action: publishAllAIOwnerInspirationEntries
+                            )
                             .skydownInteractiveFeedback()
-                            .disabled(aiOwnerInspirationEntriesDraft.isEmpty)
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                            Button {
-                                unpublishAllAIOwnerInspirationEntries()
-                            } label: {
-                                Label(AppLocalized.text("settings.ai_studio.owner_inspiration.unpublish_all", fallback: "Unpublish all"), systemImage: "xmark.seal")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.ai_studio.owner_inspiration.unpublish_all", fallback: "Unpublish all"),
+                                systemImage: "xmark.seal",
+                                accent: AppColors.accent(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                isEnabled: !aiOwnerInspirationEntriesDraft.isEmpty,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 11,
+                                expandToFullWidth: true,
+                                action: unpublishAllAIOwnerInspirationEntries
+                            )
                             .skydownInteractiveFeedback()
-                            .disabled(aiOwnerInspirationEntriesDraft.isEmpty)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
                         ForEach($aiOwnerInspirationEntriesDraft) { $entry in
@@ -2926,7 +3129,6 @@ struct SettingsView: View {
                                 } label: {
                                     Label(AppLocalized.text("settings.ai_studio.owner_inspiration.remove_entry", fallback: "Remove entry"), systemImage: "trash")
                                 }
-                                .buttonStyle(.bordered)
                                 .skydownInteractiveFeedback()
                             }
                             .padding(12)
@@ -2939,12 +3141,13 @@ struct SettingsView: View {
                         }
                         .animation(SkydownMotion.statusTransition, value: aiOwnerInspirationEntriesDraft.count)
 
-                        Button(action: saveAIOwnerInspirationEntries) {
-                            Label(AppLocalized.text("settings.ai_studio.owner_inspiration.save", fallback: "Save ideas & inspiration"), systemImage: "lightbulb")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppColors.accentHighlight(for: effectiveColorScheme))
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("settings.ai_studio.owner_inspiration.save", fallback: "Save ideas & inspiration"),
+                            systemImage: "lightbulb",
+                            accent: AppColors.accentHighlight(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            action: saveAIOwnerInspirationEntries
+                        )
                         .skydownInteractiveFeedback()
 
                         if let storeError = aiOwnerInspirationStudioStore.lastErrorMessage, !storeError.isEmpty {
@@ -2982,13 +3185,14 @@ struct SettingsView: View {
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                    Button(action: saveAIPromptSettings) {
-                        Label(AppLocalized.text("settings.ai_prompts.save", fallback: "Save AI instructions"), systemImage: "sparkles")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("settings.ai_prompts.save", fallback: "Save AI instructions"),
+                        systemImage: "sparkles",
+                        accent: AppColors.accentHighlight(for: effectiveColorScheme),
+                        colorScheme: effectiveColorScheme,
+                        action: saveAIPromptSettings
+                    )
                     .skydownInteractiveFeedback()
-                    .tint(AppColors.accentHighlight(for: effectiveColorScheme))
 
                     Divider()
                         .padding(.vertical, 4)
@@ -3007,10 +3211,21 @@ struct SettingsView: View {
                                 ProgressView()
                                     .controlSize(.small)
                             } else {
-                                Button(AppLocalized.text("common.refresh", fallback: "Refresh")) {
-                                    Task { await aiFaqOwnerReviewLoopStore.refresh(windowDays: aiFaqReviewLoopWindowDays) }
-                                }
-                                .font(.caption.weight(.semibold))
+                                SkydownBrandActionButton(
+                                    title: AppLocalized.text("common.refresh", fallback: "Refresh"),
+                                    systemImage: "arrow.clockwise",
+                                    accent: AppColors.accent(for: effectiveColorScheme),
+                                    colorScheme: effectiveColorScheme,
+                                    role: .muted,
+                                    font: .caption.weight(.semibold),
+                                    cornerRadius: SkydownLayout.tightRadius,
+                                    verticalPadding: 8,
+                                    expandToFullWidth: false,
+                                    action: {
+                                        Task { await aiFaqOwnerReviewLoopStore.refresh(windowDays: aiFaqReviewLoopWindowDays) }
+                                    }
+                                )
+                                .skydownInteractiveFeedback()
                             }
                         }
                         .padding(.top, 2)
@@ -3132,29 +3347,46 @@ struct SettingsView: View {
                                         .font(.caption2)
                                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                                     HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                                        Button(AppLocalized.text("common.preview", fallback: "Preview")) {
-                                            Task {
-                                                let message = await aiFaqOwnerReviewLoopStore.preview(
-                                                    recommendation: recommendation,
-                                                    windowDays: aiFaqReviewLoopWindowDays
-                                                )
-                                                showToastMessage(message, style: .info)
+                                        SkydownBrandActionButton(
+                                            title: AppLocalized.text("common.preview", fallback: "Preview"),
+                                            accent: AppColors.accent(for: effectiveColorScheme),
+                                            colorScheme: effectiveColorScheme,
+                                            role: .muted,
+                                            font: .caption.weight(.semibold),
+                                            cornerRadius: SkydownLayout.tightRadius,
+                                            verticalPadding: 8,
+                                            expandToFullWidth: false,
+                                            action: {
+                                                Task {
+                                                    let message = await aiFaqOwnerReviewLoopStore.preview(
+                                                        recommendation: recommendation,
+                                                        windowDays: aiFaqReviewLoopWindowDays
+                                                    )
+                                                    showToastMessage(message, style: .info)
+                                                }
                                             }
-                                        }
-                                        .font(.caption.weight(.semibold))
-                                        .buttonStyle(.bordered)
+                                        )
+                                        .skydownInteractiveFeedback()
 
-                                        Button(AppLocalized.text("common.apply", fallback: "Apply")) {
-                                            Task {
-                                                let message = await aiFaqOwnerReviewLoopStore.apply(
-                                                    recommendation: recommendation,
-                                                    windowDays: aiFaqReviewLoopWindowDays
-                                                )
-                                                showToastMessage(message, style: message.contains("blockiert") ? .warning : .success)
+                                        SkydownBrandActionButton(
+                                            title: AppLocalized.text("common.apply", fallback: "Apply"),
+                                            accent: AppColors.accentHighlight(for: effectiveColorScheme),
+                                            colorScheme: effectiveColorScheme,
+                                            font: .caption.weight(.semibold),
+                                            cornerRadius: SkydownLayout.tightRadius,
+                                            verticalPadding: 8,
+                                            expandToFullWidth: false,
+                                            action: {
+                                                Task {
+                                                    let message = await aiFaqOwnerReviewLoopStore.apply(
+                                                        recommendation: recommendation,
+                                                        windowDays: aiFaqReviewLoopWindowDays
+                                                    )
+                                                    showToastMessage(message, style: message.contains("blockiert") ? .warning : .success)
+                                                }
                                             }
-                                        }
-                                        .font(.caption.weight(.semibold))
-                                        .buttonStyle(.borderedProminent)
+                                        )
+                                        .skydownInteractiveFeedback()
                                     }
                                 }
                                 .padding(10)
@@ -3164,14 +3396,23 @@ struct SettingsView: View {
                                         .fill(AppColors.cardBackground(for: effectiveColorScheme))
                                 )
                             }
-                            Button(AppLocalized.text("settings.ai_runtime.revert_last_change", fallback: "Revert last change")) {
-                                Task {
-                                    let message = await aiFaqOwnerReviewLoopStore.revertLastChange(windowDays: aiFaqReviewLoopWindowDays)
-                                    showToastMessage(message, style: message.contains("revert") ? .success : .info)
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("settings.ai_runtime.revert_last_change", fallback: "Revert last change"),
+                                accent: AppColors.accent(for: effectiveColorScheme),
+                                colorScheme: effectiveColorScheme,
+                                role: .muted,
+                                font: .caption.weight(.semibold),
+                                cornerRadius: SkydownLayout.tightRadius,
+                                verticalPadding: 8,
+                                expandToFullWidth: false,
+                                action: {
+                                    Task {
+                                        let message = await aiFaqOwnerReviewLoopStore.revertLastChange(windowDays: aiFaqReviewLoopWindowDays)
+                                        showToastMessage(message, style: message.contains("revert") ? .success : .info)
+                                    }
                                 }
-                            }
-                            .font(.caption.weight(.semibold))
-                            .buttonStyle(.bordered)
+                            )
+                            .skydownInteractiveFeedback()
                         }
                     }
 
@@ -3586,11 +3827,14 @@ struct SettingsView: View {
                         keyboardType: .numberPad
                     )
 
-                    Button(action: saveAIRuntimeSettings) {
-                        Label(AppLocalized.text("settings.ai_runtime.save", fallback: "Save AI runtime"), systemImage: "switch.2")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("settings.ai_runtime.save", fallback: "Save AI runtime"),
+                        systemImage: "switch.2",
+                        accent: AppColors.accentHighlight(for: effectiveColorScheme),
+                        colorScheme: effectiveColorScheme,
+                        role: .muted,
+                        action: saveAIRuntimeSettings
+                    )
                     .skydownInteractiveFeedback()
                 }
 
@@ -4193,11 +4437,19 @@ struct SettingsView: View {
                 .skydownNavigationChrome(colorScheme: effectiveColorScheme)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            activePresentedSheetBinding.wrappedValue = nil
-                        } label: {
-                            Label(AppLocalized.text("common.close", fallback: "Close"), systemImage: "xmark")
-                        }
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("common.close", fallback: "Close"),
+                            systemImage: "xmark",
+                            accent: AppColors.accent(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            role: .muted,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: false,
+                            action: { activePresentedSheetBinding.wrappedValue = nil }
+                        )
+                        .skydownInteractiveFeedback()
                     }
                 }
             }
@@ -5150,9 +5402,18 @@ private struct SettingsInputField: View {
                 .toolbar {
                     ToolbarItemGroup(placement: .keyboard) {
                         Spacer()
-                        Button("Done") {
-                            isFocused = false
-                        }
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("common.done", fallback: "Done"),
+                            accent: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: false,
+                            action: { isFocused = false }
+                        )
+                        .skydownInteractiveFeedback()
                     }
                 }
         }
@@ -5178,9 +5439,18 @@ private struct SettingsSecureInputField: View {
                 .toolbar {
                     ToolbarItemGroup(placement: .keyboard) {
                         Spacer()
-                        Button("Done") {
-                            isFocused = false
-                        }
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("common.done", fallback: "Done"),
+                            accent: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: false,
+                            action: { isFocused = false }
+                        )
+                        .skydownInteractiveFeedback()
                     }
                 }
         }
@@ -5216,9 +5486,18 @@ private struct SettingsMultilineInputField: View {
                     .toolbar {
                         ToolbarItemGroup(placement: .keyboard) {
                             Spacer()
-                            Button("Done") {
-                                isFocused = false
-                            }
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("common.done", fallback: "Done"),
+                                accent: AppColors.accent(for: colorScheme),
+                                colorScheme: colorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 8,
+                                expandToFullWidth: false,
+                                action: { isFocused = false }
+                            )
+                            .skydownInteractiveFeedback()
                         }
                     }
             }
@@ -5336,19 +5615,16 @@ private struct SettingsProfileEditorCard: View {
                 placeholder: "+49 ..."
             )
 
-            Button(action: onSave) {
-                if isSaving {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Label(AppLocalized.text("settings.profile.save", fallback: "Save profile"), systemImage: "checkmark.circle.fill")
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .buttonStyle(.borderedProminent)
+            SkydownBrandActionButton(
+                title: AppLocalized.text("settings.profile.save", fallback: "Save profile"),
+                systemImage: "checkmark.circle.fill",
+                accent: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                isEnabled: !isSaving,
+                isLoading: isSaving,
+                action: onSave
+            )
             .skydownInteractiveFeedback()
-            .tint(AppColors.accent(for: colorScheme))
-            .disabled(isSaving)
         }
     }
 }
@@ -5411,15 +5687,33 @@ private struct PaymentProviderSettingsCard: View {
             )
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
-                Button(actionTitle, action: onPrimaryAction)
-                    .buttonStyle(.borderedProminent)
-                    .skydownInteractiveFeedback()
-                    .tint(AppColors.accent(for: colorScheme))
+                SkydownBrandActionButton(
+                    title: actionTitle,
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 11,
+                    expandToFullWidth: true,
+                    action: onPrimaryAction
+                )
+                .skydownInteractiveFeedback()
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 if let secondaryActionTitle, let onSecondaryAction {
-                    Button(secondaryActionTitle, action: onSecondaryAction)
-                        .buttonStyle(.bordered)
-                        .skydownInteractiveFeedback()
+                    SkydownBrandActionButton(
+                        title: secondaryActionTitle,
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 11,
+                        expandToFullWidth: true,
+                        action: onSecondaryAction
+                    )
+                    .skydownInteractiveFeedback()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
@@ -5490,10 +5784,16 @@ private struct StripeBackendSecretsCard: View {
                 placeholder: "whsec_..."
             )
 
-            Button(AppLocalized.text("settings.stripe_backend.save_securely", fallback: "Save securely"), action: onSave)
-                .buttonStyle(.borderedProminent)
-                .skydownInteractiveFeedback()
-                .tint(AppColors.accent(for: colorScheme))
+            SkydownBrandActionButton(
+                title: AppLocalized.text("settings.stripe_backend.save_securely", fallback: "Save securely"),
+                accent: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                font: .subheadline.weight(.semibold),
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 11,
+                action: onSave
+            )
+            .skydownInteractiveFeedback()
         }
         .padding(SkydownLayout.cardPadding)
         .background(AppColors.secondaryBackground(for: colorScheme))
@@ -5595,16 +5895,20 @@ private struct NativeAISubscriptionStatusCard: View {
                                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                             }
 
-                            Button {
-                                onPurchase(product.plan)
-                            } label: {
-                                Text(activePurchasePlan == product.plan ? "Wird gestartet..." : "\(product.plan.displayTitle) im App Store aktivieren")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.borderedProminent)
+                            SkydownBrandActionButton(
+                                title: activePurchasePlan == product.plan
+                                    ? "Wird gestartet..."
+                                    : "\(product.plan.displayTitle) im App Store aktivieren",
+                                accent: AppColors.accent(for: colorScheme),
+                                colorScheme: colorScheme,
+                                isEnabled: activePurchasePlan == nil && purchaseDisabledReason == nil,
+                                isLoading: activePurchasePlan == product.plan,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 11,
+                                action: { onPurchase(product.plan) }
+                            )
                             .skydownInteractiveFeedback()
-                            .tint(AppColors.accent(for: colorScheme))
-                            .disabled(activePurchasePlan != nil || purchaseDisabledReason != nil)
                         }
                         .padding(12)
                         .background(AppColors.cardBackground(for: colorScheme))
@@ -5628,14 +5932,34 @@ private struct NativeAISubscriptionStatusCard: View {
             }
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
-                Button(AppLocalized.text("settings.ai_subscriptions.restore_purchases", fallback: "Restore purchases"), action: onRestore)
-                    .buttonStyle(.bordered)
-                    .skydownInteractiveFeedback()
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("settings.ai_subscriptions.restore_purchases", fallback: "Restore purchases"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 11,
+                    expandToFullWidth: true,
+                    action: onRestore
+                )
+                .skydownInteractiveFeedback()
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button(AppLocalized.text("settings.ai_subscriptions.manage_subscription", fallback: "Manage subscription"), action: onManage)
-                    .buttonStyle(.bordered)
-                    .skydownInteractiveFeedback()
-                    .disabled(!isStorefrontReady)
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("settings.ai_subscriptions.manage_subscription", fallback: "Manage subscription"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    isEnabled: isStorefrontReady,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 11,
+                    expandToFullWidth: true,
+                    action: onManage
+                )
+                .skydownInteractiveFeedback()
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(12)
@@ -5758,10 +6082,16 @@ private struct AISubscriptionPricingCard: View {
                 placeholder: "skydown_ai_studio"
             )
 
-            Button(AppLocalized.text("settings.ai_subscriptions.save", fallback: "Save AI subscription"), action: onSave)
-                .buttonStyle(.borderedProminent)
-                .skydownInteractiveFeedback()
-                .tint(AppColors.accent(for: colorScheme))
+            SkydownBrandActionButton(
+                title: AppLocalized.text("settings.ai_subscriptions.save", fallback: "Save AI subscription"),
+                accent: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                font: .subheadline.weight(.semibold),
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 11,
+                action: onSave
+            )
+            .skydownInteractiveFeedback()
         }
         .padding(SkydownLayout.cardPadding)
         .background(AppColors.secondaryBackground(for: colorScheme))
@@ -5865,10 +6195,16 @@ private struct BankTransferSettingsCard: View {
                 isEnabled: isConfigured
             )
 
-            Button(isConfigured ? "Bankdaten aktualisieren" : "Bankdaten hinterlegen", action: onSave)
-                .buttonStyle(.borderedProminent)
-                .skydownInteractiveFeedback()
-                .tint(AppColors.accentMystic(for: colorScheme))
+            SkydownBrandActionButton(
+                title: isConfigured ? "Bankdaten aktualisieren" : "Bankdaten hinterlegen",
+                accent: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                font: .subheadline.weight(.semibold),
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 11,
+                action: onSave
+            )
+            .skydownInteractiveFeedback()
         }
         .padding(SkydownLayout.cardPadding)
         .background(AppColors.secondaryBackground(for: colorScheme))
@@ -6920,36 +7256,40 @@ private struct SettingsArtistPageCard: View {
                 }
             }
 
-            Button {
-                onSave(
-                    ArtistPage(
-                        id: page.slug,
-                        brand: page.brand,
-                        artistName: page.artistName,
-                        tagline: page.tagline,
-                        bio: page.bio,
-                        profileImageURL: page.profileImageURL,
-                        heroImageURL: page.heroImageURL,
-                        heroVideoURL: page.heroVideoURL,
-                        instagramURL: page.instagramURL,
-                        spotifyURL: page.spotifyURL,
-                        youtubeURL: page.youtubeURL,
-                        studioPriceList: page.studioPriceList,
-                        editorUids: page.brand == .nicma
-                            ? Array(selectedEditorUids.prefix(1))
-                            : Array(selectedEditorUids).sorted(),
-                        createdAt: page.createdAt,
-                        updatedAt: .now,
-                        isPlaceholder: false
+            SkydownBrandActionButton(
+                title: AppLocalized.text("settings.roles.save_editors", fallback: "Save editors"),
+                systemImage: "person.crop.circle.badge.checkmark",
+                accent: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                font: .subheadline.weight(.semibold),
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 11,
+                action: {
+                    onSave(
+                        ArtistPage(
+                            id: page.slug,
+                            brand: page.brand,
+                            artistName: page.artistName,
+                            tagline: page.tagline,
+                            bio: page.bio,
+                            profileImageURL: page.profileImageURL,
+                            heroImageURL: page.heroImageURL,
+                            heroVideoURL: page.heroVideoURL,
+                            instagramURL: page.instagramURL,
+                            spotifyURL: page.spotifyURL,
+                            youtubeURL: page.youtubeURL,
+                            studioPriceList: page.studioPriceList,
+                            editorUids: page.brand == .nicma
+                                ? Array(selectedEditorUids.prefix(1))
+                                : Array(selectedEditorUids).sorted(),
+                            createdAt: page.createdAt,
+                            updatedAt: .now,
+                            isPlaceholder: false
+                        )
                     )
-                )
-            } label: {
-                Label(AppLocalized.text("settings.roles.save_editors", fallback: "Save editors"), systemImage: "person.crop.circle.badge.checkmark")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
+                }
+            )
             .skydownInteractiveFeedback()
-            .tint(AppColors.accent(for: colorScheme))
         }
         .padding(SkydownLayout.cardPadding)
         .background(AppColors.secondaryBackground(for: colorScheme))
@@ -7166,44 +7506,39 @@ private struct SettingsAdminUserCard: View {
                 .pickerStyle(.segmented)
             }
 
-            Button {
-                guard !isSaving, hasPendingChanges else { return }
+            SkydownBrandActionButton(
+                title: isSaving ? "Speichert..." : "Konto speichern",
+                systemImage: isSaving ? "hourglass" : "checkmark.circle.fill",
+                accent: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                isEnabled: !isSaving && hasPendingChanges,
+                isLoading: isSaving,
+                font: .subheadline.weight(.semibold),
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 12,
+                action: {
+                    guard !isSaving, hasPendingChanges else { return }
 
-                isSaving = true
-                saveErrorMessage = nil
-                let pendingUser = draftUser
+                    isSaving = true
+                    saveErrorMessage = nil
+                    let pendingUser = draftUser
 
-                Task {
-                    let result = await onSave(pendingUser)
-                    await MainActor.run {
-                        isSaving = false
-                        switch result {
-                        case .success:
-                            saveSuccessCount += 1
-                            saveErrorMessage = nil
-                        case .failure(let error):
-                            saveErrorMessage = error.localizedDescription
+                    Task {
+                        let result = await onSave(pendingUser)
+                        await MainActor.run {
+                            isSaving = false
+                            switch result {
+                            case .success:
+                                saveSuccessCount += 1
+                                saveErrorMessage = nil
+                            case .failure(let error):
+                                saveErrorMessage = error.localizedDescription
+                            }
                         }
                     }
                 }
-            } label: {
-                HStack(spacing: SkydownLayout.stackSpacingPill) {
-                    if isSaving {
-                        ProgressView()
-                            .tint(Color.white)
-                    }
-
-                    Label(
-                        isSaving ? "Speichert..." : "Konto speichern",
-                        systemImage: isSaving ? "hourglass" : "checkmark.circle.fill"
-                    )
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
+            )
             .skydownInteractiveFeedback()
-            .tint(AppColors.accent(for: colorScheme))
-            .disabled(isSaving || !hasPendingChanges)
 
             if let saveErrorMessage {
                 Text(saveErrorMessage)

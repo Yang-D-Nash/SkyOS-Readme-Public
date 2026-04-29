@@ -154,6 +154,25 @@ class CartViewModel : ViewModel() {
         }
     }
 
+    fun updateItemQuantity(itemId: String, size: String, color: String? = null, delta: Int) {
+        if (delta == 0) return
+        _uiState.update { state ->
+            val updatedItems = state.items.map { cartItem ->
+                val sameItem = cartItem.item.id == itemId &&
+                    cartItem.size.equals(size, ignoreCase = true) &&
+                    cartItem.color.equals(color, ignoreCase = true)
+                if (!sameItem) {
+                    cartItem
+                } else {
+                    val nextQuantity = (cartItem.quantity + delta).coerceIn(1, 10)
+                    cartItem.copy(quantity = nextQuantity)
+                }
+            }
+            AppCartStore.setItems(updatedItems)
+            state.copy(items = updatedItems)
+        }
+    }
+
     fun isFormValid(): Boolean {
         val state = _uiState.value
         return CartUseCase.validateContact(

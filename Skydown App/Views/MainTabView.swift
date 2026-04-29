@@ -1589,10 +1589,19 @@ private struct AIHubView: View {
             .toolbar {
                 if !SkydownPlatform.isDesktop {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button(action: onExitImmersive) {
-                            Label("Zurueck", systemImage: "chevron.backward")
-                                .labelStyle(.titleAndIcon)
-                        }
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("common.back", fallback: "Zurueck"),
+                            systemImage: "chevron.backward",
+                            accent: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: false,
+                            action: onExitImmersive
+                        )
+                        .skydownInteractiveFeedback()
                         .accessibilityIdentifier("ai.hub.exit")
                     }
                 }
@@ -1828,14 +1837,16 @@ private struct AIHubLoginCard: View {
                 AIHubBadge(text: AppLocalized.text("ai.hub.badge.visuals", fallback: "Visuals"), color: AppColors.accentHighlight(for: colorScheme))
             }
 
-            Button(action: onOpenLogin) {
-                Text(ctaTitle)
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColors.accent(for: colorScheme))
+            SkydownBrandActionButton(
+                title: ctaTitle,
+                systemImage: "arrow.right.circle.fill",
+                accent: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                font: .headline,
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 14,
+                action: onOpenLogin
+            )
         }
         .padding(SkydownLayout.cardPadding)
         .background(AppColors.cardBackground(for: colorScheme))
@@ -1868,14 +1879,16 @@ private struct AIHubRestrictedCard: View {
                 AIHubBadge(text: AppLocalized.text("ai.hub.badge.visuals", fallback: "Visuals"), color: AppColors.accentMystic(for: colorScheme))
             }
 
-            Button(action: onOpenSettings) {
-                Text(AppLocalized.text("ai.hub.open_settings", fallback: "Settings"))
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColors.accentMystic(for: colorScheme))
+            SkydownBrandActionButton(
+                title: AppLocalized.text("ai.hub.open_settings", fallback: "Settings"),
+                systemImage: "gearshape.fill",
+                accent: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                font: .headline,
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 14,
+                action: onOpenSettings
+            )
         }
         .padding(SkydownLayout.cardPadding)
         .background(AppColors.cardBackground(for: colorScheme))
@@ -2044,23 +2057,28 @@ private struct AIWorkflowWorkspaceCard: View {
                 AIHubBadge(text: AppLocalized.text("ai.hub.workflow.badge.context", fallback: "Context"), color: AppColors.accentMystic(for: colorScheme))
             }
 
-            Button(action: onOpenSettings) {
-                Text(AppLocalized.text("ai.hub.workflow.setup", fallback: "Set up automation"))
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColors.accentHighlight(for: colorScheme))
+            SkydownBrandActionButton(
+                title: AppLocalized.text("ai.hub.workflow.setup", fallback: "Set up automation"),
+                systemImage: "link.badge.plus",
+                accent: AppColors.accentHighlight(for: colorScheme),
+                colorScheme: colorScheme,
+                font: .headline,
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 14,
+                action: onOpenSettings
+            )
 
-            Button(action: onClose) {
-                Text(AppLocalized.text("ai.hub.workflow.back_to_ai", fallback: "Back to AI"))
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-            }
-            .buttonStyle(.bordered)
-            .tint(AppColors.accent(for: colorScheme))
+            SkydownBrandActionButton(
+                title: AppLocalized.text("ai.hub.workflow.back_to_ai", fallback: "Back to AI"),
+                systemImage: "arrow.uturn.backward.circle.fill",
+                accent: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                role: .muted,
+                font: .headline,
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 14,
+                action: onClose
+            )
         }
         .padding(SkydownLayout.cardPadding)
         .background(AppColors.cardBackground(for: colorScheme))

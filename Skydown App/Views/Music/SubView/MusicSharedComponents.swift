@@ -254,6 +254,25 @@ struct NicmaProducerPackage: Identifiable {
     let price: String
 }
 
+private struct SkydownKeyboardDismissAccessory: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        SkydownBrandActionButton(
+            title: AppLocalized.text("common.done", fallback: "Fertig"),
+            accent: AppColors.accent(for: colorScheme),
+            colorScheme: colorScheme,
+            role: .muted,
+            font: .subheadline.weight(.semibold),
+            cornerRadius: SkydownLayout.denseRadius,
+            verticalPadding: 8,
+            expandToFullWidth: false,
+            action: { UIApplication.shared.skydownDismissKeyboard() }
+        )
+        .skydownInteractiveFeedback()
+    }
+}
+
 extension View {
     func skydownPremiumInputSurface() -> some View {
         self
@@ -265,9 +284,7 @@ extension View {
         toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Fertig") {
-                    UIApplication.shared.skydownDismissKeyboard()
-                }
+                SkydownKeyboardDismissAccessory()
             }
         }
     }
@@ -355,7 +372,7 @@ let artistInstagramDestinations: [String: MusicInstagramDestination] = [
         handle: "@toprack_941",
         urlString: "https://www.instagram.com/toprack_941/",
         helper: "Artist aktuell ausgewaehlt",
-        spotifyURLString: nil,
+        spotifyURLString: "https://open.spotify.com/artist/4CoozMQ3B3I20day60N7QA?si=DckCJP2QRlK2dQxeRLIM-w",
         artistPageName: "Toprack941"
     ),
     "TANGAJOE007": MusicInstagramDestination(

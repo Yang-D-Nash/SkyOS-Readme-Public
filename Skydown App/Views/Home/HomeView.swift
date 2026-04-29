@@ -165,6 +165,8 @@ struct HomeViewContent: View {
                                     remindersUpcoming: viewModel.upcomingReminders,
                                     openTasks: viewModel.openTasks,
                                     recentNotes: viewModel.recentNotes,
+                                    syncPaused: viewModel.syncPaused,
+                                    recoverableError: viewModel.recoverableError,
                                     onRequestFounderBriefing: onOpenWorkflowWithPrompt == nil ? nil : { mode in
                                         Task {
                                             await runFounderBriefing(mode: mode)
@@ -174,67 +176,29 @@ struct HomeViewContent: View {
                                     founderBriefingFeedbackMessage: founderBriefingFeedbackMessage,
                                     founderBriefingFeedbackStyle: founderBriefingFeedbackStyle,
                                     onOpenToday: {
-                                        triggerQuickAction {
-                                            if authManager.userSession == nil, let onGuestSignIn {
-                                                onGuestSignIn()
-                                            } else {
-                                                presentSheet(.reminderManager)
-                                            }
-                                        }
+                                        runProductivityAction(presenting: .reminderManager)
                                     },
                                     onOpenUpcoming: {
-                                        triggerQuickAction {
-                                            if authManager.userSession == nil, let onGuestSignIn {
-                                                onGuestSignIn()
-                                            } else {
-                                                presentSheet(.reminderManager)
-                                            }
-                                        }
+                                        runProductivityAction(presenting: .reminderManager)
                                     },
                                     onOpenTasks: {
-                                        triggerQuickAction {
-                                            if authManager.userSession == nil, let onGuestSignIn {
-                                                onGuestSignIn()
-                                            } else {
-                                                presentSheet(.taskManager)
-                                            }
-                                        }
+                                        runProductivityAction(presenting: .taskManager)
                                     },
                                     onOpenNotes: {
-                                        triggerQuickAction {
-                                            if authManager.userSession == nil, let onGuestSignIn {
-                                                onGuestSignIn()
-                                            } else {
-                                                presentSheet(.noteManager)
-                                            }
-                                        }
+                                        runProductivityAction(presenting: .noteManager)
                                     },
                                     onCreateReminder: {
-                                        triggerQuickAction {
-                                            if authManager.userSession == nil, let onGuestSignIn {
-                                                onGuestSignIn()
-                                            } else {
-                                                presentSheet(.reminderComposer)
-                                            }
-                                        }
+                                        runProductivityAction(presenting: .reminderComposer)
                                     },
                                     onCreateTask: {
-                                        triggerQuickAction {
-                                            if authManager.userSession == nil, let onGuestSignIn {
-                                                onGuestSignIn()
-                                            } else {
-                                                presentSheet(.taskComposer)
-                                            }
-                                        }
+                                        runProductivityAction(presenting: .taskComposer)
                                     },
                                     onCreateNote: {
-                                        triggerQuickAction {
-                                            if authManager.userSession == nil, let onGuestSignIn {
-                                                onGuestSignIn()
-                                            } else {
-                                                presentSheet(.noteComposer)
-                                            }
-                                        }
+                                        runProductivityAction(presenting: .noteComposer)
+                                    },
+                                    onRetryRecovery: {
+                                        SkydownHaptics.selection()
+                                        viewModel.refresh()
                                     }
                                 )
                                 .homeReveal(4)
@@ -306,15 +270,19 @@ struct HomeViewContent: View {
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     if let onOpenWorkflow {
-                        Button(action: onOpenWorkflow) {
-                            Image(systemName: "arrow.triangle.branch")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundColor(AppColors.text(for: colorScheme))
-                                .padding(10)
-                                .background(Circle().fill(AppColors.accentHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.20)))
-                                .overlay(Circle().stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.22), lineWidth: 1))
-                        }
-                        .skydownTactileAction()
+                        SkydownBrandActionButton(
+                            title: "",
+                            systemImage: "arrow.triangle.branch",
+                            accent: AppColors.accentHighlight(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: false,
+                            action: onOpenWorkflow
+                        )
+                        .skydownInteractiveFeedback()
                         .accessibilityLabel(AppLocalized.text("home.toolbar.workflow", fallback: "Open automations"))
                     }
                     AppSessionToolbarActions(
@@ -507,6 +475,16 @@ struct HomeViewContent: View {
         }
     }
 
+    private func runProductivityAction(presenting sheet: HomePresentedSheet) {
+        triggerQuickAction {
+            if authManager.userSession == nil, let onGuestSignIn {
+                onGuestSignIn()
+            } else {
+                presentSheet(sheet)
+            }
+        }
+    }
+
     private static func founderBriefingMetaLine(_ meta: [String: Any]?) -> String? {
         guard let meta, !meta.isEmpty else { return nil }
         var parts: [String] = []
@@ -647,7 +625,12 @@ struct HomeViewContent: View {
             throw NSError(
                 domain: "HomeFounderBriefing",
                 code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Briefing konnte nicht gelesen werden."]
+                userInfo: [
+                    NSLocalizedDescriptionKey: AppLocalized.text(
+                        "home.owner.founder.error_parse",
+                        fallback: "Briefing response could not be read."
+                    )
+                ]
             )
         }
         let workflowData = (rootData["data"] as? [String: Any]) ?? rootData
@@ -658,7 +641,10 @@ struct HomeViewContent: View {
         if workflowStatus == "failed" {
             let message = (workflowData["message"] as? String)?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            let resolvedMessage = (message?.isEmpty == false ? message : nil) ?? "Workflow konnte nicht abgeschlossen werden."
+            let resolvedMessage = (message?.isEmpty == false ? message : nil) ?? AppLocalized.text(
+                "home.owner.founder.error_workflow_failed",
+                fallback: "Workflow could not be completed."
+            )
             throw NSError(
                 domain: "HomeFounderBriefing",
                 code: -2,
@@ -744,7 +730,10 @@ struct HomeViewContent: View {
             let message = (workflowData["message"] as? String)?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             let resolvedMessage = (message?.isEmpty == false ? message : nil) ??
-                "Workflow lief, aber es wurden keine Briefing-Texte geliefert."
+                AppLocalized.text(
+                    "home.owner.founder.error_missing_text",
+                    fallback: "Workflow ran, but no briefing text was returned."
+                )
             throw NSError(
                 domain: "HomeFounderBriefing",
                 code: -3,
@@ -840,6 +829,18 @@ private struct HomeManageableItemRow: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
     let onSave: () -> Void
+    private var editAccessibilityLabel: String {
+        String(
+            format: AppLocalized.text("home.manager.edit_item", fallback: "Edit %@"),
+            title
+        )
+    }
+    private var deleteAccessibilityLabel: String {
+        String(
+            format: AppLocalized.text("home.manager.delete_item", fallback: "Delete %@"),
+            title
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
@@ -857,27 +858,30 @@ private struct HomeManageableItemRow: View {
                 }
                 Spacer(minLength: 8)
                 HStack(spacing: SkydownLayout.stackSpacingHairline) {
-                    Button(action: onEdit) {
-                        Image(systemName: "pencil")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(AppColors.accent(for: colorScheme).opacity(0.92))
-                            .frame(width: 36, height: 36)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                    .accessibilityLabel(AppLocalized.text("common.edit", fallback: "Edit"))
+                    SkydownBrandActionButton(
+                        title: "",
+                        systemImage: "pencil",
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: onEdit
+                    )
+                    .skydownInteractiveFeedback()
+                    .accessibilityLabel(editAccessibilityLabel)
 
-                    Button(action: onDelete) {
+                    Button(role: .destructive, action: onDelete) {
                         Image(systemName: "trash")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.red.opacity(0.72))
-                            .frame(width: 36, height: 36)
+                            .frame(width: 44, height: 44)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .skydownTactileAction()
-                    .accessibilityLabel(AppLocalized.text("common.delete", fallback: "Delete"))
+                    .accessibilityLabel(deleteAccessibilityLabel)
                 }
             }
 
@@ -888,14 +892,15 @@ private struct HomeManageableItemRow: View {
                         .padding(12)
                         .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.55))
                         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
-                    Button(action: onSave) {
-                        Text(AppLocalized.text("common.save", fallback: "Save"))
-                            .font(.caption.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.save", fallback: "Save"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.compactRadius,
+                        verticalPadding: 10,
+                        action: onSave
+                    )
                     .accessibilityLabel(AppLocalized.text("common.save", fallback: "Save"))
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -912,60 +917,21 @@ private struct HomeReminderManagerSheet: View {
     let reminders: [HomeViewModel.ProductivityReminder]
     let onUpdateTitle: (_ id: String, _ title: String) async throws -> Void
     let onDelete: (_ id: String) async throws -> Void
-    @State private var editingID: String?
-    @State private var draftTitle: String = ""
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-                if reminders.isEmpty {
-                    Text(AppLocalized.text("home.manager.empty", fallback: "All clear."))
-                        .font(.footnote)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 10)
-                } else {
-                    ForEach(reminders) { reminder in
-                        let dueLine = reminder.dueAt.map {
-                            DateFormatter.localizedString(from: $0, dateStyle: .short, timeStyle: .short)
-                        }
-                        HomeManageableItemRow(
-                            colorScheme: colorScheme,
-                            title: reminder.title,
-                            subtitle: dueLine,
-                            isEditing: editingID == reminder.id,
-                            draftTitle: $draftTitle,
-                            fieldPlaceholder: AppLocalized.text("home.manager.rename_placeholder", fallback: "New title"),
-                            onEdit: {
-                                withAnimation(SkydownMotion.statusTransition) {
-                                    editingID = reminder.id
-                                    draftTitle = reminder.title
-                                }
-                            },
-                            onDelete: {
-                                Task { try? await onDelete(reminder.id) }
-                            },
-                            onSave: {
-                                let normalized = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-                                guard !normalized.isEmpty else { return }
-                                Task {
-                                    try? await onUpdateTitle(reminder.id, normalized)
-                                    await MainActor.run {
-                                        withAnimation(SkydownMotion.statusTransition) {
-                                            editingID = nil
-                                        }
-                                    }
-                                }
-                            }
-                        )
-                    }
+        HomeManageableListSheet(
+            colorScheme: colorScheme,
+            title: AppLocalized.text("home.manager.reminders.title", fallback: "Reminders"),
+            items: reminders,
+            itemTitle: { $0.title },
+            itemSubtitle: { reminder in
+                reminder.dueAt.map {
+                    DateFormatter.localizedString(from: $0, dateStyle: .short, timeStyle: .short)
                 }
-            }
-            .padding(.horizontal, SkydownLayout.screenHorizontalPadding - 4)
-            .padding(.vertical, 8)
-        }
-        .navigationTitle(AppLocalized.text("home.manager.reminders.title", fallback: "Reminders"))
-        .navigationBarTitleDisplayMode(.inline)
+            },
+            onUpdateTitle: onUpdateTitle,
+            onDelete: onDelete
+        )
     }
 }
 
@@ -974,57 +940,17 @@ private struct HomeTaskManagerSheet: View {
     let tasks: [HomeViewModel.ProductivityTask]
     let onUpdateTitle: (_ id: String, _ title: String) async throws -> Void
     let onDelete: (_ id: String) async throws -> Void
-    @State private var editingID: String?
-    @State private var draftTitle: String = ""
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-                if tasks.isEmpty {
-                    Text(AppLocalized.text("home.manager.empty", fallback: "All clear."))
-                        .font(.footnote)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 10)
-                } else {
-                    ForEach(tasks) { task in
-                        HomeManageableItemRow(
-                            colorScheme: colorScheme,
-                            title: task.title,
-                            subtitle: nil,
-                            isEditing: editingID == task.id,
-                            draftTitle: $draftTitle,
-                            fieldPlaceholder: AppLocalized.text("home.manager.rename_placeholder", fallback: "New title"),
-                            onEdit: {
-                                withAnimation(SkydownMotion.statusTransition) {
-                                    editingID = task.id
-                                    draftTitle = task.title
-                                }
-                            },
-                            onDelete: {
-                                Task { try? await onDelete(task.id) }
-                            },
-                            onSave: {
-                                let normalized = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-                                guard !normalized.isEmpty else { return }
-                                Task {
-                                    try? await onUpdateTitle(task.id, normalized)
-                                    await MainActor.run {
-                                        withAnimation(SkydownMotion.statusTransition) {
-                                            editingID = nil
-                                        }
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-            .padding(.horizontal, SkydownLayout.screenHorizontalPadding - 4)
-            .padding(.vertical, 8)
-        }
-        .navigationTitle(AppLocalized.text("tasks.title", fallback: "Tasks"))
-        .navigationBarTitleDisplayMode(.inline)
+        HomeManageableListSheet(
+            colorScheme: colorScheme,
+            title: AppLocalized.text("tasks.title", fallback: "Tasks"),
+            items: tasks,
+            itemTitle: { $0.title },
+            itemSubtitle: { _ in nil },
+            onUpdateTitle: onUpdateTitle,
+            onDelete: onDelete
+        )
     }
 }
 
@@ -1033,44 +959,71 @@ private struct HomeNoteManagerSheet: View {
     let notes: [HomeViewModel.ProductivityNote]
     let onUpdateTitle: (_ id: String, _ title: String) async throws -> Void
     let onDelete: (_ id: String) async throws -> Void
+
+    var body: some View {
+        HomeManageableListSheet(
+            colorScheme: colorScheme,
+            title: AppLocalized.text("notes.title", fallback: "Notes"),
+            items: notes,
+            itemTitle: { $0.title },
+            itemSubtitle: { note in
+                note.updatedAt.map {
+                    DateFormatter.localizedString(from: $0, dateStyle: .short, timeStyle: .short)
+                }
+            },
+            onUpdateTitle: onUpdateTitle,
+            onDelete: onDelete
+        )
+    }
+}
+
+private struct HomeManageableListSheet<Item: Identifiable>: View where Item.ID == String {
+    let colorScheme: ColorScheme
+    let title: String
+    let items: [Item]
+    let itemTitle: (Item) -> String
+    let itemSubtitle: (Item) -> String?
+    let onUpdateTitle: (_ id: String, _ title: String) async throws -> Void
+    let onDelete: (_ id: String) async throws -> Void
+
+    @Environment(\.dismiss) private var dismiss
     @State private var editingID: String?
     @State private var draftTitle: String = ""
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-                if notes.isEmpty {
+                if items.isEmpty {
                     Text(AppLocalized.text("home.manager.empty", fallback: "All clear."))
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 10)
                 } else {
-                    ForEach(notes) { note in
-                        let updatedLine = note.updatedAt.map {
-                            DateFormatter.localizedString(from: $0, dateStyle: .short, timeStyle: .short)
-                        }
+                    ForEach(items) { item in
+                        let rowTitle = itemTitle(item)
+                        let rowSubtitle = itemSubtitle(item)
                         HomeManageableItemRow(
                             colorScheme: colorScheme,
-                            title: note.title,
-                            subtitle: updatedLine,
-                            isEditing: editingID == note.id,
+                            title: rowTitle,
+                            subtitle: rowSubtitle,
+                            isEditing: editingID == item.id,
                             draftTitle: $draftTitle,
                             fieldPlaceholder: AppLocalized.text("home.manager.rename_placeholder", fallback: "New title"),
                             onEdit: {
                                 withAnimation(SkydownMotion.statusTransition) {
-                                    editingID = note.id
-                                    draftTitle = note.title
+                                    editingID = item.id
+                                    draftTitle = rowTitle
                                 }
                             },
                             onDelete: {
-                                Task { try? await onDelete(note.id) }
+                                Task { try? await onDelete(item.id) }
                             },
                             onSave: {
                                 let normalized = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                                 guard !normalized.isEmpty else { return }
                                 Task {
-                                    try? await onUpdateTitle(note.id, normalized)
+                                    try? await onUpdateTitle(item.id, normalized)
                                     await MainActor.run {
                                         withAnimation(SkydownMotion.statusTransition) {
                                             editingID = nil
@@ -1085,8 +1038,25 @@ private struct HomeNoteManagerSheet: View {
             .padding(.horizontal, SkydownLayout.screenHorizontalPadding - 4)
             .padding(.vertical, 8)
         }
-        .navigationTitle(AppLocalized.text("notes.title", fallback: "Notes"))
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .skydownNavigationChrome(colorScheme: colorScheme)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("common.done", fallback: "Done"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 8,
+                    expandToFullWidth: false,
+                    action: { dismiss() }
+                )
+                .skydownInteractiveFeedback()
+            }
+        }
     }
 }
 
@@ -1113,16 +1083,23 @@ private struct HomeReminderComposerSheet: View {
                     selection: $dueAt,
                     displayedComponents: [.date, .hourAndMinute]
                 )
-                Button(AppLocalized.text("home.sheet.add", fallback: "Add")) {
-                    let normalized = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !normalized.isEmpty else { return }
-                    Task {
-                        try? await onCreate(normalized, dueAt)
-                        dismiss()
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("home.sheet.add", fallback: "Add"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isEnabled: !titleText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 12,
+                    action: {
+                        let normalized = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !normalized.isEmpty else { return }
+                        Task {
+                            try? await onCreate(normalized, dueAt)
+                            dismiss()
+                        }
                     }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(titleText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                )
             }
             .padding()
         }
@@ -1130,6 +1107,23 @@ private struct HomeReminderComposerSheet: View {
         .skydownPremiumInputSurface()
         .navigationTitle(AppLocalized.text("home.quick.create_reminder", fallback: "Create Reminder"))
         .navigationBarTitleDisplayMode(.inline)
+        .skydownNavigationChrome(colorScheme: colorScheme)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("common.done", fallback: "Done"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 8,
+                    expandToFullWidth: false,
+                    action: { dismiss() }
+                )
+                .skydownInteractiveFeedback()
+            }
+        }
     }
 }
 
@@ -1171,17 +1165,24 @@ private struct HomeTaskComposerSheet: View {
                     )
                     .tint(AppColors.accentMystic(for: colorScheme))
                 }
-                Button(AppLocalized.text("tasks.input.add", fallback: "Add task")) {
-                    let title = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !title.isEmpty else { return }
-                    Task {
-                        let due: Date? = useDueAt ? dueAt : nil
-                        try? await onCreate(title, detailText, due)
-                        dismiss()
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("tasks.input.add", fallback: "Create task"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isEnabled: !titleText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 12,
+                    action: {
+                        let title = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !title.isEmpty else { return }
+                        Task {
+                            let due: Date? = useDueAt ? dueAt : nil
+                            try? await onCreate(title, detailText, due)
+                            dismiss()
+                        }
                     }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(titleText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                )
             }
             .padding()
         }
@@ -1189,6 +1190,23 @@ private struct HomeTaskComposerSheet: View {
         .skydownPremiumInputSurface()
         .navigationTitle(AppLocalized.text("home.quick.create_task", fallback: "Create Task"))
         .navigationBarTitleDisplayMode(.inline)
+        .skydownNavigationChrome(colorScheme: colorScheme)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("common.done", fallback: "Done"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 8,
+                    expandToFullWidth: false,
+                    action: { dismiss() }
+                )
+                .skydownInteractiveFeedback()
+            }
+        }
     }
 }
 
@@ -1215,19 +1233,24 @@ private struct HomeNoteComposerSheet: View {
                     .padding(10)
                     .background(AppColors.cardBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
-                Button(AppLocalized.text("notes.input.add", fallback: "Add note")) {
-                    let title = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let content = contentText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !title.isEmpty || !content.isEmpty else { return }
-                    Task {
-                        try? await onCreate(title, content)
-                        dismiss()
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("notes.input.add", fallback: "Create note"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isEnabled: !titleText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || !contentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 12,
+                    action: {
+                        let title = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let content = contentText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !title.isEmpty || !content.isEmpty else { return }
+                        Task {
+                            try? await onCreate(title, content)
+                            dismiss()
+                        }
                     }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(
-                    titleText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                    contentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 )
             }
             .padding()
@@ -1236,6 +1259,23 @@ private struct HomeNoteComposerSheet: View {
         .skydownPremiumInputSurface()
         .navigationTitle(AppLocalized.text("home.quick.create_note", fallback: "Create Note"))
         .navigationBarTitleDisplayMode(.inline)
+        .skydownNavigationChrome(colorScheme: colorScheme)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("common.done", fallback: "Done"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 8,
+                    expandToFullWidth: false,
+                    action: { dismiss() }
+                )
+                .skydownInteractiveFeedback()
+            }
+        }
     }
 }
 
@@ -1277,22 +1317,59 @@ private struct FounderBriefingResultSheet: View {
                 }
 
                 HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                    Button("WhatsApp") { onShareWhatsApp() }
-                        .buttonStyle(.borderedProminent)
-                    Button(AppLocalized.text("common.copy", fallback: "Copy")) { onCopy() }
-                        .buttonStyle(.bordered)
-                    Button(AppLocalized.text("common.open_link", fallback: "Share")) { onShare() }
-                        .buttonStyle(.bordered)
+                    SkydownBrandActionButton(
+                        title: "WhatsApp",
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.compactRadius,
+                        verticalPadding: 8,
+                        action: onShareWhatsApp
+                    )
+                    .frame(maxWidth: .infinity)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.copy", fallback: "Copy"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.compactRadius,
+                        verticalPadding: 8,
+                        action: onCopy
+                    )
+                    .frame(maxWidth: .infinity)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.open_link", fallback: "Share"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.compactRadius,
+                        verticalPadding: 8,
+                        action: onShare
+                    )
+                    .frame(maxWidth: .infinity)
                 }
             }
             .padding()
             .navigationTitle(AppLocalized.text("home.owner.founder.sheet_nav", fallback: "Intelligence"))
             .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(AppLocalized.text("common.close", fallback: "Close")) {
-                        dismiss()
-                    }
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.close", fallback: "Close"),
+                        systemImage: "xmark",
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
                 }
             }
         }
@@ -1439,11 +1516,10 @@ private struct HomeMediaClusterSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
-            Text(
-                AppLocalized.text("home.section.current", fallback: "Current")
+            HomeSectionEyebrow(
+                AppLocalized.text("home.section.current", fallback: "Current"),
+                colorScheme: colorScheme
             )
-                .font(.caption2.weight(.medium))
-                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
             HomeMediaCluster(
                 colorScheme: colorScheme,
                 viewModel: viewModel,
@@ -1462,6 +1538,8 @@ private struct HomeProductivityOverviewSection: View {
     let remindersUpcoming: [HomeViewModel.ProductivityReminder]
     let openTasks: [HomeViewModel.ProductivityTask]
     let recentNotes: [HomeViewModel.ProductivityNote]
+    let syncPaused: Bool
+    let recoverableError: String?
     let onRequestFounderBriefing: ((FounderBriefingMode) -> Void)?
     let founderBriefingModeInFlight: FounderBriefingMode?
     let founderBriefingFeedbackMessage: String?
@@ -1473,7 +1551,9 @@ private struct HomeProductivityOverviewSection: View {
     let onCreateReminder: () -> Void
     let onCreateTask: () -> Void
     let onCreateNote: () -> Void
+    let onRetryRecovery: () -> Void
     @State private var showsExtendedSignals = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -1486,10 +1566,48 @@ private struct HomeProductivityOverviewSection: View {
         let reminderCount = remindersToday.count + remindersUpcoming.count
         let taskCount = openTasks.count
         let noteCount = recentNotes.count
+        let hiddenSectionCount = 3
+        let hasNoProductivitySignals = reminderCount == 0 && taskCount == 0 && noteCount == 0
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-            Text(AppLocalized.text("home.productivity.ask_anything", fallback: "Ask SkyOS anything"))
-                .font(.caption2.weight(.bold))
-                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.55))
+            HomeSectionEyebrow(
+                AppLocalized.text("home.productivity.ask_anything", fallback: "Ask SkyOS anything"),
+                colorScheme: colorScheme,
+                emphasizesWeight: true
+            )
+
+            if syncPaused || (recoverableError?.isEmpty == false) {
+                HomeRecoveryInlineBanner(
+                    colorScheme: colorScheme,
+                    message: recoverableError ?? AppLocalized.text("home.recovery.sync_paused", fallback: "Sync is paused. Tap Refresh to continue."),
+                    onRetry: onRetryRecovery
+                )
+            }
+
+            if hasNoProductivitySignals {
+                HStack(spacing: SkydownLayout.stackSpacingTick) {
+                    Image(systemName: "sparkles")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                    Text(
+                        AppLocalized.text(
+                            "home.productivity.empty_prompt",
+                            fallback: "Nothing active yet. Start with a quick reminder, task, or note."
+                        )
+                    )
+                    .font(.caption2)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(AppColors.cardBackground(for: colorScheme).opacity(0.72))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous)
+                        .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
+                )
+                .transition(.opacity)
+            }
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 HomeProductivityRow(
@@ -1505,65 +1623,112 @@ private struct HomeProductivityOverviewSection: View {
                     }
                 )
                 if showsExtendedSignals {
-                    HomeProductivityRow(
-                        title: AppLocalized.text("home.productivity.upcoming", fallback: "Upcoming"),
-                        emptyText: AppLocalized.text("home.productivity.empty_upcoming", fallback: "No upcoming reminders"),
-                        onOpen: onOpenUpcoming,
-                        count: remindersUpcoming.count,
-                        items: remindersUpcoming.map { $0.title }
-                    )
-                    HomeTaskProductivityRow(
-                        title: AppLocalized.text("home.productivity.open_tasks", fallback: "Open Tasks"),
-                        emptyText: AppLocalized.text("home.productivity.empty_tasks", fallback: "No open tasks"),
-                        onOpen: onOpenTasks,
-                        count: openTasks.count,
-                        tasks: openTasks,
-                        colorScheme: colorScheme
-                    )
-                    HomeProductivityRow(
-                        title: AppLocalized.text("home.productivity.recent_notes", fallback: "Recent Notes"),
-                        emptyText: AppLocalized.text("home.productivity.empty_notes", fallback: "No recent notes"),
-                        onOpen: onOpenNotes,
-                        count: recentNotes.count,
-                        items: recentNotes.map { $0.title }
-                    )
-                } else {
-                    Button {
-                        showsExtendedSignals = true
-                    } label: {
-                        Text(
-                            String(
-                                format: AppLocalized.text(
-                                    "home.productivity.collapse_summary",
-                                    fallback: "%d more · R%02d · T%02d · N%02d"
-                                ),
-                                3,
-                                reminderCount,
-                                taskCount,
-                                noteCount
-                            )
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
+                        HomeProductivityRow(
+                            title: AppLocalized.text("home.productivity.upcoming", fallback: "Upcoming"),
+                            emptyText: AppLocalized.text("home.productivity.empty_upcoming", fallback: "No upcoming reminders"),
+                            onOpen: onOpenUpcoming,
+                            count: remindersUpcoming.count,
+                            items: remindersUpcoming.map { $0.title }
                         )
-                        .font(.caption2.weight(.semibold))
-                        .foregroundColor(.secondary)
+                        HomeTaskProductivityRow(
+                            title: AppLocalized.text("home.productivity.open_tasks", fallback: "Open Tasks"),
+                            emptyText: AppLocalized.text("home.productivity.empty_tasks", fallback: "No open tasks"),
+                            onOpen: onOpenTasks,
+                            count: openTasks.count,
+                            tasks: openTasks,
+                            colorScheme: colorScheme
+                        )
+                        HomeProductivityRow(
+                            title: AppLocalized.text("home.productivity.recent_notes", fallback: "Recent Notes"),
+                            emptyText: AppLocalized.text("home.productivity.empty_notes", fallback: "No recent notes"),
+                            onOpen: onOpenNotes,
+                            count: recentNotes.count,
+                            items: recentNotes.map { $0.title }
+                        )
                     }
-                    .buttonStyle(.plain)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                } else {
+                    VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
+                        Button {
+                            withAnimation(reduceMotion ? .linear(duration: 0.01) : SkydownMotion.statusTransition) {
+                                SkydownHaptics.selection()
+                                showsExtendedSignals = true
+                            }
+                        } label: {
+                            Text(
+                                String(
+                                    format: AppLocalized.text(
+                                        "home.productivity.collapse_summary",
+                                        fallback: "%d more · R%02d · T%02d · N%02d"
+                                    ),
+                                    hiddenSectionCount,
+                                    reminderCount,
+                                    taskCount,
+                                    noteCount
+                                )
+                            )
+                            .font(.caption2.weight(.semibold))
+                            .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+
+                        HStack(spacing: SkydownLayout.stackSpacingHairline) {
+                            HomeCollapsedMetricChip(
+                                title: AppLocalized.text("home.productivity.upcoming", fallback: "Upcoming"),
+                                count: remindersUpcoming.count,
+                                colorScheme: colorScheme,
+                                onTap: onOpenUpcoming
+                            )
+                            HomeCollapsedMetricChip(
+                                title: AppLocalized.text("home.productivity.open_tasks", fallback: "Open Tasks"),
+                                count: openTasks.count,
+                                colorScheme: colorScheme,
+                                onTap: onOpenTasks
+                            )
+                            HomeCollapsedMetricChip(
+                                title: AppLocalized.text("home.productivity.recent_notes", fallback: "Recent Notes"),
+                                count: recentNotes.count,
+                                colorScheme: colorScheme,
+                                onTap: onOpenNotes
+                            )
+                        }
+                    }
+                    .transition(
+                        reduceMotion
+                            ? .opacity
+                            : .opacity.combined(with: .move(edge: .bottom))
+                    )
                 }
             }
+            .animation(
+                reduceMotion ? .linear(duration: 0.01) : SkydownMotion.statusTransition,
+                value: showsExtendedSignals
+            )
 
             if showsExtendedSignals {
                 Button {
-                    showsExtendedSignals = false
+                    withAnimation(reduceMotion ? .linear(duration: 0.01) : SkydownMotion.statusTransition) {
+                        SkydownHaptics.selection()
+                        showsExtendedSignals = false
+                    }
                 } label: {
                     Text(AppLocalized.text("home.productivity.show_less_sections", fallback: "Show fewer sections"))
                         .font(.caption2.weight(.semibold))
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .transition(
+                    reduceMotion
+                        ? .opacity
+                        : .opacity.combined(with: .move(edge: .top))
+                )
             }
 
-            Text(AppLocalized.text("home.productivity.quick_hint", fallback: "Tap a shortcut to open a calm capture sheet on Home — no tab switch."))
-                .font(.caption2)
-                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.5))
+            HomeSectionEyebrow(
+                AppLocalized.text("home.productivity.quick_hint", fallback: "Tap a shortcut to open a calm capture sheet on Home — no tab switch."),
+                colorScheme: colorScheme
+            )
 
             HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 HomeQuickActionButton(
@@ -1601,6 +1766,95 @@ private struct HomeProductivityOverviewSection: View {
                 .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
+    }
+}
+
+private struct HomeSectionEyebrow: View {
+    let text: String
+    let colorScheme: ColorScheme
+    var emphasizesWeight: Bool = false
+
+    init(_ text: String, colorScheme: ColorScheme, emphasizesWeight: Bool = false) {
+        self.text = text
+        self.colorScheme = colorScheme
+        self.emphasizesWeight = emphasizesWeight
+    }
+
+    var body: some View {
+        Text(text)
+            .font(emphasizesWeight ? .caption2.weight(.bold) : .caption2.weight(.medium))
+            .foregroundColor(AppColors.text(for: colorScheme).opacity(emphasizesWeight ? 0.55 : 0.5))
+    }
+}
+
+private struct HomeRecoveryInlineBanner: View {
+    let colorScheme: ColorScheme
+    let message: String
+    let onRetry: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: SkydownLayout.stackSpacingTick) {
+            Image(systemName: "arrow.clockwise.circle")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppColors.accentMystic(for: colorScheme))
+            Text(message)
+                .font(.caption2)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                .lineLimit(2)
+            Spacer(minLength: 6)
+            SkydownBrandActionButton(
+                title: AppLocalized.text("common.retry", fallback: "Retry"),
+                accent: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                role: .muted,
+                font: .caption.weight(.semibold),
+                cornerRadius: SkydownLayout.compactRadius,
+                verticalPadding: 6,
+                expandToFullWidth: false,
+                action: onRetry
+            )
+            .accessibilityLabel(AppLocalized.text("common.retry", fallback: "Retry"))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(AppColors.cardBackground(for: colorScheme).opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
+        )
+    }
+}
+
+private struct HomeCollapsedMetricChip: View {
+    let title: String
+    let count: Int
+    let colorScheme: ColorScheme
+    let onTap: () -> Void
+
+    var body: some View {
+        Button {
+            SkydownHaptics.selection()
+            onTap()
+        } label: {
+            HStack(spacing: SkydownLayout.stackSpacingTick) {
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .lineLimit(1)
+                HomeCountBadge(count: count)
+            }
+            .frame(maxWidth: .infinity, minHeight: 34)
+            .padding(.horizontal, 8)
+            .background(AppColors.cardBackground(for: colorScheme).opacity(0.8))
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous)
+                    .stroke(AppColors.secondaryText(for: colorScheme).opacity(0.14), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .skydownTactileAction()
+        .accessibilityLabel("\(title), \(count)")
     }
 }
 
@@ -1839,6 +2093,12 @@ private struct HomeQuickActionButton: View {
     let isLoading: Bool
     let isDisabled: Bool
     let onTap: () -> Void
+    private var accessibilityLabelText: String {
+        if let badgeCount {
+            return "\(title), \(badgeCount)"
+        }
+        return title
+    }
 
     init(
         title: String,
@@ -1877,6 +2137,7 @@ private struct HomeQuickActionButton: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 7)
+            .frame(minHeight: 44)
             .frame(maxWidth: .infinity)
             .background(AppColors.cardBackground(for: colorScheme))
             .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
@@ -1890,6 +2151,10 @@ private struct HomeQuickActionButton: View {
         }
         .buttonStyle(.plain)
         .skydownTactileAction()
+        .contentShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabelText)
+        .accessibilityAddTraits(.isButton)
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.72 : 1)
     }

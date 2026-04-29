@@ -568,12 +568,16 @@ struct AIMembershipSheet: View {
     let onRestore: () -> Void
     let onManage: () -> Void
 
+    @Environment(\.dismiss) private var dismiss
+
+    private var planActionsEnabled: Bool {
+        !(isLoadingProducts || isSyncing)
+    }
+
     var body: some View {
-        ScrollView {
+        NavigationStack {
+            ScrollView {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-                Text(AppLocalized.text("ai.membership.sheet.title", fallback: "SkyOS AI Membership"))
-                    .font(.title3.weight(.black))
-                    .foregroundColor(AppColors.text(for: colorScheme))
                 Text(AppLocalized.text("ai.membership.sheet.subtitle", fallback: "Capability-first. No credit shop."))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -584,28 +588,80 @@ struct AIMembershipSheet: View {
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                Button(activePurchasePlan == .creator ? AppLocalized.text("membership.pro.starting", fallback: "Starting Pro...") : AppLocalized.text("membership.pro.activate", fallback: "Activate Pro")) {
-                    onSelectPlan(.creator)
+                SkydownBrandActionButton(
+                    title: activePurchasePlan == .creator
+                        ? AppLocalized.text("membership.pro.starting", fallback: "Starting Pro...")
+                        : AppLocalized.text("membership.pro.activate", fallback: "Activate Pro"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    isEnabled: planActionsEnabled,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 11,
+                    action: { onSelectPlan(.creator) }
+                )
+                SkydownBrandActionButton(
+                    title: activePurchasePlan == .studio
+                        ? AppLocalized.text("membership.creator.starting", fallback: "Starting Creator...")
+                        : AppLocalized.text("membership.creator.activate", fallback: "Activate Creator"),
+                    accent: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    isEnabled: planActionsEnabled,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 11,
+                    action: { onSelectPlan(.studio) }
+                )
+                HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("membership.restore", fallback: "Restore purchases"),
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: true,
+                        action: onRestore
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("membership.manage", fallback: "Manage subscription"),
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: onManage
+                    )
                 }
-                .buttonStyle(.bordered)
-                .disabled(isLoadingProducts || isSyncing)
-
-                Button(activePurchasePlan == .studio ? AppLocalized.text("membership.creator.starting", fallback: "Starting Creator...") : AppLocalized.text("membership.creator.activate", fallback: "Activate Creator")) {
-                    onSelectPlan(.studio)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(isLoadingProducts || isSyncing)
-
-                Button(AppLocalized.text("membership.restore", fallback: "Restore purchases")) { onRestore() }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                Button(AppLocalized.text("membership.manage", fallback: "Manage subscription")) { onManage() }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
             }
             .padding()
+            }
+            .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
+            .navigationTitle(AppLocalized.text("ai.membership.sheet.title", fallback: "SkyOS AI Membership"))
+            .navigationBarTitleDisplayMode(.inline)
+            .skydownNavigationChrome(colorScheme: colorScheme)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.done", fallback: "Done"),
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: { dismiss() }
+                    )
+                    .skydownInteractiveFeedback()
+                }
+            }
         }
-        .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
     }
 }
 
@@ -973,31 +1029,45 @@ private struct AIMessageBubble: View {
                     }
 
                     if !isUser {
-                        HStack(spacing: SkydownLayout.stackSpacingPill) {
-                            Button {
-                                UIPasteboard.general.string = message.text
-                                showCopiedFeedback = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
-                                    showCopiedFeedback = false
+                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                            SkydownBrandActionButton(
+                                title: showCopiedFeedback
+                                    ? AppLocalized.text("agent.bubble.copied", fallback: "Copied")
+                                    : AppLocalized.text("agent.bubble.copy", fallback: "Copy"),
+                                systemImage: "doc.on.doc",
+                                accent: AppColors.accent(for: colorScheme),
+                                colorScheme: colorScheme,
+                                role: .muted,
+                                font: .caption.weight(.semibold),
+                                cornerRadius: SkydownLayout.tightRadius,
+                                verticalPadding: 8,
+                                expandToFullWidth: false,
+                                action: {
+                                    UIPasteboard.general.string = message.text
+                                    showCopiedFeedback = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                                        showCopiedFeedback = false
+                                    }
                                 }
-                            } label: {
-                                Text(
-                                    showCopiedFeedback
-                                        ? AppLocalized.text("agent.bubble.copied", fallback: "Copied")
-                                        : AppLocalized.text("agent.bubble.copy", fallback: "Copy")
-                                )
-                            }
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(AppColors.accent(for: colorScheme))
+                            )
+                            .skydownInteractiveFeedback()
 
-                            Button {
-                                shareItems = sharePayload()
-                                showingShareSheet = true
-                            } label: {
-                                Text(AppLocalized.text("ai.bot.action.share_save", fallback: "Share / save"))
-                            }
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(AppColors.accentMystic(for: colorScheme))
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("ai.bot.action.share_save", fallback: "Share / save"),
+                                systemImage: "square.and.arrow.up",
+                                accent: AppColors.accentMystic(for: colorScheme),
+                                colorScheme: colorScheme,
+                                role: .muted,
+                                font: .caption.weight(.semibold),
+                                cornerRadius: SkydownLayout.tightRadius,
+                                verticalPadding: 8,
+                                expandToFullWidth: false,
+                                action: {
+                                    shareItems = sharePayload()
+                                    showingShareSheet = true
+                                }
+                            )
+                            .skydownInteractiveFeedback()
                         }
                         .padding(.top, 8)
                     }

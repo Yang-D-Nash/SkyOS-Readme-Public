@@ -7,10 +7,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,20 +38,18 @@ fun GoogleAuthButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Button(
+    Surface(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
         enabled = enabled && !isLoading,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.White,
-            contentColor = GoogleText,
-            disabledContainerColor = Color.White.copy(alpha = 0.92f),
-            disabledContentColor = GoogleText.copy(alpha = 0.7f),
-        ),
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        color = Color.White,
         border = BorderStroke(1.dp, GoogleBorder),
     ) {
         Row(
-            modifier = Modifier.padding(vertical = 2.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {

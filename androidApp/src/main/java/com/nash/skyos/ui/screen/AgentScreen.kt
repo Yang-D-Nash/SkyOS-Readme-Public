@@ -7,6 +7,7 @@ import android.provider.OpenableColumns
 import android.widget.TextView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -70,17 +71,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -140,6 +139,7 @@ import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberIsCompactAppLayout
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownTopBarColors
+import com.nash.skyos.ui.theme.skydownAccent
 import com.nash.skyos.ui.theme.skydownAccentMystic
 import com.nash.skyos.ui.model.AgentAutomationScope
 import com.nash.skyos.ui.model.AgentInteractionPhase
@@ -269,7 +269,10 @@ fun AgentScreen(
             if (
                 message.contains("Abo", ignoreCase = true) ||
                 message.contains("Membership", ignoreCase = true) ||
-                message.contains("Pro oder Creator", ignoreCase = true)
+                message.contains("Pro oder Creator", ignoreCase = true) ||
+                message.contains("subscription", ignoreCase = true) ||
+                message.contains("upgrade", ignoreCase = true) ||
+                message.contains("plan", ignoreCase = true)
             ) {
                 membershipCoordinator.trackUpgradeAfterDeny("agent_chat")
                 membershipCoordinator.openMembership(MembershipOpenReason.FeatureLocked, surface = "agent_chat")
@@ -747,22 +750,25 @@ fun AgentScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            TextButton(
+                            BrandActionButton(
+                                text = stringResource(R.string.common_delete),
                                 onClick = {
                                     viewModel.deleteNote(note.id)
                                     selectedNote = null
                                 },
-                            ) {
-                                Text(stringResource(R.string.common_delete))
-                            }
-                            Button(
+                                accent = MaterialTheme.colorScheme.error,
+                                filled = false,
+                                compact = true,
+                            )
+                            BrandActionButton(
+                                text = stringResource(R.string.common_save),
                                 onClick = {
                                     viewModel.saveNote(note.id, titleDraft, contentDraft)
                                     selectedNote = null
                                 },
-                            ) {
-                                Text(stringResource(R.string.common_save))
-                            }
+                                accent = MaterialTheme.colorScheme.primary,
+                                compact = true,
+                            )
                         }
                     }
                 }
@@ -1005,18 +1011,36 @@ private fun AiMembershipSheet(
             if (state.annualDiscountCopy.isNotBlank()) {
                 Text(state.annualDiscountCopy, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
             }
-            Button(onClick = onUpgradePro, modifier = Modifier.fillMaxWidth(), enabled = proAvailable && !state.isPurchasing) {
-                Text(stringResource(R.string.membership_pro_activate))
-            }
-            Button(onClick = onUpgradeCreator, modifier = Modifier.fillMaxWidth(), enabled = creatorAvailable && !state.isPurchasing) {
-                Text(stringResource(R.string.membership_creator_activate))
-            }
-            OutlinedButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.membership_restore))
-            }
-            OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.membership_decide_later))
-            }
+            BrandActionButton(
+                text = stringResource(R.string.membership_pro_activate),
+                onClick = onUpgradePro,
+                accent = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.fillMaxWidth(),
+                isLoading = state.isPurchasing,
+                enabled = proAvailable && !state.isPurchasing,
+            )
+            BrandActionButton(
+                text = stringResource(R.string.membership_creator_activate),
+                onClick = onUpgradeCreator,
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth(),
+                isLoading = state.isPurchasing,
+                enabled = creatorAvailable && !state.isPurchasing,
+            )
+            BrandActionButton(
+                text = stringResource(R.string.membership_restore),
+                onClick = onRestore,
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth(),
+                filled = false,
+            )
+            BrandActionButton(
+                text = stringResource(R.string.membership_decide_later),
+                onClick = onDismiss,
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth(),
+                filled = false,
+            )
             if (!state.isLoading && state.products.isEmpty() && state.errorMessage.isBlank()) {
                 Text(
                     text = stringResource(R.string.agent_membership_billing_unavailable),
@@ -1290,9 +1314,13 @@ private fun AgentTasksSection(
                             }
                         }
                     }
-                    TextButton(onClick = { onDeleteTask(task.id) }) {
-                        Text(stringResource(R.string.common_delete))
-                    }
+                    BrandActionButton(
+                        text = stringResource(R.string.common_delete),
+                        onClick = { onDeleteTask(task.id) },
+                        accent = MaterialTheme.colorScheme.error,
+                        filled = false,
+                        compact = true,
+                    )
                 }
             }
         }
@@ -1433,9 +1461,13 @@ private fun AgentNotesSection(
                             )
                         }
                     }
-                    TextButton(onClick = { onDeleteNote(note.id) }) {
-                        Text(stringResource(R.string.common_delete))
-                    }
+                    BrandActionButton(
+                        text = stringResource(R.string.common_delete),
+                        onClick = { onDeleteNote(note.id) },
+                        accent = MaterialTheme.colorScheme.error,
+                        filled = false,
+                        compact = true,
+                    )
                 }
             }
         }
@@ -1820,9 +1852,13 @@ private fun AgentPromptComposerSheet(
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.tertiary,
                 )
-                TextButton(onClick = onResetSocialSetup) {
-                    Text(stringResource(R.string.agent_social_reset))
-                }
+                BrandActionButton(
+                    text = stringResource(R.string.agent_social_reset),
+                    onClick = onResetSocialSetup,
+                    accent = MaterialTheme.colorScheme.primary,
+                    filled = false,
+                    compact = true,
+                )
             }
             Column(
                 modifier = Modifier
@@ -2105,9 +2141,13 @@ private fun AgentPromptComposerSheet(
                         }
                     }
                 }
-                TextButton(onClick = onClearAttachments) {
-                    Text(stringResource(R.string.agent_files_remove_all))
-                }
+                BrandActionButton(
+                    text = stringResource(R.string.agent_files_remove_all),
+                    onClick = onClearAttachments,
+                    accent = MaterialTheme.colorScheme.primary,
+                    filled = false,
+                    compact = true,
+                )
             }
         }
 
@@ -2218,14 +2258,14 @@ private fun AgentModeMenu(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        OutlinedButton(
+        BrandActionButton(
+            text = selectedMode.title,
             onClick = { expanded = true },
+            accent = MaterialTheme.colorScheme.skydownAccent(),
             enabled = enabled,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-        ) {
-            Text(selectedMode.title)
-        }
+            filled = false,
+            compact = true,
+        )
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
@@ -2251,14 +2291,14 @@ private fun AgentLevelMenu(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        OutlinedButton(
+        BrandActionButton(
+            text = selectedLevel.title,
             onClick = { expanded = true },
+            accent = MaterialTheme.colorScheme.skydownAccent(),
             enabled = enabled,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-        ) {
-            Text(selectedLevel.title)
-        }
+            filled = false,
+            compact = true,
+        )
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
@@ -2285,14 +2325,14 @@ private fun AgentAutomationScopeMenu(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        OutlinedButton(
+        BrandActionButton(
+            text = selectedScope.title,
             onClick = { expanded = true },
+            accent = MaterialTheme.colorScheme.skydownAccent(),
             enabled = enabled,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-        ) {
-            Text(selectedScope.title)
-        }
+            filled = false,
+            compact = true,
+        )
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
@@ -2322,41 +2362,47 @@ private fun AgentAutomationTriggerButton(
 ) {
     val accent = if (isEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
     val shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius)
-    OutlinedButton(
+    Surface(
         onClick = onToggle,
-        contentPadding = PaddingValues(horizontal = 13.dp, vertical = 9.dp),
-        shape = shape,
         modifier = Modifier.height(54.dp),
+        shape = shape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.2.dp, accent.copy(alpha = 0.42f)),
     ) {
-        Icon(
-            imageVector = Icons.Default.PlayArrow,
-            contentDescription = null,
-            tint = accent,
-            modifier = Modifier.size(24.dp),
-        )
-        Spacer(modifier = Modifier.width(7.dp))
-        Column(verticalArrangement = Arrangement.Center) {
-            Text(
-                text = if (isEnabled) {
-                    if (isOwnerFlow) stringResource(R.string.agent_workflow_active) else "Persoenlich aktiv"
-                } else {
-                    if (isOwnerFlow) stringResource(R.string.agent_workflow_start) else "Persoenlich starten"
-                },
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = accent,
-                maxLines = 1,
+        Row(
+            modifier = Modifier.padding(horizontal = 13.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(24.dp),
             )
-            Text(
-                text = if (isEnabled) {
-                    if (isOwnerFlow) stringResource(R.string.agent_workflow_attached) else "Personal-Flow"
-                } else {
-                    if (isOwnerFlow) stringResource(R.string.agent_workflow_provider) else "nur dein Flow"
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
-                maxLines = 1,
-            )
+            Spacer(modifier = Modifier.width(7.dp))
+            Column(verticalArrangement = Arrangement.Center) {
+                Text(
+                    text = if (isEnabled) {
+                        if (isOwnerFlow) stringResource(R.string.agent_workflow_active) else "Persoenlich aktiv"
+                    } else {
+                        if (isOwnerFlow) stringResource(R.string.agent_workflow_start) else "Persoenlich starten"
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = accent,
+                    maxLines = 1,
+                )
+                Text(
+                    text = if (isEnabled) {
+                        if (isOwnerFlow) stringResource(R.string.agent_workflow_attached) else "Personal-Flow"
+                    } else {
+                        if (isOwnerFlow) stringResource(R.string.agent_workflow_provider) else "nur dein Flow"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -2554,16 +2600,13 @@ private fun AgentMessageBubble(
                             modifier = Modifier.padding(top = 4.dp),
                         ) {
                             targetModes.forEach { mode ->
-                                TextButton(
+                                BrandActionButton(
+                                    text = mode.title,
                                     onClick = { onContinueInMode(mode) },
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                ) {
-                                    Text(
-                                        text = mode.title,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                }
+                                    accent = MaterialTheme.colorScheme.tertiary,
+                                    filled = false,
+                                    compact = true,
+                                )
                             }
                         }
                     }
@@ -2574,31 +2617,32 @@ private fun AgentMessageBubble(
                         modifier = Modifier.padding(top = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                     ) {
-                        Button(
+                        BrandActionButton(
+                            text = stringResource(R.string.agent_action_copy),
                             onClick = {
                                 copyAiText(context, "SkyOS Agent", message.text)
                                 onFeedback(copiedFeedback, ToastType.Success)
                             },
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Text(stringResource(R.string.agent_action_copy))
-                        }
-
-                        OutlinedButton(
+                            accent = MaterialTheme.colorScheme.tertiary,
+                            compact = true,
+                        )
+                        BrandActionButton(
+                            text = stringResource(R.string.agent_action_share),
                             onClick = {
                                 shareAiText(context, "SkyOS Agent", message.text)
                             },
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Text(stringResource(R.string.agent_action_share))
-                        }
+                            accent = MaterialTheme.colorScheme.primary,
+                            filled = false,
+                            compact = true,
+                        )
                         if (homeTarget != null) {
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = stringResource(R.string.agent_bubble_open_in_home),
                                 onClick = { onOpenHomeProductivity(homeTarget) },
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            ) {
-                                Text(stringResource(R.string.agent_bubble_open_in_home))
-                            }
+                                accent = MaterialTheme.colorScheme.primary,
+                                filled = false,
+                                compact = true,
+                            )
                         }
                     }
                 }
@@ -2852,24 +2896,14 @@ private fun AgentOpenResultButton(
 ) {
     val context = LocalContext.current
     val url = result.url.trim()
-    Button(
+    BrandActionButton(
+        text = label,
         onClick = { openExternalLink(context, url) },
-        enabled = url.isNotBlank(),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        accent = MaterialTheme.colorScheme.primary,
         modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(
-            text = label,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-            contentDescription = null,
-            modifier = Modifier.size(15.dp),
-        )
-    }
+        icon = Icons.AutoMirrored.Filled.OpenInNew,
+        enabled = url.isNotBlank(),
+    )
 }
 
 @Composable

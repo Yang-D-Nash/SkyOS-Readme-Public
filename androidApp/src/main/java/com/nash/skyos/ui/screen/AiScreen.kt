@@ -55,7 +55,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Scaffold
@@ -1145,12 +1144,20 @@ private fun AiMembershipSheet(
                 isLoading = state.isPurchasing,
                 enabled = creatorAvailable && !state.isPurchasing,
             )
-            OutlinedButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.membership_restore))
-            }
-            androidx.compose.material3.OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.membership_decide_later))
-            }
+            BrandActionButton(
+                text = stringResource(R.string.membership_restore),
+                onClick = onRestore,
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth(),
+                filled = false,
+            )
+            BrandActionButton(
+                text = stringResource(R.string.membership_decide_later),
+                onClick = onDismiss,
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth(),
+                filled = false,
+            )
             if (!state.isLoading && state.products.isEmpty() && state.errorMessage.isBlank()) {
                 Text(
                     text = stringResource(R.string.ai_billing_not_configured),

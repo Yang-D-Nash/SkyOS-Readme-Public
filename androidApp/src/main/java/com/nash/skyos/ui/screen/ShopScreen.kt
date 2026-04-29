@@ -42,7 +42,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,7 +52,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -129,7 +127,6 @@ fun ShopScreen(
     val mainSectionSpacing = rememberSkydownScreenSectionSpacing() + 3.dp
     val collabLanes = remember(uiState.items) { buildShopCollabLanes(uiState.items) }
     var selectedCollabLaneId by rememberSaveable { mutableStateOf(ShopCollabLane.ALL_ID) }
-    var openedCollectionLaneId by rememberSaveable { mutableStateOf<String?>(null) }
     val filteredItems = remember(uiState.items, selectedCollabLaneId) {
         if (selectedCollabLaneId == ShopCollabLane.ALL_ID) {
             uiState.items
@@ -147,19 +144,6 @@ fun ShopScreen(
                 itemCount = uiState.items.size,
                 isCoreLane = false,
             )
-    }
-    val openedCollectionLane = remember(collabLanes, openedCollectionLaneId) {
-        openedCollectionLaneId?.let { laneId -> collabLanes.firstOrNull { it.id == laneId } }
-    }
-    val openedCollectionItems = remember(uiState.items, openedCollectionLaneId) {
-        val laneId = openedCollectionLaneId
-        if (laneId == null) {
-            emptyList()
-        } else if (laneId == ShopCollabLane.ALL_ID) {
-            uiState.items
-        } else {
-            uiState.items.filter { item -> item.belongsToLane(laneId) }
-        }
     }
     val laneCount = remember(collabLanes, uiState.items) {
         val resolvedCount = collabLanes.count { it.id != ShopCollabLane.ALL_ID }
@@ -263,9 +247,44 @@ fun ShopScreen(
                         onSelect = { lane -> selectedCollabLaneId = lane.id },
                         onOpenLane = { lane ->
                             selectedCollabLaneId = lane.id
-                            openedCollectionLaneId = lane.id
                         },
                     )
+                }
+
+                if (filteredItems.isNotEmpty()) {
+                    item {
+                        ShopMerchOpeningBlock(
+                            showFeatured = featuredDropItem != null || editorialPickItems.isNotEmpty(),
+                            featuredItem = featuredDropItem,
+                            editorialPicks = editorialPickItems,
+                            onOpenItem = viewModel::selectItem,
+                            showConnectorLineAboveBrowse = featuredDropItem != null || editorialPickItems.isNotEmpty(),
+                        )
+                    }
+                    item {
+                        Column(
+                            modifier = Modifier.padding(top = 2.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.shop_section_pieces),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f),
+                            )
+                        }
+                    }
+                    itemsIndexed(filteredItems, key = { _, item -> item.id.orEmpty() }) { index, item ->
+                        MerchandiseCard(
+                            item = item,
+                            onTap = viewModel::selectItem,
+                            modifier = Modifier.padding(
+                                top = if (index == 2) 10.dp else 0.dp,
+                            ),
+                            shelfHighlight = index < 2,
+                            shelfSettled = index > 2,
+                        )
+                    }
                 }
 
                 if (uiState.isAdmin) {
@@ -297,6 +316,19 @@ fun ShopScreen(
                         LoginSection(
                             errorMessage = errorMessage,
                             onOpenLogin = onOpenLogin,
+                        )
+                    }
+                }
+                if (errorMessage != null && uiState.items.isNotEmpty()) {
+                    item {
+                        ShopMessageCard(
+                            title = stringResource(R.string.shop_error_title),
+                            body = errorMessage,
+                            icon = Icons.Default.Refresh,
+                            accent = MaterialTheme.colorScheme.error,
+                            tag = stringResource(R.string.shop_error_tag_retry),
+                            actionLabel = stringResource(R.string.shop_error_action_retry),
+                            onAction = viewModel::refresh,
                         )
                     }
                 }
@@ -366,15 +398,6 @@ fun ShopScreen(
                             viewModel.dismissSelectedItem()
                         }
                     },
-                )
-            }
-
-            openedCollectionLane?.let { lane ->
-                ShopCollectionDialog(
-                    lane = lane,
-                    items = openedCollectionItems,
-                    onBack = { openedCollectionLaneId = null },
-                    onOpenItem = viewModel::selectItem,
                 )
             }
 
@@ -1056,6 +1079,8 @@ private fun ShopMessageCard(
     icon: ImageVector = Icons.Default.ShoppingBag,
     accent: Color? = null,
     tag: String? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
 ) {
     val bannerAccent = accent ?: MaterialTheme.colorScheme.primary
     val shape = RoundedCornerShape(SkydownUiTokens.denseRadius)
@@ -1104,6 +1129,17 @@ private fun ShopMessageCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
         )
+        if (!actionLabel.isNullOrBlank() && onAction != null) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                BrandActionButton(
+                    text = actionLabel,
+                    onClick = onAction,
+                    accent = bannerAccent,
+                    filled = false,
+                    compact = true,
+                )
+            }
+        }
     }
 }
 
@@ -1751,6 +1787,14 @@ private fun MerchandiseDetailSheet(
     }
     val shippingTrustLine = stringResource(R.string.shop_detail_trust_shipping)
     val supportTrustLine = stringResource(R.string.shop_detail_trust_support)
+    val canAddToCart = item.available && canCheckout && selectedSize.isNotBlank()
+    val checkoutBlockerMessage = when {
+        canAddToCart -> null
+        !canCheckout -> stringResource(R.string.shop_detail_blocker_login_or_store)
+        !item.available -> stringResource(R.string.shop_detail_blocker_not_available)
+        selectedSize.isBlank() -> stringResource(R.string.shop_detail_blocker_select_size)
+        else -> stringResource(R.string.shop_detail_prebuy_check)
+    }
 
     LaunchedEffect(item.id, colorOptions) {
         if (selectedColor.isNotBlank() && colorOptions.any { it.equals(selectedColor, ignoreCase = true) }) {
@@ -1866,17 +1910,17 @@ private fun MerchandiseDetailSheet(
                     )
                 }
 
-                TextButton(
+                BrandActionButton(
+                    text = stringResource(R.string.shop_detail_fullscreen),
                     onClick = { fullscreenGalleryInitialPage = pagerState.currentPage },
+                    accent = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(start = 20.dp, bottom = 18.dp)
-                        .testTag("shop.merch.fullscreen.open")
-                        .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.76f)),
-                ) {
-                    Text(stringResource(R.string.shop_detail_fullscreen))
-                }
+                        .testTag("shop.merch.fullscreen.open"),
+                    filled = false,
+                    compact = true,
+                )
 
                 Column(
                     modifier = Modifier
@@ -2063,7 +2107,10 @@ private fun MerchandiseDetailSheet(
                         fontWeight = FontWeight.SemiBold,
                     )
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+                    ) {
                         sizeOptions.forEach { size ->
                             FilterPill(
                                 text = size,
@@ -2074,7 +2121,10 @@ private fun MerchandiseDetailSheet(
                     }
 
                     if (colorOptions.isNotEmpty()) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+                        ) {
                             colorOptions.forEach { color ->
                                 FilterPill(
                                     text = color,
@@ -2095,17 +2145,27 @@ private fun MerchandiseDetailSheet(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
-                        TextButton(onClick = { if (quantity > 1) quantity -= 1 }) {
-                            Text("-")
-                        }
+                        BrandActionButton(
+                            text = "−",
+                            onClick = { if (quantity > 1) quantity -= 1 },
+                            accent = MaterialTheme.colorScheme.tertiary,
+                            filled = false,
+                            compact = true,
+                            enabled = quantity > 1,
+                        )
                         Text(
                             text = quantity.toString(),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
-                        TextButton(onClick = { if (quantity < 10) quantity += 1 }) {
-                            Text("+")
-                        }
+                        BrandActionButton(
+                            text = "+",
+                            onClick = { if (quantity < 10) quantity += 1 },
+                            accent = MaterialTheme.colorScheme.tertiary,
+                            filled = false,
+                            compact = true,
+                            enabled = quantity < 10,
+                        )
                     }
                 }
             }
@@ -2116,26 +2176,27 @@ private fun MerchandiseDetailSheet(
                     .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             ) {
-                TextButton(
+                BrandActionButton(
+                    text = stringResource(R.string.common_close),
                     onClick = onDismiss,
+                    accent = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.common_close))
-                }
+                    filled = false,
+                )
                 BrandActionButton(
                     text = addToCartLabel,
                     onClick = { onAddToCart(selectedSize, selectedColor.takeIf { it.isNotBlank() }, quantity) },
                     accent = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.ShoppingBag,
-                    enabled = item.available && canCheckout && selectedSize.isNotBlank(),
+                    enabled = canAddToCart,
                 )
             }
             Text(
-                text = if (item.available && canCheckout && selectedSize.isNotBlank()) {
+                text = if (canAddToCart) {
                     stringResource(R.string.shop_detail_secure_buy, selectionSummary)
                 } else {
-                    stringResource(R.string.shop_detail_prebuy_check)
+                    checkoutBlockerMessage ?: stringResource(R.string.shop_detail_prebuy_check)
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),

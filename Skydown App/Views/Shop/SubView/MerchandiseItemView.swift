@@ -95,15 +95,26 @@ struct MerchandiseItemView: View {
                 )
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Schliessen") {
-                            showingFullscreenGallery = false
-                        }
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("common.close", fallback: "Schliessen"),
+                            systemImage: "xmark",
+                            accent: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .subheadline.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: false,
+                            action: { showingFullscreenGallery = false }
+                        )
+                        .skydownInteractiveFeedback()
                         .accessibilityIdentifier("shop.merch.fullscreen.close")
                     }
                 }
                 .toolbarBackground(.hidden, for: .navigationBar)
                 .toolbarColorScheme(.dark, for: .navigationBar)
                 .navigationBarTitleDisplayMode(.inline)
+                .skydownNavigationChrome(colorScheme: .dark)
             }
         }
     }

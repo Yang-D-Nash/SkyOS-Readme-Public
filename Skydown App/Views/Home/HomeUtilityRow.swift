@@ -68,30 +68,13 @@ struct HomeUtilityRow: View {
 
     @ViewBuilder
     private func utilityButton(_ utility: UtilityItem) -> some View {
-        let tint = utilityTint(for: utility.kind)
-        Button {
-            SkydownHaptics.selection()
-            utility.action()
-        } label: {
-            HStack(spacing: SkydownLayout.stackSpacingDense) {
-                Image(systemName: utility.icon)
-                    .font(.caption.weight(.medium))
-                Text(utility.title)
-                    .font(.caption.weight(.semibold))
-            }
-            .padding(.horizontal, 13)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
-                    .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.58))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
-                    .stroke(tint.opacity(0.16), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .foregroundColor(tint)
+        SkydownPortalChip(
+            title: utility.title,
+            systemImage: utility.icon,
+            tint: utilityTint(for: utility.kind),
+            colorScheme: colorScheme,
+            action: utility.action
+        )
     }
 
     private func utilityTint(for kind: UtilityKind) -> Color {
@@ -340,7 +323,8 @@ struct HomeArtistSocialLinksRow: View {
     }
 
     private func resolvedURL(_ value: String?, fallback: String) -> String {
-        value?.trimmingCharacters(in: .whitespacesAndNewlines).flatMap { $0.isEmpty ? nil : $0 } ?? fallback
+        let normalized = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (normalized?.isEmpty == false ? normalized : nil) ?? fallback
     }
 
     private func resolvedOptionalURL(_ value: String?, fallback: String?) -> String? {

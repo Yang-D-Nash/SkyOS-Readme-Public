@@ -21,18 +21,17 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.OutlinedButton
+import com.nash.skyos.ui.component.BrandActionButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -105,9 +104,13 @@ fun OrderScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = onClose) {
-                        Text(stringResource(R.string.order_action_close))
-                    }
+                    BrandActionButton(
+                        text = stringResource(R.string.order_action_close),
+                        onClick = onClose,
+                        accent = MaterialTheme.colorScheme.primary,
+                        filled = false,
+                        compact = true,
+                    )
                 },
                 colors = skydownTopBarColors(),
                 scrollBehavior = scrollBehavior,
@@ -175,13 +178,13 @@ fun OrderScreen(
                                 modifier = Modifier.padding(top = 8.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             )
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = stringResource(R.string.order_action_reload),
                                 onClick = viewModel::refreshOrders,
+                                accent = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(top = 12.dp),
-                                shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
-                            ) {
-                                Text(stringResource(R.string.order_action_reload))
-                            }
+                                filled = false,
+                            )
                         }
                     }
                 } else if (uiState.orders.isEmpty()) {
@@ -705,49 +708,43 @@ private fun OrderCard(
                         verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     ) {
                         if (!order.paymentStatus.hasFinalPaymentStatus()) {
-                            FilledTonalButton(
-                                onClick = onConfirmPayment,
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = hasActionableId && !isConfirmingPayment,
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            ) {
-                                Text(
-                                    text = if (isConfirmingPayment) {
-                                        stringResource(R.string.order_action_confirming)
-                                    } else {
-                                        stringResource(R.string.order_action_mark_paid)
-                                    },
-                                )
-                            }
-                        }
-
-                        FilledTonalButton(
-                            onClick = onToggleCompleted,
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = hasActionableId,
-                            shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                        ) {
-                            androidx.compose.material3.Icon(
-                                imageVector = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
-                                contentDescription = null,
-                            )
-                            Text(
-                                text = if (order.isCompleted) {
-                                    stringResource(R.string.order_action_reopen)
+                            BrandActionButton(
+                                text = if (isConfirmingPayment) {
+                                    stringResource(R.string.order_action_confirming)
                                 } else {
-                                    stringResource(R.string.order_action_complete)
+                                    stringResource(R.string.order_action_mark_paid)
                                 },
-                                modifier = Modifier.padding(start = 8.dp),
+                                onClick = onConfirmPayment,
+                                accent = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.fillMaxWidth(),
+                                icon = Icons.Default.CreditCard,
+                                filled = false,
+                                enabled = hasActionableId,
+                                isLoading = isConfirmingPayment,
                             )
                         }
 
-                        TextButton(
-                            onClick = onDelete,
+                        BrandActionButton(
+                            text = if (order.isCompleted) {
+                                stringResource(R.string.order_action_reopen)
+                            } else {
+                                stringResource(R.string.order_action_complete)
+                            },
+                            onClick = onToggleCompleted,
+                            accent = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.fillMaxWidth(),
+                            icon = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
                             enabled = hasActionableId,
-                        ) {
-                            Text(stringResource(R.string.order_action_remove))
-                        }
+                        )
+
+                        BrandActionButton(
+                            text = stringResource(R.string.order_action_remove),
+                            onClick = onDelete,
+                            accent = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxWidth(),
+                            filled = false,
+                            enabled = hasActionableId,
+                        )
                     }
                 } else {
                     Row(
@@ -755,48 +752,42 @@ private fun OrderCard(
                         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
                     ) {
                         if (!order.paymentStatus.hasFinalPaymentStatus()) {
-                            FilledTonalButton(
+                            BrandActionButton(
+                                text = if (isConfirmingPayment) {
+                                    stringResource(R.string.order_action_confirming)
+                                } else {
+                                    stringResource(R.string.order_action_mark_paid)
+                                },
                                 onClick = onConfirmPayment,
+                                accent = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f),
-                                enabled = hasActionableId && !isConfirmingPayment,
-                                shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                            ) {
-                                Text(
-                                    text = if (isConfirmingPayment) {
-                                        stringResource(R.string.order_action_confirming)
-                                    } else {
-                                        stringResource(R.string.order_action_mark_paid)
-                                    },
-                                )
-                            }
+                                icon = Icons.Default.CreditCard,
+                                filled = false,
+                                enabled = hasActionableId,
+                                isLoading = isConfirmingPayment,
+                            )
                         }
 
-                        FilledTonalButton(
+                        BrandActionButton(
+                            text = if (order.isCompleted) {
+                                stringResource(R.string.order_action_reopen)
+                            } else {
+                                stringResource(R.string.order_action_complete)
+                            },
                             onClick = onToggleCompleted,
+                            accent = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f),
+                            icon = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
                             enabled = hasActionableId,
-                            shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-                        ) {
-                            androidx.compose.material3.Icon(
-                                imageVector = if (order.isCompleted) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
-                                contentDescription = null,
-                            )
-                            Text(
-                                text = if (order.isCompleted) {
-                                    stringResource(R.string.order_action_reopen)
-                                } else {
-                                    stringResource(R.string.order_action_complete)
-                                },
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
-                        }
-                        TextButton(
+                        )
+                        BrandActionButton(
+                            text = stringResource(R.string.order_action_remove),
                             onClick = onDelete,
+                            accent = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f),
+                            filled = false,
                             enabled = hasActionableId,
-                        ) {
-                            Text(stringResource(R.string.order_action_remove))
-                        }
+                        )
                     }
                 }
             }

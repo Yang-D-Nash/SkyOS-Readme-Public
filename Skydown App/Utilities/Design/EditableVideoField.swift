@@ -88,13 +88,19 @@ struct EditableVideoField: View {
                 }
             }
 
-            Button(action: onPickVideo) {
-                Label(buttonTitle, systemImage: "video.badge.plus")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .tint(AppColors.accentMystic(for: colorScheme))
-            .disabled(isUploading)
+            SkydownBrandActionButton(
+                title: buttonTitle,
+                systemImage: "video.badge.plus",
+                accent: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                role: .muted,
+                isEnabled: !isUploading,
+                isLoading: isUploading,
+                font: .subheadline.weight(.semibold),
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 11,
+                action: onPickVideo
+            )
             .accessibilityIdentifier(accessibilityIDPrefix.map { "\($0).pick" } ?? "")
 
             if videoURL.trimmedNilIfEmpty != nil {

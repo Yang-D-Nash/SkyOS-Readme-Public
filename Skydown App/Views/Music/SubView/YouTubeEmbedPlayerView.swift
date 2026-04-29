@@ -4,6 +4,7 @@ struct YouTubeEmbedPlayerView: View {
     let item: SkydownYouTubeVideoItem
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     private var playbackURL: URL? {
         resolvedYouTubePlaybackURL(from: item.urlString)
@@ -25,11 +26,21 @@ struct YouTubeEmbedPlayerView: View {
                     )
                     .navigationTitle(item.title)
                     .navigationBarTitleDisplayMode(.inline)
+                    .skydownNavigationChrome(colorScheme: colorScheme)
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
-                            Button("Fertig") {
-                                dismiss()
-                            }
+                            SkydownBrandActionButton(
+                                title: AppLocalized.text("common.done", fallback: "Fertig"),
+                                accent: AppColors.accent(for: colorScheme),
+                                colorScheme: colorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 8,
+                                expandToFullWidth: false,
+                                action: { dismiss() }
+                            )
+                            .skydownInteractiveFeedback()
                         }
                     }
                 }

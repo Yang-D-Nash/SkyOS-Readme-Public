@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -51,10 +50,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -64,13 +59,12 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -96,7 +90,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -124,6 +117,7 @@ import com.nash.skyos.data.MembershipOpsExperimentDraft
 import com.nash.skyos.data.MembershipOpsRecommendation
 import com.nash.skyos.data.NotificationPermissionCoordinator
 import com.nash.skyos.data.ScreenHeaderSettings
+import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.EditableImageFieldCard
 import com.nash.skyos.ui.component.SectionHeader
 import com.nash.skyos.ui.component.SkydownCard
@@ -141,7 +135,9 @@ import com.nash.skyos.ui.model.SettingsLegalDocumentType
 import com.nash.skyos.ui.model.SettingsUiState
 import com.nash.skyos.ui.model.resolve
 import com.nash.skyos.ui.theme.AppearanceMode
+import com.nash.skyos.ui.theme.skydownAccent
 import com.nash.skyos.ui.viewmodel.SettingsViewModel
+import com.skydown.shared.model.PlatformContactEmails
 import com.skydown.shared.model.User
 import com.skydown.shared.model.UserQuotaPlan
 import com.skydown.shared.model.UserRole
@@ -157,88 +153,52 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-private fun Button(
+private fun SettingsSegmentSurface(
+    selected: Boolean,
     onClick: () -> Unit,
+    text: String,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    shape: Shape = ButtonDefaults.shape,
-    colors: ButtonColors = ButtonDefaults.buttonColors(),
-    elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
-    border: BorderStroke? = null,
-    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
-    interactionSource: MutableInteractionSource? = null,
-    content: @Composable RowScope.() -> Unit,
+    centerLabel: Boolean = false,
 ) {
-    val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
-    androidx.compose.material3.Button(
+    Surface(
         onClick = onClick,
-        modifier = modifier.skydownPressable(
-            interactionSource = resolvedInteractionSource,
-            pressedScale = 0.984f,
-        ),
-        enabled = enabled,
-        shape = shape,
-        colors = colors,
-        elevation = elevation,
-        border = border,
-        contentPadding = contentPadding,
-        interactionSource = resolvedInteractionSource,
-        content = content,
-    )
-}
-
-@Composable
-private fun OutlinedButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    shape: Shape = ButtonDefaults.outlinedShape,
-    colors: ButtonColors = ButtonDefaults.outlinedButtonColors(),
-    border: BorderStroke? = null,
-    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
-    interactionSource: MutableInteractionSource? = null,
-    content: @Composable RowScope.() -> Unit,
-) {
-    val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
-    androidx.compose.material3.OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.skydownPressable(
-            interactionSource = resolvedInteractionSource,
-            pressedScale = 0.986f,
-        ),
-        enabled = enabled,
-        shape = shape,
-        colors = colors,
-        border = border ?: ButtonDefaults.outlinedButtonBorder(enabled),
-        contentPadding = contentPadding,
-        interactionSource = resolvedInteractionSource,
-        content = content,
-    )
-}
-
-@Composable
-private fun TextButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    colors: ButtonColors = ButtonDefaults.textButtonColors(),
-    contentPadding: PaddingValues = ButtonDefaults.TextButtonContentPadding,
-    interactionSource: MutableInteractionSource? = null,
-    content: @Composable RowScope.() -> Unit,
-) {
-    val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
-    androidx.compose.material3.TextButton(
-        onClick = onClick,
-        modifier = modifier.skydownPressable(
-            interactionSource = resolvedInteractionSource,
-            pressedScale = 0.988f,
-        ),
-        enabled = enabled,
-        colors = colors,
-        contentPadding = contentPadding,
-        interactionSource = resolvedInteractionSource,
-        content = content,
-    )
+        modifier = modifier,
+        shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
+        color = if (selected) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+        } else {
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
+        },
+        border = if (!selected) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
+        } else {
+            null
+        },
+    ) {
+        if (centerLabel) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        } else {
+            Text(
+                text = text,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
 }
 
 @Composable
@@ -490,7 +450,8 @@ fun SettingsScreen(
         mutableStateOf(initialAdminWorkspaceKey ?: AdminWorkspaceSection.Users.name)
     }
     var activeSettingsRootArea by rememberSaveable {
-        mutableStateOf(if (uiState.isOwner) SettingsRootArea.OwnerConsole else SettingsRootArea.User)
+        // Start every account in the personal layer first to reduce cognitive load.
+        mutableStateOf(SettingsRootArea.User)
     }
     var activeOwnerConsoleArea by rememberSaveable { mutableStateOf(OwnerConsoleArea.Ops) }
     val activeAdminWorkspace = remember(activeAdminWorkspaceKey) {
@@ -1360,7 +1321,8 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
 
-                Button(
+                BrandActionButton(
+                    text = stringResource(R.string.settings_save_header),
                     onClick = {
                         if (!uiState.isOwner) {
                             feedbackMessage = adminHeadersOwnerOnlyMessage
@@ -1402,13 +1364,11 @@ fun SettingsScreen(
                             }
                         }
                     },
+                    accent = MaterialTheme.colorScheme.skydownAccent(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                ) {
-                    Text(stringResource(R.string.settings_save_header))
-                }
+                )
             }
 
             AdminWorkspaceSection.Shopify -> {
@@ -1456,22 +1416,21 @@ fun SettingsScreen(
                     singleLine = false,
                 )
 
-                OutlinedButton(
+                BrandActionButton(
+                    text = if (uiState.isLoadingShopifyCollections) {
+                        stringResource(R.string.settings_shopify_collections_loading)
+                    } else {
+                        stringResource(R.string.settings_shopify_collections_load_from_shopify)
+                    },
                     onClick = { viewModel.refreshShopifyCollections(force = true) },
+                    accent = MaterialTheme.colorScheme.skydownAccent(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                    filled = false,
                     enabled = !uiState.isLoadingShopifyCollections,
-                ) {
-                    Text(
-                        if (uiState.isLoadingShopifyCollections) {
-                            stringResource(R.string.settings_shopify_collections_loading)
-                        } else {
-                            stringResource(R.string.settings_shopify_collections_load_from_shopify)
-                        },
-                    )
-                }
+                    isLoading = uiState.isLoadingShopifyCollections,
+                )
 
                 if (uiState.availableShopifyCollections.isNotEmpty()) {
                     Text(
@@ -1521,7 +1480,7 @@ fun SettingsScreen(
 
                         filteredCollections.forEach { collection ->
                             val isSelected = selectedHandles.contains(collection.handle)
-                            OutlinedButton(
+                            Surface(
                                 onClick = {
                                     val updatedHandles = selectedHandles.toMutableList().apply {
                                         if (contains(collection.handle)) {
@@ -1534,16 +1493,24 @@ fun SettingsScreen(
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = if (isSelected) {
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                color = if (isSelected) {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                                border = BorderStroke(
+                                    width = 1.dp,
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)
                                     } else {
-                                        MaterialTheme.colorScheme.surface
+                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
                                     },
                                 ),
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
@@ -1619,7 +1586,8 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 )
 
-                Button(
+                BrandActionButton(
+                    text = stringResource(R.string.settings_save_shopify),
                     onClick = {
                         viewModel.saveShopifyAdminSettings(
                             uiState.shopifyAdminSettings.copy(
@@ -1632,13 +1600,11 @@ fun SettingsScreen(
                             ),
                         )
                     },
+                    accent = MaterialTheme.colorScheme.skydownAccent(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                ) {
-                    Text(stringResource(R.string.settings_save_shopify))
-                }
+                )
             }
 
             AdminWorkspaceSection.Payments -> {
@@ -1884,7 +1850,8 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                Button(
+                BrandActionButton(
+                    text = stringResource(R.string.settings_save_shipping_invoice),
                     onClick = {
                         val domesticCost = domesticShippingDraft.parseDecimalInput()
                             ?: uiState.commerceSettings.shipping.domesticCost
@@ -1919,13 +1886,11 @@ fun SettingsScreen(
                             successMessage = resources.getString(R.string.settings_admin_commerce_save_success),
                         )
                     },
+                    accent = MaterialTheme.colorScheme.skydownAccent(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                ) {
-                    Text(stringResource(R.string.settings_save_shipping_invoice))
-                }
+                )
             }
 
             AdminWorkspaceSection.Visuals -> {
@@ -2021,10 +1986,11 @@ fun SettingsScreen(
                             .padding(top = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     ) {
-                        OutlinedButton(
+                        Surface(
                             onClick = { automationProviderDraft = "activepieces" },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                            color = MaterialTheme.colorScheme.surface,
                             border = BorderStroke(
                                 width = 1.dp,
                                 color = if (automationProviderDraft == "activepieces") {
@@ -2034,12 +2000,20 @@ fun SettingsScreen(
                                 },
                             ),
                         ) {
-                            Text(stringResource(R.string.settings_automation_activepieces))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(stringResource(R.string.settings_automation_activepieces))
+                            }
                         }
-                        OutlinedButton(
+                        Surface(
                             onClick = { automationProviderDraft = "n8n" },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                            color = MaterialTheme.colorScheme.surface,
                             border = BorderStroke(
                                 width = 1.dp,
                                 color = if (automationProviderDraft == "n8n") {
@@ -2049,7 +2023,14 @@ fun SettingsScreen(
                                 },
                             ),
                         ) {
-                            Text(stringResource(R.string.settings_automation_n8n))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(stringResource(R.string.settings_automation_n8n))
+                            }
                         }
                     }
                 }
@@ -2159,24 +2140,25 @@ fun SettingsScreen(
                         knowledgeContext = automationKnowledgeContextDraft.trim(),
                     )
 
-                    Button(
+                    BrandActionButton(
+                        text = stringResource(R.string.settings_automation_save_flow),
                         onClick = {
                             viewModel.saveWorkflowAutomationSettings(updatedAutomationSettings)
                         },
+                        accent = MaterialTheme.colorScheme.skydownAccent(),
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                    ) {
-                        Text(stringResource(R.string.settings_automation_save_flow))
-                    }
+                        compact = true,
+                    )
 
-                    OutlinedButton(
+                    BrandActionButton(
+                        text = stringResource(R.string.settings_automation_send_test),
                         onClick = { viewModel.testWorkflowAutomationSettings(updatedAutomationSettings) },
+                        accent = MaterialTheme.colorScheme.skydownAccent(),
                         modifier = Modifier.weight(1f),
+                        filled = false,
+                        compact = true,
                         enabled = automationEnabledDraft && resolvedWebhookUrl != null,
-                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                    ) {
-                        Text(stringResource(R.string.settings_automation_send_test))
-                    }
+                    )
                 }
 
                 Text(
@@ -2258,42 +2240,43 @@ fun SettingsScreen(
                         .padding(top = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
-                    Button(
+                    BrandActionButton(
+                        text = stringResource(R.string.settings_manus_save),
                         onClick = {
                             viewModel.saveManusByosSettings(
                                 enabled = manusByosEnabledDraft,
                                 apiKeyDraft = manusByosApiKeyDraft,
                             )
                         },
+                        accent = MaterialTheme.colorScheme.skydownAccent(),
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                    ) {
-                        Text(stringResource(R.string.settings_manus_save))
-                    }
+                        compact = true,
+                    )
 
-                    OutlinedButton(
+                    BrandActionButton(
+                        text = stringResource(R.string.settings_manus_remove_key),
                         onClick = {
                             viewModel.clearManusByosApiKey()
                             manusByosApiKeyDraft = ""
                         },
+                        accent = MaterialTheme.colorScheme.skydownAccent(),
                         modifier = Modifier.weight(1f),
+                        filled = false,
+                        compact = true,
                         enabled = uiState.manusByosSettings.hasApiKey || manusByosApiKeyDraft.isNotBlank(),
-                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                    ) {
-                        Text(stringResource(R.string.settings_manus_remove_key))
-                    }
+                    )
                 }
 
-                OutlinedButton(
+                BrandActionButton(
+                    text = stringResource(R.string.settings_manus_validate),
                     onClick = { viewModel.validateManusByosKey(manusByosApiKeyDraft) },
+                    accent = MaterialTheme.colorScheme.skydownAccent(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                    filled = false,
                     enabled = manusByosApiKeyDraft.isNotBlank() || uiState.manusByosSettings.hasApiKey,
-                ) {
-                    Text(stringResource(R.string.settings_manus_validate))
-                }
+                )
 
                 Text(
                     text = stringResource(R.string.settings_admin_agent_profile_title),
@@ -2368,7 +2351,8 @@ fun SettingsScreen(
                     maxLines = 8,
                 )
 
-                Button(
+                BrandActionButton(
+                    text = stringResource(R.string.settings_agent_save_profile),
                     onClick = {
                         viewModel.saveAgentProfileSettings(
                             uiState.agentProfileSettings.copy(
@@ -2381,13 +2365,11 @@ fun SettingsScreen(
                             ),
                         )
                     },
+                    accent = MaterialTheme.colorScheme.skydownAccent(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                ) {
-                    Text(stringResource(R.string.settings_agent_save_profile))
-                }
+                )
             }
 
             AdminWorkspaceSection.AiPrompts -> {
@@ -2548,26 +2530,38 @@ fun SettingsScreen(
                         .padding(top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                 ) {
-                    OutlinedButton(
+                    BrandActionButton(
+                        text = stringResource(R.string.settings_owner_inspiration_new),
                         onClick = {
                             aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft + AiOwnerInspirationEntry.empty()
                         },
+                        accent = MaterialTheme.colorScheme.skydownAccent(),
                         modifier = Modifier.weight(1f),
-                    ) { Text(stringResource(R.string.settings_owner_inspiration_new)) }
-                    OutlinedButton(
+                        filled = false,
+                        compact = true,
+                    )
+                    BrandActionButton(
+                        text = stringResource(R.string.settings_owner_inspiration_publish_all),
                         onClick = {
                             aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.map { it.copy(isPublished = true) }
                         },
-                        enabled = aiOwnerInspirationEntriesDraft.isNotEmpty(),
+                        accent = MaterialTheme.colorScheme.skydownAccent(),
                         modifier = Modifier.weight(1f),
-                    ) { Text(stringResource(R.string.settings_owner_inspiration_publish_all)) }
-                    OutlinedButton(
+                        filled = false,
+                        compact = true,
+                        enabled = aiOwnerInspirationEntriesDraft.isNotEmpty(),
+                    )
+                    BrandActionButton(
+                        text = stringResource(R.string.settings_owner_inspiration_unpublish_all),
                         onClick = {
                             aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.map { it.copy(isPublished = false) }
                         },
-                        enabled = aiOwnerInspirationEntriesDraft.isNotEmpty(),
+                        accent = MaterialTheme.colorScheme.skydownAccent(),
                         modifier = Modifier.weight(1f),
-                    ) { Text(stringResource(R.string.settings_owner_inspiration_unpublish_all)) }
+                        filled = false,
+                        compact = true,
+                        enabled = aiOwnerInspirationEntriesDraft.isNotEmpty(),
+                    )
                 }
 
                 aiOwnerInspirationEntriesDraft.forEachIndexed { index, entry ->
@@ -2644,25 +2638,28 @@ fun SettingsScreen(
                                 },
                             )
                         }
-                        OutlinedButton(
+                        BrandActionButton(
+                            text = stringResource(R.string.settings_owner_inspiration_remove_entry),
                             onClick = {
                                 aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.toMutableList().also {
                                     it.removeAt(index)
                                 }
                             },
+                            accent = MaterialTheme.colorScheme.skydownAccent(),
                             modifier = Modifier.padding(top = 8.dp),
-                        ) { Text(stringResource(R.string.settings_owner_inspiration_remove_entry)) }
+                            filled = false,
+                            compact = true,
+                        )
                     }
                 }
-                Button(
+                BrandActionButton(
+                    text = stringResource(R.string.settings_owner_inspiration_save),
                     onClick = { viewModel.saveAiOwnerInspirationEntries(aiOwnerInspirationEntriesDraft) },
+                    accent = MaterialTheme.colorScheme.skydownAccent(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                ) {
-                    Text(stringResource(R.string.settings_owner_inspiration_save))
-                }
+                )
 
                 OutlinedTextField(
                     value = aiAssetReferenceNotesDraft,
@@ -2682,7 +2679,8 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodySmall,
                 )
 
-                Button(
+                BrandActionButton(
+                    text = stringResource(R.string.settings_ai_save_instructions),
                     onClick = {
                         viewModel.saveAiPromptSettings(
                             uiState.aiPromptSettings.copy(
@@ -2696,13 +2694,11 @@ fun SettingsScreen(
                             ),
                         )
                     },
+                    accent = MaterialTheme.colorScheme.skydownAccent(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                ) {
-                    Text(stringResource(R.string.settings_ai_save_instructions))
-                }
+                )
 
                 Text(
                     text = stringResource(R.string.settings_admin_ai_runtime_heading),
@@ -2886,7 +2882,8 @@ fun SettingsScreen(
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                                 ) {
-                                    OutlinedButton(
+                                    BrandActionButton(
+                                        text = stringResource(R.string.settings_ai_preview),
                                         onClick = {
                                             coroutineScope.launch {
                                                 val preview = faqOwnerReviewRepository.previewRecommendation(recommendation, 30)
@@ -2896,11 +2893,12 @@ fun SettingsScreen(
                                                 feedbackType = if (preview.status == "blocked") ToastType.Warning else ToastType.Info
                                             }
                                         },
-                                        shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
-                                    ) {
-                                        Text(stringResource(R.string.settings_ai_preview))
-                                    }
-                                    Button(
+                                        accent = MaterialTheme.colorScheme.skydownAccent(),
+                                        filled = false,
+                                        compact = true,
+                                    )
+                                    BrandActionButton(
+                                        text = stringResource(R.string.settings_ai_apply),
                                         onClick = {
                                             coroutineScope.launch {
                                                 val applyResult = faqOwnerReviewRepository.applyRecommendation(recommendation.id, 30)
@@ -2913,15 +2911,15 @@ fun SettingsScreen(
                                                 }
                                             }
                                         },
-                                        shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
-                                    ) {
-                                        Text(stringResource(R.string.settings_ai_apply))
-                                    }
+                                        accent = MaterialTheme.colorScheme.skydownAccent(),
+                                        compact = true,
+                                    )
                                 }
                             }
                         }
                     }
-                    OutlinedButton(
+                    BrandActionButton(
+                        text = stringResource(R.string.settings_ai_revert_last),
                         onClick = {
                             coroutineScope.launch {
                                 val revert = faqOwnerReviewRepository.revertLastChange()
@@ -2933,11 +2931,11 @@ fun SettingsScreen(
                                 }
                             }
                         },
+                        accent = MaterialTheme.colorScheme.skydownAccent(),
                         modifier = Modifier.padding(top = 8.dp),
-                        shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
-                    ) {
-                        Text(stringResource(R.string.settings_ai_revert_last))
-                    }
+                        filled = false,
+                        compact = true,
+                    )
                 }
 
                 LazyRow(
@@ -3057,13 +3055,13 @@ fun SettingsScreen(
                         item {
                             val label = stringResource(labelRes)
                             val isSelected = aiBotQualityModeDraft == value
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = label,
                                 onClick = { aiBotQualityModeDraft = value },
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                                ),
-                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                            ) { Text(label) }
+                                accent = MaterialTheme.colorScheme.primary,
+                                filled = isSelected,
+                                compact = true,
+                            )
                         }
                     }
                 }
@@ -3086,13 +3084,13 @@ fun SettingsScreen(
                         item {
                             val label = stringResource(labelRes)
                             val isSelected = aiBotFaqModeDraft == value
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = label,
                                 onClick = { aiBotFaqModeDraft = value },
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                                ),
-                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                            ) { Text(label) }
+                                accent = MaterialTheme.colorScheme.primary,
+                                filled = isSelected,
+                                compact = true,
+                            )
                         }
                     }
                 }
@@ -3114,13 +3112,13 @@ fun SettingsScreen(
                         item {
                             val label = stringResource(labelRes)
                             val isSelected = aiBotOwnerModeDraft == value
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = label,
                                 onClick = { aiBotOwnerModeDraft = value },
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                                ),
-                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                            ) { Text(label) }
+                                accent = MaterialTheme.colorScheme.primary,
+                                filled = isSelected,
+                                compact = true,
+                            )
                         }
                     }
                 }
@@ -3143,13 +3141,13 @@ fun SettingsScreen(
                         item {
                             val label = stringResource(labelRes)
                             val isSelected = aiBotAnswerLengthDraft == value
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = label,
                                 onClick = { aiBotAnswerLengthDraft = value },
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                                ),
-                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                            ) { Text(label) }
+                                accent = MaterialTheme.colorScheme.primary,
+                                filled = isSelected,
+                                compact = true,
+                            )
                         }
                     }
                 }
@@ -3172,13 +3170,13 @@ fun SettingsScreen(
                         item {
                             val label = stringResource(labelRes)
                             val isSelected = aiBotDiagnosticsModeDraft == value
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = label,
                                 onClick = { aiBotDiagnosticsModeDraft = value },
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                                ),
-                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                            ) { Text(label) }
+                                accent = MaterialTheme.colorScheme.primary,
+                                filled = isSelected,
+                                compact = true,
+                            )
                         }
                     }
                 }
@@ -3399,13 +3397,13 @@ fun SettingsScreen(
                         item {
                             val label = stringResource(labelRes)
                             val isSelected = aiBotFaqPriorityModeDraft == value
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = label,
                                 onClick = { aiBotFaqPriorityModeDraft = value },
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                                ),
-                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                            ) { Text(label) }
+                                accent = MaterialTheme.colorScheme.primary,
+                                filled = isSelected,
+                                compact = true,
+                            )
                         }
                     }
                 }
@@ -3491,19 +3489,13 @@ fun SettingsScreen(
                 ) {
                     items(AiRuntimeAgentProvider.entries, key = { it.rawValue }) { provider ->
                         val isSelected = aiAgentProviderDraft == provider.rawValue
-                        OutlinedButton(
+                        BrandActionButton(
+                            text = provider.displayTitle,
                             onClick = { aiAgentProviderDraft = provider.rawValue },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                },
-                            ),
-                            shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                        ) {
-                            Text(provider.displayTitle)
-                        }
+                            accent = MaterialTheme.colorScheme.primary,
+                            filled = isSelected,
+                            compact = true,
+                        )
                     }
                 }
 
@@ -3520,19 +3512,13 @@ fun SettingsScreen(
                 ) {
                     items(AiRuntimeAgentProvider.entries, key = { it.rawValue }) { provider ->
                         val isSelected = aiFallbackAgentProviderDraft == provider.rawValue
-                        OutlinedButton(
+                        BrandActionButton(
+                            text = provider.displayTitle,
                             onClick = { aiFallbackAgentProviderDraft = provider.rawValue },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                },
-                            ),
-                            shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                        ) {
-                            Text(provider.displayTitle)
-                        }
+                            accent = MaterialTheme.colorScheme.primary,
+                            filled = isSelected,
+                            compact = true,
+                        )
                     }
                 }
 
@@ -3738,7 +3724,8 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                Button(
+                BrandActionButton(
+                    text = stringResource(R.string.settings_ai_runtime_save),
                     onClick = {
                         val currentRuntime = uiState.aiRuntimeSettings
                         val updatedRuntime = currentRuntime.copy(
@@ -3871,13 +3858,11 @@ fun SettingsScreen(
                         )
                         viewModel.saveAiRuntimeSettings(updatedRuntime)
                     },
+                    accent = MaterialTheme.colorScheme.skydownAccent(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 14.dp),
-                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                ) {
-                    Text(stringResource(R.string.settings_ai_runtime_save))
-                }
+                )
             }
 
             AdminWorkspaceSection.MembershipOps -> {
@@ -3902,20 +3887,13 @@ fun SettingsScreen(
                 ) {
                     items(MembershipOpsTab.entries.toList()) { tab ->
                         val selected = membershipOpsTab == tab.name
-                        OutlinedButton(
+                        BrandActionButton(
+                            text = tab.label,
                             onClick = { membershipOpsTab = tab.name },
-                            shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (selected) {
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                },
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        ) {
-                            Text(tab.label, style = MaterialTheme.typography.labelMedium)
-                        }
+                            accent = MaterialTheme.colorScheme.primary,
+                            filled = selected,
+                            compact = true,
+                        )
                     }
                 }
 
@@ -3992,7 +3970,8 @@ fun SettingsScreen(
                                                 modifier = Modifier.padding(top = 10.dp),
                                                 horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                                             ) {
-                                                Button(
+                                                BrandActionButton(
+                                                    text = stringResource(R.string.settings_membership_ops_start_experiment),
                                                     onClick = {
                                                         coroutineScope.launch {
                                                             val lifecycleId = "lifecycle_${recommendation.id}_${System.currentTimeMillis()}"
@@ -4010,9 +3989,11 @@ fun SettingsScreen(
                                                             feedbackType = ToastType.Success
                                                         }
                                                     },
-                                                    shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
-                                                ) { Text(stringResource(R.string.settings_membership_ops_start_experiment)) }
-                                                OutlinedButton(
+                                                    accent = MaterialTheme.colorScheme.skydownAccent(),
+                                                    compact = true,
+                                                )
+                                                BrandActionButton(
+                                                    text = stringResource(R.string.settings_membership_ops_reject),
                                                     onClick = {
                                                         coroutineScope.launch {
                                                             membershipOpsRepository.rejectRecommendation(
@@ -4024,9 +4005,10 @@ fun SettingsScreen(
                                                             feedbackType = ToastType.Warning
                                                         }
                                                     },
-                                                    shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
-                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                                ) { Text(stringResource(R.string.settings_membership_ops_reject)) }
+                                                    accent = MaterialTheme.colorScheme.skydownAccent(),
+                                                    filled = false,
+                                                    compact = true,
+                                                )
                                             }
                                         }
                                     }
@@ -4071,7 +4053,8 @@ fun SettingsScreen(
                                 label = { Text(stringResource(R.string.settings_experiment_observed_window_days)) },
                                 singleLine = true,
                             )
-                            Button(
+                            BrandActionButton(
+                                text = stringResource(R.string.settings_membership_ops_complete_experiment),
                                 onClick = {
                                     coroutineScope.launch {
                                         runCatching {
@@ -4095,11 +4078,10 @@ fun SettingsScreen(
                                         }
                                     }
                                 },
+                                accent = MaterialTheme.colorScheme.skydownAccent(),
                                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                            ) {
-                                Text(stringResource(R.string.settings_membership_ops_complete_experiment))
-                            }
+                                compact = true,
+                            )
                         }
 
                         MembershipOpsTab.Learnings -> {
@@ -4203,7 +4185,8 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                                 ) {
-                                    Button(
+                                    BrandActionButton(
+                                        text = stringResource(R.string.common_save),
                                         onClick = {
                                             coroutineScope.launch {
                                                 runCatching {
@@ -4228,10 +4211,12 @@ fun SettingsScreen(
                                                 }
                                             }
                                         },
+                                        accent = MaterialTheme.colorScheme.skydownAccent(),
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
-                                    ) { Text(stringResource(R.string.common_save)) }
-                                    OutlinedButton(
+                                        compact = true,
+                                    )
+                                    BrandActionButton(
+                                        text = stringResource(R.string.settings_membership_ops_reset_defaults),
                                         onClick = {
                                             coroutineScope.launch {
                                                 runCatching {
@@ -4258,10 +4243,11 @@ fun SettingsScreen(
                                                 }
                                             }
                                         },
+                                        accent = MaterialTheme.colorScheme.skydownAccent(),
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                    ) { Text(stringResource(R.string.settings_membership_ops_reset_defaults)) }
+                                        filled = false,
+                                        compact = true,
+                                    )
                                 }
                             }
                         }
@@ -4273,7 +4259,8 @@ fun SettingsScreen(
                             ) {
                                 items(listOf("7d", "30d", "90d", "all")) { range ->
                                     val selected = membershipTimelineRange == range
-                                    OutlinedButton(
+                                    BrandActionButton(
+                                        text = range,
                                         onClick = {
                                             membershipTimelineRange = range
                                             coroutineScope.launch {
@@ -4287,12 +4274,10 @@ fun SettingsScreen(
                                                 }
                                             }
                                         },
-                                        shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                        colors = ButtonDefaults.outlinedButtonColors(
-                                            containerColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                                        ),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                    ) { Text(range) }
+                                        accent = MaterialTheme.colorScheme.skydownAccent(),
+                                        filled = selected,
+                                        compact = true,
+                                    )
                                 }
                             }
 
@@ -4330,7 +4315,8 @@ fun SettingsScreen(
                                                 Text(stringResource(R.string.settings_membership_ops_learnings_line, stringResource(R.string.settings_membership_ops_learnings), learnings), modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f))
                                             }
                                             if (recommendationId.isNotBlank()) {
-                                                OutlinedButton(
+                                                BrandActionButton(
+                                                    text = stringResource(R.string.settings_membership_ops_rerun),
                                                     onClick = {
                                                         selectedRecommendationId = recommendationId
                                                         experimentLifecycleIdDraft = "lifecycle_${recommendationId}_${System.currentTimeMillis()}"
@@ -4340,12 +4326,11 @@ fun SettingsScreen(
                                                         )
                                                         membershipOpsTab = MembershipOpsTab.Experiments.name
                                                     },
+                                                    accent = MaterialTheme.colorScheme.skydownAccent(),
                                                     modifier = Modifier.padding(top = 10.dp),
-                                                    shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
-                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                                ) {
-                                                    Text(stringResource(R.string.settings_membership_ops_rerun))
-                                                }
+                                                    filled = false,
+                                                    compact = true,
+                                                )
                                             }
                                         }
                                     }
@@ -4431,45 +4416,24 @@ fun SettingsScreen(
                                 .padding(top = 10.dp),
                             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         ) {
-                            Button(
+                            SettingsSegmentSurface(
+                                selected = activeSettingsRootArea == SettingsRootArea.User,
                                 onClick = { activeSettingsRootArea = SettingsRootArea.User },
-                                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (activeSettingsRootArea == SettingsRootArea.User) {
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                                    } else {
-                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
-                                    },
-                                    contentColor = MaterialTheme.colorScheme.onSurface,
-                                ),
-                            ) { Text(stringResource(R.string.settings_root_personal)) }
+                                text = stringResource(R.string.settings_root_personal),
+                            )
                             if (uiState.isLoggedIn) {
-                                Button(
+                                SettingsSegmentSurface(
+                                    selected = activeSettingsRootArea == SettingsRootArea.CreatorOps,
                                     onClick = { activeSettingsRootArea = SettingsRootArea.CreatorOps },
-                                    shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (activeSettingsRootArea == SettingsRootArea.CreatorOps) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                                        } else {
-                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
-                                        },
-                                        contentColor = MaterialTheme.colorScheme.onSurface,
-                                    ),
-                                ) { Text(stringResource(R.string.settings_root_studio)) }
+                                    text = stringResource(R.string.settings_root_studio),
+                                )
                             }
                             if (uiState.isOwner) {
-                                Button(
+                                SettingsSegmentSurface(
+                                    selected = activeSettingsRootArea == SettingsRootArea.OwnerConsole,
                                     onClick = { activeSettingsRootArea = SettingsRootArea.OwnerConsole },
-                                    shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (activeSettingsRootArea == SettingsRootArea.OwnerConsole) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                                        } else {
-                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
-                                        },
-                                        contentColor = MaterialTheme.colorScheme.onSurface,
-                                    ),
-                                ) { Text(stringResource(R.string.settings_root_command)) }
+                                    text = stringResource(R.string.settings_root_command),
+                                )
                             }
                         }
                     }
@@ -4528,15 +4492,14 @@ fun SettingsScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                                 )
                             }
-                            Button(
+                            BrandActionButton(
+                                text = stringResource(R.string.settings_open_edit_profile),
                                 onClick = onOpenProfile,
+                                accent = MaterialTheme.colorScheme.skydownAccent(),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                            ) {
-                                Text(stringResource(R.string.settings_open_edit_profile))
-                            }
+                            )
                             SettingsToggleRow(
                                 title = stringResource(R.string.settings_ai_my_account_toggle_title),
                                 body = stringResource(R.string.settings_ai_my_account_toggle_body),
@@ -4545,64 +4508,56 @@ fun SettingsScreen(
                                 enabled = !uiState.isSavingProfile && !uiState.isSigningOut && !uiState.isDeletingAccount,
                                 modifier = Modifier.padding(top = 12.dp),
                             )
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = stringResource(R.string.settings_save_ai_consent),
                                 onClick = { viewModel.saveAiAccessConsent(profileAiAccessEnabledDraft) },
+                                accent = MaterialTheme.colorScheme.skydownAccent(),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 8.dp),
+                                filled = false,
                                 enabled = !uiState.isSavingProfile &&
                                     !uiState.isSigningOut &&
                                     !uiState.isDeletingAccount &&
                                     profileAiAccessEnabledDraft != uiState.aiAccessEnabled,
-                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                            ) {
-                                Text(stringResource(R.string.settings_save_ai_consent))
-                            }
+                            )
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
                                 verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                             ) {
-                                Button(
+                                BrandActionButton(
+                                    text = if (uiState.isSigningOut) {
+                                        stringResource(R.string.settings_sign_out_progress)
+                                    } else {
+                                        stringResource(R.string.settings_sign_out)
+                                    },
                                     onClick = { viewModel.signOut() },
+                                    accent = MaterialTheme.colorScheme.skydownAccent(),
                                     modifier = Modifier.fillMaxWidth(),
                                     enabled = !uiState.isSigningOut && !uiState.isDeletingAccount,
-                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                ) {
-                                    Text(
-                                        if (uiState.isSigningOut) {
-                                            stringResource(R.string.settings_sign_out_progress)
-                                        } else {
-                                            stringResource(R.string.settings_sign_out)
-                                        },
-                                    )
-                                }
-                                OutlinedButton(
+                                )
+                                BrandActionButton(
+                                    text = stringResource(R.string.settings_use_other_account),
                                     onClick = { viewModel.signOut(onOpenLogin) },
+                                    accent = MaterialTheme.colorScheme.skydownAccent(),
                                     modifier = Modifier.fillMaxWidth(),
+                                    filled = false,
                                     enabled = !uiState.isSigningOut && !uiState.isDeletingAccount,
-                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                ) {
-                                    Text(stringResource(R.string.settings_use_other_account))
-                                }
-                                OutlinedButton(
+                                )
+                                BrandActionButton(
+                                    text = if (uiState.isDeletingAccount) {
+                                        stringResource(R.string.settings_account_deleting)
+                                    } else {
+                                        stringResource(R.string.settings_account_delete)
+                                    },
                                     onClick = { showDeleteAccountDialog.value = true },
+                                    accent = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.fillMaxWidth(),
+                                    filled = false,
                                     enabled = !uiState.isSigningOut && !uiState.isDeletingAccount,
-                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.error,
-                                    ),
-                                ) {
-                                    Text(
-                                        if (uiState.isDeletingAccount) {
-                                            stringResource(R.string.settings_account_deleting)
-                                        } else {
-                                            stringResource(R.string.settings_account_delete)
-                                        },
-                                    )
-                                }
+                                )
                             }
                             uiState.accountErrorMessage?.let { message ->
                                 Text(
@@ -4618,20 +4573,19 @@ fun SettingsScreen(
                                     .padding(top = 12.dp),
                                 verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                             ) {
-                                Button(
+                                BrandActionButton(
+                                    text = stringResource(R.string.auth_sign_in),
                                     onClick = onOpenLogin,
+                                    accent = MaterialTheme.colorScheme.skydownAccent(),
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                ) {
-                                    Text(stringResource(R.string.auth_sign_in))
-                                }
-                                OutlinedButton(
+                                )
+                                BrandActionButton(
+                                    text = stringResource(R.string.settings_register),
                                     onClick = onOpenRegistration,
+                                    accent = MaterialTheme.colorScheme.skydownAccent(),
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                ) {
-                                    Text(stringResource(R.string.settings_register))
-                                }
+                                    filled = false,
+                                )
                             }
                         }
                     }
@@ -4661,7 +4615,12 @@ fun SettingsScreen(
                                     .padding(top = 12.dp),
                                 verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                             ) {
-                                OutlinedButton(
+                                BrandActionButton(
+                                    text = if (uiState.isOwner) {
+                                        stringResource(R.string.settings_membership_plan_manage, membershipState)
+                                    } else {
+                                        stringResource(R.string.settings_membership_billing_help, membershipState)
+                                    },
                                     onClick = {
                                         if (uiState.isOwner) {
                                             activeAdminWorkspaceKey = AdminWorkspaceSection.MembershipOps.name
@@ -4675,18 +4634,12 @@ fun SettingsScreen(
                                             )
                                         }
                                     },
+                                    accent = MaterialTheme.colorScheme.skydownAccent(),
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                ) {
-                                    Text(
-                                        if (uiState.isOwner) {
-                                            stringResource(R.string.settings_membership_plan_manage, membershipState)
-                                        } else {
-                                            stringResource(R.string.settings_membership_billing_help, membershipState)
-                                        },
-                                    )
-                                }
-                                OutlinedButton(
+                                    filled = false,
+                                )
+                                BrandActionButton(
+                                    text = stringResource(R.string.settings_check_restore),
                                     onClick = {
                                         openSupportEmail(
                                             context = context,
@@ -4695,22 +4648,21 @@ fun SettingsScreen(
                                             supportEmail = uiState.legalContentSettings.resolvedSupportEmail,
                                         )
                                     },
+                                    accent = MaterialTheme.colorScheme.skydownAccent(),
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                ) {
-                                    Text(stringResource(R.string.settings_check_restore))
-                                }
+                                    filled = false,
+                                )
                             }
                         } else {
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = stringResource(R.string.auth_sign_in),
                                 onClick = onOpenLogin,
+                                accent = MaterialTheme.colorScheme.skydownAccent(),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                            ) {
-                                Text(stringResource(R.string.auth_sign_in))
-                            }
+                                filled = false,
+                            )
                         }
                     }
                 }
@@ -4743,16 +4695,16 @@ fun SettingsScreen(
                                 modifier = Modifier.padding(top = 6.dp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
                             )
-                            OutlinedButton(
+                            BrandActionButton(
+                                text = stringResource(R.string.settings_open_owner_hub),
                                 onClick = onOpenOwnerHub,
+                                accent = MaterialTheme.colorScheme.skydownAccent(),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp)
                                     .testTag("settings.open_owner_hub"),
-                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                            ) {
-                                Text(stringResource(R.string.settings_open_owner_hub))
-                            }
+                                filled = false,
+                            )
                             OwnerCommandCenterCard(
                                 isOwner = uiState.isOwner,
                                 paymentStatus = stringResource(R.string.settings_owner_payment_routes, visiblePaymentMethodCount),
@@ -4793,53 +4745,27 @@ fun SettingsScreen(
                                     .padding(top = 8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                             ) {
-                                Button(
-                                    onClick = {
-                                        activeOwnerConsoleArea = OwnerConsoleArea.Ops
-                                    },
+                                SettingsSegmentSurface(
+                                    selected = activeOwnerConsoleArea == OwnerConsoleArea.Ops,
+                                    onClick = { activeOwnerConsoleArea = OwnerConsoleArea.Ops },
+                                    text = stringResource(R.string.settings_command_daily),
                                     modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (activeOwnerConsoleArea == OwnerConsoleArea.Ops) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                                        } else {
-                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
-                                        },
-                                        contentColor = MaterialTheme.colorScheme.onSurface,
-                                    ),
-                                ) {
-                                    Text(stringResource(R.string.settings_command_daily))
-                                }
-                                Button(
+                                    centerLabel = true,
+                                )
+                                SettingsSegmentSurface(
+                                    selected = activeOwnerConsoleArea == OwnerConsoleArea.AiRuntime,
                                     onClick = { activeOwnerConsoleArea = OwnerConsoleArea.AiRuntime },
+                                    text = stringResource(R.string.settings_command_lab),
                                     modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (activeOwnerConsoleArea == OwnerConsoleArea.AiRuntime) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                                        } else {
-                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
-                                        },
-                                        contentColor = MaterialTheme.colorScheme.onSurface,
-                                    ),
-                                ) {
-                                    Text(stringResource(R.string.settings_command_lab))
-                                }
-                                Button(
+                                    centerLabel = true,
+                                )
+                                SettingsSegmentSurface(
+                                    selected = activeOwnerConsoleArea == OwnerConsoleArea.Governance,
                                     onClick = { activeOwnerConsoleArea = OwnerConsoleArea.Governance },
+                                    text = stringResource(R.string.settings_command_vault),
                                     modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (activeOwnerConsoleArea == OwnerConsoleArea.Governance) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                                        } else {
-                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
-                                        },
-                                        contentColor = MaterialTheme.colorScheme.onSurface,
-                                    ),
-                                ) {
-                                    Text(stringResource(R.string.settings_command_vault))
-                                }
+                                    centerLabel = true,
+                                )
                             }
                             Text(
                                 text = when (activeOwnerConsoleArea) {
@@ -4859,22 +4785,27 @@ fun SettingsScreen(
                                         .padding(top = 12.dp),
                                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                                 ) {
-                                    Button(
+                                    BrandActionButton(
+                                        text = stringResource(R.string.settings_command_nav_payments),
                                         onClick = {
                                             activeAdminWorkspaceKey = AdminWorkspaceSection.Payments.name
                                             showAdminWorkspaceSheet = true
                                         },
+                                        accent = MaterialTheme.colorScheme.skydownAccent(),
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    ) { Text(stringResource(R.string.settings_command_nav_payments)) }
-                                    OutlinedButton(
+                                        compact = true,
+                                    )
+                                    BrandActionButton(
+                                        text = stringResource(R.string.settings_command_nav_shopify),
                                         onClick = {
                                             activeAdminWorkspaceKey = AdminWorkspaceSection.Shopify.name
                                             showAdminWorkspaceSheet = true
                                         },
+                                        accent = MaterialTheme.colorScheme.skydownAccent(),
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    ) { Text(stringResource(R.string.settings_command_nav_shopify)) }
+                                        filled = false,
+                                        compact = true,
+                                    )
                                 }
                             }
 
@@ -4885,22 +4816,27 @@ fun SettingsScreen(
                                         .padding(top = 12.dp),
                                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                                 ) {
-                                    Button(
+                                    BrandActionButton(
+                                        text = stringResource(R.string.settings_command_nav_runtime),
                                         onClick = {
                                             activeAdminWorkspaceKey = AdminWorkspaceSection.AiPrompts.name
                                             showAdminWorkspaceSheet = true
                                         },
+                                        accent = MaterialTheme.colorScheme.skydownAccent(),
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    ) { Text(stringResource(R.string.settings_command_nav_runtime)) }
-                                    OutlinedButton(
+                                        compact = true,
+                                    )
+                                    BrandActionButton(
+                                        text = stringResource(R.string.settings_automation_studio_label),
                                         onClick = {
                                             activeAdminWorkspaceKey = AdminWorkspaceSection.Automation.name
                                             showAdminWorkspaceSheet = true
                                         },
+                                        accent = MaterialTheme.colorScheme.skydownAccent(),
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    ) { Text(stringResource(R.string.settings_automation_studio_label)) }
+                                        filled = false,
+                                        compact = true,
+                                    )
                                 }
                             }
 
@@ -4911,22 +4847,27 @@ fun SettingsScreen(
                                         .padding(top = 12.dp),
                                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                                 ) {
-                                    Button(
+                                    BrandActionButton(
+                                        text = stringResource(R.string.settings_command_nav_users),
                                         onClick = {
                                             activeAdminWorkspaceKey = AdminWorkspaceSection.Users.name
                                             showAdminWorkspaceSheet = true
                                         },
+                                        accent = MaterialTheme.colorScheme.skydownAccent(),
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    ) { Text(stringResource(R.string.settings_command_nav_users)) }
-                                    OutlinedButton(
+                                        compact = true,
+                                    )
+                                    BrandActionButton(
+                                        text = stringResource(R.string.settings_command_nav_membership_ops),
                                         onClick = {
                                             activeAdminWorkspaceKey = AdminWorkspaceSection.MembershipOps.name
                                             showAdminWorkspaceSheet = true
                                         },
+                                        accent = MaterialTheme.colorScheme.skydownAccent(),
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    ) { Text(stringResource(R.string.settings_command_nav_membership_ops)) }
+                                        filled = false,
+                                        compact = true,
+                                    )
                                 }
                             }
                         }
@@ -5013,18 +4954,17 @@ fun SettingsScreen(
                                         )
                                     }
                             }
-                            Button(
+                            BrandActionButton(
+                                text = stringResource(R.string.settings_manage_agent_service),
                                 onClick = {
                                     activeAdminWorkspaceKey = AdminWorkspaceSection.Automation.name
                                     showAdminWorkspaceSheet = true
                                 },
+                                accent = MaterialTheme.colorScheme.skydownAccent(),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                            ) {
-                                Text(stringResource(R.string.settings_manage_agent_service))
-                            }
+                            )
                         }
                     }
                 }
@@ -5115,100 +5055,101 @@ fun SettingsScreen(
                             text = stringResource(R.string.settings_legal_version_label, uiState.appVersion),
                             modifier = Modifier.padding(top = 10.dp),
                         )
-                        OutlinedButton(
+                        BrandActionButton(
+                            text = stringResource(R.string.settings_legal_faq_guide),
                             onClick = {
                                 activeLegalDocument.value = SettingsLegalDocumentType.ReadmeGuide
                             },
+                            accent = MaterialTheme.colorScheme.skydownAccent(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 12.dp),
-                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                        ) {
-                            Text(stringResource(R.string.settings_legal_faq_guide))
-                        }
-                        OutlinedButton(
+                            filled = false,
+                        )
+                        BrandActionButton(
+                            text = stringResource(R.string.settings_legal_terms_agb),
                             onClick = {
                                 activeLegalDocument.value = SettingsLegalDocumentType.TermsAndConditions
                             },
+                            accent = MaterialTheme.colorScheme.skydownAccent(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                        ) {
-                            Text(stringResource(R.string.settings_legal_terms_agb))
-                        }
-                        OutlinedButton(
+                            filled = false,
+                        )
+                        BrandActionButton(
+                            text = stringResource(R.string.settings_legal_privacy),
                             onClick = {
                                 activeLegalDocument.value = SettingsLegalDocumentType.PrivacyPolicy
                             },
+                            accent = MaterialTheme.colorScheme.skydownAccent(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                        ) {
-                            Text(stringResource(R.string.settings_legal_privacy))
-                        }
-                        OutlinedButton(
+                            filled = false,
+                        )
+                        BrandActionButton(
+                            text = stringResource(R.string.settings_legal_terms_of_use),
                             onClick = {
                                 activeLegalDocument.value = SettingsLegalDocumentType.TermsOfService
                             },
+                            accent = MaterialTheme.colorScheme.skydownAccent(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                        ) {
-                            Text(stringResource(R.string.settings_legal_terms_of_use))
-                        }
-                        OutlinedButton(
+                            filled = false,
+                        )
+                        BrandActionButton(
+                            text = stringResource(R.string.settings_legal_subscription),
                             onClick = {
                                 activeLegalDocument.value = SettingsLegalDocumentType.SubscriptionTerms
                             },
+                            accent = MaterialTheme.colorScheme.skydownAccent(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                        ) {
-                            Text(stringResource(R.string.settings_legal_subscription))
-                        }
-                        OutlinedButton(
+                            filled = false,
+                        )
+                        BrandActionButton(
+                            text = stringResource(R.string.settings_legal_ai_usage),
                             onClick = {
                                 activeLegalDocument.value = SettingsLegalDocumentType.AiUsageNotice
                             },
+                            accent = MaterialTheme.colorScheme.skydownAccent(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                        ) {
-                            Text(stringResource(R.string.settings_legal_ai_usage))
-                        }
-                        OutlinedButton(
+                            filled = false,
+                        )
+                        BrandActionButton(
+                            text = stringResource(R.string.settings_legal_imprint),
                             onClick = {
                                 activeLegalDocument.value = SettingsLegalDocumentType.ImprintInfo
                             },
+                            accent = MaterialTheme.colorScheme.skydownAccent(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                        ) {
-                            Text(stringResource(R.string.settings_legal_imprint))
-                        }
+                            filled = false,
+                        )
                         Text(
                             text = uiState.legalContentSettings.resolvedSupportEmail,
                             modifier = Modifier.padding(top = 12.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         )
-                        OutlinedButton(
+                        BrandActionButton(
+                            text = stringResource(R.string.settings_legal_skydown_link_cta),
                             onClick = {
                                 openExternalLink(context, "https://www.instagram.com/skydown_entertainment/")
                             },
+                            accent = MaterialTheme.colorScheme.skydownAccent(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp),
-                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                        ) {
-                            Text(stringResource(R.string.settings_legal_skydown_link_cta))
-                        }
-                        Button(
+                            filled = false,
+                        )
+                        BrandActionButton(
+                            text = stringResource(R.string.settings_legal_support_cta),
                             onClick = {
                                 openSupportEmail(
                                     context = context,
@@ -5217,13 +5158,11 @@ fun SettingsScreen(
                                     supportEmail = uiState.legalContentSettings.resolvedSupportEmail,
                                 )
                             },
+                            accent = MaterialTheme.colorScheme.skydownAccent(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 12.dp),
-                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                        ) {
-                            Text(stringResource(R.string.settings_legal_support_cta))
-                        }
+                        )
                         Text(
                             text = stringResource(R.string.settings_legal_availability_note),
                             modifier = Modifier.padding(top = 10.dp),
@@ -5361,7 +5300,8 @@ fun SettingsScreen(
                                 minLines = 4,
                             )
 
-                            Button(
+                            BrandActionButton(
+                                text = stringResource(R.string.settings_legal_save),
                                 onClick = {
                                     viewModel.saveLegalContentSettings(
                                         LegalContentSettings(
@@ -5379,13 +5319,11 @@ fun SettingsScreen(
                                         ),
                                     )
                                 },
+                                accent = MaterialTheme.colorScheme.skydownAccent(),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                            ) {
-                                Text(stringResource(R.string.settings_legal_save))
-                            }
+                            )
                         }
                     }
                 }
@@ -5457,22 +5395,26 @@ fun SettingsScreen(
                 Text(stringResource(R.string.settings_account_delete_confirm))
             },
             confirmButton = {
-                TextButton(
+                BrandActionButton(
+                    text = stringResource(R.string.settings_account_delete),
                     onClick = {
                         showDeleteAccountDialog.value = false
                         viewModel.deleteAccount()
                     },
+                    accent = MaterialTheme.colorScheme.error,
+                    filled = false,
+                    compact = true,
                     enabled = !uiState.isDeletingAccount,
-                ) {
-                    Text(stringResource(R.string.settings_account_delete), color = MaterialTheme.colorScheme.error)
-                }
+                )
             },
             dismissButton = {
-                TextButton(
+                BrandActionButton(
+                    text = stringResource(R.string.common_cancel),
                     onClick = { showDeleteAccountDialog.value = false },
-                ) {
-                    Text(stringResource(R.string.common_cancel))
-                }
+                    accent = MaterialTheme.colorScheme.skydownAccent(),
+                    filled = false,
+                    compact = true,
+                )
             },
         )
     }
@@ -5612,38 +5554,37 @@ private fun PaymentProviderAdminCard(
             modifier = Modifier.padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
-            Button(
-                onClick = onSaveConnection,
-                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-            ) {
-                Text(
-                    when (providerKind) {
-                        PaymentProviderKind.PayPal -> if (connected) {
-                            stringResource(R.string.settings_payments_action_update_paypal)
-                        } else {
-                            stringResource(R.string.settings_payments_action_save_paypal)
-                        }
-                        else -> if (connected) {
-                            stringResource(R.string.settings_payments_action_update_connection)
-                        } else {
-                            stringResource(R.string.settings_payments_action_connect)
-                        }
-                    },
-                )
-            }
-            onDisconnect?.let { disconnect ->
-                OutlinedButton(
-                    onClick = disconnect,
-                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                ) {
-                    Text(
-                        if (providerKind == PaymentProviderKind.PayPal) {
-                            stringResource(R.string.settings_payments_action_remove_paypal)
-                        } else {
-                            stringResource(R.string.settings_payments_action_disconnect)
-                        },
-                    )
+            val connectLabel = when (providerKind) {
+                PaymentProviderKind.PayPal -> if (connected) {
+                    stringResource(R.string.settings_payments_action_update_paypal)
+                } else {
+                    stringResource(R.string.settings_payments_action_save_paypal)
                 }
+                else -> if (connected) {
+                    stringResource(R.string.settings_payments_action_update_connection)
+                } else {
+                    stringResource(R.string.settings_payments_action_connect)
+                }
+            }
+            BrandActionButton(
+                text = connectLabel,
+                onClick = onSaveConnection,
+                accent = MaterialTheme.colorScheme.skydownAccent(),
+                compact = true,
+            )
+            onDisconnect?.let { disconnect ->
+                val disconnectLabel = if (providerKind == PaymentProviderKind.PayPal) {
+                    stringResource(R.string.settings_payments_action_remove_paypal)
+                } else {
+                    stringResource(R.string.settings_payments_action_disconnect)
+                }
+                BrandActionButton(
+                    text = disconnectLabel,
+                    onClick = disconnect,
+                    accent = MaterialTheme.colorScheme.skydownAccent(),
+                    filled = false,
+                    compact = true,
+                )
             }
         }
     }
@@ -5754,13 +5695,12 @@ private fun StripeBackendSecretsAdminCard(
             visualTransformation = PasswordVisualTransformation(),
         )
 
-        Button(
+        BrandActionButton(
+            text = stringResource(R.string.settings_payments_save_securely),
             onClick = onSave,
+            accent = MaterialTheme.colorScheme.skydownAccent(),
             modifier = Modifier.padding(top = 12.dp),
-            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-        ) {
-            Text(stringResource(R.string.settings_payments_save_securely))
-        }
+        )
     }
 }
 
@@ -5879,19 +5819,16 @@ private fun BankTransferAdminCard(
             enabled = configured,
         )
 
-        Button(
+        BrandActionButton(
+            text = if (configured) {
+                stringResource(R.string.settings_payments_bank_action_update)
+            } else {
+                stringResource(R.string.settings_payments_bank_action_save)
+            },
             onClick = onSave,
+            accent = MaterialTheme.colorScheme.skydownAccent(),
             modifier = Modifier.padding(top = 12.dp),
-            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-        ) {
-            Text(
-                if (configured) {
-                    stringResource(R.string.settings_payments_bank_action_update)
-                } else {
-                    stringResource(R.string.settings_payments_bank_action_save)
-                },
-            )
-        }
+        )
     }
 }
 
@@ -5979,20 +5916,14 @@ private fun ProfileEditorCard(
             singleLine = true,
         )
 
-        Button(
+        BrandActionButton(
+            text = stringResource(R.string.settings_profile_save),
             onClick = onSave,
+            accent = MaterialTheme.colorScheme.skydownAccent(),
             modifier = Modifier.fillMaxWidth(),
             enabled = !isSaving,
-            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-        ) {
-            Text(
-                if (isSaving) {
-                    stringResource(R.string.settings_profile_save_loading)
-                } else {
-                    stringResource(R.string.settings_profile_save)
-                },
-            )
-        }
+            isLoading = isSaving,
+        )
     }
 }
 
@@ -6039,30 +5970,15 @@ private fun SettingsUtilityChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius)
-    OutlinedButton(
+    BrandActionButton(
+        text = label,
         onClick = onClick,
+        accent = accent,
+        icon = icon,
+        filled = false,
+        compact = true,
         modifier = modifier,
-        shape = shape,
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.24f)),
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = accent.copy(alpha = 0.12f),
-            contentColor = accent,
-        ),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(13.dp),
-        )
-        Spacer(modifier = Modifier.size(6.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            maxLines = 1,
-        )
-    }
+    )
 }
 
 @Composable
@@ -6652,18 +6568,17 @@ private fun AdminWorkspaceListRow(
     detailText: String,
     onClick: () -> Unit,
 ) {
-    Button(
+    Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        ),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -6723,33 +6638,15 @@ private fun AdminWorkspaceChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    Button(
+    BrandActionButton(
+        text = stringResource(section.titleRes),
         onClick = onClick,
-        shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (selected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.surface
-            },
-            contentColor = if (selected) {
-                MaterialTheme.colorScheme.onPrimary
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-        ),
-    ) {
-        Icon(
-            imageVector = section.icon,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-        )
-        Text(
-            text = stringResource(section.titleRes),
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
+        accent = MaterialTheme.colorScheme.primary,
+        icon = section.icon,
+        filled = selected,
+        compact = true,
+        modifier = Modifier.clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius)),
+    )
 }
 
 @Composable
@@ -6759,45 +6656,15 @@ private fun AdminWorkspaceRailButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-
-    Button(
+    BrandActionButton(
+        text = stringResource(section.titleRes),
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .skydownPressable(interactionSource, pressedScale = 0.982f),
-        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-        interactionSource = interactionSource,
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (selected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.surface
-            },
-            contentColor = if (selected) {
-                MaterialTheme.colorScheme.onPrimary
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-        ),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = section.icon,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = stringResource(section.titleRes),
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-    }
+        accent = MaterialTheme.colorScheme.primary,
+        icon = section.icon,
+        filled = selected,
+        compact = true,
+        modifier = modifier.fillMaxWidth(),
+    )
 }
 
 @Composable
@@ -6953,7 +6820,7 @@ private fun ArtistPageAdminCard(
                         val userId = user.id.orEmpty()
                         val isSelected = selectedEditorUids.contains(userId)
 
-                        Button(
+                        Surface(
                             onClick = {
                                 selectedEditorUids = if (page.brand == ArtistPageBrand.Nicma) {
                                     if (isSelected) emptySet() else setOf(userId)
@@ -6963,33 +6830,49 @@ private fun ArtistPageAdminCard(
                             },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                },
-                                contentColor = if (isSelected) {
-                                    MaterialTheme.colorScheme.onPrimary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
-                            ),
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            },
+                            border = if (isSelected) {
+                                null
+                            } else {
+                                BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                            },
                         ) {
-                            Text(
-                                text = user.username,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Text(
-                                text = user.resolvedRole.displayTitle,
-                                style = MaterialTheme.typography.labelMedium,
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = user.username,
+                                    modifier = Modifier.weight(1f),
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.onPrimary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                                )
+                                Text(
+                                    text = user.resolvedRole.displayTitle,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f)
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+                                    },
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            Button(
+            BrandActionButton(
+                text = stringResource(R.string.settings_save_editors),
                 onClick = {
                     onSave(
                         page.copy(
@@ -7003,11 +6886,9 @@ private fun ArtistPageAdminCard(
                         ),
                     )
                 },
+                accent = MaterialTheme.colorScheme.skydownAccent(),
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-            ) {
-                Text(stringResource(R.string.settings_save_editors))
-            }
+            )
         }
     }
 }
@@ -7208,42 +7089,22 @@ private fun AdminManagedUserCard(
                 val roleSelectionEnabled = !isCurrentUser &&
                     !user.isPlatformOwner &&
                     (role != UserRole.Owner || canAssignOwnerRoleToUser)
-                if (selected) {
-                    Button(
-                        onClick = { selectedRole = role.rawValue },
-                        shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-                    ) {
-                        Text(role.displayTitle)
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { selectedRole = role.rawValue },
-                        enabled = roleSelectionEnabled,
-                        shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            if (!roleSelectionEnabled) {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                )
-                            }
-                            Text(role.displayTitle)
-                        }
-                    }
-                }
+                BrandActionButton(
+                    text = role.displayTitle,
+                    onClick = { selectedRole = role.rawValue },
+                    accent = MaterialTheme.colorScheme.primary,
+                    icon = if (!selected && !roleSelectionEnabled) Icons.Default.Lock else null,
+                    filled = selected,
+                    compact = true,
+                    enabled = selected || roleSelectionEnabled,
+                    modifier = Modifier.clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius)),
+                )
             }
         }
 
         if (user.isPlatformOwner) {
             Text(
-                text = stringResource(R.string.settings_managed_user_owner_bound, "nash.lioncorna@gmail.com"),
+                text = stringResource(R.string.settings_managed_user_owner_bound, UserRole.OWNER_EMAIL),
                 modifier = Modifier.padding(top = 10.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
@@ -7331,23 +7192,14 @@ private fun AdminManagedUserCard(
                     ) {
                         items(listOf(UserQuotaPlan.Creator, UserQuotaPlan.Studio)) { plan ->
                             val isSelected = resolvedQuotaPlan == plan
-                            if (isSelected) {
-                                Button(
-                                    onClick = { selectedQuotaPlan = plan.rawValue },
-                                    shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-                                ) {
-                                    Text(plan.displayTitle)
-                                }
-                            } else {
-                                OutlinedButton(
-                                    onClick = { selectedQuotaPlan = plan.rawValue },
-                                    shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-                                ) {
-                                    Text(plan.displayTitle)
-                                }
-                            }
+                            BrandActionButton(
+                                text = plan.displayTitle,
+                                onClick = { selectedQuotaPlan = plan.rawValue },
+                                accent = MaterialTheme.colorScheme.primary,
+                                filled = isSelected,
+                                compact = true,
+                                modifier = Modifier.clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius)),
+                            )
                         }
                     }
 
@@ -7417,64 +7269,43 @@ private fun AdminManagedUserCard(
         ) {
             items(listOf(1, 3, 7, 30)) { option ->
                 val isSelected = historyRetentionDays == option
-                if (isSelected) {
-                    Button(
-                        onClick = { historyRetentionDays = option },
-                        shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-                    ) {
-                        Text(historyOptionLabel(option))
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { historyRetentionDays = option },
-                        shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-                    ) {
-                        Text(historyOptionLabel(option))
-                    }
-                }
+                BrandActionButton(
+                    text = historyOptionLabel(option),
+                    onClick = { historyRetentionDays = option },
+                    accent = MaterialTheme.colorScheme.primary,
+                    filled = isSelected,
+                    compact = true,
+                    modifier = Modifier.clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius)),
+                )
             }
         }
 
-        Button(
+        BrandActionButton(
+            text = stringResource(R.string.common_save),
             onClick = {
-                if (isSaving || !hasPendingChanges) return@Button
-
-                isSaving = true
-                saveErrorMessage = null
-                coroutineScope.launch {
-                    val result = onSave(draftUser)
-                    isSaving = false
-                    if (result.isSuccess) {
-                        successfulSaveCount += 1
-                        saveErrorMessage = null
-                    } else {
-                        saveErrorMessage = result.exceptionOrNull()?.message
-                            ?: "Konto konnte nicht gespeichert werden."
+                if (!isSaving && hasPendingChanges) {
+                    isSaving = true
+                    saveErrorMessage = null
+                    coroutineScope.launch {
+                        val result = onSave(draftUser)
+                        isSaving = false
+                        if (result.isSuccess) {
+                            successfulSaveCount += 1
+                            saveErrorMessage = null
+                        } else {
+                            saveErrorMessage = result.exceptionOrNull()?.message
+                                ?: "Konto konnte nicht gespeichert werden."
+                        }
                     }
                 }
             },
+            accent = MaterialTheme.colorScheme.skydownAccent(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 14.dp),
-            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
             enabled = !isSaving && hasPendingChanges,
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (isSaving) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-                Text(if (isSaving) "Speichert..." else "Konto speichern")
-            }
-        }
+            isLoading = isSaving,
+        )
 
         when {
             saveErrorMessage != null -> {
@@ -7585,7 +7416,7 @@ private val UserRole.displayTitle: String
 
 private val UserRole.roleSummary: String
     get() = when (this) {
-        UserRole.Owner -> "Festes Hauptkonto der App. Fuer diese App ist nash.lioncorna@gmail.com immer der Owner. Root-Zugriff auf Shopify, Zahlungen, Rollen, KI-Defaults und Recovery."
+        UserRole.Owner -> "Festes Hauptkonto der App. Fuer diese App ist ${UserRole.OWNER_EMAIL} immer der Owner. Root-Zugriff auf Shopify, Zahlungen, Rollen, KI-Defaults und Recovery."
         UserRole.Admin -> "Teaminterne Leute. Der Owner weist ihnen gezielt Funktionen wie Music, Video oder Profil-Moderation zu. Kein Zugriff auf Owner-Systembereiche."
         UserRole.Subadmin -> "Externe Premium-Konten mit buchbarem Kontingentmodell. Kein Admin-Workspace, keine Owner-Rechte."
         UserRole.User -> "Normales Nutzerkonto mit Free-Kontingent. Nicht eingeloggte Leute sind zusaetzlich Gast-Nutzer ohne gespeichertes Konto."
@@ -7686,7 +7517,7 @@ private fun openSupportEmail(
     """.trimIndent()
     openEmailDraft(
         context = context,
-        recipients = listOf(supportEmail.ifBlank { "skydownent@gmail.com" }),
+        recipients = listOf(supportEmail.ifBlank { PlatformContactEmails.DEFAULT_SUPPORT_EMAIL }),
         subject = subject,
         body = body,
     )
