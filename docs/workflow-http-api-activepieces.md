@@ -108,6 +108,11 @@ angefragten Berichtstag. Kostenwerte werden nur angezeigt, wenn echte/reconciled
 `totalActualCostMicros` vorliegen. `totalEstimatedCostMicros` wird bewusst nicht als Euro-Wert
 ausgegeben.
 
+Instagram Social Analysis nutzt Meta Graph API nur, wenn ein gueltiger, nicht abgelaufener
+`META_IG_USER_ACCESS_TOKEN` plus `META_IG_USER_ID` fuer ein verbundenes Business-/Creator-Konto
+vorliegt. Wenn Meta den Token ablehnt, arbeitet SkyOS mit Handle + Prompt weiter und markiert die
+Live-Graph-Daten als nicht verfuegbar.
+
 ## Erwartete Antworten
 
 Erfolg:

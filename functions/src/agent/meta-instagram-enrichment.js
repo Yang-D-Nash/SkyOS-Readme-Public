@@ -28,6 +28,17 @@ function buildInstagramContextWithoutToken(handle) {
   ].join(" ");
 }
 
+function buildInstagramContextWithConfiguredButUnavailableGraph(handle) {
+  const safe = (handle || "").replace(/^@+/, "").replace(/\s+/g, " ").trim();
+  const at = safe ? "@" + safe : "(leer)";
+  return [
+    "Instagram Graph API ist serverseitig konfiguriert, aber der Live-Aufruf liefert gerade keine verwertbaren Daten.",
+    "Handle-Bezug: " + at + ".",
+    "Wahrscheinlich: Token abgelaufen, fehlende Business-/Creator-Verknuepfung, fehlende Permissions oder Business Discovery nicht freigegeben.",
+    "Arbeite mit Handle und Nutzerprompt. Keine erfundenen Impressions, Reichweite oder Insights.",
+  ].join(" ");
+}
+
 /**
  * @param {object} p
  * @param {string} p.accessToken
@@ -173,8 +184,7 @@ async function resolveInstagramContextForAgent({
     if (ownProfile) {
       return ownProfile + `\nHinweis: Handle-spezifische Discovery fuer @${normalized || h} war nicht verfuegbar.`;
     }
-    return buildInstagramContextWithoutToken(h) +
-      " (Graph-Aufruf fehlgeschlagen oder Berechtigungen/IDs pruefen.)";
+    return buildInstagramContextWithConfiguredButUnavailableGraph(h);
   }
   return buildInstagramContextWithoutToken(h);
 }
