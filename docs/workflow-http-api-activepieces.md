@@ -102,6 +102,11 @@ v2.5 ergaenzt gegenueber v2.4:
 - `private` und `group` bleiben fuer Founder Briefings unveraendert, damit Home `Me/Group` bzw. `Ich/Gruppe` sauber anzeigen kann
 - der Secret Header `x-skyos-workflow-secret` wird nur beim Server-Call gesetzt und nie in der Response ausgegeben
 
+Founder Briefings triggern serverseitig vor dem Lesen der KPI-Daten einen frischen Sync fuer den
+angefragten Berichtstag. Kostenwerte werden nur angezeigt, wenn echte/reconciled
+`totalActualCostMicros` vorliegen. `totalEstimatedCostMicros` wird bewusst nicht als Euro-Wert
+ausgegeben.
+
 ## Erwartete Antworten
 
 Erfolg:

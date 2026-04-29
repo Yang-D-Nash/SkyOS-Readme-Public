@@ -2,9 +2,9 @@
  * Befuellt founder_daily_kpis/{date} mit Live-Metriken aus Firestore/Auth.
  *
  * Kostenfelder (firebase_cost_*):
- *   Quelle ist systemMetrics (reconcilierter AI-/SkyOS-Nutzen) — KEIN vollstaendiger
- *   Google-Cloud-Abrechnungsauszug. Fuer reine GCP-Projektkosten: BigQuery-Billing-Export
- *   oder manuelle Pflege.
+ *   Quelle ist systemMetrics mit echten/reconciled actualCostMicros.
+ *   Geschaetzte totalEstimatedCostMicros werden bewusst NICHT in Founder-KPIs geschrieben.
+ *   Fuer reine GCP-Projektkosten: BigQuery-Billing-Export oder manuelle Pflege.
  *
  * Nutzerfelder: Firebase Auth (lastSignIn / creation), bis MAX_AUTH_USERS.
  *
@@ -99,21 +99,17 @@ function utcYmdAlignedToBerlinNoonForKpiDay(kpiYmd) {
   return localNoon.toISOString().slice(0, 10);
 }
 
-function microsToEur2(m) {
-  const n = Number(m) || 0;
-  if (!Number.isFinite(n) || n <= 0) {
-    return 0;
+function microsFieldToEur2(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) {
+    return null;
   }
   return Number((n / 1_000_000).toFixed(2));
 }
 
-function pickDailyCostEur(daily) {
+function pickActualDailyCostEur(daily) {
   const d = daily && typeof daily === "object" && !Array.isArray(daily) ? daily : {};
-  const act = microsToEur2(d.totalActualCostMicros);
-  if (act > 0) {
-    return act;
-  }
-  return microsToEur2(d.totalEstimatedCostMicros);
+  return microsFieldToEur2(d.totalActualCostMicros);
 }
 
 /**
@@ -149,10 +145,10 @@ async function runSyncFounderDailyKpis({ firestore, auth, options = {} }) {
   const dailyPrev = dailyPrevSnap.data() || {};
   const month = monthSnap.data() || {};
 
-  const costTodayEur = pickDailyCostEur(daily);
-  const costPrevEur = pickDailyCostEur(dailyPrev);
+  const costTodayEur = pickActualDailyCostEur(daily);
+  const costPrevEur = pickActualDailyCostEur(dailyPrev);
   let trendPct = null;
-  if (Number.isFinite(costTodayEur) && costTodayEur >= 0) {
+  if (costTodayEur !== null && Number.isFinite(costTodayEur) && costTodayEur >= 0) {
     if (costPrevEur > 0) {
       trendPct = Number((((costTodayEur - costPrevEur) / costPrevEur) * 100).toFixed(2));
     } else if (costTodayEur > 0 && costPrevEur === 0) {
@@ -160,9 +156,7 @@ async function runSyncFounderDailyKpis({ firestore, auth, options = {} }) {
     }
   }
 
-  const monthAct = microsToEur2(month.totalActualCostMicros);
-  const monthEst = microsToEur2(month.totalEstimatedCostMicros);
-  const costMtdEur = monthAct > 0 ? monthAct : monthEst;
+  const costMtdEur = microsFieldToEur2(month.totalActualCostMicros);
 
   let newUsers24h = 0;
   let activeUsers24h = 0;
@@ -226,17 +220,22 @@ async function runSyncFounderDailyKpis({ firestore, auth, options = {} }) {
   }
 
   const doc = {
-    firebase_cost_today: costTodayEur,
-    firebase_cost_mtd: costMtdEur > 0 ? Number(costMtdEur.toFixed(2)) : 0,
+    firebase_cost_today: costTodayEur === null ? admin.firestore.FieldValue.delete() : costTodayEur,
+    firebase_cost_mtd: costMtdEur === null ? admin.firestore.FieldValue.delete() : Number(costMtdEur.toFixed(2)),
     active_users_24h: activeUsers24h,
     new_users_24h: newUsers24h,
     /** Ohne separate Analytics-Quelle nicht ableitbar — Feld weglassen */
     updatedAt: new Date().toISOString(),
     kpiSource: "syncFounderDailyKpis",
-    kpiCostSource: "systemMetrics_ai_usage",
+    kpiCostSource: "systemMetrics_ai_usage_actual",
+    kpiCostStatus: costTodayEur === null ? "actual_missing" : "actual",
+    kpiCostNote: costTodayEur === null ?
+      "No totalActualCostMicros in systemMetrics for this day. Estimated values are intentionally not shown." :
+      admin.firestore.FieldValue.delete(),
     kpiUserSource: "firebase_admin_listUsers",
     kpiRevenueSource: "orders_merch_confirmed_recent500",
     metricUtcDay: utcMetricYmd,
+    source: admin.firestore.FieldValue.delete(),
   };
   if (trendPct === null || !Number.isFinite(trendPct)) {
     doc.firebase_cost_trend_pct = admin.firestore.FieldValue.delete();
@@ -255,6 +254,7 @@ async function runSyncFounderDailyKpis({ firestore, auth, options = {} }) {
   logger.info("founder_kpis.synced", {
     kpiYmd,
     costTodayEur: costTodayEur,
+    costStatus: doc.kpiCostStatus,
     newUsers24h,
     activeUsers24h,
     hasOrdersScanned: Boolean(ordersTotalSnap && !ordersTotalSnap.empty),
@@ -263,8 +263,9 @@ async function runSyncFounderDailyKpis({ firestore, auth, options = {} }) {
   return {
     kpiYmd,
     firebase_cost_today: costTodayEur,
-    firebase_cost_mtd: doc.firebase_cost_mtd,
+    firebase_cost_mtd: costMtdEur,
     firebase_cost_trend_pct: trendPct,
+    kpiCostStatus: doc.kpiCostStatus,
     active_users_24h: activeUsers24h,
     new_users_24h: newUsers24h,
     revenue_today: doc.revenue_today,

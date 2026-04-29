@@ -7795,10 +7795,11 @@ function sortTasksForFounderBriefing(tasks) {
 /** Anzeige-Texte bei fehlenden Einzelwerten (weiche Formulierungen, kein Debug-Jargon im Markdown). */
 const FOUNDER_DISPLAY = Object.freeze({
   gapEur: "noch nicht im KPI-Feed (folgt mit Anbindung)",
+  gapActualCost: "echte Kosten aktuell nicht verfuegbar (Schaetzwerte ausgeblendet)",
   gapCount: "noch nicht im KPI-Feed (folgt mit Anbindung)",
   gapPercent: "noch nicht im KPI-Feed (folgt mit Anbindung)",
-  gapTrend: "Trend folgt, sobald die Kostenlinie voll befuellt ist",
-  gapMonthModel: "Hochrechnung Monatsende: dafuer brauchen wir valide Tages- und Monatskosten in den KPIs.",
+  gapTrend: "Trend folgt, sobald echte/reconciled Kostenwerte vorliegen",
+  gapMonthModel: "Keine Hochrechnung ohne echte Billing-/Reconciliation-Werte.",
   noHighlights: "- Fuer heute kein hinterlegtes Highlight — optional einen Sieg in founder_highlights eintragen.",
   noNotes: "Notizen: Kein klarer Pull aus den letzten Eintraegen; bei Bedarf Titel/Signal nachziehen.",
   noRisksBlock: "- Keine strategischen Risiken fuers Datum hinterlegt — fokussierter Lageblick ohne rote Liste.",
@@ -7822,6 +7823,16 @@ function formatFounderNumber(value) {
 function formatFounderPercent(value) {
   return Number.isFinite(value) ? formatPercent(value) : FOUNDER_DISPLAY.gapPercent;
 }
+function formatFounderActualCost(value) {
+  return Number.isFinite(value) ? formatEur(value) : FOUNDER_DISPLAY.gapActualCost;
+}
+function founderCostBasisText(kpis) {
+  const status = nonEmptyString(kpis?.kpiCostStatus)?.toLowerCase() || "";
+  if (status === "actual") {
+    return "Kostenbasis: echte/reconciled AI-/SkyOS-Nutzung aus `systemMetrics.totalActualCostMicros`. Schaetzwerte werden nicht angezeigt.";
+  }
+  return "Kostenbasis: im aktuellen Live-Sync liegt kein echter/reconciled Kostenwert vor. Schaetzwerte werden bewusst nicht angezeigt.";
+}
 
 function buildFounderBriefingFooter({date, kpis = {}}) {
   const k = kpis && typeof kpis === "object" && !Array.isArray(kpis) ? kpis : {};
@@ -7837,6 +7848,7 @@ function buildFounderBriefingFooter({date, kpis = {}}) {
   const kpiLine = [
     nonEmptyString(k.kpiSource),
     nonEmptyString(k.kpiCostSource),
+    nonEmptyString(k.kpiCostStatus) ? `Kostenstatus: ${nonEmptyString(k.kpiCostStatus)}` : "",
     nonEmptyString(k.kpiUserSource),
     nonEmptyString(k.kpiRevenueSource),
   ]
@@ -7993,8 +8005,8 @@ function buildFounderPrivateBriefing({
   const costTrendText = Number.isFinite(firebaseCostTrendPct) ?
     (firebaseCostTrendPct > 0 ? `steigend um ${formatPercent(firebaseCostTrendPct)}` : `fallend um ${formatPercent(Math.abs(firebaseCostTrendPct))}`) :
     FOUNDER_DISPLAY.gapTrend;
-  const monthEndRiskText = Number.isFinite(firebaseCostMtd) && Number.isFinite(firebaseCostToday) ?
-    `Bei konstantem Verlauf liegt das Monatsniveau bei ca. ${formatEur(firebaseCostMtd + (firebaseCostToday * 30))}.` :
+  const monthEndRiskText = Number.isFinite(firebaseCostMtd) ?
+    `Monat bis dato echte Kosten: ${formatEur(firebaseCostMtd)}. Keine Hochrechnung ohne echte Billing-/Reconciliation-Werte.` :
     FOUNDER_DISPLAY.gapMonthModel;
   const highlightText = topHighlights.length ?
     topHighlights.map((entry) => `- ${nonEmptyString(entry?.title) || "Ohne Titel"} (${nonEmptyString(entry?.impact) || "Wirkung offen"})`).join("\n") :
@@ -8005,7 +8017,7 @@ function buildFounderPrivateBriefing({
 
   const decisionItems = [
     Number.isFinite(firebaseCostToday) ?
-      `Gib Kosten und Tempo heute einen klaren Rahmen. Pro Tag: ${formatEur(firebaseCostToday)} — Limit setzen, Review-Termin festnageln.` :
+      `Echte Kosten heute: ${formatEur(firebaseCostToday)}. Tempo pruefen, Review-Termin festnageln.` :
       FOUNDER_DISPLAY.decisionKpi,
     Number.isFinite(retentionD1Pct) ?
       `Setze auf die Massnahme, die D1 am staerksten bewegt. Heute: ${formatPercent(retentionD1Pct)} — einen Hebel waehlen, messen, lernen.` :
@@ -8031,10 +8043,10 @@ function buildFounderPrivateBriefing({
     FOUNDER_DISPLAY.tagline,
     "",
     "## 1) Cost Watch (SkyOS & KI)",
-    "Kostenbasis: abgestimmter KI- und Plattform-Nutzungstrack (systemMetrics). Vollstaendiger GCP-Abrechnungsexport bleibt separat; dieser Block ist dein schneller Kompass.",
-    `Kern: Kosten heute ${formatFounderEur(firebaseCostToday)}; Trend ${costTrendText}.`,
-    `Monat bis dato: ${formatFounderEur(firebaseCostMtd)}; aktive Nutzer 24h: ${formatFounderNumber(activeUsers24h)} (rollierend).`,
-    `Bis Monatsende: ${monthEndRiskText}`,
+    founderCostBasisText(kpis),
+    `Kern: echte Kosten heute ${formatFounderActualCost(firebaseCostToday)}; Trend ${costTrendText}.`,
+    `Monat bis dato: ${formatFounderActualCost(firebaseCostMtd)}; aktive Nutzer 24h: ${formatFounderNumber(activeUsers24h)} (rollierend).`,
+    `Kostenstatus: ${monthEndRiskText}`,
     Number.isFinite(firebaseCostTrendPct) && firebaseCostTrendPct > 0 ?
       "Heute sinnvoll: teure Stellen zuerst eingrenzen, einen Messpunkt setzen." :
       "Heute sinnvoll: Kurs pruefen, Ueberraschungen im Kostenbild vermeiden.",
@@ -8096,8 +8108,11 @@ function buildFounderGroupBriefing({
     collectMissingField(missing, "tasks");
   }
 
+  const costSentence = Number.isFinite(firebaseCostToday) ?
+    `Echte Kosten im KI-/Nutzungstrack: ${formatEur(firebaseCostToday)}.` :
+    "Echte Kosten im KI-/Nutzungstrack: aktuell nicht verfuegbar; Schaetzwerte werden nicht angezeigt.";
   const analysisSentences = [
-    `Fuer ${date} im Blick: ${formatFounderEur(revenueToday)} Umsatz bei ${formatFounderEur(firebaseCostToday)} aus dem KI-/Nutzungstrack (Kostenlinie, wie im KPI-Feed).`,
+    `Fuer ${date} im Blick: ${formatFounderEur(revenueToday)} Umsatz. ${costSentence}`,
     `Aktivitaet 24h: ${formatFounderNumber(activeUsers24h)} Nutzer, ${formatFounderNumber(newUsers24h)} neu — zeigt, ob Traction und Nutzen zusammenlaufen.`,
     Number.isFinite(retentionD1Pct) ?
       `D1-Retention: ${formatPercent(retentionD1Pct)} — fruehes Signal, ob Neuzugaenge wiederkommen.` :
@@ -8110,7 +8125,7 @@ function buildFounderGroupBriefing({
   const stepWhats = trimTextMax(nonEmptyString(sortedRisks[0]?.nextStep) || "naechster Schritt festlegen", 100);
   const whatsappLines = [];
   whatsappLines.push(`*Kurz-Update (zum Weiterleiten, WhatsApp-tauglich)*`);
-  whatsappLines.push(`Umsatz heute ${formatFounderEur(revenueToday)} · Kosten-Track ${formatFounderEur(firebaseCostToday)}.`);
+  whatsappLines.push(`Umsatz heute ${formatFounderEur(revenueToday)} · echte Kosten ${formatFounderActualCost(firebaseCostToday)}.`);
   whatsappLines.push(
       `Aktiv 24h: ${formatFounderNumber(activeUsers24h)} · neu: ${formatFounderNumber(newUsers24h)}.`,
   );
@@ -8147,6 +8162,11 @@ async function buildFounderBriefingResponseData({
 }) {
   const firestore = admin.firestore();
   const kpiRef = firestore.collection("founder_daily_kpis").doc(date);
+  const liveKpiSyncResult = await runSyncFounderDailyKpis({
+    firestore,
+    auth: admin.auth(),
+    options: {kpiYmd: date},
+  });
   const risksQuery = firestore.collection("founder_risks")
       .where("date", "==", date)
       .limit(30);
@@ -8279,6 +8299,8 @@ async function buildFounderBriefingResponseData({
       kpiCostSource: nonEmptyString(kpis?.kpiCostSource) || null,
       kpiUserSource: nonEmptyString(kpis?.kpiUserSource) || null,
       kpiRevenueSource: nonEmptyString(kpis?.kpiRevenueSource) || null,
+      kpiCostStatus: nonEmptyString(kpis?.kpiCostStatus) || null,
+      liveKpiSync: liveKpiSyncResult || null,
       enrichment: enrichment ? {
         musicCount: Array.isArray(enrichment.music) ? enrichment.music.length : 0,
         merchCount: Array.isArray(enrichment.merch) ? enrichment.merch.length : 0,
@@ -8302,7 +8324,8 @@ async function buildFounderBriefingResponseData({
 
 exports.createFounderBriefingFromWorkflow = onRequest({
   region: "us-central1",
-  timeoutSeconds: 30,
+  timeoutSeconds: 120,
+  memory: "512MiB",
   secrets: [workflowApiSecret],
 }, async (request, response) => {
   const payload = assertWorkflowHttpRequest(request, response);
@@ -8343,7 +8366,8 @@ exports.createFounderBriefingFromWorkflow = onRequest({
 
 exports.createFounderBriefing = onCall({
   region: "us-central1",
-  timeoutSeconds: 30,
+  timeoutSeconds: 120,
+  memory: "512MiB",
 }, async (request) => {
   await assertCallableSecurity(request, "createFounderBriefing");
   await assertOwner(request.auth);

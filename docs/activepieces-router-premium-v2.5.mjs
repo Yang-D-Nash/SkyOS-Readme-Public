@@ -385,7 +385,8 @@ export const code = async (inputs) => {
 
   const callOnce = async () => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
+    const timeoutMs = actionType === "briefing" ? 60000 : 20000;
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(`${baseUrl}/${functionName}`, {
         method: "POST",
