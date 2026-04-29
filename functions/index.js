@@ -83,7 +83,7 @@ const shopifyAdminAccessToken = defineSecret("SHOPIFY_ADMIN_ACCESS_TOKEN");
 const manusApiKey = defineSecret("MANUS_API_KEY");
 const xaiApiKey = defineSecret("XAI_API_KEY");
 const agentRunCallbackSecret = defineSecret("AGENT_RUN_CALLBACK_SECRET");
-const workflowApiSecret = defineSecret("WORKFLOW_API_SECRET");
+const workflowApiSecret = defineSecret("SKYOS_WORKFLOW_SECRET");
 const IOS_APP_BUNDLE_ID = nonEmptyString(process.env.SKYOS_IOS_APP_BUNDLE_ID) || "com.skydown.ios";
 const SHOPIFY_STORE_DOMAIN_DEFAULT = "k5t1sc-ps.myshopify.com";
 const SHOPIFY_API_VERSION = "2026-01";
@@ -17448,7 +17448,7 @@ exports.handleAutomationIntent = onCall({
     const priorityRaw = nonEmptyString(payload.priority)?.toLowerCase() || "normal";
     const priority = ["low", "normal", "high"].includes(priorityRaw) ? priorityRaw : "normal";
     const dueAt = parseOptionalIsoTimestamp(payload.dueAt, "dueAt");
-    const source = "agent_intent";
+    const source = "agent";
     const requestId = trimOptionalText(payload.requestId, 120) || null;
     const taskResult = await upsertOpenTaskWithDedup({
       uid: targetUid,
@@ -17492,7 +17492,7 @@ exports.handleAutomationIntent = onCall({
     await noteRef.set({
       title: trimTextMax(title, 180),
       content,
-      source: "agent_intent",
+      source: "agent",
       requestId,
       createdAt: now,
       updatedAt: now,

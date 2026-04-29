@@ -431,15 +431,9 @@ final class Skydown_AppUITests: XCTestCase {
                 openProfileFromSettings(app: app)
 
                 // Profile opened successfully; role chip text can vary by async hydration/build variant.
-                XCTAssertTrue(
-                    app.buttons["Schliessen"].firstMatch.waitForExistence(timeout: 10),
-                    "Profile should provide close action."
-                )
-
-                let closeProfile = app.buttons["Schliessen"].firstMatch
-                if closeProfile.waitForExistence(timeout: 6) {
-                    closeProfile.tap()
-                }
+                let closeProfile = waitForProfileCloseButton(in: app, timeout: 10)
+                XCTAssertNotNil(closeProfile, "Profile should provide close action.")
+                closeProfile?.tap()
             } else {
                 XCTAssertTrue(
                     app.buttons["settings.open_profile_editor"].firstMatch.exists,
@@ -544,8 +538,7 @@ final class Skydown_AppUITests: XCTestCase {
             XCTAssertTrue(waitForNonExistence(of: anyDelete, timeout: 30), "Deleted gallery item should disappear.")
 
             // Close profile
-            let closeProfile = app.buttons["Schliessen"].firstMatch
-            if closeProfile.waitForExistence(timeout: 6) {
+            if let closeProfile = waitForProfileCloseButton(in: app, timeout: 6) {
                 closeProfile.tap()
             }
 
@@ -1188,6 +1181,26 @@ private extension Skydown_AppUITests {
             profileRoot.waitForExistence(timeout: 30),
             "Profile screen should open cleanly."
         )
+    }
+
+    @MainActor
+    func waitForProfileCloseButton(in app: XCUIApplication, timeout: TimeInterval) -> XCUIElement? {
+        let candidates = [
+            app.buttons["profile.close"].firstMatch,
+            app.buttons["Close"].firstMatch,
+            app.buttons["Schliessen"].firstMatch,
+        ]
+        let deadline = Date().addingTimeInterval(timeout)
+
+        repeat {
+            dismissSystemPasswordPromptIfNeeded()
+            if let button = candidates.first(where: \.exists) {
+                return button
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        } while Date() < deadline
+
+        return nil
     }
 
     @MainActor

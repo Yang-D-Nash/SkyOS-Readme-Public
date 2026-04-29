@@ -2,7 +2,9 @@ import Foundation
 import Network
 import UIKit
 import UserNotifications
+import FirebaseAuth
 import FirebaseFunctions
+import FirebaseMessaging
 
 @MainActor
 final class AppServices: ObservableObject {
@@ -175,12 +177,12 @@ protocol PushTokenSyncServicing {
     func syncIfPossible(userID: String?) async
 }
 
-final class PushTokenSyncService: PushTokenSyncServicing {
+final class PushTokenSyncService: NSObject, PushTokenSyncServicing, MessagingDelegate {
     static let shared = PushTokenSyncService()
 
     private let functions: Functions
     private let defaults: UserDefaults
-    private let tokenDefaultsKey = "skydown.push.apns.token"
+    private let tokenDefaultsKey = "skydown.push.fcm.token"
     private var lastSyncedFingerprint: String?
 
     init(
@@ -189,13 +191,36 @@ final class PushTokenSyncService: PushTokenSyncServicing {
     ) {
         self.functions = functions
         self.defaults = defaults
+        super.init()
+        Messaging.messaging().delegate = self
+        Messaging.messaging().token { [weak self] token, error in
+            guard error == nil else { return }
+            self?.cacheFCMToken(token)
+        }
     }
 
     func cacheAPNSToken(_ tokenData: Data) {
-        let tokenHex = tokenData.map { String(format: "%02x", $0) }.joined()
-        guard !tokenHex.isEmpty else { return }
-        defaults.set(tokenHex, forKey: tokenDefaultsKey)
+        Messaging.messaging().apnsToken = tokenData
+        Messaging.messaging().token { [weak self] token, error in
+            guard error == nil else { return }
+            self?.cacheFCMToken(token)
+        }
+    }
+
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        cacheFCMToken(fcmToken)
+    }
+
+    private func cacheFCMToken(_ token: String?) {
+        let normalizedToken = token?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !normalizedToken.isEmpty else { return }
+        defaults.set(normalizedToken, forKey: tokenDefaultsKey)
         lastSyncedFingerprint = nil
+        let uid = Auth.auth().currentUser?.uid.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !uid.isEmpty else { return }
+        Task {
+            await self.syncIfPossible(userID: uid)
+        }
     }
 
     func syncIfPossible(userID: String?) async {

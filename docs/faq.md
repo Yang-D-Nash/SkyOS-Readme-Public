@@ -46,7 +46,8 @@ Reminder, Tasks, and Notes are live in SkyOS.
 
 If a user says, "Remind me tomorrow at 9 about the dentist", the flow can run through
 Activepieces, create the reminder in Firebase, and trigger scheduled due-reminder processing
-that delivers push notifications on iPhone and Android.
+that delivers push notifications on iPhone and Android once the signed-in app has synced its
+Firebase Messaging push token.
 
 Current status:
 

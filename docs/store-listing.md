@@ -62,7 +62,7 @@ Skydown is the everyday app experience powered by SkyOS.
 
 It brings AI, Music, Video, and Merch into one calm and coherent product flow so users can move faster without switching between disconnected apps.
 
-Reminder workflows are already end-to-end live: users can create a timed reminder in natural language and receive an automatic push notification on iPhone or Android at the scheduled time.
+Reminder workflows are already end-to-end live: users can create a timed reminder in natural language and receive an automatic push notification on signed-in iPhone or Android devices at the scheduled time.
 
 AI and Agent are built as focused workspaces for prompts, responses, and guided execution.  
 Music is curated as a dedicated ZweiZwei / 22 environment.  
@@ -106,7 +106,7 @@ Skydown is a premium product experience built on SkyOS.
 
 Instead of fragmented tools, Skydown combines AI, Music, Video, and Merch in one clear structure with a calm interface and consistent interaction patterns.
 
-Reminder is already fully operational end-to-end: users can create reminders in natural language and get automatic push notifications at the right time.
+Reminder is already fully operational end-to-end: users can create reminders in natural language and get automatic push notifications on signed-in devices at the right time.
 
 AI and Agent are designed as practical workspaces for input, context, and results.  
 Music is presented in a dedicated ZweiZwei / 22 environment.  

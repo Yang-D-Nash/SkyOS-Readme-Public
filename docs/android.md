@@ -134,6 +134,20 @@ The Android app includes:
 - Release builds stay protected through Play Integrity.
 - The Android Firebase package in this repo is `com.nash.skyos`.
 
+## 7a. Reminder Push / Firebase Messaging
+
+Reminder push uses Firebase Cloud Messaging end-to-end:
+
+- dependency: `com.google.firebase:firebase-messaging`
+- token acquisition: `PushTokenSyncClient` fetches and caches the FCM registration token
+- token refresh: `SkyOsFirebaseMessagingService.onNewToken` updates the local token cache
+- backend sync: signed-in sessions call `upsertPushToken` with `platform=android`
+- foreground delivery: reminder data messages are shown through `ProductivityReminderNotificationCenter`
+
+The server path is `users/{uid}/reminders/{id}` -> `processDueReminders` -> FCM. Android still
+uses local alarms for reminders created directly on device, but workflow-created reminders depend
+on the synced FCM token.
+
 If owner-only Shopify calls such as `syncShopifyMerch` or `listShopifyCollections` fail with app verification errors on a test device:
 
 1. Start the app once on the device.

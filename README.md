@@ -396,7 +396,7 @@ Diese Namen werden als **Firebase Secrets** (Secret Manager) gebunden — siehe 
 | Variable | Verwendung |
 | --- | --- |
 | `SKYOS_IOS_APP_BUNDLE_ID` | iOS-Bundle für Store-/Backend-Logik; Default im Code: `com.skydown.ios` |
-| `SKYOS_WORKFLOW_SECRET` | Fallback/Emulator neben Secret-Param |
+| `SKYOS_WORKFLOW_SECRET` | Secret-Param fuer Activepieces-HTTP-Endpoints und lokaler Emulator-Fallback; `WORKFLOW_API_SECRET` wird nur noch als Legacy-Laufzeit-Fallback gelesen |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Entwicklungs-Fallbacks neben Secrets |
 | `SHOPIFY_STORE_DOMAIN` / `SHOPIFY_ADMIN_ACCESS_TOKEN` | Shop-Konfiguration |
 | `GROK_AGENT_MODEL` | Modell-Override; Default: `grok-2-latest` (siehe `functions/index.js`) |
@@ -606,7 +606,7 @@ Bei `PERMISSION_DENIED` für Storage: Slot-Request, Pfade, `request.auth` und gg
 
 - SMTP über Secret `SMTP_CONNECTION_URL` (Nodemailer) — [`.env.example`](.env.example).
 - **Bestellbenachrichtigungen:** per `ORDER_NOTIFICATION_TO` / `ORDER_NOTIFICATION_FROM` (Defaults im Code) steuerbar.
-- **Push (Reminder):** Pfad in App + Functions + FCM-Setup — fachlich in Doku [docs/ios.md](docs/ios.md) / [docs/android.md](docs/android.md) und [docs/backend.md](docs/backend.md) nachlesen.
+- **Push (Reminder):** Clients registrieren Firebase-Messaging-Tokens via `upsertPushToken`; `processDueReminders` versendet FCM/APNs zur Faelligkeit — fachlich in [docs/ios.md](docs/ios.md), [docs/android.md](docs/android.md) und [docs/backend.md](docs/backend.md).
 
 ---
 

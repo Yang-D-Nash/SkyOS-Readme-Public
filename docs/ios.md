@@ -54,8 +54,22 @@ The iOS app contains first-class native services for:
 - hosted checkout redirect handling
 - native AI subscription restore and sync
 - Shopify config and catalog fallback
+- Firebase Messaging token sync for reminder push delivery
 
 This is not a thin shell over a web app. The iOS client carries real platform logic.
+
+## 5a. Reminder Push / Firebase Messaging
+
+Reminder push uses Firebase Cloud Messaging with APNs underneath:
+
+- Xcode target includes the `FirebaseMessaging` Swift Package product
+- `SkydownApplicationDelegate` forwards the APNs device token to `PushTokenSyncService`
+- `PushTokenSyncService` resolves the FCM registration token, caches it, and syncs it through
+  `upsertPushToken` with `platform=ios`
+- the push entitlement uses `$(APS_ENVIRONMENT)` (`development` for Debug, `production` for Release)
+
+The server path is `users/{uid}/reminders/{id}` -> `processDueReminders` -> FCM/APNs. A real-device
+smoke is still required before public release because simulator builds do not prove APNs delivery.
 
 ## 6. Signing Basics
 

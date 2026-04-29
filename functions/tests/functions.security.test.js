@@ -105,6 +105,16 @@ test("workflow task creation deduplicates open tasks by normalized title", () =>
   assert.match(indexSource, /deduplicated:\s*taskResult\.deduplicated/);
 });
 
+test("Activepieces workflow endpoints bind the documented SkyOS secret", () => {
+  assert.match(indexSource, /defineSecret\("SKYOS_WORKFLOW_SECRET"\)/);
+  assert.match(indexSource, /request\.headers\["x-skyos-workflow-secret"\]/);
+});
+
+test("agent-created productivity records use rule-compatible source values", () => {
+  assert.doesNotMatch(indexSource, /source:\s*"agent_intent"/);
+  assert.match(indexSource, /source:\s*"agent"/);
+});
+
 test("triggerWorkflowAutomation keeps personal scope owner-check free", () => {
   const block = callableBlocks().find(({name}) => name === "triggerWorkflowAutomation");
 

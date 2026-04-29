@@ -60,6 +60,8 @@ The backend exposes many callables and triggers. These are the functions that sh
 | `requestUploadSlot` | secure upload slot issuance for Storage writes |
 | `setRuntimeLockdown` | manual incident response and platform control |
 | `deleteCurrentUserAccount` | controlled account removal flow |
+| `createReminderFromWorkflow` / `createTaskFromWorkflow` / `createNoteFromWorkflow` | Activepieces HTTP creation for user-scoped productivity records; guarded by `x-skyos-workflow-secret` |
+| `upsertPushToken` / `processDueReminders` | stores client FCM tokens and sends due reminder notifications |
 
 ## 4. Auth, Roles, and Quotas
 
