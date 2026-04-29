@@ -64,13 +64,13 @@ struct ProfileView: View {
             .scrollDismissesKeyboard(.interactively)
             .skydownDismissKeyboardOnTap()
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle("Profil")
+            .navigationTitle(localized("profile.nav.title", "Profile"))
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .skydownKeyboardDismissToolbar()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Schliessen") {
+                    Button(localized("common.close", "Close")) {
                         dismiss()
                     }
                     .accessibilityIdentifier("profile.close")
@@ -444,10 +444,10 @@ struct ProfileView: View {
         return VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             HStack(alignment: .center, spacing: SkydownLayout.stackSpacingCompact) {
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
-                    Text("Galerie")
+                    Text(localized("profile.gallery.title", "Gallery"))
                         .font(.headline)
                         .foregroundColor(AppColors.text(for: colorScheme))
-                    Text("Persoenliche Bilder direkt aus deinem Profil.")
+                    Text(localized("profile.gallery.subtitle", "Personal images from your profile."))
                         .font(.footnote.weight(.medium))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
@@ -459,7 +459,9 @@ struct ProfileView: View {
                         pendingImagePickerTarget = .gallery
                     } label: {
                         ProfileCompactActionPill(
-                            title: isUploadingMedia ? "Laedt..." : "Bild hinzufuegen",
+                            title: isUploadingMedia
+                                ? localized("profile.gallery.uploading", "Loading…")
+                                : localized("profile.gallery.add_image", "Add image"),
                             systemImage: "photo.badge.plus",
                             colorScheme: colorScheme
                         )
@@ -675,38 +677,38 @@ struct ProfileView: View {
     private var editSection: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
-                Text("Profil bearbeiten")
+                Text(localized("profile.edit", "Edit profile"))
                     .font(.headline)
                     .foregroundColor(AppColors.text(for: colorScheme))
-                Text("Name, Kurzinfo, Kontakt — live im Profil.")
+                Text(localized("profile.edit.subtitle", "Name, tagline, contact — live on your profile."))
                     .font(.footnote.weight(.medium))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
             VStack(spacing: SkydownLayout.stackSpacingCompact) {
-                TextField("Benutzername", text: $viewModel.usernameDraft)
+                TextField(localized("profile.field.username", "Username"), text: $viewModel.usernameDraft)
                     .textInputAutocapitalization(.never)
                     .padding(14)
                     .background(AppColors.cardBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
-                TextField("Kurzinfo", text: $viewModel.taglineDraft)
+                TextField(localized("profile.field.tagline", "Tagline"), text: $viewModel.taglineDraft)
                     .padding(14)
                     .background(AppColors.cardBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
-                TextField("Instagram", text: $viewModel.instagramDraft)
+                TextField(localized("profile.field.instagram", "Instagram"), text: $viewModel.instagramDraft)
                     .textInputAutocapitalization(.never)
                     .padding(14)
                     .background(AppColors.cardBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
-                TextField("WhatsApp", text: $viewModel.whatsAppDraft)
+                TextField(localized("profile.field.whatsapp", "WhatsApp"), text: $viewModel.whatsAppDraft)
                     .padding(14)
                     .background(AppColors.cardBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
 
-                TextField("Bio", text: $viewModel.bioDraft, axis: .vertical)
+                TextField(localized("profile.field.bio", "Bio"), text: $viewModel.bioDraft, axis: .vertical)
                     .lineLimit(4...6)
                     .padding(14)
                     .background(AppColors.cardBackground(for: colorScheme))
@@ -714,9 +716,9 @@ struct ProfileView: View {
 
                 Toggle(isOn: $viewModel.aiAccessEnabledDraft) {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
-                        Text("KI fuer mein Konto aktiv")
+                        Text(localized("profile.ai_toggle.title", "AI enabled for my account"))
                             .font(.subheadline.weight(.semibold))
-                        Text("Aus = Bot, Visuals, Agent pausiert.")
+                        Text(localized("profile.ai_toggle.subtitle", "Off pauses bot, visuals, and agent."))
                             .font(.caption)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
@@ -737,7 +739,7 @@ struct ProfileView: View {
                         ProgressView()
                             .tint(.white)
                     } else {
-                        Text("Speichern")
+                        Text(localized("common.save", "Save"))
                             .font(.headline.weight(.bold))
                     }
                     Spacer()
@@ -764,12 +766,12 @@ struct ProfileView: View {
 
     private var uiTestActionsSection: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-            Text("UI Test")
+            Text(localized("profile.ui_test.title", "UI test"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
                 .accessibilityIdentifier("ui_test.profile.section")
 
-            Text("Nur sichtbar bei UI-Tests.")
+            Text(localized("profile.ui_test.subtitle", "Only visible during UI tests."))
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -779,7 +781,7 @@ struct ProfileView: View {
                         await viewModel.uploadAvatar(data: ProfileUITestFixtures.sampleJPEG)
                     }
                 } label: {
-                    Text("Avatar Fixture")
+                    Text(localized("profile.ui_test.avatar_fixture", "Avatar fixture"))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -792,7 +794,7 @@ struct ProfileView: View {
                         await viewModel.uploadGalleryImage(data: ProfileUITestFixtures.sampleJPEG)
                     }
                 } label: {
-                    Text("Gallery Fixture")
+                    Text(localized("profile.ui_test.gallery_fixture", "Gallery fixture"))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -1214,7 +1216,7 @@ private struct ProfileGalleryMediaViewerSheet: View {
                         Image(systemName: "photo")
                             .font(.system(size: 44, weight: .bold))
                             .foregroundColor(.white.opacity(0.74))
-                        Text("Bild konnte nicht geladen werden.")
+                        Text(AppLocalized.text("profile.gallery.load_failed", fallback: "Image could not be loaded."))
                             .font(.headline)
                             .foregroundColor(.white.opacity(0.82))
                     }
@@ -1239,7 +1241,7 @@ private struct ProfileGalleryMediaViewerSheet: View {
                         Spacer()
 
                         Button(action: { dismiss() }, label: {
-                            Label("Schliessen", systemImage: "xmark")
+                            Label(AppLocalized.text("common.close", fallback: "Close"), systemImage: "xmark")
                                 .font(.subheadline.weight(.bold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 14)

@@ -2020,4 +2020,52 @@ Message:
     <string name="settings_command_hint_lab">Lab for AI runtime, guardrails, and automation.</string>
     <string name="settings_command_hint_vault">Vault for users, access controls, and membership policy.</string>
     <string name="settings_automation_studio_label">Automation Studio</string>
+
+    <!-- sync_localizations -->
+    <string name="agent_social_facebook">Facebook / Meta</string>
+    <string name="agent_social_facebook_hint">Page or @handle (optional)</string>
+    <string name="agent_social_instagram">Instagram</string>
+    <string name="agent_social_instagram_hint">@y.d.nash</string>
+    <string name="agent_social_setup_footnote">Only enabled channels are used. @handles are fine — we normalize @ for the API.</string>
+    <string name="agent_social_setup_title">Public profiles for analysis</string>
+    <string name="agent_social_spotify">Spotify</string>
+    <string name="agent_social_spotify_hint">Artist / profile handle or ID (optional)</string>
+    <string name="agent_social_tiktok">TikTok</string>
+    <string name="agent_social_tiktok_hint">@name</string>
+    <string name="agent_social_youtube">YouTube</string>
+    <string name="agent_social_youtube_hint">@channel</string>
+    <string name="agent_thread_followup_placeholder">Follow up in this thread…</string>
+    <string name="agent_thread_open_full_composer_a11y">Mode, workflow, attachments</string>
+    <string name="agent_thread_send_a11y">Send</string>
+    <string name="home_owner_workflows_group_update">Team</string>
+    <string name="home_owner_workflows_private_analysis">Private</string>
+
+    <!-- sync_localizations -->
+    <string name="agent_bubble_open_in_home">Open in Home</string>
+
+    <!-- sync_localizations -->
+    <string name="settings_command_nav_membership_ops">Membership ops</string>
+    <string name="settings_command_nav_payments">Payments</string>
+    <string name="settings_command_nav_runtime">Runtime</string>
+    <string name="settings_command_nav_shopify">Shopify</string>
+    <string name="settings_command_nav_users">Users</string>
+    <string name="settings_knowledge_drive_ids_hint">One ID per line or comma-separated.</string>
+    <string name="settings_knowledge_drive_ids_label">Allowed Shared Drive IDs</string>
+    <string name="settings_knowledge_folder_ids_hint">One ID per line or comma-separated.</string>
+    <string name="settings_knowledge_folder_ids_label">Allowed Folder IDs</string>
+    <string name="settings_owner_inspiration_badge_entries">Entries %1$d</string>
+    <string name="settings_owner_inspiration_badge_published_count">Published %1$d</string>
+    <string name="settings_owner_inspiration_details_label">Inspiration / details</string>
+    <string name="settings_owner_inspiration_new">New</string>
+    <string name="settings_owner_inspiration_publish_all">Publish all</string>
+    <string name="settings_owner_inspiration_published_toggle">Published</string>
+    <string name="settings_owner_inspiration_remove_entry">Remove entry</string>
+    <string name="settings_owner_inspiration_save">Save ideas &amp; inspiration</string>
+    <string name="settings_owner_inspiration_status_draft">Draft</string>
+    <string name="settings_owner_inspiration_status_published">Published</string>
+    <string name="settings_owner_inspiration_tags_label">Tags (comma separated)</string>
+    <string name="settings_owner_inspiration_title_label">Title</string>
+    <string name="settings_owner_inspiration_title_placeholder">e.g. Midnight Street Capsule</string>
+    <string name="settings_owner_inspiration_unpublish_all">Unpublish all</string>
+
 </resources>

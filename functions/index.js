@@ -59,6 +59,10 @@ const {
   addSecretVersion,
 } = require("./src/payments/secret-manager");
 const {runSyncFounderDailyKpis} = require("./src/founder/sync-daily-kpis");
+const {loadFounderBriefingEnrichment} = require("./src/founder/briefing-enrichment");
+const {fetchSpotifyHandleCatalogSummary} = require("./src/agent/spotify-enrichment");
+const {fetchYouTubeHandleCatalogSummary} = require("./src/agent/youtube-enrichment");
+const {resolveInstagramContextForAgent} = require("./src/agent/meta-instagram-enrichment");
 
 admin.initializeApp();
 void enableFirebaseTelemetry().catch((error) => {
@@ -4333,6 +4337,38 @@ function normalizeAutomationWorkflowStatus(value, fallback = "completed") {
   return fallback;
 }
 
+const ACTIVEPIECES_PREMIUM_ROUTER_MODES = new Set([
+  "release", "briefing", "content", "merch", "social_analysis",
+]);
+
+/**
+ * Mappt App-UI-Mode ("automation" Tab) auf skyos.activepieces.router.premium.* Vokabular.
+ * Ohne Mapping liefert der Router: invalid_mode / "Ungueltiger mode."
+ */
+function mapAgentModeToActivepiecesRouterMode(mode, {socialContext = {}, prompt = "", reply = ""} = {}) {
+  const raw = nonEmptyString(mode)?.toLowerCase() || "";
+  if (raw && raw !== "automation") {
+    if (ACTIVEPIECES_PREMIUM_ROUTER_MODES.has(raw)) {
+      return raw;
+    }
+    return "content";
+  }
+  if (nonEmptyString(socialContext?.intent)?.toLowerCase() === "social_analysis") {
+    return "social_analysis";
+  }
+  const combined = `${nonEmptyString(prompt) || ""} ${nonEmptyString(reply) || ""}`.toLowerCase();
+  if (/\bshopify\b|myshopify\.com|\bmerch\b|produktlaunch|produkt[ -]?launch|warenkorb|collection|hoodie|tees\b/.test(combined)) {
+    return "merch";
+  }
+  if (/\bbriefing\b|founder|kpi|umsatz|daily ops|tagesbrief/.test(combined)) {
+    return "briefing";
+  }
+  if (/\brelease\b|release notes|ankuendigung|changelog/.test(combined)) {
+    return "release";
+  }
+  return "content";
+}
+
 async function triggerWorkflowAutomationWebhook({
   trigger,
   source,
@@ -4384,7 +4420,25 @@ async function triggerWorkflowAutomationWebhook({
   }
   assertAutomationWebhookUrlAllowed(webhookUrl, runtimePolicy);
 
-  const safeData = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  let safeData = data && typeof data === "object" && !Array.isArray(data) ? {...data} : {};
+  const rawWorkflowMode = nonEmptyString(safeData.mode) || "content";
+  const routerModeForPayload = mapAgentModeToActivepiecesRouterMode(
+      rawWorkflowMode,
+      {socialContext: safeData.socialContext, prompt: safeData.prompt, reply: safeData.reply},
+  );
+  if (routerModeForPayload !== rawWorkflowMode) {
+    safeData = {
+      ...safeData,
+      mode: routerModeForPayload,
+      appExecutionMode: nonEmptyString(safeData.appExecutionMode) || rawWorkflowMode,
+    };
+  } else if (!ACTIVEPIECES_PREMIUM_ROUTER_MODES.has(String(rawWorkflowMode).toLowerCase())) {
+    safeData = {
+      ...safeData,
+      mode: routerModeForPayload,
+      appExecutionMode: nonEmptyString(safeData.appExecutionMode) || rawWorkflowMode,
+    };
+  }
   const knowledgeContext = nonEmptyString(settings.knowledgeContext) || "";
   const socialWindowHours = clampIntegerSetting(
       safeData.socialWindowHours,
@@ -7350,7 +7404,7 @@ function numberOrMissing(value, fieldName, missing) {
 
 function formatEur(value) {
   if (!Number.isFinite(value)) {
-    return "FEHLT: betrag";
+    return "—";
   }
   return new Intl.NumberFormat("de-DE", {
     style: "currency",
@@ -7362,14 +7416,14 @@ function formatEur(value) {
 
 function formatNumber(value) {
   if (!Number.isFinite(value)) {
-    return "FEHLT: wert";
+    return "—";
   }
   return new Intl.NumberFormat("de-DE").format(value);
 }
 
 function formatPercent(value) {
   if (!Number.isFinite(value)) {
-    return "FEHLT: prozent";
+    return "—";
   }
   return `${new Intl.NumberFormat("de-DE", {maximumFractionDigits: 1}).format(value)}%`;
 }
@@ -7404,25 +7458,25 @@ function sortTasksForFounderBriefing(tasks) {
   });
 }
 
-/** Anzeige-Texte bei fehlenden Einzelwerten (kein internes FEHLT: im Nutzer-Markdown). */
+/** Anzeige-Texte bei fehlenden Einzelwerten (weiche Formulierungen, kein Debug-Jargon im Markdown). */
 const FOUNDER_DISPLAY = Object.freeze({
-  gapEur: "wird noch angebunden",
-  gapCount: "wird noch angebunden",
-  gapPercent: "wird noch angebunden",
-  gapTrend: "noch kein Trend",
-  gapMonthModel: "Modellrechnung: dafuer fehlen Tages- oder Monatskosten.",
-  noHighlights: "- Kein Highlight fuer diesen Tag hinterlegt (optional nachziehen).",
-  noNotes: "Notizen: heute kein klarer Executive-Pull aus den letzten Eintraegen.",
-  noRisksBlock: "- Keine strategischen Risiken fuer heute hinterlegt (ruhiger Lageblick).",
-  noTasks: "- Keine offenen Team-Aufgaben in der Warteschlange.",
-  riskTitle: "Ohne Titel",
-  riskImpact: "Einordnung fehlt",
-  riskNext: "Naechster Schritt offen",
-  decisionKpi: "Kosten: Zielkorridor definieren, sobald Tageswerte stabil bleiben.",
-  decisionRetention: "Retention: D1 per Analytics messen, dann Hebel priorisieren.",
-  decisionRisks: "Risiken: Erstbefuellung in founder_risks (Top 1–3) empfohlen.",
-  tagline: "*Auf den Punkt gebracht, vertraulich — dein schneller Lageblick fuer heute.*",
-  disclaimer: "*Hinweis: unverbindlich, keine Rechts- oder Steuerberatung. Basiert auf vorliegenden Systemdaten; Luecken sind normal, solange Anbindungen wachsen.*",
+  gapEur: "noch nicht im KPI-Feed (folgt mit Anbindung)",
+  gapCount: "noch nicht im KPI-Feed (folgt mit Anbindung)",
+  gapPercent: "noch nicht im KPI-Feed (folgt mit Anbindung)",
+  gapTrend: "Trend folgt, sobald die Kostenlinie voll befuellt ist",
+  gapMonthModel: "Hochrechnung Monatsende: dafuer brauchen wir valide Tages- und Monatskosten in den KPIs.",
+  noHighlights: "- Fuer heute kein hinterlegtes Highlight — optional einen Sieg in founder_highlights eintragen.",
+  noNotes: "Notizen: Kein klarer Pull aus den letzten Eintraegen; bei Bedarf Titel/Signal nachziehen.",
+  noRisksBlock: "- Keine strategischen Risiken fuers Datum hinterlegt — fokussierter Lageblick ohne rote Liste.",
+  noTasks: "- Keine offenen Team-Aufgaben in der Queue sichtbar.",
+  riskTitle: "Unbenanntes Risiko",
+  riskImpact: "Wirkung noch nicht eingeordnet",
+  riskNext: "Naechster Schritt: festlegen",
+  decisionKpi: "Kosten: Soll-Korridor und Review-Rhythmus setzen, sobald Tageswerte sauber laufen.",
+  decisionRetention: "Retention: D1 messen (Analytics) und genau einen Hebel fuer ein Experiment waehlen.",
+  decisionRisks: "Risiken: Top 1–3 in founder_risks pflegen, damit der Fokus nicht verwaist.",
+  tagline: "*SkyOS · Founder Intelligence — klar, vertraulich, handlungsfaehig.*",
+  disclaimer: "*Hinweis: Orientierung, keine Rechts- oder Steuerberatung. Basiert auf angebundenen Systemdaten; Luecken sind normal, waechst mit Integration.*",
 });
 
 function formatFounderEur(value) {
@@ -7461,7 +7515,99 @@ function buildFounderBriefingFooter({date, kpis = {}}) {
     `Stand: ${berlin} · Berichtstag ${date}${kpiTime}`,
     sourceHint,
     FOUNDER_DISPLAY.disclaimer,
+    "*SkyOS Founder Intelligence — Signale aus Live-Systemen kuratiert.*",
   ].filter((line) => line !== "").join("\n");
+}
+
+/**
+ * @param {object|null|undefined} enrichment
+ * @return {string[]}
+ */
+function buildFounderEnrichmentPrivateMarkdown(enrichment) {
+  if (!enrichment || typeof enrichment !== "object") {
+    return [];
+  }
+  const out = [];
+  const music = Array.isArray(enrichment.music) ? enrichment.music : [];
+  if (music.length) {
+    out.push("");
+    out.push("## 6) Musik & Releases (Katalog)");
+    out.push("Aktuelle Snippets aus oeffentlicher iTunes-Suche (Kuenstler-Namen, wie im Home-Start). Liste optional steuerbar: `appConfig/founderBriefing` → `musicArtists` (max. 8).");
+    for (const m of music.slice(0, 8)) {
+      const meta = [m.collection, m.releaseDate].filter((x) => nonEmptyString(x));
+      out.push(
+          "- **" + (nonEmptyString(m.artistName) || "?") + "** — " + (nonEmptyString(m.trackName) || "Track") +
+        (meta.length ? " — " + meta.join(" · ") : "") +
+        (nonEmptyString(m.url) ? " · " + m.url : ""),
+      );
+    }
+  } else {
+    out.push("");
+    out.push("## 6) Musik & Releases (Katalog)");
+    out.push("- Fuer die konfigurierte Kuenstlerliste lagen keine iTunes-Treffer vor, oder die Abfrage ist fehlgeschlagen. Tipp: `appConfig/founderBriefing.musicArtists` hinterlegen oder Namen pruefen.");
+  }
+
+  const merch = Array.isArray(enrichment.merch) ? enrichment.merch : [];
+  out.push("");
+  out.push("## 7) Merch (Shop, Firestore)");
+  if (merch.length) {
+    out.push("Aktiv gelistete Produkte (Auszug; Anbindung Shopify, falls aktiv):");
+    for (const line of merch) {
+      out.push("- " + line);
+    }
+  } else {
+    out.push("- Im Moment keine verkaufsaktiven Eintraege in `merchandise` sichtbar (leer oder Ueber Sync pausiert).");
+  }
+
+  const sys = Array.isArray(enrichment.systemLines) ? enrichment.systemLines : [];
+  out.push("");
+  out.push("## 8) App- & Systemhinweise (Push / Sicherheit)");
+  if (sys.length) {
+    for (const line of sys) {
+      out.push("- " + line);
+    }
+  } else {
+    out.push("- Laut `system/runtimeConfig` keine scharfen Sperrflags (Lockdown, Uploads, Registrierung) — Betrieb ungedrosselt.");
+  }
+
+  const ord = Array.isArray(enrichment.orderLines) ? enrichment.orderLines : [];
+  out.push("");
+  out.push("## 9) Letzte Bestell-Signale (Shop)");
+  if (ord.length) {
+    for (const line of ord) {
+      out.push("- " + line);
+    }
+  } else {
+    out.push("- Keine frischen Bestellzeilen ermittelbar (leer, Berechtigung oder Abfrage).");
+  }
+  return out;
+}
+
+/**
+ * @param {object|null|undefined} enrichment
+ * @return {string}
+ */
+function buildFounderEnrichmentGroupSnippet(enrichment) {
+  if (!enrichment || typeof enrichment !== "object") {
+    return "";
+  }
+  const m = (Array.isArray(enrichment.music) && enrichment.music[0]) || null;
+  const merchN = Array.isArray(enrichment.merch) ? enrichment.merch.length : 0;
+  const sysN = Array.isArray(enrichment.systemLines) ? enrichment.systemLines.length : 0;
+  const parts = [];
+  if (m) {
+    parts.push("Musik-Highlight: " + nonEmptyString(m.artistName) + " — " + nonEmptyString(m.trackName) + ".");
+  }
+  if (merchN) {
+    parts.push("Shop: " + merchN + " Merch-Artikel im Katalog sichtbar.");
+  }
+  if (sysN) {
+    parts.push("System: relevante Fahnen aktiv — Details im vertraulichen Teil.");
+  }
+  if (parts.length === 0) {
+    return "";
+  }
+  return "\n\n*Team-Status (kurz):* " + parts.join(" ");
 }
 
 function buildFounderPrivateBriefing({
@@ -7472,6 +7618,7 @@ function buildFounderPrivateBriefing({
   tasks,
   notes,
   missing,
+  enrichment,
 }) {
   const firebaseCostToday = numberOrMissing(kpis?.firebase_cost_today, "founder_daily_kpis.firebase_cost_today", missing);
   const firebaseCostMtd = numberOrMissing(kpis?.firebase_cost_mtd, "founder_daily_kpis.firebase_cost_mtd", missing);
@@ -7524,10 +7671,10 @@ function buildFounderPrivateBriefing({
 
   const decisionItems = [
     Number.isFinite(firebaseCostToday) ?
-      `Gib heute Kosten und Tempo bewusst den Rahmen. Heute: ${formatEur(firebaseCostToday)} pro Tag — Limit und Review festlegen.` :
+      `Gib Kosten und Tempo heute einen klaren Rahmen. Pro Tag: ${formatEur(firebaseCostToday)} — Limit setzen, Review-Termin festnageln.` :
       FOUNDER_DISPLAY.decisionKpi,
     Number.isFinite(retentionD1Pct) ?
-      `Pack die eine Massnahme an, die D1 wirklich bewegt. Heute: ${formatPercent(retentionD1Pct)} — einen Hebel sichtbar testen.` :
+      `Setze auf die Massnahme, die D1 am staerksten bewegt. Heute: ${formatPercent(retentionD1Pct)} — einen Hebel waehlen, messen, lernen.` :
       FOUNDER_DISPLAY.decisionRetention,
     sortedRisks.length ?
       `Geh zuerst ins Thema, das alles bremst: ${sortedRisks[0].title}.` :
@@ -7546,20 +7693,20 @@ function buildFounderPrivateBriefing({
     FOUNDER_DISPLAY.noRisksBlock;
 
   return [
-    `# Founder Briefing (Private) — ${date}`,
+    `# SkyOS · Founder Intelligence — ${date} *(vertraulich)*`,
     FOUNDER_DISPLAY.tagline,
     "",
     "## 1) Cost Watch (SkyOS & KI)",
-    "Kostenbasis: abgestimmter KI- und Plattform-Nutzungstrack (systemMetrics). Vollstaendiger GCP-Abrechnungsexport ist separat, nicht 1:1 ersetzt.",
-    `Haupttreiber: Kosten heute ${formatFounderEur(firebaseCostToday)}; Trend ${costTrendText}.`,
-    `Auffaellig: Monat bis dato ${formatFounderEur(firebaseCostMtd)} bei ${formatFounderNumber(activeUsers24h)} aktiven Nutzern in 24h (rollierend).`,
+    "Kostenbasis: abgestimmter KI- und Plattform-Nutzungstrack (systemMetrics). Vollstaendiger GCP-Abrechnungsexport bleibt separat; dieser Block ist dein schneller Kompass.",
+    `Kern: Kosten heute ${formatFounderEur(firebaseCostToday)}; Trend ${costTrendText}.`,
+    `Monat bis dato: ${formatFounderEur(firebaseCostMtd)}; aktive Nutzer 24h: ${formatFounderNumber(activeUsers24h)} (rollierend).`,
     `Bis Monatsende: ${monthEndRiskText}`,
     Number.isFinite(firebaseCostTrendPct) && firebaseCostTrendPct > 0 ?
-      "Sinnvoll heute: teure Kostenstellen zuerst eingrenzen und Messpunkt setzen." :
-      "Sinnvoll heute: Kurs halten, kurz gegenchecken — Ueberraschungen vermeiden.",
+      "Heute sinnvoll: teure Stellen zuerst eingrenzen, einen Messpunkt setzen." :
+      "Heute sinnvoll: Kurs pruefen, Ueberraschungen im Kostenbild vermeiden.",
     "",
     "## 2) Business Impact",
-    `Umsatz: heute ${formatFounderEur(revenueToday)}, Monat ${formatFounderEur(revenueMtd)} (Shop-Bestellungen, sofern angebunden).`,
+    `Umsatz: heute ${formatFounderEur(revenueToday)}, Monat ${formatFounderEur(revenueMtd)} (Shop, sofern angebunden).`,
     `Nutzer: ${formatFounderNumber(newUsers24h)} neu in 24h, ${formatFounderNumber(activeUsers24h)} aktiv; D1-Retention ${formatFounderPercent(retentionD1Pct)}.`,
     highlightText,
     `- ${notesAnchor}`,
@@ -7574,6 +7721,7 @@ function buildFounderPrivateBriefing({
     "",
     "## 5) Tagesplan",
     ...dayPlanItems,
+    ...buildFounderEnrichmentPrivateMarkdown(enrichment),
     buildFounderBriefingFooter({date, kpis}),
   ].join("\n");
 }
@@ -7585,6 +7733,7 @@ function buildFounderGroupBriefing({
   highlights,
   tasks,
   missing,
+  enrichment,
 }) {
   const firebaseCostToday = numberOrMissing(kpis?.firebase_cost_today, "founder_daily_kpis.firebase_cost_today", missing);
   const revenueToday = numberOrMissing(kpis?.revenue_today, "founder_daily_kpis.revenue_today", missing);
@@ -7614,46 +7763,46 @@ function buildFounderGroupBriefing({
   }
 
   const analysisSentences = [
-    `Am ${date} liegen Umsatz und Kosten nah beieinander: ${formatFounderEur(revenueToday)} Umsatz bei ${formatFounderEur(firebaseCostToday)} aus dem bekannten KI-/Nutzungstrack.`,
-    `In 24h waren ${formatFounderNumber(activeUsers24h)} Nutzer aktiv, ${formatFounderNumber(newUsers24h)} neu dazu — das misst, ob wir Nutzen und Kurve wirklich treffen.`,
+    `Fuer ${date} im Blick: ${formatFounderEur(revenueToday)} Umsatz bei ${formatFounderEur(firebaseCostToday)} aus dem KI-/Nutzungstrack (Kostenlinie, wie im KPI-Feed).`,
+    `Aktivitaet 24h: ${formatFounderNumber(activeUsers24h)} Nutzer, ${formatFounderNumber(newUsers24h)} neu — zeigt, ob Traction und Nutzen zusammenlaufen.`,
     Number.isFinite(retentionD1Pct) ?
-      `D1-Retention steht bei ${formatPercent(retentionD1Pct)}; das ist der schnellste Eindruck, ob Newcomer wiederkommen.` :
-      "D1-Retention folgt, sobald Analytics voll angebunden ist; bis dahin ist die Zahl eher ein Blindflug.",
+      `D1-Retention: ${formatPercent(retentionD1Pct)} — fruehes Signal, ob Neuzugaenge wiederkommen.` :
+      "D1-Retention: Zahl folgt, sobald Analytics voll angebunden ist; bis dahin Fokus auf Aktivitaet und Qualitaet des Onboardings.",
     sortedRisks.length ?
-      `Wenn heute eins bremst, dann: ${sortedRisks[0].title} (Einstufung ${sortedRisks[0].severity}) — da lohnt sich ehrliche Priorisierung.` :
-      "Fuer heute fehlt noch der scharfe Blick in founder_risks — ohne Risikolinie fehlt auch die gemeinsame Fokusrichtung.",
+      `Wenn heute eins bremst: ${sortedRisks[0].title} (Stufe ${sortedRisks[0].severity}) — dort lohnt klare Prioritaet statt flaechendeckender Arbeit.` :
+      "Fokus: Eintraege in founder_risks sichtbar halten, damit das Team dieselbe Richtung sieht — ohne Leerstand wirkt alles reibungslos, bis es nicht tut.",
   ];
 
   const stepWhats = trimTextMax(nonEmptyString(sortedRisks[0]?.nextStep) || "naechster Schritt festlegen", 100);
   const whatsappLines = [];
-  whatsappLines.push(`*Kurz-Update (zum Weiterleiten, WhatsApp-Style)*`);
-  whatsappLines.push(`Umsatz heute ${formatFounderEur(revenueToday)} · Kosten-Track (bekannt) ${formatFounderEur(firebaseCostToday)}.`);
+  whatsappLines.push(`*Kurz-Update (zum Weiterleiten, WhatsApp-tauglich)*`);
+  whatsappLines.push(`Umsatz heute ${formatFounderEur(revenueToday)} · Kosten-Track ${formatFounderEur(firebaseCostToday)}.`);
   whatsappLines.push(
       `Aktiv 24h: ${formatFounderNumber(activeUsers24h)} · neu: ${formatFounderNumber(newUsers24h)}.`,
   );
   whatsappLines.push(
       sortedRisks.length ?
-        `Blocker Nr. 1: ${sortedRisks[0].title} — naechster sinnvoller Schritt: ${stepWhats}.` :
-        "Blocker: heute kein Eintrag in founder_risks — besser einen klaren Kandidaten nennen als stilles Risiko.",
+        `Wichtigster Blocker: ${sortedRisks[0].title} — sinnvoller naechster Schritt: ${stepWhats}.` :
+        "Risiken: Kein Eintrag in founder_risks — besser ein klares Thema nennen als stilles Restrisiko.",
   );
   whatsappLines.push(
       highlightsSafe.length ?
-        `Guter Punkt heute: ${nonEmptyString(highlightsSafe[0]?.title) || "Highlight"}.` :
-        "Guter Punkt: noch kein Highlight in founder_highlights hinterlegt (optional, aber motivierend).",
+        `Highlight: ${nonEmptyString(highlightsSafe[0]?.title) || "Highlight"}.` :
+        "Highlights: Optional einen Sieg in founder_highlights festhalten — teamtauglich und motivierend.",
   );
   whatsappLines.push(
       sortedTasks.length ?
-        `Fokus fuer heute: ${trimTextMax(nonEmptyString(sortedTasks[0]?.title) || "Aufgabe", 120)}` :
-        "Fokus: in der Task-Queue steht heute nichts Sichtbares – entweder ist wirklich Luft, oder Staging fehlt.",
+        `Fokus heute: ${trimTextMax(nonEmptyString(sortedTasks[0]?.title) || "Aufgabe", 120)}` :
+        "Aufgaben: In der Queue ist nichts Sichtbares — entweder wirklich Luft, oder Warteliste/Staging pruefen.",
   );
-  whatsappLines.push("Wenn wir den wichtigsten Blocker heute sichtbar angehen, ist morgen der Fortschritt messbar spuerbarer.");
+  whatsappLines.push("Einen Blocker heute sichtbar anpacken, dann ist der Fortschritt morgen messbar.");
 
+  const teamExtra = buildFounderEnrichmentGroupSnippet(enrichment);
   return [
     analysisSentences.join(" "),
-    "",
-    whatsappLines.join("\n"),
+    whatsappLines.join("\n") + (nonEmptyString(teamExtra) ? "\n" + teamExtra : ""),
     buildFounderBriefingFooter({date, kpis}),
-  ].join("\n");
+  ].join("\n\n");
 }
 
 async function buildFounderBriefingResponseData({
@@ -7740,6 +7889,15 @@ async function buildFounderBriefingResponseData({
     collectMissingField(missing, "founder_daily_kpis");
   }
 
+  let enrichment = null;
+  try {
+    enrichment = await loadFounderBriefingEnrichment(firestore, {uid, businessDate: date});
+  } catch (e) {
+    logger.warn("founder_briefing.load_enrichment_failed", {
+      err: e instanceof Error ? e.message : String(e),
+    });
+  }
+
   const privateBriefing = mode === "private" || mode === "both" ?
     buildFounderPrivateBriefing({
       date,
@@ -7749,6 +7907,7 @@ async function buildFounderBriefingResponseData({
       tasks: uniqueTasks,
       notes: uniqueNotes,
       missing,
+      enrichment: enrichment || {},
     }) :
     undefined;
   const groupBriefing = mode === "group" || mode === "both" ?
@@ -7759,6 +7918,7 @@ async function buildFounderBriefingResponseData({
       highlights,
       tasks: uniqueTasks,
       missing,
+      enrichment: enrichment || {},
     }) :
     undefined;
 
@@ -7785,6 +7945,13 @@ async function buildFounderBriefingResponseData({
       kpiCostSource: nonEmptyString(kpis?.kpiCostSource) || null,
       kpiUserSource: nonEmptyString(kpis?.kpiUserSource) || null,
       kpiRevenueSource: nonEmptyString(kpis?.kpiRevenueSource) || null,
+      enrichment: enrichment ? {
+        musicCount: Array.isArray(enrichment.music) ? enrichment.music.length : 0,
+        merchCount: Array.isArray(enrichment.merch) ? enrichment.merch.length : 0,
+        systemSignalCount: Array.isArray(enrichment.systemLines) ? enrichment.systemLines.length : 0,
+        orderLineCount: Array.isArray(enrichment.orderLines) ? enrichment.orderLines.length : 0,
+        enrichmentSources: Array.isArray(enrichment.sources) ? enrichment.sources : [],
+      } : null,
     },
   };
   if (typeof privateBriefing === "string") {
@@ -14901,6 +15068,167 @@ function normalizeSocialSetupInput(value = {}) {
   };
 }
 
+const SOCIAL_PLATFORM_LABELS_DE = Object.freeze({
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+  facebook: "Facebook",
+  spotify: "Spotify",
+});
+
+function hasStructuredSocialHandlesInSetup(setup) {
+  if (!setup || typeof setup !== "object") {
+    return false;
+  }
+  return (
+    (setup.instagramEnabled === true && !!nonEmptyString(setup.instagramHandle)) ||
+    (setup.tiktokEnabled === true && !!nonEmptyString(setup.tiktokHandle)) ||
+    (setup.youtubeEnabled === true && !!nonEmptyString(setup.youtubeHandle)) ||
+    (setup.facebookEnabled === true && !!nonEmptyString(setup.facebookHandle)) ||
+    (setup.spotifyEnabled === true && !!nonEmptyString(setup.spotifyHandle))
+  );
+}
+
+/**
+ * Muss *vor* der LLM-Antwort laufen, damit Prompt-Bezug zu Handles funktioniert
+ * (Profilzusammenfuehrung war zuvor erst nach Generierung, dann sah das Modell keine Handles).
+ */
+function buildSocialProfileContextBlockForPrompt({
+  socialProfiles = {},
+  socialSelectedPlatforms = [],
+  socialMissingPlatforms = [],
+  spotifyCatalogSummary = "",
+  youtubeCatalogSummary = "",
+  instagramGraphSummary = "",
+} = {}) {
+  const spotifyEnriched = nonEmptyString(spotifyCatalogSummary) || "";
+  const youtubeEnriched = nonEmptyString(youtubeCatalogSummary) || "";
+  const instagramEnriched = nonEmptyString(instagramGraphSummary) || "";
+  const profiles = normalizeSocialProfiles(socialProfiles);
+  const handlesLine = SOCIAL_PLATFORM_ORDER
+      .map((platform) => {
+        const handle = nonEmptyString(profiles[platform]) || "";
+        if (!handle) {
+          return "";
+        }
+        const label = SOCIAL_PLATFORM_LABELS_DE[platform] || platform;
+        return `${label}: @${handle}`;
+      })
+      .filter(Boolean);
+  const lines = [
+    "Beantworte die **Aktuelle Nutzeranfrage** in direktem Bezug zu den unten genannten Social-Handles. " +
+    "Trenne sauber zwischen mehreren Accounts. Keine fiktiven Kennzahlen; wenn Daten fehlen, sag das klar.",
+  ];
+  if (handlesLine.length) {
+    lines.push("Relevante Handles: " + handlesLine.join(" · ") + ".");
+  }
+  const missing = Array.isArray(socialMissingPlatforms) ? socialMissingPlatforms.filter(Boolean) : [];
+  if (missing.length) {
+    const miss = missing
+        .map((p) => SOCIAL_PLATFORM_LABELS_DE[p] || p)
+        .join(", ");
+    lines.push("Ausgewaehlt, aber ohne Handle: " + miss + ". Weise knapp darauf hin.");
+  }
+  if (!handlesLine.length && !missing.length && !spotifyEnriched && !youtubeEnriched && !instagramEnriched) {
+    return "";
+  }
+  const baseBlock = trimTextMax(
+      `\n\n---\nSocial-Bezug (Handles zur Nutzeranfrage):\n${lines.join("\n")}\n---\n`,
+      2200,
+  );
+  let out = baseBlock;
+  if (spotifyEnriched) {
+    out = `${out}\n\n---\nSpotify (Web API, oeffentlicher Katalog)\n${spotifyEnriched}\n---\n`;
+  }
+  if (youtubeEnriched) {
+    out = `${out}\n\n---\nYouTube (Data API v3, oeffentliches Kanalprofil)\n${youtubeEnriched}\n---\n`;
+  }
+  if (instagramEnriched) {
+    out = `${out}\n\n---\nInstagram (Meta)\n${instagramEnriched}\n---\n`;
+  }
+  return trimTextMax(out, 6000);
+}
+
+async function resolveAgentSocialProfileStateForRequest({
+  uid,
+  agentInput = {},
+  isSocialAnalysisIntent = false,
+  socialSetupForIntent = null,
+} = {}) {
+  const empty = {instagram: "", tiktok: "", youtube: "", facebook: "", spotify: ""};
+  if (!nonEmptyString(uid)) {
+    return {
+      socialProfiles: {...empty},
+      socialMissingPlatforms: [],
+      socialSelectedPlatforms: [],
+    };
+  }
+  const extractedFromPrompt = extractSocialProfilesFromPrompt(agentInput.prompt);
+  const shouldResolve =
+    isSocialAnalysisIntent ||
+    hasStructuredSocialHandlesInSetup(socialSetupForIntent) ||
+    Object.keys(extractedFromPrompt).length > 0;
+  if (!shouldResolve) {
+    return {
+      socialProfiles: {...empty},
+      socialMissingPlatforms: [],
+      socialSelectedPlatforms: [],
+    };
+  }
+  try {
+    const socialProfileState = await loadUserSocialProfiles(uid);
+    const socialSetup = socialSetupForIntent || normalizeSocialSetupInput();
+    const socialSelectedPlatforms = socialSetup.selectedPlatforms;
+    const structuredProfiles = {
+      instagram: socialSetup.instagramEnabled ? socialSetup.instagramHandle : "",
+      tiktok: socialSetup.tiktokEnabled ? socialSetup.tiktokHandle : "",
+      youtube: socialSetup.youtubeEnabled ? socialSetup.youtubeHandle : "",
+      facebook: socialSetup.facebookEnabled ? socialSetup.facebookHandle : "",
+      spotify: socialSetup.spotifyEnabled ? socialSetup.spotifyHandle : "",
+    };
+    let socialProfiles = mergeSocialProfiles(
+        socialProfileState.profiles,
+        mergeSocialProfiles(structuredProfiles, extractedFromPrompt),
+    );
+    const requiredPlatforms = socialSelectedPlatforms.length > 0 ?
+      socialSelectedPlatforms :
+      [...SOCIAL_PLATFORM_ORDER];
+    let socialMissingPlatforms = requiredPlatforms
+        .filter((platform) => !socialProfiles[platform]);
+    if (socialSelectedPlatforms.length > 0) {
+      for (const platform of SOCIAL_PLATFORM_ORDER) {
+        if (!requiredPlatforms.includes(platform)) {
+          socialProfiles[platform] = "";
+        }
+      }
+    }
+    if (socialSelectedPlatforms.length === 0) {
+      socialMissingPlatforms = Object.entries(socialProfiles)
+          .filter(([, handle]) => !handle)
+          .map(([platform]) => platform);
+    }
+    const hasStructuredHandles = hasStructuredSocialHandlesInSetup(socialSetup);
+    if (Object.keys(extractedFromPrompt).length > 0 || hasStructuredHandles) {
+      await persistSocialProfilesToMemoryProfile(uid, socialProfiles);
+    }
+    return {
+      socialProfiles,
+      socialMissingPlatforms,
+      socialSelectedPlatforms,
+    };
+  } catch (error) {
+    logger.warn("Social profile lookup failed.", {
+      uid,
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+    return {
+      socialProfiles: {...empty},
+      socialMissingPlatforms: [],
+      socialSelectedPlatforms: [],
+    };
+  }
+}
+
 function detectSocialAnalysisIntent({mode = "", prompt = ""} = {}) {
   const normalizedMode = nonEmptyString(mode)?.toLowerCase() || "";
   const normalizedPrompt = nonEmptyString(prompt)?.toLowerCase() || "";
@@ -16077,6 +16405,80 @@ exports.skydownAgent = onCall({
       promptSettings,
       personalAgentProfile,
   );
+  const resolvedSocialState = await resolveAgentSocialProfileStateForRequest({
+    uid: request.auth?.uid,
+    agentInput,
+    isSocialAnalysisIntent,
+    socialSetupForIntent,
+  });
+  let spotifyCatalogSummary = "";
+  const spotifyHandleForEnrichment = nonEmptyString(resolvedSocialState.socialProfiles.spotify) || "";
+  if (spotifyHandleForEnrichment) {
+    try {
+      // Optional: set in Google Cloud (Cloud Run for this function) or .env lokal; kein defineSecret, damit Deploy ohne Spotify moeglich.
+      const sid = (process.env.SPOTIFY_CLIENT_ID || "").trim();
+      const ssec = (process.env.SPOTIFY_CLIENT_SECRET || "").trim();
+      if (sid && ssec) {
+        spotifyCatalogSummary = await fetchSpotifyHandleCatalogSummary({
+          clientId: sid,
+          clientSecret: ssec,
+          handle: spotifyHandleForEnrichment,
+        });
+      }
+    } catch (error) {
+      logger.warn("Spotify Katalog-Anreicherung fehlgeschlagen.", {
+        error: error instanceof Error ? error.message : `${error}`,
+        uid: request.auth?.uid || null,
+      });
+    }
+  }
+  let youtubeCatalogSummary = "";
+  const youtubeHandleForEnrichment = nonEmptyString(resolvedSocialState.socialProfiles.youtube) || "";
+  if (youtubeHandleForEnrichment) {
+    try {
+      const ytk = (process.env.YOUTUBE_DATA_API_KEY || process.env.GOOGLE_API_KEY || "").trim();
+      if (ytk) {
+        youtubeCatalogSummary = await fetchYouTubeHandleCatalogSummary({
+          apiKey: ytk,
+          handle: youtubeHandleForEnrichment,
+        });
+      }
+    } catch (error) {
+      logger.warn("YouTube Katalog-Anreicherung fehlgeschlagen.", {
+        error: error instanceof Error ? error.message : `${error}`,
+        uid: request.auth?.uid || null,
+      });
+    }
+  }
+  let instagramGraphSummary = "";
+  const instagramHandleForEnrichment = nonEmptyString(resolvedSocialState.socialProfiles.instagram) || "";
+  if (instagramHandleForEnrichment) {
+    try {
+      instagramGraphSummary = await resolveInstagramContextForAgent({
+        handle: instagramHandleForEnrichment,
+        accessToken: (process.env.META_IG_USER_ACCESS_TOKEN || "").trim(),
+        igUserId: (process.env.META_IG_USER_ID || "").trim(),
+        graphVersion: (process.env.META_GRAPH_API_VERSION || "").trim() || undefined,
+      });
+    } catch (error) {
+      logger.warn("Instagram (Meta) Kontext fehlgeschlagen.", {
+        error: error instanceof Error ? error.message : `${error}`,
+        uid: request.auth?.uid || null,
+      });
+    }
+  }
+  const socialContextBlock = buildSocialProfileContextBlockForPrompt({
+    socialProfiles: resolvedSocialState.socialProfiles,
+    socialSelectedPlatforms: resolvedSocialState.socialSelectedPlatforms,
+    socialMissingPlatforms: resolvedSocialState.socialMissingPlatforms,
+    spotifyCatalogSummary,
+    youtubeCatalogSummary,
+    instagramGraphSummary,
+  });
+  const workspaceContextForLlm = trimTextMax(
+      `${nonEmptyString(workspaceContext) || ""}${socialContextBlock}`,
+      12000,
+  );
   let reply = "";
   let agentProvider = runtimeSettings.agentProvider;
   let providerFallbackUsed = false;
@@ -16133,7 +16535,7 @@ exports.skydownAgent = onCall({
         input: agentInput,
         runtimeSettings,
         promptSettings: effectivePromptSettings,
-        workspaceContext,
+        workspaceContext: workspaceContextForLlm,
         manusApiKeyOverride: agentInput.manusApiKeyOverride,
       });
       reply = manusResult.reply;
@@ -16159,7 +16561,7 @@ exports.skydownAgent = onCall({
         reply = await runGrokAgent({
           input: agentInput,
           systemInstruction: effectiveAgentSystemInstruction,
-          workspaceContext,
+          workspaceContext: workspaceContextForLlm,
           apiKey,
         });
         agentProvider = AI_AGENT_PROVIDERS.grok;
@@ -16193,72 +16595,15 @@ exports.skydownAgent = onCall({
       mode: agentInput.mode,
       executeAutomation: agentInput.executeAutomation,
       systemInstruction: effectiveAgentSystemInstruction,
-      workspaceContext,
+      workspaceContext: workspaceContextForLlm,
       attachmentSummary: nonEmptyString(agentInput.attachmentSummary) || "",
     });
     agentProvider = AI_AGENT_PROVIDERS.gemini;
   }
 
-  let socialProfiles = {
-    instagram: "",
-    tiktok: "",
-    youtube: "",
-    facebook: "",
-    spotify: "",
-  };
-  let socialMissingPlatforms = [];
-  let socialSelectedPlatforms = [];
-  if (isSocialAnalysisIntent && request.auth?.uid) {
-    try {
-      const socialProfileState = await loadUserSocialProfiles(request.auth.uid);
-      const extractedFromPrompt = extractSocialProfilesFromPrompt(agentInput.prompt);
-      const socialSetup = socialSetupForIntent;
-      socialSelectedPlatforms = socialSetup.selectedPlatforms;
-      const structuredProfiles = {
-        instagram: socialSetup.instagramEnabled ? socialSetup.instagramHandle : "",
-        tiktok: socialSetup.tiktokEnabled ? socialSetup.tiktokHandle : "",
-        youtube: socialSetup.youtubeEnabled ? socialSetup.youtubeHandle : "",
-        facebook: socialSetup.facebookEnabled ? socialSetup.facebookHandle : "",
-        spotify: socialSetup.spotifyEnabled ? socialSetup.spotifyHandle : "",
-      };
-      socialProfiles = mergeSocialProfiles(
-          socialProfileState.profiles,
-          mergeSocialProfiles(structuredProfiles, extractedFromPrompt),
-      );
-      const requiredPlatforms = socialSelectedPlatforms.length > 0 ?
-        socialSelectedPlatforms :
-        [...SOCIAL_PLATFORM_ORDER];
-      socialMissingPlatforms = requiredPlatforms
-          .filter((platform) => !socialProfiles[platform]);
-      if (socialSelectedPlatforms.length > 0) {
-        for (const platform of SOCIAL_PLATFORM_ORDER) {
-          if (!requiredPlatforms.includes(platform)) {
-            socialProfiles[platform] = "";
-          }
-        }
-      }
-      if (socialSelectedPlatforms.length === 0) {
-        socialMissingPlatforms = Object.entries(socialProfiles)
-            .filter(([, handle]) => !handle)
-            .map(([platform]) => platform);
-      }
-      const hasStructuredHandles = (
-        (socialSetup.instagramEnabled && !!socialSetup.instagramHandle) ||
-        (socialSetup.tiktokEnabled && !!socialSetup.tiktokHandle) ||
-        (socialSetup.youtubeEnabled && !!socialSetup.youtubeHandle) ||
-        (socialSetup.facebookEnabled && !!socialSetup.facebookHandle) ||
-        (socialSetup.spotifyEnabled && !!socialSetup.spotifyHandle)
-      );
-      if (Object.keys(extractedFromPrompt).length > 0 || hasStructuredHandles) {
-        await persistSocialProfilesToMemoryProfile(request.auth.uid, socialProfiles);
-      }
-    } catch (error) {
-      logger.warn("Social profile lookup failed.", {
-        uid: request.auth?.uid || null,
-        error: error instanceof Error ? error.message : `${error}`,
-      });
-    }
-  }
+  const socialProfiles = resolvedSocialState.socialProfiles;
+  const socialMissingPlatforms = resolvedSocialState.socialMissingPlatforms;
+  const socialSelectedPlatforms = resolvedSocialState.socialSelectedPlatforms;
 
   const idempotencyKey = nonEmptyString(agentInput.idempotencyKey) || "";
   const idempotencyKeyUsable = idempotencyKey.length >= AUTOMATION_IDEMPOTENCY_KEY_MIN_LEN;
@@ -16333,6 +16678,9 @@ exports.skydownAgent = onCall({
             socialProfiles,
             selectedPlatforms: socialSelectedPlatforms,
             missingPlatforms: socialMissingPlatforms,
+            spotifyPublicCatalogSummary: nonEmptyString(spotifyCatalogSummary) || "",
+            youtubePublicCatalogSummary: nonEmptyString(youtubeCatalogSummary) || "",
+            instagramPublicGraphSummary: nonEmptyString(instagramGraphSummary) || "",
           },
         });
         automation = {

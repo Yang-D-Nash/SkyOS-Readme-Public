@@ -124,7 +124,7 @@ struct VideoHubView: View {
             )
             .ignoresSafeArea()
         )
-        .navigationTitle("Video")
+        .navigationTitle(AppLocalized.text("videohub.nav.title", fallback: "Video"))
         .navigationBarTitleDisplayMode(.inline)
         .skydownNavigationChrome(colorScheme: colorScheme)
         .toolbar {
@@ -256,7 +256,9 @@ struct VideoHubView: View {
         activePresentedSheetBinding.wrappedValue = nil
         originalViewerTarget = VideoOriginalViewerTarget(
             urlString: url.absoluteString,
-            title: video.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Original" : video.title
+            title: video.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? AppLocalized.text("videohub.original_title", fallback: "Original")
+                : video.title
         )
     }
 
@@ -277,16 +279,16 @@ struct VideoHubView: View {
     private var collaborationsCard: some View {
         let collaborationItems = viewModel.publicConfig.collaborationItems
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-            Text("Featured Collabs")
+            Text(AppLocalized.text("videohub.collabs.title", fallback: "Featured collabs"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Creatives hinter den Visuals.")
+            Text(AppLocalized.text("videohub.collabs.subtitle", fallback: "Creatives behind the visuals."))
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             if collaborationItems.isEmpty {
-                Text("Featured Collabs folgen. Der Bereich bleibt bereit und wird laufend ergaenzt.")
+                Text(AppLocalized.text("videohub.collabs.empty", fallback: "Featured collabs are on the way. This space stays ready and will fill in over time."))
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .padding(.top, 4)
@@ -351,13 +353,24 @@ struct VideoHubView: View {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let heroMediaURL = settings.resolvedVideoHubImageURL?
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        let heroTitle = settings.resolvedVideoHubTitle ?? "Video"
+        let heroTitle = settings.resolvedVideoHubTitle
+            ?? AppLocalized.text("videohub.hero.fallback_title", fallback: "Video")
         return BrandHeroSurface(
             colorScheme: colorScheme,
-            eyebrow: settings.resolvedVideoHubEyebrow ?? "Video",
-            title: settings.resolvedVideoHubTitle ?? "Video",
-            subtitle: settings.resolvedVideoHubSubtitle ?? "Einstieg – der eigentliche Blick sitzt im Player und in der Clips-Liste unten.",
-            detail: settings.resolvedVideoHubDetail ?? "Hier Ueberblick waehlen, unten fokussiert schauen – ohne Feed-Gewusel.",
+            eyebrow: settings.resolvedVideoHubEyebrow
+                ?? AppLocalized.text("videohub.hero.fallback_eyebrow", fallback: "Video"),
+            title: settings.resolvedVideoHubTitle
+                ?? AppLocalized.text("videohub.hero.fallback_title", fallback: "Video"),
+            subtitle: settings.resolvedVideoHubSubtitle
+                ?? AppLocalized.text(
+                    "videohub.hero.fallback_subtitle",
+                    fallback: "Entry point — the main view lives in the player and the clip list below."
+                ),
+            detail: settings.resolvedVideoHubDetail
+                ?? AppLocalized.text(
+                    "videohub.hero.fallback_detail",
+                    fallback: "Pick an overview here, focus below — without feed noise."
+                ),
             backgroundImageURL: settings.resolvedVideoHubImageURL,
             accent: AppColors.accentMystic(for: colorScheme),
             secondaryAccent: AppColors.accentHighlight(for: colorScheme),
@@ -383,9 +396,21 @@ struct VideoHubView: View {
         ) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                    MusicBadge(text: "Videos", isAccent: true, onTap: onOpenVideos)
-                    MusicBadge(text: "Equipment", isAccent: false, onTap: onOpenEquipment)
-                    MusicBadge(text: "Collabs", isAccent: false, onTap: onOpenCollaborations)
+                    MusicBadge(
+                        text: AppLocalized.text("videohub.badge.videos", fallback: "Videos"),
+                        isAccent: true,
+                        onTap: onOpenVideos
+                    )
+                    MusicBadge(
+                        text: AppLocalized.text("videohub.badge.equipment", fallback: "Equipment"),
+                        isAccent: false,
+                        onTap: onOpenEquipment
+                    )
+                    MusicBadge(
+                        text: AppLocalized.text("videohub.badge.collabs", fallback: "Collabs"),
+                        isAccent: false,
+                        onTap: onOpenCollaborations
+                    )
                 }
             }
         }
@@ -393,15 +418,15 @@ struct VideoHubView: View {
 
     private var formatCard: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-            Text("Format-Hinweis")
+            Text(AppLocalized.text("videohub.format.title", fallback: "Format note"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("MP4, MOV oder M4V.")
+            Text(AppLocalized.text("videohub.format.body", fallback: "MP4, MOV, or M4V."))
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            Text("Kleinere Dateien = schneller.")
+            Text(AppLocalized.text("videohub.format.smaller_faster", fallback: "Smaller files upload faster."))
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }
@@ -418,18 +443,18 @@ struct VideoHubView: View {
 
     private var adminToolsCard: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-            Text("Video Admin")
+            Text(AppLocalized.text("videohub.admin.title", fallback: "Video admin"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Equipment & Collabs im Editor.")
+            Text(AppLocalized.text("videohub.admin.subtitle", fallback: "Equipment & collabs in the editor."))
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             Button {
                 showingAdminEditor = true
             } label: {
-                Label("Editor oeffnen", systemImage: "slider.horizontal.3")
+                Label(AppLocalized.text("videohub.admin.open_editor", fallback: "Open editor"), systemImage: "slider.horizontal.3")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -450,28 +475,28 @@ struct VideoHubView: View {
 
     private var uploadCard: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-            Text("Video Upload")
+            Text(AppLocalized.text("videohub.upload.title", fallback: "Video upload"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Nur fuer Admins.")
+            Text(AppLocalized.text("videohub.upload.admin_only", fallback: "Admins only."))
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             NicmaUploadField(
-                title: "Titel",
+                title: AppLocalized.text("videohub.field.title", fallback: "Title"),
                 text: $viewModel.videoTitle,
                 colorScheme: colorScheme
             )
 
             NicmaUploadField(
-                title: "Projekt / Artist",
+                title: AppLocalized.text("videohub.field.project_artist", fallback: "Project / artist"),
                 text: $viewModel.projectName,
                 colorScheme: colorScheme
             )
 
             NicmaUploadField(
-                title: "E-Mail",
+                title: AppLocalized.text("videohub.field.email", fallback: "Email"),
                 text: $viewModel.email,
                 colorScheme: colorScheme,
                 keyboard: .emailAddress,
@@ -479,7 +504,7 @@ struct VideoHubView: View {
             )
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                Text("Notiz (optional)")
+                Text(AppLocalized.text("videohub.field.note_optional", fallback: "Note (optional)"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -497,18 +522,18 @@ struct VideoHubView: View {
             Button {
                 showingFileImporter = true
             } label: {
-                Label("Videos auswaehlen", systemImage: "video.badge.plus")
+                Label(AppLocalized.text("videohub.upload.pick_videos", fallback: "Choose videos"), systemImage: "video.badge.plus")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
             }
 
-            Text("Oder Video-Link.")
+            Text(AppLocalized.text("videohub.upload.or_link", fallback: "Or paste a video link."))
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             NicmaUploadField(
-                title: "Google Drive / MEGA / anderer Video-Link",
+                title: AppLocalized.text("videohub.field.external_link", fallback: "Google Drive / MEGA / other video link"),
                 text: $viewModel.externalVideoURL,
                 colorScheme: colorScheme,
                 keyboard: .URL,
@@ -547,7 +572,7 @@ struct VideoHubView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 } else {
-                    Label("Videos hochladen", systemImage: "arrow.up.circle.fill")
+                    Label(AppLocalized.text("videohub.upload.submit", fallback: "Upload videos"), systemImage: "arrow.up.circle.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -564,7 +589,7 @@ struct VideoHubView: View {
                     await viewModel.addExternalVideo()
                 }
             } label: {
-                Label("Externes Video freigeben", systemImage: "link.badge.plus")
+                Label(AppLocalized.text("videohub.upload.share_external", fallback: "Share external video"), systemImage: "link.badge.plus")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -587,7 +612,10 @@ struct VideoHubView: View {
 
     private var playerCard: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-            Text("Der Clip bleibt jetzt gross, vertikal und direkt im Fokus. Fuer den ganzen Feed kannst du jederzeit in den Video-Modus springen.")
+            Text(AppLocalized.text(
+                "videohub.player.focus_hint",
+                fallback: "The clip stays large, vertical, and in focus. You can jump into full video mode anytime."
+            ))
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
@@ -614,11 +642,14 @@ struct VideoHubView: View {
                                         .font(.system(size: 54, weight: .bold))
                                         .foregroundColor(.white.opacity(0.95))
 
-                                    Text("YouTube Clip")
+                                    Text(AppLocalized.text("videohub.player.youtube_title", fallback: "YouTube clip"))
                                         .font(.title3.weight(.bold))
                                         .foregroundColor(.white)
 
-                                    Text("Der Clip ist als YouTube-Video hinterlegt und laeuft direkt in der App.")
+                                    Text(AppLocalized.text(
+                                        "videohub.player.youtube_subtitle",
+                                        fallback: "The clip is set up as a YouTube video and plays right in the app."
+                                    ))
                                         .font(.subheadline.weight(.semibold))
                                         .multilineTextAlignment(.center)
                                         .foregroundColor(.white.opacity(0.84))
@@ -687,7 +718,7 @@ struct VideoHubView: View {
                     Button {
                         openVideoPlayer()
                     } label: {
-                        Label("Vollbild oeffnen", systemImage: "rectangle.portrait.and.arrow.right")
+                        Label(AppLocalized.text("videohub.player.open_fullscreen", fallback: "Open fullscreen"), systemImage: "rectangle.portrait.and.arrow.right")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -698,7 +729,7 @@ struct VideoHubView: View {
                     Button {
                         presentSheet(.youTube(youTubeItem))
                     } label: {
-                        Label("In YouTube ansehen", systemImage: "play.rectangle.fill")
+                        Label(AppLocalized.text("videohub.player.open_youtube", fallback: "Watch on YouTube"), systemImage: "play.rectangle.fill")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -733,7 +764,7 @@ struct VideoHubView: View {
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
             } else {
-                Text("Noch kein Fokus-Video aktiv. Sobald ein Clip freigegeben ist, erscheint er hier.")
+                Text(AppLocalized.text("videohub.player.no_focus", fallback: "No focus video yet. When a clip is published, it appears here."))
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -756,17 +787,23 @@ struct VideoHubView: View {
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                     Text(
                         viewModel.isAdmin
-                        ? "\(viewModel.videos.count) Titel im Hub"
-                        : "\(viewModel.videos.count) zum Schauen bereit"
+                        ? String(
+                            format: AppLocalized.text("videohub.library.count_admin", fallback: "%d titles in hub"),
+                            viewModel.videos.count
+                        )
+                        : String(
+                            format: AppLocalized.text("videohub.library.count_viewer", fallback: "%d ready to watch"),
+                            viewModel.videos.count
+                        )
                     )
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                     if viewModel.isAdmin {
-                        Text("Owner Video Control")
+                        Text(AppLocalized.text("videohub.library.owner_title", fallback: "Owner video control"))
                             .font(.headline.weight(.semibold))
                             .foregroundColor(AppColors.text(for: colorScheme))
-                        Text("Liste ansehen, Home-Video setzen, Clips bearbeiten oder loeschen.")
+                        Text(AppLocalized.text("videohub.library.owner_subtitle", fallback: "Browse the list, set the home video, edit or delete clips."))
                             .font(.caption)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
@@ -782,12 +819,12 @@ struct VideoHubView: View {
                             showingUploadComposer = true
                         }
                     } label: {
-                        Label("Neu", systemImage: "plus")
+                        Label(AppLocalized.text("videohub.library.new", fallback: "New"), systemImage: "plus")
                             .labelStyle(.iconOnly)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(AppColors.accent(for: colorScheme))
-                    .accessibilityLabel("Neues Video anlegen")
+                    .accessibilityLabel(AppLocalized.text("videohub.library.new_a11y", fallback: "Create new video"))
                 }
             }
             .accessibilityIdentifier("video.hub.library.header")
@@ -796,15 +833,15 @@ struct VideoHubView: View {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ProgressView()
                         .controlSize(.small)
-                    Text("Videos werden ruhig vorbereitet ...")
+                    Text(AppLocalized.text("videohub.library.loading", fallback: "Preparing videos…"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
             } else if viewModel.videos.isEmpty {
                 Text(
                     viewModel.isAdmin
-                    ? "Noch keine Videos im Hub. Neue Uploads erscheinen hier automatisch."
-                    : "Aktuell sind noch keine Videos freigegeben. Bitte spaeter erneut pruefen."
+                    ? AppLocalized.text("videohub.library.empty_admin", fallback: "No videos in the hub yet. New uploads appear here automatically.")
+                    : AppLocalized.text("videohub.library.empty_guest", fallback: "No videos are published yet. Please check back later.")
                 )
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -953,37 +990,49 @@ private struct VideoHubLibraryRow: View {
 
     private var routeTitle: String {
         if video.supportsInlinePlayback {
-            return "Direkt im Reel"
+            return AppLocalized.text("videohub.route.reel", fallback: "Inline reel")
         }
         if video.opensOriginalInApp {
-            return "Original in App"
+            return AppLocalized.text("videohub.route.original_in_app", fallback: "Original in app")
         }
-        return "Externer Clip"
+        return AppLocalized.text("videohub.route.external", fallback: "External clip")
     }
 
     private var routeDetail: String {
         if isAdmin {
             if video.isPlayable {
                 return isSelected
-                    ? "Der Clip sitzt gerade im Player und kann sofort gestartet oder gestoppt werden."
-                    : "Ein Tap setzt den Clip in den Player. Von dort bleibt er als Fokus-Video sichtbar."
+                    ? AppLocalized.text(
+                        "videohub.route.detail.admin_playable_selected",
+                        fallback: "This clip is in the player and can be started or stopped immediately."
+                    )
+                    : AppLocalized.text(
+                        "videohub.route.detail.admin_playable_unselected",
+                        fallback: "One tap loads the clip into the player. It stays visible as the focus video."
+                    )
             }
             if video.supportsInlinePlayback {
-                return "Der Clip laeuft direkt als In-App-Reel mit schnellem Preview-Flow."
+                return AppLocalized.text("videohub.route.detail.admin_reel_flow", fallback: "The clip runs as an in-app reel with a fast preview flow.")
             }
             if video.opensOriginalInApp {
-                return "Das Original bleibt in der App erreichbar, inklusive Schliessen und Rueckweg."
+                return AppLocalized.text(
+                    "videohub.route.detail.admin_original_flow",
+                    fallback: "The original stays reachable in the app, including close and a safe way back."
+                )
             }
-            return "Aktuell steht hier nur der externe Aufruf zur Verfuegung."
+            return AppLocalized.text("videohub.route.detail.admin_external_only", fallback: "Only the external open action is available here.")
         }
 
         if video.supportsInlinePlayback {
-            return "Ein Tap startet die direkte Videoansicht ohne weiteren Zwischenscreen."
+            return AppLocalized.text("videohub.route.detail.user_reel", fallback: "One tap starts the direct video view without an extra step.")
         }
         if video.opensOriginalInApp {
-            return "Ein Tap bringt dich in die In-App-Originalansicht mit sicherem Zurueck in die App."
+            return AppLocalized.text(
+                "videohub.route.detail.user_original",
+                fallback: "One tap opens the in-app original view with a safe return to the app."
+            )
         }
-        return "Dieses Video wird derzeit ueber einen externen Link geoeffnet."
+        return AppLocalized.text("videohub.route.detail.user_external", fallback: "This video currently opens via an external link.")
     }
 
     private var routeAccent: Color {
@@ -1007,15 +1056,21 @@ private struct VideoHubLibraryRow: View {
         case .secondary:
             var line = "\(video.projectName) · \(date)"
             if isAdmin {
-                line += " · \(video.isPublic ? "Public" : "Private")"
-                if video.isHomeFeatured { line += " · Home" }
+                let visibilityLabel = video.isPublic
+                    ? AppLocalized.text("videohub.visibility.public", fallback: "Public")
+                    : AppLocalized.text("videohub.visibility.private", fallback: "Private")
+                line += " · \(visibilityLabel)"
+                if video.isHomeFeatured { line += " · \(AppLocalized.text("videohub.meta.home", fallback: "Home"))" }
             }
             return line
         case .featured:
             var line = "\(video.projectName) · \(date)"
             if isAdmin {
-                line += " · \(video.isPublic ? "Public" : "Private")"
-                if video.isHomeFeatured { line += " · Home" }
+                let visibilityLabel = video.isPublic
+                    ? AppLocalized.text("videohub.visibility.public", fallback: "Public")
+                    : AppLocalized.text("videohub.visibility.private", fallback: "Private")
+                line += " · \(visibilityLabel)"
+                if video.isHomeFeatured { line += " · \(AppLocalized.text("videohub.meta.home", fallback: "Home"))" }
             }
             return line
         }
@@ -1164,7 +1219,12 @@ private struct VideoHubLibraryRow: View {
                 if isAdmin {
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button(action: onSelect) {
-                            Label(isSelected ? "Im Player" : "Auswaehlen", systemImage: "rectangle.on.rectangle")
+                            Label(
+                                isSelected
+                                    ? AppLocalized.text("videohub.action.in_player", fallback: "In player")
+                                    : AppLocalized.text("videohub.action.select", fallback: "Select"),
+                                systemImage: "rectangle.on.rectangle"
+                            )
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
@@ -1172,8 +1232,12 @@ private struct VideoHubLibraryRow: View {
                         Button(action: video.isPlayable ? onPlayToggle : (video.supportsInlinePlayback ? onOpenReel : onOpenOriginal)) {
                             Label(
                                 video.isPlayable
-                                    ? (isPlaying ? "Stoppen" : "Abspielen")
-                                    : (video.supportsInlinePlayback ? "Ansehen" : "Oeffnen"),
+                                    ? (isPlaying
+                                        ? AppLocalized.text("videohub.action.stop", fallback: "Stop")
+                                        : AppLocalized.text("videohub.action.play", fallback: "Play"))
+                                    : (video.supportsInlinePlayback
+                                        ? AppLocalized.text("videohub.action.watch", fallback: "Watch")
+                                        : AppLocalized.text("videohub.action.open", fallback: "Open")),
                                 systemImage: video.isPlayable
                                     ? (isPlaying ? "stop.fill" : "play.fill")
                                     : (video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square")
@@ -1187,7 +1251,7 @@ private struct VideoHubLibraryRow: View {
                 } else {
                     if video.supportsInlinePlayback {
                         Button(action: onOpenReel) {
-                            Label("Direkt im Video", systemImage: "play.rectangle.fill")
+                            Label(AppLocalized.text("videohub.action.direct_video", fallback: "Play inline"), systemImage: "play.rectangle.fill")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
@@ -1209,20 +1273,25 @@ private struct VideoHubLibraryRow: View {
                     VStack(spacing: SkydownLayout.stackSpacingPill) {
                         HStack(spacing: SkydownLayout.stackSpacingPill) {
                             Button(action: onToggleHomeFeatured) {
-                                Label(video.isHomeFeatured ? "Home aktiv" : "Im Home zeigen", systemImage: "house.fill")
+                                Label(
+                                    video.isHomeFeatured
+                                        ? AppLocalized.text("videohub.action.home_on", fallback: "On home")
+                                        : AppLocalized.text("videohub.action.show_home", fallback: "Show on home"),
+                                    systemImage: "house.fill"
+                                )
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
 
                             Button(action: onEdit) {
-                                Label("Bearbeiten", systemImage: "slider.horizontal.3")
+                                Label(AppLocalized.text("videohub.action.edit", fallback: "Edit"), systemImage: "slider.horizontal.3")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
                         }
 
                         Button(role: .destructive, action: onDelete) {
-                            Label("Loeschen", systemImage: "trash")
+                            Label(AppLocalized.text("videohub.action.delete", fallback: "Delete"), systemImage: "trash")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
@@ -1280,8 +1349,8 @@ private struct VideoHubLibraryRow: View {
                 Text(
                     presentation == .secondary
                         ? (isAdmin
-                            ? "Wahl sitzt sofort im Player."
-                            : "Tippen setzt den Fokus, der Player folgt oben."
+                            ? AppLocalized.text("videohub.route.secondary_admin", fallback: "Your pick goes straight to the player.")
+                            : AppLocalized.text("videohub.route.secondary_user", fallback: "Tap sets focus; the player follows above.")
                         ) : routeDetail
                 )
                 .font(.caption2)
@@ -1293,7 +1362,12 @@ private struct VideoHubLibraryRow: View {
             if isAdmin {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
                     Button(action: onSelect) {
-                        Label(isSelected ? "Im Player" : "Auswaehlen", systemImage: "rectangle.on.rectangle")
+                        Label(
+                            isSelected
+                                ? AppLocalized.text("videohub.action.in_player", fallback: "In player")
+                                : AppLocalized.text("videohub.action.select", fallback: "Select"),
+                            systemImage: "rectangle.on.rectangle"
+                        )
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
@@ -1301,8 +1375,12 @@ private struct VideoHubLibraryRow: View {
                     Button(action: video.isPlayable ? onPlayToggle : (video.supportsInlinePlayback ? onOpenReel : onOpenOriginal)) {
                         Label(
                             video.isPlayable
-                                ? (isPlaying ? "Stoppen" : "Abspielen")
-                                : (video.supportsInlinePlayback ? "Ansehen" : "Oeffnen"),
+                                ? (isPlaying
+                                    ? AppLocalized.text("videohub.action.stop", fallback: "Stop")
+                                    : AppLocalized.text("videohub.action.play", fallback: "Play"))
+                                : (video.supportsInlinePlayback
+                                    ? AppLocalized.text("videohub.action.watch", fallback: "Watch")
+                                    : AppLocalized.text("videohub.action.open", fallback: "Open")),
                             systemImage: video.isPlayable
                                 ? (isPlaying ? "stop.fill" : "play.fill")
                                 : (video.supportsInlinePlayback ? "play.rectangle.fill" : "arrow.up.forward.square")
@@ -1316,7 +1394,7 @@ private struct VideoHubLibraryRow: View {
             } else {
                 if video.supportsInlinePlayback {
                     Button(action: onOpenReel) {
-                        Label("Direkt im Video", systemImage: "play.rectangle.fill")
+                        Label(AppLocalized.text("videohub.action.direct_video", fallback: "Play inline"), systemImage: "play.rectangle.fill")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -1338,20 +1416,25 @@ private struct VideoHubLibraryRow: View {
                 VStack(spacing: SkydownLayout.stackSpacingPill) {
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button(action: onToggleHomeFeatured) {
-                            Label(video.isHomeFeatured ? "Home aktiv" : "Im Home zeigen", systemImage: "house.fill")
+                            Label(
+                                video.isHomeFeatured
+                                    ? AppLocalized.text("videohub.action.home_on", fallback: "On home")
+                                    : AppLocalized.text("videohub.action.show_home", fallback: "Show on home"),
+                                systemImage: "house.fill"
+                            )
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
 
                         Button(action: onEdit) {
-                            Label("Bearbeiten", systemImage: "slider.horizontal.3")
+                            Label(AppLocalized.text("videohub.action.edit", fallback: "Edit"), systemImage: "slider.horizontal.3")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
                     }
 
                     Button(role: .destructive, action: onDelete) {
-                        Label("Loeschen", systemImage: "trash")
+                        Label(AppLocalized.text("videohub.action.delete", fallback: "Delete"), systemImage: "trash")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
@@ -1441,7 +1524,7 @@ private struct VideoOwnerEditPanel: View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             HStack(alignment: .top, spacing: SkydownLayout.stackSpacingCompact) {
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
-                    Text("Video bearbeiten")
+                    Text(AppLocalized.text("videohub.edit.title", fallback: "Edit video"))
                         .font(.headline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: colorScheme))
                     Text("\(sourceLabel) · \(skydownVideoDateFormatter.string(from: video.createdAt))")
@@ -1455,23 +1538,23 @@ private struct VideoOwnerEditPanel: View {
                         .font(.caption.weight(.bold))
                 }
                 .buttonStyle(.bordered)
-                .accessibilityLabel("Bearbeitung schliessen")
+                .accessibilityLabel(AppLocalized.text("videohub.edit.close_a11y", fallback: "Close editor"))
             }
 
             NicmaUploadField(
-                title: "Titel",
+                title: AppLocalized.text("videohub.field.title", fallback: "Title"),
                 text: $title,
                 colorScheme: colorScheme
             )
 
             NicmaUploadField(
-                title: "Projekt / Artist",
+                title: AppLocalized.text("videohub.field.project_artist", fallback: "Project / artist"),
                 text: $projectName,
                 colorScheme: colorScheme
             )
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                Text("Notiz")
+                Text(AppLocalized.text("videohub.field.notes", fallback: "Notes"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -1489,7 +1572,9 @@ private struct VideoOwnerEditPanel: View {
 
             Toggle(isOn: $isPublic) {
                 Label(
-                    isPublic ? "Public sichtbar" : "Privat verborgen",
+                    isPublic
+                        ? AppLocalized.text("videohub.visibility.public_visible", fallback: "Public (visible)")
+                        : AppLocalized.text("videohub.visibility.private_hidden", fallback: "Private (hidden)"),
                     systemImage: isPublic ? "checkmark.circle.fill" : "eye.slash.fill"
                 )
                 .font(.subheadline.weight(.semibold))
@@ -1499,7 +1584,7 @@ private struct VideoOwnerEditPanel: View {
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
                 Button(action: onCancel) {
-                    Label("Abbrechen", systemImage: "xmark")
+                    Label(AppLocalized.text("common.cancel", fallback: "Cancel"), systemImage: "xmark")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -1507,7 +1592,7 @@ private struct VideoOwnerEditPanel: View {
                 Button {
                     onSave(title, projectName, notes, isPublic)
                 } label: {
-                    Label("Speichern", systemImage: "checkmark.circle.fill")
+                    Label(AppLocalized.text("common.save", fallback: "Save"), systemImage: "checkmark.circle.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -1663,16 +1748,22 @@ private struct VideoReelViewer: View {
 
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
-                        Text("SkyOS Video")
+                        Text(AppLocalized.text("videohub.reel.brand_title", fallback: "SkyOS Video"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(.white.opacity(0.92))
 
-                        Text("\(currentIndex + 1) von \(videos.count)")
+                        Text(
+                            String(
+                                format: AppLocalized.text("videohub.reel.position_format", fallback: "%1$d of %2$d"),
+                                currentIndex + 1,
+                                videos.count
+                            )
+                        )
                             .font(.caption.weight(.semibold))
                             .foregroundColor(.white.opacity(0.70))
 
                         if videos.count > 1 {
-                            Text("Vertikal wischen durch alle Clips")
+                            Text(AppLocalized.text("videohub.reel.swipe_hint", fallback: "Swipe vertically through all clips."))
                                 .font(.caption.weight(.medium))
                                 .foregroundColor(.white.opacity(0.58))
                         }
@@ -1698,7 +1789,7 @@ private struct VideoReelViewer: View {
                     VStack(spacing: SkydownLayout.stackSpacingPill) {
                         ProgressView()
                             .tint(.white)
-                        Text("Clip wird vorbereitet ...")
+                        Text(AppLocalized.text("videohub.reel.preparing", fallback: "Preparing clip…"))
                             .font(.caption.weight(.semibold))
                             .foregroundColor(.white.opacity(0.86))
                     }
@@ -1830,16 +1921,16 @@ struct VideoEquipmentCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-            Text("Equipment & Software")
+            Text(AppLocalized.text("videohub.equipment.section_title", fallback: "Equipment & software"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Visual Stack fuer Shoot, Edit und Finish.")
+            Text(AppLocalized.text("videohub.equipment.section_subtitle", fallback: "Visual stack for shoot, edit, and finish."))
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             if items.isEmpty {
-                Text("Equipment wird aktuell vorbereitet und erscheint hier in Kuerze.")
+                Text(AppLocalized.text("videohub.equipment.empty", fallback: "Equipment is being prepared and will appear here soon."))
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .padding(.top, 4)
@@ -1878,7 +1969,9 @@ private struct VideoHubQuickActionDock: View {
     var body: some View {
         VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingPill) {
             VideoHubQuickActionButton(
-                title: isUploadOpen ? "Schliessen" : "Upload",
+                title: isUploadOpen
+                    ? AppLocalized.text("common.close", fallback: "Close")
+                    : AppLocalized.text("videohub.dock.upload", fallback: "Upload"),
                 systemImage: isUploadOpen ? "xmark.circle.fill" : "arrow.up.circle.fill",
                 tint: AppColors.accent(for: colorScheme),
                 textColor: .white,
@@ -2050,11 +2143,11 @@ struct VideoEquipmentDetailSheet: View {
                 .padding(.bottom, 28)
             }
             .background(AppColors.screenGradient(for: colorScheme).ignoresSafeArea())
-            .navigationTitle("Equipment")
+            .navigationTitle(AppLocalized.text("videohub.equipment.nav_title", fallback: "Equipment"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Fertig") { dismiss() }
+                    Button(AppLocalized.text("common.done", fallback: "Done")) { dismiss() }
                 }
             }
         }
@@ -2150,7 +2243,7 @@ struct ProducedWithArtistRow: View {
                 HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     if let spotifyURL {
                         SocialLinkButton(
-                            accessibilityTitle: "Spotify",
+                            accessibilityTitle: AppLocalized.text("videohub.social.spotify", fallback: "Spotify"),
                             systemImage: "music.note",
                             foregroundColor: .white,
                             background: LinearGradient(
@@ -2167,7 +2260,7 @@ struct ProducedWithArtistRow: View {
 
                     if let instagramURL {
                         SocialLinkButton(
-                            accessibilityTitle: "Instagram",
+                            accessibilityTitle: AppLocalized.text("videohub.social.instagram", fallback: "Instagram"),
                             systemImage: "camera.fill",
                             foregroundColor: .white,
                             background: LinearGradient(
@@ -2184,7 +2277,7 @@ struct ProducedWithArtistRow: View {
 
                     if let youtubeURL {
                         SocialLinkButton(
-                            accessibilityTitle: "YouTube",
+                            accessibilityTitle: AppLocalized.text("videohub.social.youtube", fallback: "YouTube"),
                             systemImage: "play.rectangle.fill",
                             foregroundColor: .white,
                             background: LinearGradient(
@@ -2359,7 +2452,7 @@ struct VideoYouTubeRow: View {
             Spacer()
 
             Button(action: onPlay) {
-                Label("YouTube", systemImage: "play.rectangle.fill")
+                Label(AppLocalized.text("videohub.youtube_row.play", fallback: "YouTube"), systemImage: "play.rectangle.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
@@ -2399,27 +2492,27 @@ struct VideoPublicConfigEditorCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
-            Text("Videography Editor")
+            Text(AppLocalized.text("videohub.editor.title", fallback: "Videography editor"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Owner und Video-Admins steuern hier Equipment und Featured Collabs. Bilder laufen jetzt picker-first und werden direkt mit Vorschau uebernommen.")
+            Text(AppLocalized.text("videohub.editor.intro", fallback: "Owners and video admins manage equipment and featured collabs here. Images are picker-first and applied with a live preview."))
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-            Text("Eintraege kannst du neu anlegen, ersetzen oder entfernen. Oeffentliche Daten werden erst nach `Oeffentliche Daten speichern` live.")
+            Text(AppLocalized.text("videohub.editor.save_hint", fallback: "You can add, replace, or remove entries. Public data goes live only after you save."))
                 .font(.footnote.weight(.medium))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-                Text("Equipment")
+                Text(AppLocalized.text("videohub.editor.equipment_heading", fallback: "Equipment"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
                 ForEach(Array(viewModel.publicConfig.equipmentItems.enumerated()), id: \.element.id) { _, item in
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         NicmaUploadField(
-                            title: "Titel",
+                            title: AppLocalized.text("videohub.field.title", fallback: "Title"),
                             text: Binding(
                                 get: { item.title },
                                 set: { viewModel.updateEquipmentItem(item.id, title: $0) }
@@ -2427,7 +2520,7 @@ struct VideoPublicConfigEditorCard: View {
                             colorScheme: colorScheme
                         )
                         NicmaUploadField(
-                            title: "Detail",
+                            title: AppLocalized.text("videohub.field.detail", fallback: "Detail"),
                             text: Binding(
                                 get: { item.detail },
                                 set: { viewModel.updateEquipmentItem(item.id, detail: $0) }
@@ -2435,21 +2528,21 @@ struct VideoPublicConfigEditorCard: View {
                             colorScheme: colorScheme
                         )
                         EditableImageField(
-                            title: "Equipment-Bild",
+                            title: AppLocalized.text("videohub.editor.equipment_image_title", fallback: "Equipment image"),
                             imageURL: Binding(
                                 get: { item.imageURLString ?? "" },
                                 set: { viewModel.updateEquipmentItem(item.id, imageURLString: $0) }
                             ),
                             colorScheme: colorScheme,
                             isUploading: activeUploadTarget == .equipment(item.id),
-                            uploadStatusText: "Equipment-Bild wird uebernommen.",
+                            uploadStatusText: AppLocalized.text("videohub.editor.equipment_upload_status", fallback: "Applying equipment image…"),
                             onPickImage: { pendingUploadTarget = .equipment(item.id) },
                             onRemoveImage: { removeEditableImage(for: .equipment(item.id)) }
                         )
                         Button(role: .destructive) {
                             viewModel.removeEquipmentItem(item.id)
                         } label: {
-                            Label("Eintrag entfernen", systemImage: "trash")
+                            Label(AppLocalized.text("videohub.editor.remove_entry", fallback: "Remove entry"), systemImage: "trash")
                                 .font(.caption.weight(.semibold))
                         }
                     }
@@ -2461,7 +2554,7 @@ struct VideoPublicConfigEditorCard: View {
                 Button {
                     viewModel.addEquipmentItem()
                 } label: {
-                    Label("Equipment hinzufuegen", systemImage: "plus.circle.fill")
+                    Label(AppLocalized.text("videohub.editor.add_equipment", fallback: "Add equipment"), systemImage: "plus.circle.fill")
                         .font(.subheadline.weight(.semibold))
                 }
                 .buttonStyle(.bordered)
@@ -2469,14 +2562,14 @@ struct VideoPublicConfigEditorCard: View {
             }
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-                Text("Featured Collabs")
+                Text(AppLocalized.text("videohub.editor.collabs_heading", fallback: "Featured collabs"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
                 ForEach(Array(viewModel.publicConfig.collaborationItems.enumerated()), id: \.element.id) { _, item in
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         NicmaUploadField(
-                            title: "Name",
+                            title: AppLocalized.text("videohub.field.name", fallback: "Name"),
                             text: Binding(
                                 get: { item.name },
                                 set: { viewModel.updateCollaborationItem(item.id, name: $0) }
@@ -2484,7 +2577,7 @@ struct VideoPublicConfigEditorCard: View {
                             colorScheme: colorScheme
                         )
                         NicmaUploadField(
-                            title: "Rolle",
+                            title: AppLocalized.text("videohub.field.role", fallback: "Role"),
                             text: Binding(
                                 get: { item.role },
                                 set: { viewModel.updateCollaborationItem(item.id, role: $0) }
@@ -2492,7 +2585,7 @@ struct VideoPublicConfigEditorCard: View {
                             colorScheme: colorScheme
                         )
                         NicmaUploadField(
-                            title: "Highlight",
+                            title: AppLocalized.text("videohub.field.highlight", fallback: "Highlight"),
                             text: Binding(
                                 get: { item.highlight },
                                 set: { viewModel.updateCollaborationItem(item.id, highlight: $0) }
@@ -2500,7 +2593,7 @@ struct VideoPublicConfigEditorCard: View {
                             colorScheme: colorScheme
                         )
                         NicmaUploadField(
-                            title: "Vibe",
+                            title: AppLocalized.text("videohub.field.vibe", fallback: "Vibe"),
                             text: Binding(
                                 get: { item.vibe },
                                 set: { viewModel.updateCollaborationItem(item.id, vibe: $0) }
@@ -2508,19 +2601,19 @@ struct VideoPublicConfigEditorCard: View {
                             colorScheme: colorScheme
                         )
                         EditableImageField(
-                            title: "Collab-Bild",
+                            title: AppLocalized.text("videohub.editor.collab_image_title", fallback: "Collab image"),
                             imageURL: Binding(
                                 get: { item.imageURLString ?? "" },
                                 set: { viewModel.updateCollaborationItem(item.id, imageURLString: $0) }
                             ),
                             colorScheme: colorScheme,
                             isUploading: activeUploadTarget == .collaboration(item.id),
-                            uploadStatusText: "Collab-Bild wird uebernommen.",
+                            uploadStatusText: AppLocalized.text("videohub.editor.collab_upload_status", fallback: "Applying collab image…"),
                             onPickImage: { pendingUploadTarget = .collaboration(item.id) },
                             onRemoveImage: { removeEditableImage(for: .collaboration(item.id)) }
                         )
                         NicmaUploadField(
-                            title: "Spotify Artist ID",
+                            title: AppLocalized.text("videohub.field.spotify_artist_id", fallback: "Spotify artist ID"),
                             text: Binding(
                                 get: { item.spotifyArtistID ?? "" },
                                 set: { viewModel.updateCollaborationItem(item.id, spotifyArtistID: $0) }
@@ -2529,7 +2622,7 @@ struct VideoPublicConfigEditorCard: View {
                             autocapitalization: .never
                         )
                         NicmaUploadField(
-                            title: "Instagram URL",
+                            title: AppLocalized.text("videohub.field.instagram_url", fallback: "Instagram URL"),
                             text: Binding(
                                 get: { item.instagramURLString ?? "" },
                                 set: { viewModel.updateCollaborationItem(item.id, instagramURLString: $0) }
@@ -2539,7 +2632,7 @@ struct VideoPublicConfigEditorCard: View {
                             autocapitalization: .never
                         )
                         NicmaUploadField(
-                            title: "YouTube URL",
+                            title: AppLocalized.text("videohub.field.youtube_url", fallback: "YouTube URL"),
                             text: Binding(
                                 get: { item.youtubeURLString ?? "" },
                                 set: { viewModel.updateCollaborationItem(item.id, youtubeURLString: $0) }
@@ -2551,7 +2644,7 @@ struct VideoPublicConfigEditorCard: View {
                         Button(role: .destructive) {
                             viewModel.removeCollaborationItem(item.id)
                         } label: {
-                            Label("Collab entfernen", systemImage: "trash")
+                            Label(AppLocalized.text("videohub.editor.remove_collab", fallback: "Remove collab"), systemImage: "trash")
                                 .font(.caption.weight(.semibold))
                         }
                     }
@@ -2563,7 +2656,7 @@ struct VideoPublicConfigEditorCard: View {
                 Button {
                     viewModel.addCollaborationItem()
                 } label: {
-                    Label("Collab hinzufuegen", systemImage: "plus.circle.fill")
+                    Label(AppLocalized.text("videohub.editor.add_collab", fallback: "Add collab"), systemImage: "plus.circle.fill")
                         .font(.subheadline.weight(.semibold))
                 }
                 .buttonStyle(.bordered)
@@ -2581,7 +2674,7 @@ struct VideoPublicConfigEditorCard: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 } else {
-                    Label("Oeffentliche Daten speichern", systemImage: "square.and.arrow.down.fill")
+                    Label(AppLocalized.text("videohub.editor.save_public", fallback: "Save public data"), systemImage: "square.and.arrow.down.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -2637,13 +2730,19 @@ struct VideoPublicConfigEditorCard: View {
                     case .collaboration(let itemId):
                         viewModel.updateCollaborationItem(itemId, imageURLString: url)
                     }
-                    viewModel.toastMessage = "Bild hochgeladen und uebernommen."
+                    viewModel.toastMessage = AppLocalized.text("videohub.toast.image_saved", fallback: "Image uploaded and applied.")
                     viewModel.toastStyle = .success
                     viewModel.showToast = true
                 }
             } catch {
                 await MainActor.run {
-                    viewModel.toastMessage = "Bild konnte nicht hochgeladen werden: \(error.localizedDescription)"
+                    viewModel.toastMessage = String(
+                        format: AppLocalized.text(
+                            "videohub.toast.image_upload_failed_format",
+                            fallback: "Could not upload image: %@"
+                        ),
+                        error.localizedDescription
+                    )
                     viewModel.toastStyle = .error
                     viewModel.showToast = true
                 }
@@ -2677,13 +2776,19 @@ struct VideoPublicConfigEditorCard: View {
             do {
                 try await editableImageUploadService.deleteImage(at: previousURL)
                 await MainActor.run {
-                    viewModel.toastMessage = "Bild entfernt."
+                    viewModel.toastMessage = AppLocalized.text("videohub.toast.image_removed", fallback: "Image removed.")
                     viewModel.toastStyle = .success
                     viewModel.showToast = true
                 }
             } catch {
                 await MainActor.run {
-                    viewModel.toastMessage = "Bild wurde entfernt. Alter Upload konnte nicht geloescht werden: \(error.localizedDescription)"
+                    viewModel.toastMessage = String(
+                        format: AppLocalized.text(
+                            "videohub.toast.image_removed_delete_failed_format",
+                            fallback: "Image removed. Old upload could not be deleted: %@"
+                        ),
+                        error.localizedDescription
+                    )
                     viewModel.toastStyle = .error
                     viewModel.showToast = true
                 }
@@ -2910,13 +3015,13 @@ struct SkydownOriginalVideoDestinationView: View {
                                 .foregroundColor(.white)
                                 .lineLimit(2)
 
-                            Text("Direkt in der In-App-Ansicht. Schliessen bringt dich direkt zurueck.")
+                            Text(AppLocalized.text("videohub.original.inline_hint", fallback: "In-app playback. Close returns you right away."))
                                 .font(.subheadline)
                                 .foregroundColor(.white.opacity(0.76))
 
                             HStack(spacing: SkydownLayout.stackSpacingPill) {
                                 SkydownViewerToolbarButton(
-                                    title: "Extern",
+                                    title: AppLocalized.text("videohub.viewer.external", fallback: "Open externally"),
                                     systemImage: "arrow.up.forward.square",
                                     isPrimary: false
                                 ) {
@@ -2926,7 +3031,7 @@ struct SkydownOriginalVideoDestinationView: View {
                                 }
 
                                 SkydownViewerToolbarButton(
-                                    title: "Schliessen",
+                                    title: AppLocalized.text("common.close", fallback: "Close"),
                                     systemImage: "xmark",
                                     isPrimary: true
                                 ) {
@@ -2945,7 +3050,9 @@ struct SkydownOriginalVideoDestinationView: View {
                             VStack(spacing: SkydownLayout.stackSpacingPill) {
                                 HStack(spacing: SkydownLayout.stackSpacingPill) {
                                     SkydownViewerToolbarButton(
-                                        title: isPlaying ? "Pause" : "Play",
+                                        title: isPlaying
+                                            ? AppLocalized.text("videohub.viewer.pause", fallback: "Pause")
+                                            : AppLocalized.text("videohub.viewer.play", fallback: "Play"),
                                         systemImage: isPlaying ? "pause.fill" : "play.fill",
                                         isPrimary: false
                                     ) {
@@ -2958,7 +3065,7 @@ struct SkydownOriginalVideoDestinationView: View {
                                     }
 
                                     SkydownViewerToolbarButton(
-                                        title: "Extern",
+                                        title: AppLocalized.text("videohub.viewer.external", fallback: "Open externally"),
                                         systemImage: "arrow.up.forward.square",
                                         isPrimary: false
                                     ) {
@@ -2969,7 +3076,7 @@ struct SkydownOriginalVideoDestinationView: View {
                                 }
 
                                 SkydownViewerToolbarButton(
-                                    title: "Zurueck zur App",
+                                    title: AppLocalized.text("videohub.viewer.back_to_app", fallback: "Back to app"),
                                     systemImage: "xmark",
                                     isPrimary: true
                                 ) {
@@ -2998,16 +3105,19 @@ struct SkydownOriginalVideoDestinationView: View {
                 )
             } else {
                 NavigationStack {
-                    ContentUnavailableView(
-                        "Original aktuell nicht verfuegbar",
-                        systemImage: "play.rectangle",
-                        description: Text("Das Original laesst sich gerade nicht laden. Bitte versuche es in einem Moment erneut.")
-                    )
-                    .navigationTitle(title.isEmpty ? "Original" : title)
+                    ContentUnavailableView {
+                        Label(
+                            AppLocalized.text("videohub.original.unavailable_title", fallback: "Original unavailable"),
+                            systemImage: "play.rectangle"
+                        )
+                    } description: {
+                        Text(AppLocalized.text("videohub.original.unavailable_message", fallback: "The original could not be loaded. Please try again in a moment."))
+                    }
+                    .navigationTitle(title.isEmpty ? AppLocalized.text("videohub.original_title", fallback: "Original") : title)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
-                            Button("Schliessen") {
+                            Button(AppLocalized.text("common.close", fallback: "Close")) {
                                 dismiss()
                             }
                         }
@@ -3048,7 +3158,7 @@ struct SkydownVideoFullscreenCloseButton: View {
         .buttonStyle(.plain)
         .contentShape(Circle())
         .skydownTactileAction()
-        .accessibilityLabel("Video schliessen")
+        .accessibilityLabel(AppLocalized.text("videohub.a11y.close_video", fallback: "Close video"))
         .accessibilityIdentifier("video.fullscreen.close")
     }
 }
@@ -3070,7 +3180,7 @@ struct SkydownVideoFullscreenControlBar: View {
             if showsClipNavigation {
                 SkydownVideoFullscreenIconButton(
                     systemImage: "backward.end.fill",
-                    accessibilityLabel: "Vorheriger Clip",
+                    accessibilityLabel: AppLocalized.text("videohub.a11y.previous_clip", fallback: "Previous clip"),
                     isEnabled: canGoToPreviousClip,
                     action: onPreviousClip
                 )
@@ -3078,27 +3188,29 @@ struct SkydownVideoFullscreenControlBar: View {
 
             SkydownVideoFullscreenIconButton(
                 systemImage: "gobackward.10",
-                accessibilityLabel: "10 Sekunden zurueck",
+                accessibilityLabel: AppLocalized.text("videohub.a11y.rewind_10", fallback: "Rewind 10 seconds"),
                 action: onRewind
             )
 
             SkydownVideoFullscreenIconButton(
                 systemImage: isPlaying ? "pause.fill" : "play.fill",
-                accessibilityLabel: isPlaying ? "Video pausieren" : "Video abspielen",
+                accessibilityLabel: isPlaying
+                    ? AppLocalized.text("videohub.a11y.pause_video", fallback: "Pause video")
+                    : AppLocalized.text("videohub.a11y.play_video", fallback: "Play video"),
                 isProminent: true,
                 action: onPlayPause
             )
 
             SkydownVideoFullscreenIconButton(
                 systemImage: "goforward.10",
-                accessibilityLabel: "10 Sekunden vor",
+                accessibilityLabel: AppLocalized.text("videohub.a11y.forward_10", fallback: "Forward 10 seconds"),
                 action: onForward
             )
 
             if showsClipNavigation {
                 SkydownVideoFullscreenIconButton(
                     systemImage: "forward.end.fill",
-                    accessibilityLabel: "Naechster Clip",
+                    accessibilityLabel: AppLocalized.text("videohub.a11y.next_clip", fallback: "Next clip"),
                     isEnabled: canGoToNextClip,
                     action: onNextClip
                 )
@@ -3111,7 +3223,7 @@ struct SkydownVideoFullscreenControlBar: View {
 
             SkydownVideoFullscreenIconButton(
                 systemImage: "xmark",
-                accessibilityLabel: "Video schliessen",
+                accessibilityLabel: AppLocalized.text("videohub.a11y.close_video", fallback: "Close video"),
                 isProminent: true,
                 action: onClose
             )
@@ -3220,18 +3332,18 @@ struct SkydownManagedBrowserView: View {
                 .ignoresSafeArea(edges: .top)
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-                    Text(title.isEmpty ? "Original" : title)
+                    Text(title.isEmpty ? AppLocalized.text("videohub.original_title", fallback: "Original") : title)
                         .font(.headline.weight(.bold))
                         .foregroundColor(.white)
                         .lineLimit(2)
 
-                    Text("Web-Ansicht mit sichtbaren Aktionen fuer Zurueck, Weiter, Extern und Schliessen.")
+                    Text(AppLocalized.text("videohub.viewer.web_hint", fallback: "Web view with visible actions for back, forward, external, and close."))
                         .font(.subheadline)
                         .foregroundColor(.white.opacity(0.76))
 
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SkydownViewerToolbarButton(
-                            title: "Zurueck",
+                            title: AppLocalized.text("videohub.viewer.back", fallback: "Back"),
                             systemImage: "chevron.left",
                             isPrimary: false,
                             isEnabled: browserState.canGoBack
@@ -3240,7 +3352,7 @@ struct SkydownManagedBrowserView: View {
                         }
 
                         SkydownViewerToolbarButton(
-                            title: "Weiter",
+                            title: AppLocalized.text("videohub.viewer.forward", fallback: "Forward"),
                             systemImage: "chevron.right",
                             isPrimary: false,
                             isEnabled: browserState.canGoForward
@@ -3251,7 +3363,7 @@ struct SkydownManagedBrowserView: View {
 
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SkydownViewerToolbarButton(
-                            title: "Extern",
+                            title: AppLocalized.text("videohub.viewer.external", fallback: "Open externally"),
                             systemImage: "arrow.up.forward.square",
                             isPrimary: false
                         ) {
@@ -3259,7 +3371,7 @@ struct SkydownManagedBrowserView: View {
                         }
 
                         SkydownViewerToolbarButton(
-                            title: "Schliessen",
+                            title: AppLocalized.text("common.close", fallback: "Close"),
                             systemImage: "xmark",
                             isPrimary: true
                         ) {
@@ -3278,7 +3390,7 @@ struct SkydownManagedBrowserView: View {
 
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SkydownViewerToolbarButton(
-                            title: "Extern",
+                            title: AppLocalized.text("videohub.viewer.external", fallback: "Open externally"),
                             systemImage: "arrow.up.forward.square",
                             isPrimary: false
                         ) {
@@ -3286,7 +3398,7 @@ struct SkydownManagedBrowserView: View {
                         }
 
                         SkydownViewerToolbarButton(
-                            title: "Zurueck zur App",
+                            title: AppLocalized.text("videohub.viewer.back_to_app", fallback: "Back to app"),
                             systemImage: "xmark",
                             isPrimary: true
                         ) {

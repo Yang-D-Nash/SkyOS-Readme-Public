@@ -323,14 +323,14 @@ struct FeaturedHomeVideo: Identifiable {
 
     var originalDestinationDescription: String {
         if openURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Kein Original-Link verfuegbar."
+            return AppLocalized.text("videohub.destination.no_original", fallback: "No original link available.")
         }
 
         if !nativePlaybackURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Dieser Clip startet direkt in der In-App-Ansicht."
+            return AppLocalized.text("videohub.destination.inline_player", fallback: "This clip starts directly in the in-app viewer.")
         }
 
-        return "Dieser Link startet in einer In-App-Webansicht mit Zurueck und Schliessen."
+        return AppLocalized.text("videohub.destination.web_view", fallback: "This link opens in an in-app web view with back and close.")
     }
 
     var openURLString: String {

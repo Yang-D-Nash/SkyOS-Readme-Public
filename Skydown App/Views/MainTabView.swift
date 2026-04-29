@@ -725,10 +725,14 @@ private struct ZweizweiTabView: View {
                             LazyVStack(alignment: .leading, spacing: sectionSpacing) {
                                 BrandHeroSurface(
                                     colorScheme: colorScheme,
-                                    eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow ?? "SkyOS",
-                                    title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle ?? "Music",
-                                    subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle ?? "Ein Hub · drei Wege.",
-                                    detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail ?? "Katalog, Releases, Studio.",
+                                    eyebrow: screenHeaderSettingsStore.settings.resolvedMusicHubEyebrow
+                                        ?? AppLocalized.text("music.hub.hero.eyebrow.fallback", fallback: "SkyOS"),
+                                    title: screenHeaderSettingsStore.settings.resolvedMusicHubTitle
+                                        ?? AppLocalized.text("music.hub.hero.title.fallback", fallback: "Music"),
+                                    subtitle: screenHeaderSettingsStore.settings.resolvedMusicHubSubtitle
+                                        ?? AppLocalized.text("music.hub.hero.subtitle.fallback", fallback: "One hub · three paths."),
+                                    detail: screenHeaderSettingsStore.settings.resolvedMusicHubDetail
+                                        ?? AppLocalized.text("music.hub.hero.detail.fallback", fallback: "Catalog, releases, studio."),
                                     backgroundImageURL: screenHeaderSettingsStore.settings.resolvedMusicHubImageURL,
                                     accent: AppColors.spotify(for: colorScheme),
                                     secondaryAccent: AppColors.accent(for: colorScheme),
@@ -744,7 +748,7 @@ private struct ZweizweiTabView: View {
                                 ) {
                                     HStack(spacing: SkydownLayout.stackSpacingPill) {
                                         BrandHeroPill(
-                                            text: "Katalog",
+                                            text: AppLocalized.text("music.hub.pill.catalog", fallback: "Catalog"),
                                             colorScheme: colorScheme,
                                             tint: AppColors.spotify(for: colorScheme),
                                             onTap: {
@@ -756,7 +760,7 @@ private struct ZweizweiTabView: View {
                                             }
                                         )
                                         BrandHeroPill(
-                                            text: "Studio",
+                                            text: AppLocalized.text("music.hub.pill.studio", fallback: "Studio"),
                                             colorScheme: colorScheme,
                                             tint: AppColors.accentMystic(for: colorScheme),
                                             onTap: {
@@ -771,24 +775,24 @@ private struct ZweizweiTabView: View {
                                 if layout.prefersThreeColumn && !isShortHubHeight {
                                     HStack(spacing: SkydownLayout.stackSpacingCompact) {
                                         MusicHubStatusCard(
-                                            title: "Katalog",
-                                            value: "Artists · Tracks · Pages",
+                                            title: AppLocalized.text("music.hub.status.catalog_title", fallback: "Catalog"),
+                                            value: AppLocalized.text("music.hub.status.catalog_value", fallback: "Artists · tracks · pages"),
                                             accent: AppColors.spotify(for: colorScheme)
                                         )
                                         MusicHubStatusCard(
-                                            title: "Studio",
-                                            value: "Record · Mix · Master",
+                                            title: AppLocalized.text("music.hub.status.studio_title", fallback: "Studio"),
+                                            value: AppLocalized.text("music.hub.status.studio_value", fallback: "Record · mix · master"),
                                             accent: AppColors.accentMystic(for: colorScheme)
                                         )
                                     }
                                 }
 
                                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                                    Text("Direkter Einstieg")
+                                    Text(AppLocalized.text("music.hub.section.direct_entry", fallback: "Direct entry"))
                                         .font(.caption.weight(.semibold))
                                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                                     compactMusicHubAction(
-                                        title: "Katalog",
+                                        title: AppLocalized.text("music.hub.pill.catalog", fallback: "Catalog"),
                                         systemImage: "waveform.circle.fill",
                                         accent: AppColors.spotify(for: colorScheme),
                                         accessibilityID: "music.hub.open_catalog"
@@ -801,7 +805,7 @@ private struct ZweizweiTabView: View {
                                     }
                                     HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                         compactMusicHubAction(
-                                            title: "Studio",
+                                            title: AppLocalized.text("music.hub.pill.studio", fallback: "Studio"),
                                             systemImage: "sparkles",
                                             accent: AppColors.accentMystic(for: colorScheme),
                                             accessibilityID: "music.hub.open_studio"
@@ -812,7 +816,7 @@ private struct ZweizweiTabView: View {
                                         }
                                     }
                                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
-                                        Text("Artist Links")
+                                        Text(AppLocalized.text("music.hub.section.artist_links", fallback: "Artist links"))
                                             .font(.caption2.weight(.semibold))
                                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                                         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
@@ -842,7 +846,7 @@ private struct ZweizweiTabView: View {
                         }
                         .ignoresSafeArea()
                     )
-                    .navigationTitle("Music")
+                    .navigationTitle(AppLocalized.text("nav.title.music", fallback: "Music"))
                     .navigationBarTitleDisplayMode(.inline)
                     .skydownNavigationChrome(colorScheme: colorScheme)
                     .toolbar {
@@ -989,7 +993,7 @@ private struct ZweizweiTabView: View {
                 Spacer(minLength: 6)
 
                 if isActive {
-                    Text("Aktiv")
+                    Text(AppLocalized.text("music.hub.link.active", fallback: "Active"))
                         .font(.caption2.weight(.bold))
                         .foregroundColor(accent.opacity(0.96))
                         .padding(.horizontal, 7)
@@ -1421,7 +1425,7 @@ private struct AIHubView: View {
                 message: membershipToastMessage,
                 style: membershipToastStyle
             )
-            .navigationTitle("AI")
+            .navigationTitle(AppLocalized.text("nav.title.ai", fallback: "AI"))
             .navigationBarTitleDisplayMode(.inline)
             .skydownNavigationChrome(colorScheme: colorScheme)
             .task(id: membershipObservationKey) {
@@ -1695,8 +1699,8 @@ private struct AIHubLoginCard: View {
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
                 AIHubBadge(text: AppLocalized.text("ai.hub.mode.core_ai", fallback: "Core AI"), color: AppColors.accent(for: colorScheme))
-                AIHubBadge(text: "Agent", color: AppColors.accentMystic(for: colorScheme))
-                AIHubBadge(text: "Visuals", color: AppColors.accentHighlight(for: colorScheme))
+                AIHubBadge(text: AppLocalized.text("ai.hub.badge.agent", fallback: "Agent"), color: AppColors.accentMystic(for: colorScheme))
+                AIHubBadge(text: AppLocalized.text("ai.hub.badge.visuals", fallback: "Visuals"), color: AppColors.accentHighlight(for: colorScheme))
             }
 
             Button(action: onOpenLogin) {
@@ -1725,7 +1729,7 @@ private struct AIHubRestrictedCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
-            Text("KI derzeit gesperrt")
+            Text(AppLocalized.text("ai.hub.restricted.title", fallback: "AI is currently disabled"))
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
@@ -1735,12 +1739,12 @@ private struct AIHubRestrictedCard: View {
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
                 AIHubBadge(text: AppLocalized.text("ai.hub.mode.core_ai", fallback: "Core AI"), color: AppColors.accent(for: colorScheme))
-                AIHubBadge(text: "Agent", color: AppColors.accentHighlight(for: colorScheme))
-                AIHubBadge(text: "Visuals", color: AppColors.accentMystic(for: colorScheme))
+                AIHubBadge(text: AppLocalized.text("ai.hub.badge.agent", fallback: "Agent"), color: AppColors.accentHighlight(for: colorScheme))
+                AIHubBadge(text: AppLocalized.text("ai.hub.badge.visuals", fallback: "Visuals"), color: AppColors.accentMystic(for: colorScheme))
             }
 
             Button(action: onOpenSettings) {
-                Text("Einstellungen")
+                Text(AppLocalized.text("ai.hub.open_settings", fallback: "Settings"))
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -1884,24 +1888,39 @@ private struct AIWorkflowWorkspaceCard: View {
                 .font(.title2.bold())
                 .foregroundColor(AppColors.text(for: colorScheme))
 
-            Text("Verbinde Agent, Kontext und Aktionen so, dass der naechste Schritt klar bleibt.")
+            Text(AppLocalized.text("ai.hub.workflow.connect_description", fallback: "Connect agent, context, and actions so the next step stays clear."))
                 .font(.body)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                AIWorkflowStepRow(index: "01", title: "Briefing", detail: "Der Agent macht aus einer Idee einen klaren Plan.", colorScheme: colorScheme)
-                AIWorkflowStepRow(index: "02", title: "Aktion", detail: "Optional wird dein Automationsservice mit Nutzerkontext gestartet.", colorScheme: colorScheme)
-                AIWorkflowStepRow(index: "03", title: "Rueckweg", detail: "Du bleibst in der App und kannst direkt weiterarbeiten.", colorScheme: colorScheme)
+                AIWorkflowStepRow(
+                    index: "01",
+                    title: AppLocalized.text("ai.hub.workflow.step1.title", fallback: "Briefing"),
+                    detail: AppLocalized.text("ai.hub.workflow.step1.detail", fallback: "The agent turns an idea into a clear plan."),
+                    colorScheme: colorScheme
+                )
+                AIWorkflowStepRow(
+                    index: "02",
+                    title: AppLocalized.text("ai.hub.workflow.step2.title", fallback: "Action"),
+                    detail: AppLocalized.text("ai.hub.workflow.step2.detail", fallback: "Optionally your automation service starts with user context."),
+                    colorScheme: colorScheme
+                )
+                AIWorkflowStepRow(
+                    index: "03",
+                    title: AppLocalized.text("ai.hub.workflow.step3.title", fallback: "Return"),
+                    detail: AppLocalized.text("ai.hub.workflow.step3.detail", fallback: "You stay in the app and can keep working immediately."),
+                    colorScheme: colorScheme
+                )
             }
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
-                AIHubBadge(text: "n8n", color: AppColors.accentHighlight(for: colorScheme))
-                AIHubBadge(text: "Agent", color: AppColors.accent(for: colorScheme))
-                AIHubBadge(text: "Kontext", color: AppColors.accentMystic(for: colorScheme))
+                AIHubBadge(text: AppLocalized.text("ai.hub.workflow.badge.n8n", fallback: "n8n"), color: AppColors.accentHighlight(for: colorScheme))
+                AIHubBadge(text: AppLocalized.text("ai.hub.badge.agent", fallback: "Agent"), color: AppColors.accent(for: colorScheme))
+                AIHubBadge(text: AppLocalized.text("ai.hub.workflow.badge.context", fallback: "Context"), color: AppColors.accentMystic(for: colorScheme))
             }
 
             Button(action: onOpenSettings) {
-                Text("Automation einrichten")
+                Text(AppLocalized.text("ai.hub.workflow.setup", fallback: "Set up automation"))
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -1910,7 +1929,7 @@ private struct AIWorkflowWorkspaceCard: View {
             .tint(AppColors.accentHighlight(for: colorScheme))
 
             Button(action: onClose) {
-                Text("Zur AI zurueck")
+                Text(AppLocalized.text("ai.hub.workflow.back_to_ai", fallback: "Back to AI"))
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)

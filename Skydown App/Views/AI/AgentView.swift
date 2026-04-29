@@ -111,7 +111,6 @@ struct AgentView: View {
                     let urls = inputAttachments.compactMap { URL(string: $0.id) }
                     viewModel.sendDraft(attachmentURLs: urls)
                     inputAttachments.removeAll()
-                    showingPromptComposer = false
                 }
             )
             .presentationDetents([.large])
@@ -119,7 +118,7 @@ struct AgentView: View {
         }
         .sheet(isPresented: $showingConversationSessions) {
             AIConversationSessionsSheet(
-                title: "Agent Chats",
+                title: AppLocalized.text("agent.chats.sheet.title", fallback: "Agent Chats"),
                 accent: AppColors.accentMystic(for: colorScheme),
                 colorScheme: colorScheme,
                 sessions: viewModel.sessions,
@@ -320,15 +319,15 @@ struct AgentView: View {
             .presentationDragIndicator(.visible)
         }
         .confirmationDialog(
-            "Aktiven Chat loeschen?",
+            AppLocalized.text("agent.delete_chat.title", fallback: "Delete active chat?"),
             isPresented: $showingDeleteConversationDialog,
             titleVisibility: .visible
         ) {
-            Button("Loeschen", role: .destructive) {
+            Button(AppLocalized.text("agent.delete_chat.confirm", fallback: "Delete"), role: .destructive) {
                 viewModel.deleteActiveConversation()
                 showingConversationSessions = false
             }
-            Button("Abbrechen", role: .cancel) { }
+            Button(AppLocalized.text("common.cancel", fallback: "Cancel"), role: .cancel) { }
         }
         .task(id: sessionObservationKey) {
             viewModel.configureUser(user: authManager.userSession)
@@ -392,7 +391,11 @@ struct AgentView: View {
     }
 
     private var composerReservedBottomSpace: CGFloat {
-        featureFlags.isAIEnabled ? 86 : 0
+        guard featureFlags.isAIEnabled else { return 0 }
+        if viewModel.messages.isEmpty {
+            return 86
+        }
+        return 160
     }
 
     private var content: some View {
@@ -422,7 +425,7 @@ struct AgentView: View {
         return ZStack(alignment: .bottom) {
             AgentAccessibilityMarker(
                 identifier: "agent.screen.root",
-                label: "Agent screen"
+                label: AppLocalized.text("agent.a11y.screen", fallback: "Agent screen")
             )
 
             if !viewModel.lastAgentRunId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -547,12 +550,26 @@ struct AgentView: View {
             }
 
             if featureFlags.isAIEnabled {
-                HStack {
-                    Spacer(minLength: 0)
-                    AgentPromptFab(
-                        isWorking: viewModel.phase.shouldBlockComposerChrome,
-                        onOpen: { showingPromptComposer = true }
-                    )
+                VStack(alignment: .trailing, spacing: 10) {
+                    if !viewModel.messages.isEmpty {
+                        AgentThreadFollowUpBar(
+                            colorScheme: colorScheme,
+                            draft: $viewModel.draft,
+                            isWorking: viewModel.phase.shouldBlockComposerChrome,
+                            onSend: {
+                                viewModel.sendDraft(attachmentURLs: [])
+                            },
+                            onOpenFullComposer: { showingPromptComposer = true },
+                            canSend: { viewModel.isCurrentDraftSendable }
+                        )
+                    }
+                    HStack {
+                        Spacer(minLength: 0)
+                        AgentPromptFab(
+                            isWorking: viewModel.phase.shouldBlockComposerChrome,
+                            onOpen: { showingPromptComposer = true }
+                        )
+                    }
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                 .padding(.bottom, max(18, keyWindowSafeAreaBottomInset + 14))
@@ -615,7 +632,7 @@ private extension AgentView {
     var navigationContent: some View {
         NavigationStack {
             content
-                .navigationTitle("Agent")
+                .navigationTitle(AppLocalized.text("agent.nav.title", fallback: "Agent"))
                 .skydownNavigationChrome(colorScheme: colorScheme)
         }
     }
@@ -853,7 +870,12 @@ private struct AgentEmptyStateHeader: View {
                 .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.9))
 
             if !isCompact {
-                Text("Auch der Agent fuehrt den Verlauf pro Konto weiter, damit Briefings und To-dos anschlussfaehig bleiben.")
+                Text(
+                    AppLocalized.text(
+                        "agent.empty.hint.continuation",
+                        fallback: "The agent also continues the thread per account so briefings and to-dos stay connected."
+                    )
+                )
                     .font(.footnote.weight(.semibold))
                     .foregroundColor(AppColors.accentMystic(for: colorScheme).opacity(0.9))
 
@@ -898,16 +920,17 @@ private struct AgentTheaterPhaseStrip: View {
     }
 
     private var stageDetail: String {
-        phase.composerStatusLabel ?? "Bereit fuer deinen naechsten Intent."
+        phase.composerStatusLabel
+            ?? AppLocalized.text("agent.session.ready_for_intent", fallback: "Ready for your next intent.")
     }
 
     private var accent: Color {
-        switch stageTitle {
-        case "Intent":
+        switch phase {
+        case .idle, .awaitingConfirmation, .awaitingExternalAuth, .waitingReconnect:
             return AppColors.accent(for: colorScheme)
-        case "Execution":
+        case .planning, .webhookPending, .externalRunning, .executing, .toolPending, .ownerDiagnostic:
             return AppColors.accentMystic(for: colorScheme)
-        default:
+        case .externalFailed, .externalCompleted, .fallbackInternal, .completed, .partial, .blocked, .failed, .retryable, .cancelled:
             return AppColors.accentHighlight(for: colorScheme)
         }
     }
@@ -943,11 +966,11 @@ private extension AgentInteractionPhase {
     var theaterStageTitle: String {
         switch self {
         case .idle, .awaitingConfirmation, .awaitingExternalAuth, .waitingReconnect:
-            return "Intent"
+            return AppLocalized.text("agent.phase.intent", fallback: "Intent")
         case .planning, .webhookPending, .externalRunning, .executing, .toolPending, .ownerDiagnostic:
-            return "Execution"
+            return AppLocalized.text("agent.phase.execution", fallback: "Execution")
         case .externalFailed, .externalCompleted, .fallbackInternal, .completed, .partial, .blocked, .failed, .retryable, .cancelled:
-            return "Resolution"
+            return AppLocalized.text("agent.phase.resolution", fallback: "Resolution")
         }
     }
 }
@@ -1151,7 +1174,11 @@ private struct AgentTaskSectionCard: View {
                         .listRowInsets(EdgeInsets(top: 6, leading: 2, bottom: 6, trailing: 2))
                         .listRowBackground(Color.clear)
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button(task.status == .completed ? "Open" : "Complete") {
+                            Button(
+                                task.status == .completed
+                                    ? AppLocalized.text("tasks.action.open", fallback: "Open")
+                                    : AppLocalized.text("tasks.action.complete", fallback: "Complete")
+                            ) {
                                 Task { try? await onToggleStatus(task) }
                             }
                             .tint(.green)
@@ -1264,7 +1291,7 @@ private struct AgentNoteSectionCard: View {
                 )
             }
 
-            TextField("Search", text: $searchText)
+            TextField(AppLocalized.text("common.search", fallback: "Search"), text: $searchText)
                 .textInputAutocapitalization(.never)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
@@ -1462,7 +1489,9 @@ private struct AgentInputAttachment: Identifiable, Equatable {
 
     init(url: URL) {
         self.id = url.absoluteString
-        self.name = url.lastPathComponent.isEmpty ? "Datei" : url.lastPathComponent
+        self.name = url.lastPathComponent.isEmpty
+            ? AppLocalized.text("agent.attachments.default_name", fallback: "File")
+            : url.lastPathComponent
         self.kind = AgentInputAttachmentKind(url: url)
     }
 }
@@ -1488,7 +1517,11 @@ private struct AgentPromptFab: View {
                     }
                 }
 
-                Text(isWorking ? "Arbeitet" : "Agent")
+                Text(
+                    isWorking
+                        ? AppLocalized.text("agent.fab.state.working", fallback: "Working")
+                        : AppLocalized.text("agent.fab.state.idle", fallback: "Agent")
+                )
                     .font(.subheadline.weight(.black))
                     .lineLimit(1)
 
@@ -1510,7 +1543,7 @@ private struct AgentPromptFab: View {
         }
         .buttonStyle(.plain)
         .skydownTactileAction()
-        .accessibilityLabel("Prompt oeffnen")
+        .accessibilityLabel(AppLocalized.text("agent.a11y.open_prompt", fallback: "Open prompt"))
         .accessibilityIdentifier("agent.prompt.open")
     }
 }
@@ -1526,6 +1559,90 @@ private struct AgentAccessibilityMarker: View {
             .accessibilityLabel(label)
             .accessibilityIdentifier(identifier)
             .allowsHitTesting(false)
+    }
+}
+
+/// Eingabe direkt im Thread, ohne jedes Mal nur das Floating-Sheet nutzen zu muessen.
+private struct AgentThreadFollowUpBar: View {
+    let colorScheme: ColorScheme
+    @Binding var draft: String
+    let isWorking: Bool
+    let onSend: () -> Void
+    let onOpenFullComposer: () -> Void
+    let canSend: () -> Bool
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 10) {
+            TextField(
+                "",
+                text: $draft,
+                prompt: Text(
+                    AppLocalized.text(
+                        "agent.thread.followup.placeholder",
+                        fallback: "Im Thread weiterschreiben …"
+                    )
+                )
+                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.78)),
+                axis: .vertical
+            )
+            .lineLimit(1...4)
+            .font(.subheadline.weight(.medium))
+            .foregroundColor(AppColors.text(for: colorScheme))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(AppColors.cardBackground(for: colorScheme))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.2), lineWidth: 1)
+            )
+            .accessibilityIdentifier("agent.thread.followup.field")
+
+            Button(action: onOpenFullComposer) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.body.weight(.semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(AppColors.accentMystic(for: colorScheme))
+            .accessibilityLabel(
+                AppLocalized.text("agent.thread.open_full_composer.a11y", fallback: "Einstellungen und Anhaenge")
+            )
+
+            Button(action: onSend) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 30, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(
+                canSend() && !isWorking
+                    ? AppColors.accentMystic(for: colorScheme)
+                    : AppColors.secondaryText(for: colorScheme).opacity(0.35)
+            )
+            .disabled(!canSend() || isWorking)
+            .accessibilityLabel(AppLocalized.text("agent.thread.send.a11y", fallback: "Senden"))
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+}
+
+private struct SocialHandleTextField: View {
+    let colorScheme: ColorScheme
+    let accessibilityLabel: String
+    let placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        TextField(
+            "",
+            text: $text,
+            prompt: Text(placeholder)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.75))
+        )
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled()
+        .accessibilityLabel(accessibilityLabel)
     }
 }
 
@@ -1581,7 +1698,7 @@ private struct AgentPromptComposerSheet: View {
         else { return nil }
         return AppLocalized.text(
             "agent.workflow.social_required_hint",
-            fallback: "Workflow aktiv — mindestens eine Plattform waehlen, um zu senden."
+            fallback: "Workflow is on — select at least one platform to send."
         )
     }
 
@@ -1598,11 +1715,11 @@ private struct AgentPromptComposerSheet: View {
     @ViewBuilder
     private var agentSettingsDropdownRows: some View {
         HStack(alignment: .center) {
-            Text("Modus")
+            Text(AppLocalized.text("agent.settings.mode", fallback: "Mode"))
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
             Spacer(minLength: 12)
-            Picker("Modus", selection: $selectedMode) {
+            Picker(AppLocalized.text("agent.picker.mode", fallback: "Mode"), selection: $selectedMode) {
                 ForEach(AgentExecutionMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
@@ -1620,11 +1737,11 @@ private struct AgentPromptComposerSheet: View {
                 .padding(.leading, 8)
             if canUseGlobalOwnerAutomationFlow {
                 HStack(alignment: .center) {
-                    Text("Bereich")
+                    Text(AppLocalized.text("agent.settings.scope", fallback: "Scope"))
                         .font(.subheadline)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     Spacer(minLength: 12)
-                    Picker("Bereich", selection: $selectedAutomationScope) {
+                    Picker(AppLocalized.text("agent.picker.scope", fallback: "Scope"), selection: $selectedAutomationScope) {
                         ForEach(agentAutomationScopeChoices) { scope in
                             Text(scope.title).tag(scope)
                         }
@@ -1641,7 +1758,11 @@ private struct AgentPromptComposerSheet: View {
                     .padding(.leading, 8)
             }
             Toggle(isOn: $shouldTriggerAutomation) {
-                Text(canUseGlobalOwnerAutomationFlow ? "Workflow" : "Persoenlicher Workflow")
+                Text(
+                    canUseGlobalOwnerAutomationFlow
+                        ? AppLocalized.text("agent.automation.workflow", fallback: "Workflow")
+                        : AppLocalized.text("agent.automation.workflow.personal", fallback: "Personal workflow")
+                )
                     .font(.subheadline)
                     .foregroundColor(AppColors.text(for: colorScheme))
             }
@@ -1650,9 +1771,13 @@ private struct AgentPromptComposerSheet: View {
             .padding(.vertical, 6)
             .disabled(interactionPhase.shouldBlockComposerChrome)
             .accessibilityLabel(
-                canUseGlobalOwnerAutomationFlow ?
-                    (shouldTriggerAutomation ? "Workflow aktiv" : "Workflow starten") :
-                    (shouldTriggerAutomation ? "Persoenlicher Workflow aktiv" : "Persoenlichen Workflow starten")
+                canUseGlobalOwnerAutomationFlow
+                    ? (shouldTriggerAutomation
+                        ? AppLocalized.text("agent.a11y.workflow.on", fallback: "Workflow active")
+                        : AppLocalized.text("agent.a11y.workflow.off", fallback: "Start workflow"))
+                    : (shouldTriggerAutomation
+                        ? AppLocalized.text("agent.a11y.personal_workflow.on", fallback: "Personal workflow active")
+                        : AppLocalized.text("agent.a11y.personal_workflow.off", fallback: "Start personal workflow"))
             )
         }
     }
@@ -1662,13 +1787,13 @@ private struct AgentPromptComposerSheet: View {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
                 AgentAccessibilityMarker(
                     identifier: "agent.prompt.sheet",
-                    label: "Agent prompt composer"
+                    label: AppLocalized.text("agent.a11y.prompt_composer", fallback: "Agent prompt composer")
                 )
 
                 PremiumPromptSheetHeader(
                     iconSystemName: "wand.and.stars",
-                    title: "Agent",
-                    subtitle: "Dropdowns fuer Modus & Co. — ein Senden reicht.",
+                    title: AppLocalized.text("agent.sheet.composer_title", fallback: "Agent"),
+                    subtitle: AppLocalized.text("agent.sheet.composer_subtitle", fallback: "Mode and more in the dropdowns — one send is enough."),
                     accent: agentAccent,
                     colorScheme: colorScheme,
                     onDismiss: onDismiss
@@ -1688,8 +1813,8 @@ private struct AgentPromptComposerSheet: View {
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     PremiumPromptSectionHeader(
-                        title: "Einstellungen",
-                        footnote: "Alles in einer Zeile pro Option — schnell erfassbar.",
+                        title: AppLocalized.text("agent.section.settings", fallback: "Settings"),
+                        footnote: AppLocalized.text("agent.section.settings.footnote", fallback: "One line per option — easy to scan."),
                         accent: agentAccent,
                         colorScheme: colorScheme
                     )
@@ -1703,8 +1828,8 @@ private struct AgentPromptComposerSheet: View {
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     PremiumPromptSectionHeader(
-                        title: "Ideen",
-                        footnote: "Einstiegstexte anpassen und weiterschreiben.",
+                        title: AppLocalized.text("agent.section.ideas", fallback: "Ideas"),
+                        footnote: AppLocalized.text("agent.section.ideas.footnote", fallback: "Adjust starter text and keep writing."),
                         accent: agentAccent,
                         colorScheme: colorScheme
                     )
@@ -1721,77 +1846,97 @@ private struct AgentPromptComposerSheet: View {
                 if shouldShowSocialSetupCard {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                         PremiumPromptSectionHeader(
-                            title: "Social Setup",
-                            footnote: "Optional: aktiviere nur die Plattformen, die jetzt analysiert werden sollen.",
+                            title: AppLocalized.text("agent.section.social", fallback: "Social setup"),
+                            footnote: AppLocalized.text("agent.section.social.footnote", fallback: "Optional: only enable the platforms to analyse now."),
                             accent: agentAccent,
                             colorScheme: colorScheme
                         )
                         PremiumPromptCard(colorScheme: colorScheme) {
-                            Text("Nur aktivierte Plattformen werden abgefragt. Handles sind optional und beschleunigen die Analyse.")
-                                .font(.caption)
-                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            Text(
+                                AppLocalized.text(
+                                    "agent.social.handles.explainer",
+                                    fallback: "Only enabled channels are included. You can use @handles — @ is normalized on send."
+                                )
+                            )
+                            .font(.caption)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
                             Toggle(isOn: $socialInstagramEnabled) {
-                                Text("Instagram")
+                                Text(AppLocalized.text("agent.platform.instagram", fallback: "Instagram"))
                                     .font(.subheadline.weight(.semibold))
                             }
                             .tint(agentAccent)
                             if socialInstagramEnabled {
-                                TextField("Instagram Handle (optional)", text: $socialInstagramHandle)
-                                    .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled()
+                                SocialHandleTextField(
+                                    colorScheme: colorScheme,
+                                    accessibilityLabel: AppLocalized.text("agent.a11y.instagram_handle", fallback: "Instagram handle (optional)"),
+                                    placeholder: "@y.d.nash",
+                                    text: $socialInstagramHandle
+                                )
                             }
 
                             Divider()
 
                             Toggle(isOn: $socialTiktokEnabled) {
-                                Text("TikTok")
+                                Text(AppLocalized.text("agent.platform.tiktok", fallback: "TikTok"))
                                     .font(.subheadline.weight(.semibold))
                             }
                             .tint(agentAccent)
                             if socialTiktokEnabled {
-                                TextField("TikTok Handle (optional)", text: $socialTiktokHandle)
-                                    .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled()
+                                SocialHandleTextField(
+                                    colorScheme: colorScheme,
+                                    accessibilityLabel: AppLocalized.text("agent.a11y.tiktok_handle", fallback: "TikTok handle (optional)"),
+                                    placeholder: "@name",
+                                    text: $socialTiktokHandle
+                                )
                             }
 
                             Divider()
 
                             Toggle(isOn: $socialYoutubeEnabled) {
-                                Text("YouTube")
+                                Text(AppLocalized.text("agent.platform.youtube", fallback: "YouTube"))
                                     .font(.subheadline.weight(.semibold))
                             }
                             .tint(agentAccent)
                             if socialYoutubeEnabled {
-                                TextField("YouTube Handle oder Channel (optional)", text: $socialYoutubeHandle)
-                                    .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled()
+                                SocialHandleTextField(
+                                    colorScheme: colorScheme,
+                                    accessibilityLabel: AppLocalized.text("agent.a11y.youtube_handle", fallback: "YouTube handle or channel (optional)"),
+                                    placeholder: "@channel",
+                                    text: $socialYoutubeHandle
+                                )
                             }
 
                             Divider()
 
                             Toggle(isOn: $socialFacebookEnabled) {
-                                Text("Facebook / Meta")
+                                Text(AppLocalized.text("agent.platform.facebook_meta", fallback: "Facebook / Meta"))
                                     .font(.subheadline.weight(.semibold))
                             }
                             .tint(agentAccent)
                             if socialFacebookEnabled {
-                                TextField("Seite oder @Handle (optional)", text: $socialFacebookHandle)
-                                    .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled()
+                                SocialHandleTextField(
+                                    colorScheme: colorScheme,
+                                    accessibilityLabel: AppLocalized.text("agent.a11y.facebook_handle", fallback: "Page or @handle (optional)"),
+                                    placeholder: "@seite",
+                                    text: $socialFacebookHandle
+                                )
                             }
 
                             Divider()
 
                             Toggle(isOn: $socialSpotifyEnabled) {
-                                Text("Spotify")
+                                Text(AppLocalized.text("agent.platform.spotify", fallback: "Spotify"))
                                     .font(.subheadline.weight(.semibold))
                             }
                             .tint(agentAccent)
                             if socialSpotifyEnabled {
-                                TextField("Artist / Profil-Handle oder ID (optional)", text: $socialSpotifyHandle)
-                                    .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled()
+                                SocialHandleTextField(
+                                    colorScheme: colorScheme,
+                                    accessibilityLabel: AppLocalized.text("agent.a11y.spotify_handle", fallback: "Artist / profile handle or ID (optional)"),
+                                    placeholder: "@artist oder ID",
+                                    text: $socialSpotifyHandle
+                                )
                             }
                         }
                     }
@@ -1799,8 +1944,8 @@ private struct AgentPromptComposerSheet: View {
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     PremiumPromptSectionHeader(
-                        title: "Eingabe",
-                        footnote: "Aufgabe, Erwartung, ggf. Links. Ein fester Satz reicht oft.",
+                        title: AppLocalized.text("agent.section.input", fallback: "Input"),
+                        footnote: AppLocalized.text("agent.section.input.footnote", fallback: "Task, expectation, links. One clear sentence is often enough."),
                         accent: agentAccent,
                         colorScheme: colorScheme
                     )
@@ -1822,8 +1967,8 @@ private struct AgentPromptComposerSheet: View {
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     PremiumPromptSectionHeader(
-                        title: "Anhaenge",
-                        footnote: "Optional. Referenzen, PDFs, Bilder.",
+                        title: AppLocalized.text("agent.section.attachments", fallback: "Attachments"),
+                        footnote: AppLocalized.text("agent.section.attachments.footnote", fallback: "Optional. Reference files, PDFs, images."),
                         accent: agentAccent,
                         colorScheme: colorScheme
                     )
@@ -1833,7 +1978,7 @@ private struct AgentPromptComposerSheet: View {
                                 HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                     Image(systemName: "paperclip")
                                         .font(.subheadline.weight(.semibold))
-                                    Text("Hinzufuegen")
+                                    Text(AppLocalized.text("agent.attachments.add", fallback: "Add"))
                                         .font(.subheadline.weight(.semibold))
                                 }
                                 .foregroundColor(agentAccent)
@@ -1845,9 +1990,16 @@ private struct AgentPromptComposerSheet: View {
                                 )
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("Dateien hinzufuegen")
+                            .accessibilityLabel(AppLocalized.text("agent.a11y.add_files", fallback: "Add files"))
 
-                            Text(attachments.isEmpty ? "Keine Datei" : "\(attachments.count) Anhang")
+                            Text(
+                                attachments.isEmpty
+                                    ? AppLocalized.text("agent.attachments.none", fallback: "No file")
+                                    : String(
+                                        format: AppLocalized.text("agent.attachments.count", fallback: "%d file(s)"),
+                                        attachments.count
+                                    )
+                            )
                                 .font(.subheadline.weight(.medium))
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         }
@@ -1871,7 +2023,7 @@ private struct AgentPromptComposerSheet: View {
                                         .buttonStyle(.plain)
                                     }
                                 }
-                                Button("Alle entfernen", action: onClearAttachments)
+                                Button(AppLocalized.text("agent.attachments.remove_all", fallback: "Remove all"), action: onClearAttachments)
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundColor(AppColors.accent(for: colorScheme))
                             }
@@ -1882,14 +2034,14 @@ private struct AgentPromptComposerSheet: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     PremiumPromptPrimaryButton(
-                        title: "Senden",
+                        title: AppLocalized.text("agent.primary.send", fallback: "Send"),
                         systemImage: "arrow.up.circle.fill",
                         accent: agentAccent,
                         colorScheme: colorScheme,
                         isEnabled: canSendPrompt,
                         action: onSend
                     )
-                    .accessibilityLabel("Prompt senden")
+                    .accessibilityLabel(AppLocalized.text("agent.a11y.send_prompt", fallback: "Send prompt"))
                     .accessibilityIdentifier("agent.prompt.send")
 
                     if let hint = workflowSocialBlockedHint {
@@ -1926,12 +2078,12 @@ private struct AgentQuickPromptCard: View {
             if showsInlineHeading {
                 HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     AgentStatusChip(
-                        text: "Prompts",
+                        text: AppLocalized.text("agent.chip.prompts", fallback: "Prompts"),
                         accent: AppColors.accentMystic(for: colorScheme),
                         colorScheme: colorScheme
                     )
 
-                    Text("Schnelle Starts")
+                    Text(AppLocalized.text("agent.quick_starts", fallback: "Quick starts"))
                         .font(.subheadline.weight(.bold))
                         .foregroundColor(AppColors.text(for: colorScheme))
                 }
@@ -2034,7 +2186,7 @@ private struct AgentMessageBubble: View {
     let onOpenHomeProductivity: ((AgentHomeProductivityTarget) -> Void)?
     var onContinueInMode: (AgentExecutionMode) -> Void = { _ in }
     @State private var showingShareSheet = false
-    @State private var copyLabel = "Kopieren"
+    @State private var showCopiedFeedback = false
 
     private var isUser: Bool {
         message.role == .user
@@ -2082,7 +2234,11 @@ private struct AgentMessageBubble: View {
             if isUser { Spacer(minLength: 48) }
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                Text(isUser ? "Du" : "SkyOS Agent")
+                Text(
+                    isUser
+                        ? AppLocalized.text("agent.bubble.user", fallback: "You")
+                        : AppLocalized.text("agent.bubble.assistant", fallback: "SkyOS Agent")
+                )
                     .font(.caption.weight(.bold))
                     .foregroundColor(isUser ? .white.opacity(0.9) : AppColors.accentMystic(for: colorScheme))
 
@@ -2091,7 +2247,7 @@ private struct AgentMessageBubble: View {
                         ProgressView()
                             .tint(AppColors.accentMystic(for: colorScheme))
 
-                        Text("SkyOS Agent strukturiert gerade die Antwort...")
+                        Text(AppLocalized.text("agent.progress.structuring", fallback: "SkyOS Agent is structuring the answer…"))
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
@@ -2134,7 +2290,7 @@ private struct AgentMessageBubble: View {
                             Text(
                                 AppLocalized.text(
                                     "agent.continue_in_mode_subtitle",
-                                    fallback: "Bereit fuer den naechsten Schritt?"
+                                    fallback: "Ready to take this further?"
                                 )
                             )
                             .font(.caption)
@@ -2144,7 +2300,7 @@ private struct AgentMessageBubble: View {
                             Text(
                                 AppLocalized.text(
                                     "agent.continue_in_mode",
-                                    fallback: "Weiter in"
+                                    fallback: "Continue in"
                                 )
                             )
                             .font(.caption.weight(.semibold))
@@ -2177,25 +2333,35 @@ private struct AgentMessageBubble: View {
 
                     if !isUser {
                         HStack(spacing: SkydownLayout.stackSpacingPill) {
-                            Button(copyLabel) {
+                            Button {
                                 UIPasteboard.general.string = message.text
-                                copyLabel = "Kopiert"
+                                showCopiedFeedback = true
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
-                                    copyLabel = "Kopieren"
+                                    showCopiedFeedback = false
                                 }
+                            } label: {
+                                Text(
+                                    showCopiedFeedback
+                                        ? AppLocalized.text("agent.bubble.copied", fallback: "Copied")
+                                        : AppLocalized.text("agent.bubble.copy", fallback: "Copy")
+                                )
                             }
                             .font(.caption.weight(.semibold))
                             .foregroundColor(AppColors.accentMystic(for: colorScheme))
 
-                            Button("Teilen") {
+                            Button {
                                 showingShareSheet = true
+                            } label: {
+                                Text(AppLocalized.text("agent.bubble.share", fallback: "Share"))
                             }
                             .font(.caption.weight(.semibold))
                             .foregroundColor(AppColors.accent(for: colorScheme))
 
                             if let target = homeOpenTarget {
-                                Button("In Home öffnen") {
+                                Button {
                                     onOpenHomeProductivity?(target)
+                                } label: {
+                                    Text(AppLocalized.text("agent.bubble.open_in_home", fallback: "Open in Home"))
                                 }
                                 .font(.caption.weight(.semibold))
                                 .foregroundColor(AppColors.accentHighlight(for: colorScheme))
@@ -2357,7 +2523,9 @@ private struct AgentImageResultCard: View {
 
     var body: some View {
         AgentResultCard(
-            title: result.agentDisplayTitle(fallback: "Bild"),
+            title: result.agentDisplayTitle(
+                fallback: AppLocalized.text("agent.result.image", fallback: "Image")
+            ),
             subtitle: result.agentSubtitle,
             systemImage: "photo",
             colorScheme: colorScheme
@@ -2396,7 +2564,9 @@ private struct AgentVideoResultCard: View {
 
     var body: some View {
         AgentResultCard(
-            title: result.agentDisplayTitle(fallback: "Video"),
+            title: result.agentDisplayTitle(
+                fallback: AppLocalized.text("agent.result.video", fallback: "Video")
+            ),
             subtitle: result.agentSubtitle,
             systemImage: "play.rectangle.fill",
             colorScheme: colorScheme
@@ -2437,13 +2607,21 @@ private struct AgentAudioResultCard: View {
 
     var body: some View {
         AgentResultCard(
-            title: result.agentDisplayTitle(fallback: "Audio"),
+            title: result.agentDisplayTitle(
+                fallback: AppLocalized.text("agent.result.audio", fallback: "Audio")
+            ),
             subtitle: result.agentSubtitle,
             systemImage: "waveform",
             colorScheme: colorScheme
         ) {
             if let url = result.agentURL {
-                AgentInlineAudioPlayer(url: url, title: result.agentDisplayTitle(fallback: "Audio"), colorScheme: colorScheme)
+                AgentInlineAudioPlayer(
+                    url: url,
+                    title: result.agentDisplayTitle(
+                        fallback: AppLocalized.text("agent.result.audio", fallback: "Audio")
+                    ),
+                    colorScheme: colorScheme
+                )
             } else {
                 AgentFallbackResultText(result: result, colorScheme: colorScheme)
             }
@@ -2490,7 +2668,7 @@ private struct AgentInlineAudioPlayer: View {
                     .font(.subheadline.weight(.bold))
                     .foregroundColor(AppColors.text(for: colorScheme))
                     .lineLimit(1)
-                Text("Audio Player")
+                Text(AppLocalized.text("agent.audio.player", fallback: "Audio player"))
                     .font(.caption.weight(.semibold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -2514,12 +2692,18 @@ private struct AgentFileResultCard: View {
 
     var body: some View {
         AgentResultCard(
-            title: result.agentDisplayTitle(fallback: "Datei"),
+            title: result.agentDisplayTitle(
+                fallback: AppLocalized.text("agent.result.file", fallback: "File")
+            ),
             subtitle: result.agentSubtitle,
             systemImage: result.agentMimeLooksLikePDF ? "doc.richtext.fill" : "doc.fill",
             colorScheme: colorScheme
         ) {
-            AgentOpenResultButton(title: "Oeffnen", result: result, colorScheme: colorScheme)
+            AgentOpenResultButton(
+                title: AppLocalized.text("agent.result.open", fallback: "Open"),
+                result: result,
+                colorScheme: colorScheme
+            )
         }
     }
 }
@@ -2530,12 +2714,20 @@ private struct AgentLinkResultCard: View {
 
     var body: some View {
         AgentResultCard(
-            title: result.agentDisplayTitle(fallback: "Link"),
+            title: result.agentDisplayTitle(
+                fallback: AppLocalized.text("agent.result.link", fallback: "Link")
+            ),
             subtitle: result.agentSubtitle,
             systemImage: "link",
             colorScheme: colorScheme
         ) {
-            AgentOpenResultButton(title: result.text.isEmpty ? "Link oeffnen" : result.text, result: result, colorScheme: colorScheme)
+            AgentOpenResultButton(
+                title: result.text.isEmpty
+                    ? AppLocalized.text("agent.result.open_link", fallback: "Open link")
+                    : result.text,
+                result: result,
+                colorScheme: colorScheme
+            )
         }
     }
 }
@@ -2584,12 +2776,19 @@ private struct AgentTableResultCard: View {
         if !result.columns.isEmpty {
             return result.columns
         }
-        return (0..<min(max(columnCount, 1), 8)).map { "Spalte \($0 + 1)" }
+        return (0..<min(max(columnCount, 1), 8)).map { index in
+            String(
+                format: AppLocalized.text("agent.table.column", fallback: "Column %d"),
+                index + 1
+            )
+        }
     }
 
     var body: some View {
         AgentResultCard(
-            title: result.agentDisplayTitle(fallback: "Tabelle"),
+            title: result.agentDisplayTitle(
+                fallback: AppLocalized.text("agent.result.table", fallback: "Table")
+            ),
             subtitle: result.agentSubtitle,
             systemImage: "tablecells.fill",
             colorScheme: colorScheme
@@ -2646,7 +2845,9 @@ private struct AgentHTMLResultCard: View {
 
     var body: some View {
         AgentResultCard(
-            title: result.agentDisplayTitle(fallback: "HTML"),
+            title: result.agentDisplayTitle(
+                fallback: AppLocalized.text("agent.result.html", fallback: "HTML")
+            ),
             subtitle: result.agentSubtitle,
             systemImage: "curlybraces.square.fill",
             colorScheme: colorScheme
@@ -2718,7 +2919,9 @@ private struct AgentFallbackResultCard: View {
 
     var body: some View {
         AgentResultCard(
-            title: result.agentDisplayTitle(fallback: "Output"),
+            title: result.agentDisplayTitle(
+                fallback: AppLocalized.text("agent.result.output", fallback: "Output")
+            ),
             subtitle: result.agentSubtitle,
             systemImage: "sparkles",
             colorScheme: colorScheme
@@ -2797,7 +3000,9 @@ private extension AgentResultEntry {
             url
         ]
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first(where: { !$0.isEmpty }) ?? agentDisplayTitle(fallback: "Output bereit.")
+            .first(where: { !$0.isEmpty }) ?? agentDisplayTitle(
+                fallback: AppLocalized.text("agent.result.output_ready", fallback: "Output ready.")
+            )
     }
 
     func agentDisplayTitle(fallback: String) -> String {
@@ -2845,20 +3050,35 @@ private struct AgentWorkflowResultCard: View {
                         }
                     }
                     .frame(height: 8)
-                    Text("\(progress)%")
+                    Text(
+                        String(
+                            format: AppLocalized.text("agent.workflow.debug.progress", fallback: "%d%%"),
+                            progress
+                        )
+                    )
                         .font(.caption2.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 }
             }
 
             if !summary.step.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text("Step: \(summary.step)")
+                Text(
+                    String(
+                        format: AppLocalized.text("agent.workflow.debug.step", fallback: "Step: %@"),
+                        summary.step
+                    )
+                )
                     .font(.caption2)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
             if let eta = summary.etaSeconds, eta > 0 {
-                Text("ETA: \(eta)s")
+                Text(
+                    String(
+                        format: AppLocalized.text("agent.workflow.debug.eta", fallback: "ETA: %@s"),
+                        String(eta)
+                    )
+                )
                     .font(.caption2)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -2871,14 +3091,24 @@ private struct AgentWorkflowResultCard: View {
             }
 
             if !summary.schemaVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text("Schema: \(summary.schemaVersion)")
+                Text(
+                    String(
+                        format: AppLocalized.text("agent.workflow.debug.schema", fallback: "Schema: %@"),
+                        summary.schemaVersion
+                    )
+                )
                     .font(.caption2)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .textSelection(.enabled)
             }
 
             if let runID = summary.runID {
-                Text("Run: \(runID)")
+                Text(
+                    String(
+                        format: AppLocalized.text("agent.workflow.debug.run", fallback: "Run: %@"),
+                        runID
+                    )
+                )
                     .font(.caption2)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     .textSelection(.enabled)

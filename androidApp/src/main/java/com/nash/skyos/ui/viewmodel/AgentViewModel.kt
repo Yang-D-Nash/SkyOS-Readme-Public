@@ -1512,16 +1512,24 @@ class AgentViewModel : ViewModel() {
         val state = _uiState.value
         return AgentSocialSetupInput(
             instagramEnabled = state.socialInstagramEnabled,
-            instagramHandle = state.socialInstagramHandle.trim(),
+            instagramHandle = normalizeSocialHandleForOutbound(state.socialInstagramHandle),
             tiktokEnabled = state.socialTiktokEnabled,
-            tiktokHandle = state.socialTiktokHandle.trim(),
+            tiktokHandle = normalizeSocialHandleForOutbound(state.socialTiktokHandle),
             youtubeEnabled = state.socialYoutubeEnabled,
-            youtubeHandle = state.socialYoutubeHandle.trim(),
+            youtubeHandle = normalizeSocialHandleForOutbound(state.socialYoutubeHandle),
             facebookEnabled = state.socialFacebookEnabled,
-            facebookHandle = state.socialFacebookHandle.trim(),
+            facebookHandle = normalizeSocialHandleForOutbound(state.socialFacebookHandle),
             spotifyEnabled = state.socialSpotifyEnabled,
-            spotifyHandle = state.socialSpotifyHandle.trim(),
+            spotifyHandle = normalizeSocialHandleForOutbound(state.socialSpotifyHandle),
         )
+    }
+
+    private fun normalizeSocialHandleForOutbound(raw: String): String {
+        var s = raw.trim()
+        while (s.startsWith("@")) {
+            s = s.removePrefix("@").trim()
+        }
+        return s
     }
 
     private fun userFacingErrorMessage(error: Throwable): String = when (error) {

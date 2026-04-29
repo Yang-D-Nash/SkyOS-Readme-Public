@@ -82,7 +82,7 @@ struct AIConversationSessionStrip: View {
             if showsManagementActions {
                 AIConversationToolbarButton(
                     systemName: "arrow.clockwise",
-                    title: "Chat aktualisieren",
+                    title: AppLocalized.text("ai.sessions.a11y.refresh", fallback: "Refresh chat"),
                     accent: accent,
                     colorScheme: colorScheme,
                     action: onRefreshChat
@@ -93,7 +93,7 @@ struct AIConversationSessionStrip: View {
             if showsManagementActions {
                 AIConversationToolbarButton(
                     systemName: "trash",
-                    title: "Chat loeschen",
+                    title: AppLocalized.text("ai.sessions.a11y.delete", fallback: "Delete chat"),
                     accent: .red,
                     isDestructive: true,
                     colorScheme: colorScheme,
@@ -155,7 +155,7 @@ struct AIConversationSessionsSheet: View {
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
                     if let activeSession {
                         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                            Text("Aktiver Chat")
+                            Text(AppLocalized.text("ai.sessions.active_chat", fallback: "Active chat"))
                                 .font(.caption2.weight(.black))
                                 .foregroundColor(accent)
 
@@ -169,7 +169,7 @@ struct AIConversationSessionsSheet: View {
 
                             HStack(spacing: SkydownLayout.stackSpacingPill) {
                                 Button(role: .destructive, action: onDeleteActiveSession) {
-                                    Text("Loeschen")
+                                    Text(AppLocalized.text("ai.sessions.delete", fallback: "Delete"))
                                         .font(.caption.weight(.bold))
                                 }
                                 .disabled(isBusy)
@@ -177,7 +177,7 @@ struct AIConversationSessionsSheet: View {
                                 Spacer(minLength: 0)
 
                                 Button(action: onRenameActiveSession) {
-                                    Text("Umbenennen")
+                                    Text(AppLocalized.text("ai.sessions.rename", fallback: "Rename"))
                                         .font(.caption.weight(.bold))
                                 }
                                 .disabled(isBusy || renameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -186,12 +186,12 @@ struct AIConversationSessionsSheet: View {
                     }
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                        Text("Chats")
+                        Text(AppLocalized.text("ai.sessions.list_title", fallback: "Chats"))
                             .font(.caption2.weight(.black))
                             .foregroundColor(accent)
 
                         if sessions.isEmpty {
-                            Text("Noch kein Verlauf.")
+                            Text(AppLocalized.text("ai.sessions.empty", fallback: "No history yet."))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                         } else {
@@ -230,11 +230,14 @@ private struct AIConversationSessionRow: View {
     private var countLabel: String {
         switch session.promptCount {
         case 0:
-            return "Neu"
+            return AppLocalized.text("ai.sessions.status.new", fallback: "New")
         case 1:
-            return "1 Anfrage"
+            return AppLocalized.text("ai.sessions.status.one_request", fallback: "1 request")
         default:
-            return "\(session.promptCount) Anfragen"
+            return String(
+                format: AppLocalized.text("ai.sessions.status.n_requests", fallback: "%d requests"),
+                session.promptCount
+            )
         }
     }
 
@@ -245,7 +248,11 @@ private struct AIConversationSessionRow: View {
                 .foregroundColor(AppColors.text(for: colorScheme))
                 .lineLimit(1)
 
-            Text(session.preview.isEmpty ? "Noch keine Antwort in diesem Chat." : session.preview)
+            Text(
+                session.preview.isEmpty
+                    ? AppLocalized.text("ai.sessions.preview.empty", fallback: "No reply in this chat yet.")
+                    : session.preview
+            )
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 .multilineTextAlignment(.leading)

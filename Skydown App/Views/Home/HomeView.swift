@@ -451,7 +451,7 @@ struct HomeViewContent: View {
             if founderBriefingModeInFlight != nil {
                 ZStack {
                     Color.black.opacity(0.12).ignoresSafeArea()
-                    ProgressView("Founder Briefing wird erstellt...")
+                    ProgressView(AppLocalized.text("home.owner.founder.progress", fallback: "Composing your intelligence briefing…"))
                         .padding(14)
                         .background(.ultraThinMaterial)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -506,16 +506,19 @@ struct HomeViewContent: View {
         var parts: [String] = []
         if let d = meta["businessDate"] as? String, !d.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let day = d.trimmingCharacters(in: .whitespacesAndNewlines)
-            parts.append("Berichtstag \(day)")
+            parts.append(String(
+                format: AppLocalized.text("home.owner.founder.meta_report_day", fallback: "Report day %@"),
+                day
+            ))
         }
         if let qRaw = meta["dataQuality"] as? String {
             let q = qRaw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             if !q.isEmpty {
                 let label: String
                 switch q {
-                case "complete": label = "Daten vollstaendig"
-                case "partial": label = "Teildaten"
-                case "no_kpi_doc": label = "KPI-Dokument fehlt"
+                case "complete": label = AppLocalized.text("home.owner.founder.meta_data_complete", fallback: "Data complete")
+                case "partial": label = AppLocalized.text("home.owner.founder.meta_data_partial", fallback: "Partial data")
+                case "no_kpi_doc": label = AppLocalized.text("home.owner.founder.meta_kpi_doc_missing", fallback: "KPI document missing")
                 default: label = q
                 }
                 parts.append(label)
@@ -524,7 +527,10 @@ struct HomeViewContent: View {
         if let k = meta["kpiUpdatedAt"] as? String, !k.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let t = k.trimmingCharacters(in: .whitespacesAndNewlines)
             let short = t.count > 36 ? String(t.prefix(36)) + "…" : t
-            parts.append("KPI \(short)")
+            parts.append(String(
+                format: AppLocalized.text("home.owner.founder.meta_kpi_label", fallback: "KPI %@"),
+                short
+            ))
         }
         if parts.isEmpty { return nil }
         return parts.joined(separator: " · ")
@@ -533,7 +539,7 @@ struct HomeViewContent: View {
     private func runFounderBriefing(mode: FounderBriefingMode) async {
         guard founderBriefingModeInFlight == nil else { return }
         guard let uid = authManager.userSession?.id else {
-            founderBriefingErrorMessage = "Bitte zuerst anmelden."
+            founderBriefingErrorMessage = AppLocalized.text("home.owner.founder.error_login", fallback: "Please sign in first.")
             return
         }
         founderBriefingFeedbackMessage = nil
@@ -570,39 +576,42 @@ struct HomeViewContent: View {
             let text = (data[textKey] as? String)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             if text.isEmpty {
-                founderBriefingFeedbackMessage = "Briefing hat keinen Inhalt geliefert."
+                founderBriefingFeedbackMessage = AppLocalized.text("home.owner.founder.error_empty", fallback: "The briefing returned no content.")
                 founderBriefingFeedbackStyle = .error
             let emptyMeta = Self.founderBriefingMetaLine(data["briefingMeta"] as? [String: Any])
             founderBriefingPresentation = FounderBriefingPresentation(
                 mode: mode,
-                title: mode == .privateBriefing ? "Founder Analyse" : "Team Update",
-                body: "Briefing ist fertig, aber es wurde kein Text geliefert. Bitte erneut versuchen.",
+                title: mode == .privateBriefing ?
+                    AppLocalized.text("home.owner.founder.title_private", fallback: "Private intelligence") :
+                    AppLocalized.text("home.owner.founder.title_group", fallback: "Team update"),
+                body: AppLocalized.text("home.owner.founder.error_empty_body", fallback: "The run completed, but no text was returned. Please try again."),
                 metaLine: emptyMeta
             )
                 return
             }
-            founderBriefingFeedbackMessage = "Briefing erfolgreich erstellt."
+            founderBriefingFeedbackMessage = AppLocalized.text("home.owner.founder.success", fallback: "Briefing ready.")
             founderBriefingFeedbackStyle = .success
             let metaLine = Self.founderBriefingMetaLine(data["briefingMeta"] as? [String: Any])
             founderBriefingPresentation = FounderBriefingPresentation(
                 mode: mode,
-                title: mode == .privateBriefing ? "Founder Analyse" : "Team Update",
+                title: mode == .privateBriefing ?
+                    AppLocalized.text("home.owner.founder.title_private", fallback: "Private intelligence") :
+                    AppLocalized.text("home.owner.founder.title_group", fallback: "Team update"),
                 body: text,
                 metaLine: metaLine
             )
         } catch {
             let reason = (error as NSError).localizedDescription
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            founderBriefingFeedbackMessage = reason.isEmpty ?
-                "Briefing derzeit nicht verfuegbar. Bitte gleich erneut versuchen." :
-                reason
+            let fallbackUnavailable = AppLocalized.text("home.owner.founder.error_unavailable", fallback: "Briefing is temporarily unavailable. Please try again shortly.")
+            founderBriefingFeedbackMessage = reason.isEmpty ? fallbackUnavailable : reason
             founderBriefingFeedbackStyle = .error
             founderBriefingPresentation = FounderBriefingPresentation(
                 mode: mode,
-                title: mode == .privateBriefing ? "Founder Analyse" : "Team Update",
-                body: reason.isEmpty ?
-                    "Briefing derzeit nicht verfuegbar. Bitte gleich erneut versuchen." :
-                    reason
+                title: mode == .privateBriefing ?
+                    AppLocalized.text("home.owner.founder.title_private", fallback: "Private intelligence") :
+                    AppLocalized.text("home.owner.founder.title_group", fallback: "Team update"),
+                body: reason.isEmpty ? fallbackUnavailable : reason
             )
         }
     }
@@ -1240,8 +1249,8 @@ private struct FounderBriefingResultSheet: View {
                     .foregroundColor(AppColors.text(for: colorScheme))
                 Text(
                     presentation.mode == .privateBriefing ?
-                    "Private Founder Analyse" :
-                    "Team Update fuer WhatsApp"
+                    AppLocalized.text("home.owner.founder.caption_private", fallback: "Confidential — your daily signal") :
+                    AppLocalized.text("home.owner.founder.caption_group", fallback: "Ready to share with your team")
                 )
                 .font(.caption)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1271,7 +1280,7 @@ private struct FounderBriefingResultSheet: View {
                 }
             }
             .padding()
-            .navigationTitle("Briefing")
+            .navigationTitle(AppLocalized.text("home.owner.founder.sheet_nav", fallback: "Intelligence"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -1613,7 +1622,7 @@ private struct HomeOwnerWorkflowSection: View {
                 HStack(spacing: 6) {
                     ProgressView()
                         .controlSize(.small)
-                    Text("Erstellt Briefing...")
+                    Text(AppLocalized.text("home.owner.founder.progress", fallback: "Composing your intelligence briefing…"))
                         .font(.caption2.weight(.semibold))
                         .foregroundColor(AppColors.accentMystic(for: colorScheme))
                 }
@@ -1630,8 +1639,8 @@ private struct HomeOwnerWorkflowSection: View {
             HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 HomeQuickActionButton(
                     title: founderBriefingModeInFlight == .privateBriefing ?
-                        "Wird erstellt..." :
-                        AppLocalized.text("home.owner.workflows.private_analysis", fallback: "Nur fuer mich"),
+                        AppLocalized.text("home.owner.founder.creating", fallback: "Composing…") :
+                        AppLocalized.text("home.owner.workflows.private_analysis", fallback: "Private"),
                     systemImage: "dollarsign.circle",
                     colorScheme: colorScheme,
                     isLoading: founderBriefingModeInFlight == .privateBriefing,
@@ -1642,8 +1651,8 @@ private struct HomeOwnerWorkflowSection: View {
                 )
                 HomeQuickActionButton(
                     title: founderBriefingModeInFlight == .group ?
-                        "Wird erstellt..." :
-                        AppLocalized.text("home.owner.workflows.group_update", fallback: "Fuer Gruppe"),
+                        AppLocalized.text("home.owner.founder.creating", fallback: "Composing…") :
+                        AppLocalized.text("home.owner.workflows.group_update", fallback: "Team"),
                     systemImage: "person.2",
                     colorScheme: colorScheme,
                     isLoading: founderBriefingModeInFlight == .group,

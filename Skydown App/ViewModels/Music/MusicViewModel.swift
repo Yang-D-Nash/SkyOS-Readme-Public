@@ -100,30 +100,30 @@ enum ExternalMediaProvider: String {
     var badgeLabel: String {
         switch self {
         case .firebaseStorage:
-            return "Storage"
+            return AppLocalized.text("videohub.provider.badge.storage", fallback: "Storage")
         case .googleDrive:
-            return "Drive"
+            return AppLocalized.text("videohub.provider.badge.drive", fallback: "Drive")
         case .youTube:
-            return "YouTube"
+            return AppLocalized.text("videohub.provider.badge.youtube", fallback: "YouTube")
         case .mega:
-            return "MEGA"
+            return AppLocalized.text("videohub.provider.badge.mega", fallback: "MEGA")
         case .externalLink:
-            return "Extern"
+            return AppLocalized.text("videohub.provider.badge.external", fallback: "External")
         }
     }
 
     var originalVideoActionTitle: String {
         switch self {
         case .firebaseStorage:
-            return "Original oeffnen"
+            return AppLocalized.text("videohub.provider.open_original", fallback: "Open original")
         case .googleDrive:
-            return "Drive oeffnen"
+            return AppLocalized.text("videohub.provider.open_drive", fallback: "Open Drive")
         case .youTube:
-            return "YouTube oeffnen"
+            return AppLocalized.text("videohub.provider.open_youtube", fallback: "Open YouTube")
         case .mega:
-            return "MEGA oeffnen"
+            return AppLocalized.text("videohub.provider.open_mega", fallback: "Open MEGA")
         case .externalLink:
-            return "Link oeffnen"
+            return AppLocalized.text("videohub.provider.open_link", fallback: "Open link")
         }
     }
 }
@@ -1034,14 +1034,14 @@ struct SkydownVideoHubItem: Identifiable {
 
     var originalDestinationDescription: String {
         if inAppOriginalURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Kein Original-Link verfuegbar."
+            return AppLocalized.text("videohub.destination.no_original", fallback: "No original link available.")
         }
 
         if !nativePlaybackURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Dieser Clip startet direkt in der In-App-Ansicht."
+            return AppLocalized.text("videohub.destination.inline_player", fallback: "This clip starts directly in the in-app viewer.")
         }
 
-        return "Dieser Link startet in einer In-App-Webansicht mit Zurueck und Schliessen."
+        return AppLocalized.text("videohub.destination.web_view", fallback: "This link opens in an in-app web view with back and close.")
     }
 
     var isPlayable: Bool {

@@ -347,6 +347,11 @@ final class AgentChatViewModel: ObservableObject {
         return true
     }
 
+    /// Fuer die Thread-Eingabezeile und den Prompt — gleiche Regeln wie `sendPrompt`.
+    var isCurrentDraftSendable: Bool {
+        canSendAgentMessage(trimmedPrompt: draft.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
     /// Nach Assistenten-Antwort: anderen Modus waehlen; Entwurf enthaelt Text, Workflow-Status und strukturierte Ergebnisse.
     func continueInModeFromAssistant(_ target: AgentExecutionMode, sourceMessage: AgentChatMessage) {
         let snippet = buildAssistantContinuationContext(from: sourceMessage)
@@ -405,8 +410,9 @@ final class AgentChatViewModel: ObservableObject {
             primary = entry.rows.prefix(8).map { $0.joined(separator: " | ") }.joined(separator: "\n")
         } else if !entry.workflowName.isEmpty || !entry.status.isEmpty || !entry.runId.isEmpty {
             let parts: [String] = [
-                entry.workflowName, entry.status,
-                entry.runId.isEmpty ? nil : "Run: \(entry.runId)"
+                entry.workflowName,
+                entry.status,
+                entry.runId.isEmpty ? "" : "Run: \(entry.runId)",
             ].compactMap { s in
                 let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
                 return t.isEmpty ? nil : t
@@ -1414,6 +1420,15 @@ final class AgentChatViewModel: ObservableObject {
         selectedMode == .automation
     }
 
+    /// Entfernt fuehrende @ fuer API/Backend; Nutzer:innen duerfen trotzdem `@handle` tippen.
+    static func normalizeSocialHandleForOutbound(_ raw: String) -> String {
+        var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        while s.hasPrefix("@") {
+            s.removeFirst()
+        }
+        return s.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private func resolveSocialSetupForOutgoing(mode: String) -> AgentSocialSetupInput {
         let normalizedMode = mode.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard normalizedMode == "automation" else {
@@ -1421,15 +1436,15 @@ final class AgentChatViewModel: ObservableObject {
         }
         return AgentSocialSetupInput(
             instagramEnabled: socialInstagramEnabled,
-            instagramHandle: socialInstagramHandle.trimmingCharacters(in: .whitespacesAndNewlines),
+            instagramHandle: Self.normalizeSocialHandleForOutbound(socialInstagramHandle),
             tiktokEnabled: socialTiktokEnabled,
-            tiktokHandle: socialTiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines),
+            tiktokHandle: Self.normalizeSocialHandleForOutbound(socialTiktokHandle),
             youtubeEnabled: socialYoutubeEnabled,
-            youtubeHandle: socialYoutubeHandle.trimmingCharacters(in: .whitespacesAndNewlines),
+            youtubeHandle: Self.normalizeSocialHandleForOutbound(socialYoutubeHandle),
             facebookEnabled: socialFacebookEnabled,
-            facebookHandle: socialFacebookHandle.trimmingCharacters(in: .whitespacesAndNewlines),
+            facebookHandle: Self.normalizeSocialHandleForOutbound(socialFacebookHandle),
             spotifyEnabled: socialSpotifyEnabled,
-            spotifyHandle: socialSpotifyHandle.trimmingCharacters(in: .whitespacesAndNewlines)
+            spotifyHandle: Self.normalizeSocialHandleForOutbound(socialSpotifyHandle)
         )
     }
 

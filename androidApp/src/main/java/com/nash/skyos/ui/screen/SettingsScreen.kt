@@ -2526,14 +2526,17 @@ fun SettingsScreen(
                 ) {
                     item {
                         SettingsBadge(
-                            text = "Entries ${aiOwnerInspirationEntriesDraft.size}",
+                            text = stringResource(R.string.settings_owner_inspiration_badge_entries, aiOwnerInspirationEntriesDraft.size),
                             icon = Icons.Default.CheckCircle,
                             isActive = aiOwnerInspirationEntriesDraft.isNotEmpty(),
                         )
                     }
                     item {
                         SettingsBadge(
-                            text = "Published ${aiOwnerInspirationEntriesDraft.count { it.isPublished }}",
+                            text = stringResource(
+                                R.string.settings_owner_inspiration_badge_published_count,
+                                aiOwnerInspirationEntriesDraft.count { it.isPublished },
+                            ),
                             icon = Icons.Default.CheckCircle,
                             isActive = aiOwnerInspirationEntriesDraft.any { it.isPublished },
                         )
@@ -2550,21 +2553,21 @@ fun SettingsScreen(
                             aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft + AiOwnerInspirationEntry.empty()
                         },
                         modifier = Modifier.weight(1f),
-                    ) { Text("Neu") }
+                    ) { Text(stringResource(R.string.settings_owner_inspiration_new)) }
                     OutlinedButton(
                         onClick = {
                             aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.map { it.copy(isPublished = true) }
                         },
                         enabled = aiOwnerInspirationEntriesDraft.isNotEmpty(),
                         modifier = Modifier.weight(1f),
-                    ) { Text("Alle publishen") }
+                    ) { Text(stringResource(R.string.settings_owner_inspiration_publish_all)) }
                     OutlinedButton(
                         onClick = {
                             aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.map { it.copy(isPublished = false) }
                         },
                         enabled = aiOwnerInspirationEntriesDraft.isNotEmpty(),
                         modifier = Modifier.weight(1f),
-                    ) { Text("Alle entpublishen") }
+                    ) { Text(stringResource(R.string.settings_owner_inspiration_unpublish_all)) }
                 }
 
                 aiOwnerInspirationEntriesDraft.forEachIndexed { index, entry ->
@@ -2575,7 +2578,11 @@ fun SettingsScreen(
                         contentPadding = PaddingValues(12.dp),
                     ) {
                         Text(
-                            text = if (entry.isPublished) "Published" else "Draft",
+                            text = if (entry.isPublished) {
+                                stringResource(R.string.settings_owner_inspiration_status_published)
+                            } else {
+                                stringResource(R.string.settings_owner_inspiration_status_draft)
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = if (entry.isPublished) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
                         )
@@ -2589,8 +2596,8 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 8.dp),
-                            label = { Text("Titel") },
-                            placeholder = { Text("z. B. Midnight Street Capsule") },
+                            label = { Text(stringResource(R.string.settings_owner_inspiration_title_label)) },
+                            placeholder = { Text(stringResource(R.string.settings_owner_inspiration_title_placeholder)) },
                             singleLine = true,
                         )
                         OutlinedTextField(
@@ -2603,7 +2610,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 8.dp),
-                            label = { Text("Inspiration / Details") },
+                            label = { Text(stringResource(R.string.settings_owner_inspiration_details_label)) },
                             minLines = 3,
                             maxLines = 8,
                         )
@@ -2617,7 +2624,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 8.dp),
-                            label = { Text("Tags (comma separated)") },
+                            label = { Text(stringResource(R.string.settings_owner_inspiration_tags_label)) },
                             singleLine = true,
                         )
                         Row(
@@ -2627,7 +2634,7 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text("Published", style = MaterialTheme.typography.labelMedium)
+                            Text(stringResource(R.string.settings_owner_inspiration_published_toggle), style = MaterialTheme.typography.labelMedium)
                             Switch(
                                 checked = entry.isPublished,
                                 onCheckedChange = { checked ->
@@ -2644,7 +2651,7 @@ fun SettingsScreen(
                                 }
                             },
                             modifier = Modifier.padding(top = 8.dp),
-                        ) { Text("Eintrag entfernen") }
+                        ) { Text(stringResource(R.string.settings_owner_inspiration_remove_entry)) }
                     }
                 }
                 Button(
@@ -2654,7 +2661,7 @@ fun SettingsScreen(
                         .padding(top = 10.dp),
                     shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 ) {
-                    Text("Ideen & Inspiration speichern")
+                    Text(stringResource(R.string.settings_owner_inspiration_save))
                 }
 
                 OutlinedTextField(
@@ -3661,8 +3668,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Allowed Shared Drive IDs") },
-                    supportingText = { Text("Eine ID pro Zeile oder komma-separiert.") },
+                    label = { Text(stringResource(R.string.settings_knowledge_drive_ids_label)) },
+                    supportingText = { Text(stringResource(R.string.settings_knowledge_drive_ids_hint)) },
                     minLines = 3,
                 )
                 OutlinedTextField(
@@ -3671,8 +3678,8 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp),
-                    label = { Text("Allowed Folder IDs") },
-                    supportingText = { Text("Eine ID pro Zeile oder komma-separiert.") },
+                    label = { Text(stringResource(R.string.settings_knowledge_folder_ids_label)) },
+                    supportingText = { Text(stringResource(R.string.settings_knowledge_folder_ids_hint)) },
                     minLines = 3,
                 )
 
@@ -4859,7 +4866,7 @@ fun SettingsScreen(
                                         },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    ) { Text("Payments") }
+                                    ) { Text(stringResource(R.string.settings_command_nav_payments)) }
                                     OutlinedButton(
                                         onClick = {
                                             activeAdminWorkspaceKey = AdminWorkspaceSection.Shopify.name
@@ -4867,7 +4874,7 @@ fun SettingsScreen(
                                         },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    ) { Text("Shopify") }
+                                    ) { Text(stringResource(R.string.settings_command_nav_shopify)) }
                                 }
                             }
 
@@ -4885,7 +4892,7 @@ fun SettingsScreen(
                                         },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    ) { Text("Runtime") }
+                                    ) { Text(stringResource(R.string.settings_command_nav_runtime)) }
                                     OutlinedButton(
                                         onClick = {
                                             activeAdminWorkspaceKey = AdminWorkspaceSection.Automation.name
@@ -4911,7 +4918,7 @@ fun SettingsScreen(
                                         },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    ) { Text("Users") }
+                                    ) { Text(stringResource(R.string.settings_command_nav_users)) }
                                     OutlinedButton(
                                         onClick = {
                                             activeAdminWorkspaceKey = AdminWorkspaceSection.MembershipOps.name
@@ -4919,7 +4926,7 @@ fun SettingsScreen(
                                         },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                    ) { Text("Membership Ops") }
+                                    ) { Text(stringResource(R.string.settings_command_nav_membership_ops)) }
                                 }
                             }
                         }

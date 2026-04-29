@@ -49,41 +49,41 @@ enum AgentInteractionPhase: Equatable, Sendable {
         case .idle:
             nil
         case .planning:
-            "Agent · plant"
+            AppLocalized.text("agent.composer.status.planning", fallback: "Agent · planning")
         case .webhookPending:
-            "Agent · Webhook ausstehend"
+            AppLocalized.text("agent.composer.status.webhook_pending", fallback: "Agent · webhook pending")
         case .externalRunning:
-            "Agent · extern laeuft"
+            AppLocalized.text("agent.composer.status.external_running", fallback: "Agent · external running")
         case .awaitingExternalAuth:
-            "Agent · externe Auth fehlt"
+            AppLocalized.text("agent.composer.status.external_auth", fallback: "Agent · external auth missing")
         case .externalFailed:
-            "Agent · extern fehlgeschlagen"
+            AppLocalized.text("agent.composer.status.external_failed", fallback: "Agent · external failed")
         case .externalCompleted:
-            "Agent · extern abgeschlossen"
+            AppLocalized.text("agent.composer.status.external_done", fallback: "Agent · external completed")
         case .fallbackInternal:
-            "Agent · interner Fallback"
+            AppLocalized.text("agent.composer.status.fallback_internal", fallback: "Agent · internal fallback")
         case .awaitingConfirmation:
-            "Agent · wartet auf Bestaetigung"
+            AppLocalized.text("agent.composer.status.awaiting_confirmation", fallback: "Agent · awaiting confirmation")
         case .executing:
-            "Agent · fuehrt aus"
+            AppLocalized.text("agent.composer.status.executing", fallback: "Agent · executing")
         case .toolPending:
-            "Agent · Tool wartet"
+            AppLocalized.text("agent.composer.status.tool_pending", fallback: "Agent · tool pending")
         case .completed:
-            "Agent · abgeschlossen"
+            AppLocalized.text("agent.composer.status.completed", fallback: "Agent · completed")
         case .partial:
-            "Agent · teilweise abgeschlossen"
+            AppLocalized.text("agent.composer.status.partial", fallback: "Agent · partially completed")
         case .blocked:
-            "Agent · blockiert"
+            AppLocalized.text("agent.composer.status.blocked", fallback: "Agent · blocked")
         case .failed:
-            "Agent · fehlgeschlagen"
+            AppLocalized.text("agent.composer.status.failed", fallback: "Agent · failed")
         case .retryable:
-            "Agent · retry moeglich"
+            AppLocalized.text("agent.composer.status.retryable", fallback: "Agent · retryable")
         case .cancelled:
-            "Agent · abgebrochen"
+            AppLocalized.text("agent.composer.status.cancelled", fallback: "Agent · cancelled")
         case .ownerDiagnostic:
-            "Agent · Owner-Diagnostik"
+            AppLocalized.text("agent.composer.status.owner_diagnostic", fallback: "Agent · owner diagnostic")
         case .waitingReconnect:
-            "Agent · Wartet auf Verbindung"
+            AppLocalized.text("agent.composer.status.waiting_reconnect", fallback: "Agent · waiting for connection")
         }
     }
 }

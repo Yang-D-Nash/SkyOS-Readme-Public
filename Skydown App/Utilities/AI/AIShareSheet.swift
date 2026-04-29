@@ -48,28 +48,31 @@ private struct DesktopAIShareSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingComfortable) {
-                Text("Teilen")
+                Text(AppLocalized.text("share.heading", fallback: "Share"))
                     .font(.title2.weight(.bold))
 
-                Text("Auf dem Mac kannst du Inhalte direkt kopieren oder Dateien lokal sichern.")
+                Text(AppLocalized.text("share.desktop.hint", fallback: "On a Mac, you can copy content or save files locally."))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
                 if let sharedText {
-                    Button("Text kopieren") {
+                    Button(AppLocalized.text("share.copy_text", fallback: "Copy text")) {
                         UIPasteboard.general.string = sharedText
-                        statusMessage = "Text kopiert"
+                        statusMessage = AppLocalized.text("share.text_copied", fallback: "Text copied")
                     }
                     .buttonStyle(.borderedProminent)
 
                     ShareLink(item: sharedText) {
-                        Label("Text teilen", systemImage: "square.and.arrow.up")
+                        Label(
+                            AppLocalized.text("share.share_text", fallback: "Share text"),
+                            systemImage: "square.and.arrow.up"
+                        )
                     }
                     .buttonStyle(.bordered)
                 }
 
                 if let sharedImage, let pngData = sharedImage.pngData() {
-                    Button("Bild sichern") {
+                    Button(AppLocalized.text("share.save_image", fallback: "Save image")) {
                         exportDocument = ShareExportDocument(data: pngData, contentType: .png)
                         exportFilename = "SkyOS-Image"
                         showingExporter = true
@@ -78,7 +81,7 @@ private struct DesktopAIShareSheet: View {
                 }
 
                 if sharedText == nil && sharedImage == nil {
-                    Text("Dieser Inhalt kann auf dem Mac gerade nicht exportiert werden.")
+                    Text(AppLocalized.text("share.cannot_export", fallback: "This content cannot be exported on the Mac right now."))
                         .foregroundColor(.secondary)
                 }
 
@@ -91,10 +94,10 @@ private struct DesktopAIShareSheet: View {
                 Spacer()
             }
             .padding(20)
-            .navigationTitle("Share")
+            .navigationTitle(AppLocalized.text("share.title", fallback: "Share"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Schliessen") {
+                    Button(AppLocalized.text("share.close", fallback: "Close")) {
                         dismiss()
                     }
                 }
@@ -108,9 +111,9 @@ private struct DesktopAIShareSheet: View {
         ) { result in
             switch result {
             case .success:
-                statusMessage = "Datei gesichert"
+                statusMessage = AppLocalized.text("share.file_saved", fallback: "File saved")
             case .failure:
-                statusMessage = "Export fehlgeschlagen"
+                statusMessage = AppLocalized.text("share.export_failed", fallback: "Export failed")
             }
         }
     }

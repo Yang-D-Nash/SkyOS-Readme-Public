@@ -6,6 +6,8 @@
  * - founder_daily_kpis/{date}     — Doc-ID = ISO-Datum yyyy-MM-dd
  * - founder_risks                 — Docs mit Feld date == dasselbe Datum
  * - founder_highlights            — Docs mit Feld date == dasselbe Datum
+ * - appConfig/founderBriefing     — optional: { musicArtists: ["A","B",…] } fuer iTunes-Release-Zeilen
+ * - merchandise, system/runtimeConfig, orders — fuer angereichertes Briefing (automatisch gelesen)
  *
  * Ausfuehren (Production-Projekt, z. B. skydown-a6add):
  *   cd functions

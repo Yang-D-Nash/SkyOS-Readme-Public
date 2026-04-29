@@ -437,10 +437,10 @@
     <string name="home_quick_create_task">Task erstellen</string>
     <string name="home_quick_create_note">Notiz erstellen</string>
     <string name="home_quick_hint">Im Agent oeffnet das den Composer mit einem gefuehrten Workflow-Prompt.</string>
-    <string name="home_owner_workflows_title">Founder-Briefing</string>
-    <string name="home_owner_workflows_subtitle">Fuehrt Founder-Analysen mit echten verfuegbaren Daten aus.</string>
-    <string name="home_owner_workflows_private_analysis">Nur fuer mich</string>
-    <string name="home_owner_workflows_group_update">Fuer Gruppe</string>
+    <string name="home_owner_workflows_title">Founder Intelligence</string>
+    <string name="home_owner_workflows_subtitle">Aus Live-Signalen kuratiert — fuer dich oder dein Team.</string>
+    <string name="home_owner_workflows_private_analysis">Privat</string>
+    <string name="home_owner_workflows_group_update">Team</string>
     <string name="home_owner_workflows_plan">Planen</string>
     <string name="home_owner_workflows_followup">Nachverfolgen</string>
     <string name="home_owner_workflows_summarize">Zusammenfassen</string>
@@ -1542,6 +1542,9 @@
     <string name="agent_empty_header_subtitle">Folgeaufgaben speicherst du über Aufgaben oder Notizen in der Produktivitaetsleiste. Reminder mit Push über den Agent oder Home-Kurzaktionen.</string>
     <string name="agent_prompt_open">Offen prompt</string>
     <string name="agent_fab_working">Arbeiten</string>
+    <string name="agent_thread_followup_placeholder">Im Thread weiterschreiben …</string>
+    <string name="agent_thread_open_full_composer_a11y">Modus, Workflow, Anhaenge</string>
+    <string name="agent_thread_send_a11y">Senden</string>
     <string name="agent_feature_status_live_title">LIVE HEUTE</string>
     <string name="agent_feature_status_live_body">Reminder + Push, Aufgaben + Notizen</string>
     <string name="agent_feature_status_next_title">IM AUSBAU</string>
@@ -1571,17 +1574,17 @@
     <string name="agent_prompts_title">Schnelle Starts</string>
     <string name="agent_prompts_apply">Anwenden</string>
     <string name="agent_social_setup_title">Oeffentliche Profile</string>
-    <string name="agent_social_setup_footnote">Nur aktivierte Plattformen werden einbezogen. Handles sind optional und beschleunigen die Analyse.</string>
+    <string name="agent_social_setup_footnote">Nur aktivierte Kanaele. @Handles sind erlaubt — @ wird fuer die API normalisiert.</string>
     <string name="agent_social_facebook">Facebook / Meta</string>
     <string name="agent_social_facebook_hint">Seite oder @Handle (optional)</string>
     <string name="agent_social_spotify">Spotify</string>
     <string name="agent_social_spotify_hint">Artist-/Profil-Handle oder ID (optional)</string>
     <string name="agent_social_instagram">Instagram</string>
-    <string name="agent_social_instagram_hint">Handle (optional)</string>
+    <string name="agent_social_instagram_hint">@y.d.nash</string>
     <string name="agent_social_tiktok">TikTok</string>
-    <string name="agent_social_tiktok_hint">Handle (optional)</string>
+    <string name="agent_social_tiktok_hint">@name</string>
     <string name="agent_social_youtube">YouTube</string>
-    <string name="agent_social_youtube_hint">Handle oder Kanal (optional)</string>
+    <string name="agent_social_youtube_hint">@channel</string>
     <string name="agent_workflow_active">Workflow aktiv</string>
     <string name="agent_workflow_start">Arbeitsablauf starten</string>
     <string name="agent_workflow_attached">wird einbezogen</string>
@@ -1984,5 +1987,33 @@
     <string name="settings_command_hint_lab">Lab fuer AI Runtime, Guardrails und Automation.</string>
     <string name="settings_command_hint_vault">Vault fuer Nutzer, Zugriffe und Membership-Policy.</string>
     <string name="settings_automation_studio_label">Automation Studio</string>
+
+    <!-- sync_localizations -->
+    <string name="agent_bubble_open_in_home">In Home oeffnen</string>
+
+    <!-- sync_localizations -->
+    <string name="settings_command_nav_membership_ops">Membership ops</string>
+    <string name="settings_command_nav_payments">Payments</string>
+    <string name="settings_command_nav_runtime">Runtime</string>
+    <string name="settings_command_nav_shopify">Shopify</string>
+    <string name="settings_command_nav_users">Users</string>
+    <string name="settings_knowledge_drive_ids_hint">Eine ID pro Zeile oder komma-separiert.</string>
+    <string name="settings_knowledge_drive_ids_label">Allowed Shared Drive IDs</string>
+    <string name="settings_knowledge_folder_ids_hint">Eine ID pro Zeile oder komma-separiert.</string>
+    <string name="settings_knowledge_folder_ids_label">Allowed Folder IDs</string>
+    <string name="settings_owner_inspiration_badge_entries">Einträge %1$d</string>
+    <string name="settings_owner_inspiration_badge_published_count">Published %1$d</string>
+    <string name="settings_owner_inspiration_details_label">Inspiration / Details</string>
+    <string name="settings_owner_inspiration_new">Neu</string>
+    <string name="settings_owner_inspiration_publish_all">Alle publishen</string>
+    <string name="settings_owner_inspiration_published_toggle">Published</string>
+    <string name="settings_owner_inspiration_remove_entry">Eintrag entfernen</string>
+    <string name="settings_owner_inspiration_save">Ideen &amp; Inspiration speichern</string>
+    <string name="settings_owner_inspiration_status_draft">Entwurf</string>
+    <string name="settings_owner_inspiration_status_published">Published</string>
+    <string name="settings_owner_inspiration_tags_label">Tags (komma-separiert)</string>
+    <string name="settings_owner_inspiration_title_label">Titel</string>
+    <string name="settings_owner_inspiration_title_placeholder">z. B. Midnight Street Capsule</string>
+    <string name="settings_owner_inspiration_unpublish_all">Alle entpublishen</string>
 
 </resources>

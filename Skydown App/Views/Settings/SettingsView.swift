@@ -800,28 +800,28 @@ struct SettingsView: View {
                                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                                     SettingsInputField(
-                                        title: "Brandname",
+                                        title: AppLocalized.text("settings.legal.field.brand_name", fallback: "Brand name"),
                                         text: $legalBrandNameDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "z. B. SkyOS"
+                                        placeholder: AppLocalized.text("settings.legal.field.brand_name_placeholder", fallback: "e.g. SkyOS")
                                     )
 
                                     SettingsInputField(
-                                        title: "Betreiber / Vertragspartner",
+                                        title: AppLocalized.text("settings.legal.field.operator_name", fallback: "Operator / contracting party"),
                                         text: $legalOperatorNameDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "z. B. Yang D. Nash - Skydown"
+                                        placeholder: AppLocalized.text("settings.legal.field.operator_name_placeholder", fallback: "e.g. Yang D. Nash - Skydown")
                                     )
 
                                     SettingsInputField(
-                                        title: "Rechteinhaber",
+                                        title: AppLocalized.text("settings.legal.field.rights_holder", fallback: "Rights holder"),
                                         text: $legalRightsHolderNameDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "z. B. Yang D. Nash - Skydown"
+                                        placeholder: AppLocalized.text("settings.legal.field.rights_holder_placeholder", fallback: "e.g. Yang D. Nash - Skydown")
                                     )
 
                                     SettingsInputField(
-                                        title: "Support E-Mail",
+                                        title: AppLocalized.text("settings.legal.field.support_email", fallback: "Support email"),
                                         text: $legalSupportEmailDraft,
                                         colorScheme: effectiveColorScheme,
                                         placeholder: AppLocalized.text(
@@ -831,55 +831,55 @@ struct SettingsView: View {
                                     )
 
                                     SettingsInputField(
-                                        title: "Zuletzt aktualisiert",
+                                        title: AppLocalized.text("settings.legal.field.last_updated", fallback: "Last updated"),
                                         text: $legalLastUpdatedLabelDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "z. B. 12. April 2026"
+                                        placeholder: AppLocalized.text("settings.legal.field.last_updated_placeholder", fallback: "e.g. 12 April 2026")
                                     )
 
                                     SettingsMultilineInputField(
-                                        title: "Impressum-Hinweis",
+                                        title: AppLocalized.text("settings.legal.field.imprint_reference", fallback: "Imprint reference"),
                                         text: $legalImprintReferenceDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "Hinweis zur Anbieterkennzeichnung.",
+                                        placeholder: AppLocalized.text("settings.legal.field.imprint_reference_placeholder", fallback: "Notice for legal provider identification."),
                                         minHeight: 94
                                     )
 
                                     SettingsMultilineInputField(
-                                        title: "Meisterzahl 22 - Bedeutung",
+                                        title: AppLocalized.text("settings.legal.field.master_number_meaning", fallback: "Master number 22 - meaning"),
                                         text: $legalMasterNumberMeaningDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "Die Meisterzahl 22 als Master Builder...",
+                                        placeholder: AppLocalized.text("settings.legal.field.master_number_meaning_placeholder", fallback: "Master number 22 as the master builder..."),
                                         minHeight: 100
                                     )
 
                                     SettingsMultilineInputField(
-                                        title: "Wer wir sind (Manifest)",
+                                        title: AppLocalized.text("settings.legal.field.brand_manifesto", fallback: "Who we are (manifest)"),
                                         text: $legalBrandManifestoDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "Dort, wo der Himmel faellt...",
+                                        placeholder: AppLocalized.text("settings.legal.field.brand_manifesto_placeholder", fallback: "Where the sky falls..."),
                                         minHeight: 160
                                     )
 
                                     SettingsInputField(
-                                        title: "Symbolcode (numerisch)",
+                                        title: AppLocalized.text("settings.legal.field.symbolic_numeric_code", fallback: "Symbolic code (numeric)"),
                                         text: $legalSymbolicNumericCodeDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "z. B. 1337-514-731"
+                                        placeholder: AppLocalized.text("settings.legal.field.symbolic_numeric_code_placeholder", fallback: "e.g. 1337-514-731")
                                     )
 
                                     SettingsInputField(
-                                        title: "Leet-Code",
+                                        title: AppLocalized.text("settings.legal.field.symbolic_leet_code", fallback: "Leet code"),
                                         text: $legalSymbolicLeetCodeDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "z. B. 7H3_F4LL_0F_H34/3N"
+                                        placeholder: AppLocalized.text("settings.legal.field.symbolic_leet_code_placeholder", fallback: "e.g. 7H3_F4LL_0F_H34/3N")
                                     )
 
                                     SettingsMultilineInputField(
-                                        title: "Code-Erklaerung",
+                                        title: AppLocalized.text("settings.legal.field.symbolic_code_explanation", fallback: "Code explanation"),
                                         text: $legalSymbolicCodeExplanationDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: "Bedeutung, Zerlegung und Alternativen",
+                                        placeholder: AppLocalized.text("settings.legal.field.symbolic_code_explanation_placeholder", fallback: "Meaning, breakdown, and alternatives"),
                                         minHeight: 140
                                     )
 
@@ -1490,14 +1490,14 @@ struct SettingsView: View {
                 if activeOwnerConsoleArea == .ops {
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button { presentSheet(.adminWorkspace(.payments)) } label: {
-                            Label("Payments", systemImage: "creditcard")
+                            Label(AppLocalized.text("settings.command_nav_payments", fallback: "Payments"), systemImage: "creditcard")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
                         .skydownInteractiveFeedback()
 
                         Button { presentSheet(.adminWorkspace(.shopify)) } label: {
-                            Label("Shopify", systemImage: "bag")
+                            Label(AppLocalized.text("settings.command_nav_shopify", fallback: "Shopify"), systemImage: "bag")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
@@ -1508,7 +1508,7 @@ struct SettingsView: View {
                 if activeOwnerConsoleArea == .aiRuntime {
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button { presentSheet(.adminWorkspace(.aiPrompts)) } label: {
-                            Label("Runtime", systemImage: "sparkles")
+                            Label(AppLocalized.text("settings.command_nav_runtime", fallback: "Runtime"), systemImage: "sparkles")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
@@ -1529,14 +1529,14 @@ struct SettingsView: View {
                 if activeOwnerConsoleArea == .governance {
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
                         Button { presentSheet(.adminWorkspace(.users)) } label: {
-                            Label("Users", systemImage: "person.2")
+                            Label(AppLocalized.text("settings.command_nav_users", fallback: "Users"), systemImage: "person.2")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
                         .skydownInteractiveFeedback()
 
                         Button { presentSheet(.adminWorkspace(.membershipOps)) } label: {
-                            Label("Membership Ops", systemImage: "chart.xyaxis.line")
+                            Label(AppLocalized.text("settings.command_nav_membership_ops", fallback: "Membership ops"), systemImage: "chart.xyaxis.line")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
@@ -2624,21 +2624,27 @@ struct SettingsView: View {
                         .padding(.vertical, 4)
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                        Text("AI Studio FAQ Base (Owner)")
+                        Text(AppLocalized.text("settings.ai_studio.faq_base.title", fallback: "AI Studio FAQ base (Owner)"))
                             .font(.headline)
                             .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                        Text("Nur veroeffentlichte Eintraege gehen in den Bot-Knowledge-Load-Path.")
+                        Text(AppLocalized.text("settings.ai_studio.faq_base.subtitle", fallback: "Only published entries are included in the bot knowledge load path."))
                             .font(.footnote)
                             .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                         HStack(spacing: SkydownLayout.stackSpacingMicro) {
                             SettingsBadge(
-                                text: "Entries \(aiStudioFAQEntriesDraft.count)",
+                                text: String(
+                                    format: AppLocalized.text("settings.ai_studio.faq_base.badge_entries", fallback: "Entries %d"),
+                                    aiStudioFAQEntriesDraft.count
+                                ),
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
-                                text: "Published \(aiStudioFAQEntriesDraft.filter { $0.isPublished }.count)",
+                                text: String(
+                                    format: AppLocalized.text("settings.ai_studio.faq_base.badge_published", fallback: "Published %d"),
+                                    aiStudioFAQEntriesDraft.filter { $0.isPublished }.count
+                                ),
                                 colorScheme: effectiveColorScheme
                             )
                         }
@@ -2647,7 +2653,7 @@ struct SettingsView: View {
                             Button {
                                 appendAIStudioFAQEntry()
                             } label: {
-                                Label("Neu", systemImage: "plus")
+                                Label(AppLocalized.text("settings.ai_studio.faq_base.new", fallback: "New"), systemImage: "plus")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
@@ -2656,7 +2662,7 @@ struct SettingsView: View {
                             Button {
                                 publishAllAIStudioFAQEntries()
                             } label: {
-                                Label("Alle publishen", systemImage: "checkmark.seal")
+                                Label(AppLocalized.text("settings.ai_studio.faq_base.publish_all", fallback: "Publish all"), systemImage: "checkmark.seal")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
@@ -2666,7 +2672,7 @@ struct SettingsView: View {
                             Button {
                                 unpublishAllAIStudioFAQEntries()
                             } label: {
-                                Label("Alle entpublishen", systemImage: "xmark.seal")
+                                Label(AppLocalized.text("settings.ai_studio.faq_base.unpublish_all", fallback: "Unpublish all"), systemImage: "xmark.seal")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
@@ -2676,10 +2682,10 @@ struct SettingsView: View {
 
                         if aiStudioFAQEntriesDraft.isEmpty {
                             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                                Text("Noch keine FAQ-Eintraege.")
+                                Text(AppLocalized.text("settings.ai_studio.faq_base.empty_title", fallback: "No FAQ entries yet."))
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundColor(AppColors.text(for: effectiveColorScheme))
-                                Text("Lege den ersten Eintrag an, schalte ihn auf Published und speichere. Nur dann nutzt der Bot ihn live.")
+                                Text(AppLocalized.text("settings.ai_studio.faq_base.empty_body", fallback: "Create the first entry, set it to Published, and save. Only then does the bot use it live."))
                                     .font(.footnote)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                             }
@@ -2697,7 +2703,9 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                                 HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                     SettingsBadge(
-                                        text: entry.isPublished ? "Published" : "Draft",
+                                        text: entry.isPublished
+                                            ? AppLocalized.text("settings.ai_studio.faq_base.status_published", fallback: "Published")
+                                            : AppLocalized.text("settings.ai_studio.faq_base.status_draft", fallback: "Draft"),
                                         colorScheme: effectiveColorScheme
                                     )
                                     Text(entry.id)
@@ -2707,46 +2715,56 @@ struct SettingsView: View {
                                 }
 
                                 SettingsInputField(
-                                    title: "Frage",
+                                    title: AppLocalized.text("settings.ai_studio.faq_base.field_question", fallback: "Question"),
                                     text: $entry.question,
                                     colorScheme: effectiveColorScheme,
-                                    placeholder: "z. B. Wie upgrade ich auf Creator?"
+                                    placeholder: AppLocalized.text("settings.ai_studio.faq_base.placeholder_question", fallback: "e.g. How do I upgrade to Creator?")
                                 )
-                                Text("\(entry.question.trimmingCharacters(in: .whitespacesAndNewlines).count)/12000")
+                                Text(
+                                    String(
+                                        format: AppLocalized.text("settings.ai_studio.faq_base.char_count", fallback: "%d/12000"),
+                                        entry.question.trimmingCharacters(in: .whitespacesAndNewlines).count
+                                    )
+                                )
                                     .font(.caption2)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                                 SettingsMultilineInputField(
-                                    title: "Antwort",
+                                    title: AppLocalized.text("settings.ai_studio.faq_base.field_answer", fallback: "Answer"),
                                     text: $entry.answer,
                                     colorScheme: effectiveColorScheme,
-                                    placeholder: "Kurze, klare Zielantwort...",
+                                    placeholder: AppLocalized.text("settings.ai_studio.faq_base.placeholder_answer", fallback: "Short, clear target answer…"),
                                     minHeight: 110
                                 )
-                                Text("\(entry.answer.trimmingCharacters(in: .whitespacesAndNewlines).count)/12000")
+                                Text(
+                                    String(
+                                        format: AppLocalized.text("settings.ai_studio.faq_base.char_count", fallback: "%d/12000"),
+                                        entry.answer.trimmingCharacters(in: .whitespacesAndNewlines).count
+                                    )
+                                )
                                     .font(.caption2)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                                 SettingsInputField(
-                                    title: "Tags (comma separated)",
+                                    title: AppLocalized.text("settings.ai_studio.faq_base.field_tags", fallback: "Tags (comma separated)"),
                                     text: Binding(
                                         get: { entry.tags.joined(separator: ", ") },
                                         set: { entry.tags = parseTagDraftList($0) }
                                     ),
                                     colorScheme: effectiveColorScheme,
-                                    placeholder: "membership, restore, abo"
+                                    placeholder: AppLocalized.text("settings.ai_studio.faq_base.placeholder_tags", fallback: "membership, restore, subscription")
                                 )
-                                Text("Bis zu 12 Tags, automatisch normalisiert.")
+                                Text(AppLocalized.text("settings.ai_studio.faq_base.tags_hint", fallback: "Up to 12 tags, normalized automatically."))
                                     .font(.caption2)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
-                                Toggle("Published", isOn: $entry.isPublished)
+                                Toggle(AppLocalized.text("settings.ai_studio.faq_base.toggle_published", fallback: "Published"), isOn: $entry.isPublished)
                                     .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: effectiveColorScheme)))
 
                                 Button(role: .destructive) {
                                     removeAIStudioFAQEntry(entry.id)
                                 } label: {
-                                    Label("Eintrag entfernen", systemImage: "trash")
+                                    Label(AppLocalized.text("settings.ai_studio.faq_base.remove_entry", fallback: "Remove entry"), systemImage: "trash")
                                 }
                                 .buttonStyle(.bordered)
                                 .skydownInteractiveFeedback()
@@ -2763,7 +2781,7 @@ struct SettingsView: View {
                         .animation(SkydownMotion.statusTransition, value: aiStudioFAQEntriesDraft.count)
 
                         Button(action: saveAIStudioFAQEntries) {
-                            Label("FAQ Base speichern", systemImage: "checkmark.seal")
+                            Label(AppLocalized.text("settings.ai_studio.faq_base.save", fallback: "Save FAQ base"), systemImage: "checkmark.seal")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
@@ -2771,7 +2789,15 @@ struct SettingsView: View {
                         .skydownInteractiveFeedback()
 
                         if let storeError = aiFaqKnowledgeStudioStore.lastErrorMessage, !storeError.isEmpty {
-                            Text("FAQ Base konnte nicht geladen werden: \(storeError)")
+                            Text(
+                                String(
+                                    format: AppLocalized.text(
+                                        "settings.ai_studio.faq_base.load_error_format",
+                                        fallback: "FAQ base could not be loaded: %@"
+                                    ),
+                                    storeError
+                                )
+                            )
                                 .font(.footnote)
                                 .foregroundColor(.red)
                         }
@@ -2781,21 +2807,27 @@ struct SettingsView: View {
                         .padding(.vertical, 4)
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                        Text("AI Studio Ideen & Inspiration (Owner)")
+                        Text(AppLocalized.text("settings.ai_studio.owner_inspiration.title", fallback: "AI Studio ideas & inspiration (Owner)"))
                             .font(.headline)
                             .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                        Text("Hier pflegst du kreative Richtungen, Content-Ideen und Style-Impulse. Nur Published-Eintraege gehen live in den Brain-Kontext.")
+                        Text(AppLocalized.text("settings.ai_studio.owner_inspiration.subtitle", fallback: "Maintain creative directions, content ideas, and style impulses here. Only published entries go live into the brain context."))
                             .font(.footnote)
                             .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                         HStack(spacing: SkydownLayout.stackSpacingMicro) {
                             SettingsBadge(
-                                text: "Entries \(aiOwnerInspirationEntriesDraft.count)",
+                                text: String(
+                                    format: AppLocalized.text("settings.ai_studio.owner_inspiration.badge_entries", fallback: "Entries %d"),
+                                    aiOwnerInspirationEntriesDraft.count
+                                ),
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
-                                text: "Published \(aiOwnerInspirationEntriesDraft.filter { $0.isPublished }.count)",
+                                text: String(
+                                    format: AppLocalized.text("settings.ai_studio.owner_inspiration.badge_published", fallback: "Published %d"),
+                                    aiOwnerInspirationEntriesDraft.filter { $0.isPublished }.count
+                                ),
                                 colorScheme: effectiveColorScheme
                             )
                         }
@@ -2804,7 +2836,7 @@ struct SettingsView: View {
                             Button {
                                 appendAIOwnerInspirationEntry()
                             } label: {
-                                Label("Neu", systemImage: "plus")
+                                Label(AppLocalized.text("settings.ai_studio.owner_inspiration.new", fallback: "New"), systemImage: "plus")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
@@ -2813,7 +2845,7 @@ struct SettingsView: View {
                             Button {
                                 publishAllAIOwnerInspirationEntries()
                             } label: {
-                                Label("Alle publishen", systemImage: "checkmark.seal")
+                                Label(AppLocalized.text("settings.ai_studio.owner_inspiration.publish_all", fallback: "Publish all"), systemImage: "checkmark.seal")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
@@ -2823,7 +2855,7 @@ struct SettingsView: View {
                             Button {
                                 unpublishAllAIOwnerInspirationEntries()
                             } label: {
-                                Label("Alle entpublishen", systemImage: "xmark.seal")
+                                Label(AppLocalized.text("settings.ai_studio.owner_inspiration.unpublish_all", fallback: "Unpublish all"), systemImage: "xmark.seal")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
@@ -2835,7 +2867,9 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                                 HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                     SettingsBadge(
-                                        text: entry.isPublished ? "Published" : "Draft",
+                                        text: entry.isPublished
+                                            ? AppLocalized.text("settings.ai_studio.owner_inspiration.status_published", fallback: "Published")
+                                            : AppLocalized.text("settings.ai_studio.owner_inspiration.status_draft", fallback: "Draft"),
                                         colorScheme: effectiveColorScheme
                                     )
                                     Text(entry.id)
@@ -2845,37 +2879,37 @@ struct SettingsView: View {
                                 }
 
                                 SettingsInputField(
-                                    title: "Titel",
+                                    title: AppLocalized.text("settings.ai_studio.owner_inspiration.field_title", fallback: "Title"),
                                     text: $entry.title,
                                     colorScheme: effectiveColorScheme,
-                                    placeholder: "z. B. Drop-Idee: Midnight Street Capsule"
+                                    placeholder: AppLocalized.text("settings.ai_studio.owner_inspiration.placeholder_title", fallback: "e.g. Drop idea: Midnight Street Capsule")
                                 )
 
                                 SettingsMultilineInputField(
-                                    title: "Inspiration / Details",
+                                    title: AppLocalized.text("settings.ai_studio.owner_inspiration.field_details", fallback: "Inspiration / details"),
                                     text: $entry.details,
                                     colorScheme: effectiveColorScheme,
-                                    placeholder: "Stil, Mood, Story, kreative Leitplanken...",
+                                    placeholder: AppLocalized.text("settings.ai_studio.owner_inspiration.placeholder_details", fallback: "Style, mood, story, creative guardrails..."),
                                     minHeight: 110
                                 )
 
                                 SettingsInputField(
-                                    title: "Tags (comma separated)",
+                                    title: AppLocalized.text("settings.ai_studio.owner_inspiration.field_tags", fallback: "Tags (comma separated)"),
                                     text: Binding(
                                         get: { entry.tags.joined(separator: ", ") },
                                         set: { entry.tags = parseTagDraftList($0) }
                                     ),
                                     colorScheme: effectiveColorScheme,
-                                    placeholder: "streetwear, drop, visual-style"
+                                    placeholder: AppLocalized.text("settings.ai_studio.owner_inspiration.placeholder_tags", fallback: "streetwear, drop, visual-style")
                                 )
 
-                                Toggle("Published", isOn: $entry.isPublished)
+                                Toggle(AppLocalized.text("settings.ai_studio.owner_inspiration.toggle_published", fallback: "Published"), isOn: $entry.isPublished)
                                     .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: effectiveColorScheme)))
 
                                 Button(role: .destructive) {
                                     removeAIOwnerInspirationEntry(entry.id)
                                 } label: {
-                                    Label("Eintrag entfernen", systemImage: "trash")
+                                    Label(AppLocalized.text("settings.ai_studio.owner_inspiration.remove_entry", fallback: "Remove entry"), systemImage: "trash")
                                 }
                                 .buttonStyle(.bordered)
                                 .skydownInteractiveFeedback()
@@ -2891,7 +2925,7 @@ struct SettingsView: View {
                         .animation(SkydownMotion.statusTransition, value: aiOwnerInspirationEntriesDraft.count)
 
                         Button(action: saveAIOwnerInspirationEntries) {
-                            Label("Ideen & Inspiration speichern", systemImage: "lightbulb")
+                            Label(AppLocalized.text("settings.ai_studio.owner_inspiration.save", fallback: "Save ideas & inspiration"), systemImage: "lightbulb")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
@@ -2899,25 +2933,33 @@ struct SettingsView: View {
                         .skydownInteractiveFeedback()
 
                         if let storeError = aiOwnerInspirationStudioStore.lastErrorMessage, !storeError.isEmpty {
-                            Text("Ideen & Inspiration konnten nicht geladen werden: \(storeError)")
+                            Text(
+                                String(
+                                    format: AppLocalized.text(
+                                        "settings.ai_studio.owner_inspiration.load_error_format",
+                                        fallback: "Ideas & inspiration could not be loaded: %@"
+                                    ),
+                                    storeError
+                                )
+                            )
                                 .font(.footnote)
                                 .foregroundColor(.red)
                         }
                     }
 
                     SettingsInputField(
-                        title: "Asset- / Referenzbibliothek",
+                        title: AppLocalized.text("settings.ai_studio.asset_library.title", fallback: "Asset / reference library"),
                         text: $aiAssetLibraryLinkDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. https://mega.nz/folder/...",
+                        placeholder: AppLocalized.text("settings.ai_studio.asset_library.placeholder", fallback: "e.g. https://mega.nz/folder/..."),
                         keyboardType: .URL
                     )
 
                     SettingsMultilineInputField(
-                        title: "Asset-Hinweise fuer Bot, Visuals und Agent",
+                        title: AppLocalized.text("settings.ai_studio.asset_notes.title", fallback: "Asset notes for bot, visuals, and agent"),
                         text: $aiAssetReferenceNotesDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Welche Assets, Moodboards oder Ordnerlinks sollen global beruecksichtigt werden?",
+                        placeholder: AppLocalized.text("settings.ai_studio.asset_notes.placeholder", fallback: "Which assets, moodboards, or folder links should be considered globally?"),
                         minHeight: 110
                     )
 
@@ -2974,20 +3016,66 @@ struct SettingsView: View {
                                 .foregroundColor(.red)
                         } else {
                             HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                                SettingsBadge(text: "Strong \(aiFaqOwnerReviewLoopStore.strongestTriggers.count)", colorScheme: effectiveColorScheme)
-                                SettingsBadge(text: "Weak \(aiFaqOwnerReviewLoopStore.weakTriggers.count)", colorScheme: effectiveColorScheme)
-                                SettingsBadge(text: "Useless \(aiFaqOwnerReviewLoopStore.likelyUselessTriggers.count)", colorScheme: effectiveColorScheme)
-                                SettingsBadge(text: "Repeat \(aiFaqOwnerReviewLoopStore.repeatHeavyTopics.count)", colorScheme: effectiveColorScheme)
+                                SettingsBadge(
+                                    text: String(
+                                        format: AppLocalized.text("settings.ai_runtime.badge_strong", fallback: "Strong %d"),
+                                        aiFaqOwnerReviewLoopStore.strongestTriggers.count
+                                    ),
+                                    colorScheme: effectiveColorScheme
+                                )
+                                SettingsBadge(
+                                    text: String(
+                                        format: AppLocalized.text("settings.ai_runtime.badge_weak", fallback: "Weak %d"),
+                                        aiFaqOwnerReviewLoopStore.weakTriggers.count
+                                    ),
+                                    colorScheme: effectiveColorScheme
+                                )
+                                SettingsBadge(
+                                    text: String(
+                                        format: AppLocalized.text("settings.ai_runtime.badge_useless", fallback: "Useless %d"),
+                                        aiFaqOwnerReviewLoopStore.likelyUselessTriggers.count
+                                    ),
+                                    colorScheme: effectiveColorScheme
+                                )
+                                SettingsBadge(
+                                    text: String(
+                                        format: AppLocalized.text("settings.ai_runtime.badge_repeat", fallback: "Repeat %d"),
+                                        aiFaqOwnerReviewLoopStore.repeatHeavyTopics.count
+                                    ),
+                                    colorScheme: effectiveColorScheme
+                                )
                             }
                             .padding(.bottom, 2)
 
                             if let topStrong = aiFaqOwnerReviewLoopStore.strongestTriggers.first {
-                                Text("\(AppLocalized.text("settings.ai_runtime.strongest_trigger_prefix", fallback: "Strongest trigger")): \(topStrong.triggerKey) · Conv \(Int(topStrong.conversionRate * 100))% · Repeat \(Int(topStrong.repeatRate * 100))%")
+                                Text(
+                                    String(
+                                        format: AppLocalized.text(
+                                            "settings.ai_runtime.trigger_detail_format",
+                                            fallback: "%@: %@ · Conv %d%% · Repeat %d%%"
+                                        ),
+                                        AppLocalized.text("settings.ai_runtime.strongest_trigger_prefix", fallback: "Strongest trigger"),
+                                        topStrong.triggerKey,
+                                        Int(topStrong.conversionRate * 100),
+                                        Int(topStrong.repeatRate * 100)
+                                    )
+                                )
                                     .font(.footnote)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                             }
                             if let topWeak = aiFaqOwnerReviewLoopStore.weakTriggers.first {
-                                Text("\(AppLocalized.text("settings.ai_runtime.weak_trigger_prefix", fallback: "Weak trigger")): \(topWeak.triggerKey) · Conv \(Int(topWeak.conversionRate * 100))% · Repeat \(Int(topWeak.repeatRate * 100))%")
+                                Text(
+                                    String(
+                                        format: AppLocalized.text(
+                                            "settings.ai_runtime.trigger_detail_format",
+                                            fallback: "%@: %@ · Conv %d%% · Repeat %d%%"
+                                        ),
+                                        AppLocalized.text("settings.ai_runtime.weak_trigger_prefix", fallback: "Weak trigger"),
+                                        topWeak.triggerKey,
+                                        Int(topWeak.conversionRate * 100),
+                                        Int(topWeak.repeatRate * 100)
+                                    )
+                                )
                                     .font(.footnote)
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
                             }
@@ -3079,27 +3167,42 @@ struct SettingsView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: SkydownLayout.stackSpacingPill) {
                             SettingsBadge(
-                                text: aiBotPromptVersionDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Prompt v?" : aiBotPromptVersionDraft,
+                                text: aiBotPromptVersionDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                    ? AppLocalized.text("settings.ai_runtime.badge_prompt_unknown", fallback: "Prompt v?")
+                                    : aiBotPromptVersionDraft,
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
-                                text: "FAQ \(aiBotFAQModeDraft)",
+                                text: String(
+                                    format: AppLocalized.text("settings.ai_runtime.badge_faq_mode", fallback: "FAQ %@"),
+                                    aiBotFAQModeDraft
+                                ),
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
-                                text: "Qualitaet \(aiBotQualityModeDraft)",
+                                text: String(
+                                    format: AppLocalized.text("settings.ai_runtime.badge_quality_mode", fallback: "Quality %@"),
+                                    aiBotQualityModeDraft
+                                ),
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
-                                text: "Provider \(aiAgentProviderDraft.displayTitle)",
+                                text: String(
+                                    format: AppLocalized.text("settings.ai_runtime.badge_provider", fallback: "Provider %@"),
+                                    aiAgentProviderDraft.displayTitle
+                                ),
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
-                                text: aiCostGuardEnabledDraft ? "Kosten-Guard an" : "Kosten-Guard aus",
+                                text: aiCostGuardEnabledDraft
+                                    ? AppLocalized.text("settings.ai_runtime.badge_cost_guard_on", fallback: "Cost guard on")
+                                    : AppLocalized.text("settings.ai_runtime.badge_cost_guard_off", fallback: "Cost guard off"),
                                 colorScheme: effectiveColorScheme
                             )
                             SettingsBadge(
-                                text: aiManusEnabledDraft ? "Manus aktiv" : "Manus aus",
+                                text: aiManusEnabledDraft
+                                    ? AppLocalized.text("settings.ai_runtime.badge_manus_on", fallback: "Manus on")
+                                    : AppLocalized.text("settings.ai_runtime.badge_manus_off", fallback: "Manus off"),
                                 colorScheme: effectiveColorScheme
                             )
                         }
@@ -3110,29 +3213,32 @@ struct SettingsView: View {
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
                     SettingsInputField(
-                        title: "Prompt Version",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.prompt_version", fallback: "Prompt version"),
                         text: $aiBotPromptVersionDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "bot-max-v1"
                     )
 
                     SettingsInputField(
-                        title: "AI Personality Stil",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.personality_style", fallback: "AI personality style"),
                         text: $aiBotPersonalityStyleDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "z. B. calm_precise"
+                        placeholder: AppLocalized.text("settings.ai_runtime.bot_field.personality_style_placeholder", fallback: "e.g. calm_precise")
                     )
 
                     SettingsInputField(
-                        title: "Logging Level",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.logging_level", fallback: "Logging level"),
                         text: $aiBotLoggingLevelDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "standard / verbose"
+                        placeholder: AppLocalized.text("settings.ai_runtime.bot_field.logging_level_placeholder", fallback: "standard / verbose")
                     )
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                        SettingsFieldTitle(title: "Quality Mode", colorScheme: effectiveColorScheme)
-                        Picker("Quality Mode", selection: $aiBotQualityModeDraft) {
+                        SettingsFieldTitle(
+                            title: AppLocalized.text("settings.ai_runtime.bot_picker.quality_mode", fallback: "Quality mode"),
+                            colorScheme: effectiveColorScheme
+                        )
+                        Picker(AppLocalized.text("settings.ai_runtime.bot_picker.quality_mode", fallback: "Quality mode"), selection: $aiBotQualityModeDraft) {
                             Text(AppLocalized.text("common.balanced", fallback: "Balanced")).tag("balanced")
                             Text(AppLocalized.text("common.high", fallback: "High")).tag("high")
                         }
@@ -3140,8 +3246,11 @@ struct SettingsView: View {
                     }
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                        SettingsFieldTitle(title: "FAQ Mode", colorScheme: effectiveColorScheme)
-                        Picker("FAQ Mode", selection: $aiBotFAQModeDraft) {
+                        SettingsFieldTitle(
+                            title: AppLocalized.text("settings.ai_runtime.bot_picker.faq_mode", fallback: "FAQ mode"),
+                            colorScheme: effectiveColorScheme
+                        )
+                        Picker(AppLocalized.text("settings.ai_runtime.bot_picker.faq_mode", fallback: "FAQ mode"), selection: $aiBotFAQModeDraft) {
                             Text(AppLocalized.text("common.off", fallback: "Off")).tag("off")
                             Text(AppLocalized.text("common.auto", fallback: "Auto")).tag("auto")
                             Text(AppLocalized.text("common.prefer", fallback: "Prefer")).tag("prefer_faq")
@@ -3150,8 +3259,11 @@ struct SettingsView: View {
                     }
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                        SettingsFieldTitle(title: "Owner Mode", colorScheme: effectiveColorScheme)
-                        Picker("Owner Mode", selection: $aiBotOwnerModeDraft) {
+                        SettingsFieldTitle(
+                            title: AppLocalized.text("settings.ai_runtime.bot_picker.owner_mode", fallback: "Owner mode"),
+                            colorScheme: effectiveColorScheme
+                        )
+                        Picker(AppLocalized.text("settings.ai_runtime.bot_picker.owner_mode", fallback: "Owner mode"), selection: $aiBotOwnerModeDraft) {
                             Text(AppLocalized.text("common.standard", fallback: "Standard")).tag("standard")
                             Text(AppLocalized.text("common.diagnostic", fallback: "Diagnostic")).tag("diagnostic")
                         }
@@ -3159,8 +3271,11 @@ struct SettingsView: View {
                     }
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                        SettingsFieldTitle(title: "Antwortlaenge", colorScheme: effectiveColorScheme)
-                        Picker("Antwortlaenge", selection: $aiBotAnswerLengthDraft) {
+                        SettingsFieldTitle(
+                            title: AppLocalized.text("settings.ai_runtime.bot_picker.answer_length", fallback: "Answer length"),
+                            colorScheme: effectiveColorScheme
+                        )
+                        Picker(AppLocalized.text("settings.ai_runtime.bot_picker.answer_length", fallback: "Answer length"), selection: $aiBotAnswerLengthDraft) {
                             Text(AppLocalized.text("common.adaptive", fallback: "Adaptive")).tag("adaptive")
                             Text(AppLocalized.text("common.short", fallback: "Short")).tag("short")
                             Text(AppLocalized.text("common.detailed", fallback: "Detailed")).tag("detailed")
@@ -3169,8 +3284,11 @@ struct SettingsView: View {
                     }
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                        SettingsFieldTitle(title: "Diagnostics", colorScheme: effectiveColorScheme)
-                        Picker("Diagnostics", selection: $aiBotDiagnosticsModeDraft) {
+                        SettingsFieldTitle(
+                            title: AppLocalized.text("settings.ai_runtime.bot_picker.diagnostics", fallback: "Diagnostics"),
+                            colorScheme: effectiveColorScheme
+                        )
+                        Picker(AppLocalized.text("settings.ai_runtime.bot_picker.diagnostics", fallback: "Diagnostics"), selection: $aiBotDiagnosticsModeDraft) {
                             Text(AppLocalized.text("common.off", fallback: "Off")).tag("off")
                             Text(AppLocalized.text("common.owner", fallback: "Owner")).tag("owner_only")
                             Text(AppLocalized.text("common.verbose", fallback: "Verbose")).tag("verbose")
@@ -3178,27 +3296,27 @@ struct SettingsView: View {
                         .pickerStyle(.segmented)
                     }
 
-                    Toggle("Kill Switch aktiv", isOn: $aiBotKillSwitchDraft)
-                    Toggle("Bot Cost Guard aktiv", isOn: $aiBotCostGuardEnabledDraft)
-                    Toggle("Kurze Antworten bei Critical Guard", isOn: $aiBotPreferBriefCriticalDraft)
-                    Toggle("FAQ priorisieren bei Topic-Match", isOn: $aiBotPreferFaqRoutingDraft)
-                    Toggle("Produkt-Guide fuer neue Nutzer bevorzugen", isOn: $aiBotPreferProductGuideDraft)
-                    Toggle("Visual-Generierung erlauben", isOn: $aiBotAllowVisualGenerationDraft)
-                    Toggle("Text-Fallback erlauben", isOn: $aiBotAllowTextFallbackDraft)
-                    Toggle("Visual-Fallback erlauben", isOn: $aiBotAllowVisualFallbackDraft)
-                    Toggle("Fallback-Grund anzeigen", isOn: $aiBotExposeFallbackReasonDraft)
-                    Toggle("Safe Mode aktiv", isOn: $aiBotSafeModeEnabledDraft)
-                    Toggle("Strenges Unknown-Handling", isOn: $aiBotStrictUnknownHandlingDraft)
-                    Toggle("Spekulative FAQ blocken", isOn: $aiBotBlockSpeculativeFAQDraft)
-                    Toggle("Proaktive Hinweise aktiv", isOn: $aiBotProactiveHintsEnabledDraft)
-                    Toggle("Trigger: AI-Limit fast erreicht", isOn: $aiBotTriggerAiLimitNearEnabledDraft)
-                    Toggle("Trigger: Restore verfuegbar", isOn: $aiBotTriggerRestoreAvailableEnabledDraft)
-                    Toggle("Trigger: Bestellung versendet", isOn: $aiBotTriggerOrderShippedEnabledDraft)
-                    Toggle("Trigger: Payment-Methode geaendert", isOn: $aiBotTriggerPaymentMethodsChangedEnabledDraft)
-                    Toggle("Trigger: Upgrade nach Nutzung", isOn: $aiBotTriggerUsageBasedUpgradeEnabledDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.kill_switch", fallback: "Kill switch enabled"), isOn: $aiBotKillSwitchDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.bot_cost_guard", fallback: "Bot cost guard enabled"), isOn: $aiBotCostGuardEnabledDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.prefer_brief_critical", fallback: "Short answers for critical guard"), isOn: $aiBotPreferBriefCriticalDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.prefer_faq_routing", fallback: "Prioritize FAQ on topic match"), isOn: $aiBotPreferFaqRoutingDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.prefer_product_guide", fallback: "Prefer product guide for new users"), isOn: $aiBotPreferProductGuideDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.allow_visual_generation", fallback: "Allow visual generation"), isOn: $aiBotAllowVisualGenerationDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.allow_text_fallback", fallback: "Allow text fallback"), isOn: $aiBotAllowTextFallbackDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.allow_visual_fallback", fallback: "Allow visual fallback"), isOn: $aiBotAllowVisualFallbackDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.expose_fallback_reason", fallback: "Show fallback reason"), isOn: $aiBotExposeFallbackReasonDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.safe_mode_enabled", fallback: "Safe mode enabled"), isOn: $aiBotSafeModeEnabledDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.strict_unknown_handling", fallback: "Strict unknown handling"), isOn: $aiBotStrictUnknownHandlingDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.block_speculative_faq", fallback: "Block speculative FAQ"), isOn: $aiBotBlockSpeculativeFAQDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.proactive_hints_enabled", fallback: "Proactive hints enabled"), isOn: $aiBotProactiveHintsEnabledDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.trigger_ai_limit_near", fallback: "Trigger: AI limit nearly reached"), isOn: $aiBotTriggerAiLimitNearEnabledDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.trigger_restore_available", fallback: "Trigger: restore available"), isOn: $aiBotTriggerRestoreAvailableEnabledDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.trigger_order_shipped", fallback: "Trigger: order shipped"), isOn: $aiBotTriggerOrderShippedEnabledDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.trigger_payment_methods_changed", fallback: "Trigger: payment method changed"), isOn: $aiBotTriggerPaymentMethodsChangedEnabledDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.trigger_usage_based_upgrade", fallback: "Trigger: usage-based upgrade"), isOn: $aiBotTriggerUsageBasedUpgradeEnabledDraft)
 
                     SettingsInputField(
-                        title: "Proaktiv Warning Threshold (%)",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.warning_threshold", fallback: "Proactive warning threshold (%)"),
                         text: $aiBotWarningThresholdPercentDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "70",
@@ -3206,7 +3324,7 @@ struct SettingsView: View {
                     )
 
                     SettingsInputField(
-                        title: "Proaktiv Critical Threshold (%)",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.critical_threshold", fallback: "Proactive critical threshold (%)"),
                         text: $aiBotCriticalThresholdPercentDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "90",
@@ -3214,29 +3332,32 @@ struct SettingsView: View {
                     )
 
                     SettingsInputField(
-                        title: "Upgrade Hint Free -> Pro",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.upgrade_hint_free_to_pro", fallback: "Upgrade hint Free -> Pro"),
                         text: $aiBotUpgradeHintFreeToProTextDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Hint bei hoher Free-Nutzung"
+                        placeholder: AppLocalized.text("settings.ai_runtime.bot_field.upgrade_hint_free_to_pro_placeholder", fallback: "Hint for high Free usage")
                     )
 
                     SettingsInputField(
-                        title: "Upgrade Hint Pro -> Creator",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.upgrade_hint_pro_to_creator", fallback: "Upgrade hint Pro -> Creator"),
                         text: $aiBotUpgradeHintProToCreatorTextDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Hint bei hoher Pro-Nutzung"
+                        placeholder: AppLocalized.text("settings.ai_runtime.bot_field.upgrade_hint_pro_to_creator_placeholder", fallback: "Hint for high Pro usage")
                     )
 
                     SettingsInputField(
-                        title: "Prompt Version Alias",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.prompt_version_alias", fallback: "Prompt version alias"),
                         text: $aiBotPromptVersionAliasDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "bot-max-v1"
                     )
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                        SettingsFieldTitle(title: "FAQ Prioritaet", colorScheme: effectiveColorScheme)
-                        Picker("FAQ Prioritaet", selection: $aiBotFaqPriorityModeDraft) {
+                        SettingsFieldTitle(
+                            title: AppLocalized.text("settings.ai_runtime.bot_picker.faq_priority", fallback: "FAQ priority"),
+                            colorScheme: effectiveColorScheme
+                        )
+                        Picker(AppLocalized.text("settings.ai_runtime.bot_picker.faq_priority", fallback: "FAQ priority"), selection: $aiBotFaqPriorityModeDraft) {
                             Text(AppLocalized.text("settings.ai_runtime.faq_priority_live_owner", fallback: "Live -> Owner -> Generic")).tag("live_owner_generic")
                             Text(AppLocalized.text("settings.ai_runtime.faq_priority_owner_live", fallback: "Owner -> Live -> Generic")).tag("owner_live_generic")
                             Text(AppLocalized.text("common.balanced", fallback: "Balanced")).tag("balanced")
@@ -3245,35 +3366,35 @@ struct SettingsView: View {
                     }
 
                     SettingsInputField(
-                        title: "Text Primary Model",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.text_primary_model", fallback: "Text primary model"),
                         text: $aiBotTextPrimaryModelDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "gemini-2.5-flash-lite"
                     )
 
                     SettingsInputField(
-                        title: "Text Fallback Model",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.text_fallback_model", fallback: "Text fallback model"),
                         text: $aiBotTextFallbackModelDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "gemini-2.5-flash-lite"
                     )
 
                     SettingsInputField(
-                        title: "Visual Primary Model",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.visual_primary_model", fallback: "Visual primary model"),
                         text: $aiBotVisualPrimaryModelDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "gemini-2.5-flash-image"
                     )
 
                     SettingsInputField(
-                        title: "Visual Fallback Model",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.visual_fallback_model", fallback: "Visual fallback model"),
                         text: $aiBotVisualFallbackModelDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "imagen-3.0-generate-002"
                     )
 
                     SettingsInputField(
-                        title: "Short Answer Max Tokens",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.short_answer_max_tokens", fallback: "Short answer max tokens"),
                         text: $aiBotShortAnswerMaxTokensDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "240",
@@ -3281,7 +3402,7 @@ struct SettingsView: View {
                     )
 
                     SettingsInputField(
-                        title: "Standard Answer Max Tokens",
+                        title: AppLocalized.text("settings.ai_runtime.bot_field.standard_answer_max_tokens", fallback: "Standard answer max tokens"),
                         text: $aiBotStandardAnswerMaxTokensDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "768",
@@ -3291,11 +3412,14 @@ struct SettingsView: View {
                     Divider()
                         .padding(.vertical, 4)
 
-                    Toggle("Kosten-Guard aktiv", isOn: $aiCostGuardEnabledDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.toggle_cost_guard", fallback: "Cost guard enabled"), isOn: $aiCostGuardEnabledDraft)
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                        SettingsFieldTitle(title: "Agent Provider", colorScheme: effectiveColorScheme)
-                        Picker("Agent Provider", selection: $aiAgentProviderDraft) {
+                        SettingsFieldTitle(
+                            title: AppLocalized.text("settings.ai_runtime.field.agent_provider", fallback: "Agent provider"),
+                            colorScheme: effectiveColorScheme
+                        )
+                        Picker(AppLocalized.text("settings.ai_runtime.field.agent_provider", fallback: "Agent provider"), selection: $aiAgentProviderDraft) {
                             ForEach(AIRuntimeAgentProvider.allCases, id: \.self) { provider in
                                 Text(provider.displayTitle).tag(provider)
                             }
@@ -3304,8 +3428,11 @@ struct SettingsView: View {
                     }
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                        SettingsFieldTitle(title: "Fallback Provider", colorScheme: effectiveColorScheme)
-                        Picker("Fallback Provider", selection: $aiFallbackAgentProviderDraft) {
+                        SettingsFieldTitle(
+                            title: AppLocalized.text("settings.ai_runtime.field.fallback_provider", fallback: "Fallback provider"),
+                            colorScheme: effectiveColorScheme
+                        )
+                        Picker(AppLocalized.text("settings.ai_runtime.field.fallback_provider", fallback: "Fallback provider"), selection: $aiFallbackAgentProviderDraft) {
                             ForEach(AIRuntimeAgentProvider.allCases, id: \.self) { provider in
                                 Text(provider.displayTitle).tag(provider)
                             }
@@ -3313,7 +3440,7 @@ struct SettingsView: View {
                         .pickerStyle(.segmented)
                     }
 
-                    Toggle("Manus freigeben", isOn: $aiManusEnabledDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.toggle_manus_enabled", fallback: "Enable Manus"), isOn: $aiManusEnabledDraft)
 
                     Text(AppLocalized.text("settings.ai_runtime.manus_heading", fallback: "Manus runtime (adminConfig/aiRuntime.manus)"))
                         .font(.subheadline.weight(.semibold))
@@ -3324,76 +3451,76 @@ struct SettingsView: View {
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                     SettingsInputField(
-                        title: "Request Timeout (ms)",
+                        title: AppLocalized.text("settings.ai_runtime.manus.request_timeout_ms", fallback: "Request timeout (ms)"),
                         text: $aiManusRequestTimeoutMsDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "12000",
                         keyboardType: .numberPad
                     )
                     SettingsInputField(
-                        title: "Poll Interval (ms)",
+                        title: AppLocalized.text("settings.ai_runtime.manus.poll_interval_ms", fallback: "Poll interval (ms)"),
                         text: $aiManusPollIntervalMsDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "1500",
                         keyboardType: .numberPad
                     )
                     SettingsInputField(
-                        title: "Max Poll Attempts",
+                        title: AppLocalized.text("settings.ai_runtime.manus.max_poll_attempts", fallback: "Max poll attempts"),
                         text: $aiManusMaxPollAttemptsDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "18",
                         keyboardType: .numberPad
                     )
                     SettingsInputField(
-                        title: "List Messages Limit",
+                        title: AppLocalized.text("settings.ai_runtime.manus.list_messages_limit", fallback: "List messages limit"),
                         text: $aiManusListMessagesLimitDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "30",
                         keyboardType: .numberPad
                     )
                     SettingsInputField(
-                        title: "Max Prompt Chars",
+                        title: AppLocalized.text("settings.ai_runtime.manus.max_prompt_chars", fallback: "Max prompt chars"),
                         text: $aiManusMaxPromptCharsDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "2400",
                         keyboardType: .numberPad
                     )
                     SettingsInputField(
-                        title: "Max History Turns",
+                        title: AppLocalized.text("settings.ai_runtime.manus.max_history_turns", fallback: "Max history turns"),
                         text: $aiManusMaxHistoryTurnsDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "12",
                         keyboardType: .numberPad
                     )
 
-                    Toggle("Auto Stop bei Waiting-Event", isOn: $aiManusAutoStopOnWaitingDraft)
-                    Toggle("High-Credit Events blocken", isOn: $aiManusBlockHighCreditEventsDraft)
-                    Toggle("Verbose Events einblenden", isOn: $aiManusIncludeVerboseEventsDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.manus.toggle_auto_stop_waiting", fallback: "Auto-stop on waiting event"), isOn: $aiManusAutoStopOnWaitingDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.manus.toggle_block_high_credit", fallback: "Block high-credit events"), isOn: $aiManusBlockHighCreditEventsDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.manus.toggle_include_verbose", fallback: "Include verbose events"), isOn: $aiManusIncludeVerboseEventsDraft)
 
                     Divider()
                         .padding(.vertical, 4)
 
-                    Text("Knowledge / Google Drive (adminConfig/aiRuntime.knowledge.googleDrive)")
+                    Text(AppLocalized.text("settings.ai_runtime.knowledge.heading", fallback: "Knowledge / Google Drive (adminConfig/aiRuntime.knowledge.googleDrive)"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
-                    Toggle("Google Drive Knowledge aktiv", isOn: $aiKnowledgeGoogleDriveEnabledDraft)
-                    Toggle("Strict Source Mode", isOn: $aiKnowledgeGoogleDriveStrictSourceModeDraft)
-                    Toggle("Source Citations erzwingen", isOn: $aiKnowledgeGoogleDriveRequireSourceCitationsDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.knowledge.toggle_enabled", fallback: "Google Drive knowledge enabled"), isOn: $aiKnowledgeGoogleDriveEnabledDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.knowledge.toggle_strict_source_mode", fallback: "Strict source mode"), isOn: $aiKnowledgeGoogleDriveStrictSourceModeDraft)
+                    Toggle(AppLocalized.text("settings.ai_runtime.knowledge.toggle_require_citations", fallback: "Require source citations"), isOn: $aiKnowledgeGoogleDriveRequireSourceCitationsDraft)
 
                     SettingsMultilineInputField(
-                        title: "Allowed Shared Drive IDs",
+                        title: AppLocalized.text("settings.ai_runtime.knowledge.allowed_shared_drive_ids", fallback: "Allowed shared drive IDs"),
                         text: $aiKnowledgeGoogleDriveAllowedSharedDriveIdsDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Eine ID pro Zeile oder komma-separiert.",
+                        placeholder: AppLocalized.text("settings.ai_runtime.knowledge.ids_placeholder", fallback: "One ID per line or comma-separated."),
                         minHeight: 100
                     )
 
                     SettingsMultilineInputField(
-                        title: "Allowed Folder IDs",
+                        title: AppLocalized.text("settings.ai_runtime.knowledge.allowed_folder_ids", fallback: "Allowed folder IDs"),
                         text: $aiKnowledgeGoogleDriveAllowedFolderIdsDraft,
                         colorScheme: effectiveColorScheme,
-                        placeholder: "Eine ID pro Zeile oder komma-separiert.",
+                        placeholder: AppLocalized.text("settings.ai_runtime.knowledge.ids_placeholder", fallback: "One ID per line or comma-separated."),
                         minHeight: 100
                     )
 
@@ -3401,21 +3528,21 @@ struct SettingsView: View {
                         .padding(.vertical, 4)
 
                     SettingsInputField(
-                        title: "Hard Cap Text / Tag",
+                        title: AppLocalized.text("settings.ai_runtime.limits.hard_text", fallback: "Hard cap text / tag"),
                         text: $aiHardTextLimitDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "120",
                         keyboardType: .numberPad
                     )
                     SettingsInputField(
-                        title: "Hard Cap Visual / Tag",
+                        title: AppLocalized.text("settings.ai_runtime.limits.hard_visual", fallback: "Hard cap visual / tag"),
                         text: $aiHardVisualLimitDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "20",
                         keyboardType: .numberPad
                     )
                     SettingsInputField(
-                        title: "Hard Cap Agent / Tag",
+                        title: AppLocalized.text("settings.ai_runtime.limits.hard_agent", fallback: "Hard cap agent / tag"),
                         text: $aiHardAgentLimitDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "40",
@@ -3423,21 +3550,21 @@ struct SettingsView: View {
                     )
 
                     SettingsInputField(
-                        title: "Global Cap Text / Tag",
+                        title: AppLocalized.text("settings.ai_runtime.limits.global_text", fallback: "Global cap text / tag"),
                         text: $aiGlobalTextLimitDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "1500",
                         keyboardType: .numberPad
                     )
                     SettingsInputField(
-                        title: "Global Cap Visual / Tag",
+                        title: AppLocalized.text("settings.ai_runtime.limits.global_visual", fallback: "Global cap visual / tag"),
                         text: $aiGlobalVisualLimitDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "180",
                         keyboardType: .numberPad
                     )
                     SettingsInputField(
-                        title: "Global Cap Agent / Tag",
+                        title: AppLocalized.text("settings.ai_runtime.limits.global_agent", fallback: "Global cap agent / tag"),
                         text: $aiGlobalAgentLimitDraft,
                         colorScheme: effectiveColorScheme,
                         placeholder: "350",

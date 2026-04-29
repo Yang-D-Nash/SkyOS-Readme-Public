@@ -61,6 +61,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Checkbox
@@ -104,6 +105,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -430,7 +432,11 @@ fun AgentScreen(
                         }
 
                         item {
-                            Spacer(modifier = Modifier.height(78.dp))
+                            Spacer(
+                                modifier = Modifier.height(
+                                    if (uiState.messages.isNotEmpty()) 200.dp else 78.dp,
+                                ),
+                            )
                         }
                     }
                 }
@@ -477,6 +483,32 @@ fun AgentScreen(
                 }
             }
 
+            if (uiState.isAgentEnabled && uiState.messages.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .zIndex(2f)
+                        .widthIn(max = contentMaxWidth)
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(horizontal = SkydownUiTokens.screenHorizontalPadding)
+                        .padding(bottom = 78.dp),
+                ) {
+                    val canSend = viewModel.canSendAgentMessage()
+                    AgentThreadFollowUpBar(
+                        draft = uiState.draft,
+                        isWorking = uiState.agentPhase.shouldBlockComposerChrome,
+                        canSend = canSend,
+                        onDraftChanged = viewModel::updateDraft,
+                        onOpenFullComposer = { showPromptComposer = true },
+                        onSend = {
+                            viewModel.sendDraft(emptyList())
+                            dismissKeyboard()
+                        },
+                    )
+                }
+            }
+
             ToastHost(
                 message = localFeedbackMessage ?: uiState.successMessage ?: uiState.errorMessage,
                 type = when {
@@ -486,11 +518,18 @@ fun AgentScreen(
                 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = if (uiState.isAgentEnabled) {
-                        if (compactLayout) 64.dp else 76.dp
-                    } else {
-                        28.dp
-                    }),
+                    .zIndex(3f)
+                    .padding(
+                        bottom = if (uiState.isAgentEnabled) {
+                            if (uiState.messages.isNotEmpty()) {
+                                if (compactLayout) 132.dp else 144.dp
+                            } else {
+                                if (compactLayout) 64.dp else 76.dp
+                            }
+                        } else {
+                            28.dp
+                        },
+                    ),
             )
 
             if (showPromptComposer) {
@@ -566,7 +605,6 @@ fun AgentScreen(
                                 viewModel.sendDraft(encoded)
                                 inputAttachments = emptyList()
                                 dismissKeyboard()
-                                showPromptComposer = false
                             }
                         },
                     )
@@ -1480,6 +1518,77 @@ private fun AgentDisabledCard() {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
+    }
+}
+
+/**
+ * Parity with iOS [AgentThreadFollowUpBar]: schnell im Thread weitermachen ohne nur das volle Sheet.
+ */
+@Composable
+private fun AgentThreadFollowUpBar(
+    draft: String,
+    isWorking: Boolean,
+    canSend: Boolean,
+    onDraftChanged: (String) -> Unit,
+    onOpenFullComposer: () -> Unit,
+    onSend: () -> Unit,
+) {
+    val mystic = MaterialTheme.colorScheme.skydownAccentMystic()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedTextField(
+            value = draft,
+            onValueChange = onDraftChanged,
+            enabled = !isWorking,
+            modifier = Modifier
+                .weight(1f)
+                .testTag("agent.thread.followup.field"),
+            placeholder = {
+                Text(
+                    text = stringResource(R.string.agent_thread_followup_placeholder),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                )
+            },
+            minLines = 1,
+            maxLines = 4,
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = mystic.copy(alpha = 0.4f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+            ),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(
+                onSend = {
+                    if (canSend && !isWorking) onSend()
+                },
+            ),
+        )
+        IconButton(
+            onClick = onOpenFullComposer,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Settings,
+                contentDescription = stringResource(R.string.agent_thread_open_full_composer_a11y),
+                tint = mystic,
+            )
+        }
+        IconButton(
+            onClick = onSend,
+            enabled = canSend && !isWorking,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Send,
+                contentDescription = stringResource(R.string.agent_thread_send_a11y),
+                tint = if (canSend && !isWorking) {
+                    mystic
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                },
+            )
+        }
     }
 }
 
@@ -2431,7 +2540,7 @@ private fun AgentMessageBubble(
                                 onClick = { onOpenHomeProductivity(homeTarget) },
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                             ) {
-                                Text("In Home öffnen")
+                                Text(stringResource(R.string.agent_bubble_open_in_home))
                             }
                         }
                     }

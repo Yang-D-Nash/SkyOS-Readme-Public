@@ -118,7 +118,7 @@ struct EditableImageField: View {
             }
 
             if !imageURL.isEmpty {
-                Button("Bild entfernen", role: .destructive) {
+                Button(AppLocalized.text("media.remove_image", fallback: "Remove image"), role: .destructive) {
                     if let onRemoveImage {
                         onRemoveImage()
                     } else {
@@ -137,7 +137,7 @@ struct EditableImageField: View {
             Image(systemName: "photo")
                 .font(.system(size: 28, weight: .semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
-            Text("Bild waehlen")
+            Text(AppLocalized.text("media.choose_image", fallback: "Choose image"))
                 .font(.footnote.weight(.semibold))
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
         }

@@ -98,7 +98,7 @@ struct EditableVideoField: View {
             .accessibilityIdentifier(accessibilityIDPrefix.map { "\($0).pick" } ?? "")
 
             if videoURL.trimmedNilIfEmpty != nil {
-                Button("Video entfernen", role: .destructive) {
+                Button(AppLocalized.text("media.remove_video", fallback: "Remove video"), role: .destructive) {
                     if let onRemoveVideo {
                         onRemoveVideo()
                     } else {

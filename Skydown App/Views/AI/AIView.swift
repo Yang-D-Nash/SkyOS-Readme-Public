@@ -59,7 +59,7 @@ struct AIView: View {
         }
         .sheet(isPresented: $showingConversationSessions) {
             AIConversationSessionsSheet(
-                title: "Chats",
+                title: AppLocalized.text("ai.sessions.list_title", fallback: "Chats"),
                 accent: AppColors.accent(for: colorScheme),
                 colorScheme: colorScheme,
                 sessions: viewModel.sessions,
@@ -81,15 +81,15 @@ struct AIView: View {
             .presentationDragIndicator(.visible)
         }
         .confirmationDialog(
-            "Aktiven Chat loeschen?",
+            AppLocalized.text("agent.delete_chat.title", fallback: "Delete active chat?"),
             isPresented: $showingDeleteConversationDialog,
             titleVisibility: .visible
         ) {
-            Button("Loeschen", role: .destructive) {
+            Button(AppLocalized.text("agent.delete_chat.confirm", fallback: "Delete"), role: .destructive) {
                 viewModel.deleteActiveConversation()
                 showingConversationSessions = false
             }
-            Button("Abbrechen", role: .cancel) { }
+            Button(AppLocalized.text("common.cancel", fallback: "Cancel"), role: .cancel) { }
         }
         .task(id: sessionObservationKey) {
             viewModel.configureUser(user: authManager.userSession)
@@ -270,23 +270,32 @@ struct AIView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: SkydownLayout.stackSpacingPill) {
                 AISessionSignalCard(
-                    title: "Mode",
+                    title: AppLocalized.text("ai.session.signal.mode", fallback: "Mode"),
                     value: viewModel.composerMode.title,
-                    detail: viewModel.composerMode == .visual ? "Bild-Generierung" : "Text-Produktion",
+                    detail: viewModel.composerMode == .visual
+                        ? AppLocalized.text("ai.session.signal.mode_detail_visual", fallback: "Image generation")
+                        : AppLocalized.text("ai.session.signal.mode_detail_text", fallback: "Text generation"),
                     accent: AppColors.accent(for: colorScheme),
                     colorScheme: colorScheme
                 )
                 AISessionSignalCard(
-                    title: "Focus",
+                    title: AppLocalized.text("ai.session.signal.focus", fallback: "Focus"),
                     value: viewModel.composerMode == .visual ? "Cinematic" : viewModel.textMode.title,
-                    detail: viewModel.composerMode == .visual ? "Prompt -> Visual" : "Textmodus direkt steuerbar",
+                    detail: viewModel.composerMode == .visual
+                        ? AppLocalized.text("ai.session.signal.focus_detail_visual", fallback: "Prompt → visual")
+                        : AppLocalized.text("ai.session.signal.focus_detail_text", fallback: "Tone mode direct control"),
                     accent: AppColors.accentMystic(for: colorScheme),
                     colorScheme: colorScheme
                 )
                 AISessionSignalCard(
-                    title: "Memory",
-                    value: viewModel.messages.isEmpty ? "Neu" : "\(viewModel.messages.count) Steps",
-                    detail: "Verlauf bleibt pro Konto aktiv",
+                    title: AppLocalized.text("ai.session.signal.memory", fallback: "Memory"),
+                    value: viewModel.messages.isEmpty
+                        ? AppLocalized.text("ai.sessions.status.new", fallback: "New")
+                        : String(
+                            format: AppLocalized.text("ai.session.signal.memory_steps", fallback: "%d steps"),
+                            viewModel.messages.count
+                        ),
+                    detail: AppLocalized.text("ai.session.signal.memory_detail", fallback: "History stays active per account"),
                     accent: AppColors.spotify(for: colorScheme),
                     colorScheme: colorScheme
                 )
@@ -301,12 +310,6 @@ struct AIView: View {
         withAnimation(SkydownMotion.sheetPresentation) {
             showingPromptComposer = true
         }
-    }
-}
-
-private extension AIView {
-    func l(_ key: String, _ fallback: String) -> String {
-        AppLocalized.text(key, fallback: fallback)
     }
 }
 
@@ -410,22 +413,22 @@ private struct AIDecisionTransparencyCard: View {
     private var stateLabel: String {
         switch decision.state {
         case "faq_answer":
-            return "FAQ"
+            return AppLocalized.text("ai.decision.state.faq_answer", fallback: "FAQ")
         case "degraded":
-            return "Degraded"
+            return AppLocalized.text("ai.decision.state.degraded", fallback: "Degraded")
         case "blocked":
-            return "Blocked"
+            return AppLocalized.text("ai.decision.state.blocked", fallback: "Blocked")
         case "retryable":
-            return "Retry"
+            return AppLocalized.text("ai.decision.state.retryable", fallback: "Retry")
         default:
-            return "Live"
+            return AppLocalized.text("ai.decision.state.default", fallback: "Live")
         }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
             HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                Text("Why")
+                Text(AppLocalized.text("ai.decision.badge.why", fallback: "Why"))
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.accentMystic(for: colorScheme))
                     .padding(.horizontal, 8)
@@ -446,36 +449,40 @@ private struct AIDecisionTransparencyCard: View {
                 Spacer(minLength: 0)
             }
 
-            Text(decision.summary.isEmpty ? "Antwortpfad dokumentiert." : decision.summary)
+            Text(
+                decision.summary.isEmpty
+                    ? AppLocalized.text("ai.decision.summary.placeholder", fallback: "Answer path documented.")
+                    : decision.summary
+            )
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
 
             if !decision.topic.isEmpty {
-                Text("Topic: \(decision.topic)")
+                Text(String(format: AppLocalized.text("ai.decision.topic_format", fallback: "Topic: %@"), decision.topic))
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
             if decision.fallbackActivated && !decision.fallbackReason.isEmpty {
-                Text("Fallback: \(decision.fallbackReason)")
+                Text(String(format: AppLocalized.text("ai.decision.fallback_format", fallback: "Fallback: %@"), decision.fallbackReason))
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
             if decision.responseLimited && !decision.responseLimitReason.isEmpty {
-                Text("Limit: \(decision.responseLimitReason)")
+                Text(String(format: AppLocalized.text("ai.decision.limit_format", fallback: "Limit: %@"), decision.responseLimitReason))
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
             if decision.blocked && !decision.blockReason.isEmpty {
-                Text("Block: \(decision.blockReason)")
+                Text(String(format: AppLocalized.text("ai.decision.block_format", fallback: "Block: %@"), decision.blockReason))
                     .font(.caption)
                     .foregroundColor(.red)
             }
 
             if decision.retryable && !decision.retryReason.isEmpty {
-                Text("Retry: \(decision.retryReason)")
+                Text(String(format: AppLocalized.text("ai.decision.retry_format", fallback: "Retry: %@"), decision.retryReason))
                     .font(.caption)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
@@ -606,7 +613,7 @@ private extension AIView {
     var navigationContent: some View {
         NavigationStack {
             content
-                .navigationTitle("Bot")
+                .navigationTitle(AppLocalized.text("ai.bot.nav.title", fallback: "Bot"))
                 .skydownNavigationChrome(colorScheme: colorScheme)
         }
     }
@@ -664,7 +671,7 @@ private struct AIEmptyStateHeader: View {
                 .shadow(color: accent.opacity(0.22), radius: 14, y: 8)
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSubtle) {
-                    Text("SkyOS AI")
+                    Text(AppLocalized.text("ai.bot.hero.title", fallback: "SkyOS AI"))
                         .font(
                             isCompact
                                 ? .system(size: 25, weight: .black, design: .rounded)
@@ -672,7 +679,7 @@ private struct AIEmptyStateHeader: View {
                         )
                         .foregroundColor(AppColors.text(for: colorScheme))
 
-                    Text("Copy, Release-Ideen und Visual-Prompts in einem ruhigen Flow.")
+                    Text(AppLocalized.text("ai.bot.hero.subtitle", fallback: "Copy, release ideas, and visual prompts in one calm flow."))
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.9))
                         .fixedSize(horizontal: false, vertical: true)
@@ -681,16 +688,16 @@ private struct AIEmptyStateHeader: View {
                 Spacer(minLength: 0)
 
                 AIStatusChip(
-                    text: "Live",
+                    text: AppLocalized.text("ai.bot.chip.live", fallback: "Live"),
                     accent: accent,
                     colorScheme: colorScheme
                 )
             }
 
             HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                AIStatusChip(text: "Text", accent: accent, colorScheme: colorScheme)
-                AIStatusChip(text: "Visual", accent: mystic, colorScheme: colorScheme)
-                AIStatusChip(text: "Memory", accent: AppColors.spotify(for: colorScheme), colorScheme: colorScheme)
+                AIStatusChip(text: AppLocalized.text("ai.bot.chip.text_mode", fallback: "Text"), accent: accent, colorScheme: colorScheme)
+                AIStatusChip(text: AppLocalized.text("ai.bot.chip.visual_mode", fallback: "Visual"), accent: mystic, colorScheme: colorScheme)
+                AIStatusChip(text: AppLocalized.text("ai.bot.chip.memory", fallback: "Memory"), accent: AppColors.spotify(for: colorScheme), colorScheme: colorScheme)
             }
         }
         .padding(isCompact ? SkydownLayout.compactRadius : SkydownLayout.cardPadding)
@@ -801,15 +808,15 @@ private struct AIQuickPromptCard: View {
             if showsInlineHeading {
                 HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     AIStatusChip(
-                        text: "Text",
+                        text: AppLocalized.text("ai.bot.chip.text_mode", fallback: "Text"),
                         accent: AppColors.accent(for: colorScheme),
                         colorScheme: colorScheme
                     )
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
-                        Text("Prompts")
+                        Text(AppLocalized.text("ai.quick_prompts.title", fallback: "Prompts"))
                             .font(.subheadline.weight(.bold))
                             .foregroundColor(AppColors.text(for: colorScheme))
-                        Text("Schnell rein.")
+                        Text(AppLocalized.text("ai.quick_prompts.hint", fallback: "Quick to dive in."))
                             .font(.caption)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
@@ -864,15 +871,15 @@ private struct AIVisualPromptCard: View {
             if showsInlineHeading {
                 HStack(spacing: SkydownLayout.stackSpacingMicro) {
                     AIStatusChip(
-                        text: "Visual",
+                        text: AppLocalized.text("ai.bot.chip.visual_mode", fallback: "Visual"),
                         accent: AppColors.accentHighlight(for: colorScheme),
                         colorScheme: colorScheme
                     )
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
-                        Text("Visuals")
+                        Text(AppLocalized.text("ai.visual_prompts.title", fallback: "Visuals"))
                             .font(.subheadline.weight(.bold))
                             .foregroundColor(AppColors.text(for: colorScheme))
-                        Text("Ein Prompt reicht.")
+                        Text(AppLocalized.text("ai.visual_prompts.hint", fallback: "One prompt is enough."))
                             .font(.caption)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
@@ -921,7 +928,7 @@ private struct AIMessageBubble: View {
     let colorScheme: ColorScheme
     @State private var showingShareSheet = false
     @State private var shareItems: [Any] = []
-    @State private var copyLabel = "Kopieren"
+    @State private var showCopiedFeedback = false
 
     private var isUser: Bool {
         message.role == .user
@@ -932,7 +939,11 @@ private struct AIMessageBubble: View {
             if isUser { Spacer(minLength: 48) }
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-                Text(isUser ? "Du" : "SkyOS Bot")
+                Text(
+                    isUser
+                        ? AppLocalized.text("agent.bubble.user", fallback: "You")
+                        : AppLocalized.text("ai.bot.bubble.assistant", fallback: "SkyOS Bot")
+                )
                     .font(.caption.weight(.bold))
                     .foregroundColor(isUser ? .white.opacity(0.9) : AppColors.accent(for: colorScheme))
 
@@ -941,7 +952,7 @@ private struct AIMessageBubble: View {
                         ProgressView()
                             .tint(AppColors.accent(for: colorScheme))
 
-                        Text("SkyOS Bot baut gerade eine ruhige Antwort auf...")
+                        Text(AppLocalized.text("ai.bot.progress.building", fallback: "SkyOS Bot is drafting a calm answer…"))
                             .font(.subheadline)
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
@@ -963,19 +974,27 @@ private struct AIMessageBubble: View {
 
                     if !isUser {
                         HStack(spacing: SkydownLayout.stackSpacingPill) {
-                            Button(copyLabel) {
+                            Button {
                                 UIPasteboard.general.string = message.text
-                                copyLabel = "Kopiert"
+                                showCopiedFeedback = true
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
-                                    copyLabel = "Kopieren"
+                                    showCopiedFeedback = false
                                 }
+                            } label: {
+                                Text(
+                                    showCopiedFeedback
+                                        ? AppLocalized.text("agent.bubble.copied", fallback: "Copied")
+                                        : AppLocalized.text("agent.bubble.copy", fallback: "Copy")
+                                )
                             }
                             .font(.caption.weight(.semibold))
                             .foregroundColor(AppColors.accent(for: colorScheme))
 
-                            Button("Teilen / Speichern") {
+                            Button {
                                 shareItems = sharePayload()
                                 showingShareSheet = true
+                            } label: {
+                                Text(AppLocalized.text("ai.bot.action.share_save", fallback: "Share / save"))
                             }
                             .font(.caption.weight(.semibold))
                             .foregroundColor(AppColors.accentMystic(for: colorScheme))
@@ -1061,7 +1080,11 @@ private struct AIPromptFab: View {
                     }
                 }
 
-                Text(isWorking ? "Arbeitet" : "Prompt")
+                Text(
+                    isWorking
+                        ? AppLocalized.text("ai.fab.state.working", fallback: "Working")
+                        : AppLocalized.text("ai.fab.state.prompt", fallback: "Prompt")
+                )
                     .font(.subheadline.weight(.black))
                     .lineLimit(1)
 
@@ -1083,7 +1106,7 @@ private struct AIPromptFab: View {
         }
         .buttonStyle(.plain)
         .skydownTactileAction()
-        .accessibilityLabel("Prompt oeffnen")
+        .accessibilityLabel(AppLocalized.text("agent.a11y.open_prompt", fallback: "Open prompt"))
     }
 }
 
@@ -1189,11 +1212,11 @@ private struct AIPromptComposerSheet: View {
     @ViewBuilder
     private var aiSettingsDropdownRows: some View {
         HStack(alignment: .center) {
-            Text("Format")
+            Text(AppLocalized.text("ai.composer.format", fallback: "Format"))
                 .font(.subheadline)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
             Spacer(minLength: 12)
-            Picker("Format", selection: $composerMode) {
+            Picker(AppLocalized.text("ai.composer.format", fallback: "Format"), selection: $composerMode) {
                 ForEach(AIComposerMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
@@ -1210,11 +1233,11 @@ private struct AIPromptComposerSheet: View {
             Divider()
                 .padding(.leading, 8)
             HStack(alignment: .center) {
-                Text("Tonalitaet")
+                Text(AppLocalized.text("ai.composer.tone", fallback: "Tone"))
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 Spacer(minLength: 12)
-                Picker("Tonalitaet", selection: $textMode) {
+                Picker(AppLocalized.text("ai.composer.tone", fallback: "Tone"), selection: $textMode) {
                     ForEach(AITextMode.allCases) { mode in
                         Text(mode.title).tag(mode)
                     }
@@ -1237,7 +1260,7 @@ private struct AIPromptComposerSheet: View {
                     .font(.subheadline)
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
                 Spacer(minLength: 12)
-                Picker("Tiefe", selection: $selectedLevel) {
+                Picker(AppLocalized.text("ai.composer.picker.depth", fallback: "Depth"), selection: $selectedLevel) {
                     ForEach(AIExperienceLevel.allCases) { level in
                         Text(level.title).tag(level)
                     }
@@ -1262,8 +1285,8 @@ private struct AIPromptComposerSheet: View {
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSection) {
                 PremiumPromptSheetHeader(
                     iconSystemName: composerMode == .visual ? "camera.aperture" : "text.bubble.fill",
-                    title: "Neue Anfrage",
-                    subtitle: "Alles unten per Dropdown — ein Absenden genuegt.",
+                    title: AppLocalized.text("ai.composer.title", fallback: "New request"),
+                    subtitle: AppLocalized.text("ai.composer.subtitle", fallback: "Everything below is dropdowns — one send is enough."),
                     accent: composerAccent,
                     colorScheme: colorScheme,
                     onDismiss: onDismiss
@@ -1283,8 +1306,8 @@ private struct AIPromptComposerSheet: View {
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     PremiumPromptSectionHeader(
-                        title: "Einstellungen",
-                        footnote: "Kompakt als Menues — auswaehlen, tippen, senden.",
+                        title: AppLocalized.text("ai.composer.section.settings", fallback: "Settings"),
+                        footnote: AppLocalized.text("ai.composer.section.settings_footnote", fallback: "Compact menus — pick, tap, send."),
                         accent: composerAccent,
                         colorScheme: colorScheme
                     )
@@ -1298,8 +1321,8 @@ private struct AIPromptComposerSheet: View {
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     PremiumPromptSectionHeader(
-                        title: "Inspiration",
-                        footnote: "Schnellstarte — tippen und anpassen.",
+                        title: AppLocalized.text("ai.composer.section.inspiration", fallback: "Inspiration"),
+                        footnote: AppLocalized.text("ai.composer.section.inspiration_footnote", fallback: "Quick starters — tap and adjust."),
                         accent: composerAccent,
                         colorScheme: colorScheme
                     )
@@ -1326,8 +1349,8 @@ private struct AIPromptComposerSheet: View {
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                     PremiumPromptSectionHeader(
-                        title: "Eingabe",
-                        footnote: "Klar formulieren — je praeziser, desto besser das Ergebnis.",
+                        title: AppLocalized.text("ai.composer.section.input", fallback: "Input"),
+                        footnote: AppLocalized.text("ai.composer.section.input_footnote", fallback: "Write clearly — the more precise, the better the result."),
                         accent: composerAccent,
                         colorScheme: colorScheme
                     )
@@ -1335,7 +1358,10 @@ private struct AIPromptComposerSheet: View {
                         TextField(
                             composerMode == .text
                                 ? textMode.placeholder
-                                : "Beschreibe Szenenlicht, Stimmung, Stil. Ein Satz reicht als Start.",
+                                : AppLocalized.text(
+                                    "ai.composer.visual_placeholder",
+                                    fallback: "Describe scene light, mood, style. One sentence is enough to start."
+                                ),
                             text: $draft,
                             axis: .vertical
                         )
@@ -1353,7 +1379,9 @@ private struct AIPromptComposerSheet: View {
                 }
 
                 PremiumPromptPrimaryButton(
-                    title: composerMode == .text ? "Senden" : "Generieren",
+                    title: composerMode == .text
+                        ? AppLocalized.text("ai.composer.send", fallback: "Send")
+                        : AppLocalized.text("ai.composer.generate", fallback: "Generate"),
                     systemImage: composerMode == .text ? "arrow.up.circle.fill" : "sparkles",
                     accent: composerAccent,
                     colorScheme: colorScheme,

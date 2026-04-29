@@ -1083,10 +1083,14 @@ fun HomeScreen(
                                 modifier = Modifier.weight(1f),
                             )
                             BrandActionButton(
-                                text = "Kopieren",
+                                text = stringResource(R.string.agent_action_copy),
                                 onClick = {
                                     copyAiText(context, "Founder Briefing", sheet.body)
-                                    Toast.makeText(context, "Kopiert", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.agent_feedback_copied),
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
                                 },
                                 accent = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.weight(1f),
@@ -1096,7 +1100,7 @@ fun HomeScreen(
                             onClick = { shareAiText(context, sheet.title, sheet.body) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("Teilen")
+                            Text(stringResource(R.string.agent_action_share))
                         }
                     }
                 }
