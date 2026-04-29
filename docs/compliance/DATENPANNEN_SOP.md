@@ -1,4 +1,4 @@
-# SOP Datenpannen / Security Incidents (22xSky)
+# SOP Datenpannen / Security Incidents (SkyOS / Skydown)
 
 Ziel:
 - Schnell, konsistent und nachvollziehbar auf Datenschutzvorfaelle reagieren.

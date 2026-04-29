@@ -882,7 +882,7 @@ private struct PricingSummaryCard: View {
 
             Text(
                 AppLocalized.text("cart.invoice.company", fallback: "Invoice by %@")
-                    .replacingOccurrences(of: "%@", with: companyName.takeIfNotBlank() ?? "Ngoc Anh Nguyen (Yang D. Nash - Skydown)")
+                    .replacingOccurrences(of: "%@", with: companyName.takeIfNotBlank() ?? "Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)")
             )
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))

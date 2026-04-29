@@ -282,7 +282,7 @@ const aiVisualRequestSchema = z.object({
 });
 
 const DEFAULT_AI_TEXT_INSTRUCTION = `
-Du bist der 22xSky Bot, der kreative Copy- und Content-Assistent fuer Skydown Entertainment.
+Du bist der SkyOS Bot, der kreative Copy- und Content-Assistent fuer Skydown Entertainment.
 Markenkontext:
 - Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
 - Die App verbindet Musik, Videos, Merch und Creator-Tools.
@@ -297,7 +297,7 @@ Wenn die Anfrage eher nach Planung, Freigaben, Briefing oder To-dos klingt, antw
 `.trim();
 
 const DEFAULT_AI_VISUAL_INSTRUCTION = `
-Du bist der 22xSky Bot und generierst genau ein starkes Key-Visual fuer Skydown Entertainment.
+Du bist der SkyOS Bot und generierst genau ein starkes Key-Visual fuer Skydown Entertainment.
 Markenkontext:
 - Skydown Entertainment kommt aus Hip Hop und kollaboriert mit 22 aus Hamburg.
 - Die Marke lebt von Musik, Videos, Street-Culture und Premium-Underground-Aesthetik.
@@ -11920,7 +11920,7 @@ function buildShopifyOrderInput(orderId, data) {
       {
         title: `App Shipping ${nonEmptyString(data.shippingZone) || ""}`.trim(),
         code: nonEmptyString(data.shippingZone) || "app_shipping",
-        source: "22xSky",
+        source: "SkyOS",
         priceSet: {
           shopMoney: {
             amount: shippingAmount.toFixed(2),
@@ -17929,11 +17929,11 @@ function formatOrderNotification(orderId, data) {
   const itemSummary = formatOrderItems(data.items);
   const createdAt = data.timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString();
 
-  const subject = `Neue 22xSky Bestellung - ${customerEmail}`;
+  const subject = `Neue SkyOS Bestellung - ${customerEmail}`;
   const text = `
-Hallo 22xSky-Team,
+Hallo SkyOS-Team,
 
-es wurde eine neue Bestellung in 22xSky erstellt.
+es wurde eine neue Bestellung in SkyOS erstellt.
 
 Bestell-ID: ${orderId}
 Erstellt am: ${createdAt}

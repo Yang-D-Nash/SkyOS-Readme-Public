@@ -1,15 +1,15 @@
-# Anwalt-Freigabe Checkliste (22xSky)
+# Anwalt-Freigabe Checkliste (SkyOS / Skydown)
 
-Stand: `2026-04-19`  
+Stand: `2026-04-29`
 Zweck: 1-Seiten-Pruefblatt fuer die juristische Endfreigabe vor dem oeffentlichen Release.
 
 ## Produkt
 
-- App: `22xSky`
+- App: `SkyOS / Skydown`
 - Plattformen: `iOS` und `Android`
-- Aktueller iOS QA-Stand: `Build 35 erfolgreich in TestFlight`
-- Aktueller Android QA-Stand: `Release-Bundle + Lint lokal erfolgreich`
-- Oeffentlicher Release: `noch nicht live`
+- Aktueller iOS QA-Stand: `Release-Build lokal erfolgreich; Live-UI-Credentials separat zu pflegen`
+- Aktueller Android QA-Stand: `Release-Build + Lint lokal erfolgreich`
+- Oeffentlicher Release: `Release-Paket finalisiert; Store-/Live-Schaltung organisatorisch`
 
 ## Gewuenschte Entscheidung der Kanzlei
 
@@ -58,9 +58,9 @@ Bitte zusaetzlich alle Pflichtaenderungen nach Prioritaet markieren:
 
 ## Unterlagen fuer die Pruefung
 
-- `docs/compliance/RELEASE_READINESS_2026-04-19.md`
+- `docs/compliance/RELEASE_READINESS_2026-04-29.md`
 - `docs/compliance/DSGVO_RELEASE_CHECKLIST.md`
-- `docs/compliance/COMPLIANCE_REVIEW_2026-04-15.md`
+- `docs/compliance/COMPLIANCE_REVIEW_2026-04-29.md`
 - `docs/compliance/AVV_VERARBEITER_REGISTER.md`
 - `docs/compliance/VVT_VERARBEITUNGSTAETIGKEITEN.md`
 - `docs/compliance/BETROFFENENRECHTE_SOP.md`

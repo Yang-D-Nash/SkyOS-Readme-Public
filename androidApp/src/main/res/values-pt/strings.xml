@@ -834,11 +834,11 @@
     <string name="settings_legal_brand_name">Brand name</string>
     <string name="settings_legal_brand_name_placeholder">e.g. SkyOS</string>
     <string name="settings_legal_operator">Operator / contracting party</string>
-    <string name="settings_legal_operator_placeholder">e.g. Yang D. Nash - Skydown</string>
+    <string name="settings_legal_operator_placeholder">e.g. Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)</string>
     <string name="settings_legal_rights_holder">Rights holder</string>
     <string name="settings_legal_support_email_field">Support email</string>
     <string name="settings_legal_last_updated">Last updated</string>
-    <string name="settings_legal_last_updated_placeholder">e.g. April 12, 2026</string>
+    <string name="settings_legal_last_updated_placeholder">e.g. April 29, 2026</string>
     <string name="settings_legal_imprint_note">Imprint note</string>
     <string name="settings_legal_master22_meaning">Master number 22 — meaning</string>
     <string name="settings_legal_manifesto">Who we are (manifesto)</string>
@@ -1318,7 +1318,7 @@ Mensagem:
 %12$s</string>
     <string name="cart_checkout_link_open_failed">Não foi possível abrir a ligação de pagamento.</string>
     <string name="cart_invoice_contact_line">Faturação e feedback passam por %1$s.</string>
-    <string name="cart_invoice_contact_fallback_company">Ngoc Anh Nguyen (Yang D. Nash - Skydown)</string>
+    <string name="cart_invoice_contact_fallback_company">Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)</string>
     <string name="cart_select_payment_title">Escolher método de pagamento</string>
     <string name="cart_select_payment_subtitle">Seleciona o método de pagamento para este pedido.</string>
     <string name="cart_selected">Selecionado</string>

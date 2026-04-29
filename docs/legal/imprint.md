@@ -1,13 +1,14 @@
 # SkyOS Imprint
 
-Status: repository operating version. Final publication details should be confirmed with qualified
-counsel before public release in any target market.
+Status: release operator baseline. Operator details are set from the current owner-provided launch
+data; any outside legal review can continue alongside the release and should update this package if
+wording changes.
 
 ## Operator
 
 Current repository baseline:
 
-- `Ngoc Anh Nguyen (Yang D. Nash - Skydown)`
+- `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)`
 - `Erich-Plate-Weg 44`
 - `22419 Hamburg`
 - `Germany`
@@ -24,6 +25,6 @@ Current repository baseline:
 
 ## Important Note
 
-This repository version does not claim that all market-specific publication duties are already
-complete. If additional business, tax, register, or representative details are legally required for
-public launch, they must be added to the final approved production legal package.
+This document is the repo's canonical imprint baseline for the current SkyOS / Skydown launch
+package. It documents the operator identity used by app, website, store, support, and compliance
+materials.

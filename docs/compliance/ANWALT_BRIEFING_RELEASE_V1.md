@@ -1,16 +1,16 @@
-# Anwalt-Briefing fuer Release V1 (22xSky)
+# Anwalt-Briefing fuer Release V1 (SkyOS / Skydown)
 
-Status: Entwurf fuer juristische Endpruefung
-Datum: `2026-04-15`  
-Produkt: `22xSky`  
-Rechteinhaber und Entwickler: `Ngoc Anh Nguyen (Yang D. Nash - Skydown)`  
+Status: Briefing fuer juristische Begleitpruefung
+Datum: `2026-04-29`
+Produkt: `SkyOS / Skydown`
+Rechteinhaber und Entwickler: `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)`
 Anschrift: `Erich-Plate-Weg 44, 22419 Hamburg, Deutschland`
 
 ---
 
 ## 1) Ziel der Pruefung
 
-Bitte um juristische Endpruefung zur DSGVO-/IT-rechtlichen Release-Freigabe von `22xSky` (iOS + Android) fuer Version `1`.
+Bitte um juristische Endpruefung zur DSGVO-/IT-rechtlichen Release-Freigabe von `SkyOS / Skydown` (iOS + Android) fuer Version `1`.
 
 Wir benoetigen eine klare Einschätzung:
 
@@ -89,14 +89,14 @@ Bitte als Ergebnis:
 ## 7) Mail-Template an die Kanzlei
 
 Betreff:
-`22xSky - Bitte um juristische Endpruefung fuer DSGVO/AVV und Release-Freigabe (Version 1)`
+`SkyOS / Skydown - Bitte um juristische Endpruefung fuer DSGVO/AVV und Release-Freigabe (Version 1)`
 
 Text:
 
 ```text
 Hallo [Name/Kanzlei],
 
-wir stehen kurz vor dem Release unserer App 22xSky (iOS/Android) und bitten um eine juristische Endpruefung.
+wir stehen kurz vor dem Release unserer App SkyOS / Skydown (iOS/Android) und bitten um eine juristische Endpruefung.
 
 Ziel:
 - DSGVO-/IT-rechtliche Freigabe fuer Version 1
@@ -124,8 +124,8 @@ Unterlagen:
 - aktuelle App-Rechtstexte (AGB/Datenschutz/Impressum)
 
 Vielen Dank und viele Gruesse
-Ngoc Anh Nguyen (Yang D. Nash)
-22xSky / Skydown
+Nguyen Phuong Ngoc Anh (Yang D. Nash)
+SkyOS / Skydown
 ```
 
 ---

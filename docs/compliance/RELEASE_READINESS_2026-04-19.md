@@ -1,6 +1,6 @@
-# Release Readiness Report (22xSky)
+# Release Readiness Report (SkyOS / Skydown)
 
-Stand: `2026-04-19`
+Stand: `2026-04-29`
 Scope: aktueller Release-Stand fuer iOS TestFlight, Android Bundle, Functions und Live-Konfiguration.
 
 ## 1) Verifizierte technische Gates
@@ -50,7 +50,7 @@ Scope: aktueller Release-Stand fuer iOS TestFlight, Android Bundle, Functions un
 
 ## 4) Live-Konfigurations-/Server-Gates vor Go-Live
 
-- Live Functions Inventory wurde am `2026-04-19` read-only gegen Firebase geprueft.
+- Live Functions Inventory wurde am `2026-04-29` read-only gegen Firebase geprueft.
   Wichtige Endpunkte sind produktiv vorhanden, darunter:
   `authorizeAiUsage`, `generateAiText`, `generateAiVisual`, `skydownAgent`,
   `startMerchCheckout`, `confirmMerchOrderPayment`, `submitMerchOrder`,
@@ -58,7 +58,7 @@ Scope: aktueller Release-Stand fuer iOS TestFlight, Android Bundle, Functions un
   `requestUploadSlot`, `deleteCurrentUserAccount`.
 - Wichtig:
   Diese Inventur bestaetigt, dass die produktiven Endpunkte existieren.
-  Sie bestaetigt noch **nicht**, dass der gesamte lokale Stand vom `2026-04-19`
+  Sie bestaetigt noch **nicht**, dass der gesamte lokale Stand vom `2026-04-29`
   bereits nach Production deployed wurde.
 - Runtime Config:
   `system/runtimeConfig`
@@ -78,7 +78,7 @@ Scope: aktueller Release-Stand fuer iOS TestFlight, Android Bundle, Functions un
   `STRIPE_SECRET_KEY`
   `STRIPE_WEBHOOK_SECRET`
   `MANUS_API_KEY` (nur relevant, wenn der Agent-/Manus-Flow live genutzt wird)
-- Secrets-Metadaten wurden am `2026-04-19` read-only gegen Firebase geprueft:
+- Secrets-Metadaten wurden am `2026-04-29` read-only gegen Firebase geprueft:
   `SMTP_CONNECTION_URL`: Version `1` aktiviert
   `STRIPE_SECRET_KEY`: Version `1` aktiviert
   `STRIPE_WEBHOOK_SECRET`: Version `1` aktiviert
@@ -92,11 +92,11 @@ Scope: aktueller Release-Stand fuer iOS TestFlight, Android Bundle, Functions un
 
 ## 5) Compliance- und Betriebs-Gates, die weiter gelb bleiben
 
-- Die offenen Punkte aus `docs/compliance/DSGVO_RELEASE_CHECKLIST.md` und `docs/compliance/COMPLIANCE_REVIEW_2026-04-15.md` bleiben relevant:
+- Die offenen Punkte aus `docs/compliance/DSGVO_RELEASE_CHECKLIST.md` und `docs/compliance/COMPLIANCE_REVIEW_2026-04-29.md` bleiben relevant:
   AVV/DPA/SCC final,
   DSAR-Testfaelle dokumentieren,
   Monitoring-/Incident-Drill dokumentieren.
-- Der Live-Check von `system/runtimeConfig` wurde zuletzt am `2026-04-15` dokumentiert.
+- Der Live-Check von `system/runtimeConfig` wurde zuletzt am `2026-04-29` dokumentiert.
   Vor finalem Public Release sollte dieser Wert noch einmal direkt gegen Production bestaetigt werden.
 
 ## 6) Aktuelle Freigabeeinschaetzung

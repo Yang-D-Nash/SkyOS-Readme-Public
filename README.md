@@ -112,6 +112,7 @@ Version **1.0.0**, iOS `CURRENT_PROJECT_VERSION=10018`, Android `versionCode=100
 | Wer / Was | Inhalt |
 | --- | --- |
 | **Diese README** | Technischer Ist-Stand der Codebasis. Sie gibt Orientierung und verweist auf die kanonischen Detaildokumente. |
+| **Betreiber / Owner** | `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)`, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland; Support: `skydownent@gmail.com`. |
 | **Release-Ablauf** | Verbindliche Schrittfolge: [docs/release/app-release-workflow.md](docs/release/app-release-workflow.md). Ergänzend: [Release-Checkliste](docs/release-checklist.md), [Store-Upload-Runbook](docs/release/store-upload-runbook.md), [manuelle Smokes](manual-test-checklist.md). |
 | **Rechtstexte und Außenwirkung** | Rechtswirksame Inhalte liegen in [docs/legal/](docs/legal/) und [site/](site/). Inhaltliche Verantwortung und Aktualisierung liegen beim Owner/Unternehmer der Plattform. |
 | **Store-Einreichungen** | Accounts, Verträge, Richtlinien-Compliance und finale Inhalte sind Organisationspflichten; die technische Basis liefert dieses Repo. |
@@ -1021,6 +1022,7 @@ Auszug wichtiger Verweise:
 ## Recht, Datenschutz, KI-Transparenz
 
 - **Ort der rechtlich relevanten Texte** (AGB, Datenschutz, Impressum, Abo-Bedingungen, KI-Nutzungshinweis, ggf. weitere): [docs/legal/](docs/legal/) und die **zur Veröffentlichung** vorgesehenen Inhalte in [site/](site/) (Privacy, Terms, Support).
+- **Betreiberangaben im Launch-Paket:** `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)`, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland; Support und rechtliche Rückfragen: `skydownent@gmail.com`.
 - **Verantwortung:** Der Owner/Unternehmer verantwortet Inhalt, Aktualität, Geltungsbereich und Anpassung an das Geschäftsmodell. Diese README hält keine zweite, parallele Rechtstext-Version vor.
 - **Rückfragen:** Rechtliche oder organisatorische Rückfragen laufen direkt über den Support-Kontakt im Abschnitt [Support und Kontakt](#support-und-kontakt).
 - **Operative Compliance-Struktur** (Checklisten, Rollen, Prozesshüllen): [docs/compliance/README.md](docs/compliance/README.md) — ergänzt die tatsächlichen vertraglichen und behördlichen Pflichten.

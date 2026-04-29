@@ -74,10 +74,10 @@ to the next useful step.
 
 ## How do I contact support?
 
-Current repository support contact: `skydownent@gmail.com`
+Support and legal contact: `skydownent@gmail.com`
 
-Before public launch, support ownership, response expectations, and legal contact routing should be
-confirmed in the final operator setup.
+Operator: `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)`, Erich-Plate-Weg 44, 22419 Hamburg,
+Germany.
 
 ## How do I request account deletion or privacy help?
 

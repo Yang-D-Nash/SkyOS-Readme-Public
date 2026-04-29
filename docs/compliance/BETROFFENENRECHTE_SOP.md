@@ -1,4 +1,4 @@
-# SOP Betroffenenrechte (22xSky)
+# SOP Betroffenenrechte (SkyOS / Skydown)
 
 Zweck:
 - Standardprozess fuer DSGVO-Anfragen von Nutzern.

@@ -1,15 +1,14 @@
-# DSGVO Release Checklist (22xSky)
+# DSGVO Release Checklist (SkyOS / Skydown)
 
-Status: `Stand 2026-04-15 (Release Endspurt)`
+Status: `Stand 2026-04-29 (Launch Baseline)`
 
 Release:
-- App Name: `22xSky`
-- Version: `1.0.0-rc` (finale Store-Version vor Upload setzen)
-- Build iOS: `xcodebuild Release (generic/platform=iOS) erfolgreich am 2026-04-15`
-- Build Android: `:androidApp:compileDebugKotlin erfolgreich am 2026-04-15`
-- Datum: `2026-04-15`
-- Verantwortlicher/Rechteinhaber: `Ngoc Anh Nguyen (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg`
-- Freigegeben von: `Ngoc Anh Nguyen`
+- App Name: `Skydown`
+- System/Produktkern: `SkyOS`
+- Version: `1.0.0`
+- Datum: `2026-04-29`
+- Verantwortlicher/Rechteinhaber: `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg`
+- Freigegeben von: `Nguyen Phuong Ngoc Anh`
 
 ---
 
@@ -34,9 +33,9 @@ Release:
 
 - [x] Firestore Rules getestet (Emulator).
 - [x] Storage Rules getestet (Emulator).
-- [x] Firestore Rules produktiv deployed und live verifiziert (`firebase deploy --only firestore:rules,storage`, 2026-04-15).
-- [x] Storage Rules produktiv deployed und live verifiziert (`firebase deploy --only firestore:rules,storage`, 2026-04-15).
-- [x] Runtime-Config live geprueft (`system/runtimeConfig` ist erreichbar; `appCheckMode=enforce`, 2026-04-15).
+- [x] Firestore Rules produktiv deployed und live verifiziert (`firebase deploy --only firestore:rules,storage`, 2026-04-29).
+- [x] Storage Rules produktiv deployed und live verifiziert (`firebase deploy --only firestore:rules,storage`, 2026-04-29).
+- [x] Runtime-Config live geprueft (`system/runtimeConfig` ist erreichbar; `appCheckMode=enforce`, 2026-04-29).
 - [ ] App Check Enforcement im produktiven Modus ohne Debug-Token auf echten Geraeten vollstaendig verifiziert.
 - [x] Rollen-/Claim-Sync getestet (owner/admin/subadmin/user).
 - [x] Android Backup-Haertung aktiv (`allowBackup=false` + excludes).

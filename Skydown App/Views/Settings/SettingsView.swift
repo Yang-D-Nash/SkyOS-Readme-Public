@@ -892,14 +892,14 @@ struct SettingsView: View {
                                         title: AppLocalized.text("settings.legal.field.operator_name", fallback: "Operator / contracting party"),
                                         text: $legalOperatorNameDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: AppLocalized.text("settings.legal.field.operator_name_placeholder", fallback: "e.g. Yang D. Nash - Skydown")
+                                        placeholder: AppLocalized.text("settings.legal.field.operator_name_placeholder", fallback: "e.g. Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)")
                                     )
 
                                     SettingsInputField(
                                         title: AppLocalized.text("settings.legal.field.rights_holder", fallback: "Rights holder"),
                                         text: $legalRightsHolderNameDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: AppLocalized.text("settings.legal.field.rights_holder_placeholder", fallback: "e.g. Yang D. Nash - Skydown")
+                                        placeholder: AppLocalized.text("settings.legal.field.rights_holder_placeholder", fallback: "e.g. Nguyen Phuong Ngoc Anh / Yang D. Nash - Skydown")
                                     )
 
                                     SettingsInputField(
@@ -916,7 +916,7 @@ struct SettingsView: View {
                                         title: AppLocalized.text("settings.legal.field.last_updated", fallback: "Last updated"),
                                         text: $legalLastUpdatedLabelDraft,
                                         colorScheme: effectiveColorScheme,
-                                        placeholder: AppLocalized.text("settings.legal.field.last_updated_placeholder", fallback: "e.g. 12 April 2026")
+                                        placeholder: AppLocalized.text("settings.legal.field.last_updated_placeholder", fallback: "e.g. 29 April 2026")
                                     )
 
                                     SettingsMultilineInputField(

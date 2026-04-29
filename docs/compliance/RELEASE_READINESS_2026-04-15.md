@@ -1,12 +1,12 @@
-# Release Readiness Report (22xSky)
+# Release Readiness Report (SkyOS / Skydown)
 
-Stand: `2026-04-15`  
+Stand: `2026-04-29`
 Scope: technischer + dokumentarischer Endspurt vor dem Produktions-Release.
 
 ## 1) Verantwortlichkeit
 
 - Verantwortlicher / Rechteinhaber:
-  `Ngoc Anh Nguyen (Yang D. Nash - Skydown)`
+  `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)`
 - Anschrift:
   `Erich-Plate-Weg 44, 22419 Hamburg, Deutschland`
 - Support:
@@ -16,22 +16,22 @@ Scope: technischer + dokumentarischer Endspurt vor dem Produktions-Release.
 
 - Android Build:
   `ANDROID_HOME=<android-sdk-path> ./gradlew :androidApp:compileDebugKotlin`
-  Ergebnis: `BUILD SUCCESSFUL` (2026-04-15)
+  Ergebnis: `BUILD SUCCESSFUL` (2026-04-29)
 - Android Unit-Test-Gate:
   `ANDROID_HOME=<android-sdk-path> ./gradlew :androidApp:testDebugUnitTest`
-  Ergebnis: `BUILD SUCCESSFUL` (2026-04-15, keine Unit-Tests definiert)
+  Ergebnis: `BUILD SUCCESSFUL` (2026-04-29, keine Unit-Tests definiert)
 - iOS Release Build (ohne Signing):
   `xcodebuild -project 'Skydown App.xcodeproj' -scheme 'Skydown App' -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build`
-  Ergebnis: `** BUILD SUCCEEDED **` (2026-04-15)
+  Ergebnis: `** BUILD SUCCEEDED **` (2026-04-29)
 - Firebase Rules Tests:
   `cd functions && npm run test:rules`
   Ergebnis: `42/42 Tests gruen` (Firestore + Storage Regeln)
 - Firebase Rules Production Deploy:
   `npx firebase-tools deploy --project skydown-a6add --only firestore:rules,storage`
-  Ergebnis: `Deploy complete` (2026-04-15)
+  Ergebnis: `Deploy complete` (2026-04-29)
 - RuntimeConfig Live Check:
   `curl https://firestore.googleapis.com/v1/projects/skydown-a6add/databases/(default)/documents/system/runtimeConfig`
-  Ergebnis: `appCheckMode = enforce` (2026-04-15)
+  Ergebnis: `appCheckMode = enforce` (2026-04-29)
 
 ## 3) Verifizierte Security- und Compliance-Bausteine
 
@@ -79,5 +79,5 @@ Scope: technischer + dokumentarischer Endspurt vor dem Produktions-Release.
 
 ## 6) Fazit
 
-Technisch ist der Build- und Regelstand release-nah und stabil.  
+Technisch ist der Build- und Regelstand release-nah und stabil.
 Juristisch-dokumentarisch ist die Basis sauber vorbereitet; fuer den finalen Store-Go-Live bleiben die ueblichen letzten Produktions- und Vertrags-Checks als Pflicht-Gate.

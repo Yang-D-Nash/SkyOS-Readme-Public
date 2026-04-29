@@ -1,18 +1,19 @@
 # SkyOS Privacy
 
-Status: repository operating version for product and implementation alignment. This text should be
-reviewed and finalized with qualified counsel before any public launch.
+Status: release operator baseline for product and implementation alignment. Operator details are
+finalized for the current launch package; outside legal review can continue as a business process
+and should update this package if wording changes.
 
 ## 1. Controller / Operator
 
 The repository currently identifies the operator contact for SkyOS as:
 
-- `Ngoc Anh Nguyen (Yang D. Nash - Skydown)`
+- `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)`
 - `Erich-Plate-Weg 44, 22419 Hamburg, Germany`
 - `skydownent@gmail.com`
 
 This document describes the current data-handling baseline reflected in the repository and related
-compliance notes. Final market-ready privacy disclosures may require additional detail.
+compliance notes for the current SkyOS / Skydown launch package.
 
 ## 2. Data We Process
 
@@ -118,5 +119,4 @@ For the current repository baseline, privacy and deletion requests should be rou
 
 - `skydownent@gmail.com`
 
-Before public launch, the final production support and legal routing must be confirmed in the
-active operator setup.
+Production support and legal routing use the operator contact above.

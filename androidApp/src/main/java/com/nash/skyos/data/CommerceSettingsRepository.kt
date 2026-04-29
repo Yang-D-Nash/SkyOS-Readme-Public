@@ -7,8 +7,9 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 
-private const val defaultInvoiceCompanyName = "Ngoc Anh Nguyen (Yang D. Nash - Skydown)"
+private const val defaultInvoiceCompanyName = "Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)"
 private const val legacyInvoiceCompanyName = "Skydown"
+private const val previousInvoiceCompanyName = "Ngoc Anh Nguyen (Yang D. Nash - Skydown)"
 
 data class CommerceShippingSettings(
     val domesticCost: Double = 4.90,
@@ -113,6 +114,7 @@ private fun normalizeInvoiceCompanyName(value: String?): String {
     return when {
         trimmed.isEmpty() -> defaultInvoiceCompanyName
         trimmed == legacyInvoiceCompanyName -> defaultInvoiceCompanyName
+        trimmed == previousInvoiceCompanyName -> defaultInvoiceCompanyName
         else -> trimmed
     }
 }

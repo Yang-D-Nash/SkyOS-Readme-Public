@@ -1275,12 +1275,12 @@
 "settings.legal.field.brand_name" = "Brandname";
 "settings.legal.field.brand_name_placeholder" = "z. B. SkyOS";
 "settings.legal.field.operator_name" = "Betreiber / Vertragspartner";
-"settings.legal.field.operator_name_placeholder" = "z. B. Yang D. Nash - Skydown";
+"settings.legal.field.operator_name_placeholder" = "z. B. Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)";
 "settings.legal.field.rights_holder" = "Rechteinhaber";
-"settings.legal.field.rights_holder_placeholder" = "z. B. Yang D. Nash - Skydown";
+"settings.legal.field.rights_holder_placeholder" = "z. B. Nguyen Phuong Ngoc Anh / Yang D. Nash - Skydown";
 "settings.legal.field.support_email" = "Support E-Mail";
 "settings.legal.field.last_updated" = "Zuletzt aktualisiert";
-"settings.legal.field.last_updated_placeholder" = "z. B. 12. April 2026";
+"settings.legal.field.last_updated_placeholder" = "z. B. 29. April 2026";
 "settings.legal.field.imprint_reference" = "Impressum-Hinweis";
 "settings.legal.field.imprint_reference_placeholder" = "Hinweis zur Anbieterkennzeichnung.";
 "settings.legal.field.master_number_meaning" = "Meisterzahl 22 - Bedeutung";

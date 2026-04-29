@@ -29,7 +29,7 @@ Preferred labels:
 
 Avoid unless strictly necessary:
 
-- `22xSky`
+- legacy mixed product labels
 - `Skydown OS`
 - `Command Center`
 - `Revenue Ops`

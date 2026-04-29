@@ -1,14 +1,15 @@
 # SkyOS Terms
 
-Status: repository operating version for product, onboarding, and in-app legal alignment. This
-document is not a substitute for final review by qualified counsel before a public launch.
+Status: release operator baseline for product, onboarding, and in-app legal alignment. Operator
+details are finalized for the current launch package; outside legal review can continue as a
+business process and should update this package if wording changes.
 
 ## 1. Operator and Scope
 
 SkyOS is the product operated within the Skydown ecosystem. The current repository identifies the
 operator contact as:
 
-- `Ngoc Anh Nguyen (Yang D. Nash - Skydown)`
+- `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)`
 - `Erich-Plate-Weg 44, 22419 Hamburg, Germany`
 - `skydownent@gmail.com`
 

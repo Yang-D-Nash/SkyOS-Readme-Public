@@ -1,7 +1,7 @@
 # SkyOS AI Usage Notice
 
-Status: repository operating version. This notice should be reviewed together with the final Terms
-and Privacy package before public launch.
+Status: release operator baseline. This notice is aligned with the current Terms, Privacy, and
+Imprint package for the SkyOS / Skydown launch.
 
 ## 1. Assistive System
 

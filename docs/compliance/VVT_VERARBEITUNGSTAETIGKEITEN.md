@@ -1,4 +1,4 @@
-# VVT - Verzeichnis von Verarbeitungstaetigkeiten (22xSky)
+# VVT - Verzeichnis von Verarbeitungstaetigkeiten (SkyOS / Skydown)
 
 Rechtsgrundlage:
 - Art. 30 DSGVO
@@ -11,12 +11,12 @@ Hinweis:
 
 ## 1) Stammdaten
 
-- Verantwortlicher: `Ngoc Anh Nguyen (Yang D. Nash - Skydown)`
+- Verantwortlicher: `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)`
 - Anschrift: `Erich-Plate-Weg 44, 22419 Hamburg, Deutschland`
-- Produkt: `22xSky`
+- Produkt: `SkyOS / Skydown`
 - Kontakt Datenschutzanfragen: `skydownent@gmail.com`
 - Version: `v1`
-- Stand: `2026-04-15`
+- Stand: `2026-04-29`
 
 ---
 

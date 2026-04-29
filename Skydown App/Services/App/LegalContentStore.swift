@@ -2,16 +2,31 @@ import Foundation
 import FirebaseFirestore
 
 private let defaultLegalBrandName = "SkyOS"
-private let defaultLegalOperatorName = "Skydown (Betreiber), vertreten durch Yang D. Nash"
-private let defaultLegalRightsHolderName = "Skydown / Yang D. Nash"
+private let defaultLegalOperatorName = "Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)"
+private let defaultLegalRightsHolderName = "Nguyen Phuong Ngoc Anh / Yang D. Nash - Skydown"
 private let legacyLegalOperatorName = "Skydown"
 private let legacyLegalRightsHolderName = "Skydown"
 private let defaultLegalSupportEmail = PlatformContactEmails.defaultSupportEmail
-private let defaultLegalLastUpdatedLabel = "25. April 2026"
+private let defaultLegalLastUpdatedLabel = "29. April 2026"
 private let defaultLegalImprintReference =
-    "Anbieterkennzeichnung: Skydown (Betreiber), vertreten durch Yang D. Nash, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: \(PlatformContactEmails.defaultSupportEmail)."
+    "Anbieterkennzeichnung: Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: \(PlatformContactEmails.defaultSupportEmail)."
 private let legacyLegalImprintReference =
     "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: \(PlatformContactEmails.defaultSupportEmail)."
+private let previousLegalOperatorNames = [
+    legacyLegalOperatorName,
+    "Skydown (Betreiber), vertreten durch Yang D. Nash",
+    "Ngoc Anh Nguyen (Yang D. Nash - Skydown)",
+]
+private let previousLegalRightsHolderNames = [
+    legacyLegalRightsHolderName,
+    "Skydown / Yang D. Nash",
+    "Ngoc Anh Nguyen (Yang D. Nash - Skydown)",
+]
+private let previousLegalImprintReferences = [
+    legacyLegalImprintReference,
+    "Anbieterkennzeichnung: Skydown (Betreiber), vertreten durch Yang D. Nash, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: \(PlatformContactEmails.defaultSupportEmail).",
+    "Anbieterkennzeichnung: Ngoc Anh Nguyen (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: \(PlatformContactEmails.defaultSupportEmail).",
+]
 
 struct LegalContentSettings: Codable, Equatable {
     var brandName: String = defaultLegalBrandName
@@ -179,32 +194,26 @@ final class FirestoreLegalContentService: LegalContentServicing {
 
     private static func normalizeLegalOperatorName(_ value: String?) -> String {
         let trimmed = value?.legalTrimmed ?? ""
-        switch trimmed {
-        case "", legacyLegalOperatorName:
+        if trimmed.isEmpty || previousLegalOperatorNames.contains(trimmed) {
             return defaultLegalOperatorName
-        default:
-            return trimmed
         }
+        return trimmed
     }
 
     private static func normalizeLegalRightsHolderName(_ value: String?) -> String {
         let trimmed = value?.legalTrimmed ?? ""
-        switch trimmed {
-        case "", legacyLegalRightsHolderName:
+        if trimmed.isEmpty || previousLegalRightsHolderNames.contains(trimmed) {
             return defaultLegalRightsHolderName
-        default:
-            return trimmed
         }
+        return trimmed
     }
 
     private static func normalizeLegalImprintReference(_ value: String?) -> String {
         let trimmed = value?.legalTrimmed ?? ""
-        switch trimmed {
-        case "", legacyLegalImprintReference:
+        if trimmed.isEmpty || previousLegalImprintReferences.contains(trimmed) {
             return defaultLegalImprintReference
-        default:
-            return trimmed
         }
+        return trimmed
     }
 }
 

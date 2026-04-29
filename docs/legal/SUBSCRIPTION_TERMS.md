@@ -1,7 +1,7 @@
 # SkyOS Subscription Terms
 
-Status: repository operating version. Final subscription wording should be validated against the
-active billing setup and target-market legal review before public launch.
+Status: release operator baseline. Subscription wording is aligned with the current launch package;
+active billing setup and store-provider wording must stay in sync before any paid plan is enabled.
 
 ## 1. Scope
 

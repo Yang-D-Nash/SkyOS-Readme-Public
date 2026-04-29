@@ -1465,7 +1465,7 @@ Schnellfakten:
 - Membership ist faehigkeitsbasiert und kein Token-Shop.
 - Kaeufe und Restore koennen kurze Synchronisierungszeit brauchen.
 - Support: skydownent@gmail.com
-- Betreiberhinweis: Ngoc Anh Nguyen (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland.
+- Betreiberhinweis: Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland.
 
 Kernfragen mit Zielantworten:
 

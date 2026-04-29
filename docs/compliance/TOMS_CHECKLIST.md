@@ -1,11 +1,11 @@
-# TOMs Checklist (22xSky)
+# TOMs Checklist (SkyOS / Skydown)
 
 TOMs = Technische und organisatorische Massnahmen nach Art. 32 DSGVO.
 
 Status:
 - [x] initial
-- [x] aktualisiert am: `2026-04-15`
-- [x] freigegeben durch: `Ngoc Anh Nguyen (Yang D. Nash - Skydown)` (technischer Stand)
+- [x] aktualisiert am: `2026-04-29`
+- [x] freigegeben durch: `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)` (technischer Stand)
 
 ---
 

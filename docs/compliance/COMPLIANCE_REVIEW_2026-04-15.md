@@ -1,4 +1,4 @@
-# Compliance Review (22xSky) - 2026-04-15
+# Compliance Review (SkyOS / Skydown) - 2026-04-29
 
 Ziel:
 - Nachweisbarer DSGVO-/Compliance-Review fuer den aktuellen Projektstand.
@@ -6,7 +6,7 @@ Ziel:
 
 Scope:
 - Code, Firestore/Storage-Sicherheitsregeln, Functions, vorhandene Compliance-Doku.
-- Stand: `2026-04-15`.
+- Stand: `2026-04-29`.
 
 ## Gesamtfazit
 
@@ -78,13 +78,13 @@ Scope:
 
 Nachweisdateien:
 - `docs/compliance/DSGVO_RELEASE_CHECKLIST.md`
-- `docs/compliance/RELEASE_READINESS_2026-04-15.md`
+- `docs/compliance/RELEASE_READINESS_2026-04-29.md`
 
 ## Figma Board Pack (Copy/Paste)
 
 ### Frame 1 - Executive Summary
 
-- Titel: `22xSky Compliance Review - 2026-04-15`
+- Titel: `SkyOS / Skydown Compliance Review - 2026-04-29`
 - Status: `Gelb`
 - Kernbotschaft:
   - Technik stabil und weitgehend abgesichert.
@@ -95,7 +95,7 @@ Nachweisdateien:
 - Card 1:
   - Title: `AVV/DPA/SCC nicht final`
   - Severity: `P1`
-  - Owner: `Ngoc Anh Nguyen`
+  - Owner: `Nguyen Phuong Ngoc Anh`
   - Due: `vor finalem Store-Release`
   - Evidence:
     - `AVV_VERARBEITER_REGISTER.md:25-30`
@@ -107,7 +107,7 @@ Nachweisdateien:
 - Card 2:
   - Title: `TOMs Betriebsnachweise offen`
   - Severity: `P2`
-  - Owner: `Ngoc Anh Nguyen`
+  - Owner: `Nguyen Phuong Ngoc Anh`
   - Evidence:
     - `TOMS_CHECKLIST.md:48-49, 68-69`
   - Done-Definition:
@@ -116,7 +116,7 @@ Nachweisdateien:
 - Card 3:
   - Title: `DSAR Probelauf offen`
   - Severity: `P2`
-  - Owner: `Ngoc Anh Nguyen`
+  - Owner: `Nguyen Phuong Ngoc Anh`
   - Evidence:
     - `DSGVO_RELEASE_CHECKLIST.md:50-51`
   - Done-Definition:

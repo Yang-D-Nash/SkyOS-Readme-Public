@@ -30,7 +30,7 @@ See `docs/localization-audit.md` for detailed file-level breakdown.
 - Android: `MusicScreen`, `VideoHubScreen`, `BeatHubScreen`, `AiScreen`, `AgentScreen`, `AiHubScreen`
 
 4. Final consistency pass
-- unify terminology (`22`, `Skydown`, `22xSky`)
+- unify terminology (`22`, `Skydown`, `SkyOS`)
 - verify placeholders, toasts, errors, mail templates
 - run locale smoke tests on both platforms
 

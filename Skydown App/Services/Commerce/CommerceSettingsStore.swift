@@ -1,8 +1,9 @@
 import Foundation
 import FirebaseFirestore
 
-private let defaultInvoiceCompanyName = "Ngoc Anh Nguyen (Yang D. Nash - Skydown)"
+private let defaultInvoiceCompanyName = "Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)"
 private let legacyInvoiceCompanyName = "Skydown"
+private let previousInvoiceCompanyName = "Ngoc Anh Nguyen (Yang D. Nash - Skydown)"
 
 struct CommerceShippingSettings: Equatable {
     var domesticCost: Double = 4.90
@@ -127,7 +128,7 @@ final class FirestoreCommerceSettingsService: CommerceSettingsServicing {
     private static func normalizeInvoiceCompanyName(_ value: String?) -> String {
         let trimmed = value?.trimmed ?? ""
         switch trimmed {
-        case "", legacyInvoiceCompanyName:
+        case "", legacyInvoiceCompanyName, previousInvoiceCompanyName:
             return defaultInvoiceCompanyName
         default:
             return trimmed

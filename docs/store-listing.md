@@ -1,6 +1,6 @@
 # SkyOS Premium Store Listing
 
-Status: `store-ready copy draft (legal finalization pending)`
+Status: `store-ready copy draft (operator details finalized)`
 
 This document contains production-grade listing copy for App Store and Google Play, optimized for premium branding, clarity, and conversion.
 
@@ -77,8 +77,6 @@ SkyOS provides the system foundation behind this experience: visual consistency,
 
 Skydown also includes account, settings, support, and legal surfaces to keep trust visible inside the app.
 
-Important: legal texts and policy surfaces are structured in product and require final legal sign-off before public release communication declares them as fully approved.
-
 ### What is New (template)
 
 - Refined SkyOS-first brand presentation across key screens
@@ -121,8 +119,6 @@ SkyOS powers the system layer behind the app: design language, visual hierarchy,
 
 Skydown includes settings, support, and legal access points so users can understand account and policy context directly inside the app.
 
-For release compliance, legal copy and policy messaging require final legal approval before public claims indicate full legal sign-off.
-
 ### Release Notes (template)
 
 - Elevated SkyOS premium branding across core product surfaces
@@ -140,7 +136,7 @@ Do not use:
 - `fully automated`
 - `guaranteed correct results`
 - unverified partner claims
-- legal-final statements before legal approval
+- unverified legal-compliance guarantees
 - ZweiZwei / 22 branding outside music context
 
 ## ASO Keyword Banks
@@ -171,7 +167,7 @@ Do not use:
 
 ## Metadata Checklist Before Submission
 
-- Final legal approval status confirmed
+- Operator, privacy, terms, and support details confirmed
 - Privacy/Terms/Support URLs set to production domains
 - Listing language aligned with selected store locales
 - Screenshot set and listing copy use identical product naming

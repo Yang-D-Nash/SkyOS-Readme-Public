@@ -11,16 +11,31 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 
 private const val defaultLegalBrandName = "SkyOS"
-private const val defaultLegalOperatorName = "Skydown (Betreiber), vertreten durch Yang D. Nash"
-private const val defaultLegalRightsHolderName = "Skydown / Yang D. Nash"
+private const val defaultLegalOperatorName = "Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)"
+private const val defaultLegalRightsHolderName = "Nguyen Phuong Ngoc Anh / Yang D. Nash - Skydown"
 private const val legacyLegalOperatorName = "Skydown"
 private const val legacyLegalRightsHolderName = "Skydown"
 private val defaultLegalSupportEmail = PlatformContactEmails.DEFAULT_SUPPORT_EMAIL
-private const val defaultLegalLastUpdatedLabel = "25. April 2026"
+private const val defaultLegalLastUpdatedLabel = "29. April 2026"
 private val defaultLegalImprintReference =
-    "Anbieterkennzeichnung: Skydown (Betreiber), vertreten durch Yang D. Nash, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: ${PlatformContactEmails.DEFAULT_SUPPORT_EMAIL}."
+    "Anbieterkennzeichnung: Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: ${PlatformContactEmails.DEFAULT_SUPPORT_EMAIL}."
 private val legacyLegalImprintReference =
     "Anbieterkennzeichnung: Skydown, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: ${PlatformContactEmails.DEFAULT_SUPPORT_EMAIL}."
+private val previousLegalOperatorNames = setOf(
+    legacyLegalOperatorName,
+    "Skydown (Betreiber), vertreten durch Yang D. Nash",
+    "Ngoc Anh Nguyen (Yang D. Nash - Skydown)",
+)
+private val previousLegalRightsHolderNames = setOf(
+    legacyLegalRightsHolderName,
+    "Skydown / Yang D. Nash",
+    "Ngoc Anh Nguyen (Yang D. Nash - Skydown)",
+)
+private val previousLegalImprintReferences = setOf(
+    legacyLegalImprintReference,
+    "Anbieterkennzeichnung: Skydown (Betreiber), vertreten durch Yang D. Nash, Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: ${PlatformContactEmails.DEFAULT_SUPPORT_EMAIL}.",
+    "Anbieterkennzeichnung: Ngoc Anh Nguyen (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: ${PlatformContactEmails.DEFAULT_SUPPORT_EMAIL}.",
+)
 private const val defaultMasterNumberMeaning = "Die Meisterzahl 22 gilt als Master Builder: visionaer, praktisch und umsetzungsstark. Sie verbindet Inspiration mit Disziplin und macht aus Ideen reale, belastbare Strukturen."
 private const val defaultBrandManifesto = "Dort, wo der Himmel faellt, beginnt unser Denken.\nWas zerbricht, offenbart Tiefe - nicht Verlust.\nWir hoeren auf das, was nicht laut ist: Wandel, Stille, Sinn.\nUnser Handeln wurzelt im Inneren, wo Klarheit entsteht.\nNicht im Machen liegt unsere Kraft, sondern im Verstehen.\nDenn wir glauben: Der Himmel faellt nicht auf uns - er oeffnet sich in uns."
 private const val defaultSymbolicNumericCode = "1337-514-731"
@@ -145,7 +160,7 @@ private fun normalizeLegalOperatorName(value: String?): String {
     val trimmed = value?.trim().orEmpty()
     return when {
         trimmed.isEmpty() -> defaultLegalOperatorName
-        trimmed == legacyLegalOperatorName -> defaultLegalOperatorName
+        trimmed in previousLegalOperatorNames -> defaultLegalOperatorName
         else -> trimmed
     }
 }
@@ -154,7 +169,7 @@ private fun normalizeLegalRightsHolderName(value: String?): String {
     val trimmed = value?.trim().orEmpty()
     return when {
         trimmed.isEmpty() -> defaultLegalRightsHolderName
-        trimmed == legacyLegalRightsHolderName -> defaultLegalRightsHolderName
+        trimmed in previousLegalRightsHolderNames -> defaultLegalRightsHolderName
         else -> trimmed
     }
 }
@@ -163,7 +178,7 @@ private fun normalizeLegalImprintReference(value: String?): String {
     val trimmed = value?.trim().orEmpty()
     return when {
         trimmed.isEmpty() -> defaultLegalImprintReference
-        trimmed == legacyLegalImprintReference -> defaultLegalImprintReference
+        trimmed in previousLegalImprintReferences -> defaultLegalImprintReference
         else -> trimmed
     }
 }

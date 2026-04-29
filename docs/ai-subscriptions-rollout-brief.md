@@ -1,6 +1,6 @@
 # AI Subscription Rollout Brief
 
-Stand: 2026-04-19
+Stand: 2026-04-29
 
 ## Ziel
 

@@ -38,7 +38,7 @@ Reminder:
   "uid": "firebaseUserId",
   "title": "Arzttermin",
   "body": "Unterlagen mitnehmen",
-  "scheduledAt": "2026-04-29T09:00:00.000Z",
+  "scheduledAt": "2026-05-04T09:00:00.000Z",
   "timezone": "Europe/Berlin",
   "source": "activepieces",
   "requestId": "wf-rem-001"
