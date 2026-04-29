@@ -81,6 +81,27 @@ Note:
 - Body Type: JSON
 - Body: je nach Endpoint die passende Struktur oben
 
+## Premium Router Code Step
+
+Der aktuelle Drop-in-Code fuer `SkyOS - Agent Webhook Master PRO` liegt hier:
+
+[activepieces-router-premium-v2.5.mjs](activepieces-router-premium-v2.5.mjs)
+
+Einsatz:
+
+- In Activepieces einen **Code** Step anlegen.
+- Den Inhalt der Datei in den Step kopieren.
+- `projectId` und `workflowSecret` als Activepieces Inputs/Secrets setzen.
+- Danach die Code-Ausgabe im **Return Response** Step als JSON zurueckgeben.
+
+v2.5 ergaenzt gegenueber v2.4:
+
+- direkte Modi `reminder`, `task`, `note` zusaetzlich zu `release`, `briefing`, `content`, `merch`, `social_analysis`
+- strukturierte App-Results mit `type: "reminder"`, `type: "task"` oder `type: "note"`
+- lesbare Success-Messages fuer den User statt generischem `Erledigt. Aktion erfolgreich ausgefuehrt.`
+- `private` und `group` bleiben fuer Founder Briefings unveraendert, damit Home `Me/Group` bzw. `Ich/Gruppe` sauber anzeigen kann
+- der Secret Header `x-skyos-workflow-secret` wird nur beim Server-Call gesetzt und nie in der Response ausgegeben
+
 ## Erwartete Antworten
 
 Erfolg:

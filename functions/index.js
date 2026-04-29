@@ -4458,16 +4458,44 @@ function normalizeAutomationWorkflowStatus(value, fallback = "completed") {
 }
 
 const ACTIVEPIECES_PREMIUM_ROUTER_MODES = new Set([
-  "release", "briefing", "content", "merch", "social_analysis",
+  "release", "briefing", "content", "merch", "social_analysis", "reminder", "task", "note",
 ]);
+
+function normalizeProductivityRouterMode(value) {
+  const normalized = (nonEmptyString(value) || "")
+      .toLowerCase()
+      .replace(/^create[_-]/, "")
+      .replace(/^workflow[_-]/, "");
+  if (["reminder", "remind", "erinnerung", "erinner"].includes(normalized)) {
+    return "reminder";
+  }
+  if (["task", "todo", "to-do", "aufgabe"].includes(normalized)) {
+    return "task";
+  }
+  if (["note", "notiz", "memo"].includes(normalized)) {
+    return "note";
+  }
+  return "";
+}
 
 /**
  * Mappt App-UI-Mode ("automation" Tab) auf skyos.activepieces.router.premium.* Vokabular.
  * Ohne Mapping liefert der Router: invalid_mode / "Ungueltiger mode."
  */
-function mapAgentModeToActivepiecesRouterMode(mode, {socialContext = {}, prompt = "", reply = ""} = {}) {
+function mapAgentModeToActivepiecesRouterMode(mode, {socialContext = {}, prompt = "", reply = "", data = {}} = {}) {
   const raw = nonEmptyString(mode)?.toLowerCase() || "";
-  if (raw && raw !== "automation") {
+  const safeData = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const explicitProductivityMode = normalizeProductivityRouterMode(raw) ||
+    normalizeProductivityRouterMode(safeData.entityType) ||
+    normalizeProductivityRouterMode(safeData.productivityType) ||
+    normalizeProductivityRouterMode(safeData.kind) ||
+    normalizeProductivityRouterMode(safeData.type) ||
+    normalizeProductivityRouterMode(safeData.intent) ||
+    normalizeProductivityRouterMode(safeData.action);
+  if (explicitProductivityMode) {
+    return explicitProductivityMode;
+  }
+  if (raw && raw !== "automation" && raw !== "content") {
     if (ACTIVEPIECES_PREMIUM_ROUTER_MODES.has(raw)) {
       return raw;
     }
@@ -4476,7 +4504,25 @@ function mapAgentModeToActivepiecesRouterMode(mode, {socialContext = {}, prompt 
   if (nonEmptyString(socialContext?.intent)?.toLowerCase() === "social_analysis") {
     return "social_analysis";
   }
-  const combined = `${nonEmptyString(prompt) || ""} ${nonEmptyString(reply) || ""}`.toLowerCase();
+  const combined = [
+    prompt,
+    reply,
+    safeData.prompt,
+    safeData.reply,
+    safeData.title,
+    safeData.content,
+    safeData.description,
+    safeData.body,
+    safeData.analysis,
+  ]
+      .map((entry) => nonEmptyString(entry) || "")
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+  if (nonEmptyString(safeData.scheduledAt) ||
+      /\berinner|\bremind\b|\breminder\b|benachrichtig|notify|push|alarm|weck/.test(combined)) {
+    return "reminder";
+  }
   if (/\bshopify\b|myshopify\.com|\bmerch\b|produktlaunch|produkt[ -]?launch|warenkorb|collection|hoodie|tees\b/.test(combined)) {
     return "merch";
   }
@@ -4486,7 +4532,14 @@ function mapAgentModeToActivepiecesRouterMode(mode, {socialContext = {}, prompt 
   if (/\brelease\b|release notes|ankuendigung|changelog/.test(combined)) {
     return "release";
   }
-  return "content";
+  if (nonEmptyString(safeData.dueAt) ||
+      /\btask\b|\btodo\b|to-do|aufgabe|erledigen|deadline|faellig|due\b|follow[ -]?up/.test(combined)) {
+    return "task";
+  }
+  if (/\bnote\b|notiz|memo|merken|aufschreiben|speichern/.test(combined)) {
+    return "note";
+  }
+  return ACTIVEPIECES_PREMIUM_ROUTER_MODES.has(raw) ? raw : "content";
 }
 
 async function triggerWorkflowAutomationWebhook({
@@ -4544,7 +4597,7 @@ async function triggerWorkflowAutomationWebhook({
   const rawWorkflowMode = nonEmptyString(safeData.mode) || "content";
   const routerModeForPayload = mapAgentModeToActivepiecesRouterMode(
       rawWorkflowMode,
-      {socialContext: safeData.socialContext, prompt: safeData.prompt, reply: safeData.reply},
+      {socialContext: safeData.socialContext, prompt: safeData.prompt, reply: safeData.reply, data: safeData},
   );
   if (routerModeForPayload !== rawWorkflowMode) {
     safeData = {
@@ -6643,7 +6696,7 @@ async function authorizeAiUsage({
     const baseLimit = aiUsageLimitForKind(kind, profile.aiLimits);
     const hardCap = aiUsageLimitForKind(kind, runtimeSettings.hardDailyCaps);
     const limit = isOwnerUnlimitedUsage ?
-      Math.max(1, baseLimit) :
+      Math.max(1_000_000, baseLimit) :
       runtimeSettings.costGuardEnabled ?
       Math.max(1, Math.min(baseLimit, hardCap)) :
       baseLimit;
@@ -6661,17 +6714,17 @@ async function authorizeAiUsage({
       }) :
       limit;
 
-    if (currentCount >= limit) {
+    if (!isOwnerUnlimitedUsage && currentCount >= limit) {
       denyReasonInTransaction = "hard_limit_reached";
       throw new HttpsError("resource-exhausted", aiLimitReachedMessage(kind, limit));
     }
 
-    if (levelLimit <= 0) {
+    if (!isOwnerUnlimitedUsage && levelLimit <= 0) {
       denyReasonInTransaction = "ai_level_unavailable";
       throw new HttpsError("permission-denied", "Dieser Modus ist fuer deinen aktuellen Zugang noch nicht verfuegbar.");
     }
 
-    if (currentLevelCount >= levelLimit) {
+    if (!isOwnerUnlimitedUsage && currentLevelCount >= levelLimit) {
       denyReasonInTransaction = "ai_level_limit_reached";
       throw new HttpsError("resource-exhausted", "Dein heutiges AI-Limit ist erreicht. Morgen kannst du weiterarbeiten oder einen hoeheren Modus nutzen, sobald er freigeschaltet ist.");
     }
@@ -6694,7 +6747,8 @@ async function authorizeAiUsage({
     const windowMs = runtimeSettings.costGuardrails.suspiciousSpikeWindowSeconds * 1000;
     const burstCount = Number(currentData.recentBurstCount) || 0;
     const nextBurstCount = Date.now() - lastConsumedAtMillis <= windowMs ? burstCount + 1 : 1;
-    if (nextBurstCount >= runtimeSettings.costGuardrails.suspiciousSpikeRequestThreshold) {
+    if (!isOwnerUnlimitedUsage &&
+      nextBurstCount >= runtimeSettings.costGuardrails.suspiciousSpikeRequestThreshold) {
       denyReasonInTransaction = "suspicious_spike";
       throw new HttpsError("resource-exhausted", "Anfragen treffen gerade zu schnell ein.");
     }
@@ -6702,6 +6756,7 @@ async function authorizeAiUsage({
     const currentBurnMicros = Number(currentBurnData.totalEstimatedCostMicros) || 0;
     const nextBurnMicros = currentBurnMicros + (normalizedEstimatedCostMicros * normalizedWeight);
     if (runtimeSettings.costGuardEnabled &&
+      !isOwnerUnlimitedUsage &&
       runtimeSettings.costGuardrails.dailyBurnCapMicros > 0 &&
       nextBurnMicros > runtimeSettings.costGuardrails.dailyBurnCapMicros) {
       denyReasonInTransaction = "daily_burn_cap_reached";

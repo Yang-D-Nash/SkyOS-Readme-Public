@@ -149,6 +149,46 @@ Wichtig: SkyOS oeffnet nur sichere URLs. Nutzt immer `https://`.
 }
 ```
 
+### 10) `reminder`, `task`, `note`
+
+Diese Typen sind fuer live angelegte Productivity-Eintraege gedacht. Sie erlauben der App,
+Workflow-Ergebnisse lesbar zusammenzufassen und direkt als erstellte Eintraege zu zaehlen.
+
+Reminder:
+
+```json
+{
+  "type": "reminder",
+  "id": "reminderDocumentId",
+  "title": "Arzttermin",
+  "text": "Reminder erstellt: Arzttermin",
+  "scheduledAt": "2026-05-04T09:00:00.000Z"
+}
+```
+
+Task:
+
+```json
+{
+  "type": "task",
+  "id": "taskDocumentId",
+  "title": "Steuer Unterlagen hochladen",
+  "text": "Task erstellt: Steuer Unterlagen hochladen",
+  "dueAt": "2026-05-02T12:00:00.000Z"
+}
+```
+
+Note:
+
+```json
+{
+  "type": "note",
+  "id": "noteDocumentId",
+  "title": "Meeting Notiz",
+  "text": "Notiz erstellt: Meeting Notiz"
+}
+```
+
 Hinweis: Script-Tags werden clientseitig entfernt.
 
 ## Feldprioritaeten im Backend

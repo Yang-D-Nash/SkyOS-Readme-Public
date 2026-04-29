@@ -52,6 +52,7 @@ Die wichtigsten Prinzipien:
 - [deployment.md](deployment.md) - Deploy-Ablauf, selektive Deploys, Rollback und Checks nach dem Deploy
 - [incident-runbook.md](incident-runbook.md) - Incident-Szenarien, Rollen, Schweregrade, Kommunikation und Hotfix-Pfade
 - [workflow-http-api-activepieces.md](workflow-http-api-activepieces.md) - serverseitige HTTP-Workflow-API für Reminder, Tasks und Notes
+- [activepieces-router-premium-v2.5.mjs](activepieces-router-premium-v2.5.mjs) - kopierbarer Activepieces-Code-Step fuer den Premium-Router
 - [automation/agent-results-contract.md](automation/agent-results-contract.md) - erwartetes Agent-/Workflow-Result-Format
 - [automation/activepieces-minimal-app-flow.md](automation/activepieces-minimal-app-flow.md) - minimaler Activepieces-Flow für Agent-Automation
 - [automation/chatgpt-prompt-activepieces-skyos.md](automation/chatgpt-prompt-activepieces-skyos.md) - Prompt-Vorlage für Activepieces-Workflow-Entwürfe

@@ -1,0 +1,613 @@
+// SkyOS Activepieces Router, premium v2.5
+// Drop-in Code Step for "SkyOS - Agent Webhook Master PRO".
+// Secrets stay in Activepieces inputs. Do not commit real secret values.
+
+export const code = async (inputs) => {
+  const startedAt = Date.now();
+
+  const parseJsonSafe = (value) => {
+    if (typeof value !== "string") return null;
+    const s = value.trim();
+    if (!s) return null;
+    try {
+      return JSON.parse(s);
+    } catch {
+      return null;
+    }
+  };
+
+  const asObject = (value) =>
+    value && typeof value === "object" && !Array.isArray(value) ? value : null;
+
+  const clean = (value, fallback = "", max = 5000) =>
+    String(value ?? "").trim().slice(0, max) || fallback;
+
+  const firstClean = (values, fallback = "", max = 5000) => {
+    for (const value of values) {
+      const s = clean(value, "", max);
+      if (s) return s;
+    }
+    return fallback;
+  };
+
+  const parseBool = (value) => {
+    if (value === true) return true;
+    if (value === false) return false;
+    const s = String(value ?? "").trim().toLowerCase();
+    return s === "true" || s === "1" || s === "yes" || s === "owner";
+  };
+
+  const isValidYmd = (value) => {
+    const s = String(value || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+    const d = new Date(`${s}T00:00:00.000Z`);
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+  };
+
+  const isValidIsoDateTime = (value) => {
+    const s = String(value || "").trim();
+    return Boolean(s && s.includes("T") && !Number.isNaN(Date.parse(s)));
+  };
+
+  const normalizePriority = (value, fallback = "normal") => {
+    const p = String(value || "").trim().toLowerCase();
+    return ["low", "normal", "high"].includes(p) ? p : fallback;
+  };
+
+  const normalizeProductivityMode = (value) => {
+    const s = clean(value, "", 80)
+      .toLowerCase()
+      .replace(/^create[_-]/, "")
+      .replace(/^workflow[_-]/, "");
+    if (["reminder", "remind", "erinnerung", "erinner"].includes(s)) return "reminder";
+    if (["task", "todo", "to-do", "aufgabe"].includes(s)) return "task";
+    if (["note", "notiz", "memo"].includes(s)) return "note";
+    return "";
+  };
+
+  const normalizeMode = ({ rawMode, data, body }) => {
+    const explicitProductivity =
+      normalizeProductivityMode(rawMode) ||
+      normalizeProductivityMode(data?.entityType) ||
+      normalizeProductivityMode(data?.productivityType) ||
+      normalizeProductivityMode(data?.kind) ||
+      normalizeProductivityMode(data?.type) ||
+      normalizeProductivityMode(data?.intent) ||
+      normalizeProductivityMode(data?.action) ||
+      normalizeProductivityMode(body?.entityType) ||
+      normalizeProductivityMode(body?.productivityType) ||
+      normalizeProductivityMode(body?.kind) ||
+      normalizeProductivityMode(body?.type) ||
+      normalizeProductivityMode(body?.intent) ||
+      normalizeProductivityMode(body?.action);
+    if (explicitProductivity) return explicitProductivity;
+
+    const m = clean(rawMode, "", 80).toLowerCase();
+    const allowedDirect = ["release", "briefing", "merch", "social_analysis", "reminder", "task", "note"];
+    if (allowedDirect.includes(m)) return m;
+
+    const text = [
+      data?.prompt,
+      data?.reply,
+      data?.title,
+      data?.content,
+      data?.description,
+      data?.body,
+      data?.analysis,
+      body?.prompt,
+      body?.reply,
+      body?.title,
+      body?.content,
+      body?.description,
+      body?.body,
+      body?.analysis,
+    ]
+      .map((entry) => clean(entry, "", 2000).toLowerCase())
+      .filter(Boolean)
+      .join(" ");
+
+    if (isValidIsoDateTime(data?.scheduledAt || body?.scheduledAt) ||
+      /\b(reminder|remind|erinner|erinnerung|benachrichtig|notify|push|alarm|weck)/i.test(text)) {
+      return "reminder";
+    }
+    if (/\b(briefing|founder|kpi|daily ops|tagesbrief)/i.test(text)) return "briefing";
+    if (/\b(shopify|merch|hoodie|tee|produktlaunch|warenkorb|collection)/i.test(text)) return "merch";
+    if (/\b(release|changelog|ankuendigung|announcement)/i.test(text)) return "release";
+    if (isValidIsoDateTime(data?.dueAt || body?.dueAt) ||
+      /\b(task|todo|to-do|aufgabe|deadline|follow[ -]?up|erledigen|abhaken|faellig)/i.test(text)) {
+      return "task";
+    }
+    if (/\b(note|notiz|memo|merken|speichern|aufschreiben|mitschrift)/i.test(text)) return "note";
+    return m === "automation" || !m ? "content" : m;
+  };
+
+  const buildStatusText = ({ actionType, ok, title, scheduledAt, dueAt, deduplicated }) => {
+    if (!ok) return "Die Aktion wurde verstanden, konnte aber nicht abgeschlossen werden.";
+    if (actionType === "reminder") {
+      return `Reminder erstellt: ${title}${scheduledAt ? `\nFaellig: ${scheduledAt}` : ""}`;
+    }
+    if (actionType === "task" || actionType === "release" || actionType === "merch_task") {
+      return `${deduplicated ? "Task aktualisiert" : "Task erstellt"}: ${title}${dueAt ? `\nFaellig: ${dueAt}` : ""}`;
+    }
+    if (actionType === "note" || actionType === "content" || actionType === "social_analysis" || actionType === "merch_note") {
+      return `Notiz erstellt: ${title}`;
+    }
+    if (actionType === "briefing") return "Briefing bereit.";
+    return "Workflow abgeschlossen.";
+  };
+
+  const root = asObject(inputs) || {};
+  const bodyCandidate =
+    asObject(root.body) ||
+    asObject(root.payload) ||
+    parseJsonSafe(root.body) ||
+    parseJsonSafe(root.payload) ||
+    root;
+
+  const rawBodyObj =
+    asObject(bodyCandidate?.rawBody) || parseJsonSafe(bodyCandidate?.rawBody) || null;
+
+  const body = rawBodyObj || bodyCandidate || {};
+  const data =
+    asObject(body.data) ||
+    asObject(body.payload) ||
+    parseJsonSafe(body.data) ||
+    parseJsonSafe(body.payload) ||
+    body;
+  const userObj = asObject(body.user) || asObject(data.user) || asObject(root.user) || {};
+
+  const projectId = firstClean(
+    [root.projectId, root.firebaseProjectId, root.PROJECT_ID],
+    "skydown-a6add",
+    100,
+  );
+  const workflowSecret = firstClean(
+    [
+      root.workflowSecret,
+      root.SKYOS_WORKFLOW_SECRET,
+      root.secrets?.workflowSecret,
+      root.secrets?.SKYOS_WORKFLOW_SECRET,
+    ],
+    "",
+    300,
+  );
+
+  const requestId = firstClean(
+    [body.requestId, data.requestId, root.requestId],
+    `skyos-${Date.now()}`,
+    120,
+  );
+
+  const uid = firstClean([body.uid, data.uid, userObj.uid, root.uid], "", 180);
+  const appExecutionMode = firstClean([data.appExecutionMode, body.appExecutionMode], "", 80);
+  const rawMode = firstClean([data.mode, body.mode, body.action, data.action], "", 80);
+  const mode = normalizeMode({ rawMode, data, body });
+
+  const schemaVersion = "skyos.activepieces.router.premium.v2.5";
+  const traceId = `${requestId}-${Math.random().toString(36).slice(2, 8)}`;
+  const todayYmd = new Date().toISOString().slice(0, 10);
+  const baseUrl = `https://us-central1-${projectId}.cloudfunctions.net`;
+  const allowedModes = ["release", "briefing", "content", "merch", "social_analysis", "reminder", "task", "note"];
+
+  const fail = (message, reason, extra = {}) => {
+    const responseForWebhook = {
+      message,
+      workflowStatus: "failed",
+      private: "",
+      group: "",
+      results: [
+        {
+          type: "text",
+          title: "Ausfuehrung nicht moeglich",
+          text: message,
+        },
+      ],
+    };
+    return {
+      message,
+      workflowStatus: "failed",
+      results: responseForWebhook.results,
+      private: null,
+      group: null,
+      responseForWebhook,
+      responseForWebhookJson: JSON.stringify(responseForWebhook),
+      meta: {
+        schemaVersion,
+        traceId,
+        requestId,
+        mode: mode || null,
+        uid: uid || null,
+        appExecutionMode: appExecutionMode || null,
+        reason,
+        generatedAt: new Date().toISOString(),
+        ...extra,
+      },
+    };
+  };
+
+  if (!projectId) return fail("PROJECT_ID fehlt.", "project_id_missing");
+  if (!workflowSecret) return fail("Workflow-Secret fehlt.", "workflow_secret_missing");
+  if (!uid) return fail("Firebase UID fehlt.", "uid_missing", { debugBodyKeys: Object.keys(body || {}) });
+  if (!mode) return fail("mode fehlt.", "mode_missing");
+  if (!allowedModes.includes(mode)) {
+    return fail("Ungueltiger mode.", "invalid_mode", { allowedModes, providedMode: mode });
+  }
+
+  const userRole = firstClean([userObj.role, data.role, body.role], "", 80).toLowerCase();
+  const isOwner =
+    parseBool(body?.isOwner ?? data?.isOwner ?? userObj?.isOwner) ||
+    ["owner", "admin", "founder", "owner_unlimited"].includes(userRole);
+
+  const targetRaw = firstClean(
+    [data.briefingTarget, body.briefingTarget, data.target, body.target],
+    "both",
+    20,
+  ).toLowerCase();
+  const briefingTarget = ["private", "group", "both"].includes(targetRaw) ? targetRaw : "both";
+  const requiresOwner = mode === "briefing" && (briefingTarget === "group" || briefingTarget === "both");
+  if (requiresOwner && !isOwner) {
+    return fail("Nur Owner darf Group/Both Briefing ausfuehren.", "owner_required_for_group_briefing", {
+      briefingTarget,
+      isOwner: false,
+    });
+  }
+
+  let functionName = null;
+  let payload = null;
+  let actionType = null;
+  let outputTitle = "";
+  let outputScheduledAt = "";
+  let outputDueAt = "";
+
+  if (mode === "briefing") {
+    const date = firstClean([data.date, body.date], todayYmd, 20);
+    if (!isValidYmd(date)) return fail("Fuer briefing fehlt valides date (YYYY-MM-DD).", "briefing_date_invalid");
+    functionName = "createFounderBriefingFromWorkflow";
+    actionType = "briefing";
+    payload = {
+      uid,
+      mode: briefingTarget,
+      date,
+      source: "activepieces",
+      requestId: `${requestId}-briefing`,
+    };
+  } else if (mode === "reminder") {
+    const title = firstClean([data.title, body.title, data.summary, body.summary], "Reminder", 180);
+    const scheduledAt = firstClean([data.scheduledAt, body.scheduledAt, data.dueAt, body.dueAt], "", 80);
+    if (!isValidIsoDateTime(scheduledAt)) {
+      return fail("Fuer reminder fehlt valides scheduledAt (ISO DateTime).", "reminder_scheduled_at_invalid");
+    }
+    const bodyText = firstClean([data.body, body.body, data.description, body.description, data.content, body.content], "", 5000);
+    functionName = "createReminderFromWorkflow";
+    actionType = "reminder";
+    outputTitle = title;
+    outputScheduledAt = scheduledAt;
+    payload = {
+      uid,
+      title,
+      body: bodyText,
+      scheduledAt,
+      timezone: firstClean([data.timezone, body.timezone, userObj.timezone], "Europe/Berlin", 80),
+      source: "activepieces",
+      requestId: `${requestId}-reminder`,
+    };
+  } else if (mode === "release" || mode === "task") {
+    const title = firstClean([data.title, body.title, data.taskTitle, body.taskTitle], "", 180);
+    if (!title) return fail(`Fuer ${mode} fehlt title.`, `${mode}_title_missing`);
+    const dueAt = firstClean([data.dueAt, body.dueAt], "", 80);
+    functionName = "createTaskFromWorkflow";
+    actionType = mode === "release" ? "release" : "task";
+    outputTitle = title;
+    outputDueAt = isValidIsoDateTime(dueAt) ? dueAt : "";
+    payload = {
+      uid,
+      title,
+      description: firstClean([data.description, body.description, data.content, body.content], mode === "release" ? "Release-Aufgabe aus Workflow." : "", 5000),
+      priority: normalizePriority(data.priority || body.priority, mode === "release" ? "high" : "normal"),
+      source: "activepieces",
+      requestId: `${requestId}-${mode}`,
+    };
+    if (outputDueAt) payload.dueAt = outputDueAt;
+  } else if (mode === "content" || mode === "note") {
+    const title = firstClean([data.title, body.title, data.noteTitle, body.noteTitle], mode === "note" ? "Notiz" : "Content Notiz", 180);
+    functionName = "createNoteFromWorkflow";
+    actionType = mode === "note" ? "note" : "content";
+    outputTitle = title;
+    payload = {
+      uid,
+      title,
+      content: firstClean(
+        [data.content, body.content, data.description, body.description, data.body, body.body, data.reply, body.reply],
+        mode === "note" ? "Notiz aus Workflow." : "Content-Input aus Workflow.",
+        5000,
+      ),
+      source: "activepieces",
+      requestId: `${requestId}-${mode}`,
+    };
+  } else if (mode === "merch") {
+    const notePreferred = parseBool(data.notePreferred ?? body.notePreferred);
+    const title = firstClean([data.title, body.title], notePreferred ? "Merch Notiz" : "Merch Task", 180);
+    outputTitle = title;
+    if (notePreferred) {
+      functionName = "createNoteFromWorkflow";
+      actionType = "merch_note";
+      payload = {
+        uid,
+        title,
+        content: firstClean([data.content, body.content, data.description, body.description], "Merch-Workflow Input.", 5000),
+        source: "activepieces",
+        requestId: `${requestId}-merch-note`,
+      };
+    } else {
+      const dueAt = firstClean([data.dueAt, body.dueAt], "", 80);
+      functionName = "createTaskFromWorkflow";
+      actionType = "merch_task";
+      outputDueAt = isValidIsoDateTime(dueAt) ? dueAt : "";
+      payload = {
+        uid,
+        title,
+        description: firstClean([data.content, body.content, data.description, body.description], "Merch-Workflow Input.", 5000),
+        priority: normalizePriority(data.priority || body.priority, "normal"),
+        source: "activepieces",
+        requestId: `${requestId}-merch-task`,
+      };
+      if (outputDueAt) payload.dueAt = outputDueAt;
+    }
+  } else if (mode === "social_analysis") {
+    const title = firstClean([data.title, body.title], "Social Analysis", 180);
+    functionName = "createNoteFromWorkflow";
+    actionType = "social_analysis";
+    outputTitle = title;
+    payload = {
+      uid,
+      title,
+      content: firstClean(
+        [data.content, body.content, data.analysis, body.analysis],
+        "Social Analysis angefordert. Bitte Performance, Muster, Chancen und naechste Tests dokumentieren.",
+        5000,
+      ),
+      source: "activepieces",
+      requestId: `${requestId}-social-analysis`,
+    };
+  }
+
+  if (!functionName || !payload || !actionType) {
+    return fail("Routing konnte nicht bestimmt werden.", "route_resolution_failed");
+  }
+
+  const isCloudSuccess = (response, responseBody) => {
+    if (!response?.ok) return false;
+    if (responseBody && typeof responseBody === "object" && "ok" in responseBody) {
+      return responseBody.ok === true;
+    }
+    return true;
+  };
+
+  const callOnce = async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch(`${baseUrl}/${functionName}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-skyos-workflow-secret": workflowSecret,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      let responseBody = null;
+      try {
+        responseBody = await response.json();
+      } catch {
+        responseBody = null;
+      }
+      return { response, responseBody };
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  try {
+    let attempts = 1;
+    let { response, responseBody } = await callOnce();
+    const transient = !response.ok && (response.status === 429 || response.status >= 500);
+    if (transient) {
+      attempts = 2;
+      ({ response, responseBody } = await callOnce());
+    }
+
+    const ok = isCloudSuccess(response, responseBody);
+    const durationMs = Date.now() - startedAt;
+    const privateText = firstClean(
+      [
+        responseBody?.private,
+        responseBody?.briefingPrivate,
+        responseBody?.founderBriefingMarkdown,
+        responseBody?.data?.private,
+        responseBody?.result?.private,
+      ],
+      "",
+      12000,
+    );
+    const groupText = firstClean(
+      [responseBody?.group, responseBody?.briefingGroup, responseBody?.data?.group, responseBody?.result?.group],
+      "",
+      12000,
+    );
+
+    const reminderId = responseBody && typeof responseBody === "object" ? responseBody.reminderId : null;
+    const taskId = responseBody && typeof responseBody === "object" ? responseBody.taskId : null;
+    const noteId = responseBody && typeof responseBody === "object" ? responseBody.noteId : null;
+    const deduplicated = responseBody && typeof responseBody === "object" ? responseBody.deduplicated : null;
+
+    const results = [
+      {
+        type: "table",
+        title: "Ausfuehrung",
+        columns: ["Mode", "Status", "HTTP", "Cloud ok", "Versuche"],
+        rows: [
+          [
+            actionType,
+            ok ? "completed" : "failed",
+            String(response.status),
+            String(responseBody?.ok === false ? "false" : "true"),
+            String(attempts),
+          ],
+        ],
+      },
+    ];
+
+    if (actionType === "briefing") {
+      if (privateText) {
+        results.push({
+          type: "text",
+          title: "Founder Briefing (Private)",
+          text: privateText,
+        });
+      }
+      if (groupText) {
+        results.push({
+          type: "text",
+          title: "Founder Briefing (Group)",
+          text: groupText,
+        });
+      }
+      if (ok && !privateText && !groupText) {
+        results.push({
+          type: "text",
+          title: "Hinweis",
+          text: "Briefing erfolgreich aufgerufen, aber private/group leer. Pruefe founder_daily_kpis und Rechte.",
+        });
+      }
+    } else if (reminderId) {
+      results.push({
+        type: "reminder",
+        id: String(reminderId),
+        title: outputTitle || payload.title || "Reminder",
+        text: buildStatusText({ actionType: "reminder", ok, title: outputTitle || payload.title || "Reminder", scheduledAt: outputScheduledAt }),
+        scheduledAt: outputScheduledAt || null,
+      });
+    } else if (taskId) {
+      const typeForTask = actionType === "release" || actionType === "merch_task" ? "task" : actionType;
+      results.push({
+        type: typeForTask,
+        id: String(taskId),
+        title: outputTitle || payload.title || "Task",
+        text: buildStatusText({
+          actionType,
+          ok,
+          title: outputTitle || payload.title || "Task",
+          dueAt: outputDueAt,
+          deduplicated,
+        }),
+        dueAt: outputDueAt || null,
+      });
+    } else if (noteId) {
+      results.push({
+        type: "note",
+        id: String(noteId),
+        title: outputTitle || payload.title || "Notiz",
+        text: buildStatusText({ actionType, ok, title: outputTitle || payload.title || "Notiz" }),
+      });
+    } else if (ok) {
+      results.push({
+        type: "text",
+        title: "Hinweis",
+        text: "Cloud-Antwort ohne reminderId/taskId/noteId im Body. Roh-Body pruefen.",
+      });
+    }
+
+    const userMessage = buildStatusText({
+      actionType,
+      ok,
+      title: outputTitle || payload.title || actionType,
+      scheduledAt: outputScheduledAt,
+      dueAt: outputDueAt,
+      deduplicated,
+    });
+
+    const responseForWebhook = {
+      message: userMessage,
+      workflowStatus: ok ? "completed" : "failed",
+      private: actionType === "briefing" ? privateText || "" : "",
+      group: actionType === "briefing" ? groupText || "" : "",
+      results,
+    };
+
+    return {
+      message: responseForWebhook.message,
+      workflowStatus: responseForWebhook.workflowStatus,
+      results,
+      private: actionType === "briefing" ? privateText || null : null,
+      group: actionType === "briefing" ? groupText || null : null,
+      responseForWebhook,
+      responseForWebhookJson: JSON.stringify(responseForWebhook),
+      meta: {
+        schemaVersion,
+        traceId,
+        requestId,
+        uid,
+        mode,
+        appExecutionMode: appExecutionMode || null,
+        generatedAt: new Date().toISOString(),
+        functionName,
+        actionType,
+        httpStatus: response.status,
+        cloudBodyOk: responseBody?.ok,
+        reminderId: reminderId || null,
+        taskId: taskId || null,
+        noteId: noteId || null,
+        deduplicated: deduplicated === true,
+        actions: [
+          {
+            type: actionType,
+            functionName,
+            status: ok ? "completed" : "failed",
+            httpStatus: response.status,
+            attemptCount: attempts,
+            durationMs,
+            requestId: payload.requestId,
+            briefingTarget: actionType === "briefing" ? briefingTarget : undefined,
+            requiresOwner: actionType === "briefing" ? requiresOwner : undefined,
+          },
+        ],
+      },
+    };
+  } catch (err) {
+    const responseForWebhook = {
+      message: "Aktion verstanden, aber technisch fehlgeschlagen.",
+      workflowStatus: "failed",
+      private: "",
+      group: "",
+      results: [
+        {
+          type: "text",
+          title: "Ausfuehrung",
+          text: (err && err.message) || "network_or_runtime_error",
+        },
+      ],
+    };
+
+    return {
+      message: responseForWebhook.message,
+      workflowStatus: "failed",
+      results: responseForWebhook.results,
+      private: null,
+      group: null,
+      responseForWebhook,
+      responseForWebhookJson: JSON.stringify(responseForWebhook),
+      meta: {
+        schemaVersion,
+        traceId,
+        requestId,
+        uid: uid || null,
+        mode: mode || null,
+        appExecutionMode: appExecutionMode || null,
+        generatedAt: new Date().toISOString(),
+        error: err instanceof Error ? err.message : "network_or_runtime_error",
+      },
+    };
+  }
+};

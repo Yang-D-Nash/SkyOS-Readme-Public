@@ -86,6 +86,7 @@ Bei Indexänderungen zusätzlich `firebase deploy --only firestore:indexes` ([fi
 ### Activepieces
 
 - Kanonische Schritt-für-Schritt- und Payload-Doku: [docs/workflow-http-api-activepieces.md](docs/workflow-http-api-activepieces.md).  
+- Kopierbarer Premium-Code-Step fuer `SkyOS - Agent Webhook Master PRO`: [docs/activepieces-router-premium-v2.5.mjs](docs/activepieces-router-premium-v2.5.mjs).
 - Jeder Request: **`POST`**, Header **`x-skyos-workflow-secret`**, JSON-Body mit **`uid`** (Zielnutzer), **`source`: `"activepieces"`** (validiert im Backend).  
 - Beispiel-JSON: [docs/automation/json-samples/reference-http-payloads/](docs/automation/json-samples/reference-http-payloads/).
 
@@ -557,7 +558,7 @@ firebase functions:secrets:set SKYOS_WORKFLOW_SECRET
 firebase deploy --only functions
 ```
 
-**Erwartbare HTTP-Antworten (Auszug):** Erfolg `200` mit JSON `ok: true` und `reminderId` / `taskId` / `noteId`; typische Fehler: `400` (Body), `401` (Header), `405` (Methode), `500` (Secret nicht provisioniert). Vollständige Tabelle und **Beispiel-JSON-Bodies:** [docs/workflow-http-api-activepieces.md](docs/workflow-http-api-activepieces.md).
+**Erwartbare HTTP-Antworten (Auszug):** Erfolg `200` mit JSON `ok: true` und `reminderId` / `taskId` / `noteId`; typische Fehler: `400` (Body), `401` (Header), `405` (Methode), `500` (Secret nicht provisioniert). Vollständige Tabelle, **Beispiel-JSON-Bodies** und der kopierbare **Premium-Router-Code-Step:** [docs/workflow-http-api-activepieces.md](docs/workflow-http-api-activepieces.md).
 
 **Abgrenzung:** **Memory** und tiefere Folge-Automationen sind in der fachlichen Doku **nicht** Bestandteil dieser Live-HTTP-API ([docs/workflow-http-api-activepieces.md](docs/workflow-http-api-activepieces.md) „Live Status“).
 
