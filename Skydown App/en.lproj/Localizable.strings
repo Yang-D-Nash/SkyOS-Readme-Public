@@ -515,9 +515,9 @@
 "home.quick.create_note" = "Create Note";
 "home.quick.hint" = "In Agent, this opens the composer with a guided workflow prompt.";
 "home.owner.workflows.title" = "Founder intelligence";
-"home.owner.workflows.subtitle" = "Curated from live data — for you or your team.";
-"home.owner.workflows.private_analysis" = "Private";
-"home.owner.workflows.group_update" = "Team";
+"home.owner.workflows.subtitle" = "Readable intelligence from live data - for you or a group.";
+"home.owner.workflows.private_analysis" = "Me";
+"home.owner.workflows.group_update" = "Group";
 "home.owner.founder.progress" = "Composing your intelligence briefing…";
 "home.owner.founder.creating" = "Composing…";
 "home.owner.founder.title_private" = "Private intelligence";

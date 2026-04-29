@@ -469,9 +469,9 @@
     <string name="home_quick_create_note">Create Note</string>
     <string name="home_quick_hint">In Agent, this opens the composer with a guided workflow prompt.</string>
     <string name="home_owner_workflows_title">Founder intelligence</string>
-    <string name="home_owner_workflows_subtitle">Run founder analysis with real available data.</string>
-    <string name="home_owner_workflows_private_analysis">Private</string>
-    <string name="home_owner_workflows_group_update">Team</string>
+    <string name="home_owner_workflows_subtitle">Readable intelligence from live data - for you or a group.</string>
+    <string name="home_owner_workflows_private_analysis">Me</string>
+    <string name="home_owner_workflows_group_update">Group</string>
     <string name="home_owner_workflows_progress">Composing your intelligence briefing…</string>
     <string name="home_owner_workflows_creating">Composing…</string>
     <string name="home_owner_workflows_plan">Plan</string>

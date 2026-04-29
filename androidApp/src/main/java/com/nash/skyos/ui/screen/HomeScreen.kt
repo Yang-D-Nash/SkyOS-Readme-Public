@@ -56,7 +56,6 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -1130,6 +1129,7 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
                         ) {
                             val scrollState = rememberScrollState()
+                            val displayBody = remember(sheet.body) { founderBriefingDisplayText(sheet.body) }
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1138,7 +1138,7 @@ fun HomeScreen(
                                     .padding(12.dp),
                             ) {
                                 Text(
-                                    text = sheet.body,
+                                    text = displayBody,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
@@ -2156,7 +2156,7 @@ private fun HomeOwnerWorkflowRow(
                 } else {
                     stringResource(R.string.home_owner_workflows_private_analysis)
                 },
-                icon = Icons.Default.AttachMoney,
+                icon = Icons.Default.Person,
                 onClick = { onRequestFounderBriefing(FounderBriefingMode.Private) },
                 enabled = founderBriefingModeInFlight == null,
                 isLoading = founderBriefingModeInFlight == FounderBriefingMode.Private,
@@ -3285,6 +3285,26 @@ private data class FounderBriefingSheetState(
     val body: String,
     val metaLine: String? = null,
 )
+
+private fun founderBriefingDisplayText(raw: String): String {
+    return raw
+        .lineSequence()
+        .map { line ->
+            val trimmed = line.trim()
+            when {
+                trimmed == "---" -> ""
+                trimmed.startsWith("## ") -> "\n" + trimmed.removePrefix("## ").trim()
+                trimmed.startsWith("# ") -> trimmed.removePrefix("# ").trim()
+                else -> trimmed
+            }
+                .replace("**", "")
+                .replace("*", "")
+                .replace("`", "")
+        }
+        .joinToString("\n")
+        .replace(Regex("\n{3,}"), "\n\n")
+        .trim()
+}
 
 /**
  * Eine Zeile Status aus [briefingMeta] (Cloud Function), fuer Private + Group.

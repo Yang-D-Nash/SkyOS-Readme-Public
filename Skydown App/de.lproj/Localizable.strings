@@ -515,9 +515,9 @@
 "home.quick.create_note" = "Notiz erstellen";
 "home.quick.hint" = "Im Agent oeffnet das den Composer mit einem gefuehrten Workflow-Prompt.";
 "home.owner.workflows.title" = "Founder Intelligence";
-"home.owner.workflows.subtitle" = "Aus Live-Signalen kuratiert — fuer dich oder dein Team.";
-"home.owner.workflows.private_analysis" = "Privat";
-"home.owner.workflows.group_update" = "Team";
+"home.owner.workflows.subtitle" = "Lesbare Intelligence aus Live-Signalen - fuer dich oder eine Gruppe.";
+"home.owner.workflows.private_analysis" = "Ich";
+"home.owner.workflows.group_update" = "Gruppe";
 "home.owner.founder.progress" = "Intelligence-Briefing wird erstellt…";
 "home.owner.founder.creating" = "Wird erstellt…";
 "home.owner.founder.title_private" = "Private Intelligence";

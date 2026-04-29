@@ -1215,7 +1215,9 @@ function resolveAiLimits(userData = {}) {
   const hasActivePaidSubscription = AI_SUBSCRIPTION_PLANS.includes(
       normalizeAiSubscriptionPlan(userData.aiSubscriptionPlan) || "",
   ) && isAiSubscriptionStatusActive(userData.aiSubscriptionStatus);
-  const quotaPlan = role === USER_ROLES.admin &&
+  const quotaPlan = role === USER_ROLES.owner ?
+    USER_QUOTA_PLANS.ownerUnlimited :
+    role === USER_ROLES.admin &&
     storedQuotaPlan !== USER_QUOTA_PLANS.internalTeam &&
     !hasActivePaidSubscription ?
       USER_QUOTA_PLANS.internalTeam :
@@ -1225,14 +1227,20 @@ function resolveAiLimits(userData = {}) {
   const visual = Number(userData.aiVisualRequestsPerDay);
   const agent = Number(userData.aiAgentRequestsPerDay);
   const historyRetentionDays = Number(userData.aiHistoryRetentionDays);
+  const resolvedLimit = (value, fallback) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric > 0 ?
+      Math.max(Math.floor(numeric), fallback) :
+      fallback;
+  };
 
   return {
     role,
     quotaPlan,
     isEnabled: userData.aiAccessEnabled !== false && userData.aiConsentGiven !== false,
-    text: Number.isFinite(text) && text > 0 ? Math.floor(text) : defaults.text,
-    visual: Number.isFinite(visual) && visual > 0 ? Math.floor(visual) : defaults.visual,
-    agent: Number.isFinite(agent) && agent > 0 ? Math.floor(agent) : defaults.agent,
+    text: resolvedLimit(text, defaults.text),
+    visual: resolvedLimit(visual, defaults.visual),
+    agent: resolvedLimit(agent, defaults.agent),
     historyRetentionDays: [1, 3, 7, 30].includes(historyRetentionDays) ?
       historyRetentionDays :
       defaults.historyRetentionDays,
@@ -4326,6 +4334,85 @@ function extractAutomationResponseMessage(bodyText, workflowName, parsedBody = n
   return trimmed.length > 160 ? `Test an ${workflowName} gesendet.` : trimmed;
 }
 
+function isGenericAutomationResponseMessage(message, workflowName) {
+  const s = nonEmptyString(message)?.trim() || "";
+  if (!s) {
+    return true;
+  }
+  const lower = s.toLowerCase();
+  if (["{}", "[]", "null", "undefined"].includes(lower)) {
+    return true;
+  }
+  if (/^(ok|done|completed|complete|success|successful|erledigt|fertig)$/i.test(s)) {
+    return true;
+  }
+  if (/^test an .+ gesendet\.?$/i.test(s)) {
+    return true;
+  }
+  if (/^workflow\s*(completed|complete|status|ok|success)/i.test(s)) {
+    return true;
+  }
+  if (isAutomationStatusOnlyMessageLine(s)) {
+    return true;
+  }
+  const workflow = nonEmptyString(workflowName)?.trim().toLowerCase() || "";
+  return Boolean(workflow && lower === workflow);
+}
+
+function automationCreatedCounts(resultsOut = []) {
+  const counts = {reminder: 0, task: 0, note: 0};
+  if (!Array.isArray(resultsOut)) {
+    return counts;
+  }
+  for (const entry of resultsOut) {
+    const type = nonEmptyString(entry?.type)?.trim().toLowerCase() || "";
+    if (type === "reminder") counts.reminder += 1;
+    if (type === "task") counts.task += 1;
+    if (type === "note") counts.note += 1;
+  }
+  return counts;
+}
+
+function buildAutomationResponseUserMessage({
+  rawMessage,
+  workflowName,
+  workflowStatus,
+  resultsOut,
+  privateOut,
+  groupOut,
+  briefingLikeRequest,
+}) {
+  const cleanMessage = coerceAutomationTextField(rawMessage, 2000)
+      .replace(/\s+/g, " ")
+      .trim();
+  if (cleanMessage && !isGenericAutomationResponseMessage(cleanMessage, workflowName)) {
+    return trimTextMax(cleanMessage, 600);
+  }
+
+  const counts = automationCreatedCounts(resultsOut);
+  const parts = [];
+  if (counts.reminder > 0) parts.push(`${counts.reminder} Reminder`);
+  if (counts.task > 0) parts.push(`${counts.task} ${counts.task === 1 ? "Task" : "Tasks"}`);
+  if (counts.note > 0) parts.push(`${counts.note} ${counts.note === 1 ? "Notiz" : "Notizen"}`);
+  if (parts.length) {
+    return `Workflow abgeschlossen: ${parts.join(", ")} erstellt.`;
+  }
+
+  if (briefingLikeRequest && (privateOut || groupOut)) {
+    return "Briefing bereit.";
+  }
+  if (workflowStatus === "queued") {
+    return "Workflow ist geplant.";
+  }
+  if (workflowStatus === "running") {
+    return "Workflow laeuft.";
+  }
+  if (workflowStatus === "failed") {
+    return "Workflow konnte nicht abgeschlossen werden.";
+  }
+  return "Workflow abgeschlossen.";
+}
+
 function extractAutomationResponseResults(parsedBody, options = {}) {
   if (Array.isArray(parsedBody)) {
     return normalizeAgentResultEntries(parsedBody, options);
@@ -4880,8 +4967,17 @@ async function triggerWorkflowAutomationWebhook({
     bodyLooksJson: bodyStr.trim().startsWith("{") || bodyStr.trim().startsWith("["),
     bodyPrefix: bodyStr.replace(/\s+/g, " ").slice(0, 200),
   });
+  const responseMessage = buildAutomationResponseUserMessage({
+    rawMessage: extractAutomationResponseMessage(responseBody, settings.workflowName, parsedResponseBody),
+    workflowName: settings.workflowName,
+    workflowStatus,
+    resultsOut,
+    privateOut,
+    groupOut,
+    briefingLikeRequest,
+  });
   return {
-    message: extractAutomationResponseMessage(responseBody, settings.workflowName, parsedResponseBody),
+    message: responseMessage,
     workflowName: settings.workflowName,
     status: response.status,
     provider: settings.provider,
@@ -6440,6 +6536,9 @@ async function authorizeAiUsage({
   const normalizedWeight = Number.isFinite(Number(requestWeight)) ? Math.max(1, Math.floor(Number(requestWeight))) : 1;
   const quotaPlan = profile.aiLimits?.quotaPlan || effectiveEntitlement.plan || USER_QUOTA_PLANS.free;
   const plan = effectiveEntitlement.plan || quotaPlan || USER_QUOTA_PLANS.free;
+  const isOwnerUnlimitedUsage = profile.isOwner === true ||
+    quotaPlan === USER_QUOTA_PLANS.ownerUnlimited ||
+    plan === USER_QUOTA_PLANS.ownerUnlimited;
   const normalizedAiLevel = normalizeAiExperienceLevel(aiLevel);
   const routingPolicy = resolvePlanRoutingPolicy(runtimeSettings, plan);
   const effectiveCapabilities = profile.isStaff ?
@@ -6543,12 +6642,16 @@ async function authorizeAiUsage({
     const currentTotal = Number(currentData.totalRequests) || 0;
     const baseLimit = aiUsageLimitForKind(kind, profile.aiLimits);
     const hardCap = aiUsageLimitForKind(kind, runtimeSettings.hardDailyCaps);
-    const limit = runtimeSettings.costGuardEnabled ?
+    const limit = isOwnerUnlimitedUsage ?
+      Math.max(1, baseLimit) :
+      runtimeSettings.costGuardEnabled ?
       Math.max(1, Math.min(baseLimit, hardCap)) :
       baseLimit;
     const levelCounterField = aiLevelCounterField(kind, normalizedAiLevel);
     const currentLevelCount = Number(currentData[levelCounterField]) || 0;
-    const levelLimit = runtimeSettings.costGuardEnabled ?
+    const levelLimit = isOwnerUnlimitedUsage ?
+      limit :
+      runtimeSettings.costGuardEnabled ?
       aiLevelLimitForPlan({
         level: normalizedAiLevel,
         kind,
@@ -6577,6 +6680,7 @@ async function authorizeAiUsage({
     const currentGlobalTotal = Number(currentGlobalData.totalRequests) || 0;
     const globalLimit = aiUsageLimitForKind(kind, runtimeSettings.globalDailyCaps);
     if (runtimeSettings.costGuardEnabled &&
+      !isOwnerUnlimitedUsage &&
       Number.isFinite(globalLimit) &&
       globalLimit > 0 &&
       currentGlobalCount >= globalLimit) {
@@ -6615,6 +6719,13 @@ async function authorizeAiUsage({
     const nextGlobalText = counterField === "textRequests" ? nextGlobalCount : (Number(currentGlobalData.textRequests) || 0);
     const nextGlobalVisual = counterField === "visualRequests" ? nextGlobalCount : (Number(currentGlobalData.visualRequests) || 0);
     const nextGlobalAgent = counterField === "agentRequests" ? nextGlobalCount : (Number(currentGlobalData.agentRequests) || 0);
+    const remainingLimitForKind = (targetKind) => {
+      const targetBaseLimit = aiUsageLimitForKind(targetKind, profile.aiLimits);
+      if (isOwnerUnlimitedUsage || !runtimeSettings.costGuardEnabled) {
+        return targetBaseLimit;
+      }
+      return Math.min(targetBaseLimit, aiUsageLimitForKind(targetKind, runtimeSettings.hardDailyCaps));
+    };
     const nextCostMicros = (Number(currentData.totalEstimatedCostMicros) || 0) +
       (normalizedEstimatedCostMicros * normalizedWeight);
     const nextGlobalCostMicros = (Number(currentGlobalData.totalEstimatedCostMicros) || 0) +
@@ -6728,27 +6839,21 @@ async function authorizeAiUsage({
       remainingForLevel: Math.max(levelLimit - nextLevelCount, 0),
       limitForLevel: levelLimit,
       textRemaining: Math.max(
-          (runtimeSettings.costGuardEnabled ?
-            Math.min(profile.aiLimits.text, runtimeSettings.hardDailyCaps.text) :
-            profile.aiLimits.text) - nextTextCount,
+          remainingLimitForKind(AI_USAGE_KINDS.text) - nextTextCount,
           0,
       ),
       visualRemaining: Math.max(
-          (runtimeSettings.costGuardEnabled ?
-            Math.min(profile.aiLimits.visual, runtimeSettings.hardDailyCaps.visual) :
-            profile.aiLimits.visual) - nextVisualCount,
+          remainingLimitForKind(AI_USAGE_KINDS.visual) - nextVisualCount,
           0,
       ),
       agentRemaining: Math.max(
-          (runtimeSettings.costGuardEnabled ?
-            Math.min(profile.aiLimits.agent, runtimeSettings.hardDailyCaps.agent) :
-            profile.aiLimits.agent) - nextAgentCount,
+          remainingLimitForKind(AI_USAGE_KINDS.agent) - nextAgentCount,
           0,
       ),
-      globalRemainingForKind: runtimeSettings.costGuardEnabled ?
+      globalRemainingForKind: runtimeSettings.costGuardEnabled && !isOwnerUnlimitedUsage ?
         Math.max(globalLimit - nextGlobalCount, 0) :
         null,
-      globalLimitForKind: runtimeSettings.costGuardEnabled ? globalLimit : null,
+      globalLimitForKind: runtimeSettings.costGuardEnabled && !isOwnerUnlimitedUsage ? globalLimit : null,
       historyRetentionDays: profile.aiLimits.historyRetentionDays,
       effectiveEntitlement: {
         plan: effectiveEntitlement.plan || null,

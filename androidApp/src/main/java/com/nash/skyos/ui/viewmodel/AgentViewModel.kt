@@ -1498,10 +1498,57 @@ class AgentViewModel : ViewModel() {
             return result.reply
         }
         val workflowLabel = result.workflowName.trim().ifBlank { "Workflow" }
-        val automationMessage = result.automationMessage.trim().ifBlank { "An $workflowLabel uebergeben." }
+        val automationMessage = readableAutomationMessage(
+            value = result.automationMessage,
+            workflowLabel = workflowLabel,
+            wasTriggered = true,
+        )
         val summary = createdAutomationSummary(result)
-        val homeHint = "Du kannst alles in Home > Productivity als Liste bearbeiten (CRUD)."
-        return "${result.reply}\n\nWorkflow:\n$automationMessage\n\n$summary\n$homeHint"
+        return listOf(
+            result.reply.trim(),
+            "Workflow\n$automationMessage",
+            "Angelegt\n$summary",
+            "Home\nOeffne Home > Productivity, um Eintraege zu pruefen oder zu bearbeiten.",
+        )
+            .filter { it.isNotBlank() }
+            .joinToString("\n\n")
+    }
+
+    private fun isGenericAutomationMessage(value: String, workflowLabel: String): Boolean {
+        val message = value.trim()
+        if (message.isBlank()) return true
+        val lower = message.lowercase()
+        val genericValues = setOf(
+            "{}",
+            "[]",
+            "null",
+            "undefined",
+            "ok",
+            "done",
+            "completed",
+            "complete",
+            "success",
+            "successful",
+            "erledigt",
+            "fertig",
+        )
+        if (lower in genericValues) return true
+        if (lower.startsWith("test an ")) return true
+        if (lower.startsWith("workflow completed") ||
+            lower.startsWith("workflow status") ||
+            lower.startsWith("workflow ok")
+        ) {
+            return true
+        }
+        return lower == workflowLabel.trim().lowercase()
+    }
+
+    private fun readableAutomationMessage(value: String, workflowLabel: String, wasTriggered: Boolean): String {
+        val collapsed = value.trim().replace(Regex("\\s+"), " ")
+        if (!isGenericAutomationMessage(collapsed, workflowLabel)) {
+            return if (collapsed.length > 600) "${collapsed.take(600)}..." else collapsed
+        }
+        return if (wasTriggered) "Workflow abgeschlossen." else "Workflow konnte nicht abgeschlossen werden."
     }
 
     private fun resultLooksLikeTaskCreation(result: com.nash.skyos.data.AgentResponse): Boolean {
@@ -1528,9 +1575,13 @@ class AgentViewModel : ViewModel() {
         val resolvedTaskCount = maxOf(taskCount, if (resultLooksLikeTaskCreation(result)) 1 else 0)
         val resolvedNoteCount = maxOf(noteCount, if (resultLooksLikeNoteCreation(result)) 1 else 0)
         if (resolvedReminderCount == 0 && resolvedTaskCount == 0 && resolvedNoteCount == 0) {
-            return "Es wurde kein Reminder/Task/Notiz automatisch angelegt."
+            return "- Keine neuen Reminder, Tasks oder Notizen erkannt."
         }
-        return "Angelegt: Reminder $resolvedReminderCount | Tasks $resolvedTaskCount | Notizen $resolvedNoteCount"
+        return buildList {
+            if (resolvedReminderCount > 0) add("- Reminder $resolvedReminderCount")
+            if (resolvedTaskCount > 0) add("- Tasks $resolvedTaskCount")
+            if (resolvedNoteCount > 0) add("- Notizen $resolvedNoteCount")
+        }.joinToString("\n")
     }
 
     private fun buildWorkflowSummary(result: com.nash.skyos.data.AgentResponse): AgentWorkflowSummary? {
@@ -1541,10 +1592,17 @@ class AgentViewModel : ViewModel() {
         val workflowLabel = (structuredWorkflow?.workflowName ?: result.workflowName).trim().ifBlank { "External Workflow" }
         val structuredSummary = structuredWorkflow?.summary.orEmpty().trim()
         val statusText = when {
-            structuredSummary.isNotEmpty() -> structuredSummary
-            result.automationMessage.isNotBlank() -> result.automationMessage.trim()
-            result.automationTriggered -> "Workflow wurde gestartet."
-            else -> "Workflow konnte nicht gestartet werden."
+            structuredSummary.isNotEmpty() && !isGenericAutomationMessage(structuredSummary, workflowLabel) -> structuredSummary
+            result.automationTriggered -> readableAutomationMessage(
+                value = result.automationMessage,
+                workflowLabel = workflowLabel,
+                wasTriggered = true,
+            )
+            else -> readableAutomationMessage(
+                value = result.automationMessage,
+                workflowLabel = workflowLabel,
+                wasTriggered = false,
+            )
         }
         val runId = (structuredWorkflow?.runId ?: result.agentRunId).trim().ifBlank { null }
         return AgentWorkflowSummary(

@@ -2660,7 +2660,7 @@ private fun AgentMessageBubble(
 private fun resolveHomeProductivityTarget(text: String, isUser: Boolean): String? {
     if (isUser) return null
     fun count(labelPattern: String): Int {
-        val regex = Regex("$labelPattern\\s*(\\d+)", RegexOption.IGNORE_CASE)
+        val regex = Regex("$labelPattern\\s*:?\\s*(\\d+)", RegexOption.IGNORE_CASE)
         val value = regex.find(text)?.groupValues?.getOrNull(1) ?: return 0
         return value.toIntOrNull() ?: 0
     }

@@ -1899,6 +1899,13 @@ private struct AgentPromptComposerSheet: View {
         return true
     }
 
+    private func submitPromptIfPossible() {
+        guard canSendPrompt else { return }
+        isFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        onSend()
+    }
+
     private var workflowSocialBlockedHint: String? {
         guard !trimmedDraft.isEmpty,
               !interactionPhase.shouldBlockSend,
@@ -2234,9 +2241,7 @@ private struct AgentPromptComposerSheet: View {
                             .focused($isFocused)
                             .submitLabel(.send)
                             .onSubmit {
-                                if canSendPrompt {
-                                    onSend()
-                                }
+                                submitPromptIfPossible()
                             }
                             .font(.body)
                             .foregroundColor(AppColors.text(for: colorScheme))
@@ -2317,7 +2322,7 @@ private struct AgentPromptComposerSheet: View {
                         accent: agentAccent,
                         colorScheme: colorScheme,
                         isEnabled: canSendPrompt,
-                        action: onSend
+                        action: submitPromptIfPossible
                     )
                     .accessibilityLabel(AppLocalized.text("agent.a11y.send_prompt", fallback: "Send prompt"))
                     .accessibilityIdentifier("agent.prompt.send")
@@ -2554,7 +2559,7 @@ private struct AgentMessageBubble: View {
         guard !isUser else { return nil }
         let text = message.text
         func count(for label: String) -> Int {
-            let pattern = "\(label)\\s*(\\d+)"
+            let pattern = "\(label)\\s*:?\\s*(\\d+)"
             guard
                 let regex = try? NSRegularExpression(pattern: pattern),
                 let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),

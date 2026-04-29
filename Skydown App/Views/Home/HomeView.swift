@@ -1110,6 +1110,7 @@ private struct HomeReminderComposerSheet: View {
                     action: {
                         let normalized = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !normalized.isEmpty else { return }
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                         Task {
                             try? await onCreate(normalized, dueAt)
                             dismiss()
@@ -1192,6 +1193,7 @@ private struct HomeTaskComposerSheet: View {
                     action: {
                         let title = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !title.isEmpty else { return }
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                         Task {
                             let due: Date? = useDueAt ? dueAt : nil
                             try? await onCreate(title, detailText, due)
@@ -1262,6 +1264,7 @@ private struct HomeNoteComposerSheet: View {
                         let title = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
                         let content = contentText.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !title.isEmpty || !content.isEmpty else { return }
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                         Task {
                             try? await onCreate(title, content)
                             dismiss()
@@ -1302,6 +1305,9 @@ private struct FounderBriefingResultSheet: View {
     let onShare: () -> Void
     let onShareWhatsApp: () -> Void
     @Environment(\.dismiss) private var dismiss
+    private var displayBody: AttributedString {
+        (try? AttributedString(markdown: presentation.body)) ?? AttributedString(presentation.body)
+    }
 
     var body: some View {
         NavigationStack {
@@ -1323,7 +1329,7 @@ private struct FounderBriefingResultSheet: View {
                 }
 
                 ScrollView {
-                    Text(presentation.body)
+                    Text(displayBody)
                         .font(.footnote)
                         .foregroundColor(AppColors.text(for: colorScheme))
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1893,7 +1899,7 @@ private struct HomeOwnerWorkflowSection: View {
                 .foregroundColor(.secondary)
             Text(AppLocalized.text(
                 "home.owner.workflows.subtitle",
-                fallback: "Run founder analysis with real available data."
+                fallback: "Readable intelligence from live data - for you or a group."
             ))
                 .font(.caption2)
                 .foregroundColor(AppColors.text(for: colorScheme).opacity(0.55))
@@ -1921,8 +1927,8 @@ private struct HomeOwnerWorkflowSection: View {
                 HomeQuickActionButton(
                     title: founderBriefingModeInFlight == .privateBriefing ?
                         AppLocalized.text("home.owner.founder.creating", fallback: "Composing…") :
-                        AppLocalized.text("home.owner.workflows.private_analysis", fallback: "Private"),
-                    systemImage: "dollarsign.circle",
+                        AppLocalized.text("home.owner.workflows.private_analysis", fallback: "Me"),
+                    systemImage: "person.crop.circle",
                     colorScheme: colorScheme,
                     isLoading: founderBriefingModeInFlight == .privateBriefing,
                     isDisabled: founderBriefingModeInFlight != nil,
@@ -1933,7 +1939,7 @@ private struct HomeOwnerWorkflowSection: View {
                 HomeQuickActionButton(
                     title: founderBriefingModeInFlight == .group ?
                         AppLocalized.text("home.owner.founder.creating", fallback: "Composing…") :
-                        AppLocalized.text("home.owner.workflows.group_update", fallback: "Team"),
+                        AppLocalized.text("home.owner.workflows.group_update", fallback: "Group"),
                     systemImage: "person.2",
                     colorScheme: colorScheme,
                     isLoading: founderBriefingModeInFlight == .group,

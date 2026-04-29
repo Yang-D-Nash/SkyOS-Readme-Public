@@ -184,7 +184,7 @@ class MainActivity : ComponentActivity() {
     private fun createUiTestSignedInUser(platformOwner: Boolean): User {
         val email = if (platformOwner) UserRole.OWNER_EMAIL else "creator@skydown.app"
         val username = if (platformOwner) "SkyOS Owner (UI test)" else "SkyOS Creator"
-        val quota = if (platformOwner) UserQuotaPlan.OwnerUnlimited.rawValue else UserQuotaPlan.Free.rawValue
+        val quotaPlan = if (platformOwner) UserQuotaPlan.OwnerUnlimited else UserQuotaPlan.Free
         return User(
             id = if (platformOwner) "ui-test-owner" else "ui-test-user",
             email = email,
@@ -192,12 +192,12 @@ class MainActivity : ComponentActivity() {
             registrationDateEpochMillis = 1_710_000_000_000,
             isAdmin = platformOwner,
             role = if (platformOwner) UserRole.Owner.rawValue else UserRole.User.rawValue,
-            quotaPlan = quota,
+            quotaPlan = quotaPlan.rawValue,
             aiAccessEnabled = true,
-            aiTextRequestsPerDay = 30,
-            aiVisualRequestsPerDay = 4,
-            aiAgentRequestsPerDay = 18,
-            aiHistoryRetentionDays = 3,
+            aiTextRequestsPerDay = quotaPlan.aiTextRequestsPerDay,
+            aiVisualRequestsPerDay = quotaPlan.aiVisualRequestsPerDay,
+            aiAgentRequestsPerDay = quotaPlan.aiAgentRequestsPerDay,
+            aiHistoryRetentionDays = quotaPlan.aiHistoryRetentionDays,
         )
     }
 }

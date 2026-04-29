@@ -1308,11 +1308,48 @@ final class AgentChatViewModel: ObservableObject {
         guard response.automationTriggered else { return response.reply }
         let workflowLabel = response.workflowName.trimmingCharacters(in: .whitespacesAndNewlines)
         let automationLabel = workflowLabel.isEmpty ? "Workflow" : workflowLabel
-        let message = response.automationMessage.trimmingCharacters(in: .whitespacesAndNewlines)
-        let suffix = message.isEmpty ? "An \(automationLabel) uebergeben." : message
+        let statusText = readableAutomationMessage(
+            response.automationMessage,
+            workflowLabel: automationLabel,
+            wasTriggered: true
+        )
         let createdSummary = createdAutomationSummary(from: response)
-        let homeHint = "Du kannst alles in Home > Productivity als Liste bearbeiten (CRUD)."
-        return "\(response.reply)\n\nWorkflow:\n\(suffix)\n\n\(createdSummary)\n\(homeHint)"
+        var sections: [String] = []
+        let reply = response.reply.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !reply.isEmpty {
+            sections.append(reply)
+        }
+        sections.append("Workflow\n\(statusText)")
+        sections.append("Angelegt\n\(createdSummary)")
+        sections.append("Home\nOeffne Home > Productivity, um Eintraege zu pruefen oder zu bearbeiten.")
+        return sections.joined(separator: "\n\n")
+    }
+
+    private func isGenericAutomationMessage(_ value: String, workflowLabel: String) -> Bool {
+        let message = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if message.isEmpty { return true }
+        let lower = message.lowercased()
+        if ["{}", "[]", "null", "undefined", "ok", "done", "completed", "complete", "success", "successful", "erledigt", "fertig"].contains(lower) {
+            return true
+        }
+        if lower.hasPrefix("test an ") { return true }
+        if lower.hasPrefix("workflow completed") || lower.hasPrefix("workflow status") || lower.hasPrefix("workflow ok") {
+            return true
+        }
+        return lower == workflowLabel.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private func readableAutomationMessage(_ value: String, workflowLabel: String, wasTriggered: Bool) -> String {
+        let collapsed = value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        if !isGenericAutomationMessage(collapsed, workflowLabel: workflowLabel) {
+            if collapsed.count > 600 {
+                return String(collapsed.prefix(600)) + "..."
+            }
+            return collapsed
+        }
+        return wasTriggered ? "Workflow abgeschlossen." : "Workflow konnte nicht abgeschlossen werden."
     }
 
     private func buildWorkflowSummary(from response: AgentChatResponse) -> AgentWorkflowSummary? {
@@ -1323,16 +1360,22 @@ final class AgentChatViewModel: ObservableObject {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .isEmpty ? "External Workflow" : (structuredWorkflow?.workflowName ?? workflowLabel)
         let statusText: String
-        if let structuredSummary = structuredWorkflow?.summary, !structuredSummary.isEmpty {
+        if let structuredSummary = structuredWorkflow?.summary,
+           !structuredSummary.isEmpty,
+           !isGenericAutomationMessage(structuredSummary, workflowLabel: resolvedWorkflowLabel) {
             statusText = structuredSummary
         } else if response.automationTriggered {
-            statusText = response.automationMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
-            "Workflow wurde gestartet." :
-            response.automationMessage
+            statusText = readableAutomationMessage(
+                response.automationMessage,
+                workflowLabel: resolvedWorkflowLabel,
+                wasTriggered: true
+            )
         } else {
-            statusText = response.automationMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?
-            "Workflow konnte nicht gestartet werden." :
-            response.automationMessage
+            statusText = readableAutomationMessage(
+                response.automationMessage,
+                workflowLabel: resolvedWorkflowLabel,
+                wasTriggered: false
+            )
         }
         let runId = (structuredWorkflow?.runId ?? response.agentRunId).trimmingCharacters(in: .whitespacesAndNewlines)
         return AgentWorkflowSummary(
@@ -1394,9 +1437,13 @@ final class AgentChatViewModel: ObservableObject {
         let resolvedTaskCount = max(taskCount, resultLooksLikeTaskCreation(response) ? 1 : 0)
         let resolvedNoteCount = max(noteCount, resultLooksLikeNoteCreation(response) ? 1 : 0)
         if resolvedReminderCount == 0 && resolvedTaskCount == 0 && resolvedNoteCount == 0 {
-            return "Es wurde kein Reminder/Task/Notiz automatisch angelegt."
+            return "- Keine neuen Reminder, Tasks oder Notizen erkannt."
         }
-        return "Angelegt: Reminder \(resolvedReminderCount) | Tasks \(resolvedTaskCount) | Notizen \(resolvedNoteCount)"
+        var lines: [String] = []
+        if resolvedReminderCount > 0 { lines.append("- Reminder \(resolvedReminderCount)") }
+        if resolvedTaskCount > 0 { lines.append("- Tasks \(resolvedTaskCount)") }
+        if resolvedNoteCount > 0 { lines.append("- Notizen \(resolvedNoteCount)") }
+        return lines.joined(separator: "\n")
     }
 
     func showToastMessage(_ message: String, style: ToastStyle) {
