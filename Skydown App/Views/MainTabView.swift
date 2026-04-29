@@ -696,6 +696,7 @@ private struct ZweizweiTabView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
     @ObservedObject private var screenHeaderSettingsStore = ScreenHeaderSettingsStore.shared
+    @ObservedObject private var artistPagesStore = ArtistPagesStore.shared
     @State private var destination: ZweizweiDestination = .hub
     @State private var catalogInitialArtist: String?
     @State private var catalogAutoPresentArtistPage = false
@@ -926,14 +927,57 @@ private struct ZweizweiTabView: View {
     }
 
     private var musicHubSocialDestinations: [MusicInstagramDestination] {
-        [
-            zweizweiInstagramDestination,
-            artistInstagramDestinations["JANNO"],
-            artistInstagramDestinations["Yang D. Nash"],
-            artistInstagramDestinations["MAVE"],
-            artistInstagramDestinations["ThaDude"],
-            artistInstagramDestinations["TANGAJOE007"]
-        ].compactMap { $0 }
+        let fallbackByArtistName = artistInstagramDestinations
+        let preferredArtistOrder = ["JANNO", "Yang D. Nash", "MAVE", "ThaDude", "TANGAJOE007"]
+        let dynamicArtists = preferredArtistOrder.map { artistName -> MusicInstagramDestination? in
+            let page = artistPagesStore.page(for: .zweizwei, artistName: artistName)
+            let fallback = fallbackByArtistName[artistName]
+            let resolvedInstagram = page.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let resolvedSpotify = page.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return MusicInstagramDestination(
+                id: fallback?.id ?? "artist_\(artistPageSlug(from: artistName))",
+                title: artistName,
+                handle: musicHubInstagramHandle(from: (resolvedInstagram?.isEmpty == false) ? resolvedInstagram! : (fallback?.urlString ?? ""))
+                    ?? fallback?.handle
+                    ?? "@\(artistPageSlug(from: artistName))",
+                urlString: (resolvedInstagram?.isEmpty == false) ? resolvedInstagram! : (fallback?.urlString ?? ""),
+                helper: fallback?.helper,
+                spotifyURLString: (resolvedSpotify?.isEmpty == false) ? resolvedSpotify : fallback?.spotifyURLString,
+                artistPageName: artistName
+            )
+        }
+
+        return ([resolvedBrandSocialDestination] + dynamicArtists).compactMap { destination in
+            guard let destination else { return nil }
+            let trimmedURL = destination.urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedURL.isEmpty else { return nil }
+            return destination
+        }
+    }
+
+    private var resolvedBrandSocialDestination: MusicInstagramDestination {
+        let page = artistPagesStore.page(for: .zweizwei, artistName: "JANNO")
+        let resolvedInstagram = page.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedSpotify = page.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return MusicInstagramDestination(
+            id: zweizweiInstagramDestination.id,
+            title: zweizweiInstagramDestination.title,
+            handle: musicHubInstagramHandle(from: (resolvedInstagram?.isEmpty == false) ? resolvedInstagram! : zweizweiInstagramDestination.urlString)
+                ?? zweizweiInstagramDestination.handle,
+            urlString: (resolvedInstagram?.isEmpty == false) ? resolvedInstagram! : zweizweiInstagramDestination.urlString,
+            helper: zweizweiInstagramDestination.helper,
+            spotifyURLString: (resolvedSpotify?.isEmpty == false) ? resolvedSpotify : zweizweiInstagramDestination.spotifyURLString,
+            artistPageName: zweizweiInstagramDestination.artistPageName
+        )
+    }
+
+    private func musicHubInstagramHandle(from urlString: String) -> String? {
+        guard let url = URL(string: urlString) else { return nil }
+        let pathParts = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
+        guard let firstPart = pathParts.first?.trimmingCharacters(in: .whitespacesAndNewlines), !firstPart.isEmpty else {
+            return nil
+        }
+        return firstPart.hasPrefix("@") ? firstPart : "@\(firstPart)"
     }
 
     private func musicHubSocialAccent(for destination: MusicInstagramDestination) -> Color {
@@ -962,88 +1006,169 @@ private struct ZweizweiTabView: View {
         ]
     }
 
-    private func compactMusicHubSocialLink(destination: MusicInstagramDestination) -> some View {
-        let accent = musicHubSocialAccent(for: destination)
-        let isActive = destination.title == highlightedSocialArtist
-        return Button {
-            highlightedSocialArtist = destination.title
-            guard let url = destination.url else { return }
-            openURL(url)
-        } label: {
-            HStack(alignment: .center, spacing: SkydownLayout.stackSpacingPill) {
-                ZStack {
-                    Circle()
-                        .fill(accent.opacity(isActive ? 0.34 : 0.20))
-                    Image(systemName: "arrow.up.right")
-                        .font(.caption.weight(.bold))
-                        .foregroundColor(isActive ? .white : accent)
-                }
-                .frame(width: 24, height: 24)
+    private func openMusicHubArtistPage(for destination: MusicInstagramDestination) {
+        highlightedSocialArtist = destination.title
+        guard let artistName = destination.artistPageName else { return }
+        catalogInitialArtist = artistName
+        catalogAutoPresentArtistPage = true
+        withAnimation(SkydownMotion.screenTransition) {
+            self.destination = .catalog
+        }
+    }
 
-                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
-                    Text(destination.title)
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                    Text(destination.handle)
-                        .font(.caption2.weight(.medium))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .lineLimit(1)
-                }
+    private func openMusicHubSpotify(for destination: MusicInstagramDestination) {
+        highlightedSocialArtist = destination.title
+        guard let url = destination.spotifyURL else { return }
+        openURL(url)
+    }
 
-                Spacer(minLength: 6)
-
-                if isActive {
-                    Text(AppLocalized.text("music.hub.link.active", fallback: "Active"))
-                        .font(.caption2.weight(.bold))
-                        .foregroundColor(accent.opacity(0.96))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule(style: .continuous)
-                                .fill(accent.opacity(0.16))
-                        )
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.bold))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.72))
-                }
+    private func compactMusicHubArtistAction(
+        title: String,
+        systemImage: String,
+        tint: Color,
+        accessibilityID: String,
+        isEnabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: SkydownLayout.stackSpacingTick) {
+                Image(systemName: systemImage)
+                    .font(.caption.weight(.semibold))
+                Text(title)
+                    .font(.caption2.weight(.bold))
+                    .lineLimit(1)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .foregroundColor(isEnabled ? tint : AppColors.secondaryText(for: colorScheme))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
             .background(
-                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
+                Capsule(style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [
-                                AppColors.secondaryBackground(for: colorScheme),
-                                accent.opacity(0.08),
-                                instagramGradientColors[1].opacity(isActive ? 0.18 : 0.10),
-                                instagramGradientColors[2].opacity(isActive ? 0.18 : 0.10)
-                            ],
+                            colors: isEnabled
+                                ? [
+                                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.78 : 0.68),
+                                    tint.opacity(colorScheme == .dark ? 0.24 : 0.16),
+                                    tint.opacity(colorScheme == .dark ? 0.14 : 0.10)
+                                ]
+                                : [
+                                    AppColors.secondaryBackground(for: colorScheme).opacity(0.70),
+                                    AppColors.secondaryBackground(for: colorScheme).opacity(0.58)
+                                ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
-                    .stroke(accent.opacity(isActive ? 0.58 : 0.32), lineWidth: isActive ? 1.4 : 1)
+                Capsule(style: .continuous)
+                    .stroke(
+                        isEnabled ? tint.opacity(0.46) : AppColors.secondaryText(for: colorScheme).opacity(0.20),
+                        lineWidth: 1
+                    )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
+                Capsule(style: .continuous)
                     .stroke(
                         LinearGradient(
-                            colors: instagramGradientColors.map { $0.opacity(isActive ? 0.55 : 0.28) },
+                            colors: [
+                                .white.opacity(colorScheme == .dark ? 0.22 : 0.30),
+                                tint.opacity(isEnabled ? 0.42 : 0.10)
+                            ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: isActive ? 1.6 : 1
+                        lineWidth: 0.8
                     )
             )
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .accessibilityIdentifier(accessibilityID)
         .skydownTactileAction()
+    }
+
+    private func compactMusicHubSocialLink(destination: MusicInstagramDestination) -> some View {
+        let accent = musicHubSocialAccent(for: destination)
+        let isActive = destination.title == highlightedSocialArtist
+        return HStack(alignment: .center, spacing: SkydownLayout.stackSpacingPill) {
+            ZStack {
+                Circle()
+                    .fill(accent.opacity(isActive ? 0.34 : 0.20))
+                Image(systemName: "person.crop.circle")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(isActive ? .white : accent)
+            }
+            .frame(width: 24, height: 24)
+
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
+                Text(destination.title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                Text(destination.handle)
+                    .font(.caption2.weight(.medium))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 6)
+
+            HStack(spacing: SkydownLayout.stackSpacingTick) {
+                compactMusicHubArtistAction(
+                    title: "Artist Page",
+                    systemImage: "person.text.rectangle",
+                    tint: accent,
+                    accessibilityID: "music.hub.artist_page.\(destination.id)",
+                    isEnabled: destination.artistPageName != nil
+                ) {
+                    openMusicHubArtistPage(for: destination)
+                }
+
+                compactMusicHubArtistAction(
+                    title: "Spotify",
+                    systemImage: "music.note",
+                    tint: AppColors.spotify(for: colorScheme),
+                    accessibilityID: "music.hub.spotify.\(destination.id)",
+                    isEnabled: destination.spotifyURL != nil
+                ) {
+                    openMusicHubSpotify(for: destination)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            AppColors.secondaryBackground(for: colorScheme),
+                            accent.opacity(0.08),
+                            instagramGradientColors[1].opacity(isActive ? 0.18 : 0.10),
+                            instagramGradientColors[2].opacity(isActive ? 0.18 : 0.10)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
+                .stroke(accent.opacity(isActive ? 0.58 : 0.32), lineWidth: isActive ? 1.4 : 1)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: instagramGradientColors.map { $0.opacity(isActive ? 0.55 : 0.28) },
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: isActive ? 1.6 : 1
+                )
+        )
+        .accessibilityIdentifier("music.hub.artist_link.\(destination.id)")
     }
 }
 

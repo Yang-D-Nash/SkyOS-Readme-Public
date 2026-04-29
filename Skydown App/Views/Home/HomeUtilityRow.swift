@@ -133,6 +133,7 @@ extension View {
 struct HomeArtistSocialLinksRow: View {
     let colorScheme: ColorScheme
     let onOpenArtistPage: (String) -> Void
+    @ObservedObject private var artistPagesStore = ArtistPagesStore.shared
 
     private struct ArtistSocialEntry: Identifiable {
         let id: String
@@ -142,63 +143,93 @@ struct HomeArtistSocialLinksRow: View {
         let spotifyURL: String?
     }
 
-    private let entries: [ArtistSocialEntry] = [
-        ArtistSocialEntry(
-            id: "yang-d-nash",
-            title: "Yang D. Nash",
-            subtitle: "Inhaber / Betreiber",
-            instagramURL: "https://www.instagram.com/y.d.nash/",
-            spotifyURL: nil
-        ),
-        ArtistSocialEntry(
-            id: "zweizwei",
-            title: "Zweizwei",
-            subtitle: nil,
-            instagramURL: "https://www.instagram.com/zweizwei_music/",
-            spotifyURL: nil
-        ),
-        ArtistSocialEntry(
-            id: "skydown",
-            title: "Skydown",
-            subtitle: nil,
-            instagramURL: "https://www.instagram.com/skydown_entertainment/",
-            spotifyURL: nil
-        )
-    ]
+    private var entries: [ArtistSocialEntry] {
+        let yangPage = artistPagesStore.page(for: .zweizwei, artistName: "Yang D. Nash")
+        let skydownPage = artistPagesStore.page(for: .skydown, artistName: "Skydown")
+        let zweizweiPage = artistPagesStore.page(for: .zweizwei, artistName: "JANNO")
+
+        return [
+            ArtistSocialEntry(
+                id: "yang-d-nash",
+                title: "Yang D. Nash",
+                subtitle: "Inhaber / Betreiber",
+                instagramURL: resolvedURL(
+                    yangPage.instagramURL,
+                    fallback: "https://www.instagram.com/y.d.nash/"
+                ),
+                spotifyURL: resolvedOptionalURL(
+                    yangPage.spotifyURL,
+                    fallback: "https://open.spotify.com/search/Yang%20D.%20Nash"
+                )
+            ),
+            ArtistSocialEntry(
+                id: "skydown",
+                title: "Skydown",
+                subtitle: nil,
+                instagramURL: resolvedURL(
+                    skydownPage.instagramURL,
+                    fallback: "https://www.instagram.com/skydown_entertainment/"
+                ),
+                spotifyURL: nil
+            ),
+            ArtistSocialEntry(
+                id: "zweizwei",
+                title: "Zweizwei",
+                subtitle: nil,
+                instagramURL: resolvedURL(
+                    zweizweiPage.instagramURL,
+                    fallback: "https://www.instagram.com/zweizwei_music/"
+                ),
+                spotifyURL: nil
+            )
+        ]
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
-            Text(AppLocalized.text("home.artist_links.title", fallback: "Artist links"))
-                .font(.caption2.weight(.medium))
-                .foregroundColor(AppColors.text(for: colorScheme).opacity(0.44))
-                .textCase(.uppercase)
-
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                 ForEach(entries) { entry in
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
-                        Text(entry.title)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(AppColors.text(for: colorScheme))
-                        if let subtitle = entry.subtitle {
-                            Text(subtitle)
-                                .font(.caption)
-                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        }
+                        if entry.id == "yang-d-nash" {
+                            Text(entry.title)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(AppColors.text(for: colorScheme))
+                            if let subtitle = entry.subtitle {
+                                Text(subtitle)
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            }
 
-                        HStack(spacing: SkydownLayout.stackSpacingPill) {
+                            HStack(spacing: SkydownLayout.stackSpacingPill) {
+                                artistPageButton(
+                                    title: "Artist Page",
+                                    icon: "person.crop.circle",
+                                    tint: AppColors.accent(for: colorScheme)
+                                ) {
+                                    onOpenArtistPage(entry.title)
+                                }
+                                socialButton(
+                                    title: AppLocalized.text("home.artist_links.instagram", fallback: "Instagram"),
+                                    icon: "camera.circle.fill",
+                                    urlString: entry.instagramURL,
+                                    tint: AppColors.accentHighlight(for: colorScheme)
+                                )
+                                if let spotifyURL = entry.spotifyURL {
+                                    socialButton(
+                                        title: AppLocalized.text("home.artist_links.spotify", fallback: "Spotify"),
+                                        icon: "music.note",
+                                        urlString: spotifyURL,
+                                        tint: AppColors.spotify(for: colorScheme)
+                                    )
+                                }
+                            }
+                        } else {
                             socialButton(
-                                title: AppLocalized.text("home.artist_links.instagram", fallback: "Instagram"),
+                                title: "\(entry.title) · Instagram",
                                 icon: "camera.circle.fill",
                                 urlString: entry.instagramURL,
                                 tint: AppColors.accentHighlight(for: colorScheme)
                             )
-                            artistPageButton(
-                                title: "Artist Page",
-                                icon: "person.crop.circle",
-                                tint: AppColors.accent(for: colorScheme)
-                            ) {
-                                onOpenArtistPage(entry.title)
-                            }
                         }
                     }
                 }
@@ -213,21 +244,45 @@ struct HomeArtistSocialLinksRow: View {
             Link(destination: url) {
                 HStack(spacing: SkydownLayout.stackSpacingTick) {
                     Image(systemName: icon)
-                        .font(.caption.weight(.semibold))
+                        .font(.caption2.weight(.semibold))
                     Text(title)
-                        .font(.caption.weight(.semibold))
+                        .font(.caption2.weight(.bold))
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .padding(.horizontal, 9)
                 .background(
-                    RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
-                        .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.58))
+                    Capsule(style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.78 : 0.66),
+                                    tint.opacity(colorScheme == .dark ? 0.22 : 0.14),
+                                    tint.opacity(colorScheme == .dark ? 0.12 : 0.08)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
-                        .stroke(tint.opacity(0.18), lineWidth: 1)
+                    Capsule(style: .continuous)
+                        .stroke(tint.opacity(0.30), lineWidth: 1)
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    .white.opacity(colorScheme == .dark ? 0.16 : 0.28),
+                                    tint.opacity(0.18)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 0.8
+                        )
                 )
             }
             .buttonStyle(.plain)
@@ -239,25 +294,60 @@ struct HomeArtistSocialLinksRow: View {
         Button(action: action) {
             HStack(spacing: SkydownLayout.stackSpacingTick) {
                 Image(systemName: icon)
-                    .font(.caption.weight(.semibold))
+                    .font(.caption2.weight(.semibold))
                 Text(title)
-                    .font(.caption.weight(.semibold))
+                    .font(.caption2.weight(.bold))
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .padding(.horizontal, 9)
             .background(
-                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
-                    .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.58))
+                Capsule(style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.78 : 0.66),
+                                tint.opacity(colorScheme == .dark ? 0.22 : 0.14),
+                                tint.opacity(colorScheme == .dark ? 0.12 : 0.08)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
-                    .stroke(tint.opacity(0.18), lineWidth: 1)
+                Capsule(style: .continuous)
+                    .stroke(tint.opacity(0.30), lineWidth: 1)
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(colorScheme == .dark ? 0.16 : 0.28),
+                                tint.opacity(0.18)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.8
+                    )
             )
         }
         .buttonStyle(.plain)
         .foregroundColor(tint)
+    }
+
+    private func resolvedURL(_ value: String?, fallback: String) -> String {
+        value?.trimmingCharacters(in: .whitespacesAndNewlines).flatMap { $0.isEmpty ? nil : $0 } ?? fallback
+    }
+
+    private func resolvedOptionalURL(_ value: String?, fallback: String?) -> String? {
+        if let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return fallback
     }
 
 }

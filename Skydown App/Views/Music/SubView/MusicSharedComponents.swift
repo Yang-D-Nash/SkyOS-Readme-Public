@@ -293,9 +293,19 @@ struct MusicInstagramDestination: Identifiable {
     let handle: String
     let urlString: String
     let helper: String?
+    let spotifyURLString: String?
+    let artistPageName: String?
 
     var url: URL? {
         URL(string: urlString)
+    }
+
+    var spotifyURL: URL? {
+        if let spotifyURLString, let explicitURL = URL(string: spotifyURLString) {
+            return explicitURL
+        }
+        let query = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
+        return URL(string: "https://open.spotify.com/search/\(query)")
     }
 
     func subtitle(selectedArtist: String) -> String {
@@ -317,42 +327,54 @@ let artistInstagramDestinations: [String: MusicInstagramDestination] = [
         title: "Yang D. Nash",
         handle: "@y.d.nash",
         urlString: "https://www.instagram.com/y.d.nash/",
-        helper: "Artist aktuell ausgewaehlt"
+        helper: "Artist aktuell ausgewaehlt",
+        spotifyURLString: nil,
+        artistPageName: "Yang D. Nash"
     ),
     "MAVE": MusicInstagramDestination(
         id: "artist_mave",
         title: "MAVE",
         handle: "@mave040_official",
         urlString: "https://www.instagram.com/mave040_official/",
-        helper: "Artist aktuell ausgewaehlt"
+        helper: "Artist aktuell ausgewaehlt",
+        spotifyURLString: nil,
+        artistPageName: "MAVE"
     ),
     "ThaDude": MusicInstagramDestination(
         id: "artist_thadude",
         title: "ThaDude",
         handle: "@thadude_offizielle",
         urlString: "https://www.instagram.com/thadude_offizielle/",
-        helper: "Artist aktuell ausgewaehlt"
+        helper: "Artist aktuell ausgewaehlt",
+        spotifyURLString: nil,
+        artistPageName: "ThaDude"
     ),
     "Toprack941": MusicInstagramDestination(
         id: "artist_toprack941",
         title: "Toprack941",
         handle: "@toprack_941",
         urlString: "https://www.instagram.com/toprack_941/",
-        helper: "Artist aktuell ausgewaehlt"
+        helper: "Artist aktuell ausgewaehlt",
+        spotifyURLString: nil,
+        artistPageName: "Toprack941"
     ),
     "TANGAJOE007": MusicInstagramDestination(
         id: "artist_tangajoe007",
         title: "TANGAJOE007",
         handle: "@tangajoe007",
         urlString: "https://www.instagram.com/tangajoe007/",
-        helper: "Artist aktuell ausgewaehlt"
+        helper: "Artist aktuell ausgewaehlt",
+        spotifyURLString: nil,
+        artistPageName: "TANGAJOE007"
     ),
     "JANNO": MusicInstagramDestination(
         id: "artist_janno",
         title: "JANNO",
         handle: "@janno_official_",
         urlString: "https://www.instagram.com/janno_official_/",
-        helper: "Artist aktuell ausgewaehlt"
+        helper: "Artist aktuell ausgewaehlt",
+        spotifyURLString: nil,
+        artistPageName: "JANNO"
     )
 ]
 
@@ -361,7 +383,9 @@ let zweizweiInstagramDestination = MusicInstagramDestination(
     title: "22 Music",
     handle: "@zweizwei_music",
     urlString: "https://www.instagram.com/zweizwei_music/",
-    helper: "SkyOS Universe"
+    helper: "SkyOS Universe",
+    spotifyURLString: nil,
+    artistPageName: "JANNO"
 )
 
 let skydownMusicInstagramDestination = MusicInstagramDestination(
@@ -369,7 +393,9 @@ let skydownMusicInstagramDestination = MusicInstagramDestination(
     title: "Skydown",
     handle: "@skydown_entertainment",
     urlString: "https://www.instagram.com/skydown_entertainment/",
-    helper: "Label und Releases"
+    helper: "Label und Releases",
+    spotifyURLString: nil,
+    artistPageName: nil
 )
 
 let nicmaInstagramDestination = MusicInstagramDestination(
@@ -377,7 +403,9 @@ let nicmaInstagramDestination = MusicInstagramDestination(
     title: "NICMA MUSIC",
     handle: "@nicma.music",
     urlString: "https://www.instagram.com/nicma.music/",
-    helper: "Studio"
+    helper: "Studio",
+    spotifyURLString: "https://open.spotify.com/artist/1hY6W4D4P67f0cKkcUFoUi",
+    artistPageName: "NICMA MUSIC"
 )
 
 let nicmaProducerPackages: [NicmaProducerPackage] = [

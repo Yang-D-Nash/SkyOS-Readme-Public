@@ -1,5 +1,6 @@
 package com.nash.skyos.ui.screen
 
+import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
@@ -28,8 +29,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ArrowOutward
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -439,7 +440,7 @@ private fun StaggeredArtistEinstiegRow(
     val liftPx = with(LocalDensity.current) { 10.dp.toPx() }
     val interaction = remember(artist) { MutableInteractionSource() }
     val accent = musicCatalogEntryAccent(artist, colorScheme)
-    val instagramUrl = musicInstagramUrlForArtist(artist)
+    val spotifyUrl = musicSpotifyUrlForArtist(artist)
     val isDark = colorScheme.skydownIsDarkPalette()
     val background = if (selected) {
         accent.copy(alpha = if (isDark) 0.22f else 0.14f)
@@ -486,20 +487,20 @@ private fun StaggeredArtistEinstiegRow(
             ) {
                 MusicEinstiegActionButton(
                     label = "Artist Page",
-                    icon = if (selected) Icons.Default.Person else Icons.Default.ArrowOutward,
+                    icon = Icons.Default.Person,
                     tint = accent,
                     modifier = Modifier.weight(1f),
                     selected = selected,
                     onClick = onOpen,
                 )
                 MusicEinstiegActionButton(
-                    label = "Instagram",
-                    icon = Icons.Default.PhotoCamera,
-                    tint = colorScheme.skydownAccentHighlight(),
+                    label = "Spotify",
+                    icon = Icons.Default.MusicNote,
+                    tint = colorScheme.skydownSpotify(),
                     modifier = Modifier.weight(1f),
                     selected = false,
                     onClick = {
-                        instagramUrl?.let { openExternalLink(context, it) }
+                        openExternalLink(context, spotifyUrl)
                     },
                 )
             }
@@ -542,15 +543,9 @@ private fun MusicEinstiegActionButton(
     }
 }
 
-private fun musicInstagramUrlForArtist(artist: String): String? = when (artist) {
-    "JANNO" -> "https://www.instagram.com/janno_official_/"
-    "Yang D. Nash" -> "https://www.instagram.com/y.d.nash/"
-    "ThaDude" -> "https://www.instagram.com/thadude_offizielle/"
-    "MAVE" -> "https://www.instagram.com/mave040_official/"
-    "TANGAJOE007" -> "https://www.instagram.com/tangajoe007/"
-    "Zweizwei", "22 Music" -> "https://www.instagram.com/zweizwei_music/"
-    "Skydown" -> "https://www.instagram.com/skydown_entertainment/"
-    else -> null
+private fun musicSpotifyUrlForArtist(artist: String): String {
+    val encoded = Uri.encode(artist)
+    return "https://open.spotify.com/search/$encoded"
 }
 
 private fun musicCatalogEntryAccent(artist: String, colorScheme: ColorScheme): Color = when (artist) {

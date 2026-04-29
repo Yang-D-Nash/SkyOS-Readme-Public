@@ -430,7 +430,7 @@ struct MusicView: View {
         let accent = catalogEntryAccent(for: artist)
         let isSelected = selectedArtist == artist
         let stagger = Double(rowIndex) * SkydownMotion.listStaggerDelay
-        let instagramURL = instagramURLForArtist(artist)
+        let spotifyURL = spotifyURLForArtist(artist)
         return VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
             Text(artist)
                 .font(AppTypography.musicArtistName)
@@ -472,14 +472,14 @@ struct MusicView: View {
                 .foregroundColor(isSelected ? accent : AppColors.text(for: colorScheme))
 
                 Button {
-                    if let instagramURL, let url = URL(string: instagramURL) {
+                    if let spotifyURL, let url = URL(string: spotifyURL) {
                         openURL(url)
                     }
                 } label: {
                     HStack(spacing: SkydownLayout.stackSpacingTick) {
-                        Image(systemName: "camera.circle.fill")
+                        Image(systemName: "music.note")
                             .font(.caption.weight(.semibold))
-                        Text("Instagram")
+                        Text("Spotify")
                             .font(.caption.weight(.semibold))
                             .lineLimit(1)
                     }
@@ -492,12 +492,12 @@ struct MusicView: View {
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
-                            .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.35), lineWidth: 1)
+                            .stroke(AppColors.spotify(for: colorScheme).opacity(0.35), lineWidth: 1)
                     )
                 }
                 .buttonStyle(.plain)
-                .foregroundColor(AppColors.accentHighlight(for: colorScheme))
-                .opacity(instagramURL == nil ? 0.5 : 1)
+                .foregroundColor(AppColors.spotify(for: colorScheme))
+                .opacity(spotifyURL == nil ? 0.5 : 1)
             }
         }
         .padding(.horizontal, 12)
@@ -525,17 +525,13 @@ struct MusicView: View {
         .animation(SkydownMotion.statusTransition, value: isSelected)
     }
 
-    private func instagramURLForArtist(_ artist: String) -> String? {
-        switch artist {
-        case "JANNO": return "https://www.instagram.com/janno_official_/"
-        case "Yang D. Nash": return "https://www.instagram.com/y.d.nash/"
-        case "ThaDude": return "https://www.instagram.com/thadude_offizielle/"
-        case "MAVE": return "https://www.instagram.com/mave040_official/"
-        case "TANGAJOE007": return "https://www.instagram.com/tangajoe007/"
-        case "Zweizwei", "22 Music": return "https://www.instagram.com/zweizwei_music/"
-        case "Skydown": return "https://www.instagram.com/skydown_entertainment/"
-        default: return nil
+    private func spotifyURLForArtist(_ artist: String) -> String? {
+        let page = artistPagesStore.page(for: brand.artistPageBrand, artistName: artist)
+        if let savedSpotify = page.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines), !savedSpotify.isEmpty {
+            return savedSpotify
         }
+        let query = artist.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? artist
+        return "https://open.spotify.com/search/\(query)"
     }
 
     private func artistButton(for artist: String) -> some View {

@@ -57,6 +57,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -65,6 +67,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
@@ -173,6 +176,7 @@ fun ArtistPageScreen(
     var selectedTrackId by rememberSaveable(page.slug) { mutableStateOf<Int?>(null) }
     var currentPreviewUrl by remember(page.slug) { mutableStateOf<String?>(null) }
     var currentlyPlayingId by remember(page.slug) { mutableStateOf<Int?>(null) }
+    var isMiniBarDismissed by rememberSaveable(page.slug) { mutableStateOf(false) }
     var selectedYouTubeItem by remember(page.slug) { mutableStateOf<VideoYouTubeItem?>(null) }
     var pendingImageTarget by remember { mutableStateOf<ArtistPageImageTarget?>(null) }
     var activeImageUploadTarget by remember { mutableStateOf<ArtistPageImageTarget?>(null) }
@@ -236,7 +240,11 @@ fun ArtistPageScreen(
         val playingId = currentlyPlayingId ?: return@remember null
         tracks.firstOrNull { it.trackId == playingId }
     }
-    val miniBarTrack = nowPlayingTrack ?: spotlightTrack
+    val miniBarTrack = if (isMiniBarDismissed) {
+        nowPlayingTrack
+    } else {
+        nowPlayingTrack ?: spotlightTrack
+    }
 
     val currentEditableImageUrl: (ArtistPageImageTarget) -> String = { target ->
         when (target) {
@@ -718,6 +726,7 @@ fun ArtistPageScreen(
                                 } else {
                                     selectedTrackId = track.trackId
                                     if (!track.previewUrl.isNullOrBlank()) {
+                                        isMiniBarDismissed = false
                                         currentlyPlayingId = track.trackId
                                         currentPreviewUrl = track.previewUrl
                                     } else {
@@ -743,6 +752,7 @@ fun ArtistPageScreen(
                                     currentPreviewUrl = null
                                 } else {
                                     selectedTrackId = track.trackId
+                                    isMiniBarDismissed = false
                                     currentlyPlayingId = track.trackId
                                     currentPreviewUrl = track.previewUrl
                                 }
@@ -929,12 +939,14 @@ fun ArtistPageScreen(
                             currentPreviewUrl = null
                         } else if (!track.previewUrl.isNullOrBlank()) {
                             selectedTrackId = track.trackId
+                            isMiniBarDismissed = false
                             currentlyPlayingId = track.trackId
                             currentPreviewUrl = track.previewUrl
                         }
                     },
                     isPlaying = currentlyPlayingId == track.trackId,
                     onStop = {
+                        isMiniBarDismissed = true
                         currentlyPlayingId = null
                         currentPreviewUrl = null
                     },
@@ -1011,12 +1023,23 @@ private fun ArtistNowPlayingMiniBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-        border = BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.28f)),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.20f)),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f),
+                            SpotifyGreen.copy(alpha = 0.10f),
+                        ),
+                        start = Offset.Zero,
+                        end = Offset.Infinite,
+                    ),
+                )
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             verticalAlignment = Alignment.CenterVertically,
@@ -1112,6 +1135,8 @@ private fun ArtistPageLinksCard(
 ) {
     val context = LocalContext.current
     val links = artistConnectLinks(page)
+    val primaryLinks = links.filter { it.kind == ArtistPageLinkKind.Instagram || it.kind == ArtistPageLinkKind.Spotify }
+    val secondaryLinks = links.filter { it.kind != ArtistPageLinkKind.Instagram && it.kind != ArtistPageLinkKind.Spotify }
 
     SkydownCard {
         Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact)) {
@@ -1133,7 +1158,60 @@ private fun ArtistPageLinksCard(
                     accent = visualStyle.secondaryAccent,
                 )
             } else {
-                links.forEach { link ->
+                if (primaryLinks.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+                    ) {
+                        primaryLinks.forEach { link ->
+                            Surface(
+                                onClick = { openExternalLink(context, link.url) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
+                                    .background(
+                                        Brush.linearGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.surface.copy(alpha = 0.70f),
+                                                link.backgroundColor.copy(alpha = 0.24f),
+                                                link.accentColor.copy(alpha = 0.12f),
+                                            ),
+                                            start = Offset.Zero,
+                                            end = Offset.Infinite,
+                                        ),
+                                    ),
+                                shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
+                                color = Color.Transparent,
+                                border = BorderStroke(1.dp, link.accentColor.copy(alpha = 0.30f)),
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = link.icon,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(12.dp),
+                                        tint = link.accentColor,
+                                    )
+                                    Text(
+                                        text = link.title,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = link.accentColor,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                secondaryLinks.forEach { link ->
                     Button(
                         onClick = {
                             if (link.kind == ArtistPageLinkKind.YouTube) {
@@ -1149,13 +1227,27 @@ private fun ArtistPageLinksCard(
                                 openExternalLink(context, link.url)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
+                                        link.backgroundColor.copy(alpha = 0.22f),
+                                        link.accentColor.copy(alpha = 0.10f),
+                                    ),
+                                    start = Offset.Zero,
+                                    end = Offset.Infinite,
+                                ),
+                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                            ),
                         shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = link.backgroundColor,
+                            containerColor = Color.Transparent,
                             contentColor = link.foregroundColor,
                         ),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                        border = BorderStroke(1.dp, link.accentColor.copy(alpha = 0.22f)),
                     ) {
                         Icon(link.icon, contentDescription = null, tint = link.accentColor)
                         Column(
@@ -1174,6 +1266,11 @@ private fun ArtistPageLinksCard(
                                 color = link.foregroundColor.copy(alpha = 0.74f),
                             )
                         }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.52f),
+                        )
                     }
                 }
             }

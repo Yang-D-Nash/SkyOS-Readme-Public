@@ -105,6 +105,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -138,6 +139,8 @@ import java.util.Date
 import java.util.Locale
 import com.nash.skyos.R
 import com.nash.skyos.data.AppContainer
+import com.nash.skyos.data.ArtistPageBrand
+import com.nash.skyos.data.ArtistPagesStore
 import com.nash.skyos.data.ExternalMediaProvider
 import com.nash.skyos.data.callWithAppCheckRetry
 import com.nash.skyos.data.mediaAttributionContext
@@ -1594,75 +1597,111 @@ private fun HomeArtistSocialLinksRow(
     val colorScheme = MaterialTheme.colorScheme
     val context = LocalContext.current
     val view = LocalView.current
+    val artistPages by ArtistPagesStore.pages.collectAsStateWithLifecycle()
     data class ArtistSocialEntry(
         val title: String,
         val subtitle: String? = null,
         val instagramUrl: String,
+        val spotifyUrl: String? = null,
     )
+    val yangPage = remember(artistPages) { ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, "Yang D. Nash") }
+    val skydownPage = remember(artistPages) { ArtistPagesStore.pageFor(ArtistPageBrand.Skydown, "Skydown") }
+    val zweizweiPage = remember(artistPages) { ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, "JANNO") }
     val entries = listOf(
         ArtistSocialEntry(
             title = "Yang D. Nash",
             subtitle = "Inhaber / Betreiber",
-            instagramUrl = "https://www.instagram.com/y.d.nash/",
+            instagramUrl = resolvedHomeSocialUrl(
+                yangPage.instagramURL,
+                fallback = "https://www.instagram.com/y.d.nash/",
+            ),
+            spotifyUrl = resolvedHomeSocialUrl(
+                yangPage.spotifyURL,
+                fallback = "https://open.spotify.com/search/Yang%20D.%20Nash",
+            ),
         ),
         ArtistSocialEntry(
             title = "Skydown",
-            instagramUrl = "https://www.instagram.com/skydown_entertainment/",
+            instagramUrl = resolvedHomeSocialUrl(
+                skydownPage.instagramURL,
+                fallback = "https://www.instagram.com/skydown_entertainment/",
+            ),
         ),
         ArtistSocialEntry(
             title = "Zweizwei",
-            instagramUrl = "https://www.instagram.com/zweizwei_music/",
+            instagramUrl = resolvedHomeSocialUrl(
+                zweizweiPage.instagramURL,
+                fallback = "https://www.instagram.com/zweizwei_music/",
+            ),
         ),
     )
     val instagramTint = colorScheme.skydownAccentHighlight().copy(alpha = 0.94f)
     val artistPageTint = colorScheme.skydownAccent().copy(alpha = 0.94f)
+    val spotifyTint = SpotifyGreen.copy(alpha = 0.94f)
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
-        Text(
-            text = stringResource(R.string.home_artist_links_title),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
-            color = colorScheme.onSurface.copy(alpha = 0.50f),
-        )
         Column(
             verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
         ) {
             entries.forEach { entry ->
-                Text(
-                    text = entry.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colorScheme.onSurface,
-                )
-                entry.subtitle?.let { subtitle ->
+                if (entry.title == "Yang D. Nash") {
                     Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colorScheme.onSurface.copy(alpha = 0.66f),
+                        text = entry.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colorScheme.onSurface,
                     )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
-                ) {
-                    HomeArtistSocialButton(
-                        label = "Artist Page",
-                        icon = Icons.Default.Person,
-                        tint = artistPageTint,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        view.performSkydownHaptic(SkydownHapticKind.Selection)
-                        // Keep users in flow: jump to music cluster.
-                        onOpenMusic()
+                    entry.subtitle?.let { subtitle ->
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colorScheme.onSurface.copy(alpha = 0.66f),
+                        )
                     }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+                    ) {
+                        HomeArtistSocialButton(
+                            label = "Artist Page",
+                            icon = Icons.Default.Person,
+                            tint = artistPageTint,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            view.performSkydownHaptic(SkydownHapticKind.Selection)
+                            // Keep users in flow: jump to music cluster.
+                            onOpenMusic()
+                        }
+                        HomeArtistSocialButton(
+                            label = stringResource(R.string.home_artist_links_instagram),
+                            icon = Icons.Default.PhotoCamera,
+                            tint = instagramTint,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            view.performSkydownHaptic(SkydownHapticKind.Selection)
+                            openExternalLink(context, entry.instagramUrl)
+                        }
+                        entry.spotifyUrl?.let { spotifyUrl ->
+                            HomeArtistSocialButton(
+                                label = stringResource(R.string.home_artist_links_spotify),
+                                icon = Icons.Default.MusicNote,
+                                tint = spotifyTint,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                view.performSkydownHaptic(SkydownHapticKind.Selection)
+                                openExternalLink(context, spotifyUrl)
+                            }
+                        }
+                    }
+                } else {
                     HomeArtistSocialButton(
-                        label = stringResource(R.string.home_artist_links_instagram),
+                        label = "${entry.title} · ${stringResource(R.string.home_artist_links_instagram)}",
                         icon = Icons.Default.PhotoCamera,
                         tint = instagramTint,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         view.performSkydownHaptic(SkydownHapticKind.Selection)
                         openExternalLink(context, entry.instagramUrl)
@@ -1681,43 +1720,54 @@ private fun HomeArtistSocialButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val pillShape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius)
     Surface(
         onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(SkydownUiTokens.tightRadius),
-        color = MaterialTheme.colorScheme.skydownSecondaryBackground().copy(alpha = 0.72f),
-        border = BorderStroke(1.dp, tint.copy(alpha = 0.22f)),
+        modifier = modifier
+            .clip(pillShape)
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.skydownSecondaryBackground().copy(alpha = 0.76f),
+                        tint.copy(alpha = 0.18f),
+                        tint.copy(alpha = 0.10f),
+                    ),
+                    start = Offset.Zero,
+                    end = Offset.Infinite,
+                ),
+            ),
+        shape = pillShape,
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, tint.copy(alpha = 0.30f)),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 11.dp, vertical = 9.dp),
-            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
+                .padding(horizontal = 10.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(tint.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(13.dp),
-                    tint = tint,
-                )
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp),
+                tint = tint,
+            )
             Text(
                 text = label,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = tint,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
             )
         }
     }
+}
+
+private fun resolvedHomeSocialUrl(value: String?, fallback: String): String {
+    val trimmed = value?.trim().orEmpty()
+    return if (trimmed.isNotEmpty()) trimmed else fallback
 }
 
 @Composable

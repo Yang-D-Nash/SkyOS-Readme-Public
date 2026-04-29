@@ -31,6 +31,7 @@ struct ArtistPageView: View {
     @State private var showToast = false
     @State private var toastStyle: ToastStyle = .success
     @State private var selectedTrackID: Int?
+    @State private var isMiniBarDismissed = false
     @State private var sheetPresentation = SkydownQueuedPresentation<ArtistPagePresentedSheet>()
     @State private var activeImageUploadTarget: ArtistPageEditableImageTarget?
     @State private var isUploadingHeroVideo = false
@@ -179,7 +180,10 @@ struct ArtistPageView: View {
     }
 
     private var miniBarTrack: Track? {
-        nowPlayingTrack ?? spotlightTrack
+        if isMiniBarDismissed {
+            return nowPlayingTrack
+        }
+        return nowPlayingTrack ?? spotlightTrack
     }
 
     private var linkCount: Int {
@@ -398,6 +402,7 @@ struct ArtistPageView: View {
             }
 
             Button {
+                isMiniBarDismissed = false
                 selectedTrackID = track.trackId
                 audioManager.playPreview(for: track)
             } label: {
@@ -413,6 +418,7 @@ struct ArtistPageView: View {
             .buttonStyle(.plain)
 
             Button {
+                isMiniBarDismissed = true
                 audioManager.stop()
             } label: {
                 Image(systemName: "xmark")
@@ -430,11 +436,35 @@ struct ArtistPageView: View {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
-                .fill(AppColors.cardBackground(for: colorScheme).opacity(0.96))
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            AppColors.cardBackground(for: colorScheme).opacity(0.94),
+                            AppColors.secondaryBackground(for: colorScheme).opacity(0.82),
+                            AppColors.spotifySurface(for: colorScheme).opacity(0.38)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
         )
         .overlay(
             RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
-                .stroke(AppColors.spotify(for: colorScheme).opacity(0.24), lineWidth: 1)
+                .stroke(AppColors.spotify(for: colorScheme).opacity(0.20), lineWidth: 1)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.buttonCornerRadius, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            .white.opacity(colorScheme == .dark ? 0.20 : 0.30),
+                            AppColors.spotify(for: colorScheme).opacity(0.24)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.8
+                )
         )
     }
 
@@ -1000,6 +1030,7 @@ struct ArtistPageView: View {
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
+                    isMiniBarDismissed = false
                     selectedTrackID = spotlightTrack.trackId
                     withAnimation(.easeInOut(duration: 0.20)) {
                         audioManager.playPreview(for: spotlightTrack)
@@ -1072,6 +1103,7 @@ struct ArtistPageView: View {
     private func minimalTrackRow(track: Track) -> some View {
         let isSelected = selectedTrackID == track.trackId
         return Button {
+            isMiniBarDismissed = false
             selectedTrackID = track.trackId
             audioManager.playPreview(for: track)
         } label: {
@@ -1106,6 +1138,9 @@ struct ArtistPageView: View {
     }
 
     private var linksCard: some View {
+        let primaryConnectLinks = socialLinks.filter { $0.kind == .instagram || $0.kind == .spotify }
+        let secondaryConnectLinks = socialLinks.filter { $0.kind != .instagram && $0.kind != .spotify }
+
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
             ArtistSectionBanner(
                 title: "Connect",
@@ -1123,7 +1158,65 @@ struct ArtistPageView: View {
                     accent: artistSecondaryAccent
                 )
             } else {
-                ForEach(socialLinks) { link in
+                if !primaryConnectLinks.isEmpty {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
+                        ForEach(primaryConnectLinks) { link in
+                            Button {
+                                if let url = URL(string: link.url) {
+                                    openURL(url)
+                                }
+                            } label: {
+                                HStack(spacing: SkydownLayout.stackSpacingTick) {
+                                    Image(systemName: link.systemImage)
+                                        .font(.caption2.weight(.semibold))
+                                    Text(link.title)
+                                        .font(.caption2.weight(.bold))
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 7)
+                                .padding(.horizontal, 9)
+                                .background(
+                                    Capsule(style: .continuous)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [
+                                                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.78 : 0.66),
+                                                    link.backgroundColor.opacity(colorScheme == .dark ? 0.24 : 0.16),
+                                                    link.tint.opacity(colorScheme == .dark ? 0.12 : 0.08)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                )
+                                .overlay(
+                                    Capsule(style: .continuous)
+                                        .stroke(link.tint.opacity(0.30), lineWidth: 1)
+                                )
+                                .overlay(
+                                    Capsule(style: .continuous)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [
+                                                    .white.opacity(colorScheme == .dark ? 0.16 : 0.28),
+                                                    link.tint.opacity(0.18)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 0.8
+                                        )
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(link.tint)
+                            .skydownTactileAction()
+                        }
+                    }
+                }
+
+                ForEach(secondaryConnectLinks) { link in
                     Button {
                         if link.kind == .youtube {
                             presentSheet(.youTube(SkydownYouTubeVideoItem(
@@ -1162,10 +1255,34 @@ struct ArtistPageView: View {
                     .buttonStyle(.plain)
                     .skydownTactileAction()
                     .padding(14)
-                    .background(link.backgroundColor.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.68 : 0.52),
+                                link.backgroundColor.opacity(colorScheme == .dark ? 0.22 : 0.16),
+                                link.tint.opacity(colorScheme == .dark ? 0.10 : 0.08)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
-                            .stroke(link.tint.opacity(0.18), lineWidth: 1)
+                            .stroke(link.tint.opacity(0.22), lineWidth: 1)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        .white.opacity(colorScheme == .dark ? 0.16 : 0.26),
+                                        link.tint.opacity(0.16)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 0.8
+                            )
                     )
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
                 }
