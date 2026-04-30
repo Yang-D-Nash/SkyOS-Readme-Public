@@ -4,7 +4,8 @@
  * Kostenfelder (firebase_cost_*):
  *   Quelle ist systemMetrics mit echten/reconciled actualCostMicros.
  *   Geschaetzte totalEstimatedCostMicros werden bewusst NICHT in Founder-KPIs geschrieben.
- *   Fuer reine GCP-Projektkosten: BigQuery-Billing-Export oder manuelle Pflege.
+ *   Fuer reine GCP-Projektkosten: systemMetrics/projectBilling_{YYYY-MM} oder
+ *   adminConfig/projectBillingSnapshot (BigQuery-Billing-Export oder manuelle Pflege).
  *
  * Nutzerfelder: Firebase Auth (lastSignIn / creation), bis MAX_AUTH_USERS.
  *
@@ -19,6 +20,9 @@ const {logger} = require("firebase-functions");
 const AI_USAGE_METRICS_COLLECTION = "systemMetrics";
 const AI_USAGE_METRICS_DOCUMENT_PREFIX = "aiUsageDaily_";
 const AI_USAGE_MONTHLY_METRICS_DOCUMENT_PREFIX = "aiUsageMonthly_";
+const PROJECT_BILLING_DOCUMENT_PREFIX = "projectBilling_";
+const ADMIN_CONFIG_COLLECTION = "adminConfig";
+const PROJECT_BILLING_SNAPSHOT_DOCUMENT = "projectBillingSnapshot";
 
 const FOUNDER_DAILY_KPIS = "founder_daily_kpis";
 
@@ -107,6 +111,89 @@ function microsFieldToEur2(value) {
   return Number((n / 1_000_000).toFixed(2));
 }
 
+function eurFieldToMicros(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) {
+    return null;
+  }
+  return Math.round(n * 1_000_000);
+}
+
+function normalizeProjectCostServices(value) {
+  if (Array.isArray(value)) {
+    return value
+        .map((entry) => {
+          const label = String(entry?.label || entry?.service || entry?.name || "").trim();
+          const micros = Number.isFinite(Number(entry?.actualCostMicros)) ?
+            Number(entry.actualCostMicros) :
+            Number.isFinite(Number(entry?.costMicros)) ?
+              Number(entry.costMicros) :
+              eurFieldToMicros(entry?.costEur);
+          if (!label || !Number.isFinite(micros) || micros < 0) {
+            return null;
+          }
+          return {
+            label,
+            costEur: microsFieldToEur2(micros),
+            actualCostMicros: Math.round(micros),
+          };
+        })
+        .filter(Boolean)
+        .sort((left, right) => right.actualCostMicros - left.actualCostMicros)
+        .slice(0, 8);
+  }
+  if (value && typeof value === "object") {
+    return normalizeProjectCostServices(
+        Object.entries(value).map(([label, raw]) => ({
+          label,
+          actualCostMicros: Number.isFinite(Number(raw)) ? Number(raw) : null,
+          costEur: Number.isFinite(Number(raw)) ? null : raw,
+        })),
+    );
+  }
+  return [];
+}
+
+function normalizeProjectBillingSnapshot(data, {source, monthKey} = {}) {
+  const d = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const snapshotMonth = String(d.monthKey || d.billingMonth || d.period || monthKey || "").slice(0, 7);
+  if (monthKey && snapshotMonth && snapshotMonth !== monthKey) {
+    return null;
+  }
+  const actualMicros = Number.isFinite(Number(d.totalActualCostMicros)) ?
+    Number(d.totalActualCostMicros) :
+    Number.isFinite(Number(d.totalCostMicros)) ?
+      Number(d.totalCostMicros) :
+      eurFieldToMicros(d.totalCostEur ?? d.projectCostEur ?? d.costEur);
+  if (!Number.isFinite(actualMicros) || actualMicros < 0) {
+    return null;
+  }
+  const services = normalizeProjectCostServices(d.services || d.serviceCosts || d.breakdown || d.byService);
+  return {
+    monthKey: monthKey || snapshotMonth || null,
+    totalActualCostMicros: Math.round(actualMicros),
+    totalCostEur: microsFieldToEur2(actualMicros),
+    currency: String(d.currency || "EUR").trim().toUpperCase() || "EUR",
+    source: String(d.source || source || "project_billing_snapshot").trim(),
+    updatedAt: String(d.updatedAt || d.generatedAt || "").trim() || null,
+    services,
+  };
+}
+
+async function loadProjectBillingSnapshot(firestore, monthKey) {
+  const [metricSnap, adminSnap] = await Promise.all([
+    firestore.collection(AI_USAGE_METRICS_COLLECTION).doc(`${PROJECT_BILLING_DOCUMENT_PREFIX}${monthKey}`).get(),
+    firestore.collection(ADMIN_CONFIG_COLLECTION).doc(PROJECT_BILLING_SNAPSHOT_DOCUMENT).get(),
+  ]);
+  return normalizeProjectBillingSnapshot(metricSnap.data(), {
+    source: `${AI_USAGE_METRICS_COLLECTION}/${PROJECT_BILLING_DOCUMENT_PREFIX}${monthKey}`,
+    monthKey,
+  }) || normalizeProjectBillingSnapshot(adminSnap.data(), {
+    source: `${ADMIN_CONFIG_COLLECTION}/${PROJECT_BILLING_SNAPSHOT_DOCUMENT}`,
+    monthKey,
+  });
+}
+
 function pickActualDailyCostEur(daily) {
   const d = daily && typeof daily === "object" && !Array.isArray(daily) ? daily : {};
   return microsFieldToEur2(d.totalActualCostMicros);
@@ -124,10 +211,11 @@ async function runSyncFounderDailyKpis({ firestore, auth, options = {} }) {
   const prevUtcMetricYmd = previousIsoYmd(utcMetricYmd);
   const monthKey = kpiYmd.slice(0, 7);
 
-  const [dailySnap, dailyPrevSnap, monthSnap] = await Promise.all([
+  const [dailySnap, dailyPrevSnap, monthSnap, projectBilling] = await Promise.all([
     firestore.collection(AI_USAGE_METRICS_COLLECTION).doc(aiUsageMetricsDocumentId(utcMetricYmd)).get(),
     firestore.collection(AI_USAGE_METRICS_COLLECTION).doc(aiUsageMetricsDocumentId(prevUtcMetricYmd)).get(),
     firestore.collection(AI_USAGE_METRICS_COLLECTION).doc(aiUsageMonthlyMetricsDocumentId(monthKey)).get(),
+    loadProjectBillingSnapshot(firestore, monthKey),
   ]);
 
   let ordersTotalSnap = {empty: true, docs: []};
@@ -234,6 +322,13 @@ async function runSyncFounderDailyKpis({ firestore, auth, options = {} }) {
       admin.firestore.FieldValue.delete(),
     kpiUserSource: "firebase_admin_listUsers",
     kpiRevenueSource: "orders_merch_confirmed_recent500",
+    project_cost_mtd: projectBilling ? projectBilling.totalCostEur : admin.firestore.FieldValue.delete(),
+    project_cost_currency: projectBilling ? projectBilling.currency : admin.firestore.FieldValue.delete(),
+    project_cost_services: projectBilling ? projectBilling.services : admin.firestore.FieldValue.delete(),
+    project_cost_updated_at: projectBilling?.updatedAt || admin.firestore.FieldValue.delete(),
+    project_cost_period: projectBilling?.monthKey || admin.firestore.FieldValue.delete(),
+    kpiProjectCostSource: projectBilling?.source || admin.firestore.FieldValue.delete(),
+    kpiProjectCostStatus: projectBilling ? "actual" : admin.firestore.FieldValue.delete(),
     metricUtcDay: utcMetricYmd,
     source: admin.firestore.FieldValue.delete(),
   };
@@ -270,6 +365,8 @@ async function runSyncFounderDailyKpis({ firestore, auth, options = {} }) {
     new_users_24h: newUsers24h,
     revenue_today: doc.revenue_today,
     revenue_mtd: doc.revenue_mtd,
+    project_cost_mtd: projectBilling ? projectBilling.totalCostEur : null,
+    project_cost_services: projectBilling ? projectBilling.services : [],
     metricUtcDay: utcMetricYmd,
   };
 }

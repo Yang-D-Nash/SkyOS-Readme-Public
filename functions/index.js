@@ -7985,8 +7985,26 @@ function formatFounderPercent(value) {
 function formatFounderActualCost(value) {
   return Number.isFinite(value) ? formatEur(value) : FOUNDER_DISPLAY.gapActualCost;
 }
+function formatFounderProjectCostBreakdown(services) {
+  const parts = (Array.isArray(services) ? services : [])
+      .map((entry) => {
+        const label = nonEmptyString(entry?.label);
+        const cost = Number(entry?.costEur);
+        if (!label || !Number.isFinite(cost)) {
+          return "";
+        }
+        return `${label}: ${formatEur(cost)}`;
+      })
+      .filter(Boolean)
+      .slice(0, 5);
+  return parts.length ? ` (${parts.join(" · ")})` : "";
+}
 function founderCostBasisText(kpis) {
   const status = nonEmptyString(kpis?.kpiCostStatus)?.toLowerCase() || "";
+  const projectStatus = nonEmptyString(kpis?.kpiProjectCostStatus)?.toLowerCase() || "";
+  if (projectStatus === "actual") {
+    return "Kostenbasis: echte Projektkosten aus Firebase/GCP-Billing-Snapshot; AI-Reconciliation separat, Schaetzwerte ausgeblendet.";
+  }
   if (status === "actual") {
     return "Kostenbasis: echte/reconciled AI-/SkyOS-Nutzung aus `systemMetrics.totalActualCostMicros`. Schaetzwerte werden nicht angezeigt.";
   }
@@ -8008,6 +8026,8 @@ function buildFounderBriefingFooter({date, kpis = {}}) {
     nonEmptyString(k.kpiSource),
     nonEmptyString(k.kpiCostSource),
     nonEmptyString(k.kpiCostStatus) ? `Kostenstatus: ${nonEmptyString(k.kpiCostStatus)}` : "",
+    nonEmptyString(k.kpiProjectCostSource),
+    nonEmptyString(k.kpiProjectCostStatus) ? `Projektkostenstatus: ${nonEmptyString(k.kpiProjectCostStatus)}` : "",
     nonEmptyString(k.kpiUserSource),
     nonEmptyString(k.kpiRevenueSource),
   ]
@@ -8128,6 +8148,8 @@ function buildFounderPrivateBriefing({
   const firebaseCostToday = numberOrMissing(kpis?.firebase_cost_today, "founder_daily_kpis.firebase_cost_today", missing);
   const firebaseCostMtd = numberOrMissing(kpis?.firebase_cost_mtd, "founder_daily_kpis.firebase_cost_mtd", missing);
   const firebaseCostTrendPct = numberOrMissing(kpis?.firebase_cost_trend_pct, "founder_daily_kpis.firebase_cost_trend_pct", missing);
+  const projectCostMtd = numberOrMissing(kpis?.project_cost_mtd, "founder_daily_kpis.project_cost_mtd", missing);
+  const projectCostBreakdown = formatFounderProjectCostBreakdown(kpis?.project_cost_services);
   const activeUsers24h = numberOrMissing(kpis?.active_users_24h, "founder_daily_kpis.active_users_24h", missing);
   const newUsers24h = numberOrMissing(kpis?.new_users_24h, "founder_daily_kpis.new_users_24h", missing);
   const retentionD1Pct = numberOrMissing(kpis?.retention_d1_pct, "founder_daily_kpis.retention_d1_pct", missing);
@@ -8164,6 +8186,12 @@ function buildFounderPrivateBriefing({
   const costTrendText = Number.isFinite(firebaseCostTrendPct) ?
     (firebaseCostTrendPct > 0 ? `steigend um ${formatPercent(firebaseCostTrendPct)}` : `fallend um ${formatPercent(Math.abs(firebaseCostTrendPct))}`) :
     FOUNDER_DISPLAY.gapTrend;
+  const costTodayLine = Number.isFinite(firebaseCostToday) ?
+    `Echte Kosten heute: ${formatEur(firebaseCostToday)}; Trend ${costTrendText}.` :
+    `Echte Kosten heute: aktuell nicht verfuegbar; ${costTrendText}.`;
+  const projectCostLine = Number.isFinite(projectCostMtd) ?
+    `Projektkosten Monat bis dato: ${formatEur(projectCostMtd)}${projectCostBreakdown}.` :
+    "Projektkosten Monat bis dato: noch nicht angebunden (Billing-Snapshot fehlt).";
   const monthEndRiskText = Number.isFinite(firebaseCostMtd) ?
     `Monat bis dato echte Kosten: ${formatEur(firebaseCostMtd)}. Keine Hochrechnung ohne echte Billing-/Reconciliation-Werte.` :
     FOUNDER_DISPLAY.gapMonthModel;
@@ -8201,11 +8229,12 @@ function buildFounderPrivateBriefing({
     `# SkyOS · Founder Intelligence — ${date} *(vertraulich)*`,
     FOUNDER_DISPLAY.tagline,
     "",
-    "## 1) Cost Watch (SkyOS & KI)",
+    "## 1) Projektkosten & Betrieb",
     founderCostBasisText(kpis),
-    `Kern: echte Kosten heute ${formatFounderActualCost(firebaseCostToday)}; Trend ${costTrendText}.`,
-    `Monat bis dato: ${formatFounderActualCost(firebaseCostMtd)}; aktive Nutzer 24h: ${formatFounderNumber(activeUsers24h)} (rollierend).`,
-    `Kostenstatus: ${monthEndRiskText}`,
+    projectCostLine,
+    `AI-/Usage-Reconciliation: ${costTodayLine}`,
+    `AI-/Usage-Monat: ${formatFounderActualCost(firebaseCostMtd)}; aktive Nutzer 24h: ${formatFounderNumber(activeUsers24h)} (rollierend).`,
+    `Status: ${monthEndRiskText}`,
     Number.isFinite(firebaseCostTrendPct) && firebaseCostTrendPct > 0 ?
       "Heute sinnvoll: teure Stellen zuerst eingrenzen, einen Messpunkt setzen." :
       "Heute sinnvoll: Kurs pruefen, Ueberraschungen im Kostenbild vermeiden.",
@@ -8241,6 +8270,7 @@ function buildFounderGroupBriefing({
   enrichment,
 }) {
   const firebaseCostToday = numberOrMissing(kpis?.firebase_cost_today, "founder_daily_kpis.firebase_cost_today", missing);
+  const projectCostMtd = numberOrMissing(kpis?.project_cost_mtd, "founder_daily_kpis.project_cost_mtd", missing);
   const revenueToday = numberOrMissing(kpis?.revenue_today, "founder_daily_kpis.revenue_today", missing);
   const activeUsers24h = numberOrMissing(kpis?.active_users_24h, "founder_daily_kpis.active_users_24h", missing);
   const newUsers24h = numberOrMissing(kpis?.new_users_24h, "founder_daily_kpis.new_users_24h", missing);
@@ -8271,6 +8301,9 @@ function buildFounderGroupBriefing({
     `Echte Kosten im KI-/Nutzungstrack: ${formatEur(firebaseCostToday)}.` :
     "Echte Kosten im KI-/Nutzungstrack: aktuell nicht verfuegbar; Schaetzwerte werden nicht angezeigt.";
   const signalLines = [
+    Number.isFinite(projectCostMtd) ?
+      `- Projektkosten MTD: ${formatEur(projectCostMtd)}.` :
+      "- Projektkosten MTD: noch nicht im Billing-Snapshot.",
     `- Umsatz heute: ${formatFounderEur(revenueToday)}.`,
     `- ${costSentence}`,
     `- Aktivitaet 24h: ${formatFounderNumber(activeUsers24h)} Nutzer, ${formatFounderNumber(newUsers24h)} neu.`,
@@ -8462,6 +8495,8 @@ async function buildFounderBriefingResponseData({
       kpiUserSource: nonEmptyString(kpis?.kpiUserSource) || null,
       kpiRevenueSource: nonEmptyString(kpis?.kpiRevenueSource) || null,
       kpiCostStatus: nonEmptyString(kpis?.kpiCostStatus) || null,
+      kpiProjectCostSource: nonEmptyString(kpis?.kpiProjectCostSource) || null,
+      kpiProjectCostStatus: nonEmptyString(kpis?.kpiProjectCostStatus) || null,
       liveKpiSync: liveKpiSyncResult || null,
       enrichment: enrichment ? {
         musicCount: Array.isArray(enrichment.music) ? enrichment.music.length : 0,

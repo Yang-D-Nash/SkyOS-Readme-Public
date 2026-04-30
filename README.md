@@ -91,6 +91,7 @@ Bei Indexänderungen zusätzlich `firebase deploy --only firestore:indexes` ([fi
 - Eindeutig benannter Master-AP-Code-Step fuer `SkyOS - Agent Webhook Master AP`: [docs/activepieces-router-master-ap.mjs](docs/activepieces-router-master-ap.mjs).
 - Jeder Request: **`POST`**, Header **`x-skyos-workflow-secret`**, JSON-Body mit **`uid`** (Zielnutzer), **`source`: `"activepieces"`** (validiert im Backend).  
 - Founder Briefings synchronisieren KPI-Daten beim Klick/Request frisch und zeigen Kosten nur aus echten/reconciled `totalActualCostMicros`; Schaetzwerte werden nicht als Euro-Betrag ausgegeben.
+- Owner-Founder-Briefings koennen zusaetzlich echte Firebase/GCP-Projektkosten aus `systemMetrics/projectBilling_{YYYY-MM}` oder `adminConfig/projectBillingSnapshot` anzeigen; diese Snapshots koennen manuell gepflegt oder spaeter per Billing-Export automatisiert werden.
 - Social Analysis liefert standardmaessig Agent-Output im Verlauf; eine Notiz entsteht nur bewusst mit `saveToNotes: true` oder `notePreferred: true`.
 - Beispiel-JSON: [docs/automation/json-samples/reference-http-payloads/](docs/automation/json-samples/reference-http-payloads/).
 
