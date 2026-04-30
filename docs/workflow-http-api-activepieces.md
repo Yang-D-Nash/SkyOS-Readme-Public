@@ -92,6 +92,11 @@ meist unvollstaendig eingefuegt. Dann die kompakte Drop-in-Variante verwenden:
 
 [activepieces-router-compact.mjs](activepieces-router-compact.mjs)
 
+Fuer den eindeutig benannten Master-Flow `SkyOS - Agent Webhook Master AP` gibt es dieselbe
+Logik mit eigener Schema-Version:
+
+[activepieces-router-master-ap.mjs](activepieces-router-master-ap.mjs)
+
 Einsatz:
 
 - In Activepieces einen **Code** Step anlegen.

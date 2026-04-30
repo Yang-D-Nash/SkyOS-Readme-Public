@@ -88,6 +88,7 @@ Bei Indexänderungen zusätzlich `firebase deploy --only firestore:indexes` ([fi
 - Kanonische Schritt-für-Schritt- und Payload-Doku: [docs/workflow-http-api-activepieces.md](docs/workflow-http-api-activepieces.md).  
 - Kopierbarer Premium-Code-Step fuer `SkyOS - Agent Webhook Master PRO`: [docs/activepieces-router-premium-v2.5.mjs](docs/activepieces-router-premium-v2.5.mjs).
 - Kompakter Drop-in-Code-Step bei Activepieces-Paste-/Compile-Abbruch (`Unexpected end of file`): [docs/activepieces-router-compact.mjs](docs/activepieces-router-compact.mjs).
+- Eindeutig benannter Master-AP-Code-Step fuer `SkyOS - Agent Webhook Master AP`: [docs/activepieces-router-master-ap.mjs](docs/activepieces-router-master-ap.mjs).
 - Jeder Request: **`POST`**, Header **`x-skyos-workflow-secret`**, JSON-Body mit **`uid`** (Zielnutzer), **`source`: `"activepieces"`** (validiert im Backend).  
 - Founder Briefings synchronisieren KPI-Daten beim Klick/Request frisch und zeigen Kosten nur aus echten/reconciled `totalActualCostMicros`; Schaetzwerte werden nicht als Euro-Betrag ausgegeben.
 - Social Analysis liefert standardmaessig Agent-Output im Verlauf; eine Notiz entsteht nur bewusst mit `saveToNotes: true` oder `notePreferred: true`.
