@@ -108,7 +108,7 @@ struct AgentView: View {
                 onClearAttachments: { inputAttachments.removeAll() },
                 onSend: {
                     let urls = inputAttachments.compactMap { URL(string: $0.id) }
-                    viewModel.sendDraft(attachmentURLs: urls)
+                    viewModel.sendDraftInNewConversation(attachmentURLs: urls)
                     inputAttachments.removeAll()
                 }
             )

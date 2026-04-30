@@ -335,6 +335,26 @@ final class AgentChatViewModel: ObservableObject {
         sendPrompt(draft, attachmentURLs: attachmentURLs)
     }
 
+    func sendDraftInNewConversation(attachmentURLs: [URL] = []) {
+        let prompt = draft
+        let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPrompt.isEmpty, !phase.shouldBlockSend else { return }
+        guard canSendAgentMessage(trimmedPrompt: trimmedPrompt) else {
+            let msg = AppLocalized.text(
+                "agent.send.requires_social_workflow",
+                fallback: "Fuer Analyse mit Workflow: mindestens eine oeffentliche Plattform aktivieren."
+            )
+            showUserToast(msg, style: .error)
+            return
+        }
+        guard selectedLevel.isAvailable(for: currentQuotaPlan) else {
+            showUserToast(AIExperienceLevel.unavailableMessage, style: .info)
+            return
+        }
+        startNewConversation()
+        sendPrompt(prompt, attachmentURLs: attachmentURLs)
+    }
+
     private func hasAnySocialToggleOn() -> Bool {
         socialInstagramEnabled || socialTiktokEnabled || socialYoutubeEnabled
             || socialFacebookEnabled || socialSpotifyEnabled

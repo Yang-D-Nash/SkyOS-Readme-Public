@@ -612,7 +612,7 @@ fun AgentScreen(
                             }
                             composeScope.launch {
                                 val encoded = AgentOutboundAttachment.batchFromUris(context, pairs)
-                                viewModel.sendDraft(encoded)
+                                viewModel.sendDraftInNewConversation(encoded)
                                 inputAttachments = emptyList()
                                 dismissKeyboard()
                             }

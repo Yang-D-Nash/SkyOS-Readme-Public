@@ -426,6 +426,26 @@ class AgentViewModel : ViewModel() {
         sendPrompt(_uiState.value.draft, attachments)
     }
 
+    fun sendDraftInNewConversation(attachments: List<AgentOutboundAttachment> = emptyList()) {
+        val prompt = _uiState.value.draft
+        val trimmedPrompt = prompt.trim()
+        if (!isAgentRequestAllowed()) return
+        if (trimmedPrompt.isBlank() || _uiState.value.agentPhase.shouldBlockSend) return
+        if (!canSendAgentMessage()) {
+            _uiState.update {
+                it.copy(errorMessage = AppTextResolver.string(R.string.agent_send_requires_social_when_workflow))
+            }
+            return
+        }
+        val levelAtSend = _uiState.value.selectedLevel
+        if (!levelAtSend.isAvailableFor(currentQuotaPlan)) {
+            _uiState.update { it.copy(errorMessage = AppTextResolver.string(R.string.ai_level_unavailable)) }
+            return
+        }
+        startNewConversation()
+        sendPrompt(prompt, attachments)
+    }
+
     fun sendPrompt(prompt: String, attachments: List<AgentOutboundAttachment> = emptyList()) {
         val trimmedPrompt = prompt.trim()
         if (!isAgentRequestAllowed()) return

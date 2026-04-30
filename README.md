@@ -87,6 +87,7 @@ Bei Indexänderungen zusätzlich `firebase deploy --only firestore:indexes` ([fi
 
 - Kanonische Schritt-für-Schritt- und Payload-Doku: [docs/workflow-http-api-activepieces.md](docs/workflow-http-api-activepieces.md).  
 - Kopierbarer Premium-Code-Step fuer `SkyOS - Agent Webhook Master PRO`: [docs/activepieces-router-premium-v2.5.mjs](docs/activepieces-router-premium-v2.5.mjs).
+- Kompakter Drop-in-Code-Step bei Activepieces-Paste-/Compile-Abbruch (`Unexpected end of file`): [docs/activepieces-router-compact.mjs](docs/activepieces-router-compact.mjs).
 - Jeder Request: **`POST`**, Header **`x-skyos-workflow-secret`**, JSON-Body mit **`uid`** (Zielnutzer), **`source`: `"activepieces"`** (validiert im Backend).  
 - Founder Briefings synchronisieren KPI-Daten beim Klick/Request frisch und zeigen Kosten nur aus echten/reconciled `totalActualCostMicros`; Schaetzwerte werden nicht als Euro-Betrag ausgegeben.
 - Social Analysis liefert standardmaessig Agent-Output im Verlauf; eine Notiz entsteht nur bewusst mit `saveToNotes: true` oder `notePreferred: true`.
@@ -566,7 +567,7 @@ firebase functions:secrets:set SKYOS_WORKFLOW_SECRET
 firebase deploy --only functions
 ```
 
-**Erwartbare HTTP-Antworten (Auszug):** Erfolg `200` mit JSON `ok: true` und `reminderId` / `taskId` / `noteId`; typische Fehler: `400` (Body), `401` (Header), `405` (Methode), `500` (Secret nicht provisioniert). Vollständige Tabelle, **Beispiel-JSON-Bodies** und der kopierbare **Premium-Router-Code-Step:** [docs/workflow-http-api-activepieces.md](docs/workflow-http-api-activepieces.md).
+**Erwartbare HTTP-Antworten (Auszug):** Erfolg `200` mit JSON `ok: true` und `reminderId` / `taskId` / `noteId`; typische Fehler: `400` (Body), `401` (Header), `405` (Methode), `500` (Secret nicht provisioniert). Vollständige Tabelle, **Beispiel-JSON-Bodies** und die kopierbaren **Premium-/Compact-Router-Code-Steps:** [docs/workflow-http-api-activepieces.md](docs/workflow-http-api-activepieces.md).
 
 **Abgrenzung:** **Memory** und tiefere Folge-Automationen sind in der fachlichen Doku **nicht** Bestandteil dieser Live-HTTP-API ([docs/workflow-http-api-activepieces.md](docs/workflow-http-api-activepieces.md) „Live Status“).
 

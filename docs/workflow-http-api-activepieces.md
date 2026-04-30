@@ -87,6 +87,11 @@ Der aktuelle Drop-in-Code fuer `SkyOS - Agent Webhook Master PRO` liegt hier:
 
 [activepieces-router-premium-v2.5.mjs](activepieces-router-premium-v2.5.mjs)
 
+Falls Activepieces beim Einfuegen/Build mit `Unexpected end of file` abbricht, wurde der Code-Step
+meist unvollstaendig eingefuegt. Dann die kompakte Drop-in-Variante verwenden:
+
+[activepieces-router-compact.mjs](activepieces-router-compact.mjs)
+
 Einsatz:
 
 - In Activepieces einen **Code** Step anlegen.
