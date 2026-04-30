@@ -112,7 +112,7 @@ Setzen: `firebase functions:secrets:set SKYOS_WORKFLOW_SECRET`, danach Functions
 
 ### Aktueller Status (Repository)
 
-Version **1.0.0**, iOS `CURRENT_PROJECT_VERSION=10018`, Android `versionCode=10019` — siehe [Status und Release-Reife](#status-und-release-reife). **Node 22** ist für Functions die offizielle Engine; lokale Abweichung kann `EBADENGINE`-Warnungen erzeugen — für Release-Builds Node 22 nutzen.
+Version **1.0.0**, iOS `CURRENT_PROJECT_VERSION=10020`, Android `versionCode=10021` — siehe [Status und Release-Reife](#status-und-release-reife). **Node 22** ist für Functions die offizielle Engine; lokale Abweichung kann `EBADENGINE`-Warnungen erzeugen — für Release-Builds Node 22 nutzen.
 
 ## Transparenz und Verantwortlichkeiten
 
@@ -199,13 +199,13 @@ Version **1.0.0**, iOS `CURRENT_PROJECT_VERSION=10018`, Android `versionCode=100
 Kurz gelesen:
 
 - Versionen stehen konsistent auf `1.0.0`.
-- Store-Build-IDs stehen auf iOS `10018` und Android `10019`.
+- Store-Build-IDs stehen auf iOS `10020` und Android `10021`.
 - Release-Ablauf wird zentral im Release-Workflow gepflegt.
 
 | Aspekt | Stand (Repository) |
 | --- | --- |
 | **Produktversion (Repository-Stand)** | `1.0.0` (`VERSION`, iOS `MARKETING_VERSION`, Android `versionName`) |
-| **Build-Identität (Repository-Stand)** | iOS `CURRENT_PROJECT_VERSION=10018`, Android `versionCode=10019` |
+| **Build-Identität (Repository-Stand)** | iOS `CURRENT_PROJECT_VERSION=10020`, Android `versionCode=10021` |
 | **iOS** | Bundle-ID `com.skydown.ios` — siehe Xcode-Projekt und [docs/ios.md](docs/ios.md) |
 | **Android** | Application ID `com.nash.skyos` — siehe [docs/android.md](docs/android.md) |
 | **Backend** | Firebase-Projekt in Client-Konfigurationen referenziert; Functions-Paket `skyos-functions@1.0.0` ([functions/package.json](functions/package.json)) |
