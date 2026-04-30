@@ -4,7 +4,7 @@
 
 export const code = async (inputs) => {
   const startedAt = Date.now();
-  const schemaVersion = "skyos.activepieces.router.compact.v1.1";
+  const schemaVersion = "skyos.activepieces.router.compact.v1.2";
 
   const asObject = (value) =>
     value && typeof value === "object" && !Array.isArray(value) ? value : null;
@@ -194,6 +194,8 @@ export const code = async (inputs) => {
     return clean(
       text
         .replace(/\n?##\s*(Spotify|YouTube|Instagram|Facebook\/Meta|TikTok)\s+(?:Live-)?Kontext[\s\S]*?(?=\n##\s|$)/g, "")
+        .replace(/\n?Workflow:[^\S\r\n]*\nWorkflow abgeschlossen\.[^\S\r\n]*(?:\n|$)/g, "\n")
+        .replace(/\n?Es wurde kein Reminder\/Task\/Notiz automatisch angelegt\.[^\S\r\n]*\nDu kannst alles in Home > Productivity als Liste bearbeiten \(CRUD\)\.[^\S\r\n]*(?:\n|$)/g, "\n")
         .replace(/##\s*Agent-Auswertung/g, "## Analyse")
         .replace(/##\s*Datenstatus/g, "## Datenbasis")
         .replace(/\n{3,}/g, "\n\n"),
