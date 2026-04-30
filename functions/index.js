@@ -15923,18 +15923,6 @@ function buildSocialAnalysisWorkflowContent({
   const missingLabels = missing
       .map((platform) => SOCIAL_PLATFORM_LABELS_DE[platform] || platform)
       .filter(Boolean);
-  const contextBlocks = [
-    ["Spotify", socialContext.spotifyPublicCatalogSummary],
-    ["YouTube", socialContext.youtubePublicCatalogSummary],
-    ["Instagram", socialContext.instagramPublicGraphSummary],
-    ["Facebook/Meta", socialContext.facebookMetaSummary],
-    ["TikTok", socialContext.tiktokPublicSummary],
-  ]
-      .map(([label, value]) => {
-        const text = nonEmptyString(value) || "";
-        return text ? `## ${label} Live-Kontext\n${trimTextMax(text, 1200)}` : "";
-      })
-      .filter(Boolean);
   const dataStatusLines = SOCIAL_PLATFORM_ORDER
       .filter((platform) => selected.length === 0 || selected.includes(platform))
       .map((platform) => {
@@ -15952,10 +15940,10 @@ function buildSocialAnalysisWorkflowContent({
   const lines = [
     "# SkyOS Social Analysis",
     "",
-    "## Agent-Auswertung",
+    "## Analyse",
     trimTextMax(nonEmptyString(reply) || "Keine Agent-Auswertung im Payload.", 2400),
     "",
-    "## Datenstatus",
+    "## Datenbasis",
     ...(dataStatusLines.length ? dataStatusLines : ["- Kein Plattformstatus im Payload."]),
     "",
     "## Anfrage",
@@ -15969,9 +15957,6 @@ function buildSocialAnalysisWorkflowContent({
   }
   if (missingLabels.length) {
     lines.push(`Ausgewaehlt, aber ohne Handle: ${missingLabels.join(", ")}.`);
-  }
-  if (contextBlocks.length) {
-    lines.push("", ...contextBlocks);
   }
   return trimTextMax(lines.join("\n"), 5000);
 }

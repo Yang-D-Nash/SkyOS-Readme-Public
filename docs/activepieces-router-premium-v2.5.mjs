@@ -243,18 +243,6 @@ export const code = async (inputs) => {
       .filter(Boolean);
     const selectedLabels = selected.map((platform) => labels[platform] || platform).filter(Boolean);
     const missingLabels = missing.map((platform) => labels[platform] || platform).filter(Boolean);
-    const liveBlocks = [
-      ["Spotify", ctx.spotifyPublicCatalogSummary],
-      ["YouTube", ctx.youtubePublicCatalogSummary],
-      ["Instagram", ctx.instagramPublicGraphSummary],
-      ["Facebook/Meta", ctx.facebookMetaSummary],
-      ["TikTok", ctx.tiktokPublicSummary],
-    ]
-      .map(([label, value]) => {
-        const text = clean(value, "", 1200);
-        return text ? `## ${label} Live-Kontext\n${text}` : "";
-      })
-      .filter(Boolean);
     const liveStatus = [
       ["instagram", "Instagram", ctx.instagramPublicGraphSummary],
       ["tiktok", "TikTok", ctx.tiktokPublicSummary],
@@ -275,10 +263,10 @@ export const code = async (inputs) => {
     const lines = [
       "# SkyOS Social Analysis",
       "",
-      "## Agent-Auswertung",
+      "## Analyse",
       firstClean([data?.reply, body?.reply], "Keine Agent-Auswertung im Payload.", 2400),
       "",
-      "## Datenstatus",
+      "## Datenbasis",
       ...(liveStatus.length ? liveStatus : ["- Kein Plattformstatus im Payload."]),
       "",
       "## Anfrage",
@@ -287,7 +275,6 @@ export const code = async (inputs) => {
     if (accountLines.length) lines.push("", "## Accounts", ...accountLines);
     if (selectedLabels.length) lines.push("", `Ausgewaehlte Plattformen: ${selectedLabels.join(", ")}.`);
     if (missingLabels.length) lines.push(`Ausgewaehlt, aber ohne Handle: ${missingLabels.join(", ")}.`);
-    if (liveBlocks.length) lines.push("", ...liveBlocks);
     return clean(lines.join("\n"), "Social Analysis angefordert.", 5000);
   };
 

@@ -211,32 +211,21 @@ export const code = async (inputs) => {
         return platform === "spotify" ? `- Spotify: ${h}` : `- ${socialLabels[platform].replace("/Meta", "")}: @${h}`;
       })
       .filter(Boolean);
-    const liveBlocks = [
-      ["Spotify", ctx.spotifyPublicCatalogSummary],
-      ["YouTube", ctx.youtubePublicCatalogSummary],
-      ["Instagram", ctx.instagramPublicGraphSummary],
-      ["Facebook/Meta", ctx.facebookMetaSummary],
-      ["TikTok", ctx.tiktokPublicSummary],
-    ].map(([label, value]) => {
-      const text = clean(value, "", 1200);
-      return text ? `## ${label} Kontext\n${text}` : "";
-    }).filter(Boolean);
     const direct = first([data.content, body.content, data.analysis, body.analysis, data.description, body.description], "", 7000);
     if (direct) return direct;
     const lines = [
       "# SkyOS Social Analysis",
       "",
-      "## Agent-Auswertung",
+      "## Analyse",
       first([data.reply, body.reply], "Keine Agent-Auswertung im Payload.", 2400),
       "",
-      "## Datenstatus",
+      "## Datenbasis",
       ...statusLines,
       "",
       "## Anfrage",
       first([data.prompt, body.prompt], "Keine Anfrage im Payload.", 600),
     ];
     if (accounts.length) lines.push("", "## Accounts", ...accounts);
-    if (liveBlocks.length) lines.push("", ...liveBlocks);
     return clean(lines.join("\n"), "Social Analysis angefordert.", 9000);
   };
 
