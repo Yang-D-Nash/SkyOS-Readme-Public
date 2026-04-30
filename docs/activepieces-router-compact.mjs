@@ -4,7 +4,7 @@
 
 export const code = async (inputs) => {
   const startedAt = Date.now();
-  const schemaVersion = "skyos.activepieces.router.compact.v1";
+  const schemaVersion = "skyos.activepieces.router.compact.v1.1";
 
   const asObject = (value) =>
     value && typeof value === "object" && !Array.isArray(value) ? value : null;
@@ -188,6 +188,20 @@ export const code = async (inputs) => {
     return `- ${label}: Live-Daten fuer ${platform === "spotify" ? h : "@" + h} erhalten.`;
   };
 
+  const sanitizeSocialAnalysisText = (value, max = 9000) => {
+    const text = clean(value, "", max);
+    if (!text) return "";
+    return clean(
+      text
+        .replace(/\n?##\s*(Spotify|YouTube|Instagram|Facebook\/Meta|TikTok)\s+(?:Live-)?Kontext[\s\S]*?(?=\n##\s|$)/g, "")
+        .replace(/##\s*Agent-Auswertung/g, "## Analyse")
+        .replace(/##\s*Datenstatus/g, "## Datenbasis")
+        .replace(/\n{3,}/g, "\n\n"),
+      "Social Analysis angefordert.",
+      max
+    );
+  };
+
   const buildSocialAnalysis = () => {
     const ctx = asObject(data.socialContext) || asObject(body.socialContext) || {};
     const profiles = asObject(ctx.socialProfiles) || {};
@@ -211,8 +225,8 @@ export const code = async (inputs) => {
         return platform === "spotify" ? `- Spotify: ${h}` : `- ${socialLabels[platform].replace("/Meta", "")}: @${h}`;
       })
       .filter(Boolean);
-    const direct = first([data.content, body.content, data.analysis, body.analysis, data.description, body.description], "", 7000);
-    if (direct) return direct;
+    const direct = first([data.content, body.content, data.analysis, body.analysis, data.description, body.description], "", 9000);
+    if (direct) return sanitizeSocialAnalysisText(direct, 9000);
     const lines = [
       "# SkyOS Social Analysis",
       "",

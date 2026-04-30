@@ -1,4 +1,4 @@
-// SkyOS Activepieces Router, premium v2.5
+// SkyOS Activepieces Router, premium v2.5.1
 // Drop-in Code Step for "SkyOS - Agent Webhook Master PRO".
 // Secrets stay in Activepieces inputs. Do not commit real secret values.
 
@@ -254,12 +254,25 @@ export const code = async (inputs) => {
       .map(([platform, label, value]) => {
         return socialLiveStatusLine({ platform, label, handle: profiles[platform], value });
       });
+    const sanitizeSocialAnalysisText = (value, max = 5000) => {
+      const text = clean(value, "", max);
+      if (!text) return "";
+      return clean(
+        text
+          .replace(/\n?##\s*(Spotify|YouTube|Instagram|Facebook\/Meta|TikTok)\s+(?:Live-)?Kontext[\s\S]*?(?=\n##\s|$)/g, "")
+          .replace(/##\s*Agent-Auswertung/g, "## Analyse")
+          .replace(/##\s*Datenstatus/g, "## Datenbasis")
+          .replace(/\n{3,}/g, "\n\n"),
+        "Social Analysis angefordert.",
+        max,
+      );
+    };
     const direct = firstClean(
       [data?.content, body?.content, data?.analysis, body?.analysis, data?.description, body?.description],
       "",
       5000,
     );
-    if (direct) return direct;
+    if (direct) return sanitizeSocialAnalysisText(direct, 5000);
     const lines = [
       "# SkyOS Social Analysis",
       "",
@@ -389,7 +402,7 @@ export const code = async (inputs) => {
   const rawMode = firstClean([data.mode, body.mode, body.action, data.action], "", 80);
   const mode = normalizeMode({ rawMode, data, body });
 
-  const schemaVersion = "skyos.activepieces.router.premium.v2.5";
+  const schemaVersion = "skyos.activepieces.router.premium.v2.5.1";
   const traceId = `${requestId}-${Math.random().toString(36).slice(2, 8)}`;
   const todayYmd = new Date().toISOString().slice(0, 10);
   const baseUrl = `https://us-central1-${projectId}.cloudfunctions.net`;
