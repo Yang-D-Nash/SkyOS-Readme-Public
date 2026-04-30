@@ -6,37 +6,41 @@ This document defines the recommended App Store presence for SkyOS on iPhone.
 
 Use one clear sentence everywhere:
 
-> SkyOS brings AI, creator media, merch, and membership into one native iPhone experience.
+> SkyOS brings AI, reminders, tasks, notes, workflow automation, creator media, merch, and membership into one calm native iPhone experience.
 
 ## Recommended Metadata
 
 ### English
 
 - App Name: `SkyOS`
-- Subtitle: `AI for creators and commerce`
+- Subtitle: `AI workflows for creators`
 - Promotional Text:
 
-  `SkyOS brings AI, media, merch, and membership into one native app. Create faster, stay organized, and move between assistant, content, and commerce in one calm flow.`
+  `SkyOS brings AI, reminders, tasks, notes, workflow automation, media, merch, and membership into one calm native app.`
 
 - Keywords:
 
-  `artist,music,visuals,agent,merch,membership,media,shop,orders`
+  `ai,agent,reminder,tasks,notes,workflow,creator,music,media,merch`
 
 ### Full Description
 
-SkyOS is a native mobile product that brings AI, creator media, merch, and membership into one
-clear system.
+SkyOS is a native mobile product that brings AI, reminders, tasks, notes, workflow automation,
+creator media, merch, and membership into one clear system.
 
-Use SkyOS to write, plan, and generate with assistant-grade AI, move between music, video, and
-creator surfaces, discover merch, and keep billing and account control readable in one place.
+Use SkyOS to write, plan, and generate with assistant-grade AI, create reminders with push
+notifications, manage tasks and notes, move between creator media surfaces, discover merch, and
+keep billing and account control readable in one place.
 
-SkyOS is built for people who want one app instead of five disconnected tools. AI, media,
-membership, and commerce live inside the same product flow, so the experience stays calm instead
-of fragmented.
+SkyOS is built for people who want one app instead of disconnected tools. AI, productivity,
+media, membership, and commerce live inside the same product flow, so the experience stays calm
+instead of fragmented.
 
 What you can do in SkyOS:
 
 - work with AI for writing, visual generation, and guided agent-style tasks
+- create reminders and receive push notifications at the scheduled time
+- capture, edit, and manage tasks and notes
+- connect workflow automation through the documented Activepieces HTTP flow
 - stay close to music, video, and creator media in one native experience
 - browse merch, prepare checkout, and follow important order paths
 - manage your plan, restore purchases, and keep account controls visible
@@ -46,7 +50,8 @@ Paid plans are positioned around capability, not token packs. Depending on the a
 release setup, membership can unlock more reach, stronger AI and agent depth, and access to premium
 outputs.
 
-Some features depend on account state, membership tier, or release configuration.
+Some features depend on account state, membership tier, connected workflow setup, or release
+configuration. Longer-lived memory and deeper automations are being expanded after launch.
 
 ### What's New Template
 
@@ -62,38 +67,41 @@ Example:
 
 `New in this version:`
 
-- `Refined AI and Agent flows for a calmer, faster experience`
-- `Improved large-screen and safe-area behavior across key screens`
+- `Live reminders, tasks, notes, and workflow creation for a clearer daily flow`
+- `Refined AI and Agent outputs for a calmer, faster experience`
 - `Polished membership, settings, and reliability details throughout the app`
 
 ### German
 
 - App Name: `SkyOS`
-- Subtitle: `KI fuer Creator und Commerce`
+- Subtitle: `KI-Workflows fuer Creator`
 - Promotional Text:
 
-  `SkyOS bringt KI, Media, Merch und Membership in eine native App. Arbeite schneller, bleib klar organisiert und wechsle ruhig zwischen Assistant, Content und Commerce.`
+  `SkyOS bringt KI, Reminder, Tasks, Notes, Workflow-Automation, Media, Merch und Membership in eine ruhige native App.`
 
 - Keywords:
 
-  `creator,musik,visuals,agent,merch,membership,media,shop,bestellung`
+  `ki,agent,reminder,tasks,notes,workflow,creator,musik,media,merch`
 
 ### Vollbeschreibung
 
-SkyOS ist ein natives Mobile-Produkt, das KI, Creator-Media, Merch und Membership in einem
-klaren System zusammenbringt.
+SkyOS ist ein natives Mobile-Produkt, das KI, Reminder, Tasks, Notes, Workflow-Automation,
+Creator-Media, Merch und Membership in einem klaren System zusammenbringt.
 
-Mit SkyOS kannst du schreiben, planen und visuelle Ideen mit KI entwickeln, zwischen Musik, Video
-und Creator-Flaechen wechseln, Merch entdecken und Billing sowie Konto-Steuerung an einem Ort
-sauber halten.
+Mit SkyOS kannst du schreiben, planen und visuelle Ideen mit KI entwickeln, Reminder mit Push
+anlegen, Tasks und Notes verwalten, zwischen Creator-Flaechen wechseln, Merch entdecken und
+Billing sowie Konto-Steuerung an einem Ort sauber halten.
 
-SkyOS ist fuer Menschen gedacht, die nicht fuenf getrennte Tools brauchen. KI, Media, Membership
-und Commerce liegen im selben Produktfluss, damit sich alles wie eine einzige App anfuehlt statt
-wie ein zusammengebauter Stack.
+SkyOS ist fuer Menschen gedacht, die nicht fuenf getrennte Tools brauchen. KI, Productivity,
+Media, Membership und Commerce liegen im selben Produktfluss, damit sich alles wie eine einzige
+App anfuehlt statt wie ein zusammengebauter Stack.
 
 Was du mit SkyOS machen kannst:
 
 - KI fuer Text, Visuals und gefuehrte Agent-Aufgaben nutzen
+- Reminder erstellen und zur gesetzten Zeit Push-Benachrichtigungen erhalten
+- Tasks und Notes erfassen, bearbeiten und verwalten
+- Workflow-Automation ueber den dokumentierten Activepieces HTTP Flow anbinden
 - Musik, Video und Creator-Media in einer nativen App erleben
 - Merch entdecken, Checkout vorbereiten und wichtige Order-Pfade im Blick behalten
 - Plan, Restore und Konto-Klarheit an einem Ort verwalten
@@ -103,7 +111,9 @@ Bezahlte Plaene sind als Capability-Upgrade positioniert, nicht als Token-Shop. 
 Plan und Release-Setup schaltet Membership mehr Reichweite, staerkere KI-/Agent-Tiefe und Premium
 Outputs frei.
 
-Einzelne Funktionen koennen vom Kontostatus, Plan oder aktuellen Release-Setup abhaengen.
+Einzelne Funktionen koennen vom Kontostatus, Plan, verbundenem Workflow-Setup oder aktuellen
+Release-Setup abhaengen. Laengerfristige Memory und tiefere Automationen werden nach Launch
+ausgebaut.
 
 ### Was-ist-neu-Vorlage
 
@@ -119,8 +129,8 @@ Beispiel:
 
 `Neu in dieser Version:`
 
-- `Verfeinerte KI- und Agent-Flows fuer einen ruhigeren, schnelleren Ablauf`
-- `Verbessertes Verhalten auf grossen Displays und in Safe Areas`
+- `Live Reminder, Tasks, Notes und Workflow-Erstellung fuer einen klareren Tagesfluss`
+- `Verfeinerte KI- und Agent-Ausgaben fuer einen ruhigeren, schnelleren Ablauf`
 - `Mehr Feinschliff bei Membership, Settings und Stabilitaet in der ganzen App`
 
 ## App Store Rules

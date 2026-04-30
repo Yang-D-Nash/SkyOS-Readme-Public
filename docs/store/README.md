@@ -6,8 +6,9 @@ readiness.
 
 ## Current Honest Read
 
-SkyOS already has real product substance: native apps, AI, media, merch, membership, and owner
-controls. What was missing before this pass was the outer packaging:
+SkyOS already has real product substance: native apps, AI, reminders, tasks, notes, workflow
+automation, media, merch, membership, and owner controls. What was missing before this pass was
+the outer packaging:
 
 - no single source of truth for App Store and Google Play metadata
 - no clear screenshot story across AI, media, membership, and commerce
@@ -18,11 +19,11 @@ controls. What was missing before this pass was the outer packaging:
 
 Primary positioning line:
 
-> SkyOS is a native mobile platform that combines AI, creator media, merch, and membership in one controlled product.
+> SkyOS is a native mobile platform that combines AI, reminders, tasks, notes, workflow automation, creator media, merch, and membership in one controlled product.
 
 Short public variant:
 
-> AI, media, merch, and membership in one calm native app.
+> AI, workflows, productivity, media, merch, and membership in one calm native app.
 
 ## Store System
 

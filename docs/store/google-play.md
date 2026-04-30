@@ -6,7 +6,7 @@ This document defines the recommended Google Play presence for SkyOS on Android.
 
 Use one sentence that explains the app immediately:
 
-> SkyOS is a native Android platform for AI, creator media, merch, and membership in one calm product.
+> SkyOS is a native Android platform for AI, reminders, tasks, notes, workflow automation, creator media, merch, and membership in one calm product.
 
 ## Recommended Metadata
 
@@ -15,19 +15,23 @@ Use one sentence that explains the app immediately:
 - Title: `SkyOS`
 - Short Description:
 
-  `AI, media, merch, and membership in one native creator platform.`
+  `AI, reminders, tasks, notes, workflows, media, merch, and membership.`
 
 ### Long Description
 
-SkyOS brings AI, creator media, merch, and membership into one native Android experience.
+SkyOS brings AI, reminders, tasks, notes, workflow automation, creator media, merch, and
+membership into one native Android experience.
 
-Instead of splitting your workflow across separate apps, SkyOS keeps assistant utility, media,
-commerce, and account control in one product flow. The goal is clarity: one calm place to create,
-manage, and move forward.
+Instead of splitting your workflow across separate apps, SkyOS keeps assistant utility,
+productivity, media, commerce, and account control in one product flow. The goal is clarity: one
+calm place to create, manage, and move forward.
 
 With SkyOS, you can:
 
 - use AI for writing, idea development, visual generation, and guided agent-style tasks
+- create reminders and receive push notifications at the scheduled time
+- capture, edit, and manage tasks and notes
+- connect workflow automation through the documented Activepieces HTTP flow
 - move through music, video, and creator media without leaving the same native app
 - discover merch, prepare checkout, and stay close to important order and support paths
 - manage your membership, restore purchases, and keep billing information understandable
@@ -40,30 +44,35 @@ priority access to premium outputs.
 Why people use SkyOS:
 
 - to create faster with AI
-- to keep content, merch, and membership inside one system
+- to keep reminders, tasks, notes, content, merch, and membership inside one system
 - to avoid jumping between disconnected creator tools
 - to stay close to support, privacy, and account clarity
 
-Some features depend on account state, plan, or release configuration.
+Some features depend on account state, plan, connected workflow setup, or release configuration.
+Longer-lived memory and deeper automations are being expanded after launch.
 
 ### German
 
 - Title: `SkyOS`
 - Short Description:
 
-  `KI, Media, Merch und Membership in einer nativen Creator-Plattform.`
+  `KI, Reminder, Tasks, Notes, Workflows, Media, Merch und Membership.`
 
 ### Long Description
 
-SkyOS bringt KI, Creator-Media, Merch und Membership in eine native Android-App.
+SkyOS bringt KI, Reminder, Tasks, Notes, Workflow-Automation, Creator-Media, Merch und Membership
+in eine native Android-App.
 
-Statt deinen Flow ueber mehrere Apps zu verteilen, haelt SkyOS Assistant-Nutzen, Media, Commerce
-und Konto-Steuerung in einem Produkt zusammen. Das Ziel ist Klarheit: ein ruhiger Ort zum Arbeiten,
-Verwalten und Weiterkommen.
+Statt deinen Flow ueber mehrere Apps zu verteilen, haelt SkyOS Assistant-Nutzen, Productivity,
+Media, Commerce und Konto-Steuerung in einem Produkt zusammen. Das Ziel ist Klarheit: ein ruhiger
+Ort zum Arbeiten, Verwalten und Weiterkommen.
 
 Mit SkyOS kannst du:
 
 - KI fuer Text, Ideen, Visuals und gefuehrte Agent-Aufgaben nutzen
+- Reminder erstellen und zur gesetzten Zeit Push-Benachrichtigungen erhalten
+- Tasks und Notes erfassen, bearbeiten und verwalten
+- Workflow-Automation ueber den dokumentierten Activepieces HTTP Flow anbinden
 - zwischen Musik, Video und Creator-Media wechseln, ohne aus der App zu springen
 - Merch entdecken, Checkout vorbereiten und wichtige Order- und Support-Pfade im Blick behalten
 - Membership, Restore und Billing-Verstaendnis an einem Ort sauber halten
@@ -76,11 +85,13 @@ Zugang zu Premium-Outputs frei.
 Warum Nutzer SkyOS herunterladen:
 
 - um mit KI schneller voranzukommen
-- um Content, Merch und Membership in einem System zu halten
+- um Reminder, Tasks, Notes, Content, Merch und Membership in einem System zu halten
 - um nicht zwischen getrennten Creator-Tools zu springen
 - um Support, Datenschutz und Konto-Klarheit direkt erreichbar zu haben
 
-Einzelne Funktionen koennen vom Kontostatus, Plan oder aktuellen Release-Setup abhaengen.
+Einzelne Funktionen koennen vom Kontostatus, Plan, verbundenem Workflow-Setup oder aktuellen
+Release-Setup abhaengen. Laengerfristige Memory und tiefere Automationen werden nach Launch
+ausgebaut.
 
 ## Google Play Rules
 
