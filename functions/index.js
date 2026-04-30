@@ -4415,6 +4415,101 @@ function buildAutomationResponseUserMessage({
   return "Workflow abgeschlossen.";
 }
 
+async function buildFounderBriefingAutomationFallback({
+  auth,
+  data = {},
+  trigger = "",
+  automationScope = "owner",
+  requestId = "",
+  settings = {},
+  externalStatus = 0,
+  externalReason = "",
+} = {}) {
+  const dForFallback = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const briefingLikeRequest =
+    trigger === "home_founder_briefing" ||
+    nonEmptyString(dForFallback.mode)?.toLowerCase() === "briefing";
+  if (automationScope !== "owner" || !auth?.uid || !briefingLikeRequest) {
+    return null;
+  }
+
+  const fbMode = normalizeFounderBriefingMode(
+      nonEmptyString(dForFallback.briefingTarget) ||
+      nonEmptyString(dForFallback.briefingMode) ||
+      "private",
+  ) || "private";
+  const fbDate = nonEmptyString(dForFallback.date);
+  if (!fbDate || !isValidIsoDateString(fbDate)) {
+    logger.info("automation.founder_briefing.direct_fallback_skipped_invalid_date", {
+      requestId,
+      trigger,
+      gotDate: fbDate || null,
+    });
+    return null;
+  }
+
+  const fr = await buildFounderBriefingResponseData({
+    uid: auth.uid,
+    mode: fbMode,
+    date: fbDate,
+    requestId: nonEmptyString(dForFallback.requestId) || requestId,
+  });
+  if (!fr || fr.ok !== true) {
+    return null;
+  }
+
+  let privateOut = typeof fr.private === "string" ? fr.private : "";
+  let groupOut = typeof fr.group === "string" ? fr.group : "";
+  if (privateOut && !groupOut) {
+    groupOut = privateOut;
+  }
+  if (groupOut && !privateOut) {
+    privateOut = groupOut;
+  }
+  const blob = privateOut || groupOut || "";
+  const resultsOut = blob ?
+    normalizeAgentResultEntries(
+        [{
+          type: "text",
+          text: blob,
+          title: "Founder Briefing",
+          id: "founder_briefing_direct_fallback_1",
+        }],
+        {stripWorkflowFromAutomation: true},
+    ) :
+    [];
+
+  logger.warn("automation.founder_briefing.direct_fallback_used", {
+    requestId,
+    trigger,
+    uid: auth.uid,
+    externalStatus,
+    externalReason: nonEmptyString(externalReason) || null,
+    privateOutChars: privateOut.length,
+    groupOutChars: groupOut.length,
+  });
+
+  return {
+    message: "Briefing bereit.",
+    workflowName: nonEmptyString(settings.workflowName) || "SkyOS Owner Activepieces Flow",
+    status: Number(externalStatus) || 0,
+    provider: nonEmptyString(settings.provider) || "activepieces",
+    requestId,
+    workflowStatus: "completed",
+    private: privateOut,
+    group: groupOut,
+    briefingPrivate: privateOut,
+    briefingGroup: groupOut,
+    founderBriefingMarkdown: privateOut,
+    schemaVersion: "skyos.founder_briefing.direct_fallback.v1",
+    results: resultsOut,
+    briefingResults: resultsOut,
+    briefingMeta: fr.briefingMeta || null,
+    externalFallback: true,
+    externalFallbackReason: nonEmptyString(externalReason) || "external_workflow_unavailable",
+  };
+}
+
 function extractAutomationResponseResults(parsedBody, options = {}) {
   if (Array.isArray(parsedBody)) {
     return normalizeAgentResultEntries(parsedBody, options);
@@ -4734,6 +4829,32 @@ async function triggerWorkflowAutomationWebhook({
   const durationMs = Date.now() - startedAt;
 
   if (!response) {
+    const fallback = await buildFounderBriefingAutomationFallback({
+      auth,
+      data,
+      trigger,
+      automationScope,
+      requestId,
+      settings,
+      externalStatus: 0,
+      externalReason: lastError instanceof Error ? lastError.message : "network_error",
+    });
+    if (fallback) {
+      await createAgentExternalAuditEntry({
+        requestId,
+        uid: auth?.uid || "",
+        provider: settings.provider,
+        route: "external",
+        trigger,
+        source,
+        workflowName: settings.workflowName,
+        status: "fallback",
+        state: "external_completed",
+        reason: fallback.externalFallbackReason,
+        durationMs,
+      });
+      return fallback;
+    }
     await createAgentExternalAuditEntry({
       requestId,
       uid: auth?.uid || "",
@@ -4751,6 +4872,42 @@ async function triggerWorkflowAutomationWebhook({
   }
 
   if (!response.ok) {
+    const fallback = await buildFounderBriefingAutomationFallback({
+      auth,
+      data,
+      trigger,
+      automationScope,
+      requestId,
+      settings,
+      externalStatus: response.status,
+      externalReason: `${response.status} ${response.statusText}`,
+    });
+    if (fallback) {
+      logger.warn("External workflow failed; returned founder briefing direct fallback.", {
+        trigger,
+        source,
+        workflowName: settings.workflowName,
+        status: response.status,
+        statusText: response.statusText,
+        responseBody: responseBody.slice(0, 500),
+        requestId,
+      });
+      await createAgentExternalAuditEntry({
+        requestId,
+        uid: auth?.uid || "",
+        provider: settings.provider,
+        route: "external",
+        trigger,
+        source,
+        workflowName: settings.workflowName,
+        status: "fallback",
+        state: "external_completed",
+        reason: fallback.externalFallbackReason,
+        httpStatus: response.status,
+        durationMs,
+      });
+      return fallback;
+    }
     logger.error("External workflow webhook trigger failed.", {
       trigger,
       source,
