@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-05-04 23:12 CEST (prompt-progress release refresh uploaded: iOS 10022 and Android 10023)
+Last updated: 2026-05-05 01:47 CEST (prompt-progress release refresh uploaded: iOS 10022 and Android 10023)
 Owner: Release Engineering
 
 ## Build Identity
@@ -45,7 +45,7 @@ Owner: Release Engineering
   - Xcode reported missing dSYMs for FirebaseFirestoreInternal, absl, grpc, grpcpp, and openssl_grpc binary frameworks during symbol upload; app package upload still succeeded.
   - Previous local archive path: `build/ios/SkyOS-1.0.0-10017-20260428.xcarchive`.
   - Export/upload used `build/ios/ExportOptions-app-store-upload-10010.plist` with `manageAppVersionAndBuildNumber=false`.
-  - Build `10009` was archived and identity-checked locally on 2026-04-27, but its upload was intentionally stopped before success after the iOS Agent tap crash report; it was superseded by build `10010` at the time and by the current build `10018`.
+  - Build `10009` was archived and identity-checked locally on 2026-04-27, but its upload was intentionally stopped before success after the iOS Agent tap crash report; it was superseded by build `10010` at the time and by the current build `10022`.
   - Build `10008` uploaded successfully on 2026-04-27, but was superseded by build `10010` for the iOS Music Studio split fix and Agent tap hardening.
   - Export/upload for build `10008` used `build/ios/ExportOptions-app-store-upload-10008.plist` with `manageAppVersionAndBuildNumber=false`.
   - Xcode reported missing dSYMs for FirebaseFirestoreInternal, absl, grpc, grpcpp, and openssl_grpc binary frameworks during symbol upload; app package upload still succeeded.
@@ -63,7 +63,7 @@ Owner: Release Engineering
 - Release AAB build: SUCCEEDED for versionCode `10023` at 2026-05-04 21:58 CEST.
 - Play Console status: versionCode `10023` uploaded to the `internal` track as a draft through Fastlane at 2026-05-04 23:10 CEST.
 - Play upload automation: WORKING via Fastlane `upload_android_internal` when `SUPPLY_JSON_KEY` points at the local Play service-account JSON.
-- CLI validate-only attempt: PASSED for versionCode `10022` at 2026-05-04 15:50 CEST.
+- CLI validate-only attempt: PASSED for versionCode `10023` at 2026-05-04 23:06 CEST.
 - Notes:
   - Fastlane used `release_status: draft`, so this did not start a production rollout.
   - Earlier versionCode `10022` was uploaded to the Play internal draft at 2026-05-04 15:52 CEST and is superseded by this fresh versionCode `10023` upload.
@@ -139,7 +139,7 @@ Owner: Release Engineering
 6. iOS UI screenshot test passed through the Agent tap path and waited for `agent.screen.root`.
 7. iOS build `10010` archived at `build/ios/SkyOS-1.0.0-10010-20260427.xcarchive`; archive identity verified as `SkyOS` / `com.skydown.ios` / `1.0.0` / `10010`.
 8. iOS build `10010` uploaded to App Store Connect successfully at 2026-04-27 23:48 CEST; uploaded package is processing.
-9. Previous iOS build `10008` uploaded to App Store Connect successfully; build `10009` was superseded before successful upload; that pass used build `10010`, now superseded by current build `10018`.
+9. Previous iOS build `10008` uploaded to App Store Connect successfully; build `10009` was superseded before successful upload; that pass used build `10010`, now superseded by current build `10022`.
 10. Local CI gate passed: shared tests, Android lint, Functions tests, Firestore rules tests, and Storage rules tests.
 11. Detekt passed with `./gradlew detektAll --no-daemon`.
 12. Release identity preflight passed: iOS `SkyOS 1.0.0 (10010)` / `com.skydown.ios`; Android `SkyOS 1.0.0 (10016)` / `com.nash.skyos`.
@@ -245,7 +245,7 @@ Suggested review note text:
 
 1. Confirm final legal approval for public privacy/terms wording.
 2. Confirm final production domain and replace URL placeholders in App Store Connect and Play Console.
-3. Verify subscription product setup status for uploaded iOS build `10021`, plus Android versionCode `10022`.
+3. Verify subscription product setup status for uploaded iOS build `10022`, plus Android versionCode `10023`.
 4. Update production Firestore `appConfig/legalContent` and `appConfig/commerceSettings` if old remote operator/legal values still exist.
 5. Firestore/Storage rules were deployed on 2026-04-25; fixed owner Firebase Auth account was verified with `emailVerified=true`.
 6. Verify data safety/privacy forms reflect actual SDK usage:
@@ -257,12 +257,12 @@ Suggested review note text:
    - Not used by current binaries: precise/coarse location, camera capture, microphone, contacts, calendar. Photo/video selection uses system pickers; Android `WRITE_EXTERNAL_STORAGE` is capped to API 28 only for saving generated images.
 7. Upload and map final screenshot sets for iPhone, iPad, and Android phone form factors. Use `screenshots/final/ipad/` for iPad, `screenshots/final/google-play/android-phone/` for Play phone screenshots, and `docs/assets/google-play/` for the Play icon/feature graphic.
 8. Set age rating/content rating questionnaires in both consoles.
-9. Build numbers are current for the 2026-05-04 refresh: iOS build `10021` and Android `10022` are the uploaded internal rollout targets.
+9. Build numbers are current for the 2026-05-04 refresh: iOS build `10022` and Android `10023` are the uploaded internal rollout targets.
 
 ## Go/No-Go Checklist
 
-- [x] iOS build `10021` uploaded to App Store Connect and processing
-- [x] Android release `10022` uploaded to Play Console internal testing as a draft
+- [x] iOS build `10022` uploaded to App Store Connect and processing
+- [x] Android release `10023` uploaded to Play Console internal testing as a draft
 - [ ] Privacy, terms, support URLs point to final public domain
 - [ ] Legal text approved for store/public use
 - [ ] Subscription metadata, pricing, and restore behavior validated
@@ -276,9 +276,9 @@ Suggested review note text:
 1. Open [App Store Connect](https://appstoreconnect.apple.com/).
 2. Go to **My Apps** -> select/create app for bundle `com.skydown.ios`.
 3. Open **TestFlight** tab.
-4. Wait for uploaded build `10021` to finish processing.
-5. Under **Builds**, click **+** and select build `10021`.
-6. Assign build `10021` to Internal Testers first.
+4. Wait for uploaded build `10022` to finish processing.
+5. Under **Builds**, click **+** and select build `10022`.
+6. Assign build `10022` to Internal Testers first.
 7. Fill **App Information** and **App Privacy** sections.
 8. Fill **Pricing and Availability** (manual business decision required).
 9. Fill **App Review Information** with support contact + reviewer login instructions (Google sign-in; no seeded release test account).
@@ -289,7 +289,7 @@ Suggested review note text:
 1. Open [Google Play Console](https://play.google.com/console/).
 2. Select app with package `com.nash.skyos`.
 3. Go to **Testing** -> **Internal testing**.
-4. Review the draft release containing versionCode `10022`.
+4. Review the draft release containing versionCode `10023`.
 5. Confirm release notes and save.
 6. Go to **Store presence** and complete store listing fields.
 7. Go to **App content** and complete:
