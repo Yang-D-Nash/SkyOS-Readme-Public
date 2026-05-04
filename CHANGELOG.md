@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 Real-data release refresh - 2026-05-04
+
+- Backend: Meta Instagram/Facebook live context wired through server-side `adminConfig/metaOAuth`; client access to that token document is blocked by Firestore rules.
+- Agent: social analytics now prefers real provider data across Instagram, Facebook, TikTok, YouTube, and Spotify public metadata, with explicit no-mock fallback wording.
+- Commerce: Shopify collection sync prunes deleted/empty collections instead of preserving stale UI entries.
+- Founder Briefing: artist/music context now uses registered real artist data and avoids random replacement artists.
+- Branding: app/README logo assets refreshed and public README typo fixes pushed.
+- Release identity: built and uploaded the next client rollout as iOS build `10021` and Android versionCode `10022` for internal store testing.
+
 ## 1.0.0 Productivity & automation launch - 2026-04-29
 
 - README: kompakte **Release-Übersicht** (Reminder+Push, Tasks, Notes, Activepieces, Deploy-Befehle, Secrets, Mobile-Builds) plus Schnellnavigation.

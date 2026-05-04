@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc">
+  <title id="title">SkyOS Release Compliance Snapshot</title>
+  <desc id="desc">Board graphic for the 2026-05-04 SkyOS internal release: iOS build 10021 uploaded, Android versionCode 10022 uploaded, backend live data protected, manual store gates still open.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071015"/>
+      <stop offset="0.48" stop-color="#111820"/>
+      <stop offset="1" stop-color="#071015"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17222b"/>
+      <stop offset="1" stop-color="#0d141b"/>
+    </linearGradient>
+    <linearGradient id="hero" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6fd6ff"/>
+      <stop offset="0.44" stop-color="#eef7fb"/>
+      <stop offset="1" stop-color="#a7f3d0"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity="0.34"/>
+    </filter>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style>
+      .eyebrow { font: 700 22px Arial, Helvetica, sans-serif; letter-spacing: 2px; fill: #a9bac7; }
+      .title { font: 800 78px Arial, Helvetica, sans-serif; letter-spacing: 0; fill: #f7fbff; }
+      .sub { font: 500 28px Arial, Helvetica, sans-serif; fill: #c7d3dc; }
+      .label { font: 800 23px Arial, Helvetica, sans-serif; letter-spacing: 1px; fill: #dbe7ef; }
+      .cardTitle { font: 800 34px Arial, Helvetica, sans-serif; fill: #f7fbff; }
+      .cardMeta { font: 600 24px Arial, Helvetica, sans-serif; fill: #c7d3dc; }
+      .body { font: 500 25px Arial, Helvetica, sans-serif; fill: #d7e2ea; }
+      .small { font: 600 20px Arial, Helvetica, sans-serif; fill: #9fb0bd; }
+      .statusDone { font: 800 22px Arial, Helvetica, sans-serif; letter-spacing: 1px; fill: #071015; }
+      .statusOpen { font: 800 22px Arial, Helvetica, sans-serif; letter-spacing: 1px; fill: #201506; }
+      .mono { font: 700 25px Arial, Helvetica, sans-serif; fill: #ffffff; }
+    </style>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <path d="M0 810 C260 730 410 925 690 830 C960 738 1110 690 1350 790 C1585 888 1740 760 1920 720 L1920 1080 L0 1080 Z" fill="#0b222d" opacity="0.62"/>
+  <path d="M0 870 C310 804 460 980 760 890 C1030 810 1180 778 1440 870 C1650 944 1780 835 1920 806 L1920 1080 L0 1080 Z" fill="#102b2a" opacity="0.48"/>
+
+  <g filter="url(#shadow)">
+    <rect x="86" y="72" width="1748" height="936" rx="32" fill="#0d141b" opacity="0.82"/>
+    <rect x="88" y="74" width="1744" height="932" rx="30" fill="none" stroke="#2f4350" stroke-width="2"/>
+  </g>
+
+  <g transform="translate(132 124)">
+    <text class="eyebrow" x="0" y="0">FINAL COMPLIANCE SNAPSHOT</text>
+    <text class="title" x="0" y="86">SkyOS Release Board</text>
+    <text class="sub" x="0" y="134">Stand: 04.05.2026, 15:53 CEST - interne Store-Rollouts vorbereitet</text>
+
+    <g transform="translate(1300 -24)">
+      <circle cx="110" cy="92" r="76" fill="#071015" stroke="#eef7fb" stroke-width="5"/>
+      <path d="M45 102 C68 54 99 38 129 44 C159 49 178 72 174 102 C169 143 125 153 95 130 C75 115 60 108 45 102 Z" fill="#89a8ba" opacity="0.72"/>
+      <path d="M31 116 C77 152 128 156 189 115" fill="none" stroke="#eef7fb" stroke-width="9" stroke-linecap="round"/>
+      <text x="110" y="102" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="800" fill="#f7fbff">SkyOS</text>
+      <circle cx="110" cy="180" r="36" fill="#071015" stroke="#eef7fb" stroke-width="5"/>
+      <text x="110" y="190" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="800" fill="#eef7fb">22</text>
+    </g>
+  </g>
+
+  <g transform="translate(132 324)">
+    <g filter="url(#shadow)">
+      <rect x="0" y="0" width="392" height="230" rx="22" fill="url(#panel)" stroke="#324653"/>
+    </g>
+    <rect x="24" y="24" width="106" height="36" rx="18" fill="#a7f3d0"/>
+    <text class="statusDone" x="77" y="49" text-anchor="middle">DONE</text>
+    <text class="cardTitle" x="24" y="105">iOS</text>
+    <text class="cardMeta" x="24" y="147">Build 10021</text>
+    <text class="body" x="24" y="190">Uploaded to App Store Connect</text>
+    <text class="small" x="24" y="218">Status: package processing</text>
+  </g>
+
+  <g transform="translate(552 324)">
+    <g filter="url(#shadow)">
+      <rect x="0" y="0" width="392" height="230" rx="22" fill="url(#panel)" stroke="#324653"/>
+    </g>
+    <rect x="24" y="24" width="106" height="36" rx="18" fill="#a7f3d0"/>
+    <text class="statusDone" x="77" y="49" text-anchor="middle">DONE</text>
+    <text class="cardTitle" x="24" y="105">Android</text>
+    <text class="cardMeta" x="24" y="147">versionCode 10022</text>
+    <text class="body" x="24" y="190">Uploaded to Play internal</text>
+    <text class="small" x="24" y="218">Status: draft release</text>
+  </g>
+
+  <g transform="translate(972 324)">
+    <g filter="url(#shadow)">
+      <rect x="0" y="0" width="392" height="230" rx="22" fill="url(#panel)" stroke="#324653"/>
+    </g>
+    <rect x="24" y="24" width="92" height="36" rx="18" fill="#6fd6ff"/>
+    <text class="statusDone" x="70" y="49" text-anchor="middle">LIVE</text>
+    <text class="cardTitle" x="24" y="105">Meta Social</text>
+    <text class="cardMeta" x="24" y="147">Instagram + Facebook</text>
+    <text class="body" x="24" y="190">Server-side token storage</text>
+    <text class="small" x="24" y="218">Firestore client access blocked</text>
+  </g>
+
+  <g transform="translate(1392 324)">
+    <g filter="url(#shadow)">
+      <rect x="0" y="0" width="392" height="230" rx="22" fill="url(#panel)" stroke="#324653"/>
+    </g>
+    <rect x="24" y="24" width="118" height="36" rx="18" fill="#f8d16b"/>
+    <text class="statusOpen" x="83" y="49" text-anchor="middle">MANUAL</text>
+    <text class="cardTitle" x="24" y="105">Public Rollout</text>
+    <text class="cardMeta" x="24" y="147">No-Go until store gates</text>
+    <text class="body" x="24" y="190">Attach, review, smoke test</text>
+    <text class="small" x="24" y="218">Then internal rollout only</text>
+  </g>
+
+  <g transform="translate(132 612)">
+    <rect x="0" y="0" width="820" height="250" rx="24" fill="#101b23" stroke="#304450"/>
+    <text class="label" x="32" y="48">RELEASE COMPLIANCE</text>
+    <line x1="32" y1="72" x2="788" y2="72" stroke="#2f4350" stroke-width="2"/>
+    <g transform="translate(32 104)">
+      <circle cx="14" cy="14" r="14" fill="#a7f3d0"/><path d="M7 14 L12 19 L22 8" fill="none" stroke="#071015" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <text class="body" x="44" y="23">Real-data paths active; no mock/test-account release path accepted</text>
+    </g>
+    <g transform="translate(32 152)">
+      <circle cx="14" cy="14" r="14" fill="#a7f3d0"/><path d="M7 14 L12 19 L22 8" fill="none" stroke="#071015" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <text class="body" x="44" y="23">Shopify stale collections pruned from UI sync</text>
+    </g>
+    <g transform="translate(32 200)">
+      <circle cx="14" cy="14" r="14" fill="#a7f3d0"/><path d="M7 14 L12 19 L22 8" fill="none" stroke="#071015" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <text class="body" x="44" y="23">Founder Briefing uses registered artist context</text>
+    </g>
+  </g>
+
+  <g transform="translate(988 612)">
+    <rect x="0" y="0" width="796" height="250" rx="24" fill="#101b23" stroke="#304450"/>
+    <text class="label" x="32" y="48">MANUAL STORE GATES</text>
+    <line x1="32" y1="72" x2="764" y2="72" stroke="#2f4350" stroke-width="2"/>
+    <g transform="translate(32 104)">
+      <circle cx="14" cy="14" r="14" fill="#f8d16b"/><path d="M14 7 L14 16 M14 22 L14.1 22" fill="none" stroke="#201506" stroke-width="4" stroke-linecap="round"/>
+      <text class="body" x="44" y="23">Attach iOS build 10021 to Internal TestFlight testers</text>
+    </g>
+    <g transform="translate(32 152)">
+      <circle cx="14" cy="14" r="14" fill="#f8d16b"/><path d="M14 7 L14 16 M14 22 L14.1 22" fill="none" stroke="#201506" stroke-width="4" stroke-linecap="round"/>
+      <text class="body" x="44" y="23">Review Play internal draft for Android 10022</text>
+    </g>
+    <g transform="translate(32 200)">
+      <circle cx="14" cy="14" r="14" fill="#f8d16b"/><path d="M14 7 L14 16 M14 22 L14.1 22" fill="none" stroke="#201506" stroke-width="4" stroke-linecap="round"/>
+      <text class="body" x="44" y="23">Final assets, legal URLs, real-device smoke</text>
+    </g>
+  </g>
+
+  <g transform="translate(132 914)">
+    <rect x="0" y="0" width="1652" height="54" rx="27" fill="#071015" stroke="#304450"/>
+    <text class="mono" x="34" y="36">DECISION: INTERNAL TESTING READY - PUBLIC ROLLOUT NO-GO UNTIL MANUAL STORE GATES CLOSE</text>
+  </g>
+
+  <g transform="translate(1510 122)" filter="url(#softGlow)" opacity="0.52">
+    <circle cx="0" cy="0" r="5" fill="#f7fbff"/>
+    <circle cx="70" cy="52" r="4" fill="#a7f3d0"/>
+    <circle cx="-88" cy="90" r="3" fill="#6fd6ff"/>
+  </g>
+</svg>
