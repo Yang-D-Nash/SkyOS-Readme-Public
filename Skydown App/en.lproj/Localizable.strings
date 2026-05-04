@@ -1376,3 +1376,6 @@
 "orders.status.failed" = "Failed";
 "orders.status.expired" = "Expired";
 "orders.status.canceled" = "Canceled";
+"agent.error.title" = "Agent needs attention";
+"agent.error.retry" = "Retry";
+"agent.error.upgrade" = "Upgrade";

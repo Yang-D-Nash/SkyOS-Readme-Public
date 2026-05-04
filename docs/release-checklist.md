@@ -5,15 +5,15 @@ trust paths, backend authority, and support readiness all line up at the same ti
 
 ## Current RC Snapshot
 
-Status as of 2026-05-04: backend Meta/social live-data setup is deployed, iOS build `10021`
-is uploaded to App Store Connect and processing, and Android versionCode `10022` is uploaded
-to Google Play internal testing as a draft. Public store rollout remains `no-go` until the open
+Status as of 2026-05-04 23:12 CEST: backend Meta/social live-data setup is deployed, and the prompt-progress
+client refresh is uploaded as iOS build `10022` and Android versionCode `10023` for internal
+store testing. Public store rollout remains `no-go` until the open
 items in [release/store-upload-runbook.md](release/store-upload-runbook.md) are closed.
 
 Known open release gates:
 
-- App Store Connect: wait for uploaded iOS build `10021` to finish processing, then attach it to Internal TestFlight testers.
-- Google Play: review the internal testing draft containing Android versionCode `10022`, then roll it to internal testers.
+- App Store Connect: wait for uploaded iOS build `10022` to finish processing, then attach it to Internal TestFlight testers.
+- Google Play: review the internal testing draft containing Android versionCode `10023`, then roll it to internal testers.
 - Store assets: upload/map the generated iPhone, iPad, Play-compliant Android screenshots, and Play listing graphics.
 - Store URLs and legal: replace placeholder console URLs with final hosted pages and confirm final legal approval.
 - QA: complete real-device smoke from uploaded store artifacts on iPhone and Android.

@@ -1376,3 +1376,6 @@
 "orders.status.failed" = "Nicht erfolgreich";
 "orders.status.expired" = "Abgelaufen";
 "orders.status.canceled" = "Storniert";
+"agent.error.title" = "Agent braucht Aufmerksamkeit";
+"agent.error.retry" = "Erneut versuchen";
+"agent.error.upgrade" = "Upgrade";
