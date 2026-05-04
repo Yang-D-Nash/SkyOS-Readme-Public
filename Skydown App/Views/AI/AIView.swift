@@ -14,6 +14,7 @@ struct AIView: View {
     @State private var renameDraft = ""
     private let showsNavigation: Bool
     @State private var autoPresentedUpgradeHint = false
+    @State private var promptComposerAwaitingResult = false
 
     init(
         aiChatService: AIChatServicing = FirebaseFunctionsAIChatService(),
@@ -48,11 +49,18 @@ struct AIView: View {
                 quickPrompts: viewModel.quickPrompts,
                 visualPrompts: viewModel.visualPrompts,
                 onDismiss: {
+                    promptComposerAwaitingResult = false
                     showingPromptComposer = false
                 },
                 onSend: {
-                    viewModel.sendDraftInNewConversation()
-                    showingPromptComposer = false
+                    let didStart = viewModel.sendDraftInNewConversation()
+                    promptComposerAwaitingResult = didStart && viewModel.phase.isBusy
+                    if didStart,
+                       !viewModel.phase.isBusy,
+                       viewModel.phase != .idle,
+                       viewModel.phase != .typing {
+                        showingPromptComposer = false
+                    }
                 }
             )
             .presentationDetents([.large])
@@ -97,6 +105,15 @@ struct AIView: View {
         }
         .onChange(of: viewModel.revenueUsage?.warningLevel) { _, level in
             handleCriticalUsageWarning(level)
+        }
+        .onChange(of: viewModel.phase) { _, phase in
+            guard promptComposerAwaitingResult,
+                  !phase.isBusy,
+                  phase != .idle,
+                  phase != .typing
+            else { return }
+            promptComposerAwaitingResult = false
+            showingPromptComposer = false
         }
         .onAppear {
             renameDraft = viewModel.activeSessionTitle
@@ -1485,7 +1502,14 @@ private struct AIPromptComposerSheet: View {
                     onDismiss: onDismiss
                 )
 
-                if let status = interactionPhase.composerStatusLabel {
+                if interactionPhase.isBusy {
+                    PremiumPromptProgressBanner(
+                        title: interactionPhase.composerStatusLabel
+                            ?? AppLocalized.text("ai.composer.progress", fallback: "Bot · Antwort entsteht"),
+                        accent: composerAccent,
+                        colorScheme: colorScheme
+                    )
+                } else if let status = interactionPhase.composerStatusLabel {
                     Text(status)
                         .font(.subheadline.weight(.medium))
                         .foregroundColor(AppColors.accentMystic(for: colorScheme))
@@ -1578,7 +1602,8 @@ private struct AIPromptComposerSheet: View {
                     systemImage: composerMode == .text ? "arrow.up.circle.fill" : "sparkles",
                     accent: composerAccent,
                     colorScheme: colorScheme,
-                    isEnabled: !trimmedDraft.isEmpty && !interactionPhase.isBusy,
+                    isEnabled: (!trimmedDraft.isEmpty && !interactionPhase.isBusy) || interactionPhase.isBusy,
+                    isLoading: interactionPhase.isBusy,
                     action: onSend
                 )
             }

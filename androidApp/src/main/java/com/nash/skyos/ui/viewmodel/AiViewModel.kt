@@ -160,21 +160,22 @@ class AiViewModel : ViewModel() {
         }
     }
 
-    fun sendDraftInNewConversation() {
+    fun sendDraftInNewConversation(): Boolean {
         val prompt = _uiState.value.draft
         val trimmedPrompt = prompt.trim()
-        if (!isAiRequestAllowed()) return
-        if (trimmedPrompt.isBlank() || _uiState.value.botPhase.isBusy) return
+        if (!isAiRequestAllowed()) return false
+        if (trimmedPrompt.isBlank() || _uiState.value.botPhase.isBusy) return false
         val levelAtSend = _uiState.value.selectedLevel
         if (!levelAtSend.isAvailableFor(currentQuotaPlan)) {
             _uiState.update { it.copy(errorMessage = AppTextResolver.string(R.string.ai_level_unavailable)) }
-            return
+            return false
         }
         startNewConversation()
         when (_uiState.value.composerMode) {
             AiComposerMode.Text -> sendPrompt(prompt)
             AiComposerMode.Visual -> generateVisual(prompt)
         }
+        return true
     }
 
     fun sendTextFollowUp() {

@@ -96,6 +96,47 @@ struct PremiumPromptSectionHeader: View {
     }
 }
 
+struct PremiumPromptProgressBanner: View {
+    let title: String
+    let accent: Color
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        HStack(alignment: .center, spacing: SkydownLayout.stackSpacingPill) {
+            ProgressView()
+                .tint(accent)
+                .scaleEffect(0.92)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.9)
+                Text(AppLocalized.text("prompt.progress.detail", fallback: "Bitte kurz warten. Der Lauf wird verarbeitet."))
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.9)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(SkydownLayout.compactRadius)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                .fill(accent.opacity(0.12))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                .stroke(accent.opacity(0.22), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+    }
+}
+
 struct PremiumPromptCard<Content: View>: View {
     let colorScheme: ColorScheme
     var emphasisAccent: Color? = nil
@@ -132,6 +173,7 @@ struct PremiumPromptPrimaryButton: View {
     let accent: Color
     let colorScheme: ColorScheme
     let isEnabled: Bool
+    var isLoading: Bool = false
     let action: () -> Void
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
@@ -142,6 +184,7 @@ struct PremiumPromptPrimaryButton: View {
             accent: accent,
             colorScheme: colorScheme,
             isEnabled: isEnabled,
+            isLoading: isLoading,
             font: .subheadline.weight(.semibold),
             cornerRadius: SkydownLayout.buttonCornerRadius + 2,
             verticalPadding: 12,
@@ -181,4 +224,3 @@ struct PremiumPromptSettingsDropdownCard<Content: View>: View {
         )
     }
 }
-

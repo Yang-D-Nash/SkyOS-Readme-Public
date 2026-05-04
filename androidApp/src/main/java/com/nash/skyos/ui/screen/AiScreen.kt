@@ -53,6 +53,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -163,6 +164,7 @@ fun AiScreen(
     val storageDeniedFeedback = stringResource(R.string.ai_feedback_storage_permission_denied)
     var pendingImageSave by remember { mutableStateOf<Pair<ByteArray, String?>?>(null) }
     var showPromptComposer by rememberSaveable { mutableStateOf(false) }
+    var promptComposerAwaitingResult by rememberSaveable { mutableStateOf(false) }
     var showSessionsSheet by rememberSaveable { mutableStateOf(false) }
     var renameDraft by rememberSaveable { mutableStateOf("") }
     val promptSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -171,6 +173,17 @@ fun AiScreen(
         0 -> stringResource(R.string.ai_session_count_new)
         1 -> stringResource(R.string.ai_session_count_one)
         else -> stringResource(R.string.ai_session_count_many, activeSessionSummary?.promptCount ?: 0)
+    }
+    LaunchedEffect(uiState.botPhase, promptComposerAwaitingResult) {
+        if (
+            promptComposerAwaitingResult &&
+            !uiState.botPhase.isBusy &&
+            uiState.botPhase != BotInteractionPhase.Idle &&
+            uiState.botPhase != BotInteractionPhase.Typing
+        ) {
+            promptComposerAwaitingResult = false
+            showPromptComposer = false
+        }
     }
 
     val showLocalFeedback: (String, ToastType) -> Unit = { message, type ->
@@ -452,7 +465,10 @@ fun AiScreen(
 
             if (showPromptComposer) {
                 ModalBottomSheet(
-                    onDismissRequest = { showPromptComposer = false },
+                    onDismissRequest = {
+                        promptComposerAwaitingResult = false
+                        showPromptComposer = false
+                    },
                     sheetState = promptSheetState,
                 ) {
                     AiPromptComposerSheet(
@@ -463,15 +479,20 @@ fun AiScreen(
                         botPhase = uiState.botPhase,
                         quickPrompts = uiState.quickPrompts,
                         visualPrompts = uiState.visualPrompts,
-                        onDismiss = { showPromptComposer = false },
+                        onDismiss = {
+                            promptComposerAwaitingResult = false
+                            showPromptComposer = false
+                        },
                         onDraftChanged = viewModel::updateDraft,
                         onComposerModeChange = viewModel::updateComposerMode,
                         onTextModeChange = viewModel::updateTextMode,
                         onLevelChange = viewModel::updateLevel,
                         onSend = {
-                            viewModel.sendDraftInNewConversation()
-                            dismissKeyboard()
-                            showPromptComposer = false
+                            val didStart = viewModel.sendDraftInNewConversation()
+                            promptComposerAwaitingResult = didStart
+                            if (didStart) {
+                                dismissKeyboard()
+                            }
                         },
                     )
                 }
@@ -840,12 +861,19 @@ private fun AiPromptComposerSheet(
             }
         }
 
-        botPhase.composerStatusLabel?.let { label ->
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.tertiary,
+        if (botPhase.isBusy) {
+            PromptProgressBanner(
+                label = botPhase.composerStatusLabel ?: "Bot · Antwort entsteht",
+                accent = composerAccent,
             )
+        } else {
+            botPhase.composerStatusLabel?.let { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
         }
 
         Text(
@@ -961,7 +989,11 @@ private fun AiPromptComposerSheet(
             minLines = 4,
             maxLines = 8,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-            keyboardActions = KeyboardActions(onSend = { onSend() }),
+            keyboardActions = KeyboardActions(onSend = {
+                if (draft.isNotBlank() && !botPhase.isBusy) {
+                    onSend()
+                }
+            }),
             shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = composerAccent.copy(alpha = 0.72f),
@@ -985,10 +1017,56 @@ private fun AiPromptComposerSheet(
                 icon = Icons.AutoMirrored.Filled.Send,
                 filled = true,
                 compact = true,
-                enabled = draft.isNotBlank() && !botPhase.isBusy,
+                enabled = (draft.isNotBlank() && !botPhase.isBusy) || botPhase.isBusy,
                 isLoading = botPhase.isBusy,
             )
         }
+    }
+}
+
+@Composable
+private fun PromptProgressBanner(
+    label: String,
+    accent: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
+            .background(accent.copy(alpha = 0.11f))
+            .border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                strokeWidth = 2.dp,
+                color = accent,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Bitte kurz warten. Der Lauf wird verarbeitet.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                )
+            }
+        }
+        LinearProgressIndicator(
+            modifier = Modifier.fillMaxWidth(),
+            color = accent,
+            trackColor = accent.copy(alpha = 0.16f),
+        )
     }
 }
 

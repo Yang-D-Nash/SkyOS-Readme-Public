@@ -376,13 +376,14 @@ final class AIChatViewModel: ObservableObject {
         }
     }
 
-    func sendDraftInNewConversation() {
+    @discardableResult
+    func sendDraftInNewConversation() -> Bool {
         let prompt = draft
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedPrompt.isEmpty, !phase.isBusy else { return }
+        guard !trimmedPrompt.isEmpty, !phase.isBusy else { return false }
         guard selectedLevel.isAvailable(for: currentQuotaPlan) else {
             showUserToast(AIExperienceLevel.unavailableMessage, style: .info)
-            return
+            return false
         }
         startNewConversation()
         switch composerMode {
@@ -391,6 +392,7 @@ final class AIChatViewModel: ObservableObject {
         case .visual:
             generateVisual(prompt)
         }
+        return true
     }
 
     func sendTextFollowUp() {

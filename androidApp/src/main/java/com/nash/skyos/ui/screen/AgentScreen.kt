@@ -69,6 +69,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.DropdownMenu
@@ -184,6 +185,8 @@ fun AgentScreen(
     var inputAttachments by remember { mutableStateOf<List<AgentInputAttachment>>(emptyList()) }
     var selectedNote by remember { mutableStateOf<com.nash.skyos.data.NoteItem?>(null) }
     var showPromptComposer by rememberSaveable { mutableStateOf(false) }
+    var promptComposerAwaitingResult by rememberSaveable { mutableStateOf(false) }
+    var isPreparingAgentSend by rememberSaveable { mutableStateOf(false) }
     var showTasksSheet by rememberSaveable { mutableStateOf(false) }
     var showNotesSheet by rememberSaveable { mutableStateOf(false) }
     var showSessionsSheet by rememberSaveable { mutableStateOf(false) }
@@ -194,6 +197,17 @@ fun AgentScreen(
         0 -> stringResource(R.string.ai_session_count_new)
         1 -> stringResource(R.string.ai_session_count_one)
         else -> stringResource(R.string.ai_session_count_many, activeSessionSummary?.promptCount ?: 0)
+    }
+    LaunchedEffect(uiState.agentPhase, promptComposerAwaitingResult, isPreparingAgentSend) {
+        if (
+            promptComposerAwaitingResult &&
+            !isPreparingAgentSend &&
+            !uiState.agentPhase.shouldBlockComposerChrome &&
+            uiState.agentPhase != AgentInteractionPhase.Idle
+        ) {
+            promptComposerAwaitingResult = false
+            showPromptComposer = false
+        }
     }
     val attachmentPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments(),
@@ -556,7 +570,11 @@ fun AgentScreen(
                     null
                 }
                 ModalBottomSheet(
-                    onDismissRequest = { showPromptComposer = false },
+                    onDismissRequest = {
+                        promptComposerAwaitingResult = false
+                        isPreparingAgentSend = false
+                        showPromptComposer = false
+                    },
                     sheetState = promptSheetState,
                 ) {
                     AgentPromptComposerSheet(
@@ -567,6 +585,7 @@ fun AgentScreen(
                         canUseGlobalOwnerAutomationFlow = uiState.canUseGlobalOwnerAutomationFlow,
                         shouldTriggerAutomation = uiState.shouldTriggerAutomation,
                         canSend = canSendAgent,
+                        isPreparingSend = isPreparingAgentSend,
                         sendBlockedHint = sendBlockedHint,
                         socialInstagramEnabled = uiState.socialInstagramEnabled,
                         socialInstagramHandle = uiState.socialInstagramHandle,
@@ -582,7 +601,11 @@ fun AgentScreen(
                         agentPhase = uiState.agentPhase,
                         attachments = inputAttachments,
                         quickPrompts = uiState.quickPrompts,
-                        onDismiss = { showPromptComposer = false },
+                        onDismiss = {
+                            promptComposerAwaitingResult = false
+                            isPreparingAgentSend = false
+                            showPromptComposer = false
+                        },
                         onDraftChanged = viewModel::updateDraft,
                         onModeChanged = viewModel::updateMode,
                         onAutomationScopeChanged = viewModel::updateAutomationScope,
@@ -610,11 +633,19 @@ fun AgentScreen(
                             val pairs = inputAttachments.map { att ->
                                 Uri.parse(att.id) to (att.name to att.kind.toWireKind())
                             }
+                            isPreparingAgentSend = true
                             composeScope.launch {
-                                val encoded = AgentOutboundAttachment.batchFromUris(context, pairs)
-                                viewModel.sendDraftInNewConversation(encoded)
-                                inputAttachments = emptyList()
-                                dismissKeyboard()
+                                try {
+                                    val encoded = AgentOutboundAttachment.batchFromUris(context, pairs)
+                                    val didStart = viewModel.sendDraftInNewConversation(encoded)
+                                    promptComposerAwaitingResult = didStart
+                                    if (didStart) {
+                                        inputAttachments = emptyList()
+                                        dismissKeyboard()
+                                    }
+                                } finally {
+                                    isPreparingAgentSend = false
+                                }
                             }
                         },
                     )
@@ -1702,6 +1733,7 @@ private fun AgentPromptComposerSheet(
     canUseGlobalOwnerAutomationFlow: Boolean,
     shouldTriggerAutomation: Boolean,
     canSend: Boolean,
+    isPreparingSend: Boolean = false,
     sendBlockedHint: String? = null,
     socialInstagramEnabled: Boolean,
     socialInstagramHandle: String,
@@ -1740,6 +1772,7 @@ private fun AgentPromptComposerSheet(
 ) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val sheetBusy = isPreparingSend || agentPhase.shouldBlockComposerChrome
     Column(
         modifier = Modifier
             .testTag("agent.prompt.sheet")
@@ -1809,12 +1842,22 @@ private fun AgentPromptComposerSheet(
             }
         }
 
-        agentPhase.composerStatusLabel?.let { label ->
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.tertiary,
+        if (sheetBusy) {
+            AgentPromptProgressBanner(
+                label = if (isPreparingSend) {
+                    "Agent · bereitet Anfrage vor"
+                } else {
+                    agentPhase.composerStatusLabel ?: "Agent · laeuft"
+                },
             )
+        } else {
+            agentPhase.composerStatusLabel?.let { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
         }
 
         Text(
@@ -1830,7 +1873,7 @@ private fun AgentPromptComposerSheet(
         ) {
             AgentModeMenu(
                 selectedMode = selectedMode,
-                enabled = !agentPhase.shouldBlockComposerChrome,
+                enabled = !sheetBusy,
                 onModeChanged = onModeChanged,
             )
             if (canTriggerAutomation) {
@@ -1838,7 +1881,7 @@ private fun AgentPromptComposerSheet(
                     AgentAutomationScopeMenu(
                         selectedScope = selectedAutomationScope,
                         canUseGlobalOwnerAutomationFlow = canUseGlobalOwnerAutomationFlow,
-                        enabled = !agentPhase.shouldBlockComposerChrome,
+                        enabled = !sheetBusy,
                         onScopeChanged = onAutomationScopeChanged,
                     )
                 }
@@ -2086,7 +2129,7 @@ private fun AgentPromptComposerSheet(
             maxLines = 8,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = {
-                if (!canSend) return@KeyboardActions
+                if (!canSend || sheetBusy) return@KeyboardActions
                 focusManager.clearFocus(force = true)
                 keyboardController?.hide()
                 onSend()
@@ -2188,8 +2231,8 @@ private fun AgentPromptComposerSheet(
                     icon = Icons.AutoMirrored.Filled.Send,
                     filled = true,
                     compact = true,
-                    enabled = canSend,
-                    isLoading = agentPhase.shouldBlockComposerChrome,
+                    enabled = canSend || sheetBusy,
+                    isLoading = sheetBusy,
                 )
             }
             sendBlockedHint?.let { hint ->
@@ -2201,6 +2244,52 @@ private fun AgentPromptComposerSheet(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AgentPromptProgressBanner(
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    val accent = MaterialTheme.colorScheme.tertiary
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
+            .background(accent.copy(alpha = 0.11f))
+            .border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(SkydownUiTokens.cardCornerRadius))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                strokeWidth = 2.dp,
+                color = accent,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Bitte kurz warten. Der Lauf wird verarbeitet.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
+                )
+            }
+        }
+        LinearProgressIndicator(
+            modifier = Modifier.fillMaxWidth(),
+            color = accent,
+            trackColor = accent.copy(alpha = 0.16f),
+        )
     }
 }
 

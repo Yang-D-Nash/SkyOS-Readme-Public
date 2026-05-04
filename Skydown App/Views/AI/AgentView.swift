@@ -33,6 +33,7 @@ struct AgentView: View {
     let onOpenHomeProductivity: ((AgentHomeProductivityTarget) -> Void)?
     private let showsNavigation: Bool
     @State private var autoPresentedUpgradeHint = false
+    @State private var promptComposerAwaitingResult = false
 
     init(
         agentChatService: AgentChatServicing = FirebaseFunctionsAgentService(),
@@ -93,6 +94,7 @@ struct AgentView: View {
                 attachments: inputAttachments,
                 quickPrompts: viewModel.quickPrompts,
                 onDismiss: {
+                    promptComposerAwaitingResult = false
                     showingPromptComposer = false
                 },
                 onAddFiles: {
@@ -108,8 +110,16 @@ struct AgentView: View {
                 onClearAttachments: { inputAttachments.removeAll() },
                 onSend: {
                     let urls = inputAttachments.compactMap { URL(string: $0.id) }
-                    viewModel.sendDraftInNewConversation(attachmentURLs: urls)
-                    inputAttachments.removeAll()
+                    let didStart = viewModel.sendDraftInNewConversation(attachmentURLs: urls)
+                    promptComposerAwaitingResult = didStart && viewModel.phase.shouldBlockComposerChrome
+                    if didStart {
+                        inputAttachments.removeAll()
+                    }
+                    if didStart,
+                       !viewModel.phase.shouldBlockComposerChrome,
+                       viewModel.phase != .idle {
+                        showingPromptComposer = false
+                    }
                 }
             )
             .presentationDetents([.large])
@@ -391,6 +401,14 @@ struct AgentView: View {
         .onChange(of: viewModel.lastIntegrationIssue) { _, message in
             guard shouldPromptUpgrade(for: message) else { return }
             membershipCoordinator.openMembership(reason: .featureLocked, surface: "agent_chat")
+        }
+        .onChange(of: viewModel.phase) { _, phase in
+            guard promptComposerAwaitingResult,
+                  !phase.shouldBlockComposerChrome,
+                  phase != .idle
+            else { return }
+            promptComposerAwaitingResult = false
+            showingPromptComposer = false
         }
         .onAppear {
             renameDraft = viewModel.activeSessionTitle
@@ -2028,7 +2046,14 @@ private struct AgentPromptComposerSheet: View {
                     onDismiss: onDismiss
                 )
 
-                if let status = interactionPhase.composerStatusLabel {
+                if interactionPhase.shouldBlockComposerChrome {
+                    PremiumPromptProgressBanner(
+                        title: interactionPhase.composerStatusLabel
+                            ?? AppLocalized.text("agent.composer.progress", fallback: "Agent · laeuft"),
+                        accent: agentAccent,
+                        colorScheme: colorScheme
+                    )
+                } else if let status = interactionPhase.composerStatusLabel {
                     Text(status)
                         .font(.subheadline.weight(.medium))
                         .foregroundColor(agentAccent)
@@ -2337,7 +2362,8 @@ private struct AgentPromptComposerSheet: View {
                         systemImage: "arrow.up.circle.fill",
                         accent: agentAccent,
                         colorScheme: colorScheme,
-                        isEnabled: canSendPrompt,
+                        isEnabled: canSendPrompt || interactionPhase.shouldBlockComposerChrome,
+                        isLoading: interactionPhase.shouldBlockComposerChrome,
                         action: submitPromptIfPossible
                     )
                     .accessibilityLabel(AppLocalized.text("agent.a11y.send_prompt", fallback: "Send prompt"))
