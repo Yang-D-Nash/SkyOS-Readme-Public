@@ -42,7 +42,11 @@ struct ArtistPageView: View {
     @State private var temporaryUploadedAssetURLs: [String] = []
     @State private var heroVideoPlayer = AVPlayer()
     private let editableImageUploadService = EditableImageAssetUploadService()
+    #if DEBUG
     private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-ui_test")
+    #else
+    private let isUITestMode = false
+    #endif
 
     init(
         authManager: AuthManager,

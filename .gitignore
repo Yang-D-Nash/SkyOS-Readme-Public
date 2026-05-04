@@ -34,6 +34,7 @@ google-play-service-account*.json
 .firebase/
 firebase-debug.log
 firebase-debug.*.log
+firestore-debug.log
 functions/firestore-debug.log
 *.xcresult
 *.xcarchive

@@ -445,6 +445,7 @@ service cloud.firestore {
         "shopSubtitle",
         "shopDetail",
         "videoHubImageURL",
+        "videoHubHeroVideoURL",
         "videoHubEyebrow",
         "videoHubTitle",
         "videoHubSubtitle",
@@ -467,6 +468,7 @@ service cloud.firestore {
       && optionalMapString(request.resource.data, "shopSubtitle", 160)
       && optionalMapString(request.resource.data, "shopDetail", 280)
       && optionalMapShortUrlOrBlank(request.resource.data, "videoHubImageURL")
+      && optionalMapShortUrlOrBlank(request.resource.data, "videoHubHeroVideoURL")
       && optionalMapString(request.resource.data, "videoHubEyebrow", 40)
       && optionalMapString(request.resource.data, "videoHubTitle", 80)
       && optionalMapString(request.resource.data, "videoHubSubtitle", 160)
@@ -1261,37 +1263,46 @@ service cloud.firestore {
     }
 
     match /adminConfig/{documentId} {
-      allow read: if isOwner()
-        || isOwnAutomationAdminConfig(documentId)
-        || isOwnAgentProfileAdminConfig(documentId);
-
-      allow create, update: if (
-        isOwner()
-        && documentId != "aiStudioFaqKnowledge"
-        && documentId != "aiStudioOwnerInspiration"
-      ) || (
-        isOwner()
-        && documentId == "aiStudioFaqKnowledge"
-        && validAiStudioFaqKnowledgePayload()
-      ) || (
-        isOwner()
-        && documentId == "aiStudioOwnerInspiration"
-        && validAiStudioOwnerInspirationPayload()
-      ) || (
-        regularUserWriteAllowed()
+      allow read: if documentId != "metaOAuth"
         && (
-          (isOwnAutomationAdminConfig(documentId) && validWorkflowAutomationUserPayload())
-          || (isOwnAgentProfileAdminConfig(documentId) && validPersonalAgentProfilePayload())
-        )
-      );
-
-      allow delete: if isOwner() || (
-        regularUserWriteAllowed()
-        && (
-          isOwnAutomationAdminConfig(documentId)
+          isOwner()
+          || isOwnAutomationAdminConfig(documentId)
           || isOwnAgentProfileAdminConfig(documentId)
-        )
-      );
+        );
+
+      allow create, update: if documentId != "metaOAuth"
+        && (
+          (
+            isOwner()
+            && documentId != "aiStudioFaqKnowledge"
+            && documentId != "aiStudioOwnerInspiration"
+          ) || (
+            isOwner()
+            && documentId == "aiStudioFaqKnowledge"
+            && validAiStudioFaqKnowledgePayload()
+          ) || (
+            isOwner()
+            && documentId == "aiStudioOwnerInspiration"
+            && validAiStudioOwnerInspirationPayload()
+          ) || (
+            regularUserWriteAllowed()
+            && (
+              (isOwnAutomationAdminConfig(documentId) && validWorkflowAutomationUserPayload())
+              || (isOwnAgentProfileAdminConfig(documentId) && validPersonalAgentProfilePayload())
+            )
+          )
+        );
+
+      allow delete: if documentId != "metaOAuth"
+        && (
+          isOwner() || (
+            regularUserWriteAllowed()
+            && (
+              isOwnAutomationAdminConfig(documentId)
+              || isOwnAgentProfileAdminConfig(documentId)
+            )
+          )
+        );
     }
 
     match /nicmaBeatHub/{beatId} {

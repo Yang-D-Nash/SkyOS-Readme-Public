@@ -8,6 +8,7 @@
 
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 const SPOTIFY_API = "https://api.spotify.com/v1";
+const SPOTIFY_OEMBED = "https://open.spotify.com/oembed";
 
 const tokenCache = {token: "", expMs: 0};
 
@@ -39,9 +40,7 @@ async function fetchSpotifyHandleCatalogSummary({clientId, clientSecret, handle,
         return "";
       }
       if (sRes.status === 403) {
-        return "Spotify (Reference accepted, provider restricted): Die Referenz wurde erkannt, " +
-        "aber der Spotify Web API Zugriff ist fuer diese App aktuell policyseitig eingeschraenkt. " +
-        "Nutze die Referenz im Prompt-Kontext; Live-Katalogfelder bleiben bis zur Provider-Freigabe leer.";
+        return buildSpotifyRestrictedSummary({handle: h});
       }
       if (!sRes.ok) {
         return "";
@@ -64,9 +63,8 @@ async function fetchSpotifyHandleCatalogSummary({clientId, clientSecret, handle,
       spotifyRequest(tUrl, access),
     ]);
     if (aRes.status === 403 || tRes.status === 403) {
-      return "Spotify (Reference accepted, provider restricted): Die Referenz wurde erkannt, " +
-      "aber der Spotify Web API Zugriff ist fuer diese App aktuell policyseitig eingeschraenkt. " +
-      "Nutze die Referenz im Prompt-Kontext; Live-Katalogfelder bleiben bis zur Provider-Freigabe leer.";
+      const oembed = await fetchSpotifyOEmbedSummary(artistId);
+      return oembed || buildSpotifyRestrictedSummary({handle: h, artistId});
     }
     if (!aRes.ok) {
       return "";
@@ -93,6 +91,48 @@ async function fetchSpotifyHandleCatalogSummary({clientId, clientSecret, handle,
 }
 
 module.exports = {fetchSpotifyHandleCatalogSummary};
+
+async function fetchSpotifyOEmbedSummary(artistId) {
+  const id = (artistId || "").trim();
+  if (!id) {
+    return "";
+  }
+  const profileUrl = `https://open.spotify.com/artist/${encodeURIComponent(id)}`;
+  const url = `${SPOTIFY_OEMBED}?url=${encodeURIComponent(profileUrl)}`;
+  try {
+    const res = await fetchWithTimeout(url, {method: "GET"}, 12_000);
+    if (!res.ok) {
+      return "";
+    }
+    const body = await res.json();
+    const title = nonEmpty(body?.title);
+    const thumbnail = nonEmpty(body?.thumbnail_url);
+    if (!title) {
+      return "";
+    }
+    const parts = [
+      "Spotify oEmbed (oeffentliche Profil-Metadaten; Web API Katalog-Metriken aktuell eingeschraenkt):",
+      `Kuenstler: ${title}`,
+      `Spotify-URI: spotify:artist:${id}`,
+      `Profil: ${profileUrl}`,
+      thumbnail ? "Artwork: vorhanden" : null,
+      "Keine erfundenen Follower, Popularitaet oder Top-Tracks ausgeben, solange der Web API Zugriff blockiert ist.",
+    ].filter(Boolean);
+    return parts.join("\n");
+  } catch {
+    return "";
+  }
+}
+
+function buildSpotifyRestrictedSummary({handle = "", artistId = ""} = {}) {
+  const ref = nonEmpty(artistId) ? `spotify:artist:${artistId}` : nonEmpty(handle);
+  const refLine = ref ? ` Referenz: ${ref}.` : "";
+  return "Spotify (Reference accepted, provider restricted): Die Referenz wurde erkannt." +
+    refLine +
+    " Der Spotify Web API Zugriff ist fuer diese App aktuell gesperrt, weil der App-Owner laut Provider " +
+    "einen aktiven Spotify-Premium-Status benoetigt. Nutze die Referenz im Prompt-Kontext; " +
+    "Live-Katalogfelder wie Follower, Popularitaet und Top-Tracks bleiben bis zur Provider-Freigabe leer.";
+}
 
 async function getClientAccessToken(clientId, clientSecret) {
   const now = Date.now();
@@ -164,4 +204,8 @@ function fetchWithTimeout(url, init, timeoutMs) {
       .finally(() => {
         clearTimeout(t);
       });
+}
+
+function nonEmpty(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
 }

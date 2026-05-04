@@ -30,11 +30,18 @@ struct FirebaseFunctionsShopifyMerchSyncService: ShopifyMerchSyncServicing {
                 }
                 return [legacyHandle]
             }()
+        let removedCollectionHandles = (data?["removedCollectionHandles"] as? [String])?
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            ?? []
+        let removedText = removedCollectionHandles.isEmpty
+            ? ""
+            : " \(removedCollectionHandles.count) geloeschte Collections wurden aus der App entfernt."
 
         if collectionHandles.isEmpty == false {
-            return "Shopify-Sync abgeschlossen: \(collectionHandles.count) Collections, \(synced) Produkte, \(created) neu, \(updated) aktualisiert, \(deactivated) ausgeblendet."
+            return "Shopify-Sync abgeschlossen: \(collectionHandles.count) Collections, \(synced) Produkte, \(created) neu, \(updated) aktualisiert, \(deactivated) ausgeblendet.\(removedText)"
         }
 
-        return "Shopify-Sync abgeschlossen: \(synced) Produkte, \(created) neu, \(updated) aktualisiert, \(deactivated) ausgeblendet."
+        return "Shopify-Sync abgeschlossen: \(synced) Produkte, \(created) neu, \(updated) aktualisiert, \(deactivated) ausgeblendet.\(removedText)"
     }
 }

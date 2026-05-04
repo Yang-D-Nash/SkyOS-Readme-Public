@@ -376,6 +376,33 @@ final class AIChatViewModel: ObservableObject {
         }
     }
 
+    func sendDraftInNewConversation() {
+        let prompt = draft
+        let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPrompt.isEmpty, !phase.isBusy else { return }
+        guard selectedLevel.isAvailable(for: currentQuotaPlan) else {
+            showUserToast(AIExperienceLevel.unavailableMessage, style: .info)
+            return
+        }
+        startNewConversation()
+        switch composerMode {
+        case .text:
+            sendPrompt(prompt)
+        case .visual:
+            generateVisual(prompt)
+        }
+    }
+
+    func sendTextFollowUp() {
+        sendPrompt(draft)
+    }
+
+    var isCurrentTextFollowUpSendable: Bool {
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !phase.isBusy &&
+            selectedLevel.isAvailable(for: currentQuotaPlan)
+    }
+
     func sendPrompt(_ prompt: String) {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty, !phase.isBusy else { return }

@@ -6,15 +6,8 @@
 
 const {logger} = require("firebase-functions");
 
-const DEFAULT_MUSIC_ARTISTS = Object.freeze([
-  "JANNO",
-  "Yang D. Nash",
-  "ThaDude",
-  "MAVE",
-  "TANGAJOE007",
-]);
-
 const ITUNES_TIMEOUT_MS = 8_000;
+const MAX_FOUNDER_MUSIC_ARTISTS = 8;
 
 function nonEmptyString(v) {
   if (v === null || v === undefined) {
@@ -22,6 +15,193 @@ function nonEmptyString(v) {
   }
   const s = String(v).trim();
   return s;
+}
+
+function normalizedArtistIdentity(value) {
+  return nonEmptyString(value)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
+}
+
+function artistNamesMatch(expected, actual) {
+  const expectedKey = normalizedArtistIdentity(expected);
+  const actualKey = normalizedArtistIdentity(actual);
+  if (!expectedKey || !actualKey) {
+    return false;
+  }
+  if (expectedKey === actualKey) {
+    return true;
+  }
+  return expectedKey.length >= 8 && actualKey.includes(expectedKey);
+}
+
+function uniqueArtistNames(values) {
+  const seen = new Set();
+  const artists = [];
+  for (const value of Array.isArray(values) ? values : []) {
+    const artistName = nonEmptyString(value);
+    const key = normalizedArtistIdentity(artistName);
+    if (!artistName || !key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    artists.push(artistName);
+  }
+  return artists;
+}
+
+function canonicalArtistNameFromPage(documentId, data) {
+  const storedName = nonEmptyString(data?.artistName);
+  const brand = nonEmptyString(data?.brand).toLowerCase();
+  if (brand === "nicma") {
+    if (documentId === "nicma-nicma-music") {
+      return "NICMA MUSIC";
+    }
+    if (documentId === "nicma-nicma-studio") {
+      return "NICMA STUDIO";
+    }
+  }
+  return storedName;
+}
+
+function timestampLikeMillis(value) {
+  if (!value) {
+    return 0;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value > 10_000_000_000 ? value : value * 1000;
+  }
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (typeof value.toMillis === "function") {
+    return value.toMillis();
+  }
+  if (typeof value.toDate === "function") {
+    const date = value.toDate();
+    return date && Number.isFinite(date.getTime()) ? date.getTime() : 0;
+  }
+  if (typeof value._seconds === "number") {
+    return value._seconds * 1000;
+  }
+  return 0;
+}
+
+function resolveBriefingUserRole(data) {
+  const role = nonEmptyString(data?.role).toLowerCase();
+  if (role) {
+    return role;
+  }
+  return data?.isAdmin === true ? "admin" : "user";
+}
+
+function safeBriefingUserLabel(data, fallbackId = "") {
+  const direct = nonEmptyString(data?.username) ||
+    nonEmptyString(data?.displayName) ||
+    nonEmptyString(data?.name);
+  if (direct) {
+    return direct;
+  }
+  const email = nonEmptyString(data?.email);
+  if (email && email.includes("@")) {
+    return email.split("@")[0];
+  }
+  return nonEmptyString(fallbackId) || "User";
+}
+
+function buildFounderUserSnapshot(userSnapshot) {
+  const empty = {
+    roleCounts: {},
+    activeAiSubscriptions: 0,
+    recentUsers: [],
+    totalUserDocs: 0,
+  };
+  if (!userSnapshot || userSnapshot.empty || !Array.isArray(userSnapshot.docs)) {
+    return empty;
+  }
+
+  const roleCounts = {};
+  let activeAiSubscriptions = 0;
+  const recentUsers = [];
+  for (const doc of userSnapshot.docs) {
+    const data = doc.data() || {};
+    const role = resolveBriefingUserRole(data);
+    roleCounts[role] = (roleCounts[role] || 0) + 1;
+    const subscriptionStatus = nonEmptyString(data.aiSubscriptionStatus).toLowerCase();
+    if (["active", "trialing", "past_due", "unpaid"].includes(subscriptionStatus)) {
+      activeAiSubscriptions += 1;
+    }
+    const updatedMillis = Math.max(
+        timestampLikeMillis(data.lastSignInAt),
+        timestampLikeMillis(data.lastLoginAt),
+        timestampLikeMillis(data.updatedAt),
+        timestampLikeMillis(data.registrationDateEpochMillis),
+        timestampLikeMillis(data.registrationDate),
+    );
+    recentUsers.push({
+      label: safeBriefingUserLabel(data, doc.id),
+      role,
+      quotaPlan: nonEmptyString(data.quotaPlan) || nonEmptyString(data.aiSubscriptionPlan) || "free",
+      aiStatus: subscriptionStatus || "inactive",
+      updatedMillis,
+    });
+  }
+
+  recentUsers.sort((left, right) => right.updatedMillis - left.updatedMillis);
+  return {
+    roleCounts,
+    activeAiSubscriptions,
+    recentUsers: recentUsers.slice(0, 6),
+    totalUserDocs: userSnapshot.docs.length,
+  };
+}
+
+async function loadFounderBriefingConfiguredArtists(firestore) {
+  try {
+    const cfgSnap = await firestore.collection("appConfig").doc("founderBriefing").get();
+    if (!cfgSnap.exists) {
+      return {
+        artists: [],
+        includeConfiguredWithArtistPages: false,
+      };
+    }
+    const d = cfgSnap.data() || {};
+    const arr = d.musicArtists || d.featuredArtists;
+    return {
+      artists: uniqueArtistNames(Array.isArray(arr) ? arr : []).slice(0, MAX_FOUNDER_MUSIC_ARTISTS),
+      includeConfiguredWithArtistPages: d.includeConfiguredArtists === true,
+    };
+  } catch (e) {
+    logger.warn("founder_briefing.appConfig_founderBriefing_read_failed", {
+      err: e instanceof Error ? e.message : String(e),
+    });
+    return {
+      artists: [],
+      includeConfiguredWithArtistPages: false,
+    };
+  }
+}
+
+async function loadFounderBriefingArtistPageArtists(firestore) {
+  try {
+    const snap = await firestore.collection("artistPages").limit(64).get();
+    if (!snap || snap.empty) {
+      return [];
+    }
+    return uniqueArtistNames(
+        snap.docs
+            .map((doc) => canonicalArtistNameFromPage(doc.id, doc.data() || {}))
+            .filter(Boolean),
+    ).slice(0, MAX_FOUNDER_MUSIC_ARTISTS);
+  } catch (e) {
+    logger.warn("founder_briefing.artistPages_read_failed", {
+      err: e instanceof Error ? e.message : String(e),
+    });
+    return [];
+  }
 }
 
 /**
@@ -43,7 +223,12 @@ async function fetchLatestItunesTrackForArtist(artist) {
     }
     const json = await res.json();
     const results = Array.isArray(json?.results) ? json.results : [];
-    const items = results.filter((r) => r && r.trackName && r.artistName);
+    const items = results.filter((r) =>
+      r &&
+      r.trackName &&
+      r.artistName &&
+      artistNamesMatch(term, r.artistName),
+    );
     if (items.length === 0) {
       return null;
     }
@@ -86,36 +271,35 @@ async function loadFounderBriefingEnrichment(firestore, {uid, businessDate}) {
     systemLines: [],
     orderLines: [],
     sources: [],
+    musicArtists: [],
+    musicArtistSource: "none",
+    users: buildFounderUserSnapshot(null),
   };
 
   if (!uid) {
     return empty;
   }
 
-  let configArtists = null;
-  try {
-    const cfgSnap = await firestore.collection("appConfig").doc("founderBriefing").get();
-    if (cfgSnap.exists) {
-      const d = cfgSnap.data() || {};
-      const arr = d.musicArtists || d.featuredArtists;
-      if (Array.isArray(arr) && arr.length) {
-        configArtists = arr
-            .map((a) => nonEmptyString(a))
-            .filter(Boolean)
-            .slice(0, 8);
-      }
-    }
-  } catch (e) {
-    logger.warn("founder_briefing.appConfig_founderBriefing_read_failed", {
-      err: e instanceof Error ? e.message : String(e),
-    });
-  }
-  const artists = (configArtists && configArtists.length) ? configArtists : [...DEFAULT_MUSIC_ARTISTS];
+  const [configuredArtistSettings, artistPageArtists] = await Promise.all([
+    loadFounderBriefingConfiguredArtists(firestore),
+    loadFounderBriefingArtistPageArtists(firestore),
+  ]);
+  const configArtists = configuredArtistSettings.artists || [];
+  const artists = artistPageArtists.length ?
+    uniqueArtistNames([
+      ...artistPageArtists,
+      ...(configuredArtistSettings.includeConfiguredWithArtistPages ? configArtists : []),
+    ]).slice(0, MAX_FOUNDER_MUSIC_ARTISTS) :
+    configArtists.slice(0, MAX_FOUNDER_MUSIC_ARTISTS);
+  const musicArtistSource = artistPageArtists.length ?
+    "artistPages" :
+    (configArtists.length ? "appConfig/founderBriefing" : "none");
 
-  const [merchSnapshot, runtimeSnapshot, ordersSnapshot] = await Promise.all([
+  const [merchSnapshot, runtimeSnapshot, ordersSnapshot, usersSnapshot] = await Promise.all([
     firestore.collection("merchandise").limit(64).get().catch(() => ({empty: true, docs: []})),
     firestore.collection("system").doc("runtimeConfig").get().catch(() => null),
     firestore.collection("orders").orderBy("timestamp", "desc").limit(8).get().catch(() => ({empty: true, docs: []})),
+    firestore.collection("users").limit(200).get().catch(() => ({empty: true, docs: []})),
   ]);
 
   /** @type {import("firebase-admin").firestore.QuerySnapshot|{empty: boolean, docs: never[]}} */
@@ -207,7 +391,10 @@ async function loadFounderBriefingEnrichment(firestore, {uid, businessDate}) {
     "merch: firestore/merchandise (aktive Produkte)",
     "system: system/runtimeConfig",
     "orders: orders (letzte, fuer Owner-Operationsblick)",
-    "music: itunes.apple.com/search (public)",
+    "users: firestore/users (Rollen, AI-Abo-Signale, letzte User-Dokumente)",
+    artists.length ?
+      `music: artist source ${musicArtistSource}; itunes.apple.com/search exact artist match` :
+      "music: keine hinterlegten Artist-Namen gefunden",
   ];
 
   return {
@@ -218,10 +405,14 @@ async function loadFounderBriefingEnrichment(firestore, {uid, businessDate}) {
     systemLines,
     orderLines,
     sources,
+    musicArtists: artists,
+    musicArtistSource,
+    users: buildFounderUserSnapshot(usersSnapshot),
   };
 }
 
 module.exports = {
   loadFounderBriefingEnrichment,
-  DEFAULT_MUSIC_ARTISTS,
+  artistNamesMatch,
+  uniqueArtistNames,
 };

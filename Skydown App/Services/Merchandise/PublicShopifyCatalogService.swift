@@ -21,21 +21,12 @@ struct PublicShopifyCatalogService: PublicShopifyCatalogServicing {
         let config = try await loadConfig()
         let requestedHandles = config.collectionHandles.map { $0.lowercased() }
 
-        let items = try await fetchItems(
+        return try await fetchItems(
             storeDomain: config.storeDomain,
             storefrontAccessToken: config.storefrontAccessToken,
             collectionHandles: requestedHandles
         )
-
-        if items.isEmpty, requestedHandles.isEmpty == false {
-            return try await fetchItems(
-                storeDomain: config.storeDomain,
-                storefrontAccessToken: config.storefrontAccessToken,
-                collectionHandles: []
-            )
-        }
-
-        return items.sorted {
+        .sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
     }

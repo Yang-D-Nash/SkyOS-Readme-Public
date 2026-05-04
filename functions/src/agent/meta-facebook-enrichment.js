@@ -35,12 +35,12 @@ async function resolveFacebookPageContextForAgent({
   if (!token) {
     return buildFacebookContextWithoutToken(raw);
   }
-  const live = await fetchFacebookPageSummary({
+  const live = await fetchFacebookPageResult({
     accessToken: token,
     pageRef: ref,
     graphVersion,
   });
-  return live || buildFacebookContextWithConfiguredButUnavailableGraph(raw);
+  return live.summary || buildFacebookContextWithConfiguredButUnavailableGraph(raw, live.reason);
 }
 
 async function fetchFacebookPageSummary({
@@ -48,10 +48,19 @@ async function fetchFacebookPageSummary({
   pageRef,
   graphVersion = DEFAULT_GRAPH_VERSION,
 }) {
+  const result = await fetchFacebookPageResult({accessToken, pageRef, graphVersion});
+  return result.summary || "";
+}
+
+async function fetchFacebookPageResult({
+  accessToken,
+  pageRef,
+  graphVersion = DEFAULT_GRAPH_VERSION,
+}) {
   const token = String(accessToken || "").trim();
   const ref = normalizeFacebookPageReference(pageRef);
   if (!token || !ref) {
-    return "";
+    return {summary: "", reason: "Meta Page Token oder Page-Referenz fehlt."};
   }
   const full = await graphGetPage({
     accessToken: token,
@@ -68,8 +77,8 @@ async function fetchFacebookPageSummary({
       "verification_status",
     ],
   });
-  if (full) {
-    return formatFacebookPageBlock(full);
+  if (full.data) {
+    return {summary: formatFacebookPageBlock(full.data), reason: ""};
   }
   const minimal = await graphGetPage({
     accessToken: token,
@@ -77,7 +86,10 @@ async function fetchFacebookPageSummary({
     graphVersion,
     fields: ["id", "name", "category", "link"],
   });
-  return minimal ? formatFacebookPageBlock(minimal) : "";
+  if (minimal.data) {
+    return {summary: formatFacebookPageBlock(minimal.data), reason: ""};
+  }
+  return {summary: "", reason: minimal.reason || full.reason || "Graph API lieferte keine Page-Daten."};
 }
 
 async function graphGetPage({accessToken, pageRef, graphVersion, fields}) {
@@ -88,16 +100,18 @@ async function graphGetPage({accessToken, pageRef, graphVersion, fields}) {
   const timeout = setTimeout(() => controller.abort(), 12_000);
   try {
     const response = await fetch(url, {method: "GET", signal: controller.signal});
-    if (!response.ok) {
-      return null;
+    let body = null;
+    try {
+      body = await response.json();
+    } catch {
+      body = null;
     }
-    const body = await response.json();
-    if (!body || body.error) {
-      return null;
+    if (!response.ok || !body || body.error) {
+      return {data: null, reason: describeGraphError(body?.error || null, response.status)};
     }
-    return body;
+    return {data: body, reason: ""};
   } catch {
-    return null;
+    return {data: null, reason: "Graph-Aufruf fehlgeschlagen oder Timeout."};
   } finally {
     clearTimeout(timeout);
   }
@@ -114,13 +128,15 @@ function buildFacebookContextWithoutToken(handle) {
   ].join(" ");
 }
 
-function buildFacebookContextWithConfiguredButUnavailableGraph(handle) {
+function buildFacebookContextWithConfiguredButUnavailableGraph(handle, reason = "") {
   const safe = normalizeFacebookPageReference(handle) || String(handle || "").trim();
   const label = safe ? `@${safe.replace(/^@+/, "")}` : "(leer)";
+  const status = nonEmpty(reason);
   return [
     "Facebook/Meta Graph API ist serverseitig konfiguriert, aber der Live-Aufruf liefert gerade keine verwertbaren Page-Daten.",
     "Page-/Handle-Bezug: " + label + ".",
-    "Wahrscheinlich: Token abgelaufen, fehlende Page-Berechtigung, Page Public Content Access nicht freigegeben oder Page-ID/Handle nicht aufloesbar.",
+    status ? "Live-Status: " + status + "." :
+      "Wahrscheinlich: Token abgelaufen, fehlende Page-Berechtigung, Page Public Content Access nicht freigegeben oder Page-ID/Handle nicht aufloesbar.",
     "Arbeite mit Handle und Nutzerprompt. Keine erfundenen Reichweiten, Follower, Impressions oder Insights.",
   ].join(" ");
 }
@@ -153,6 +169,37 @@ function formatFacebookPageBlock(page) {
 
 function trimDesc(value) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, 500);
+}
+
+function describeGraphError(error, status = 0) {
+  const code = error?.code != null ? String(error.code) : "";
+  const subcode = error?.error_subcode != null ? String(error.error_subcode) : "";
+  const type = nonEmpty(error?.type);
+  const message = nonEmpty(error?.message);
+  const lower = message.toLowerCase();
+  if (code === "190" || lower.includes("access token") || lower.includes("session has expired")) {
+    if (subcode === "463" || lower.includes("expired")) {
+      return "Meta Access Token ist abgelaufen; Page neu verbinden/Long-Lived Token setzen.";
+    }
+    return "Meta Access Token ist ungueltig; Page Token pruefen.";
+  }
+  if (code === "10" || code === "200" || lower.includes("permission")) {
+    return "Meta Page Permission fehlt; pages_read_engagement/Page Public Content Access pruefen.";
+  }
+  if (code === "100" || status === 404) {
+    return "Page-ID/Handle nicht aufloesbar oder Feld fuer diese Page nicht freigegeben.";
+  }
+  if (status === 429 || lower.includes("rate")) {
+    return "Meta Rate-Limit erreicht; spaeter erneut versuchen.";
+  }
+  const details = [type ? `Typ ${type}` : "", code ? `Code ${code}` : "", subcode ? `Subcode ${subcode}` : ""]
+      .filter(Boolean)
+      .join(", ");
+  return details ? `Meta Graph Fehler (${details}).` : "Meta Graph Fehler ohne verwertbare Detailmeldung.";
+}
+
+function nonEmpty(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
 }
 
 module.exports = {

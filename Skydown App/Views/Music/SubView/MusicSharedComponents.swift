@@ -348,33 +348,6 @@ let artistInstagramDestinations: [String: MusicInstagramDestination] = [
         spotifyURLString: nil,
         artistPageName: "Yang D. Nash"
     ),
-    "MAVE": MusicInstagramDestination(
-        id: "artist_mave",
-        title: "MAVE",
-        handle: "@mave040_official",
-        urlString: "https://www.instagram.com/mave040_official/",
-        helper: "Artist aktuell ausgewaehlt",
-        spotifyURLString: nil,
-        artistPageName: "MAVE"
-    ),
-    "ThaDude": MusicInstagramDestination(
-        id: "artist_thadude",
-        title: "ThaDude",
-        handle: "@thadude_offizielle",
-        urlString: "https://www.instagram.com/thadude_offizielle/",
-        helper: "Artist aktuell ausgewaehlt",
-        spotifyURLString: nil,
-        artistPageName: "ThaDude"
-    ),
-    "Toprack941": MusicInstagramDestination(
-        id: "artist_toprack941",
-        title: "Toprack941",
-        handle: "@toprack_941",
-        urlString: "https://www.instagram.com/toprack_941/",
-        helper: "Artist aktuell ausgewaehlt",
-        spotifyURLString: "https://open.spotify.com/artist/4CoozMQ3B3I20day60N7QA?si=DckCJP2QRlK2dQxeRLIM-w",
-        artistPageName: "Toprack941"
-    ),
     "TANGAJOE007": MusicInstagramDestination(
         id: "artist_tangajoe007",
         title: "TANGAJOE007",

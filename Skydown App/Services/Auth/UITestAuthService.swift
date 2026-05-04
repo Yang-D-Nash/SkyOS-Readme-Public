@@ -2,6 +2,7 @@ import Foundation
 
 enum UITestRuntime {
     static var usesIsolatedAuthService: Bool {
+        #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         guard arguments.contains(where: { $0.hasPrefix("-ui_test") }) else {
             return false
@@ -14,6 +15,9 @@ enum UITestRuntime {
             "SKYOS_RUN_LIVE_AGENT_UI_TEST",
         ]
         return !liveBackendKeys.contains { environment[$0] == "1" }
+        #else
+        return false
+        #endif
     }
 }
 

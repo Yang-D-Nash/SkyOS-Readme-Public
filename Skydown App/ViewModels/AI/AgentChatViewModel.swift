@@ -1500,7 +1500,7 @@ final class AgentChatViewModel: ObservableObject {
 
     private func resolveSocialSetupForOutgoing(mode: String) -> AgentSocialSetupInput {
         let normalizedMode = mode.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard normalizedMode == "automation" else {
+        guard normalizedMode == "automation" || normalizedMode == "analysis" else {
             return .empty
         }
         return AgentSocialSetupInput(

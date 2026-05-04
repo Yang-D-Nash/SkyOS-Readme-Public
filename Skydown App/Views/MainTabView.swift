@@ -970,7 +970,16 @@ private struct ZweizweiTabView: View {
 
     private var musicHubSocialDestinations: [MusicInstagramDestination] {
         let fallbackByArtistName = artistInstagramDestinations
-        let preferredArtistOrder = ["JANNO", "Yang D. Nash", "MAVE", "ThaDude", "TANGAJOE007"]
+        let liveArtistOrder = artistPagesStore.pages(for: .zweizwei)
+            .map { $0.artistName.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        var uniqueLiveArtistOrder: [String] = []
+        for artistName in liveArtistOrder where !uniqueLiveArtistOrder.contains(artistName) {
+            uniqueLiveArtistOrder.append(artistName)
+        }
+        let preferredArtistOrder = liveArtistOrder.isEmpty
+            ? ["JANNO", "Yang D. Nash", "TANGAJOE007"]
+            : uniqueLiveArtistOrder
         let dynamicArtists = preferredArtistOrder.map { artistName -> MusicInstagramDestination? in
             let page = artistPagesStore.page(for: .zweizwei, artistName: artistName)
             let fallback = fallbackByArtistName[artistName]
@@ -1030,10 +1039,6 @@ private struct ZweizweiTabView: View {
             return AppColors.accent(for: colorScheme)
         case "Yang D. Nash":
             return AppColors.accentHighlight(for: colorScheme)
-        case "MAVE":
-            return AppColors.accentMystic(for: colorScheme)
-        case "ThaDude":
-            return AppColors.accent(for: colorScheme)
         default:
             return AppColors.spotify(for: colorScheme)
         }

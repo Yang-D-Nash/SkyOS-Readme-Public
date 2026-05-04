@@ -1931,7 +1931,7 @@ private fun AgentPromptComposerSheet(
                     BrandStatusChip(
                         text = stringResource(R.string.agent_social_badge_spotify_restricted),
                         accent = MaterialTheme.colorScheme.secondary,
-                        isActive = false,
+                        isActive = true,
                     )
                 }
                 Row(

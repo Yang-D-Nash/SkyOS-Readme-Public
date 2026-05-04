@@ -4,8 +4,6 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -1129,7 +1127,6 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
                         ) {
                             val scrollState = rememberScrollState()
-                            val displayBody = remember(sheet.body) { founderBriefingDisplayText(sheet.body) }
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1137,11 +1134,7 @@ fun HomeScreen(
                                     .verticalScroll(scrollState)
                                     .padding(12.dp),
                             ) {
-                                Text(
-                                    text = displayBody,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
+                                FounderBriefingReadableBody(raw = sheet.body)
                             }
                         }
                         Row(
@@ -3286,6 +3279,82 @@ private data class FounderBriefingSheetState(
     val metaLine: String? = null,
 )
 
+@Composable
+private fun FounderBriefingReadableBody(raw: String) {
+    val lines = remember(raw) {
+        raw.lineSequence()
+            .map { it.trimEnd() }
+            .toList()
+    }
+    val numberedLine = remember { Regex("^\\d+\\.\\s+.+") }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        lines.forEach { line ->
+            val trimmed = line.trim()
+            when {
+                trimmed.isBlank() -> Spacer(modifier = Modifier.height(2.dp))
+                trimmed == "---" -> Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
+                )
+                trimmed.startsWith("# ") -> Text(
+                    text = cleanFounderBriefingInline(trimmed.removePrefix("# ")),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                trimmed.startsWith("## ") -> Text(
+                    text = cleanFounderBriefingInline(trimmed.removePrefix("## ")),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+                trimmed.startsWith("- ") -> Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "-",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = cleanFounderBriefingInline(trimmed.removePrefix("- ")),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                numberedLine.matches(trimmed) -> Text(
+                    text = cleanFounderBriefingInline(trimmed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                else -> Text(
+                    text = cleanFounderBriefingInline(trimmed),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.86f),
+                )
+            }
+        }
+    }
+}
+
+private fun cleanFounderBriefingInline(raw: String): String {
+    return raw
+        .replace("**", "")
+        .replace("*", "")
+        .replace("`", "")
+        .trim()
+}
+
 private fun founderBriefingDisplayText(raw: String): String {
     return raw
         .lineSequence()
@@ -3563,28 +3632,12 @@ private suspend fun requestFounderBriefingFromCallable(
         )
     }.getOrElse { error ->
         Log.e("FounderBriefing", "callWithAppCheckRetry threw", error)
-        Toast.makeText(
-            context,
-            "DEBUG callable threw: ${error.javaClass.simpleName}",
-            Toast.LENGTH_LONG,
-        ).show()
-        Handler(Looper.getMainLooper()).postDelayed({
-            Toast.makeText(
-                context,
-                "DEBUG callable threw: ${error.javaClass.simpleName}",
-                Toast.LENGTH_LONG,
-            ).show()
-        }, 1600)
         return null
     }
 
     val result = callableResult
     val rootData = result.data as? Map<*, *> ?: run {
         Log.e("FounderBriefing", "callableResult.data is not a map: ${result.data?.javaClass?.name}")
-        Toast.makeText(context, "DEBUG result.data not map", Toast.LENGTH_LONG).show()
-        Handler(Looper.getMainLooper()).postDelayed({
-            Toast.makeText(context, "DEBUG result.data not map", Toast.LENGTH_LONG).show()
-        }, 1600)
         return null
     }
     Log.e(

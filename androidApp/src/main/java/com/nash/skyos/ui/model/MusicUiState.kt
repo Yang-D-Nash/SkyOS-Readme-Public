@@ -21,8 +21,6 @@ data class MusicUiState(
     val availableArtists: List<String> = listOf(
         "JANNO",
         "Yang D. Nash",
-        "ThaDude",
-        "MAVE",
         "TANGAJOE007",
     ),
     val tracks: List<Track> = emptyList(),
@@ -64,16 +62,6 @@ private val artistSocialProfiles = mapOf(
         artist = "Yang D. Nash",
         handle = "@y.d.nash",
         instagramUrl = "https://www.instagram.com/y.d.nash/",
-    ),
-    "ThaDude" to ArtistSocialProfile(
-        artist = "ThaDude",
-        handle = "@thadude_offizielle",
-        instagramUrl = "https://www.instagram.com/thadude_offizielle/",
-    ),
-    "MAVE" to ArtistSocialProfile(
-        artist = "MAVE",
-        handle = "@mave040_official",
-        instagramUrl = "https://www.instagram.com/mave040_official/",
     ),
     "JANNO" to ArtistSocialProfile(
         artist = "JANNO",

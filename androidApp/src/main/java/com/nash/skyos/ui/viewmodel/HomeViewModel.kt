@@ -11,6 +11,8 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.nash.skyos.data.ArtistPageBrand
+import com.nash.skyos.data.ArtistPagesStore
 import com.nash.skyos.data.ExternalMediaProvider
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.ui.model.FeaturedVideoHighlight
@@ -68,11 +70,9 @@ class HomeViewModel(
         }
     }
 
-    private val featuredArtists = listOf(
+    private val fallbackFeaturedArtists = listOf(
         "JANNO",
         "Yang D. Nash",
-        "ThaDude",
-        "MAVE",
         "TANGAJOE007",
     )
 
@@ -599,7 +599,7 @@ class HomeViewModel(
 
     private suspend fun loadLatestTrack(): Track? {
         val tracks = supervisorScope {
-            featuredArtists
+            featuredArtistNames()
                 .map { artist ->
                     async {
                         musicService.fetchTracks(artist).getOrNull().orEmpty()
@@ -612,6 +612,14 @@ class HomeViewModel(
         if (tracks.isEmpty()) return null
 
         return tracks.sortedWith(::compareTracksForHomePriority).firstOrNull()
+    }
+
+    private fun featuredArtistNames(): List<String> {
+        val liveArtists = ArtistPagesStore.pagesForBrand(ArtistPageBrand.Zweizwei)
+            .map { it.artistName.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+        return liveArtists.ifEmpty { fallbackFeaturedArtists }
     }
 
     private fun compareTracksForHomePriority(lhs: Track, rhs: Track): Int {

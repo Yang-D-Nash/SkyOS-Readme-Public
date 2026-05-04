@@ -1305,9 +1305,6 @@ private struct FounderBriefingResultSheet: View {
     let onShare: () -> Void
     let onShareWhatsApp: () -> Void
     @Environment(\.dismiss) private var dismiss
-    private var displayBody: AttributedString {
-        (try? AttributedString(markdown: presentation.body)) ?? AttributedString(presentation.body)
-    }
 
     var body: some View {
         NavigationStack {
@@ -1329,13 +1326,13 @@ private struct FounderBriefingResultSheet: View {
                 }
 
                 ScrollView {
-                    Text(displayBody)
-                        .font(.footnote)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                        .background(AppColors.cardBackground(for: colorScheme))
-                        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
+                    FounderBriefingReadableBody(
+                        raw: presentation.body,
+                        colorScheme: colorScheme
+                    )
+                    .padding(14)
+                    .background(AppColors.cardBackground(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
                 }
 
                 HStack(spacing: SkydownLayout.stackSpacingMicro) {
@@ -1396,6 +1393,128 @@ private struct FounderBriefingResultSheet: View {
             }
         }
     }
+}
+
+private enum FounderBriefingReadableLineKind {
+    case title
+    case heading
+    case bullet
+    case numbered
+    case divider
+    case body
+    case spacer
+}
+
+private struct FounderBriefingReadableLine: Identifiable {
+    let id: Int
+    let kind: FounderBriefingReadableLineKind
+    let text: String
+}
+
+private struct FounderBriefingReadableBody: View {
+    let raw: String
+    let colorScheme: ColorScheme
+
+    private var lines: [FounderBriefingReadableLine] {
+        raw.components(separatedBy: .newlines).enumerated().map { index, line in
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                return FounderBriefingReadableLine(id: index, kind: .spacer, text: "")
+            }
+            if trimmed == "---" {
+                return FounderBriefingReadableLine(id: index, kind: .divider, text: "")
+            }
+            if trimmed.hasPrefix("# ") {
+                return FounderBriefingReadableLine(
+                    id: index,
+                    kind: .title,
+                    text: cleanFounderBriefingInline(String(trimmed.dropFirst(2)))
+                )
+            }
+            if trimmed.hasPrefix("## ") {
+                return FounderBriefingReadableLine(
+                    id: index,
+                    kind: .heading,
+                    text: cleanFounderBriefingInline(String(trimmed.dropFirst(3)))
+                )
+            }
+            if trimmed.hasPrefix("- ") {
+                return FounderBriefingReadableLine(
+                    id: index,
+                    kind: .bullet,
+                    text: cleanFounderBriefingInline(String(trimmed.dropFirst(2)))
+                )
+            }
+            if trimmed.range(of: #"^\d+\.\s+.+"#, options: .regularExpression) != nil {
+                return FounderBriefingReadableLine(
+                    id: index,
+                    kind: .numbered,
+                    text: cleanFounderBriefingInline(trimmed)
+                )
+            }
+            return FounderBriefingReadableLine(
+                id: index,
+                kind: .body,
+                text: cleanFounderBriefingInline(trimmed)
+            )
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(lines) { line in
+                switch line.kind {
+                case .title:
+                    Text(line.text)
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                case .heading:
+                    Text(line.text)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AppColors.accent(for: colorScheme))
+                        .padding(.top, 6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                case .bullet:
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("-")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundColor(AppColors.accent(for: colorScheme))
+                        Text(line.text)
+                            .font(.footnote)
+                            .foregroundColor(AppColors.text(for: colorScheme).opacity(0.9))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                case .numbered:
+                    Text(line.text)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundColor(AppColors.text(for: colorScheme))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                case .divider:
+                    Rectangle()
+                        .fill(AppColors.secondaryText(for: colorScheme).opacity(0.18))
+                        .frame(height: 1)
+                        .padding(.vertical, 4)
+                case .body:
+                    Text(line.text)
+                        .font(.footnote)
+                        .foregroundColor(AppColors.text(for: colorScheme).opacity(0.88))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                case .spacer:
+                    Spacer(minLength: 2)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private func cleanFounderBriefingInline(_ raw: String) -> String {
+    raw
+        .replacingOccurrences(of: "**", with: "")
+        .replacingOccurrences(of: "*", with: "")
+        .replacingOccurrences(of: "`", with: "")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
 }
 
 private struct HomeOriginalVideoViewerTarget: Identifiable {

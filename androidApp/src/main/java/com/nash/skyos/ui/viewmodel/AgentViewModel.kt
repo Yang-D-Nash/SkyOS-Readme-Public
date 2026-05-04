@@ -1638,7 +1638,7 @@ class AgentViewModel : ViewModel() {
     }
 
     private fun resolveSocialSetupForOutgoing(mode: String): AgentSocialSetupInput {
-        if (mode.trim().lowercase() != "automation") {
+        if (mode.trim().lowercase() !in setOf("automation", "analysis")) {
             return AgentSocialSetupInput()
         }
         return resolveSocialSetupFromState(_uiState.value)

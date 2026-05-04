@@ -36,9 +36,9 @@ enum MusicExperienceBrand {
     var artists: [String] {
         switch self {
         case .skydown:
-            return ["Yang D. Nash", "ThaDude", "MAVE", "JANNO", "TANGAJOE007"]
+            return ["Yang D. Nash", "JANNO", "TANGAJOE007"]
         case .zweizwei:
-            return ["JANNO", "Yang D. Nash", "ThaDude", "MAVE", "TANGAJOE007"]
+            return ["JANNO", "Yang D. Nash", "TANGAJOE007"]
         }
     }
 
@@ -137,7 +137,14 @@ struct MusicView: View {
     }
 
     private var artists: [String] {
-        brand.artists
+        let liveArtists = artistPagesStore.pages(for: brand.artistPageBrand)
+            .map { $0.artistName.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        var uniqueLiveArtists: [String] = []
+        for artist in liveArtists where !uniqueLiveArtists.contains(artist) {
+            uniqueLiveArtists.append(artist)
+        }
+        return uniqueLiveArtists.isEmpty ? brand.artists : uniqueLiveArtists
     }
 
     var body: some View {
@@ -209,6 +216,10 @@ struct MusicView: View {
                 }
                 .onChange(of: selectedArtist) { _, newArtist in
                     onArtistContextChange?(newArtist)
+                }
+                .onChange(of: artists) { _, updatedArtists in
+                    guard !updatedArtists.isEmpty, !updatedArtists.contains(selectedArtist) else { return }
+                    selectedArtist = updatedArtists[0]
                 }
                 .onAppear {
                     stageMotionTrigger += 1
@@ -432,10 +443,6 @@ struct MusicView: View {
             return AppColors.accent(for: colorScheme)
         case "Yang D. Nash":
             return AppColors.accentHighlight(for: colorScheme)
-        case "MAVE":
-            return AppColors.accentMystic(for: colorScheme)
-        case "ThaDude":
-            return AppColors.accent(for: colorScheme)
         case "TANGAJOE007":
             return AppColors.spotify(for: colorScheme)
         default:

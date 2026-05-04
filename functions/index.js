@@ -102,6 +102,8 @@ const PERSONAL_AGENT_PROFILE_DOCUMENT_PREFIX = "agentProfile_";
 const TIKTOK_OAUTH_STATE_COLLECTION = "tiktokOAuthState";
 const TIKTOK_OAUTH_TOKEN_COLLECTION = "adminConfig";
 const TIKTOK_OAUTH_TOKEN_DOCUMENT = "tiktokOAuth";
+const META_OAUTH_TOKEN_COLLECTION = "adminConfig";
+const META_OAUTH_TOKEN_DOCUMENT = "metaOAuth";
 const AI_PROMPT_SETTINGS_COLLECTION = "adminConfig";
 const AI_PROMPT_SETTINGS_DOCUMENT = "aiPromptSettings";
 const AI_STUDIO_FAQ_KNOWLEDGE_COLLECTION = "adminConfig";
@@ -652,6 +654,7 @@ const AI_MEMBERSHIP_RECOMMENDATION_LIFECYCLE_COLLECTION = "recommendationLifecyc
 const AI_FAQ_REVIEW_CHANGE_LOG_COLLECTION = "aiFaqReviewChangeLog";
 const AI_GUARDRAILS_COLLECTION = "guardrails";
 const AI_GUARDRAILS_DAILY_BURN_PREFIX = "aiDailyBurn_";
+const AGENT_SOCIAL_LIVE_CACHE_COLLECTION = "agentSocialLiveCache";
 const AI_ENTITLEMENTS_SUBCOLLECTION = "entitlements";
 const AI_ENTITLEMENT_DOCUMENT = "ai";
 const AI_ENTITLEMENT_EVENTS_SUBCOLLECTION = "entitlementEvents";
@@ -8054,14 +8057,22 @@ function buildFounderEnrichmentPrivateMarkdown(enrichment) {
   }
   const out = [];
   const music = Array.isArray(enrichment.music) ? enrichment.music : [];
+  const configuredMusicArtists = Array.isArray(enrichment.musicArtists) ? enrichment.musicArtists : [];
+  const musicSource = nonEmptyString(enrichment.musicArtistSource) || "none";
   if (music.length) {
     out.push("");
     out.push("## 6) Musik & Releases (Katalog)");
-    out.push("Aktuelle Snippets aus oeffentlicher iTunes-Suche (Kuenstler-Namen, wie im Home-Start). Liste optional steuerbar: `appConfig/founderBriefing` → `musicArtists` (max. 8).");
+    out.push(
+        `Quelle der Kuenstler: ${musicSource}. Katalogtreffer werden nur genutzt, wenn der Artist-Name exakt passt; keine Ersatzkuenstler.`,
+    );
     for (const m of music.slice(0, 8)) {
       const meta = [m.collection, m.releaseDate].filter((x) => nonEmptyString(x));
       out.push(
-          "- **" + (nonEmptyString(m.artistName) || "?") + "** — " + (nonEmptyString(m.trackName) || "Track") +
+          "- **" + (nonEmptyString(m.queryArtist) || nonEmptyString(m.artistName) || "?") + "** — " +
+        (nonEmptyString(m.trackName) || "Track") +
+        (nonEmptyString(m.artistName) && nonEmptyString(m.artistName) !== nonEmptyString(m.queryArtist) ?
+          ` (${nonEmptyString(m.artistName)})` :
+          "") +
         (meta.length ? " — " + meta.join(" · ") : "") +
         (nonEmptyString(m.url) ? " · " + m.url : ""),
       );
@@ -8069,7 +8080,16 @@ function buildFounderEnrichmentPrivateMarkdown(enrichment) {
   } else {
     out.push("");
     out.push("## 6) Musik & Releases (Katalog)");
-    out.push("- Fuer die konfigurierte Kuenstlerliste lagen keine iTunes-Treffer vor, oder die Abfrage ist fehlgeschlagen. Tipp: `appConfig/founderBriefing.musicArtists` hinterlegen oder Namen pruefen.");
+    if (configuredMusicArtists.length) {
+      out.push(
+          "- Hinterlegte Kuenstler: " + configuredMusicArtists.join(", ") +
+        ". Keine verifizierten Katalogtreffer mit exaktem Artist-Match; es werden bewusst keine Ersatzkuenstler angezeigt.",
+      );
+    } else {
+      out.push(
+          "- Keine Artist-Pages oder `appConfig/founderBriefing.musicArtists` gefunden. Sobald Kuenstler hinterlegt sind, erscheinen hier nur verifizierte Treffer.",
+      );
+    }
   }
 
   const merch = Array.isArray(enrichment.merch) ? enrichment.merch : [];
@@ -8105,6 +8125,35 @@ function buildFounderEnrichmentPrivateMarkdown(enrichment) {
   } else {
     out.push("- Keine frischen Bestellzeilen ermittelbar (leer, Berechtigung oder Abfrage).");
   }
+
+  const userSnapshot = enrichment.users && typeof enrichment.users === "object" ? enrichment.users : {};
+  const roleCounts = userSnapshot.roleCounts && typeof userSnapshot.roleCounts === "object" ?
+    userSnapshot.roleCounts :
+    {};
+  const roleLine = Object.entries(roleCounts)
+      .filter(([, count]) => Number(count) > 0)
+      .sort(([left], [right]) => left.localeCompare(right, "de", {sensitivity: "base"}))
+      .map(([role, count]) => `${role}: ${count}`)
+      .join(" · ");
+  const recentUsers = Array.isArray(userSnapshot.recentUsers) ? userSnapshot.recentUsers : [];
+  out.push("");
+  out.push("## 10) User & Rollen (AI-Kontext)");
+  if (Number(userSnapshot.totalUserDocs) > 0) {
+    out.push(`- User-Dokumente im Snapshot: ${Number(userSnapshot.totalUserDocs)}${roleLine ? ` (${roleLine})` : ""}.`);
+    out.push(`- Aktive/zahlungsrelevante AI-Abos: ${Number(userSnapshot.activeAiSubscriptions) || 0}.`);
+    if (recentUsers.length) {
+      out.push("- Letzte User-Signale:");
+      for (const user of recentUsers) {
+        const label = nonEmptyString(user?.label) || "User";
+        const role = nonEmptyString(user?.role) || "user";
+        const plan = nonEmptyString(user?.quotaPlan) || "free";
+        const status = nonEmptyString(user?.aiStatus) || "inactive";
+        out.push(`  - ${label} — Rolle: ${role}; AI: ${plan}/${status}`);
+      }
+    }
+  } else {
+    out.push("- Keine `users`-Dokumente fuer einen Rollen-Snapshot lesbar.");
+  }
   return out;
 }
 
@@ -8119,6 +8168,7 @@ function buildFounderEnrichmentGroupSnippet(enrichment) {
   const m = (Array.isArray(enrichment.music) && enrichment.music[0]) || null;
   const merchN = Array.isArray(enrichment.merch) ? enrichment.merch.length : 0;
   const sysN = Array.isArray(enrichment.systemLines) ? enrichment.systemLines.length : 0;
+  const totalUsers = Number(enrichment.users?.totalUserDocs) || 0;
   const parts = [];
   if (m) {
     parts.push("Musik-Highlight: " + nonEmptyString(m.artistName) + " — " + nonEmptyString(m.trackName) + ".");
@@ -8128,6 +8178,9 @@ function buildFounderEnrichmentGroupSnippet(enrichment) {
   }
   if (sysN) {
     parts.push("System: relevante Fahnen aktiv — Details im vertraulichen Teil.");
+  }
+  if (totalUsers) {
+    parts.push("User: " + totalUsers + " Konten im aktuellen Rollen-Snapshot.");
   }
   if (parts.length === 0) {
     return "";
@@ -11066,6 +11119,11 @@ function uniqueStrings(values) {
   });
 }
 
+function isVisibleShopifyCollection(collection) {
+  const productCount = Number(collection?.productCount);
+  return !Number.isFinite(productCount) || productCount > 0;
+}
+
 function uniqueCollectionsByHandle(collections) {
   const seenHandles = new Set();
   const normalizedCollections = [];
@@ -11073,6 +11131,10 @@ function uniqueCollectionsByHandle(collections) {
   for (const collection of Array.isArray(collections) ? collections : []) {
     const handle = nonEmptyString(collection?.handle);
     if (!handle) {
+      continue;
+    }
+
+    if (!isVisibleShopifyCollection(collection)) {
       continue;
     }
 
@@ -11150,6 +11212,11 @@ const SHOPIFY_STOREFRONT_COLLECTIONS_QUERY = `
       nodes {
         handle
         title
+        products(first: 1) {
+          nodes {
+            id
+          }
+        }
       }
     }
   }
@@ -11173,7 +11240,9 @@ async function fetchShopifyCollectionsViaStorefrontApi(config) {
         ...((connection?.nodes || []).map((collection) => ({
           handle: nonEmptyString(collection?.handle) || "",
           title: nonEmptyString(collection?.title) || nonEmptyString(collection?.handle) || "",
-          productCount: null,
+          productCount: Array.isArray(collection?.products?.nodes) ?
+            collection.products.nodes.length :
+            null,
         }))),
     );
     hasNextPage = Boolean(connection?.pageInfo?.hasNextPage);
@@ -11244,6 +11313,125 @@ async function fetchAvailableShopifyCollections(config) {
   }
 
   return fetchShopifyCollectionsViaPublicStorefront(config);
+}
+
+function reconcileShopifyCollectionHandles(configuredHandles, availableCollections) {
+  const availableByHandle = new Map(
+      (Array.isArray(availableCollections) ? availableCollections : [])
+          .map((collection) => nonEmptyString(collection?.handle))
+          .filter(Boolean)
+          .map((handle) => [handle.toLowerCase(), handle]),
+  );
+  const activeCollectionHandles = [];
+  const removedCollectionHandles = [];
+  const seenActive = new Set();
+
+  for (const handle of Array.isArray(configuredHandles) ? configuredHandles : []) {
+    const normalizedHandle = nonEmptyString(handle);
+    if (!normalizedHandle) {
+      continue;
+    }
+
+    const liveHandle = availableByHandle.get(normalizedHandle.toLowerCase());
+    if (!liveHandle) {
+      removedCollectionHandles.push(normalizedHandle);
+      continue;
+    }
+
+    const activeKey = liveHandle.toLowerCase();
+    if (!seenActive.has(activeKey)) {
+      seenActive.add(activeKey);
+      activeCollectionHandles.push(liveHandle);
+    }
+  }
+
+  return {
+    activeCollectionHandles,
+    removedCollectionHandles,
+    changed:
+      removedCollectionHandles.length > 0 ||
+      activeCollectionHandles.length !== (Array.isArray(configuredHandles) ? configuredHandles.length : 0),
+  };
+}
+
+async function persistShopifyCollectionHandlesIfChanged({
+  originalCollectionHandles,
+  activeCollectionHandles,
+  removedCollectionHandles,
+  syncSource,
+}) {
+  if (!Array.isArray(originalCollectionHandles) || originalCollectionHandles.length === 0) {
+    return false;
+  }
+
+  const originalKey = originalCollectionHandles.map((handle) => `${handle}`.trim().toLowerCase()).join("\n");
+  const activeKey = activeCollectionHandles.map((handle) => `${handle}`.trim().toLowerCase()).join("\n");
+  if (originalKey === activeKey && removedCollectionHandles.length === 0) {
+    return false;
+  }
+
+  await admin.firestore()
+      .collection(SHOPIFY_CONFIG_COLLECTION)
+      .doc(SHOPIFY_CONFIG_DOCUMENT)
+      .set({
+        collectionHandles: activeCollectionHandles,
+        collectionHandle: admin.firestore.FieldValue.delete(),
+        collectionTitle: admin.firestore.FieldValue.delete(),
+        lastRemovedCollectionHandles: removedCollectionHandles,
+        lastCollectionsSyncedAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastCollectionsSyncSource: syncSource || "shopify_collections",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+
+  return true;
+}
+
+async function syncConfiguredShopifyCollectionHandles(config, syncSource = "shopify_collections") {
+  const originalCollectionHandles = Array.isArray(config?.collectionHandles) ?
+    config.collectionHandles.filter((handle) => nonEmptyString(handle)) :
+    [];
+
+  if (originalCollectionHandles.length === 0) {
+    return {
+      config: {
+        ...config,
+        collectionHandles: [],
+        collectionHandle: "",
+      },
+      collections: [],
+      removedCollectionHandles: [],
+      collectionConfigUpdated: false,
+    };
+  }
+
+  const collections = await fetchAvailableShopifyCollections(config);
+  const reconciliation = reconcileShopifyCollectionHandles(originalCollectionHandles, collections);
+  const collectionConfigUpdated = await persistShopifyCollectionHandlesIfChanged({
+    originalCollectionHandles,
+    activeCollectionHandles: reconciliation.activeCollectionHandles,
+    removedCollectionHandles: reconciliation.removedCollectionHandles,
+    syncSource,
+  });
+
+  if (reconciliation.removedCollectionHandles.length > 0) {
+    logger.info("Shopify collection handles pruned from app config.", {
+      storeDomain: config?.storeDomain,
+      removedCollectionHandles: reconciliation.removedCollectionHandles,
+      activeCollectionHandles: reconciliation.activeCollectionHandles,
+      syncSource,
+    });
+  }
+
+  return {
+    config: {
+      ...config,
+      collectionHandles: reconciliation.activeCollectionHandles,
+      collectionHandle: reconciliation.activeCollectionHandles[0] || "",
+    },
+    collections,
+    removedCollectionHandles: reconciliation.removedCollectionHandles,
+    collectionConfigUpdated,
+  };
 }
 
 function buildSelectedOptionsFromPublicVariant(variant, productOptions) {
@@ -11550,17 +11738,6 @@ async function fetchAllShopifyProductsViaAdminApi(token, config) {
       );
     });
 
-    if (filteredProducts.length === 0 && products.length > 0) {
-      logger.warn("Shopify Admin API collection filter returned no products. Falling back to all products.", {
-        storeDomain: config?.storeDomain,
-        collectionHandles: requestedCollectionHandles,
-      });
-      return {
-        products,
-        currencyCode,
-      };
-    }
-
     return {
       products: filteredProducts,
       currencyCode,
@@ -11630,15 +11807,6 @@ async function fetchAllShopifyProductsViaStorefrontApi(config) {
     products = await fetchConnection(null);
   }
 
-  if (requestedCollectionHandles.length > 0 && products.length === 0) {
-    logger.warn("Shopify Storefront collection returned no products. Falling back to all storefront products.", {
-      storeDomain: config?.storeDomain,
-      collectionHandles: requestedCollectionHandles,
-    });
-    products = await fetchConnection(null);
-    syncSource = "storefront_api_fallback";
-  }
-
   const currencyCode = nonEmptyString(
       products[0]?.variants?.nodes?.[0]?.price?.currencyCode,
   ) || "EUR";
@@ -11680,7 +11848,6 @@ async function fetchAllShopifyProductsViaPublicStorefront(config) {
     [];
   let rawProducts = [];
   let syncSource = "public_storefront";
-  let usedCollectionFallback = false;
 
   try {
     if (requestedCollectionHandles.length > 0) {
@@ -11708,22 +11875,12 @@ async function fetchAllShopifyProductsViaPublicStorefront(config) {
       throw error;
     }
 
-    logger.warn("Shopify public collection sync failed. Falling back to all public products.", {
+    logger.warn("Shopify public collection sync failed. Returning no products for configured collection filter.", {
       storeDomain: config?.storeDomain,
       collectionHandles: requestedCollectionHandles,
       error: error instanceof Error ? error.message : "unknown_error",
     });
-    rawProducts = await fetchAllPages(null);
-    usedCollectionFallback = true;
-  }
-
-  if (requestedCollectionHandles.length > 0 && rawProducts.length === 0) {
-    logger.warn("Shopify public collection sync returned no products. Falling back to all public products.", {
-      storeDomain: config?.storeDomain,
-      collectionHandles: requestedCollectionHandles,
-    });
-    rawProducts = await fetchAllPages(null);
-    usedCollectionFallback = true;
+    rawProducts = [];
   }
 
   const products = rawProducts
@@ -11733,7 +11890,7 @@ async function fetchAllShopifyProductsViaPublicStorefront(config) {
   return {
     products,
     currencyCode: "EUR",
-    syncSource: usedCollectionFallback ? "public_storefront_fallback" : syncSource,
+    syncSource,
   };
 }
 
@@ -11770,11 +11927,33 @@ async function fetchAllShopifyProducts(token, config) {
 
 async function runShopifyMerchSync() {
   const token = await loadShopifyAdminToken();
-  const config = await loadShopifyAdminConfig();
+  const rawConfig = await loadShopifyAdminConfig();
+  const hadConfiguredCollectionFilter = (rawConfig.collectionHandles || []).length > 0;
+  let collectionSync = {
+    config: rawConfig,
+    collections: [],
+    removedCollectionHandles: [],
+    collectionConfigUpdated: false,
+  };
+
+  if (hadConfiguredCollectionFilter) {
+    try {
+      collectionSync = await syncConfiguredShopifyCollectionHandles(rawConfig, "syncShopifyMerch");
+    } catch (error) {
+      logger.warn("Shopify collection config sync failed before merch sync.", {
+        storeDomain: rawConfig.storeDomain,
+        collectionHandles: rawConfig.collectionHandles || [],
+        error: error instanceof Error ? error.message : "unknown_error",
+      });
+    }
+  }
+
+  const config = collectionSync.config;
 
   logger.info("Shopify merch sync started.", {
     storeDomain: config.storeDomain,
     collectionHandles: config.collectionHandles || [],
+    removedCollectionHandles: collectionSync.removedCollectionHandles || [],
     hasStorefrontToken: Boolean(config.storefrontAccessToken),
   });
 
@@ -11793,7 +11972,21 @@ async function runShopifyMerchSync() {
     existingByDocumentId.set(document.id, document);
   });
 
-  const {products, currencyCode, syncSource} = await fetchAllShopifyProducts(token, config);
+  const prunedAllConfiguredCollections =
+    hadConfiguredCollectionFilter &&
+    (config.collectionHandles || []).length === 0 &&
+    (collectionSync.removedCollectionHandles || []).length > 0;
+  const {
+    products,
+    currencyCode,
+    syncSource,
+  } = prunedAllConfiguredCollections ?
+    {
+      products: [],
+      currencyCode: "EUR",
+      syncSource: "collection_filter_pruned_empty",
+    } :
+    await fetchAllShopifyProducts(token, config);
   const batch = firestore.batch();
   let createdCount = 0;
   let updatedCount = 0;
@@ -11847,6 +12040,8 @@ async function runShopifyMerchSync() {
     syncSource,
     storeDomain: config.storeDomain,
     collectionHandles: config.collectionHandles || [],
+    removedCollectionHandles: collectionSync.removedCollectionHandles || [],
+    collectionConfigUpdated: collectionSync.collectionConfigUpdated,
   });
 
   return {
@@ -11858,6 +12053,8 @@ async function runShopifyMerchSync() {
     storeDomain: config.storeDomain,
     collectionHandles: config.collectionHandles || [],
     collectionHandle: config.collectionHandle,
+    removedCollectionHandles: collectionSync.removedCollectionHandles || [],
+    collectionConfigUpdated: collectionSync.collectionConfigUpdated,
     syncSource,
   };
 }
@@ -15671,11 +15868,21 @@ function buildSocialLiveStatusLine({platform, label, handle = "", value = ""} = 
   )) {
     return "- Spotify: Referenz erkannt, API-Zugriff eingeschraenkt; keine Live-Katalogfelder.";
   }
+  if (platform === "spotify" && lower.includes("spotify oembed")) {
+    return "- Spotify: oeffentliche Profil-Metadaten erhalten; Web-API-Katalogmetriken eingeschraenkt.";
+  }
   if (platform === "tiktok" && (
     lower.includes("weicht vom verknuepften") ||
     lower.includes("weicht vom verknüpften")
   )) {
     return `- TikTok: verknuepfter Token-Account weicht von @${h} ab; keine passenden Live-Daten fuer diesen Handle.`;
+  }
+  if (platform === "tiktok" && (
+    lower.includes("ohne verwertbaren profil-snapshot") ||
+    lower.includes("kein belastbarer oeffentlicher profilabruf") ||
+    lower.includes("kein belastbarer öffentlicher profilabruf")
+  )) {
+    return `- TikTok: Handle @${h} vorhanden, aber kein verwertbarer Profil-Snapshot.`;
   }
   if (platform === "youtube" && (
     lower.includes("kein oeffentlicher kanal") ||
@@ -15816,6 +16023,100 @@ function buildSocialProfileContextBlockForPrompt({
   return trimTextMax(out, 6000);
 }
 
+function resolveSocialLiveCacheTtlMs() {
+  const raw = nonEmptyString(process.env.SOCIAL_LIVE_CACHE_TTL_MINUTES) || "";
+  if (raw === "0") {
+    return 0;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  const minutes = Number.isFinite(parsed) ?
+    Math.max(5, Math.min(parsed, 360)) :
+    60;
+  return minutes * 60 * 1000;
+}
+
+function socialLiveCacheDocId({platform = "", handle = "", variant = ""} = {}) {
+  const p = nonEmptyString(platform)?.toLowerCase() || "";
+  const h = nonEmptyString(handle)?.toLowerCase() || "";
+  const v = nonEmptyString(variant)?.toLowerCase() || "";
+  if (!p || !h) {
+    return "";
+  }
+  return crypto.createHash("sha256").update(`${p}:${h}:${v}`, "utf8").digest("hex");
+}
+
+function socialProviderCredentialVariant({label = "", credential = ""} = {}) {
+  const l = nonEmptyString(label)?.toLowerCase() || "default";
+  const c = nonEmptyString(credential) || "";
+  if (!c) {
+    return `${l}:no_credential`;
+  }
+  return `${l}:${crypto.createHash("sha256").update(c, "utf8").digest("hex").slice(0, 16)}`;
+}
+
+async function loadSocialLiveSummaryCache({platform = "", handle = "", variant = ""} = {}) {
+  const ttlMs = resolveSocialLiveCacheTtlMs();
+  if (ttlMs <= 0) {
+    return "";
+  }
+  const docId = socialLiveCacheDocId({platform, handle, variant});
+  if (!docId) {
+    return "";
+  }
+  try {
+    const snap = await admin.firestore()
+        .collection(AGENT_SOCIAL_LIVE_CACHE_COLLECTION)
+        .doc(docId)
+        .get();
+    if (!snap.exists) {
+      return "";
+    }
+    const data = snap.data() || {};
+    const cachedAtMillis = Number(data.cachedAtMillis || 0);
+    const summary = nonEmptyString(data.summary) || "";
+    if (!summary || !cachedAtMillis || Date.now() - cachedAtMillis > ttlMs) {
+      return "";
+    }
+    return summary;
+  } catch (error) {
+    logger.warn("Social live cache read failed.", {
+      platform,
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+    return "";
+  }
+}
+
+async function saveSocialLiveSummaryCache({platform = "", handle = "", variant = "", summary = ""} = {}) {
+  const ttlMs = resolveSocialLiveCacheTtlMs();
+  const text = nonEmptyString(summary) || "";
+  if (ttlMs <= 0 || !text) {
+    return;
+  }
+  const docId = socialLiveCacheDocId({platform, handle, variant});
+  if (!docId) {
+    return;
+  }
+  try {
+    await admin.firestore()
+        .collection(AGENT_SOCIAL_LIVE_CACHE_COLLECTION)
+        .doc(docId)
+        .set({
+          platform: nonEmptyString(platform)?.toLowerCase() || "",
+          handle: trimTextMax(nonEmptyString(handle) || "", 240),
+          variant: trimTextMax(nonEmptyString(variant) || "", 80),
+          summary: trimTextMax(text, 5000),
+          cachedAtMillis: Date.now(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+  } catch (error) {
+    logger.warn("Social live cache write failed.", {
+      platform,
+      error: error instanceof Error ? error.message : `${error}`,
+    });
+  }
+}
+
 function resolveTikTokClientKey() {
   return nonEmptyString(process.env.TIKTOK_CLIENT_KEY) || "";
 }
@@ -15854,6 +16155,117 @@ async function loadTikTokAccessTokenForAgent() {
   }
 }
 
+async function loadMetaOAuthConfigForAgent() {
+  try {
+    const snap = await admin.firestore()
+        .collection(META_OAUTH_TOKEN_COLLECTION)
+        .doc(META_OAUTH_TOKEN_DOCUMENT)
+        .get();
+    if (!snap.exists) {
+      return {};
+    }
+    const data = snap.data() || {};
+    const expiresAtMs = Number(data.expiresAtMs || data.expiresAtMillis || 0);
+    const tokenExpired = Number.isFinite(expiresAtMs) && expiresAtMs > 0 && Date.now() > expiresAtMs;
+    if (tokenExpired) {
+      return {};
+    }
+    return data;
+  } catch {
+    return {};
+  }
+}
+
+function resolveMetaStoredToken(data, keys) {
+  const source = data && typeof data === "object" ? data : {};
+  for (const key of keys) {
+    const value = nonEmptyString(source[key]);
+    if (value) {
+      return value;
+    }
+  }
+  return "";
+}
+
+function resolveMetaEnvToken(keys) {
+  for (const key of keys) {
+    const value = nonEmptyString(process.env[key]);
+    if (value) {
+      return value;
+    }
+  }
+  return "";
+}
+
+function resolveMetaPageTokenFromStoredPages(data, pageId = "") {
+  const pages = Array.isArray(data?.pages) ? data.pages : [];
+  const expectedId = nonEmptyString(pageId) || "";
+  const selected = pages.find((page) => {
+    if (!page || typeof page !== "object") {
+      return false;
+    }
+    const candidateId = nonEmptyString(page.id || page.pageId);
+    return expectedId ? candidateId === expectedId : true;
+  });
+  return nonEmptyString(selected?.accessToken || selected?.pageAccessToken) || "";
+}
+
+async function resolveInstagramCredentialsForAgent() {
+  const stored = await loadMetaOAuthConfigForAgent();
+  const accessToken = resolveMetaStoredToken(stored, [
+    "instagramAccessToken",
+    "igUserAccessToken",
+    "userAccessToken",
+    "graphAccessToken",
+    "accessToken",
+  ]) || resolveMetaEnvToken([
+    "META_IG_USER_ACCESS_TOKEN",
+    "META_INSTAGRAM_ACCESS_TOKEN",
+    "META_FACEBOOK_USER_ACCESS_TOKEN",
+    "META_GRAPH_ACCESS_TOKEN",
+  ]);
+  const igUserId = resolveMetaStoredToken(stored, [
+    "igUserId",
+    "instagramUserId",
+    "instagramBusinessAccountId",
+    "igBusinessAccountId",
+  ]) || resolveMetaEnvToken([
+    "META_IG_USER_ID",
+    "META_INSTAGRAM_USER_ID",
+    "META_INSTAGRAM_BUSINESS_ACCOUNT_ID",
+  ]);
+  return {accessToken, igUserId};
+}
+
+async function resolveFacebookCredentialsForAgent() {
+  const stored = await loadMetaOAuthConfigForAgent();
+  const pageId = resolveMetaStoredToken(stored, [
+    "facebookPageId",
+    "pageId",
+    "metaPageId",
+  ]) || resolveMetaEnvToken([
+    "META_FACEBOOK_PAGE_ID",
+    "META_PAGE_ID",
+  ]);
+  const accessToken = resolveMetaPageTokenFromStoredPages(stored, pageId) ||
+    resolveMetaStoredToken(stored, [
+      "facebookPageAccessToken",
+      "pageAccessToken",
+      "facebookUserAccessToken",
+      "userAccessToken",
+      "graphAccessToken",
+      "accessToken",
+    ]) ||
+    resolveMetaEnvToken([
+      "META_FACEBOOK_PAGE_ACCESS_TOKEN",
+      "META_PAGE_ACCESS_TOKEN",
+      "META_FACEBOOK_USER_ACCESS_TOKEN",
+      "META_GRAPH_ACCESS_TOKEN",
+      "META_IG_USER_ACCESS_TOKEN",
+    ]);
+  return {accessToken, pageId};
+}
+
 async function resolveAgentSocialProfileStateForRequest({
   uid,
   agentInput = {},
@@ -15884,6 +16296,8 @@ async function resolveAgentSocialProfileStateForRequest({
     const socialProfileState = await loadUserSocialProfiles(uid);
     const socialSetup = socialSetupForIntent || normalizeSocialSetupInput();
     const socialSelectedPlatforms = socialSetup.selectedPlatforms;
+    const promptSelectedPlatforms = SOCIAL_PLATFORM_ORDER
+        .filter((platform) => !!extractedFromPrompt[platform]);
     const structuredProfiles = {
       instagram: socialSetup.instagramEnabled ? socialSetup.instagramHandle : "",
       tiktok: socialSetup.tiktokEnabled ? socialSetup.tiktokHandle : "",
@@ -15893,33 +16307,36 @@ async function resolveAgentSocialProfileStateForRequest({
     };
     let socialProfiles = mergeSocialProfiles(
         socialProfileState.profiles,
-        mergeSocialProfiles(structuredProfiles, extractedFromPrompt),
+        mergeSocialProfiles(extractedFromPrompt, structuredProfiles),
     );
+    const socialProfilesForMemory = {...socialProfiles};
     const requiredPlatforms = socialSelectedPlatforms.length > 0 ?
       socialSelectedPlatforms :
-      [...SOCIAL_PLATFORM_ORDER];
+      (promptSelectedPlatforms.length > 0 ?
+        promptSelectedPlatforms :
+        [...SOCIAL_PLATFORM_ORDER]);
     let socialMissingPlatforms = requiredPlatforms
         .filter((platform) => !socialProfiles[platform]);
-    if (socialSelectedPlatforms.length > 0) {
+    if (socialSelectedPlatforms.length > 0 || promptSelectedPlatforms.length > 0) {
       for (const platform of SOCIAL_PLATFORM_ORDER) {
         if (!requiredPlatforms.includes(platform)) {
           socialProfiles[platform] = "";
         }
       }
     }
-    if (socialSelectedPlatforms.length === 0) {
+    if (socialSelectedPlatforms.length === 0 && promptSelectedPlatforms.length === 0) {
       socialMissingPlatforms = Object.entries(socialProfiles)
           .filter(([, handle]) => !handle)
           .map(([platform]) => platform);
     }
     const hasStructuredHandles = hasStructuredSocialHandlesInSetup(socialSetup);
     if (Object.keys(extractedFromPrompt).length > 0 || hasStructuredHandles) {
-      await persistSocialProfilesToMemoryProfile(uid, socialProfiles);
+      await persistSocialProfilesToMemoryProfile(uid, socialProfilesForMemory);
     }
     return {
       socialProfiles,
       socialMissingPlatforms,
-      socialSelectedPlatforms,
+      socialSelectedPlatforms: requiredPlatforms,
     };
   } catch (error) {
     logger.warn("Social profile lookup failed.", {
@@ -17232,14 +17649,23 @@ exports.skydownAgent = onCall({
   const spotifyHandleForEnrichment = nonEmptyString(resolvedSocialState.socialProfiles.spotify) || "";
   if (spotifyHandleForEnrichment) {
     try {
+      spotifyCatalogSummary = await loadSocialLiveSummaryCache({
+        platform: "spotify",
+        handle: spotifyHandleForEnrichment,
+      });
       // Optional: set in Google Cloud (Cloud Run for this function) or .env lokal; kein defineSecret, damit Deploy ohne Spotify moeglich.
       const sid = (process.env.SPOTIFY_CLIENT_ID || "").trim();
       const ssec = (process.env.SPOTIFY_CLIENT_SECRET || "").trim();
-      if (sid && ssec) {
+      if (!spotifyCatalogSummary && sid && ssec) {
         spotifyCatalogSummary = await fetchSpotifyHandleCatalogSummary({
           clientId: sid,
           clientSecret: ssec,
           handle: spotifyHandleForEnrichment,
+        });
+        await saveSocialLiveSummaryCache({
+          platform: "spotify",
+          handle: spotifyHandleForEnrichment,
+          summary: spotifyCatalogSummary,
         });
       }
     } catch (error) {
@@ -17253,11 +17679,20 @@ exports.skydownAgent = onCall({
   const youtubeHandleForEnrichment = nonEmptyString(resolvedSocialState.socialProfiles.youtube) || "";
   if (youtubeHandleForEnrichment) {
     try {
+      youtubeCatalogSummary = await loadSocialLiveSummaryCache({
+        platform: "youtube",
+        handle: youtubeHandleForEnrichment,
+      });
       const ytk = (process.env.YOUTUBE_DATA_API_KEY || process.env.GOOGLE_API_KEY || "").trim();
-      if (ytk) {
+      if (!youtubeCatalogSummary && ytk) {
         youtubeCatalogSummary = await fetchYouTubeHandleCatalogSummary({
           apiKey: ytk,
           handle: youtubeHandleForEnrichment,
+        });
+        await saveSocialLiveSummaryCache({
+          platform: "youtube",
+          handle: youtubeHandleForEnrichment,
+          summary: youtubeCatalogSummary,
         });
       }
     } catch (error) {
@@ -17271,12 +17706,33 @@ exports.skydownAgent = onCall({
   const instagramHandleForEnrichment = nonEmptyString(resolvedSocialState.socialProfiles.instagram) || "";
   if (instagramHandleForEnrichment) {
     try {
-      instagramGraphSummary = await resolveInstagramContextForAgent({
-        handle: instagramHandleForEnrichment,
-        accessToken: (process.env.META_IG_USER_ACCESS_TOKEN || "").trim(),
-        igUserId: (process.env.META_IG_USER_ID || "").trim(),
-        graphVersion: (process.env.META_GRAPH_API_VERSION || "").trim() || undefined,
+      const instagramGraphVersion = (process.env.META_GRAPH_API_VERSION || "").trim() || "default";
+      const instagramCredentials = await resolveInstagramCredentialsForAgent();
+      const instagramToken = instagramCredentials.accessToken;
+      const instagramUserId = instagramCredentials.igUserId;
+      const instagramCacheVariant = `${instagramGraphVersion}:` + socialProviderCredentialVariant({
+        label: "ig_user",
+        credential: instagramToken,
       });
+      instagramGraphSummary = await loadSocialLiveSummaryCache({
+        platform: "instagram",
+        handle: instagramHandleForEnrichment,
+        variant: instagramCacheVariant,
+      });
+      if (!instagramGraphSummary) {
+        instagramGraphSummary = await resolveInstagramContextForAgent({
+          handle: instagramHandleForEnrichment,
+          accessToken: instagramToken,
+          igUserId: instagramUserId,
+          graphVersion: instagramGraphVersion === "default" ? undefined : instagramGraphVersion,
+        });
+        await saveSocialLiveSummaryCache({
+          platform: "instagram",
+          handle: instagramHandleForEnrichment,
+          variant: instagramCacheVariant,
+          summary: instagramGraphSummary,
+        });
+      }
     } catch (error) {
       logger.warn("Instagram (Meta) Kontext fehlgeschlagen.", {
         error: error instanceof Error ? error.message : `${error}`,
@@ -17288,15 +17744,33 @@ exports.skydownAgent = onCall({
   const facebookHandleForEnrichment = nonEmptyString(resolvedSocialState.socialProfiles.facebook) || "";
   if (facebookHandleForEnrichment) {
     try {
-      facebookMetaSummary = await resolveFacebookPageContextForAgent({
-        handle: facebookHandleForEnrichment,
-        accessToken: (process.env.META_FACEBOOK_PAGE_ACCESS_TOKEN ||
-          process.env.META_PAGE_ACCESS_TOKEN ||
-          process.env.META_GRAPH_ACCESS_TOKEN ||
-          "").trim(),
-        pageId: (process.env.META_FACEBOOK_PAGE_ID || process.env.META_PAGE_ID || "").trim(),
-        graphVersion: (process.env.META_GRAPH_API_VERSION || "").trim() || undefined,
+      const facebookGraphVersion = (process.env.META_GRAPH_API_VERSION || "").trim() || "default";
+      const facebookCredentials = await resolveFacebookCredentialsForAgent();
+      const facebookToken = facebookCredentials.accessToken;
+      const facebookPageId = facebookCredentials.pageId;
+      const facebookCacheVariant = `${facebookGraphVersion}:` + socialProviderCredentialVariant({
+        label: "page",
+        credential: facebookToken,
       });
+      facebookMetaSummary = await loadSocialLiveSummaryCache({
+        platform: "facebook",
+        handle: facebookHandleForEnrichment,
+        variant: facebookCacheVariant,
+      });
+      if (!facebookMetaSummary) {
+        facebookMetaSummary = await resolveFacebookPageContextForAgent({
+          handle: facebookHandleForEnrichment,
+          accessToken: facebookToken,
+          pageId: facebookPageId,
+          graphVersion: facebookGraphVersion === "default" ? undefined : facebookGraphVersion,
+        });
+        await saveSocialLiveSummaryCache({
+          platform: "facebook",
+          handle: facebookHandleForEnrichment,
+          variant: facebookCacheVariant,
+          summary: facebookMetaSummary,
+        });
+      }
     } catch (error) {
       logger.warn("Facebook/Meta Kontext fehlgeschlagen.", {
         error: error instanceof Error ? error.message : `${error}`,
@@ -17309,10 +17783,26 @@ exports.skydownAgent = onCall({
   if (tiktokHandleForEnrichment) {
     try {
       const tiktokAccessToken = await loadTikTokAccessTokenForAgent();
-      tiktokPublicSummary = await fetchTikTokHandlePublicSummary({
+      const tiktokCacheVariant = tiktokAccessToken ?
+        crypto.createHash("sha256").update(tiktokAccessToken, "utf8").digest("hex").slice(0, 16) :
+        "public";
+      tiktokPublicSummary = await loadSocialLiveSummaryCache({
+        platform: "tiktok",
         handle: tiktokHandleForEnrichment,
-        accessToken: tiktokAccessToken,
+        variant: tiktokCacheVariant,
       });
+      if (!tiktokPublicSummary) {
+        tiktokPublicSummary = await fetchTikTokHandlePublicSummary({
+          handle: tiktokHandleForEnrichment,
+          accessToken: tiktokAccessToken,
+        });
+        await saveSocialLiveSummaryCache({
+          platform: "tiktok",
+          handle: tiktokHandleForEnrichment,
+          variant: tiktokCacheVariant,
+          summary: tiktokPublicSummary,
+        });
+      }
     } catch (error) {
       logger.warn("TikTok Kontext-Anreicherung fehlgeschlagen.", {
         error: error instanceof Error ? error.message : `${error}`,
@@ -17700,10 +18190,19 @@ exports.listShopifyCollections = onCall({
 
   const config = await loadShopifyAdminConfig();
   const collections = await fetchAvailableShopifyCollections(config);
+  const reconciliation = reconcileShopifyCollectionHandles(config.collectionHandles || [], collections);
+  const collectionConfigUpdated = await persistShopifyCollectionHandlesIfChanged({
+    originalCollectionHandles: config.collectionHandles || [],
+    activeCollectionHandles: reconciliation.activeCollectionHandles,
+    removedCollectionHandles: reconciliation.removedCollectionHandles,
+    syncSource: "listShopifyCollections",
+  });
 
   return {
     storeDomain: config.storeDomain,
-    selectedCollectionHandles: config.collectionHandles || [],
+    selectedCollectionHandles: reconciliation.activeCollectionHandles,
+    removedCollectionHandles: reconciliation.removedCollectionHandles,
+    collectionConfigUpdated,
     collections,
   };
 });

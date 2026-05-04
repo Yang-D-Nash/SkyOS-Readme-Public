@@ -579,8 +579,6 @@ private fun musicSpotifyUrlForArtist(artist: String): String {
 private fun musicCatalogEntryAccent(artist: String, colorScheme: ColorScheme): Color = when (artist) {
     "JANNO" -> colorScheme.skydownAccent()
     "Yang D. Nash" -> colorScheme.skydownAccentHighlight()
-    "MAVE" -> colorScheme.skydownAccentMystic()
-    "ThaDude" -> colorScheme.skydownAccent()
     "TANGAJOE007" -> colorScheme.skydownSpotify()
     else -> colorScheme.skydownSpotify()
 }

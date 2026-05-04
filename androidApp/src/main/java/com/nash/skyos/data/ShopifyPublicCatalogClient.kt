@@ -16,19 +16,11 @@ class ShopifyPublicCatalogClient(
 ) {
     suspend fun fetchCatalog(): Result<List<MerchandiseItem>> = runCatching {
         val config = loadConfig()
-        var items = fetchItems(
+        val items = fetchItems(
             storeDomain = config.storeDomain,
             storefrontAccessToken = config.storefrontAccessToken,
             collectionHandles = config.collectionHandles,
         )
-
-        if (items.isEmpty() && config.collectionHandles.isNotEmpty()) {
-            items = fetchItems(
-                storeDomain = config.storeDomain,
-                storefrontAccessToken = config.storefrontAccessToken,
-                collectionHandles = emptyList(),
-            )
-        }
 
         items
             .sortedBy { it.name.lowercase() }

@@ -28,13 +28,17 @@ function buildInstagramContextWithoutToken(handle) {
   ].join(" ");
 }
 
-function buildInstagramContextWithConfiguredButUnavailableGraph(handle) {
+function buildInstagramContextWithConfiguredButUnavailableGraph(handle, reasons = []) {
   const safe = (handle || "").replace(/^@+/, "").replace(/\s+/g, " ").trim();
   const at = safe ? "@" + safe : "(leer)";
+  const reasonLines = Array.isArray(reasons) ?
+    reasons.map((r) => nonEmpty(r)).filter(Boolean).slice(0, 2) :
+    [];
   return [
     "Instagram Graph API ist serverseitig konfiguriert, aber der Live-Aufruf liefert gerade keine verwertbaren Daten.",
     "Handle-Bezug: " + at + ".",
-    "Wahrscheinlich: Token abgelaufen, fehlende Business-/Creator-Verknuepfung, fehlende Permissions oder Business Discovery nicht freigegeben.",
+    reasonLines.length ? "Live-Status: " + reasonLines.join(" | ") + "." :
+      "Wahrscheinlich: Token abgelaufen, fehlende Business-/Creator-Verknuepfung, fehlende Permissions oder Business Discovery nicht freigegeben.",
     "Arbeite mit Handle und Nutzerprompt. Keine erfundenen Impressions, Reichweite oder Insights.",
   ].join(" ");
 }
@@ -51,10 +55,19 @@ async function fetchInstagramGraphUserSummary({
   igUserId,
   graphVersion = DEFAULT_GRAPH_VERSION,
 }) {
+  const result = await fetchInstagramGraphUserResult({accessToken, igUserId, graphVersion});
+  return result.summary || "";
+}
+
+async function fetchInstagramGraphUserResult({
+  accessToken,
+  igUserId,
+  graphVersion = DEFAULT_GRAPH_VERSION,
+}) {
   const t = (accessToken || "").trim();
   const id = (igUserId || "").trim();
   if (!t || !id) {
-    return "";
+    return {summary: "", reason: "Meta-Token oder IG User ID fehlt."};
   }
   const fields = [
     "id",
@@ -70,20 +83,13 @@ async function fetchInstagramGraphUserSummary({
   const url = `${base}/${graphVersion}/${encodeURIComponent(id)}?` +
     `fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(t)}`;
   try {
-    const c = new AbortController();
-    const timer = setTimeout(() => c.abort(), 12_000);
-    const r = await fetch(url, {method: "GET", signal: c.signal});
-    clearTimeout(timer);
-    if (!r.ok) {
-      return "";
+    const graph = await fetchGraphJson(url);
+    if (!graph.ok) {
+      return {summary: "", reason: describeGraphError(graph.error, graph.status)};
     }
-    const j = await r.json();
-    if (j.error) {
-      return "";
-    }
-    return formatGraphIgUserBlock(j);
+    return {summary: formatGraphIgUserBlock(graph.data), reason: ""};
   } catch {
-    return "";
+    return {summary: "", reason: "Graph-Aufruf fehlgeschlagen oder Timeout."};
   }
 }
 
@@ -101,11 +107,26 @@ async function fetchInstagramGraphBusinessDiscoverySummary({
   username,
   graphVersion = DEFAULT_GRAPH_VERSION,
 }) {
+  const result = await fetchInstagramGraphBusinessDiscoveryResult({
+    accessToken,
+    igUserId,
+    username,
+    graphVersion,
+  });
+  return result.summary || "";
+}
+
+async function fetchInstagramGraphBusinessDiscoveryResult({
+  accessToken,
+  igUserId,
+  username,
+  graphVersion = DEFAULT_GRAPH_VERSION,
+}) {
   const t = (accessToken || "").trim();
   const id = (igUserId || "").trim();
   const u = normalizeInstagramUsername(username);
   if (!t || !id || !u) {
-    return "";
+    return {summary: "", reason: "Meta-Token, IG User ID oder Ziel-Username fehlt."};
   }
   const discoveryFields = [
     "username",
@@ -121,24 +142,17 @@ async function fetchInstagramGraphBusinessDiscoverySummary({
   const url = `${base}/${graphVersion}/${encodeURIComponent(id)}?` +
     `fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(t)}`;
   try {
-    const c = new AbortController();
-    const timer = setTimeout(() => c.abort(), 12_000);
-    const r = await fetch(url, {method: "GET", signal: c.signal});
-    clearTimeout(timer);
-    if (!r.ok) {
-      return "";
+    const graph = await fetchGraphJson(url);
+    if (!graph.ok) {
+      return {summary: "", reason: describeGraphError(graph.error, graph.status)};
     }
-    const j = await r.json();
-    if (j.error) {
-      return "";
-    }
-    const bd = j.business_discovery;
+    const bd = graph.data.business_discovery;
     if (!bd || typeof bd !== "object") {
-      return "";
+      return {summary: "", reason: "Business Discovery lieferte kein Profilobjekt."};
     }
-    return formatGraphIgBusinessDiscoveryBlock(bd);
+    return {summary: formatGraphIgBusinessDiscoveryBlock(bd), reason: ""};
   } catch {
-    return "";
+    return {summary: "", reason: "Business-Discovery-Aufruf fehlgeschlagen oder Timeout."};
   }
 }
 
@@ -163,28 +177,35 @@ async function resolveInstagramContextForAgent({
   const t = (accessToken || process.env.META_IG_USER_ACCESS_TOKEN || "").trim();
   const id = (igUserId || process.env.META_IG_USER_ID || "").trim();
   if (t && id) {
+    const reasons = [];
     if (normalized) {
-      const discovery = await fetchInstagramGraphBusinessDiscoverySummary({
+      const discovery = await fetchInstagramGraphBusinessDiscoveryResult({
         accessToken: t,
         igUserId: id,
         username: normalized,
         graphVersion,
       });
-      if (discovery) {
-        return discovery;
+      if (discovery.summary) {
+        return discovery.summary;
+      }
+      if (discovery.reason) {
+        reasons.push("Business Discovery: " + discovery.reason);
       }
     }
     // Fallback to connected account profile (kept for backwards compatibility),
     // but label it clearly to avoid mixing it up with handle-specific discovery.
-    const ownProfile = await fetchInstagramGraphUserSummary({
+    const ownProfile = await fetchInstagramGraphUserResult({
       accessToken: t,
       igUserId: id,
       graphVersion,
     });
-    if (ownProfile) {
-      return ownProfile + `\nHinweis: Handle-spezifische Discovery fuer @${normalized || h} war nicht verfuegbar.`;
+    if (ownProfile.summary) {
+      return ownProfile.summary + `\nHinweis: Handle-spezifische Discovery fuer @${normalized || h} war nicht verfuegbar.`;
     }
-    return buildInstagramContextWithConfiguredButUnavailableGraph(h);
+    if (ownProfile.reason) {
+      reasons.push("Verbundenes Konto: " + ownProfile.reason);
+    }
+    return buildInstagramContextWithConfiguredButUnavailableGraph(h, reasons);
   }
   return buildInstagramContextWithoutToken(h);
 }
@@ -211,6 +232,57 @@ function formatGraphIgUserBlock(j) {
 
 function trimDesc(s) {
   return (String(s) || "").replace(/\s+/g, " ").trim().slice(0, 500);
+}
+
+async function fetchGraphJson(url) {
+  const c = new AbortController();
+  const timer = setTimeout(() => c.abort(), 12_000);
+  try {
+    const r = await fetch(url, {method: "GET", signal: c.signal});
+    let body = null;
+    try {
+      body = await r.json();
+    } catch {
+      body = null;
+    }
+    if (!r.ok || body?.error) {
+      return {ok: false, status: r.status, error: body?.error || null, data: body || null};
+    }
+    return {ok: true, status: r.status, error: null, data: body || {}};
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function describeGraphError(error, status = 0) {
+  const code = error?.code != null ? String(error.code) : "";
+  const subcode = error?.error_subcode != null ? String(error.error_subcode) : "";
+  const type = nonEmpty(error?.type);
+  const message = nonEmpty(error?.message);
+  const lower = message.toLowerCase();
+  if (code === "190" || lower.includes("access token") || lower.includes("session has expired")) {
+    if (subcode === "463" || lower.includes("expired")) {
+      return "Meta Access Token ist abgelaufen; neu verbinden/Long-Lived Token setzen.";
+    }
+    return "Meta Access Token ist ungueltig; neu verbinden oder Token pruefen.";
+  }
+  if (code === "10" || code === "200" || lower.includes("permission")) {
+    return "Meta Permission fehlt; Instagram Business Discovery/Pages-Berechtigungen pruefen.";
+  }
+  if (code === "100") {
+    return "Meta Parameter/IG User ID oder Username nicht aufloesbar.";
+  }
+  if (status === 429 || lower.includes("rate")) {
+    return "Meta Rate-Limit erreicht; spaeter erneut versuchen.";
+  }
+  const details = [type ? `Typ ${type}` : "", code ? `Code ${code}` : "", subcode ? `Subcode ${subcode}` : ""]
+      .filter(Boolean)
+      .join(", ");
+  return details ? `Meta Graph Fehler (${details}).` : "Meta Graph Fehler ohne verwertbare Detailmeldung.";
+}
+
+function nonEmpty(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
 }
 
 function normalizeInstagramUsername(raw) {

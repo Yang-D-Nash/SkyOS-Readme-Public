@@ -1783,20 +1783,6 @@ private val musicHubFallbackInstagramQuickLinks = listOf(
         "https://open.spotify.com/search/Yang%20D.%20Nash",
     ),
     MusicHubSocialLink(
-        "MAVE",
-        "@mave040_official",
-        "https://www.instagram.com/mave040_official/",
-        "MAVE",
-        "https://open.spotify.com/search/MAVE",
-    ),
-    MusicHubSocialLink(
-        "ThaDude",
-        "@thadude_offizielle",
-        "https://www.instagram.com/thadude_offizielle/",
-        "ThaDude",
-        "https://open.spotify.com/search/ThaDude",
-    ),
-    MusicHubSocialLink(
         "TANGAJOE007",
         "@tangajoe007",
         "https://www.instagram.com/tangajoe007/",
@@ -1806,7 +1792,11 @@ private val musicHubFallbackInstagramQuickLinks = listOf(
 )
 
 private fun resolvedMusicHubSocialLinks(): List<MusicHubSocialLink> {
-    val preferredArtistOrder = listOf("JANNO", "Yang D. Nash", "MAVE", "ThaDude", "TANGAJOE007")
+    val liveArtists = ArtistPagesStore.pagesForBrand(ArtistPageBrand.Zweizwei)
+        .map { it.artistName.trim() }
+        .filter { it.isNotBlank() }
+        .distinct()
+    val preferredArtistOrder = liveArtists.ifEmpty { listOf("JANNO", "Yang D. Nash", "TANGAJOE007") }
     val fallbackByArtistPageName = musicHubFallbackInstagramQuickLinks.associateBy { it.artistPageName }
     val dynamicArtists = preferredArtistOrder.mapNotNull { artistName ->
         val fallback = fallbackByArtistPageName[artistName]
@@ -1866,7 +1856,6 @@ private fun MusicHubSocialLinkButton(
         "22 Music" -> colorScheme.primary
         "JANNO" -> colorScheme.secondary
         "Yang D. Nash" -> colorScheme.tertiary
-        "MAVE" -> colorScheme.skydownAccentMystic()
         else -> colorScheme.skydownAccent()
     }
     val instagramGradientColors = listOf(

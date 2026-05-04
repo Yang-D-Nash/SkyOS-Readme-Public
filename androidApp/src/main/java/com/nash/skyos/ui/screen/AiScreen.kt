@@ -48,6 +48,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -88,6 +89,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -347,7 +349,7 @@ fun AiScreen(
                                 if (uiState.isAiEnabled) sessionHeaderReservedHeight else 0.dp
                             },
                             end = SkydownUiTokens.screenHorizontalPadding,
-                            bottom = innerPadding.calculateBottomPadding() + 92.dp,
+                            bottom = innerPadding.calculateBottomPadding() + if (uiState.messages.isNotEmpty()) 150.dp else 92.dp,
                         ),
                         verticalArrangement = Arrangement.spacedBy(if (compactLayout) SkydownUiTokens.stackSpacingMicro else SkydownUiTokens.stackSpacingPill),
                     ) {
@@ -411,6 +413,31 @@ fun AiScreen(
                 }
             }
 
+            if (uiState.isAiEnabled && uiState.messages.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .zIndex(2f)
+                        .widthIn(max = contentMaxWidth)
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(horizontal = SkydownUiTokens.screenHorizontalPadding)
+                        .padding(bottom = 78.dp),
+                ) {
+                    AiThreadFollowUpBar(
+                        draft = uiState.draft,
+                        isWorking = uiState.botPhase.isBusy,
+                        canSend = viewModel.canSendTextFollowUp(),
+                        onDraftChanged = viewModel::updateDraft,
+                        onOpenFullComposer = { showPromptComposer = true },
+                        onSend = {
+                            viewModel.sendTextFollowUp()
+                            dismissKeyboard()
+                        },
+                    )
+                }
+            }
+
             ToastHost(
                 message = localFeedbackMessage ?: uiState.errorMessage,
                 type = if (localFeedbackMessage != null) localFeedbackType else ToastType.Error,
@@ -442,7 +469,7 @@ fun AiScreen(
                         onTextModeChange = viewModel::updateTextMode,
                         onLevelChange = viewModel::updateLevel,
                         onSend = {
-                            viewModel.sendDraft()
+                            viewModel.sendDraftInNewConversation()
                             dismissKeyboard()
                             showPromptComposer = false
                         },
@@ -601,6 +628,76 @@ private fun AiEmptyStateHeader(
             BrandStatusChip(text = stringResource(R.string.ai_chip_text), accent = MaterialTheme.colorScheme.primary, isActive = true)
             BrandStatusChip(text = stringResource(R.string.ai_chip_visual), accent = MaterialTheme.colorScheme.tertiary, isActive = true)
             BrandStatusChip(text = stringResource(R.string.ai_chip_memory), accent = MaterialTheme.colorScheme.secondary, isActive = true)
+        }
+    }
+}
+
+@Composable
+private fun AiThreadFollowUpBar(
+    draft: String,
+    isWorking: Boolean,
+    canSend: Boolean,
+    onDraftChanged: (String) -> Unit,
+    onOpenFullComposer: () -> Unit,
+    onSend: () -> Unit,
+) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val submit: () -> Unit = {
+        if (canSend && !isWorking) {
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+            onSend()
+        }
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedTextField(
+            value = draft,
+            onValueChange = onDraftChanged,
+            enabled = !isWorking,
+            modifier = Modifier
+                .weight(1f)
+                .testTag("ai.thread.followup.field"),
+            placeholder = {
+                Text(
+                    text = stringResource(R.string.ai_thread_followup_placeholder),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                )
+            },
+            minLines = 1,
+            maxLines = 4,
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.42f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+            ),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = { submit() }),
+        )
+        IconButton(onClick = onOpenFullComposer) {
+            Icon(
+                imageVector = Icons.Filled.Settings,
+                contentDescription = stringResource(R.string.ai_thread_open_full_composer_a11y),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+        IconButton(
+            onClick = submit,
+            enabled = canSend && !isWorking,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Send,
+                contentDescription = stringResource(R.string.ai_thread_send_a11y),
+                tint = if (canSend && !isWorking) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                },
+            )
         }
     }
 }

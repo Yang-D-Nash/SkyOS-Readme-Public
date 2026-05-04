@@ -98,6 +98,22 @@ test("agent workspace context includes recent agent conversation memory", () => 
   assert.match(indexSource, /recentAgentHistory/);
 });
 
+test("agent social analytics restricts request context without wiping remembered handles", () => {
+  assert.match(indexSource, /const promptSelectedPlatforms = SOCIAL_PLATFORM_ORDER/);
+  assert.match(indexSource, /mergeSocialProfiles\(extractedFromPrompt,\s*structuredProfiles\)/);
+  assert.match(indexSource, /const socialProfilesForMemory = \{\.\.\.socialProfiles\}/);
+  assert.match(indexSource, /socialSelectedPlatforms\.length > 0 \|\| promptSelectedPlatforms\.length > 0/);
+  assert.match(indexSource, /persistSocialProfilesToMemoryProfile\(uid,\s*socialProfilesForMemory\)/);
+  assert.match(indexSource, /socialSelectedPlatforms:\s*requiredPlatforms/);
+  assert.match(indexSource, /const AGENT_SOCIAL_LIVE_CACHE_COLLECTION = "agentSocialLiveCache"/);
+  assert.match(indexSource, /SOCIAL_LIVE_CACHE_TTL_MINUTES/);
+  assert.match(indexSource, /const META_OAUTH_TOKEN_DOCUMENT = "metaOAuth"/);
+  assert.match(indexSource, /async function resolveInstagramCredentialsForAgent\(\)/);
+  assert.match(indexSource, /async function resolveFacebookCredentialsForAgent\(\)/);
+  assert.match(indexSource, /loadSocialLiveSummaryCache\(\{/);
+  assert.match(indexSource, /saveSocialLiveSummaryCache\(\{/);
+});
+
 test("workflow task creation deduplicates open tasks by normalized title", () => {
   assert.match(indexSource, /function upsertOpenTaskWithDedup\(/);
   assert.match(indexSource, /where\("status",\s*"==",\s*"open"\)/);
@@ -122,4 +138,26 @@ test("triggerWorkflowAutomation keeps personal scope owner-check free", () => {
   assert.match(block.body, /const automationScope = .*=== "personal" \? "personal" : "owner"/);
   assert.match(block.body, /if\s*\(automationScope === "owner"\)\s*\{\s*await assertOwner\(request\.auth\);\s*\}/s);
   assert.doesNotMatch(block.body, /if\s*\(automationScope === "personal"\)\s*\{\s*await assertOwner\(request\.auth\);\s*\}/s);
+});
+
+test("Shopify collection sync prunes deleted handles instead of falling back silently", () => {
+  const syncBlock = callableBlocks().find(({name}) => name === "syncShopifyMerch");
+  const listBlock = callableBlocks().find(({name}) => name === "listShopifyCollections");
+
+  assert.ok(syncBlock, "syncShopifyMerch callable should exist");
+  assert.ok(listBlock, "listShopifyCollections callable should exist");
+  assert.match(indexSource, /function reconcileShopifyCollectionHandles\(/);
+  assert.match(indexSource, /function isVisibleShopifyCollection\(/);
+  assert.match(indexSource, /async function syncConfiguredShopifyCollectionHandles\(/);
+  assert.match(indexSource, /lastRemovedCollectionHandles/);
+  assert.match(indexSource, /collection_filter_pruned_empty/);
+  assert.match(indexSource, /productCount > 0/);
+  assert.match(indexSource, /products\(first: 1\)/);
+  assert.match(indexSource, /removedCollectionHandles/);
+  assert.match(indexSource, /const prunedAllConfiguredCollections =/);
+  assert.doesNotMatch(indexSource, /collection returned no products\. Falling back to all storefront products/);
+  assert.doesNotMatch(indexSource, /collection sync returned no products\. Falling back to all public products/);
+  assert.doesNotMatch(indexSource, /public collection sync failed\. Falling back to all public products/);
+  assert.match(listBlock.body, /persistShopifyCollectionHandlesIfChanged\(/);
+  assert.match(listBlock.body, /selectedCollectionHandles:\s*reconciliation\.activeCollectionHandles/);
 });

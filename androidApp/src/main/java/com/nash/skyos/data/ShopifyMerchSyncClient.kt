@@ -20,11 +20,20 @@ class ShopifyMerchSyncClient(
                 is List<*> -> rawHandles.mapNotNull { (it as? String)?.trim()?.takeIf(String::isNotBlank) }
                 else -> listOfNotNull((data?.get("collectionHandle") as? String)?.trim()?.takeIf(String::isNotBlank))
             }
+            val removedCollectionHandles = when (val rawHandles = data?.get("removedCollectionHandles")) {
+                is List<*> -> rawHandles.mapNotNull { (it as? String)?.trim()?.takeIf(String::isNotBlank) }
+                else -> emptyList()
+            }
+            val removedText = if (removedCollectionHandles.isNotEmpty()) {
+                " ${removedCollectionHandles.size} geloeschte Collections wurden aus der App entfernt."
+            } else {
+                ""
+            }
 
             if (collectionHandles.isNotEmpty()) {
-                "Shopify-Sync abgeschlossen: ${collectionHandles.size} Collections, $synced Produkte, $created neu, $updated aktualisiert, $deactivated ausgeblendet."
+                "Shopify-Sync abgeschlossen: ${collectionHandles.size} Collections, $synced Produkte, $created neu, $updated aktualisiert, $deactivated ausgeblendet.$removedText"
             } else {
-                "Shopify-Sync abgeschlossen: $synced Produkte, $created neu, $updated aktualisiert, $deactivated ausgeblendet."
+                "Shopify-Sync abgeschlossen: $synced Produkte, $created neu, $updated aktualisiert, $deactivated ausgeblendet.$removedText"
             }
         }
     }

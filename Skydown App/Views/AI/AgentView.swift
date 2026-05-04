@@ -2109,7 +2109,7 @@ private struct AgentPromptComposerSheet: View {
                             Text(
                                 AppLocalized.text(
                                     "agent.social.provider.status.lines",
-                                    fallback: "Live-Daten werden nur genutzt, wenn API-Key, Token und Plattformrechte gerade gueltig sind. Sonst arbeitet SkyOS sichtbar mit Handle-Kontext."
+                                    fallback: "YouTube/TikTok can load public live data. Spotify works without Premium for public metadata. Instagram/Facebook need a valid long-lived Meta token/Page token."
                                 )
                             )
                             .font(.caption)
@@ -2118,7 +2118,7 @@ private struct AgentPromptComposerSheet: View {
                             Text(
                                 AppLocalized.text(
                                     "agent.social.scope.workaround",
-                                    fallback: "Keine geschaetzten Kennzahlen: fehlende Reichweiten, Impressions oder Insights werden als nicht verfuegbar markiert."
+                                    fallback: "No estimated metrics: missing reach, impressions, followers, or insights are marked unavailable instead of invented."
                                 )
                             )
                             .font(.caption)
@@ -2137,18 +2137,18 @@ private struct AgentPromptComposerSheet: View {
                                         colorScheme: colorScheme
                                     )
                                     AgentStatusChip(
-                                        text: AppLocalized.text("agent.social.badge.instagram_fallback", fallback: "Instagram GRAPH"),
+                                        text: AppLocalized.text("agent.social.badge.instagram_fallback", fallback: "Instagram META TOKEN"),
                                         accent: AppColors.accentMystic(for: colorScheme),
                                         colorScheme: colorScheme
                                     )
                                     AgentStatusChip(
-                                        text: AppLocalized.text("agent.social.badge.meta_graph", fallback: "Meta PAGE"),
+                                        text: AppLocalized.text("agent.social.badge.meta_graph", fallback: "Meta PAGE TOKEN"),
                                         accent: AppColors.accentMystic(for: colorScheme),
                                         colorScheme: colorScheme
                                     )
                                     AgentStatusChip(
-                                        text: AppLocalized.text("agent.social.badge.spotify_restricted", fallback: "Spotify WEB API"),
-                                        accent: AppColors.secondaryText(for: colorScheme),
+                                        text: AppLocalized.text("agent.social.badge.spotify_restricted", fallback: "Spotify PUBLIC"),
+                                        accent: AppColors.accent(for: colorScheme),
                                         colorScheme: colorScheme
                                     )
                                 }
@@ -2233,7 +2233,7 @@ private struct AgentPromptComposerSheet: View {
                                 Text(
                                     AppLocalized.text(
                                         "agent.social.spotify.helper",
-                                        fallback: "Premium UX tip: Spotify references work without @handle. Example: spotify:artist:1Xyo4u8uXC1ZmMpatF05PJ"
+                                        fallback: "No Spotify Premium required for public metadata. Paste artist URL, URI, ID, or exact search text."
                                     )
                                 )
                                 .font(.caption2)

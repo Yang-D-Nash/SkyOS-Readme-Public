@@ -9,9 +9,13 @@ struct ProfileView: View {
     @Environment(\.openURL) private var openURL
     @State private var pendingImagePickerTarget: ProfileImagePickerTarget?
     @State private var galleryPreviewTarget: ProfileGalleryPreviewTarget?
+    #if DEBUG
     private let isUITestMode = ProcessInfo.processInfo.arguments.contains("-ui_test")
         || ProcessInfo.processInfo.arguments.contains("-ui_test_role_matrix")
         || ProcessInfo.processInfo.arguments.contains("-ui_test_profile_crud")
+    #else
+    private let isUITestMode = false
+    #endif
     private let onOpenSettings: (() -> Void)?
 
     init(

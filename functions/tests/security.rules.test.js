@@ -437,6 +437,32 @@ test("user darf keine globalen Owner-adminConfig Dokumente schreiben", async () 
   }));
 });
 
+test("metaOAuth Token-Dokument bleibt fuer Clients gesperrt", async () => {
+  await seedUser("owner", {
+    role: "owner",
+    quotaPlan: "owner_unlimited",
+  });
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "adminConfig", "metaOAuth"), {
+      igUserId: "17841437581904346",
+      facebookPageId: "107560732041070",
+      pageAccessToken: "secret",
+      updatedAt: Timestamp.now(),
+    });
+  });
+
+  const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
+
+  await assertFails(getDoc(doc(ownerDb, "adminConfig", "metaOAuth")));
+  await assertFails(setDoc(doc(ownerDb, "adminConfig", "metaOAuth"), {
+    igUserId: "17841437581904346",
+    facebookPageId: "107560732041070",
+    pageAccessToken: "changed",
+    updatedAt: Timestamp.now(),
+  }));
+  await assertFails(deleteDoc(doc(ownerDb, "adminConfig", "metaOAuth")));
+});
+
 test("owner darf AI Studio FAQ Knowledge speichern", async () => {
   const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
 
@@ -922,6 +948,7 @@ test("screenHeaders bleiben oeffentlich lesbar, aber nur der Owner darf valide H
     videoHubSubtitle: "Reels, Visuals und starke Kollabos.",
     videoHubDetail: "Clips, Looks und Leute hinter dem Vibe.",
     videoHubImageURL: "",
+    videoHubHeroVideoURL: "",
     updatedAt: Timestamp.fromDate(new Date("2026-04-03T11:00:00.000Z")),
   }));
   await assertFails(updateDoc(doc(userDb, "appConfig", "screenHeaders"), {
@@ -958,6 +985,7 @@ test("owner email darf screenHeaders auch ohne owner claim speichern", async () 
     videoHubSubtitle: "Reels, Visuals und starke Kollabos.",
     videoHubDetail: "Clips, Looks und Leute hinter dem Vibe.",
     videoHubImageURL: "",
+    videoHubHeroVideoURL: "https://example.com/video-hero.mp4",
     updatedAt: Timestamp.fromDate(new Date("2026-04-03T11:30:00.000Z")),
   }));
 });

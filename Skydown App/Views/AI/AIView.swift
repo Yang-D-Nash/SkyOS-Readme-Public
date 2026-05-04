@@ -51,7 +51,7 @@ struct AIView: View {
                     showingPromptComposer = false
                 },
                 onSend: {
-                    viewModel.sendDraft()
+                    viewModel.sendDraftInNewConversation()
                     showingPromptComposer = false
                 }
             )
@@ -235,7 +235,7 @@ struct AIView: View {
             }
             .safeAreaInset(edge: .bottom, spacing: SkydownLayout.stackSpacingNone) {
                 Color.clear
-                    .frame(height: featureFlags.isAIEnabled ? 86 : 0)
+                    .frame(height: featureFlags.isAIEnabled ? (viewModel.messages.isEmpty ? 86 : 148) : 0)
                     .allowsHitTesting(false)
             }
 
@@ -247,6 +247,20 @@ struct AIView: View {
                         style: viewModel.toastStyle,
                         colorScheme: colorScheme
                     )
+
+                    if !viewModel.messages.isEmpty {
+                        AIThreadFollowUpBar(
+                            colorScheme: colorScheme,
+                            draft: $viewModel.draft,
+                            isWorking: viewModel.phase.isBusy,
+                            onSend: {
+                                viewModel.sendTextFollowUp()
+                            },
+                            onOpenFullComposer: { showingPromptComposer = true },
+                            canSend: { viewModel.isCurrentTextFollowUpSendable }
+                        )
+                        .frame(maxWidth: 680)
+                    }
 
                     HStack {
                         Spacer(minLength: 0)
@@ -1151,6 +1165,80 @@ private struct AIMessageBubble: View {
             items.append(image)
         }
         return items
+    }
+}
+
+private struct AIThreadFollowUpBar: View {
+    let colorScheme: ColorScheme
+    @Binding var draft: String
+    let isWorking: Bool
+    let onSend: () -> Void
+    let onOpenFullComposer: () -> Void
+    let canSend: () -> Bool
+    @FocusState private var isFocused: Bool
+
+    private func submit() {
+        guard canSend(), !isWorking else { return }
+        isFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        onSend()
+    }
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 10) {
+            TextField(
+                "",
+                text: $draft,
+                prompt: Text(
+                    AppLocalized.text(
+                        "ai.thread.followup.placeholder",
+                        fallback: "Continue in this chat..."
+                    )
+                )
+                .foregroundColor(AppColors.secondaryText(for: colorScheme).opacity(0.78)),
+                axis: .vertical
+            )
+            .lineLimit(1...4)
+            .focused($isFocused)
+            .submitLabel(.send)
+            .onSubmit(submit)
+            .font(.subheadline.weight(.medium))
+            .foregroundColor(AppColors.text(for: colorScheme))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(AppColors.cardBackground(for: colorScheme))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(AppColors.accent(for: colorScheme).opacity(0.2), lineWidth: 1)
+            )
+            .accessibilityIdentifier("ai.thread.followup.field")
+
+            Button(action: onOpenFullComposer) {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.body.weight(.semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(AppColors.accent(for: colorScheme))
+            .accessibilityLabel(
+                AppLocalized.text("ai.thread.open_full_composer.a11y", fallback: "Mode and details")
+            )
+
+            Button(action: submit) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 30, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(
+                canSend() && !isWorking
+                    ? AppColors.accent(for: colorScheme)
+                    : AppColors.secondaryText(for: colorScheme).opacity(0.35)
+            )
+            .disabled(!canSend() || isWorking)
+            .accessibilityLabel(AppLocalized.text("ai.thread.send.a11y", fallback: "Send"))
+        }
     }
 }
 
