@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-05-05 02:54 CEST (Music Hub + Android localization candidate built: iOS 10022 and Android 10024)
+Last updated: 2026-05-05 03:30 CEST (Music Hub duplicate-brand cleanup + Android localization candidate built: iOS 10022 and Android 10024)
 Owner: Release Engineering
 
 ## Build Identity
@@ -25,8 +25,8 @@ Owner: Release Engineering
 - iOS UI test evidence: latest full fresh UI-test evidence remains `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.xcresult` and raw log `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.log`; build `10020` contains the refreshed keyboard dismissal and Agent new-conversation UX after that gate.
 - iOS upload evidence: `xcodebuild -exportArchive` with `build/ios/ExportOptions-app-store-upload-10022.plist` ended with `Upload succeeded` and `** EXPORT SUCCEEDED **` at 2026-05-04 23:01 CEST.
 - iOS upload status: UPLOADED for build `10022`; package processing started in App Store Connect.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-05-05 02:54 CEST, versionCode `10024`, SHA-256 `035261fd9bc90688e2195312e6c924b1a7b49e256281194f8b79ba07554bdfaa`)
-- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-05-05 02:54 CEST, versionCode `10024`, SHA-256 `26adc095a256934aa90eb03e0a56187ef309e03db542447454662d09a1733b8b`)
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-05-05 03:30 CEST, versionCode `10024`, SHA-256 `d08c9775212bf9a21b78d03c3e00574676ef5f2243d29e4fd37436257e07deca`)
+- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-05-05 03:29 CEST, versionCode `10024`, SHA-256 `379f02b71841e5866bdb8dd4bc7f32cf3bfa7dc447e95f004fa3d6df8fbd8dd4`)
 
 ## Upload Status
 
@@ -60,13 +60,13 @@ Owner: Release Engineering
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: SUCCEEDED for versionCode `10024` at 2026-05-05 02:54 CEST.
+- Release AAB build: SUCCEEDED for versionCode `10024` at 2026-05-05 03:30 CEST.
 - Play Console status: versionCode `10023` uploaded to the `internal` track as a draft through Fastlane at 2026-05-04 23:10 CEST; versionCode `10024` is the verified local follow-up candidate and still needs Play upload before device testers receive it through the store.
 - Play upload automation: WORKING via Fastlane `upload_android_internal` when `SUPPLY_JSON_KEY` points at the local Play service-account JSON.
 - CLI validate-only attempt: PASSED for versionCode `10023` at 2026-05-04 23:06 CEST.
 - Notes:
   - Fastlane used `release_status: draft`, so this did not start a production rollout.
-  - VersionCode `10024` contains the Music Hub artist ordering fix (`Janno`, `Mave`, `Tangajoe007`, `Yang D. Nash`, `ThaDude`) and packages all configured Android locales instead of English-only resources.
+  - VersionCode `10024` contains the Music Hub artist ordering fix (`Janno`, `Mave`, `Tangajoe007`, `Yang D. Nash`, `ThaDude`), removes the duplicate top `22 Music`/Zweizwei social destination, and packages all configured Android locales instead of English-only resources.
   - Earlier versionCode `10022` was uploaded to the Play internal draft at 2026-05-04 15:52 CEST and is superseded by this fresh versionCode `10023` upload.
   - VersionCode `10015` was previously confirmed online/visible by the release owner on 2026-04-27.
 
@@ -74,12 +74,13 @@ Owner: Release Engineering
 
 1. Android `versionCode` bumped to `10024` for the Music Hub / localization follow-up.
 2. Music Hub canonical artist order is aligned across iOS and Android: `Janno`, `Mave`, `Tangajoe007`, `Yang D. Nash`, `ThaDude`.
-3. Android release resources now include all configured app locales (`en`, `de`, `es`, `fr`, `it`, `ja`, `nl`, `pl`, `pt`, `tr`) instead of packaging English only.
-4. Android release compile passed via `./gradlew :androidApp:compileReleaseKotlin`.
-5. iOS Release simulator build passed via `xcodebuild -project 'Skydown App.xcodeproj' -scheme 'Skydown App' -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build`.
-6. Android clean release gate passed for version `1.0.0` / versionCode `10024`; AAB and APK were rebuilt at 2026-05-05 02:54 CEST.
-7. Android AAB SHA-256 for versionCode `10024`: `035261fd9bc90688e2195312e6c924b1a7b49e256281194f8b79ba07554bdfaa`.
-8. Android APK SHA-256 for versionCode `10024`: `26adc095a256934aa90eb03e0a56187ef309e03db542447454662d09a1733b8b`.
+3. The duplicate top `22 Music`/Zweizwei social destination was removed, so the Music Hub shows only the five canonical artist entries.
+4. Android release resources now include all configured app locales (`en`, `de`, `es`, `fr`, `it`, `ja`, `nl`, `pl`, `pt`, `tr`) instead of packaging English only.
+5. Android release compile passed via `./gradlew :androidApp:compileReleaseKotlin`.
+6. iOS Release simulator build passed via `xcodebuild -project 'Skydown App.xcodeproj' -scheme 'Skydown App' -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build`.
+7. Android clean release gate passed for version `1.0.0` / versionCode `10024`; AAB and APK were rebuilt at 2026-05-05 03:30 CEST.
+8. Android AAB SHA-256 for versionCode `10024`: `d08c9775212bf9a21b78d03c3e00574676ef5f2243d29e4fd37436257e07deca`.
+9. Android APK SHA-256 for versionCode `10024`: `379f02b71841e5866bdb8dd4bc7f32cf3bfa7dc447e95f004fa3d6df8fbd8dd4`.
 
 ## 2026-05-04 Verification Log
 

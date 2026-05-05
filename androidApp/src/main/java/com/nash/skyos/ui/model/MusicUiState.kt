@@ -31,13 +31,6 @@ data class MusicUiState(
 
     val instagramHubDestinations: List<MusicInstagramDestination>
         get() = buildList {
-            add(
-                MusicInstagramDestination(
-                    title = AppTextResolver.string(R.string.music_instagram_hub_title),
-                    subtitle = AppTextResolver.string(R.string.music_instagram_hub_subtitle),
-                    instagramUrl = "https://www.instagram.com/zweizwei_music/",
-                ),
-            )
             addAll(
                 availableArtists.map { artist ->
                     artistSocialProfiles[musicArtistKey(artist)]?.let { profile ->

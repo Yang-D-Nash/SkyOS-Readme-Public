@@ -409,16 +409,6 @@ let artistInstagramDestinations: [String: MusicInstagramDestination] = [
     )
 ]
 
-let zweizweiInstagramDestination = MusicInstagramDestination(
-    id: "brand_22_music",
-    title: "22 Music",
-    handle: "@zweizwei_music",
-    urlString: "https://www.instagram.com/zweizwei_music/",
-    helper: "SkyOS Universe",
-    spotifyURLString: nil,
-    artistPageName: "Janno"
-)
-
 let skydownMusicInstagramDestination = MusicInstagramDestination(
     id: "brand_skydown",
     title: "Skydown",

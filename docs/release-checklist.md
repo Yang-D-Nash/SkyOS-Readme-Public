@@ -5,9 +5,10 @@ trust paths, backend authority, and support readiness all line up at the same ti
 
 ## Current RC Snapshot
 
-Status as of 2026-05-05 02:54 CEST: backend Meta/social live-data setup is deployed, the prompt-progress
+Status as of 2026-05-05 03:30 CEST: backend Meta/social live-data setup is deployed, the prompt-progress
 client refresh is uploaded as iOS build `10022` / Android versionCode `10023`, and the follow-up
 Music Hub + Android localization candidate is locally built and verified as Android versionCode `10024`.
+The duplicate top `22 Music`/Zweizwei social entry is removed so the hub shows only the five canonical artists.
 Public store rollout remains `no-go` until the open
 items in [release/store-upload-runbook.md](release/store-upload-runbook.md) are closed.
 

@@ -1765,13 +1765,6 @@ private data class MusicHubSocialLink(
 
 private val musicHubFallbackInstagramQuickLinks = listOf(
     MusicHubSocialLink(
-        "22 Music",
-        "@zweizwei_music",
-        "https://www.instagram.com/zweizwei_music/",
-        "Janno",
-        "https://open.spotify.com/search/22%20Music",
-    ),
-    MusicHubSocialLink(
         "Janno",
         "@janno_official_",
         "https://www.instagram.com/janno_official_/",
@@ -1819,21 +1812,7 @@ private fun resolvedMusicHubSocialLinks(): List<MusicHubSocialLink> {
         )
     }
 
-    val fallbackBrand = musicHubFallbackInstagramQuickLinks.firstOrNull { it.title == "22 Music" }
-    val jannoPage = ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, "Janno")
-    val brandInstagramUrl = jannoPage.instagramURL?.trim().takeUnless { it.isNullOrEmpty() } ?: fallbackBrand?.url
-    val brandEntry = if (fallbackBrand != null && !brandInstagramUrl.isNullOrBlank()) {
-        fallbackBrand.copy(
-            url = brandInstagramUrl,
-            subtitle = instagramHandleFromUrl(brandInstagramUrl) ?: fallbackBrand.subtitle,
-            spotifyUrl = jannoPage.spotifyURL?.trim().takeUnless { it.isNullOrEmpty() }
-                ?: fallbackBrand.spotifyUrl,
-        )
-    } else {
-        null
-    }
-
-    return listOfNotNull(brandEntry) + dynamicArtists
+    return dynamicArtists
 }
 
 private fun instagramSearchUrlForArtist(artistName: String): String {
@@ -1868,7 +1847,6 @@ private fun MusicHubSocialLinkButton(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val accent = when (musicArtistKey(link.title)) {
-        "22music" -> colorScheme.primary
         "janno" -> colorScheme.secondary
         "yangdnash" -> colorScheme.tertiary
         "mave" -> colorScheme.tertiary

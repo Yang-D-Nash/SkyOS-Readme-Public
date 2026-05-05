@@ -997,28 +997,12 @@ private struct ZweizweiTabView: View {
             )
         }
 
-        return ([resolvedBrandSocialDestination] + dynamicArtists).compactMap { destination in
+        return dynamicArtists.compactMap { destination in
             guard let destination else { return nil }
             let trimmedURL = destination.urlString.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmedURL.isEmpty else { return nil }
             return destination
         }
-    }
-
-    private var resolvedBrandSocialDestination: MusicInstagramDestination {
-        let page = artistPagesStore.page(for: .zweizwei, artistName: "Janno")
-        let resolvedInstagram = page.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let resolvedSpotify = page.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines)
-        return MusicInstagramDestination(
-            id: zweizweiInstagramDestination.id,
-            title: zweizweiInstagramDestination.title,
-            handle: musicHubInstagramHandle(from: (resolvedInstagram?.isEmpty == false) ? resolvedInstagram! : zweizweiInstagramDestination.urlString)
-                ?? zweizweiInstagramDestination.handle,
-            urlString: (resolvedInstagram?.isEmpty == false) ? resolvedInstagram! : zweizweiInstagramDestination.urlString,
-            helper: zweizweiInstagramDestination.helper,
-            spotifyURLString: (resolvedSpotify?.isEmpty == false) ? resolvedSpotify : zweizweiInstagramDestination.spotifyURLString,
-            artistPageName: zweizweiInstagramDestination.artistPageName
-        )
     }
 
     private func musicHubInstagramHandle(from urlString: String) -> String? {
@@ -1033,8 +1017,6 @@ private struct ZweizweiTabView: View {
 
     private func musicHubSocialAccent(for destination: MusicInstagramDestination) -> Color {
         switch musicArtistKey(destination.title) {
-        case "22music":
-            return AppColors.spotify(for: colorScheme)
         case "janno":
             return AppColors.accent(for: colorScheme)
         case "yangdnash":
