@@ -146,6 +146,8 @@ test("Shopify collection sync prunes deleted handles instead of falling back sil
 
   assert.ok(syncBlock, "syncShopifyMerch callable should exist");
   assert.ok(listBlock, "listShopifyCollections callable should exist");
+  assert.match(syncBlock.body, /secrets:\s*\[shopifyAdminAccessToken\]/);
+  assert.match(listBlock.body, /secrets:\s*\[shopifyAdminAccessToken\]/);
   assert.match(indexSource, /function reconcileShopifyCollectionHandles\(/);
   assert.match(indexSource, /function isVisibleShopifyCollection\(/);
   assert.match(indexSource, /async function syncConfiguredShopifyCollectionHandles\(/);

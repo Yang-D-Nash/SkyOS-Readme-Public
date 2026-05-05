@@ -18175,6 +18175,7 @@ exports.skydownAgent = onCall({
 exports.syncShopifyMerch = onCall({
   region: "us-central1",
   timeoutSeconds: 120,
+  secrets: [shopifyAdminAccessToken],
 }, async (request) => {
   await assertCallableSecurity(request, "syncShopifyMerch");
   await assertOwner(request.auth);
@@ -18184,6 +18185,7 @@ exports.syncShopifyMerch = onCall({
 exports.listShopifyCollections = onCall({
   region: "us-central1",
   timeoutSeconds: 120,
+  secrets: [shopifyAdminAccessToken],
 }, async (request) => {
   await assertCallableSecurity(request, "listShopifyCollections");
   await assertOwner(request.auth);
