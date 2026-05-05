@@ -1,10 +1,13 @@
-# Release Notes - 1.0.0 (2026-05-04 rollout candidate)
+# Release Notes - 1.0.0 (2026-05-05 store review candidate)
 
-Date: 2026-05-04
+Date: 2026-05-05
 
 ## What was finalized
 
 - Connected Meta-backed Instagram/Facebook social analytics server-side without exposing tokens to clients.
+- Refreshed release-facing Legal/Privacy/Terms dates to `5. Mai 2026` across iOS, Android, Functions, and static site fallbacks.
+- Verified the current Meta Graph token against Instagram Business Discovery, the connected Instagram Business account, and the Facebook Page.
+- Deployed Shopify sync/list functions with the required Admin API secret binding so deleted Shopify collections prune from the UI.
 - Refreshed app/logo assets and release documentation for the next iOS/Android rollout.
 - Hardened real-data paths for social analytics, Shopify collections, and Founder Briefing artist context.
 - Deployed `createFounderBriefingFromWorkflow` to Firebase project `skydown-a6add` (Cloud Functions 2nd gen, `us-central1`).
@@ -17,11 +20,12 @@ Date: 2026-05-04
 
 - Shared tests: pass (`:shared:allTests`)
 - Android checks: pass (`:androidApp:lintDebug`, `detektAll`, `:shared:compileKotlinMetadata`)
-- Android release gate: pass (`./scripts/android_release_gate.sh`, versionCode `10022`, AAB/APK rebuilt 2026-05-04 15:38 CEST)
-- Google Play internal upload: pass (`fastlane android upload_android_internal`, draft, versionCode `10022`, 2026-05-04 15:52 CEST)
+- Android release gate: pass (`./scripts/android_release_gate.sh`, versionCode `10026`, AAB/APK rebuilt 2026-05-05 18:30 CEST)
+- Google Play internal upload: pass (`fastlane android upload_android_internal`, draft, versionCode `10026`, 2026-05-05 18:33 CEST)
 - Functions checks: pass (`npm run build`, `npm test`, Firestore+Storage emulator rules tests)
 - iOS build: pass (`xcodebuild ... -configuration Release ... build`)
-- iOS App Store Connect upload: pass (`xcodebuild -exportArchive`, build `10021`, package processing started 2026-05-04 15:47 CEST)
+- iOS App Store Connect upload: pass (`xcodebuild -exportArchive`, build `10024`, package processing started 2026-05-05 18:57 CEST)
+- Backend live config: pass (Meta OAuth token live, Shopify sync/list functions deployed with Admin secret, legal content date live at `5. Mai 2026`)
 
 ## Release-impacting notes
 

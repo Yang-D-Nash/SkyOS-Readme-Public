@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0 Store review date refresh - 2026-05-05
+
+- Release review metadata: aligned Legal/Privacy/Terms last-updated labels to `5. Mai 2026` across iOS, Android, Functions, and static web pages.
+- Backend config: refreshed and verified the live Meta Graph token for Instagram/Facebook social analytics.
+- Commerce: deployed Shopify sync/list functions with Admin API secret binding so removed Shopify collections are pruned from the UI.
+- Store readiness: documented current iOS build `10024` and Android versionCode `10026` as the active review candidates.
+
 ## 1.0.0 Real-data release refresh - 2026-05-04
 
 - AI/Agent sheets: added visible prompt-progress states on iOS and Android so new-chat sends stay open with a deterministic loading banner until the run completes, queues, or is rejected.

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc">
   <title id="title">SkyOS Release Compliance Snapshot</title>
-  <desc id="desc">Board graphic for the 2026-05-04 SkyOS internal release: iOS build 10021 uploaded, Android versionCode 10022 uploaded, backend live data protected, manual store gates still open.</desc>
+  <desc id="desc">Board graphic for the 2026-05-05 SkyOS store review candidate: iOS build 10024 uploaded, Android versionCode 10026 uploaded, Meta and Shopify live data paths verified, manual store gates still open.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#071015"/>
@@ -53,7 +53,7 @@
   <g transform="translate(132 124)">
     <text class="eyebrow" x="0" y="0">FINAL COMPLIANCE SNAPSHOT</text>
     <text class="title" x="0" y="86">SkyOS Release Board</text>
-    <text class="sub" x="0" y="134">Stand: 04.05.2026, 15:53 CEST - interne Store-Rollouts vorbereitet</text>
+    <text class="sub" x="0" y="134">Stand: 05.05.2026, 18:57 CEST - Store-Review-Kandidat vorbereitet</text>
 
     <g transform="translate(1300 -24)">
       <circle cx="110" cy="92" r="76" fill="#071015" stroke="#eef7fb" stroke-width="5"/>
@@ -72,7 +72,7 @@
     <rect x="24" y="24" width="106" height="36" rx="18" fill="#a7f3d0"/>
     <text class="statusDone" x="77" y="49" text-anchor="middle">DONE</text>
     <text class="cardTitle" x="24" y="105">iOS</text>
-    <text class="cardMeta" x="24" y="147">Build 10021</text>
+    <text class="cardMeta" x="24" y="147">Build 10024</text>
     <text class="body" x="24" y="190">Uploaded to App Store Connect</text>
     <text class="small" x="24" y="218">Status: package processing</text>
   </g>
@@ -84,7 +84,7 @@
     <rect x="24" y="24" width="106" height="36" rx="18" fill="#a7f3d0"/>
     <text class="statusDone" x="77" y="49" text-anchor="middle">DONE</text>
     <text class="cardTitle" x="24" y="105">Android</text>
-    <text class="cardMeta" x="24" y="147">versionCode 10022</text>
+    <text class="cardMeta" x="24" y="147">versionCode 10026</text>
     <text class="body" x="24" y="190">Uploaded to Play internal</text>
     <text class="small" x="24" y="218">Status: draft release</text>
   </g>
@@ -97,8 +97,8 @@
     <text class="statusDone" x="70" y="49" text-anchor="middle">LIVE</text>
     <text class="cardTitle" x="24" y="105">Meta Social</text>
     <text class="cardMeta" x="24" y="147">Instagram + Facebook</text>
-    <text class="body" x="24" y="190">Server-side token storage</text>
-    <text class="small" x="24" y="218">Firestore client access blocked</text>
+    <text class="body" x="24" y="190">Live Graph token verified</text>
+    <text class="small" x="24" y="218">Client access stays blocked</text>
   </g>
 
   <g transform="translate(1392 324)">
@@ -123,7 +123,7 @@
     </g>
     <g transform="translate(32 152)">
       <circle cx="14" cy="14" r="14" fill="#a7f3d0"/><path d="M7 14 L12 19 L22 8" fill="none" stroke="#071015" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      <text class="body" x="44" y="23">Shopify stale collections pruned from UI sync</text>
+    <text class="body" x="44" y="23">Shopify sync/list functions deployed with Admin secret</text>
     </g>
     <g transform="translate(32 200)">
       <circle cx="14" cy="14" r="14" fill="#a7f3d0"/><path d="M7 14 L12 19 L22 8" fill="none" stroke="#071015" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
@@ -137,11 +137,11 @@
     <line x1="32" y1="72" x2="764" y2="72" stroke="#2f4350" stroke-width="2"/>
     <g transform="translate(32 104)">
       <circle cx="14" cy="14" r="14" fill="#f8d16b"/><path d="M14 7 L14 16 M14 22 L14.1 22" fill="none" stroke="#201506" stroke-width="4" stroke-linecap="round"/>
-      <text class="body" x="44" y="23">Attach iOS build 10021 to Internal TestFlight testers</text>
+      <text class="body" x="44" y="23">Attach iOS build 10024 to TestFlight/App Review flow</text>
     </g>
     <g transform="translate(32 152)">
       <circle cx="14" cy="14" r="14" fill="#f8d16b"/><path d="M14 7 L14 16 M14 22 L14.1 22" fill="none" stroke="#201506" stroke-width="4" stroke-linecap="round"/>
-      <text class="body" x="44" y="23">Review Play internal draft for Android 10022</text>
+      <text class="body" x="44" y="23">Review Play internal draft for Android 10026</text>
     </g>
     <g transform="translate(32 200)">
       <circle cx="14" cy="14" r="14" fill="#f8d16b"/><path d="M14 7 L14 16 M14 22 L14.1 22" fill="none" stroke="#201506" stroke-width="4" stroke-linecap="round"/>

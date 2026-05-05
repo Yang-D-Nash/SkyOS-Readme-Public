@@ -6,7 +6,7 @@ This playbook defines the creative direction, sequence, and capture standards fo
 
 ## Current Release Asset Status
 
-Status as of 2026-04-27: capture foundations exist, but the public upload package is not complete.
+Status as of 2026-05-05: capture foundations and final screenshot sets exist; final console attachment and store listing approval remain external release gates.
 
 | Set | Current files | Release read |
 | --- | --- | --- |

@@ -1,7 +1,7 @@
 # Anwalt-Briefing fuer Release V1 (SkyOS / Skydown)
 
 Status: Briefing fuer juristische Begleitpruefung
-Datum: `2026-04-29`
+Datum: `2026-05-05`
 Produkt: `SkyOS / Skydown`
 Rechteinhaber und Entwickler: `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)`
 Anschrift: `Erich-Plate-Weg 44, 22419 Hamburg, Deutschland`

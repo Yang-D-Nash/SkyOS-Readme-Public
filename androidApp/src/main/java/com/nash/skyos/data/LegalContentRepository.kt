@@ -16,7 +16,7 @@ private const val defaultLegalRightsHolderName = "Nguyen Phuong Ngoc Anh / Yang 
 private const val legacyLegalOperatorName = "Skydown"
 private const val legacyLegalRightsHolderName = "Skydown"
 private val defaultLegalSupportEmail = PlatformContactEmails.DEFAULT_SUPPORT_EMAIL
-private const val defaultLegalLastUpdatedLabel = "29. April 2026"
+private const val defaultLegalLastUpdatedLabel = "5. Mai 2026"
 private val defaultLegalImprintReference =
     "Anbieterkennzeichnung: Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: ${PlatformContactEmails.DEFAULT_SUPPORT_EMAIL}."
 private val legacyLegalImprintReference =

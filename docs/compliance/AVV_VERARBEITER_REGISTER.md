@@ -18,7 +18,7 @@ Status-Definition:
 - `OPEN`: noch nicht ausreichend belegt.
 - `n/a`: kein klassischer AVV-Pfad (Plattform-Eigenrolle), nur Transparenzpflichten.
 
-Stand der Tabelle: `2026-04-29`
+Stand der Tabelle: `2026-05-05`
 
 | Dienst | Rolle | Datenkategorien | Zweck | Region/Drittland | AVV/DPA Status | SCC/Transfer | TOMs geprueft | Vertrag Link/Ablage | Owner intern | Naechster Schritt |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |

@@ -4,7 +4,7 @@ TOMs = Technische und organisatorische Massnahmen nach Art. 32 DSGVO.
 
 Status:
 - [x] initial
-- [x] aktualisiert am: `2026-04-29`
+- [x] aktualisiert am: `2026-05-05`
 - [x] freigegeben durch: `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)` (technischer Stand)
 
 ---

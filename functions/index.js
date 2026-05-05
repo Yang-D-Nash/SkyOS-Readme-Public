@@ -212,7 +212,7 @@ const DEFAULT_LEGAL_CONTENT_SETTINGS = Object.freeze({
   operatorName: "Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)",
   rightsHolderName: "Nguyen Phuong Ngoc Anh / Yang D. Nash - Skydown",
   supportEmail: "skydownent@gmail.com",
-  lastUpdatedLabel: "29. April 2026",
+  lastUpdatedLabel: "5. Mai 2026",
   imprintReference: "Anbieter: Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown) · Erich-Plate-Weg 44 · 22419 Hamburg · DE · skydownent@gmail.com",
 });
 const EU_COUNTRY_CODES = new Set([

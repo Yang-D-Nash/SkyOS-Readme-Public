@@ -8,7 +8,7 @@ Wichtig:
 - Dieses Kit ist eine technische und organisatorische Arbeitsgrundlage.
 - Es ersetzt keine individuelle Rechtsberatung.
 
-Zuletzt aktualisiert: `29. April 2026`
+Zuletzt aktualisiert: `5. Mai 2026`
 
 ---
 
@@ -48,19 +48,19 @@ Incident- und Meldeprozess bei Datenschutzvorfall.
 6. `TOMS_CHECKLIST.md`
 Technische und organisatorische Massnahmen als Betriebs-Checkliste.
 
-7. `ANWALT_FREIGABE_CHECKLIST_2026-04-29.md`
+7. `ANWALT_FREIGABE_CHECKLIST_2026-04-19.md` (Stand `2026-05-05`)
 Knappe 1-Seiten-Checkliste fuer die juristische Freigabe vor Public Release.
 
 8. `ANWALT_BRIEFING_RELEASE_V1.md`
 Ausfuehrlicheres Briefing plus Mail-Template fuer die juristische Endpruefung.
 
-9. `RELEASE_READINESS_2026-04-29.md`
+9. `RELEASE_READINESS_2026-04-19.md` (Stand `2026-05-05`)
 Aktueller Release-Stand mit Build-, Distribution- und noch offenen Blockern.
 
-10. `RELEASE_READINESS_2026-04-29.md`
+10. `RELEASE_READINESS_2026-04-15.md` (historischer Endspurt-Report, Stand `2026-05-05`)
 Historischer Endspurt-Report vor der spaeteren Release-Haertung.
 
-11. `COMPLIANCE_REVIEW_2026-04-29.md`
+11. `COMPLIANCE_REVIEW_2026-04-15.md` (Stand `2026-05-05`)
 Formaler DSGVO- und Compliance-Review mit priorisierten Findings.
 
 ---

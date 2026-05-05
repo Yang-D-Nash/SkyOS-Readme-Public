@@ -1,6 +1,6 @@
 # SkyOS Experience Principles
 
-Zuletzt aktualisiert: `20. April 2026`
+Zuletzt aktualisiert: `5. Mai 2026`
 
 Dieses Dokument beschreibt die Erlebnis- und Systemregeln fuer SkyOS.
 Es ist kein Moodboard, sondern die gemeinsame Arbeitsgrundlage fuer Design, Produkt, Entwicklung, Review und Release.

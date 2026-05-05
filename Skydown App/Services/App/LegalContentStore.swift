@@ -7,7 +7,7 @@ private let defaultLegalRightsHolderName = "Nguyen Phuong Ngoc Anh / Yang D. Nas
 private let legacyLegalOperatorName = "Skydown"
 private let legacyLegalRightsHolderName = "Skydown"
 private let defaultLegalSupportEmail = PlatformContactEmails.defaultSupportEmail
-private let defaultLegalLastUpdatedLabel = "29. April 2026"
+private let defaultLegalLastUpdatedLabel = "5. Mai 2026"
 private let defaultLegalImprintReference =
     "Anbieterkennzeichnung: Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg, Deutschland. Kontakt: \(PlatformContactEmails.defaultSupportEmail)."
 private let legacyLegalImprintReference =

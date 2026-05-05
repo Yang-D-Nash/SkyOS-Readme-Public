@@ -1,4 +1,4 @@
-# Compliance Review (SkyOS / Skydown) - 2026-04-29
+# Compliance Review (SkyOS / Skydown) - 2026-05-05
 
 Ziel:
 - Nachweisbarer DSGVO-/Compliance-Review fuer den aktuellen Projektstand.
@@ -6,7 +6,7 @@ Ziel:
 
 Scope:
 - Code, Firestore/Storage-Sicherheitsregeln, Functions, vorhandene Compliance-Doku.
-- Stand: `2026-04-29`.
+- Stand: `2026-05-05`.
 
 ## Gesamtfazit
 
@@ -78,13 +78,13 @@ Scope:
 
 Nachweisdateien:
 - `docs/compliance/DSGVO_RELEASE_CHECKLIST.md`
-- `docs/compliance/RELEASE_READINESS_2026-04-29.md`
+- `docs/compliance/RELEASE_READINESS_2026-04-19.md`
 
 ## Figma Board Pack (Copy/Paste)
 
 ### Frame 1 - Executive Summary
 
-- Titel: `SkyOS / Skydown Compliance Review - 2026-04-29`
+- Titel: `SkyOS / Skydown Compliance Review - 2026-05-05`
 - Status: `Gelb`
 - Kernbotschaft:
   - Technik stabil und weitgehend abgesichert.

@@ -16,7 +16,7 @@ Hinweis:
 - Produkt: `SkyOS / Skydown`
 - Kontakt Datenschutzanfragen: `skydownent@gmail.com`
 - Version: `v1`
-- Stand: `2026-04-29`
+- Stand: `2026-05-05`
 
 ---
 

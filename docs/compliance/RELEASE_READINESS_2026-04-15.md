@@ -1,6 +1,6 @@
 # Release Readiness Report (SkyOS / Skydown)
 
-Stand: `2026-04-29`
+Stand: `2026-05-05`
 Scope: technischer + dokumentarischer Endspurt vor dem Produktions-Release.
 
 ## 1) Verantwortlichkeit

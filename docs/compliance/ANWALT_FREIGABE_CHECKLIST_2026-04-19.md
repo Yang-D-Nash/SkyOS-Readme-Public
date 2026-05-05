@@ -1,15 +1,15 @@
 # Anwalt-Freigabe Checkliste (SkyOS / Skydown)
 
-Stand: `2026-04-29`
+Stand: `2026-05-05`
 Zweck: 1-Seiten-Pruefblatt fuer die juristische Endfreigabe vor dem oeffentlichen Release.
 
 ## Produkt
 
 - App: `SkyOS / Skydown`
 - Plattformen: `iOS` und `Android`
-- Aktueller iOS QA-Stand: `Release-Build lokal erfolgreich; Live-UI-Credentials separat zu pflegen`
-- Aktueller Android QA-Stand: `Release-Build + Lint lokal erfolgreich`
-- Oeffentlicher Release: `Release-Paket finalisiert; Store-/Live-Schaltung organisatorisch`
+- Aktueller iOS QA-Stand: `Build 10024 in App Store Connect hochgeladen; TestFlight-/Review-Zuordnung in Store-Konsole final pruefen`
+- Aktueller Android QA-Stand: `versionCode 10026 in Google Play Internal Testing als Draft hochgeladen`
+- Oeffentlicher Release: `Store-Review-Paket aktualisiert; Live-Schaltung bleibt manuelles Gate`
 
 ## Gewuenschte Entscheidung der Kanzlei
 
@@ -54,13 +54,13 @@ Bitte zusaetzlich alle Pflichtaenderungen nach Prioritaet markieren:
 - [ ] AVV/DPA/SCC fuer aktive Dienste final auf `OK`
 - [ ] DSAR-Probelauf fuer Auskunft und Loeschung dokumentiert
 - [ ] Monitoring / Incident / Recovery-Nachweise dokumentiert
-- [ ] Android Release-Signing separat noch technisch offen
+- [ ] Finaler Device-Smoke auf iOS und Android noch als Freigabenachweis dokumentieren
 
 ## Unterlagen fuer die Pruefung
 
-- `docs/compliance/RELEASE_READINESS_2026-04-29.md`
+- `docs/compliance/RELEASE_READINESS_2026-04-19.md`
 - `docs/compliance/DSGVO_RELEASE_CHECKLIST.md`
-- `docs/compliance/COMPLIANCE_REVIEW_2026-04-29.md`
+- `docs/compliance/COMPLIANCE_REVIEW_2026-04-15.md`
 - `docs/compliance/AVV_VERARBEITER_REGISTER.md`
 - `docs/compliance/VVT_VERARBEITUNGSTAETIGKEITEN.md`
 - `docs/compliance/BETROFFENENRECHTE_SOP.md`

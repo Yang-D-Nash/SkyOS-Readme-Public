@@ -1,6 +1,6 @@
 # SkyOS Transparenz- und Reengineering-Dossier
 
-Stand: 2026-04-29
+Stand: 2026-05-05
 
 Dieses Dokument beschreibt SkyOS so, dass eine technisch kompetente Person die App, das Backend,
 die Datenfluesse und die Betriebslogik nachvollziehen und in einer eigenen Umgebung nachbauen kann.

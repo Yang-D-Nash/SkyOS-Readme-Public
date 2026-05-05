@@ -1,12 +1,12 @@
 # DSGVO Release Checklist (SkyOS / Skydown)
 
-Status: `Stand 2026-04-29 (Launch Baseline)`
+Status: `Stand 2026-05-05 (Store Review Candidate)`
 
 Release:
 - App Name: `Skydown`
 - System/Produktkern: `SkyOS`
 - Version: `1.0.0`
-- Datum: `2026-04-29`
+- Datum: `2026-05-05`
 - Verantwortlicher/Rechteinhaber: `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown), Erich-Plate-Weg 44, 22419 Hamburg`
 - Freigegeben von: `Nguyen Phuong Ngoc Anh`
 
@@ -36,6 +36,9 @@ Release:
 - [x] Firestore Rules produktiv deployed und live verifiziert (`firebase deploy --only firestore:rules,storage`, 2026-04-29).
 - [x] Storage Rules produktiv deployed und live verifiziert (`firebase deploy --only firestore:rules,storage`, 2026-04-29).
 - [x] Runtime-Config live geprueft (`system/runtimeConfig` ist erreichbar; `appCheckMode=enforce`, 2026-04-29).
+- [x] Functions/Rules lokal fuer Store Review erneut voll geprueft (`npm --prefix functions run test`, 82/82 gruen, 2026-05-05).
+- [x] Meta Graph Token live verifiziert fuer Instagram Business Discovery, verbundenes Instagram Business-Konto und Facebook Page (2026-05-05).
+- [x] Shopify Sync/List Functions mit `SHOPIFY_ADMIN_ACCESS_TOKEN` als Secret-Dependency deployed (2026-05-05).
 - [ ] App Check Enforcement im produktiven Modus ohne Debug-Token auf echten Geraeten vollstaendig verifiziert.
 - [x] Rollen-/Claim-Sync getestet (owner/admin/subadmin/user).
 - [x] Android Backup-Haertung aktiv (`allowBackup=false` + excludes).
@@ -69,7 +72,7 @@ Release:
 - [x] Android Build erfolgreich.
 - [x] iOS Release Build erfolgreich.
 - [x] iOS App Check Release-Haertung aktiv (Release nutzt DeviceCheck statt Debug-Provider).
-- [x] Rules Tests erfolgreich (`npm run test:rules`, 42/42 gruen).
+- [x] Rules Tests erfolgreich (`npm run test:rules`, 42/42 gruen; Full Functions Gate 82/82 gruen am 2026-05-05).
 - [ ] Vollstaendiger Device-Smoketest: Registrierung, Login, Consent, Rollenwechsel, KI, Upload (iOS + Android).
 - [ ] Monitoring/Alerts fuer Prod-Fehler final aktiv und testweise ausgelost.
 

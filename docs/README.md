@@ -59,7 +59,7 @@ Die wichtigsten Prinzipien:
 
 ## Release und Store
 
-Stand 2026-05-04 ist SkyOS als `1.0.0` Release Candidate für den Productivity- und
+Stand 2026-05-05 ist SkyOS als `1.0.0` Release Candidate fuer den Productivity- und
 Automation-Launch dokumentiert und in den Store-Konsolen für interne/TestFlight-Pfade hochgeladen.
 Reminder mit Push, Tasks, Notes und Activepieces-Erstellungsendpunkte sind die live ausgewiesene
 Workflow-Fläche. Längerfristige Memory-Funktionen und tiefere Follow-up-Automationen bleiben
