@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -148,6 +149,8 @@ import com.nash.skyos.ui.component.SkydownStandardEasing
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.rememberIsCompactAppLayout
 import com.nash.skyos.ui.component.rememberSkydownReduceMotion
+import com.nash.skyos.ui.model.mergeZweizweiMusicArtists
+import com.nash.skyos.ui.model.musicArtistKey
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
 import com.nash.skyos.ui.component.skydownLuminousSweep
 import com.nash.skyos.ui.component.skydownPanelSurface
@@ -1765,14 +1768,14 @@ private val musicHubFallbackInstagramQuickLinks = listOf(
         "22 Music",
         "@zweizwei_music",
         "https://www.instagram.com/zweizwei_music/",
-        "JANNO",
+        "Janno",
         "https://open.spotify.com/search/22%20Music",
     ),
     MusicHubSocialLink(
-        "JANNO",
+        "Janno",
         "@janno_official_",
         "https://www.instagram.com/janno_official_/",
-        "JANNO",
+        "Janno",
         "https://open.spotify.com/search/JANNO",
     ),
     MusicHubSocialLink(
@@ -1783,10 +1786,10 @@ private val musicHubFallbackInstagramQuickLinks = listOf(
         "https://open.spotify.com/search/Yang%20D.%20Nash",
     ),
     MusicHubSocialLink(
-        "TANGAJOE007",
+        "Tangajoe007",
         "@tangajoe007",
         "https://www.instagram.com/tangajoe007/",
-        "TANGAJOE007",
+        "Tangajoe007",
         "https://open.spotify.com/search/TANGAJOE007",
     ),
 )
@@ -1796,27 +1799,28 @@ private fun resolvedMusicHubSocialLinks(): List<MusicHubSocialLink> {
         .map { it.artistName.trim() }
         .filter { it.isNotBlank() }
         .distinct()
-    val preferredArtistOrder = liveArtists.ifEmpty { listOf("JANNO", "Yang D. Nash", "TANGAJOE007") }
-    val fallbackByArtistPageName = musicHubFallbackInstagramQuickLinks.associateBy { it.artistPageName }
-    val dynamicArtists = preferredArtistOrder.mapNotNull { artistName ->
-        val fallback = fallbackByArtistPageName[artistName]
+    val preferredArtistOrder = mergeZweizweiMusicArtists(liveArtists)
+    val fallbackByArtistPageName = musicHubFallbackInstagramQuickLinks.associateBy { musicArtistKey(it.artistPageName) }
+    val dynamicArtists = preferredArtistOrder.map { artistName ->
+        val fallback = fallbackByArtistPageName[musicArtistKey(artistName)]
         val page = ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, artistName)
-        val instagramUrl = page.instagramURL?.trim().takeUnless { it.isNullOrEmpty() } ?: fallback?.url
-        if (instagramUrl.isNullOrBlank()) return@mapNotNull null
+        val instagramUrl = page.instagramURL?.trim().takeUnless { it.isNullOrEmpty() }
+            ?: fallback?.url
+            ?: instagramSearchUrlForArtist(artistName)
         val dynamicHandle = instagramHandleFromUrl(instagramUrl)
         MusicHubSocialLink(
-            title = fallback?.title ?: artistName,
-            subtitle = dynamicHandle ?: fallback?.subtitle ?: "@${artistName.lowercase().replace(" ", "_")}",
+            title = artistName,
+            subtitle = dynamicHandle ?: fallback?.subtitle ?: artistName,
             url = instagramUrl,
             artistPageName = artistName,
             spotifyUrl = page.spotifyURL?.trim().takeUnless { it.isNullOrEmpty() }
                 ?: fallback?.spotifyUrl
-                ?: "https://open.spotify.com/search/${artistName.replace(" ", "%20")}",
+                ?: musicSpotifyUrlForArtist(artistName),
         )
     }
 
     val fallbackBrand = musicHubFallbackInstagramQuickLinks.firstOrNull { it.title == "22 Music" }
-    val jannoPage = ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, "JANNO")
+    val jannoPage = ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, "Janno")
     val brandInstagramUrl = jannoPage.instagramURL?.trim().takeUnless { it.isNullOrEmpty() } ?: fallbackBrand?.url
     val brandEntry = if (fallbackBrand != null && !brandInstagramUrl.isNullOrBlank()) {
         fallbackBrand.copy(
@@ -1832,9 +1836,20 @@ private fun resolvedMusicHubSocialLinks(): List<MusicHubSocialLink> {
     return listOfNotNull(brandEntry) + dynamicArtists
 }
 
+private fun instagramSearchUrlForArtist(artistName: String): String {
+    val encoded = Uri.encode(artistName)
+    return "https://www.instagram.com/explore/search/keyword/?q=$encoded"
+}
+
+private fun musicSpotifyUrlForArtist(artistName: String): String {
+    val encoded = Uri.encode(artistName)
+    return "https://open.spotify.com/search/$encoded"
+}
+
 private fun instagramHandleFromUrl(url: String): String? {
     val normalized = url.trim()
     if (normalized.isBlank()) return null
+    if (normalized.contains("/explore/search", ignoreCase = true)) return null
     val noQuery = normalized.substringBefore("?").substringBefore("#")
     val parts = noQuery.split("/").filter { it.isNotBlank() }
     val handle = parts.lastOrNull()?.trim().orEmpty()
@@ -1852,10 +1867,12 @@ private fun MusicHubSocialLinkButton(
     onClick: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val accent = when (link.title) {
-        "22 Music" -> colorScheme.primary
-        "JANNO" -> colorScheme.secondary
-        "Yang D. Nash" -> colorScheme.tertiary
+    val accent = when (musicArtistKey(link.title)) {
+        "22music" -> colorScheme.primary
+        "janno" -> colorScheme.secondary
+        "yangdnash" -> colorScheme.tertiary
+        "mave" -> colorScheme.tertiary
+        "thadude" -> colorScheme.primary
         else -> colorScheme.skydownAccent()
     }
     val instagramGradientColors = listOf(
@@ -2044,7 +2061,7 @@ private fun ZweizweiMusicLaneScreen(
     var catalogInitialArtist by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedArtistPage by rememberSaveable { mutableStateOf<String?>(null) }
     var artistPageReturnDestination by rememberSaveable { mutableStateOf(ZweizweiMusicDestination.Hub) }
-    var highlightedSocialArtist by rememberSaveable { mutableStateOf("JANNO") }
+    var highlightedSocialArtist by rememberSaveable { mutableStateOf("Janno") }
     val hubListState = rememberLazyListState()
     val hubHorizontalPadding = if (useCompactHubVisuals) 15.dp else 16.dp
     val hubTopPadding = if (useCompactHubVisuals) 12.dp else 18.dp
@@ -2171,7 +2188,7 @@ private fun ZweizweiMusicLaneScreen(
                                 edgeToEdge = true,
                                 topContentPadding = innerPadding.calculateTopPadding() + resolvedHubTopPadding,
                                 onSurfaceClick = {
-                                    catalogInitialArtist = "JANNO"
+                                    catalogInitialArtist = "Janno"
                                     destination = ZweizweiMusicDestination.Catalog
                                 },
                             ) {
@@ -2180,7 +2197,7 @@ private fun ZweizweiMusicLaneScreen(
                                         text = stringResource(R.string.music_hub_catalog_title),
                                         tint = MaterialTheme.colorScheme.primary,
                                         onClick = {
-                                            catalogInitialArtist = "JANNO"
+                                            catalogInitialArtist = "Janno"
                                             destination = ZweizweiMusicDestination.Catalog
                                         },
                                     )
@@ -2196,7 +2213,7 @@ private fun ZweizweiMusicLaneScreen(
                         item {
                             MusicHubQuickActions(
                                 onOpenCatalog = {
-                                    catalogInitialArtist = "JANNO"
+                                    catalogInitialArtist = "Janno"
                                     destination = ZweizweiMusicDestination.Catalog
                                 },
                                 onOpenStudio = { destination = ZweizweiMusicDestination.NicmaProducer },

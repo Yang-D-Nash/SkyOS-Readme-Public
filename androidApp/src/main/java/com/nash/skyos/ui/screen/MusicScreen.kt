@@ -86,6 +86,7 @@ import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownPressable
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.model.MusicUiState
+import com.nash.skyos.ui.model.musicArtistKey
 import com.nash.skyos.ui.theme.SkydownMusicArtistNameTextStyle
 import com.nash.skyos.ui.theme.SpotifyGreen
 import com.nash.skyos.ui.theme.skydownAccent
@@ -576,9 +577,11 @@ private fun musicSpotifyUrlForArtist(artist: String): String {
     return "https://open.spotify.com/search/$encoded"
 }
 
-private fun musicCatalogEntryAccent(artist: String, colorScheme: ColorScheme): Color = when (artist) {
-    "JANNO" -> colorScheme.skydownAccent()
-    "Yang D. Nash" -> colorScheme.skydownAccentHighlight()
-    "TANGAJOE007" -> colorScheme.skydownSpotify()
+private fun musicCatalogEntryAccent(artist: String, colorScheme: ColorScheme): Color = when (musicArtistKey(artist)) {
+    "janno" -> colorScheme.skydownAccent()
+    "yangdnash" -> colorScheme.skydownAccentHighlight()
+    "tangajoe007" -> colorScheme.skydownSpotify()
+    "mave" -> colorScheme.tertiary
+    "thadude" -> colorScheme.primary
     else -> colorScheme.skydownSpotify()
 }

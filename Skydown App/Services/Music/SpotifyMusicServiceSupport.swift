@@ -18,8 +18,10 @@ enum SpotifyMusicConstants {
     static let publicFallbackMaxAlbumPages = 8
     static let artistIDs: [String: String] = [
         "Yang D. Nash": "63Sh0kQAWW3ZWn2aKDksbo",
+        "Janno": "7hpiHzP9aLLb5liDLxtwhM",
         "JANNO": "7hpiHzP9aLLb5liDLxtwhM",
         "Tangajoe": "0OA5dgpVdwzI8K82m8FPxN",
+        "Tangajoe007": "0OA5dgpVdwzI8K82m8FPxN",
         "TANGAJOE007": "0OA5dgpVdwzI8K82m8FPxN",
         "NICMA MUSIC": "0OoRIo7pJjtLgg3qyf1oDS",
         "NICMA": "0OoRIo7pJjtLgg3qyf1oDS"

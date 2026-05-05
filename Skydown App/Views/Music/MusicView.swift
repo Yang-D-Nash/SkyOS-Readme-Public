@@ -36,9 +36,9 @@ enum MusicExperienceBrand {
     var artists: [String] {
         switch self {
         case .skydown:
-            return ["Yang D. Nash", "JANNO", "TANGAJOE007"]
+            return zweizweiCanonicalArtists
         case .zweizwei:
-            return ["JANNO", "Yang D. Nash", "TANGAJOE007"]
+            return zweizweiCanonicalArtists
         }
     }
 
@@ -131,7 +131,7 @@ struct MusicView: View {
         self.onOpenSettings = onOpenSettings
         self.onGuestSignIn = onGuestSignIn
         let resolvedInitialArtist = initialArtist.flatMap { requestedArtist in
-            brand.artists.contains(requestedArtist) ? requestedArtist : nil
+            brand.artists.first { musicArtistKey($0) == musicArtistKey(requestedArtist) }
         } ?? brand.artists.first ?? "Yang D. Nash"
         _selectedArtist = State(initialValue: resolvedInitialArtist)
     }
@@ -144,7 +144,7 @@ struct MusicView: View {
         for artist in liveArtists where !uniqueLiveArtists.contains(artist) {
             uniqueLiveArtists.append(artist)
         }
-        return uniqueLiveArtists.isEmpty ? brand.artists : uniqueLiveArtists
+        return mergeZweizweiArtists(uniqueLiveArtists.isEmpty ? brand.artists : uniqueLiveArtists)
     }
 
     var body: some View {
@@ -438,13 +438,17 @@ struct MusicView: View {
     }
 
     private func catalogEntryAccent(for artist: String) -> Color {
-        switch artist {
-        case "JANNO":
+        switch musicArtistKey(artist) {
+        case "janno":
             return AppColors.accent(for: colorScheme)
-        case "Yang D. Nash":
+        case "yangdnash":
             return AppColors.accentHighlight(for: colorScheme)
-        case "TANGAJOE007":
+        case "tangajoe007":
             return AppColors.spotify(for: colorScheme)
+        case "mave":
+            return AppColors.accentHighlight(for: colorScheme)
+        case "thadude":
+            return AppColors.accent(for: colorScheme)
         default:
             return AppColors.spotify(for: colorScheme)
         }

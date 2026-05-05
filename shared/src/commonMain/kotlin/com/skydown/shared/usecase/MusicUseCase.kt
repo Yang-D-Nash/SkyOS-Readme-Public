@@ -5,8 +5,10 @@ import com.skydown.shared.model.Track
 object MusicUseCase {
     private val artistIds = mapOf(
         "Yang D. Nash" to "63Sh0kQAWW3ZWn2aKDksbo",
+        "Janno" to "7hpiHzP9aLLb5liDLxtwhM",
         "JANNO" to "7hpiHzP9aLLb5liDLxtwhM",
         "Tangajoe" to "0OA5dgpVdwzI8K82m8FPxN",
+        "Tangajoe007" to "0OA5dgpVdwzI8K82m8FPxN",
         "TANGAJOE007" to "0OA5dgpVdwzI8K82m8FPxN",
         "NICMA MUSIC" to "0OoRIo7pJjtLgg3qyf1oDS",
         "NICMA" to "0OoRIo7pJjtLgg3qyf1oDS",

@@ -3,6 +3,8 @@ package com.nash.skyos.ui.model
 import com.nash.skyos.R
 import com.nash.skyos.data.AppTextResolver
 import com.skydown.shared.model.Track
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 data class ArtistSocialProfile(
     val artist: String,
@@ -17,19 +19,15 @@ data class MusicInstagramDestination(
 )
 
 data class MusicUiState(
-    val selectedArtist: String = "JANNO",
-    val availableArtists: List<String> = listOf(
-        "JANNO",
-        "Yang D. Nash",
-        "TANGAJOE007",
-    ),
+    val selectedArtist: String = "Janno",
+    val availableArtists: List<String> = defaultZweizweiMusicArtists,
     val tracks: List<Track> = emptyList(),
     val isSpotifyConnected: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
 ) {
     val selectedArtistSocialProfile: ArtistSocialProfile?
-        get() = artistSocialProfiles[selectedArtist]
+        get() = artistSocialProfiles[musicArtistKey(selectedArtist)]
 
     val instagramHubDestinations: List<MusicInstagramDestination>
         get() = buildList {
@@ -41,8 +39,8 @@ data class MusicUiState(
                 ),
             )
             addAll(
-                availableArtists.mapNotNull { artist ->
-                    artistSocialProfiles[artist]?.let { profile ->
+                availableArtists.map { artist ->
+                    artistSocialProfiles[musicArtistKey(artist)]?.let { profile ->
                         MusicInstagramDestination(
                             title = profile.artist,
                             subtitle = AppTextResolver.string(
@@ -51,26 +49,35 @@ data class MusicUiState(
                             ),
                             instagramUrl = profile.instagramUrl,
                         )
-                    }
+                    } ?: MusicInstagramDestination(
+                        title = artist,
+                        subtitle = artist,
+                        instagramUrl = instagramSearchUrlForArtist(artist),
+                    )
                 },
             )
         }
 }
 
 private val artistSocialProfiles = mapOf(
-    "Yang D. Nash" to ArtistSocialProfile(
+    musicArtistKey("Yang D. Nash") to ArtistSocialProfile(
         artist = "Yang D. Nash",
         handle = "@y.d.nash",
         instagramUrl = "https://www.instagram.com/y.d.nash/",
     ),
-    "JANNO" to ArtistSocialProfile(
-        artist = "JANNO",
+    musicArtistKey("Janno") to ArtistSocialProfile(
+        artist = "Janno",
         handle = "@janno_official_",
         instagramUrl = "https://www.instagram.com/janno_official_/",
     ),
-    "TANGAJOE007" to ArtistSocialProfile(
-        artist = "TANGAJOE007",
+    musicArtistKey("Tangajoe007") to ArtistSocialProfile(
+        artist = "Tangajoe007",
         handle = "@tangajoe007",
         instagramUrl = "https://www.instagram.com/tangajoe007/",
     ),
 )
+
+private fun instagramSearchUrlForArtist(artist: String): String {
+    val encoded = URLEncoder.encode(artist, StandardCharsets.UTF_8.name())
+    return "https://www.instagram.com/explore/search/keyword/?q=$encoded"
+}

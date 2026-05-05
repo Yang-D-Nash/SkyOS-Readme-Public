@@ -8,6 +8,47 @@
 import SwiftUI
 import UIKit
 
+let zweizweiCanonicalArtists = [
+    "Janno",
+    "Mave",
+    "Tangajoe007",
+    "Yang D. Nash",
+    "ThaDude"
+]
+
+func musicArtistKey(_ artist: String) -> String {
+    artist
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased()
+        .components(separatedBy: CharacterSet.alphanumerics.inverted)
+        .joined()
+}
+
+func mergeZweizweiArtists(_ liveArtists: [String]) -> [String] {
+    var merged: [String: String] = [:]
+    var order: [String] = []
+
+    for artist in zweizweiCanonicalArtists {
+        let key = musicArtistKey(artist)
+        if merged[key] == nil {
+            order.append(key)
+        }
+        merged[key] = artist
+    }
+
+    for artist in liveArtists {
+        let trimmed = artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { continue }
+        let key = musicArtistKey(trimmed)
+        if merged[key] == nil {
+            order.append(key)
+            merged[key] = trimmed
+        }
+    }
+
+    return order.compactMap { merged[$0] }
+}
+
 struct MusicBadge: View {
     let text: String
     let isAccent: Bool
@@ -339,7 +380,7 @@ struct MusicInstagramDestination: Identifiable {
 }
 
 let artistInstagramDestinations: [String: MusicInstagramDestination] = [
-    "Yang D. Nash": MusicInstagramDestination(
+    musicArtistKey("Yang D. Nash"): MusicInstagramDestination(
         id: "artist_yang_d_nash",
         title: "Yang D. Nash",
         handle: "@y.d.nash",
@@ -348,23 +389,23 @@ let artistInstagramDestinations: [String: MusicInstagramDestination] = [
         spotifyURLString: nil,
         artistPageName: "Yang D. Nash"
     ),
-    "TANGAJOE007": MusicInstagramDestination(
+    musicArtistKey("Tangajoe007"): MusicInstagramDestination(
         id: "artist_tangajoe007",
-        title: "TANGAJOE007",
+        title: "Tangajoe007",
         handle: "@tangajoe007",
         urlString: "https://www.instagram.com/tangajoe007/",
         helper: "Artist aktuell ausgewaehlt",
         spotifyURLString: nil,
-        artistPageName: "TANGAJOE007"
+        artistPageName: "Tangajoe007"
     ),
-    "JANNO": MusicInstagramDestination(
+    musicArtistKey("Janno"): MusicInstagramDestination(
         id: "artist_janno",
-        title: "JANNO",
+        title: "Janno",
         handle: "@janno_official_",
         urlString: "https://www.instagram.com/janno_official_/",
         helper: "Artist aktuell ausgewaehlt",
         spotifyURLString: nil,
-        artistPageName: "JANNO"
+        artistPageName: "Janno"
     )
 ]
 
@@ -375,7 +416,7 @@ let zweizweiInstagramDestination = MusicInstagramDestination(
     urlString: "https://www.instagram.com/zweizwei_music/",
     helper: "SkyOS Universe",
     spotifyURLString: nil,
-    artistPageName: "JANNO"
+    artistPageName: "Janno"
 )
 
 let skydownMusicInstagramDestination = MusicInstagramDestination(

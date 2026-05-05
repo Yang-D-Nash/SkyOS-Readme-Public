@@ -728,7 +728,7 @@ private struct ZweizweiTabView: View {
     @State private var destination: ZweizweiDestination = .hub
     @State private var catalogInitialArtist: String?
     @State private var catalogAutoPresentArtistPage = false
-    @State private var highlightedSocialArtist = "JANNO"
+    @State private var highlightedSocialArtist = "Janno"
     let onOpenCart: () -> Void
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
@@ -768,7 +768,7 @@ private struct ZweizweiTabView: View {
                                     marks: [.zweizwei],
                                     edgeToEdge: true,
                                     onSurfaceTap: {
-                                        catalogInitialArtist = "JANNO"
+                                        catalogInitialArtist = "Janno"
                                         catalogAutoPresentArtistPage = false
                                         withAnimation(
                 SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
@@ -783,7 +783,7 @@ private struct ZweizweiTabView: View {
                                             colorScheme: colorScheme,
                                             tint: AppColors.spotify(for: colorScheme),
                                             onTap: {
-                                                catalogInitialArtist = "JANNO"
+                                                catalogInitialArtist = "Janno"
                                                 catalogAutoPresentArtistPage = false
                                                 withAnimation(
                 SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
@@ -832,7 +832,7 @@ private struct ZweizweiTabView: View {
                                         accent: AppColors.spotify(for: colorScheme),
                                         accessibilityID: "music.hub.open_catalog"
                                     ) {
-                                        catalogInitialArtist = "JANNO"
+                                        catalogInitialArtist = "Janno"
                                         catalogAutoPresentArtistPage = false
                                         withAnimation(
                 SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
@@ -977,23 +977,22 @@ private struct ZweizweiTabView: View {
         for artistName in liveArtistOrder where !uniqueLiveArtistOrder.contains(artistName) {
             uniqueLiveArtistOrder.append(artistName)
         }
-        let preferredArtistOrder = liveArtistOrder.isEmpty
-            ? ["JANNO", "Yang D. Nash", "TANGAJOE007"]
-            : uniqueLiveArtistOrder
+        let preferredArtistOrder = mergeZweizweiArtists(liveArtistOrder.isEmpty ? zweizweiCanonicalArtists : uniqueLiveArtistOrder)
         let dynamicArtists = preferredArtistOrder.map { artistName -> MusicInstagramDestination? in
             let page = artistPagesStore.page(for: .zweizwei, artistName: artistName)
-            let fallback = fallbackByArtistName[artistName]
+            let fallback = fallbackByArtistName[musicArtistKey(artistName)]
             let resolvedInstagram = page.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines)
             let resolvedSpotify = page.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let fallbackURL = instagramSearchURLString(for: artistName)
             return MusicInstagramDestination(
                 id: fallback?.id ?? "artist_\(artistPageSlug(from: artistName))",
                 title: artistName,
-                handle: musicHubInstagramHandle(from: (resolvedInstagram?.isEmpty == false) ? resolvedInstagram! : (fallback?.urlString ?? ""))
+                handle: musicHubInstagramHandle(from: (resolvedInstagram?.isEmpty == false) ? resolvedInstagram! : (fallback?.urlString ?? fallbackURL))
                     ?? fallback?.handle
-                    ?? "@\(artistPageSlug(from: artistName))",
-                urlString: (resolvedInstagram?.isEmpty == false) ? resolvedInstagram! : (fallback?.urlString ?? ""),
+                    ?? artistName,
+                urlString: (resolvedInstagram?.isEmpty == false) ? resolvedInstagram! : (fallback?.urlString ?? fallbackURL),
                 helper: fallback?.helper,
-                spotifyURLString: (resolvedSpotify?.isEmpty == false) ? resolvedSpotify : fallback?.spotifyURLString,
+                spotifyURLString: (resolvedSpotify?.isEmpty == false) ? resolvedSpotify : (fallback?.spotifyURLString ?? spotifySearchURLString(for: artistName)),
                 artistPageName: artistName
             )
         }
@@ -1007,7 +1006,7 @@ private struct ZweizweiTabView: View {
     }
 
     private var resolvedBrandSocialDestination: MusicInstagramDestination {
-        let page = artistPagesStore.page(for: .zweizwei, artistName: "JANNO")
+        let page = artistPagesStore.page(for: .zweizwei, artistName: "Janno")
         let resolvedInstagram = page.instagramURL?.trimmingCharacters(in: .whitespacesAndNewlines)
         let resolvedSpotify = page.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines)
         return MusicInstagramDestination(
@@ -1024,6 +1023,7 @@ private struct ZweizweiTabView: View {
 
     private func musicHubInstagramHandle(from urlString: String) -> String? {
         guard let url = URL(string: urlString) else { return nil }
+        if url.path.contains("/explore/search") { return nil }
         let pathParts = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
         guard let firstPart = pathParts.first?.trimmingCharacters(in: .whitespacesAndNewlines), !firstPart.isEmpty else {
             return nil
@@ -1032,16 +1032,30 @@ private struct ZweizweiTabView: View {
     }
 
     private func musicHubSocialAccent(for destination: MusicInstagramDestination) -> Color {
-        switch destination.title {
-        case "22 Music":
+        switch musicArtistKey(destination.title) {
+        case "22music":
             return AppColors.spotify(for: colorScheme)
-        case "JANNO":
+        case "janno":
             return AppColors.accent(for: colorScheme)
-        case "Yang D. Nash":
+        case "yangdnash":
             return AppColors.accentHighlight(for: colorScheme)
+        case "mave":
+            return AppColors.accentHighlight(for: colorScheme)
+        case "thadude":
+            return AppColors.accent(for: colorScheme)
         default:
             return AppColors.spotify(for: colorScheme)
         }
+    }
+
+    private func instagramSearchURLString(for artistName: String) -> String {
+        let query = artistName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? artistName
+        return "https://www.instagram.com/explore/search/keyword/?q=\(query)"
+    }
+
+    private func spotifySearchURLString(for artistName: String) -> String {
+        let query = artistName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? artistName
+        return "https://open.spotify.com/search/\(query)"
     }
 
     private var instagramGradientColors: [Color] {

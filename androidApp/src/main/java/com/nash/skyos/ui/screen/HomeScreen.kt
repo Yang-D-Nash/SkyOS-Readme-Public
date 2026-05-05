@@ -1619,7 +1619,7 @@ private fun HomeArtistSocialLinksRow(
     )
     val yangPage = remember(artistPages) { ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, "Yang D. Nash") }
     val skydownPage = remember(artistPages) { ArtistPagesStore.pageFor(ArtistPageBrand.Skydown, "Skydown") }
-    val zweizweiPage = remember(artistPages) { ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, "JANNO") }
+    val zweizweiPage = remember(artistPages) { ArtistPagesStore.pageFor(ArtistPageBrand.Zweizwei, "Janno") }
     val entries = listOf(
         ArtistSocialEntry(
             title = "Yang D. Nash",

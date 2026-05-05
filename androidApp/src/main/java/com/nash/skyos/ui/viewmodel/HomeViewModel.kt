@@ -20,6 +20,8 @@ import com.nash.skyos.ui.model.HomeUiState
 import com.nash.skyos.ui.model.ProductivityNoteItem
 import com.nash.skyos.ui.model.ProductivityReminderItem
 import com.nash.skyos.ui.model.ProductivityTaskItem
+import com.nash.skyos.ui.model.defaultZweizweiMusicArtists
+import com.nash.skyos.ui.model.mergeZweizweiMusicArtists
 import com.nash.skyos.productivity.ProductivityReminderNotificationCenter
 import com.skydown.shared.model.Track
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,11 +72,7 @@ class HomeViewModel(
         }
     }
 
-    private val fallbackFeaturedArtists = listOf(
-        "JANNO",
-        "Yang D. Nash",
-        "TANGAJOE007",
-    )
+    private val fallbackFeaturedArtists = defaultZweizweiMusicArtists
 
     init {
         refresh()
@@ -619,7 +617,7 @@ class HomeViewModel(
             .map { it.artistName.trim() }
             .filter { it.isNotBlank() }
             .distinct()
-        return liveArtists.ifEmpty { fallbackFeaturedArtists }
+        return mergeZweizweiMusicArtists(liveArtists.ifEmpty { fallbackFeaturedArtists })
     }
 
     private fun compareTracksForHomePriority(lhs: Track, rhs: Track): Int {

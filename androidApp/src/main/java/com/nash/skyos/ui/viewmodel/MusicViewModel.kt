@@ -3,8 +3,11 @@ package com.nash.skyos.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nash.skyos.data.AppContainer
+import com.nash.skyos.data.ArtistPageBrand
+import com.nash.skyos.data.ArtistPagesStore
 import com.nash.skyos.data.SpotifyAuthManager
 import com.nash.skyos.ui.model.MusicUiState
+import com.nash.skyos.ui.model.mergeZweizweiMusicArtists
 import com.skydown.shared.model.Track
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +22,25 @@ class MusicViewModel : ViewModel() {
     val uiState: StateFlow<MusicUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            ArtistPagesStore.pages.collectLatest { pages ->
+                val artists = mergeZweizweiMusicArtists(
+                    pages
+                        .filter { it.brand == ArtistPageBrand.Zweizwei }
+                        .map { it.artistName },
+                )
+                _uiState.update { state ->
+                    val selectedArtist = artists.firstOrNull { it.equals(state.selectedArtist, ignoreCase = true) }
+                        ?: artists.firstOrNull()
+                        ?: state.selectedArtist
+                    state.copy(
+                        availableArtists = artists,
+                        selectedArtist = selectedArtist,
+                    )
+                }
+            }
+        }
+
         viewModelScope.launch {
             SpotifyAuthManager.isConnected.collectLatest { connected ->
                 setSpotifyConnectionState(connected)

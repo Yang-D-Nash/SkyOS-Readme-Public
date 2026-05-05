@@ -48,11 +48,11 @@ class MusicHubAppFlowTest {
         composeRule.onNodeWithTag("music.hub.songs.open").performClick()
 
         composeRule.waitUntilAtLeastOneExists(hasTestTag("music.catalog.root"), timeoutMillis = 15_000)
-        composeRule.waitUntilAtLeastOneExists(hasTestTag("music.artist.open_page.JANNO"), timeoutMillis = 15_000)
-        composeRule.onNodeWithTag("music.artist.open_page.JANNO").performClick()
+        composeRule.waitUntilAtLeastOneExists(hasTestTag("music.artist.open_page.Janno"), timeoutMillis = 15_000)
+        composeRule.onNodeWithTag("music.artist.open_page.Janno").performClick()
 
         assertTrue(semanticsCount("music.catalog.root") > 0)
-        assertTrue(semanticsCount("music.artist.open_page.JANNO") > 0)
+        assertTrue(semanticsCount("music.artist.open_page.Janno") > 0)
     }
 
     private fun semanticsCount(tag: String): Int = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().size

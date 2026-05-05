@@ -390,7 +390,7 @@ final class HomeViewModel: ObservableObject {
 
     private let musicService: MusicServicing
     private let firestore = Firestore.firestore()
-    private let featuredArtists = ["JANNO", "Yang D. Nash", "TANGAJOE007"]
+    private let featuredArtists = zweizweiCanonicalArtists
     private var refreshGeneration: UInt = 0
     private let noteRetentionTimeInterval: TimeInterval = 7 * 24 * 60 * 60
 
