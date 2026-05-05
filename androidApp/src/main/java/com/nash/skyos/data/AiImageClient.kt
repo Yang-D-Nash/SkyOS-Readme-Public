@@ -51,10 +51,10 @@ open class AiImageClient(
             )
 
         val data = result.data as? Map<*, *> ?: error(AppTextResolver.string(R.string.ai_visual_error_response_unreadable))
-        val imageBase64 = data["imageBase64"] as? String
-        val imageBytes = imageBase64
+        val imagePayload = data["imageBase64"] as? String
+        val imageBytes = imagePayload
             ?.takeIf { it.isNotBlank() }
-            ?.let { Base64.decode(it, Base64.DEFAULT) }
+            ?.let(::decodeImagePayload)
             ?: error(AppTextResolver.string(R.string.ai_visual_error_no_image_data))
 
         return AiGeneratedVisualResult(
@@ -67,6 +67,28 @@ open class AiImageClient(
             decision = parseAiBotDecision(data["botDecision"]),
         )
     }
+}
+
+private fun decodeImagePayload(payload: String): ByteArray {
+    val normalized = payload
+        .trim()
+        .substringAfter(",", payload.trim())
+        .filterNot(Char::isWhitespace)
+
+    val decodeFlags = listOf(
+        Base64.DEFAULT,
+        Base64.NO_WRAP,
+        Base64.URL_SAFE or Base64.NO_WRAP,
+        Base64.URL_SAFE,
+    )
+
+    decodeFlags.forEach { flags ->
+        runCatching {
+            Base64.decode(normalized, flags)
+        }.getOrNull()?.takeIf { it.isNotEmpty() }?.let { return it }
+    }
+
+    error(AppTextResolver.string(R.string.ai_visual_error_no_image_data))
 }
 
 private fun Throwable.shouldRetryVisualGeneration(): Boolean {

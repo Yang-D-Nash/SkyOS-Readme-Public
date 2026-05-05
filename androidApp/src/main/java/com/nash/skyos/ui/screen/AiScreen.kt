@@ -2,8 +2,6 @@ package com.nash.skyos.ui.screen
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -80,7 +78,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -102,6 +99,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.compose.AsyncImage
 import com.nash.skyos.ui.component.BrandArtwork
 import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.BrandHeroMetricCard
@@ -1838,6 +1836,7 @@ fun AiMessageBubble(
     val feedbackShareOpenedText = stringResource(R.string.ai_feedback_share_opened)
     val isUser = message.role == AiMessageRole.User
     var showGeneratedVisualViewer by remember(message.id, message.imageBytes) { mutableStateOf(false) }
+    val generatedImageBytes = message.imageBytes?.takeIf { it.isNotEmpty() }
     val bubbleShape = RoundedCornerShape(
         topStart = SkydownUiTokens.cardCornerRadius,
         topEnd = SkydownUiTokens.cardCornerRadius,
@@ -1855,8 +1854,8 @@ fun AiMessageBubble(
         Color.Transparent
     }
     val bubbleMaxWidth = when {
-        message.imageBytes != null && compactLayout -> 372.dp
-        message.imageBytes != null -> 456.dp
+        generatedImageBytes != null && compactLayout -> 372.dp
+        generatedImageBytes != null -> 456.dp
         compactLayout -> 360.dp
         else -> 400.dp
     }
@@ -1912,13 +1911,7 @@ fun AiMessageBubble(
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
-                val generatedBitmap = remember(message.imageBytes) {
-                    message.imageBytes?.let { bytes ->
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    }
-                }
-
-                if (generatedBitmap != null) {
+                if (generatedImageBytes != null) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1931,8 +1924,8 @@ fun AiMessageBubble(
                             }
                             .clip(RoundedCornerShape(SkydownUiTokens.cardCornerRadius)),
                     ) {
-                        Image(
-                            bitmap = generatedBitmap.asImageBitmap(),
+                        AsyncImage(
+                            model = generatedImageBytes,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
@@ -1971,14 +1964,12 @@ fun AiMessageBubble(
                     }
                 }
 
-                if (showGeneratedVisualViewer && generatedBitmap != null) {
+                if (showGeneratedVisualViewer && generatedImageBytes != null) {
                     AiGeneratedVisualViewerDialog(
-                        bitmap = generatedBitmap,
+                        imageBytes = generatedImageBytes,
                         onDismiss = { showGeneratedVisualViewer = false },
                         onSaveImage = {
-                            message.imageBytes?.let { imageBytes ->
-                                onSaveImage(imageBytes, message.imageMimeType)
-                            }
+                            onSaveImage(generatedImageBytes, message.imageMimeType)
                         },
                     )
                 }
@@ -2009,7 +2000,7 @@ fun AiMessageBubble(
                             },
                         )
 
-                        if (message.imageBytes != null) {
+                        if (generatedImageBytes != null) {
                             BrandStatusChip(
                                 text = stringResource(R.string.ai_action_fullscreen),
                                 accent = MaterialTheme.colorScheme.primary,
@@ -2022,7 +2013,7 @@ fun AiMessageBubble(
                                 accent = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.testTag("ai.message.save"),
                                 onClick = {
-                                    onSaveImage(message.imageBytes, message.imageMimeType)
+                                    onSaveImage(generatedImageBytes, message.imageMimeType)
                                 },
                             )
                         }
@@ -2035,7 +2026,7 @@ fun AiMessageBubble(
 
 @Composable
 private fun AiGeneratedVisualViewerDialog(
-    bitmap: Bitmap,
+    imageBytes: ByteArray,
     onDismiss: () -> Unit,
     onSaveImage: () -> Unit,
 ) {
@@ -2049,8 +2040,8 @@ private fun AiGeneratedVisualViewerDialog(
                 .testTag("ai.generated_visual.fullscreen")
                 .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.94f)),
         ) {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
+            AsyncImage(
+                model = imageBytes,
                 contentDescription = stringResource(R.string.ai_generated_visual_fullscreen_cd),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier

@@ -135,6 +135,9 @@ class PlaybackAndAiComponentTest {
         composeRule.waitUntilAtLeastOneExists(hasTestTag("ai.message.visual"), timeoutMillis = 15_000)
         composeRule.onNodeWithTag("ai.message.visual").assertIsDisplayed()
         composeRule.onNodeWithTag("ai.message.save").assertIsDisplayed()
+        composeRule.onNodeWithTag("ai.message.visual").performClick()
+        composeRule.waitUntilAtLeastOneExists(hasTestTag("ai.generated_visual.fullscreen"), timeoutMillis = 15_000)
+        composeRule.onNodeWithTag("ai.generated_visual.fullscreen").assertIsDisplayed()
     }
 
     private fun semanticsCount(tag: String): Int = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().size

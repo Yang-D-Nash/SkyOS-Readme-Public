@@ -38,10 +38,10 @@ SkyOS löst ein konkretes Produktproblem: kreative Arbeit, KI-Ausführung, Erinn
 | Feld | Stand im Checkout |
 | --- | --- |
 | Produktversion | `1.0.0` in `VERSION`, Android `versionName`, iOS `MARKETING_VERSION` und `functions/package.json` |
-| Android | `applicationId` `com.nash.skyos`, `versionCode` `10026`, SDK 36, minSdk 26 |
-| Apple | Bundle-ID `com.skydown.ios`, Build `10024`, Mac Catalyst im Xcode-Projekt aktiviert |
+| Android | `applicationId` `com.nash.skyos`, `versionCode` `10028`, SDK 36, minSdk 26 |
+| Apple | Bundle-ID `com.skydown.ios`, Build `10025`, Mac Catalyst im Xcode-Projekt aktiviert |
 | Backend | Firebase Functions in `us-central1`, 64 Exports laut `npm run list-exports --prefix functions` |
-| Interner Store-Test | iOS Build `10024` am 2026-05-05 zu App Store Connect hochgeladen; Android versionCode `10026` am 2026-05-05 zu Google Play Internal Testing als Draft hochgeladen |
+| Interner Store-Test | iOS Build `10025` ist in App Store Connect hochgeladen; Android versionCode `10028` ist als Google-Play-Internal-Draft hochgeladen |
 | Lokale Qualität | `./scripts/ci_local_gate.sh` bündelt Shared-Tests, Android-Checks und Functions-/Rules-Tests |
 | Veröffentlichungsmodell | Closed Source mit öffentlicher README-/Dokumentationsspiegelung für Transparenz |
 | Offene Projektangaben | Finale Produktions-URLs und formaler Security-Kontaktprozess sind als TODO markiert |

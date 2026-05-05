@@ -5,17 +5,18 @@ trust paths, backend authority, and support readiness all line up at the same ti
 
 ## Current RC Snapshot
 
-Status as of 2026-05-05 18:57 CEST: backend Meta/social live-data setup is deployed, the legal/store-review
-date refresh plus Music Hub duplicate-brand cleanup is uploaded as iOS build `10024`, and the follow-up
-Music Hub + Android localization/legal candidate is uploaded as an Android versionCode `10026` internal testing draft.
-The duplicate top `22 Music`/Zweizwei social entry is removed so the hub shows only the five canonical artists.
+Status as of 2026-05-06 00:32 CEST: backend Meta/social live-data setup is deployed, the legal/store-review
+date refresh plus Music Hub duplicate-brand cleanup is superseded by the AI visual fullscreen and Android display
+hotfix reroll: iOS build `10025` is uploaded to App Store Connect and Android versionCode `10028` is uploaded to
+Google Play Internal Testing as a draft. The duplicate top `22 Music`/Zweizwei social entry is removed so the hub
+shows only the five canonical artists, and AI-generated visuals can now be opened full-screen on both platforms.
 Public store rollout remains `no-go` until the open
 items in [release/store-upload-runbook.md](release/store-upload-runbook.md) are closed.
 
 Known open release gates:
 
-- App Store Connect: wait for uploaded iOS build `10024` to finish processing, then attach it to Internal TestFlight testers.
-- Google Play: review the uploaded internal testing draft containing Android versionCode `10026`, then roll it to internal testers.
+- App Store Connect: wait for uploaded iOS build `10025` to finish processing, then attach it to Internal TestFlight testers.
+- Google Play: review the uploaded internal testing draft containing Android versionCode `10028`, then roll it to internal testers.
 - Store assets: upload/map the generated iPhone, iPad, Play-compliant Android screenshots, and Play listing graphics.
 - Store URLs and legal: replace placeholder console URLs with final hosted pages and confirm final legal approval.
 - QA: complete real-device smoke from uploaded store artifacts on iPhone and Android.
