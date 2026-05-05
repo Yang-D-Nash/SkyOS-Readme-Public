@@ -326,6 +326,8 @@ class AiViewModel : ViewModel() {
                     sessionId = requestContext.sessionIdAtSend,
                     prompt = trimmedPrompt,
                     response = result.text,
+                    imageBytes = result.imageBytes,
+                    imageMimeType = result.mimeType,
                 )
                 savedResult?.let(::syncSavedEntryToRemote)
                 refreshSessionState(requestContext.sessionIdAtSend)
@@ -564,7 +566,12 @@ class AiViewModel : ViewModel() {
         ).flatMap { entry ->
             listOf(
                 AiMessage(role = AiMessageRole.User, text = entry.prompt),
-                AiMessage(role = AiMessageRole.Assistant, text = entry.response),
+                AiMessage(
+                    role = AiMessageRole.Assistant,
+                    text = entry.response,
+                    imageBytes = AiConversationHistoryStore.imageBytesFor(entry),
+                    imageMimeType = entry.imageMimeType.takeIf { it.isNotBlank() },
+                ),
             )
         }
 

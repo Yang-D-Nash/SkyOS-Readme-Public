@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.util.UUID
 
 enum class AiConversationHistorySource {
@@ -40,6 +41,8 @@ data class AiConversationHistoryEntry(
     val source: AiConversationHistorySource,
     val prompt: String,
     val response: String,
+    val imageFileName: String = "",
+    val imageMimeType: String = "",
     val resultType: String = "text",
     val automationMessage: String = "",
     val workflowName: String = "",
@@ -84,14 +87,17 @@ object AiConversationHistoryStore {
     private const val sessionsKey = "sessions"
     private const val entriesKey = "entries"
     private const val retentionDaysKey = "retention_days"
+    private const val visualImageDirectoryName = "ai_visual_history"
     private const val defaultRetentionDays = 3
     private const val maximumEntries = 360
     private const val maximumSessions = 40
 
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var appContext: Context
 
     fun initialize(context: Context) {
         if (::sharedPreferences.isInitialized) return
+        appContext = context.applicationContext
         sharedPreferences = context.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
         migrateLegacyEntriesIfNeeded()
         pruneExpiredEntries()
@@ -236,16 +242,22 @@ object AiConversationHistoryStore {
     ) {
         val normalizedUserKey = normalizeUserKey(userKey)
         val normalizedSessionId = sessionId?.trim().orEmpty()
+        val existingEntries = readEntries()
         val remainingSessions = readSessions().filterNot { session ->
             session.id == normalizedSessionId &&
                 session.userKey == normalizedUserKey &&
                 session.source == source
         }
-        val remainingEntries = readEntries().filterNot { entry ->
+        val removedEntries = existingEntries.filter { entry ->
             entry.sessionId == normalizedSessionId &&
                 entry.userKey == normalizedUserKey &&
                 entry.source == source
         }
+        val removedEntryIds = removedEntries.map { it.id }.toSet()
+        val remainingEntries = existingEntries.filterNot { entry ->
+            entry.id in removedEntryIds
+        }
+        removeStoredImages(removedEntries)
         writeSessions(remainingSessions)
         writeEntries(remainingEntries)
     }
@@ -287,6 +299,8 @@ object AiConversationHistoryStore {
         sessionId: String?,
         prompt: String,
         response: String,
+        imageBytes: ByteArray? = null,
+        imageMimeType: String = "",
         resultType: String = "text",
         automationMessage: String = "",
         workflowName: String = "",
@@ -306,6 +320,17 @@ object AiConversationHistoryStore {
             preferredSessionId = sessionId,
         )
         val now = System.currentTimeMillis()
+        val entryId = UUID.randomUUID().toString()
+        val imageFileName = imageBytes
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { storeImageBytes(it, entryId, imageMimeType) }
+            .orEmpty()
+        val normalizedImageMimeType = imageMimeType.trim()
+            .ifBlank { if (imageFileName.isNotBlank()) "image/png" else "" }
+        val normalizedResultType = when {
+            imageFileName.isNotBlank() && resultType == "text" -> "image"
+            else -> resultType
+        }
         val updatedSession = baseSession.copy(
             title = resolvedSessionTitle(baseSession.title, trimmedPrompt),
             updatedAtEpochMillis = now,
@@ -323,12 +348,15 @@ object AiConversationHistoryStore {
             .take(maximumSessions)
 
         val savedEntry = AiConversationHistoryEntry(
+            id = entryId,
             sessionId = updatedSession.id,
             userKey = updatedSession.userKey,
             source = source,
             prompt = trimmedPrompt,
             response = trimmedResponse,
-            resultType = resultType,
+            imageFileName = imageFileName,
+            imageMimeType = normalizedImageMimeType,
+            resultType = normalizedResultType,
             automationMessage = automationMessage,
             workflowName = workflowName,
             agentRunId = agentRunId,
@@ -350,6 +378,15 @@ object AiConversationHistoryStore {
             session = updatedSession,
             entry = savedEntry,
         )
+    }
+
+    fun imageBytesFor(entry: AiConversationHistoryEntry): ByteArray? {
+        val fileName = sanitizeStoredImageFileName(entry.imageFileName)
+        if (fileName.isBlank()) return null
+        val file = storedImageFile(fileName, createDirectory = false) ?: return null
+        return runCatching {
+            file.takeIf { it.exists() && it.isFile }?.readBytes()
+        }.getOrNull()
     }
 
     fun replaceRemoteState(
@@ -381,6 +418,9 @@ object AiConversationHistoryStore {
 
         val existingForScope = readSessions().filter { it.userKey == normalizedUserKey && it.source == source }
         val existingEntriesForScope = readEntries().filter { it.userKey == normalizedUserKey && it.source == source }
+        val existingImageDataByEntryId = existingEntriesForScope
+            .filter { it.imageFileName.isNotBlank() }
+            .associate { it.id to (it.imageFileName to it.imageMimeType) }
         val remoteSessionIds = normalizedSessions.map { it.id }.toSet()
         val remoteEntryIds = normalizedEntries.map { it.id }.toSet()
         // Firestore can deliver a snapshot before our own upsert lands; without this merge the UI
@@ -398,6 +438,14 @@ object AiConversationHistoryStore {
         val mergedSessions = (normalizedSessions + localSessionOrphans)
             .sortedByDescending { it.updatedAtEpochMillis }
         val mergedEntries = (normalizedEntries + localEntryOrphans)
+            .map { entry ->
+                val imageData = existingImageDataByEntryId[entry.id]
+                if (imageData != null && entry.imageFileName.isBlank()) {
+                    entry.copy(imageFileName = imageData.first, imageMimeType = imageData.second)
+                } else {
+                    entry
+                }
+            }
             .sortedByDescending { it.createdAtEpochMillis }
 
         val updatedSessions = buildList {
@@ -419,6 +467,8 @@ object AiConversationHistoryStore {
         }.sortedByDescending { it.createdAtEpochMillis }
 
         writeSessions(updatedSessions)
+        val finalEntryIds = updatedEntries.map { it.id }.toSet()
+        removeStoredImages(existingEntriesForScope.filter { it.id !in finalEntryIds })
         writeEntries(updatedEntries)
     }
 
@@ -492,7 +542,8 @@ object AiConversationHistoryStore {
     private fun pruneExpiredEntries() {
         val retentionDays = sharedPreferences.getInt(retentionDaysKey, defaultRetentionDays)
         val cutoff = System.currentTimeMillis() - retentionDays * 24L * 60L * 60L * 1000L
-        val retainedEntries = readEntries()
+        val existingEntries = readEntries()
+        val retainedEntries = existingEntries
             .filter { it.createdAtEpochMillis >= cutoff }
             .sortedByDescending { it.createdAtEpochMillis }
             .take(maximumEntries)
@@ -504,11 +555,12 @@ object AiConversationHistoryStore {
             .sortedByDescending { it.updatedAtEpochMillis }
             .take(maximumSessions)
 
-        writeEntries(
-            retainedEntries.filter { entry ->
-                retainedSessions.any { session -> session.id == entry.sessionId }
-            },
-        )
+        val finalEntries = retainedEntries.filter { entry ->
+            retainedSessions.any { session -> session.id == entry.sessionId }
+        }
+        val finalEntryIds = finalEntries.map { it.id }.toSet()
+        removeStoredImages(existingEntries.filter { it.id !in finalEntryIds })
+        writeEntries(finalEntries)
         writeSessions(retainedSessions)
     }
 
@@ -589,6 +641,8 @@ object AiConversationHistoryStore {
                             source = source,
                             prompt = prompt,
                             response = response,
+                            imageFileName = sanitizeStoredImageFileName(item.optString("imageFileName")),
+                            imageMimeType = item.optString("imageMimeType").trim(),
                             resultType = item.optString("resultType").trim().ifBlank { "text" },
                             automationMessage = item.optString("automationMessage").trim(),
                             workflowName = item.optString("workflowName").trim(),
@@ -684,6 +738,8 @@ object AiConversationHistoryStore {
                     .put("source", entry.source.name)
                     .put("prompt", entry.prompt)
                     .put("response", entry.response)
+                    .put("imageFileName", sanitizeStoredImageFileName(entry.imageFileName))
+                    .put("imageMimeType", entry.imageMimeType)
                     .put("resultType", entry.resultType)
                     .put("automationMessage", entry.automationMessage)
                     .put("workflowName", entry.workflowName)
@@ -715,6 +771,47 @@ object AiConversationHistoryStore {
         return normalized.isBlank() ||
             normalized.equals(AiConversationHistorySession.DEFAULT_SESSION_TITLE, ignoreCase = true)
     }
+
+    private fun storeImageBytes(imageBytes: ByteArray, entryId: String, mimeType: String): String? {
+        val extension = imageExtensionFor(mimeType)
+        val fileName = sanitizeStoredImageFileName("$entryId.$extension")
+        if (fileName.isBlank()) return null
+        val file = storedImageFile(fileName, createDirectory = true) ?: return null
+        return runCatching {
+            file.writeBytes(imageBytes)
+            fileName
+        }.getOrNull()
+    }
+
+    private fun storedImageFile(fileName: String, createDirectory: Boolean): File? {
+        if (!::appContext.isInitialized) return null
+        val sanitizedFileName = sanitizeStoredImageFileName(fileName)
+        if (sanitizedFileName.isBlank()) return null
+        val directory = File(appContext.filesDir, visualImageDirectoryName)
+        if (createDirectory && !directory.exists() && !directory.mkdirs()) return null
+        return File(directory, sanitizedFileName)
+    }
+
+    private fun removeStoredImages(entries: List<AiConversationHistoryEntry>) {
+        entries.forEach { entry ->
+            val file = storedImageFile(entry.imageFileName, createDirectory = false)
+            runCatching { file?.delete() }
+        }
+    }
+
+    private fun sanitizeStoredImageFileName(fileName: String): String =
+        fileName.trim().substringAfterLast('/').substringAfterLast('\\')
+            .replace(Regex("[^A-Za-z0-9._-]"), "")
+            .take(96)
+
+    private fun imageExtensionFor(mimeType: String): String =
+        when (mimeType.trim().lowercase()) {
+            "image/jpeg", "image/jpg" -> "jpg"
+            "image/webp" -> "webp"
+            "image/heic" -> "heic"
+            "image/png" -> "png"
+            else -> "png"
+        }
 
     private fun normalizeUserKey(userKey: String?): String {
         val trimmed = userKey?.trim().orEmpty()
