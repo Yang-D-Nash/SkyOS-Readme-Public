@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-05-05 03:54 CEST (Music Hub duplicate-brand cleanup uploaded: iOS 10023 and Android 10024)
+Last updated: 2026-05-05 04:27 CEST (Music Hub duplicate-brand cleanup uploaded: iOS 10023 and Android 10025)
 Owner: Release Engineering
 
 ## Build Identity
@@ -16,7 +16,7 @@ Owner: Release Engineering
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10024`
+- versionCode: `10025`
 - Play Billing Library: `8.3.0`
 
 ## Build Artifacts
@@ -25,8 +25,8 @@ Owner: Release Engineering
 - iOS UI test evidence: latest full fresh UI-test evidence remains `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.xcresult` and raw log `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.log`; build `10020` contains the refreshed keyboard dismissal and Agent new-conversation UX after that gate.
 - iOS upload evidence: `xcodebuild -exportArchive` with `build/ios/ExportOptions-app-store-upload-10023.plist` ended with `Upload succeeded` and `** EXPORT SUCCEEDED **` at 2026-05-05 03:54 CEST.
 - iOS upload status: UPLOADED for build `10023`; package processing started in App Store Connect.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-05-05 03:30 CEST, versionCode `10024`, SHA-256 `d08c9775212bf9a21b78d03c3e00574676ef5f2243d29e4fd37436257e07deca`)
-- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-05-05 03:29 CEST, versionCode `10024`, SHA-256 `379f02b71841e5866bdb8dd4bc7f32cf3bfa7dc447e95f004fa3d6df8fbd8dd4`)
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-05-05 04:23 CEST, versionCode `10025`, SHA-256 `0d42b3ed244334896f4044f9b6231624e41a0781aa1364ae6d502a3dec50bd46`)
+- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-05-05 04:23 CEST, versionCode `10025`, SHA-256 `9ccba604bb04a404eeeea0d6447f4843c106a78d6691e1fc8ce2c9c81ada1ada`)
 
 ## Upload Status
 
@@ -61,14 +61,14 @@ Owner: Release Engineering
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: SUCCEEDED for versionCode `10024` at 2026-05-05 03:30 CEST.
-- Play Console status: versionCode `10024` uploaded to the `internal` track as a draft through Fastlane at 2026-05-05 03:50 CEST.
+- Release AAB build: SUCCEEDED for versionCode `10025` at 2026-05-05 04:23 CEST.
+- Play Console status: versionCode `10025` uploaded to the `internal` track as a draft through Fastlane at 2026-05-05 04:27 CEST.
 - Play upload automation: WORKING via Fastlane `upload_android_internal` when `SUPPLY_JSON_KEY` points at the local Play service-account JSON.
-- CLI validate-only attempt: PASSED for versionCode `10024` at 2026-05-05 03:48 CEST.
+- CLI validate-only attempt: PASSED for versionCode `10025` at 2026-05-05 04:25 CEST.
 - Notes:
   - Fastlane used `release_status: draft`, so this did not start a production rollout.
-  - VersionCode `10024` contains the Music Hub artist ordering fix (`Janno`, `Mave`, `Tangajoe007`, `Yang D. Nash`, `ThaDude`), removes the duplicate top `22 Music`/Zweizwei social destination, and packages all configured Android locales instead of English-only resources.
-  - Earlier versionCode `10023` was uploaded to the Play internal draft at 2026-05-04 23:10 CEST and is superseded by this fresh versionCode `10024` upload.
+  - VersionCode `10025` contains the Music Hub artist ordering fix (`Janno`, `Mave`, `Tangajoe007`, `Yang D. Nash`, `ThaDude`), removes the duplicate top `22 Music`/Zweizwei social destination plus stale Android string resources, and packages all configured Android locales instead of English-only resources.
+  - Earlier versionCode `10024` was uploaded to the Play internal draft at 2026-05-05 03:50 CEST and is superseded by this fresh versionCode `10025` upload.
   - VersionCode `10015` was previously confirmed online/visible by the release owner on 2026-04-27.
 
 ## 2026-05-05 Verification Log
@@ -86,6 +86,13 @@ Owner: Release Engineering
 11. Fastlane `upload_android_internal` uploaded versionCode `10024` to Google Play internal testing as a draft at 2026-05-05 03:50 CEST.
 12. iOS build number bumped to `10023`; archive succeeded at `build/ios/SkyOS-1.0.0-10023-20260505.xcarchive`.
 13. iOS build `10023` uploaded to App Store Connect successfully at 2026-05-05 03:54 CEST via `xcodebuild -exportArchive`; uploaded package is processing. Xcode reported missing vendor dSYMs for Firebase/gRPC binary frameworks, but the app package upload still succeeded.
+14. Android `versionCode` bumped to `10025` so already-installed `10024` devices receive a real Play/App update.
+15. Stale Android `music_instagram_hub_*` resources for the removed `22 Music` entry were deleted; release APK/AAB string scan found no `22 Music`, `22 Musik`, or `@zweizwei_music` remnants.
+16. Android clean release gate passed for version `1.0.0` / versionCode `10025`; AAB and APK were rebuilt at 2026-05-05 04:23 CEST.
+17. Android AAB SHA-256 for versionCode `10025`: `0d42b3ed244334896f4044f9b6231624e41a0781aa1364ae6d502a3dec50bd46`.
+18. Android APK SHA-256 for versionCode `10025`: `9ccba604bb04a404eeeea0d6447f4843c106a78d6691e1fc8ce2c9c81ada1ada`.
+19. Fastlane `validate_android_internal` passed against Google Play for versionCode `10025` at 2026-05-05 04:25 CEST.
+20. Fastlane `upload_android_internal` uploaded versionCode `10025` to Google Play internal testing as a draft at 2026-05-05 04:27 CEST.
 
 ## 2026-05-04 Verification Log
 
@@ -263,7 +270,7 @@ Suggested review note text:
 
 1. Confirm final legal approval for public privacy/terms wording.
 2. Confirm final production domain and replace URL placeholders in App Store Connect and Play Console.
-3. Verify subscription product setup status for uploaded iOS build `10023`, plus Android versionCode `10024` in its Play internal draft.
+3. Verify subscription product setup status for uploaded iOS build `10023`, plus Android versionCode `10025` in its Play internal draft.
 4. Update production Firestore `appConfig/legalContent` and `appConfig/commerceSettings` if old remote operator/legal values still exist.
 5. Firestore/Storage rules were deployed on 2026-04-25; fixed owner Firebase Auth account was verified with `emailVerified=true`.
 6. Verify data safety/privacy forms reflect actual SDK usage:
@@ -275,13 +282,13 @@ Suggested review note text:
    - Not used by current binaries: precise/coarse location, camera capture, microphone, contacts, calendar. Photo/video selection uses system pickers; Android `WRITE_EXTERNAL_STORAGE` is capped to API 28 only for saving generated images.
 7. Upload and map final screenshot sets for iPhone, iPad, and Android phone form factors. Use `screenshots/final/ipad/` for iPad, `screenshots/final/google-play/android-phone/` for Play phone screenshots, and `docs/assets/google-play/` for the Play icon/feature graphic.
 8. Set age rating/content rating questionnaires in both consoles.
-9. Build numbers are current for the 2026-05-05 follow-up: iOS build `10023` is uploaded and processing; Android `10024` is uploaded as the internal testing draft and supersedes uploaded draft `10023`.
+9. Build numbers are current for the 2026-05-05 follow-up: iOS build `10023` is uploaded and processing; Android `10025` is uploaded as the internal testing draft and supersedes uploaded draft `10024`.
 
 ## Go/No-Go Checklist
 
 - [x] iOS build `10023` uploaded to App Store Connect and processing
-- [x] Android release `10024` built and verified locally
-- [x] Android release `10024` uploaded to Play Console internal testing as a draft
+- [x] Android release `10025` built and verified locally
+- [x] Android release `10025` uploaded to Play Console internal testing as a draft
 - [ ] Privacy, terms, support URLs point to final public domain
 - [ ] Legal text approved for store/public use
 - [ ] Subscription metadata, pricing, and restore behavior validated
@@ -308,7 +315,7 @@ Suggested review note text:
 1. Open [Google Play Console](https://play.google.com/console/).
 2. Select app with package `com.nash.skyos`.
 3. Go to **Testing** -> **Internal testing**.
-4. Review the uploaded draft release containing versionCode `10024`.
+4. Review the uploaded draft release containing versionCode `10025`.
 5. Confirm release notes and save.
 6. Go to **Store presence** and complete store listing fields.
 7. Go to **App content** and complete:

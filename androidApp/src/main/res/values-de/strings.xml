@@ -1690,8 +1690,6 @@ Nachricht:
     <string name="video_public_artist_phil_role">Porträt-Momente</string>
     <string name="video_public_artist_phil_highlight">Ruhiger Rahmen, menschliches Aussehen, klare Präsenz.</string>
     <string name="video_public_artist_phil_vibe">Porträt</string>
-    <string name="music_instagram_hub_title">22 Musik</string>
-    <string name="music_instagram_hub_subtitle">@zweizwei_music - Label und Veröffentlichungen</string>
     <string name="music_instagram_artist_subtitle">%1$s - Künstler</string>
     <string name="legal_readme_title">README / SkyOS-Anleitung</string>
     <string name="legal_readme_intro">Dieser Guide hilft dir beim schnellen Einstieg in %1$s als zusammenhängendes Creator Operating System. Du findest hier die wichtigsten Flows für Rollen, KI, Agenten, Workflows, Content und Support.</string>

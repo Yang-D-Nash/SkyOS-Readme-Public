@@ -5,9 +5,9 @@ trust paths, backend authority, and support readiness all line up at the same ti
 
 ## Current RC Snapshot
 
-Status as of 2026-05-05 03:54 CEST: backend Meta/social live-data setup is deployed, the prompt-progress
+Status as of 2026-05-05 04:27 CEST: backend Meta/social live-data setup is deployed, the prompt-progress
 client refresh plus Music Hub duplicate-brand cleanup is uploaded as iOS build `10023`, and the follow-up
-Music Hub + Android localization candidate is uploaded as an Android versionCode `10024` internal testing draft.
+Music Hub + Android localization candidate is uploaded as an Android versionCode `10025` internal testing draft.
 The duplicate top `22 Music`/Zweizwei social entry is removed so the hub shows only the five canonical artists.
 Public store rollout remains `no-go` until the open
 items in [release/store-upload-runbook.md](release/store-upload-runbook.md) are closed.
@@ -15,7 +15,7 @@ items in [release/store-upload-runbook.md](release/store-upload-runbook.md) are 
 Known open release gates:
 
 - App Store Connect: wait for uploaded iOS build `10023` to finish processing, then attach it to Internal TestFlight testers.
-- Google Play: review the uploaded internal testing draft containing Android versionCode `10024`, then roll it to internal testers.
+- Google Play: review the uploaded internal testing draft containing Android versionCode `10025`, then roll it to internal testers.
 - Store assets: upload/map the generated iPhone, iPad, Play-compliant Android screenshots, and Play listing graphics.
 - Store URLs and legal: replace placeholder console URLs with final hosted pages and confirm final legal approval.
 - QA: complete real-device smoke from uploaded store artifacts on iPhone and Android.
