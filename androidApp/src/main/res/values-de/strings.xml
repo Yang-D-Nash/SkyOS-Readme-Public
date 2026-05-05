@@ -1416,10 +1416,14 @@ Nachricht:
     <string name="ai_action_copy">Kopieren</string>
     <string name="ai_action_share">Teilen</string>
     <string name="ai_action_save">Speichern</string>
+    <string name="ai_action_fullscreen">Groß öffnen</string>
     <string name="ai_feedback_copied">Antwort kopiert.</string>
     <string name="ai_feedback_share_opened">Teilen-Dialog geöffnet.</string>
     <string name="ai_prompt_open">Eingabe offen</string>
     <string name="ai_generated_visual_cd">Generiertes Bildmaterial</string>
+    <string name="ai_generated_visual_fullscreen_cd">Generiertes Bildmaterial im Großbild</string>
+    <string name="ai_generated_visual_fullscreen_title">Generiertes Visual</string>
+    <string name="ai_generated_visual_close">Schließen</string>
     <string name="profile_title">Profil</string>
     <string name="profile_subtitle">Konto, Bilder und Links.</string>
     <string name="profile_edit_title">Profil bearbeiten</string>

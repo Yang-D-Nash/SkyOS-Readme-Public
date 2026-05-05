@@ -967,6 +967,10 @@
 "ai.quick_prompts.hint" = "Schnell rein.";
 "ai.visual_prompts.title" = "Visuals";
 "ai.visual_prompts.hint" = "Ein Prompt reicht.";
+"ai.visual.fullscreen.open" = "Groß öffnen";
+"ai.visual.fullscreen.title" = "Generiertes Visual";
+"ai.visual.fullscreen.close" = "Schließen";
+"ai.visual.fullscreen.share_save" = "Teilen / sichern";
 "ai.bot.bubble.assistant" = "SkyOS Bot";
 "ai.bot.progress.building" = "SkyOS Bot baut gerade eine ruhige Antwort auf...";
 "ai.bot.action.share_save" = "Teilen / Speichern";

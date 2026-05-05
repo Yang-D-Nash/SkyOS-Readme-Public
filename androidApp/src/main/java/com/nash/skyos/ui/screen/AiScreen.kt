@@ -2,6 +2,7 @@ package com.nash.skyos.ui.screen
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -27,9 +28,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.widthIn
@@ -94,6 +97,8 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -1832,6 +1837,7 @@ fun AiMessageBubble(
     val feedbackCopiedText = stringResource(R.string.ai_feedback_copied)
     val feedbackShareOpenedText = stringResource(R.string.ai_feedback_share_opened)
     val isUser = message.role == AiMessageRole.User
+    var showGeneratedVisualViewer by remember(message.id, message.imageBytes) { mutableStateOf(false) }
     val bubbleShape = RoundedCornerShape(
         topStart = SkydownUiTokens.cardCornerRadius,
         topEnd = SkydownUiTokens.cardCornerRadius,
@@ -1919,6 +1925,7 @@ fun AiMessageBubble(
                             .padding(top = 12.dp)
                             .height(220.dp)
                             .testTag("ai.message.visual")
+                            .clickable { showGeneratedVisualViewer = true }
                             .semantics(mergeDescendants = true) {
                                 contentDescription = generatedVisualContentDescription
                             }
@@ -1930,7 +1937,50 @@ fun AiMessageBubble(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
                         )
+
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(10.dp)
+                                .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
+                                .background(Color.Black.copy(alpha = 0.58f))
+                                .border(
+                                    width = 1.dp,
+                                    color = Color.White.copy(alpha = 0.24f),
+                                    shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
+                                )
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
+                            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Text(
+                                text = stringResource(R.string.ai_action_fullscreen),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
+                }
+
+                if (showGeneratedVisualViewer && generatedBitmap != null) {
+                    AiGeneratedVisualViewerDialog(
+                        bitmap = generatedBitmap,
+                        onDismiss = { showGeneratedVisualViewer = false },
+                        onSaveImage = {
+                            message.imageBytes?.let { imageBytes ->
+                                onSaveImage(imageBytes, message.imageMimeType)
+                            }
+                        },
+                    )
                 }
 
                 if (!isUser && !message.isStreaming) {
@@ -1961,6 +2011,13 @@ fun AiMessageBubble(
 
                         if (message.imageBytes != null) {
                             BrandStatusChip(
+                                text = stringResource(R.string.ai_action_fullscreen),
+                                accent = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.testTag("ai.message.fullscreen"),
+                                onClick = { showGeneratedVisualViewer = true },
+                            )
+
+                            BrandStatusChip(
                                 text = stringResource(R.string.ai_action_save),
                                 accent = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.testTag("ai.message.save"),
@@ -1972,6 +2029,73 @@ fun AiMessageBubble(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AiGeneratedVisualViewerDialog(
+    bitmap: Bitmap,
+    onDismiss: () -> Unit,
+    onSaveImage: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("ai.generated_visual.fullscreen")
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.94f)),
+        ) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = stringResource(R.string.ai_generated_visual_fullscreen_cd),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 62.dp),
+            )
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingComfortable),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Text(
+                    text = stringResource(R.string.ai_generated_visual_fullscreen_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.weight(1f),
+                )
+
+                BrandActionButton(
+                    text = stringResource(R.string.ai_generated_visual_close),
+                    onClick = onDismiss,
+                    accent = MaterialTheme.colorScheme.onPrimary,
+                    icon = Icons.Default.Close,
+                    filled = false,
+                    compact = true,
+                )
+            }
+
+            BrandActionButton(
+                text = stringResource(R.string.ai_action_save),
+                onClick = onSaveImage,
+                accent = MaterialTheme.colorScheme.onPrimary,
+                filled = false,
+                compact = true,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
+            )
         }
     }
 }

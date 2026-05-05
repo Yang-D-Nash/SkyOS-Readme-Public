@@ -1475,6 +1475,7 @@ Message:
     <string name="ai_action_copy">Copy</string>
     <string name="ai_action_share">Share</string>
     <string name="ai_action_save">Save</string>
+    <string name="ai_action_fullscreen">Open large</string>
     <string name="ai_feedback_copied">Response copied.</string>
     <string name="ai_feedback_share_opened">Share sheet opened.</string>
     <string name="ai_prompt_open">Open prompt</string>
@@ -1482,6 +1483,9 @@ Message:
     <string name="ai_thread_open_full_composer_a11y">Mode and details</string>
     <string name="ai_thread_send_a11y">Send</string>
     <string name="ai_generated_visual_cd">Generated visual</string>
+    <string name="ai_generated_visual_fullscreen_cd">Generated visual opened large</string>
+    <string name="ai_generated_visual_fullscreen_title">Generated visual</string>
+    <string name="ai_generated_visual_close">Close</string>
     <string name="profile_title">Profile</string>
     <string name="profile_subtitle">Account, images, and links.</string>
     <string name="profile_edit_title">Edit profile</string>

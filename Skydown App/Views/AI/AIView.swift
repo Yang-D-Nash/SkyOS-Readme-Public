@@ -1041,9 +1041,15 @@ private struct AIMessageBubble: View {
     @State private var showingShareSheet = false
     @State private var shareItems: [Any] = []
     @State private var showCopiedFeedback = false
+    @State private var showingImageViewer = false
 
     private var isUser: Bool {
         message.role == .user
+    }
+
+    private var generatedImage: UIImage? {
+        guard let imageData = message.imageData else { return nil }
+        return UIImage(data: imageData)
     }
 
     var body: some View {
@@ -1073,15 +1079,39 @@ private struct AIMessageBubble: View {
                         .font(.body)
                         .foregroundColor(isUser ? .white : AppColors.text(for: colorScheme))
 
-                    if let imageData = message.imageData,
-                       let image = UIImage(data: imageData) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 220)
-                            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
-                            .padding(.top, 4)
+                    if let image = generatedImage {
+                        Button {
+                            showingImageViewer = true
+                        } label: {
+                            ZStack(alignment: .bottomTrailing) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 220)
+                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
+
+                                Label(
+                                    AppLocalized.text("ai.visual.fullscreen.open", fallback: "Open large"),
+                                    systemImage: "arrow.up.left.and.arrow.down.right"
+                                )
+                                .font(.caption2.weight(.bold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background(.black.opacity(0.58), in: Capsule())
+                                .overlay(
+                                    Capsule()
+                                        .stroke(.white.opacity(0.24), lineWidth: 1)
+                                )
+                                .padding(10)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(AppLocalized.text("ai.visual.fullscreen.open", fallback: "Open large"))
+                        .padding(.top, 4)
                     }
 
                     if !isUser {
@@ -1149,6 +1179,15 @@ private struct AIMessageBubble: View {
         .sheet(isPresented: $showingShareSheet) {
             AIShareSheet(activityItems: shareItems)
         }
+        .fullScreenCover(isPresented: $showingImageViewer) {
+            if let image = generatedImage {
+                AIGeneratedVisualViewer(
+                    image: image,
+                    caption: message.text,
+                    colorScheme: colorScheme
+                )
+            }
+        }
     }
 
     private var bubbleBackground: some View {
@@ -1181,6 +1220,91 @@ private struct AIMessageBubble: View {
            let image = UIImage(data: imageData) {
             items.append(image)
         }
+        return items
+    }
+}
+
+private struct AIGeneratedVisualViewer: View {
+    let image: UIImage
+    let caption: String
+    let colorScheme: ColorScheme
+    @Environment(\.dismiss) private var dismiss
+    @State private var showingShareSheet = false
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.94)
+                .ignoresSafeArea()
+
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .padding(.horizontal, 16)
+                .padding(.vertical, 72)
+
+            VStack(spacing: 0) {
+                HStack(spacing: SkydownLayout.stackSpacingComfortable) {
+                    Text(AppLocalized.text("ai.visual.fullscreen.title", fallback: "Generated visual"))
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+
+                    Spacer(minLength: 12)
+
+                    Button {
+                        dismiss()
+                    } label: {
+                        Label(
+                            AppLocalized.text("ai.visual.fullscreen.close", fallback: "Close"),
+                            systemImage: "xmark"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 10)
+                        .background(.white.opacity(0.10), in: Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(.white.opacity(0.18), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 18)
+
+                Spacer()
+
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("ai.visual.fullscreen.share_save", fallback: "Share / save"),
+                    systemImage: "square.and.arrow.up",
+                    accent: .white,
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.tightRadius,
+                    verticalPadding: 10,
+                    expandToFullWidth: false,
+                    action: {
+                        showingShareSheet = true
+                    }
+                )
+                .padding(.bottom, 18)
+            }
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            AIShareSheet(activityItems: shareItems)
+        }
+    }
+
+    private var shareItems: [Any] {
+        var items: [Any] = []
+        let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedCaption.isEmpty {
+            items.append(trimmedCaption)
+        }
+        items.append(image)
         return items
     }
 }
