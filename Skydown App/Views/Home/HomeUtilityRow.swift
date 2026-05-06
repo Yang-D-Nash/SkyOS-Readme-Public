@@ -147,7 +147,7 @@ struct HomeArtistSocialLinksRow: View {
                 ),
                 spotifyURL: resolvedOptionalURL(
                     yangPage.spotifyURL,
-                    fallback: "https://open.spotify.com/search/Yang%20D.%20Nash"
+                    fallback: "https://open.spotify.com/artist/63Sh0kQAWW3ZWn2aKDksbo"
                 )
             ),
             ArtistSocialEntry(

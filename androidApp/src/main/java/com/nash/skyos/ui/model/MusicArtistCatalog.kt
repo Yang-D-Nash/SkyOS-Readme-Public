@@ -10,6 +10,19 @@ val defaultZweizweiMusicArtists = listOf(
     "ThaDude",
 )
 
+private val canonicalSpotifyArtistIdsByKey = mapOf(
+    musicArtistKey("Janno") to "7hpiHzP9aLLb5liDLxtwhM",
+    musicArtistKey("Mave") to "0GXymtRaIk2ngbXSkcHtsp",
+    musicArtistKey("Tangajoe007") to "0OA5dgpVdwzI8K82m8FPxN",
+    musicArtistKey("Yang D. Nash") to "63Sh0kQAWW3ZWn2aKDksbo",
+    musicArtistKey("ThaDude") to "0Jmb7DXFkKxxRjqD70vi0e",
+)
+
+fun canonicalSpotifyArtistUrlForMusicArtist(artist: String): String? {
+    val artistId = canonicalSpotifyArtistIdsByKey[musicArtistKey(artist)] ?: return null
+    return "https://open.spotify.com/artist/$artistId"
+}
+
 fun mergeZweizweiMusicArtists(liveArtists: Iterable<String>): List<String> {
     val merged = linkedMapOf<String, String>()
 

@@ -20,9 +20,13 @@ enum SpotifyMusicConstants {
         "Yang D. Nash": "63Sh0kQAWW3ZWn2aKDksbo",
         "Janno": "7hpiHzP9aLLb5liDLxtwhM",
         "JANNO": "7hpiHzP9aLLb5liDLxtwhM",
+        "Mave": "0GXymtRaIk2ngbXSkcHtsp",
+        "MAVE": "0GXymtRaIk2ngbXSkcHtsp",
         "Tangajoe": "0OA5dgpVdwzI8K82m8FPxN",
         "Tangajoe007": "0OA5dgpVdwzI8K82m8FPxN",
         "TANGAJOE007": "0OA5dgpVdwzI8K82m8FPxN",
+        "ThaDude": "0Jmb7DXFkKxxRjqD70vi0e",
+        "THADUDE": "0Jmb7DXFkKxxRjqD70vi0e",
         "NICMA MUSIC": "0OoRIo7pJjtLgg3qyf1oDS",
         "NICMA": "0OoRIo7pJjtLgg3qyf1oDS"
     ]

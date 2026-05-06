@@ -386,7 +386,7 @@ let artistInstagramDestinations: [String: MusicInstagramDestination] = [
         handle: "@y.d.nash",
         urlString: "https://www.instagram.com/y.d.nash/",
         helper: "Artist aktuell ausgewaehlt",
-        spotifyURLString: nil,
+        spotifyURLString: "https://open.spotify.com/artist/63Sh0kQAWW3ZWn2aKDksbo",
         artistPageName: "Yang D. Nash"
     ),
     musicArtistKey("Tangajoe007"): MusicInstagramDestination(
@@ -395,7 +395,7 @@ let artistInstagramDestinations: [String: MusicInstagramDestination] = [
         handle: "@tangajoe007",
         urlString: "https://www.instagram.com/tangajoe007/",
         helper: "Artist aktuell ausgewaehlt",
-        spotifyURLString: nil,
+        spotifyURLString: "https://open.spotify.com/artist/0OA5dgpVdwzI8K82m8FPxN",
         artistPageName: "Tangajoe007"
     ),
     musicArtistKey("Janno"): MusicInstagramDestination(
@@ -404,8 +404,26 @@ let artistInstagramDestinations: [String: MusicInstagramDestination] = [
         handle: "@janno_official_",
         urlString: "https://www.instagram.com/janno_official_/",
         helper: "Artist aktuell ausgewaehlt",
-        spotifyURLString: nil,
+        spotifyURLString: "https://open.spotify.com/artist/7hpiHzP9aLLb5liDLxtwhM",
         artistPageName: "Janno"
+    ),
+    musicArtistKey("Mave"): MusicInstagramDestination(
+        id: "artist_mave",
+        title: "Mave",
+        handle: "@mave040_official",
+        urlString: "https://www.instagram.com/mave040_official/",
+        helper: "Artist aktuell ausgewaehlt",
+        spotifyURLString: "https://open.spotify.com/artist/0GXymtRaIk2ngbXSkcHtsp",
+        artistPageName: "Mave"
+    ),
+    musicArtistKey("ThaDude"): MusicInstagramDestination(
+        id: "artist_thadude",
+        title: "ThaDude",
+        handle: "@thadude_offizielle",
+        urlString: "https://www.instagram.com/thadude_offizielle/",
+        helper: "Artist aktuell ausgewaehlt",
+        spotifyURLString: "https://open.spotify.com/artist/0Jmb7DXFkKxxRjqD70vi0e",
+        artistPageName: "ThaDude"
     )
 ]
 

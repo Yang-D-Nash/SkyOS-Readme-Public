@@ -62,3 +62,32 @@ test("music hub keeps the approved artist order on iOS and Android", () => {
   assert.deepEqual(iosArtists, approvedZweizweiArtists);
   assert.deepEqual(androidArtists, approvedZweizweiArtists);
 });
+
+test("music hub keeps Mave and ThaDude on their exact public profiles", () => {
+  const androidContent = fs.readFileSync(
+      path.join(repoRoot, "androidApp/src/main/java/com/nash/skyos/ui/SkydownApp.kt"),
+      "utf8",
+  );
+  const androidCatalogContent = fs.readFileSync(
+      path.join(repoRoot, "androidApp/src/main/java/com/nash/skyos/ui/model/MusicArtistCatalog.kt"),
+      "utf8",
+  );
+  const iosContent = fs.readFileSync(
+      path.join(repoRoot, "Skydown App/Views/Music/SubView/MusicSharedComponents.swift"),
+      "utf8",
+  );
+  const iosSpotifyContent = fs.readFileSync(
+      path.join(repoRoot, "Skydown App/Services/Music/SpotifyMusicServiceSupport.swift"),
+      "utf8",
+  );
+
+  for (const content of [androidContent, iosContent]) {
+    assert.match(content, /https:\/\/www\.instagram\.com\/mave040_official\//);
+    assert.match(content, /https:\/\/www\.instagram\.com\/thadude_offizielle\//);
+  }
+
+  for (const content of [androidContent, androidCatalogContent, iosContent, iosSpotifyContent]) {
+    assert.match(content, /https:\/\/open\.spotify\.com\/artist\/0GXymtRaIk2ngbXSkcHtsp|0GXymtRaIk2ngbXSkcHtsp/);
+    assert.match(content, /https:\/\/open\.spotify\.com\/artist\/0Jmb7DXFkKxxRjqD70vi0e|0Jmb7DXFkKxxRjqD70vi0e/);
+  }
+});

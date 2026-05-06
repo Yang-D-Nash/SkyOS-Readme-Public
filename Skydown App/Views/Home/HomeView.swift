@@ -15,6 +15,7 @@ struct HomeView: View {
     let onGuestSignIn: (() -> Void)?
     let onOpenWorkflow: (() -> Void)?
     let onOpenWorkflowWithPrompt: ((String) -> Void)?
+    let onOpenArtistPage: ((String) -> Void)?
 
     init(
         onOpenCart: @escaping () -> Void = {},
@@ -22,7 +23,8 @@ struct HomeView: View {
         onOpenSettings: @escaping () -> Void = {},
         onGuestSignIn: (() -> Void)? = nil,
         onOpenWorkflow: (() -> Void)? = nil,
-        onOpenWorkflowWithPrompt: ((String) -> Void)? = nil
+        onOpenWorkflowWithPrompt: ((String) -> Void)? = nil,
+        onOpenArtistPage: ((String) -> Void)? = nil
     ) {
         self.onOpenCart = onOpenCart
         self.onOpenProfile = onOpenProfile
@@ -30,6 +32,7 @@ struct HomeView: View {
         self.onGuestSignIn = onGuestSignIn
         self.onOpenWorkflow = onOpenWorkflow
         self.onOpenWorkflowWithPrompt = onOpenWorkflowWithPrompt
+        self.onOpenArtistPage = onOpenArtistPage
     }
 
     var body: some View {
@@ -39,7 +42,8 @@ struct HomeView: View {
             onOpenSettings: onOpenSettings,
             onGuestSignIn: onGuestSignIn,
             onOpenWorkflow: onOpenWorkflow,
-            onOpenWorkflowWithPrompt: onOpenWorkflowWithPrompt
+            onOpenWorkflowWithPrompt: onOpenWorkflowWithPrompt,
+            onOpenArtistPage: onOpenArtistPage
         )
     }
 }
@@ -92,6 +96,7 @@ struct HomeViewContent: View {
     let onGuestSignIn: (() -> Void)?
     let onOpenWorkflow: (() -> Void)?
     let onOpenWorkflowWithPrompt: ((String) -> Void)?
+    let onOpenArtistPage: ((String) -> Void)?
 
     init(
         onOpenCart: @escaping () -> Void = {},
@@ -99,7 +104,8 @@ struct HomeViewContent: View {
         onOpenSettings: @escaping () -> Void = {},
         onGuestSignIn: (() -> Void)? = nil,
         onOpenWorkflow: (() -> Void)? = nil,
-        onOpenWorkflowWithPrompt: ((String) -> Void)? = nil
+        onOpenWorkflowWithPrompt: ((String) -> Void)? = nil,
+        onOpenArtistPage: ((String) -> Void)? = nil
     ) {
         self.onOpenCart = onOpenCart
         self.onOpenProfile = onOpenProfile
@@ -107,6 +113,7 @@ struct HomeViewContent: View {
         self.onGuestSignIn = onGuestSignIn
         self.onOpenWorkflow = onOpenWorkflow
         self.onOpenWorkflowWithPrompt = onOpenWorkflowWithPrompt
+        self.onOpenArtistPage = onOpenArtistPage
     }
 
     var body: some View {
@@ -156,7 +163,13 @@ struct HomeViewContent: View {
 
                                 HomeArtistSocialLinksRow(
                                     colorScheme: colorScheme,
-                                    onOpenArtistPage: { _ in openReleaseSection() }
+                                    onOpenArtistPage: { artistName in
+                                        if let onOpenArtistPage {
+                                            onOpenArtistPage(artistName)
+                                        } else {
+                                            openReleaseSection()
+                                        }
+                                    }
                                 )
                                     .homeReveal(3)
 

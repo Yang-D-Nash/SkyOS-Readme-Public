@@ -564,6 +564,9 @@ struct MusicView: View {
         if let savedSpotify = page.spotifyURL?.trimmingCharacters(in: .whitespacesAndNewlines), !savedSpotify.isEmpty {
             return savedSpotify
         }
+        if let knownArtistID = SpotifyMusicConstants.artistIDs[artist] {
+            return "https://open.spotify.com/artist/\(knownArtistID)"
+        }
         let query = artist.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? artist
         return "https://open.spotify.com/search/\(query)"
     }

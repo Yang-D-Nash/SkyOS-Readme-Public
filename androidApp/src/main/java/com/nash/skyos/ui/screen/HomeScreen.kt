@@ -201,6 +201,7 @@ fun HomeScreen(
     onGuestSignIn: (() -> Unit)? = null,
     onOpenWorkflow: (() -> Unit)? = null,
     onOpenWorkflowWithPrompt: ((String) -> Unit)? = null,
+    onOpenArtistPage: ((String) -> Unit)? = null,
 ) {
     val app = LocalContext.current.applicationContext as Application
     val viewModel: HomeViewModel = viewModel(
@@ -558,6 +559,7 @@ fun HomeScreen(
                         HomeAnimatedItem(order = 2) {
                             HomeArtistSocialLinksRow(
                                 onOpenMusic = scrollHomeToMediaCluster,
+                                onOpenArtistPage = onOpenArtistPage,
                             )
                         }
                         HomeAnimatedItem(order = 3) {
@@ -1605,6 +1607,7 @@ private fun HomeUtilityRow(
 @Composable
 private fun HomeArtistSocialLinksRow(
     onOpenMusic: () -> Unit,
+    onOpenArtistPage: ((String) -> Unit)?,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val context = LocalContext.current
@@ -1631,7 +1634,7 @@ private fun HomeArtistSocialLinksRow(
             ),
             spotifyUrl = resolvedHomeSocialUrl(
                 yangPage.spotifyURL,
-                fallback = "https://open.spotify.com/search/Yang%20D.%20Nash",
+                fallback = "https://open.spotify.com/artist/63Sh0kQAWW3ZWn2aKDksbo",
             ),
         ),
         ArtistSocialEntry(
@@ -1686,8 +1689,7 @@ private fun HomeArtistSocialLinksRow(
                             modifier = Modifier.weight(1f),
                         ) {
                             view.performSkydownHaptic(SkydownHapticKind.Selection)
-                            // Keep users in flow: jump to music cluster.
-                            onOpenMusic()
+                            onOpenArtistPage?.invoke(entry.title) ?: onOpenMusic()
                         }
                         HomeArtistSocialButton(
                             label = stringResource(R.string.home_artist_links_instagram),

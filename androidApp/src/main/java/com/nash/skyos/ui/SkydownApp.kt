@@ -149,6 +149,7 @@ import com.nash.skyos.ui.component.SkydownStandardEasing
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.rememberIsCompactAppLayout
 import com.nash.skyos.ui.component.rememberSkydownReduceMotion
+import com.nash.skyos.ui.model.canonicalSpotifyArtistUrlForMusicArtist
 import com.nash.skyos.ui.model.mergeZweizweiMusicArtists
 import com.nash.skyos.ui.model.musicArtistKey
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
@@ -231,6 +232,7 @@ fun SkydownApp(
     var selectedEntryRoute by rememberSaveable(startRouteOverride) { mutableStateOf(startRouteOverride) }
     var showsWorkflowWorkspace by rememberSaveable { mutableStateOf(false) }
     var pendingAgentPrefillPrompt by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingMusicArtistPageRequest by rememberSaveable { mutableStateOf<String?>(null) }
     var authSheet by rememberSaveable { mutableStateOf<AuthSheet?>(null) }
     var authSheetLocked by rememberSaveable { mutableStateOf(false) }
     var showOrders by rememberSaveable { mutableStateOf(false) }
@@ -578,6 +580,10 @@ fun SkydownApp(
                                 } else {
                                     null
                                 },
+                                onOpenArtistPage = { artistName ->
+                                    pendingMusicArtistPageRequest = artistName
+                                    navigateToTopLevel("music")
+                                },
                             )
                         }
                         composable("shop") {
@@ -595,6 +601,8 @@ fun SkydownApp(
                                 onOpenProfile = openProfile,
                                 onOpenSettings = openSettings,
                                 onGuestSignIn = { openAuthLogin(AuthEntryContext.MUSIC) },
+                                artistPageRequest = pendingMusicArtistPageRequest,
+                                onConsumeArtistPageRequest = { pendingMusicArtistPageRequest = null },
                             )
                         }
                         composable("video") {
@@ -1776,7 +1784,14 @@ private val musicHubFallbackInstagramQuickLinks = listOf(
         "@y.d.nash",
         "https://www.instagram.com/y.d.nash/",
         "Yang D. Nash",
-        "https://open.spotify.com/search/Yang%20D.%20Nash",
+        "https://open.spotify.com/artist/63Sh0kQAWW3ZWn2aKDksbo",
+    ),
+    MusicHubSocialLink(
+        "Mave",
+        "@mave040_official",
+        "https://www.instagram.com/mave040_official/",
+        "Mave",
+        "https://open.spotify.com/artist/0GXymtRaIk2ngbXSkcHtsp",
     ),
     MusicHubSocialLink(
         "Tangajoe007",
@@ -1784,6 +1799,13 @@ private val musicHubFallbackInstagramQuickLinks = listOf(
         "https://www.instagram.com/tangajoe007/",
         "Tangajoe007",
         "https://open.spotify.com/search/TANGAJOE007",
+    ),
+    MusicHubSocialLink(
+        "ThaDude",
+        "@thadude_offizielle",
+        "https://www.instagram.com/thadude_offizielle/",
+        "ThaDude",
+        "https://open.spotify.com/artist/0Jmb7DXFkKxxRjqD70vi0e",
     ),
 )
 
@@ -1821,6 +1843,7 @@ private fun instagramSearchUrlForArtist(artistName: String): String {
 }
 
 private fun musicSpotifyUrlForArtist(artistName: String): String {
+    canonicalSpotifyArtistUrlForMusicArtist(artistName)?.let { return it }
     val encoded = Uri.encode(artistName)
     return "https://open.spotify.com/search/$encoded"
 }
@@ -2028,6 +2051,8 @@ private fun ZweizweiMusicLaneScreen(
     onOpenSettings: () -> Unit = {},
     onGuestSignIn: (() -> Unit)? = null,
     onBackToLanding: (() -> Unit)? = null,
+    artistPageRequest: String? = null,
+    onConsumeArtistPageRequest: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val compactLayout = rememberIsCompactAppLayout()
@@ -2046,6 +2071,15 @@ private fun ZweizweiMusicLaneScreen(
     val hubBottomPadding = if (useCompactHubVisuals) 18.dp else 24.dp
     val hubSectionSpacing = if (useCompactHubVisuals) 9.dp else 11.dp
     val useCompactHubHero = useCompactHubVisuals
+
+    LaunchedEffect(artistPageRequest) {
+        val requestedArtist = artistPageRequest?.trim().orEmpty()
+        if (requestedArtist.isBlank()) return@LaunchedEffect
+        selectedArtistPage = requestedArtist
+        artistPageReturnDestination = ZweizweiMusicDestination.Hub
+        destination = ZweizweiMusicDestination.ArtistPage
+        onConsumeArtistPageRequest()
+    }
 
     Box(
         modifier = Modifier

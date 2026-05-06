@@ -63,10 +63,20 @@ private val artistSocialProfiles = mapOf(
         handle = "@janno_official_",
         instagramUrl = "https://www.instagram.com/janno_official_/",
     ),
+    musicArtistKey("Mave") to ArtistSocialProfile(
+        artist = "Mave",
+        handle = "@mave040_official",
+        instagramUrl = "https://www.instagram.com/mave040_official/",
+    ),
     musicArtistKey("Tangajoe007") to ArtistSocialProfile(
         artist = "Tangajoe007",
         handle = "@tangajoe007",
         instagramUrl = "https://www.instagram.com/tangajoe007/",
+    ),
+    musicArtistKey("ThaDude") to ArtistSocialProfile(
+        artist = "ThaDude",
+        handle = "@thadude_offizielle",
+        instagramUrl = "https://www.instagram.com/thadude_offizielle/",
     ),
 )
 

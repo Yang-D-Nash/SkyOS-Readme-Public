@@ -85,6 +85,7 @@ import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownPressable
 import com.nash.skyos.ui.component.skydownTopBarColors
+import com.nash.skyos.ui.model.canonicalSpotifyArtistUrlForMusicArtist
 import com.nash.skyos.ui.model.MusicUiState
 import com.nash.skyos.ui.model.musicArtistKey
 import com.nash.skyos.ui.theme.SkydownMusicArtistNameTextStyle
@@ -573,6 +574,7 @@ private fun MusicEinstiegActionButton(
 }
 
 private fun musicSpotifyUrlForArtist(artist: String): String {
+    canonicalSpotifyArtistUrlForMusicArtist(artist)?.let { return it }
     val encoded = Uri.encode(artist)
     return "https://open.spotify.com/search/$encoded"
 }

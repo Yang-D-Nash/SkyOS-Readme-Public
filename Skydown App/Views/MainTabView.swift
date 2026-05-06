@@ -101,6 +101,7 @@ struct MainTabView: View {
     @State private var modalPresentation = SkydownQueuedPresentation<MainTabModal>()
     @State private var showsWorkflowWorkspace = false
     @State private var pendingAgentPrefillPrompt: String?
+    @State private var pendingZweizweiArtistPageRequest: String?
     @State private var settingsInitialAdminWorkspaceRawValue: String?
 
     private var preferredScheme: ColorScheme? {
@@ -212,6 +213,8 @@ struct MainTabView: View {
 
                 DeferredView {
                     ZweizweiTabView(
+                        artistPageRequest: pendingZweizweiArtistPageRequest,
+                        onConsumeArtistPageRequest: { pendingZweizweiArtistPageRequest = nil },
                         onOpenCart: { presentModal(.cart) },
                         onOpenProfile: { presentModal(.profile) },
                         onOpenSettings: { presentSettings() },
@@ -248,7 +251,17 @@ struct MainTabView: View {
                                 showsWorkflowWorkspace = true
                                 selectedTab = .tools
                             }
-                        } : nil
+                        } : nil,
+                        onOpenArtistPage: { artistName in
+                            pendingZweizweiArtistPageRequest = artistName
+                            withAnimation(
+                                SkydownMotion.preferredScreenTransition(
+                                    accessibilityReduceMotion: accessibilityReduceMotion
+                                )
+                            ) {
+                                selectedTab = .zweizwei
+                            }
+                        }
                     )
                     .skydownSceneActivation(isActive: selectedTab == .hub, axis: .horizontal, travel: 22)
                 }
@@ -729,6 +742,8 @@ private struct ZweizweiTabView: View {
     @State private var catalogInitialArtist: String?
     @State private var catalogAutoPresentArtistPage = false
     @State private var highlightedSocialArtist = "Janno"
+    let artistPageRequest: String?
+    let onConsumeArtistPageRequest: () -> Void
     let onOpenCart: () -> Void
     let onOpenProfile: () -> Void
     let onOpenSettings: () -> Void
@@ -933,6 +948,26 @@ private struct ZweizweiTabView: View {
         }
         .skydownSceneMotion(trigger: destination, axis: .horizontal, travel: 24)
         .skydownSelectionFeedback(trigger: destination)
+        .onAppear {
+            openRequestedArtistPageIfNeeded(artistPageRequest)
+        }
+        .onChange(of: artistPageRequest) { _, newValue in
+            openRequestedArtistPageIfNeeded(newValue)
+        }
+    }
+
+    private func openRequestedArtistPageIfNeeded(_ artistName: String?) {
+        let requestedArtist = artistName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !requestedArtist.isEmpty else { return }
+        highlightedSocialArtist = requestedArtist
+        catalogInitialArtist = requestedArtist
+        catalogAutoPresentArtistPage = true
+        withAnimation(
+                SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
+            ) {
+            destination = .catalog
+        }
+        onConsumeArtistPageRequest()
     }
 
     private func compactMusicHubAction(
