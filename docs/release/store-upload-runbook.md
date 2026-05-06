@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-05-06 00:32 CEST (Android AI visual display hotfix uploaded: iOS 10025, Android 10028)
+Last updated: 2026-05-06 08:45 CEST (artist page routing rollout: iOS 10026 uploaded, Android 10029 built)
 Owner: Release Engineering
 
 ## Build Identity
@@ -9,35 +9,35 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10025` (current project version; 2026-05-05 AI visual fullscreen reroll)
+- Build: `10026` (current project version; 2026-05-06 artist page routing rollout)
 - Team ID: `F3BNLG6L7P`
 
 ### Android
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10028`
+- versionCode: `10029`
 - Play Billing Library: `8.3.0`
 
 ## Build Artifacts
 
-- iOS archive: `build/ios/SkyOS-1.0.0-10025-20260505.xcarchive` (created and identity-checked on 2026-05-05; verified as `SkyOS` / `com.skydown.ios` / `1.0.0` / `10025`)
+- iOS archive: `build/ios/SkyOS-1.0.0-10026-20260506.xcarchive` (created and identity-checked on 2026-05-06; verified as `SkyOS` / `com.skydown.ios` / `1.0.0` / `10026`)
 - iOS UI test evidence: latest full fresh UI-test evidence remains `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.xcresult` and raw log `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.log`; build `10020` contains the refreshed keyboard dismissal and Agent new-conversation UX after that gate.
-- iOS upload evidence: `xcodebuild -exportArchive` with `build/ios/ExportOptions-app-store-upload-10025.plist` ended with `Upload succeeded` and `** EXPORT SUCCEEDED **` at 2026-05-05 23:40 CEST.
-- iOS upload status: UPLOADED for build `10025`; package processing started in App Store Connect.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-05-06 00:27 CEST, versionCode `10028`, SHA-256 `12ef439aa7f79022d8d701ab4d9015f29dd4e3b164e5cd6df8456235ec509d42`)
-- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-05-06 00:27 CEST, versionCode `10028`, SHA-256 `2dc995d87e5792de8f721e83711cdbbf14c2876d554fa17b5b1f2b6c3a08901f`)
+- iOS upload evidence: `xcodebuild -exportArchive` with `build/ios/ExportOptions-app-store-upload-10026.plist` ended with `Upload succeeded` and `** EXPORT SUCCEEDED **` at 2026-05-06 08:43 CEST.
+- iOS upload status: UPLOADED for build `10026`; package processing started in App Store Connect.
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-05-06 08:35 CEST, versionCode `10029`, SHA-256 `977f97fb7b591fb22ba273b37884da6289684ec940d4d383f1c1d91f9f516eed`)
+- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-05-06 08:35 CEST, versionCode `10029`, SHA-256 `491ae8587f419cbeadb125544c54a5109d31be131e0590cd25c9749f22056bf1`)
 
 ## Upload Status
 
 ### iOS Upload Status
-- Archive build: SUCCEEDED for current build `10025` at `build/ios/SkyOS-1.0.0-10025-20260505.xcarchive`
-- App Store Connect upload: SUCCEEDED for build `10025` at 2026-05-05 23:40 CEST
-- Processing status: uploaded package is processing; after build `10025` appears in TestFlight, attach it to Internal Testers.
+- Archive build: SUCCEEDED for current build `10026` at `build/ios/SkyOS-1.0.0-10026-20260506.xcarchive`
+- App Store Connect upload: SUCCEEDED for build `10026` at 2026-05-06 08:43 CEST
+- Processing status: uploaded package is processing; after build `10026` appears in TestFlight, attach it to Internal Testers.
 - Notes:
-  - `CURRENT_PROJECT_VERSION` is set to `10025` for the AI visual fullscreen reroll.
-  - Build `10025` supersedes `10024` after the AI visual fullscreen UX fix.
-  - Export/upload used `build/ios/ExportOptions-app-store-upload-10025.plist` with `manageAppVersionAndBuildNumber=false`; archive distribution output ended with `Upload succeeded` and `** EXPORT SUCCEEDED **`.
+  - `CURRENT_PROJECT_VERSION` is set to `10026` for the artist page routing rollout.
+  - Build `10026` supersedes `10025` after the Home-to-artist-page routing and exact MAVE/ThaDude public profile fixes.
+  - Export/upload used `build/ios/ExportOptions-app-store-upload-10026.plist` with `manageAppVersionAndBuildNumber=false`; archive distribution output ended with `Upload succeeded` and `** EXPORT SUCCEEDED **`.
   - Xcode reported missing dSYMs for FirebaseFirestoreInternal, absl, grpc, grpcpp, and openssl_grpc binary frameworks during symbol upload; app package upload still succeeded.
   - Fresh iOS UI-test run on 2026-04-28 17:03-17:13 CEST passed on a newly created iPhone 17 simulator (`B8B0F386-8D3D-4390-81B6-2784B9E2FB20`, iOS 26.4.1 / 23E254a): 16 total tests, 12 passed, 4 intentionally skipped, 0 failures. Result bundle: `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.xcresult`.
   - During the fresh UI-test run Xcode emitted repeated `DebuggerLLDB.DebuggerVersionStore.StoreError error 0` / `no debugger version` warnings, but the test session completed and `xcodebuild` exited `0` with `** TEST SUCCEEDED **`; no LLDB/tooling hang reproduced.
@@ -62,12 +62,13 @@ Owner: Release Engineering
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: SUCCEEDED for versionCode `10028` at 2026-05-06 00:27 CEST.
-- Play Console status: versionCode `10028` uploaded to the `internal` track as a draft through Fastlane at 2026-05-06 00:31 CEST.
+- Release AAB build: SUCCEEDED for versionCode `10029` at 2026-05-06 08:35 CEST.
+- Play Console status: versionCode `10029` is built and verified locally, but not uploaded in this session because `SUPPLY_JSON_KEY` is not set and the local Play service-account JSON could not be found.
 - Play upload automation: WORKING via Fastlane `upload_android_internal` when `SUPPLY_JSON_KEY` points at the local Play service-account JSON.
-- CLI validate-only attempt: PASSED for versionCode `10028` at 2026-05-06 00:29 CEST.
+- CLI validate-only attempt: not run for versionCode `10029` because `SUPPLY_JSON_KEY` is missing in this shell session.
 - Notes:
   - Fastlane used `release_status: draft`, so this did not start a production rollout.
+  - VersionCode `10029` contains the Home-to-artist-page routing and exact MAVE/ThaDude public profile fixes.
   - VersionCode `10028` contains the Android AI generated-visual display hotfix: robust base64/data-URL decoding, ByteArray-backed image rendering, and a fullscreen viewer assertion in Android UI-test code.
   - Earlier versionCode `10027` was uploaded to the Play internal draft at 2026-05-05 23:37 CEST and is superseded by this fresh versionCode `10028` rollout.
   - VersionCode `10015` was previously confirmed online/visible by the release owner on 2026-04-27.
@@ -86,6 +87,20 @@ Owner: Release Engineering
 10. Android APK SHA-256 for versionCode `10028`: `2dc995d87e5792de8f721e83711cdbbf14c2876d554fa17b5b1f2b6c3a08901f`.
 11. Fastlane `validate_android_internal` passed against Google Play for versionCode `10028` at 2026-05-06 00:29 CEST.
 12. Fastlane `upload_android_internal` uploaded versionCode `10028` to Google Play internal testing as a draft at 2026-05-06 00:31 CEST.
+13. Artist page routing hotfix was committed and pushed to `main`: Home Artist Page action now opens Yang D. Nash directly, and MAVE / ThaDude use exact provided Instagram and Spotify artist profiles across iOS, Android, shared music lookup, and production Firestore.
+14. Production Firestore `artistPages/zweizwei-mave` and `artistPages/zweizwei-thadude` were updated with the exact Instagram and Spotify links provided for MAVE and ThaDude.
+15. Production real-data guard test passed via `node --test functions/tests/production-real-data-guard.test.js`.
+16. Android debug Kotlin compile passed via `./gradlew :androidApp:compileDebugKotlin`.
+17. Android debug instrumentation Kotlin compile passed via `./gradlew :androidApp:compileDebugAndroidTestKotlin`.
+18. iOS Debug simulator build passed via `xcodebuild -project 'Skydown App.xcodeproj' -scheme 'Skydown App' -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath build/XcodeBuild-ArtistRouting build`.
+19. Android `versionCode` bumped to `10029` and iOS build number bumped to `10026` for a device-visible artist page routing rollout.
+20. Release identity preflight passed for iOS `SkyOS 1.0.0 (10026)` and Android `SkyOS 1.0.0 (10029)`.
+21. Android clean release gate passed for version `1.0.0` / versionCode `10029`; AAB and APK were rebuilt at 2026-05-06 08:35 CEST.
+22. Android AAB SHA-256 for versionCode `10029`: `977f97fb7b591fb22ba273b37884da6289684ec940d4d383f1c1d91f9f516eed`.
+23. Android APK SHA-256 for versionCode `10029`: `491ae8587f419cbeadb125544c54a5109d31be131e0590cd25c9749f22056bf1`.
+24. Android Play upload for versionCode `10029` was blocked in this shell session because `SUPPLY_JSON_KEY` is unset and the local Play service-account JSON was not present.
+25. iOS archive build `10026` succeeded at `build/ios/SkyOS-1.0.0-10026-20260506.xcarchive`, and release identity re-check passed against the archive.
+26. iOS build `10026` uploaded to App Store Connect successfully at 2026-05-06 08:43 CEST via `xcodebuild -exportArchive`; uploaded package is processing. Xcode reported missing vendor dSYMs for Firebase/gRPC binary frameworks, but the app package upload still succeeded.
 
 ## 2026-05-05 Verification Log
 
