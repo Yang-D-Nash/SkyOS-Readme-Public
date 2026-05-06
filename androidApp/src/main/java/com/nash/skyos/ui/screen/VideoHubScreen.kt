@@ -62,7 +62,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -126,6 +125,8 @@ import com.nash.skyos.ui.component.SkydownFullscreenVideoControlBar
 import com.nash.skyos.ui.component.isLikelyDirectVideoUrl
 import com.nash.skyos.ui.component.seekByAppOffset
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumStatePanel
+import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.ToastHost
@@ -1362,17 +1363,18 @@ private fun VideoPublicConfigEditorCard(
                                 isActive = false,
                             )
                         }
-                        OutlinedTextField(
+                        SkydownPremiumTextField(
                             value = item.title,
                             onValueChange = { onUpdateEquipmentTitle(item.id, it) },
-                            label = { Text(stringResource(R.string.video_field_title)) },
+                            label = stringResource(R.string.video_field_title),
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        OutlinedTextField(
+                        SkydownPremiumTextField(
                             value = item.detail,
                             onValueChange = { onUpdateEquipmentDetail(item.id, it) },
-                            label = { Text(stringResource(R.string.video_field_detail)) },
+                            label = stringResource(R.string.video_field_detail),
                             modifier = Modifier.fillMaxWidth(),
+                            singleLine = false,
                             minLines = 2,
                         )
                         EditableImageFieldCard(
@@ -1448,29 +1450,30 @@ private fun VideoPublicConfigEditorCard(
                                 VideoPill(text = item.vibe, isActive = false)
                             }
                         }
-                        OutlinedTextField(
+                        SkydownPremiumTextField(
                             value = item.name,
                             onValueChange = { onUpdateCollaborationName(item.id, it) },
-                            label = { Text(stringResource(R.string.video_field_name)) },
+                            label = stringResource(R.string.video_field_name),
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        OutlinedTextField(
+                        SkydownPremiumTextField(
                             value = item.role,
                             onValueChange = { onUpdateCollaborationRole(item.id, it) },
-                            label = { Text(stringResource(R.string.video_field_role)) },
+                            label = stringResource(R.string.video_field_role),
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        OutlinedTextField(
+                        SkydownPremiumTextField(
                             value = item.highlight,
                             onValueChange = { onUpdateCollaborationHighlight(item.id, it) },
-                            label = { Text(stringResource(R.string.video_field_highlight)) },
+                            label = stringResource(R.string.video_field_highlight),
                             modifier = Modifier.fillMaxWidth(),
+                            singleLine = false,
                             minLines = 2,
                         )
-                        OutlinedTextField(
+                        SkydownPremiumTextField(
                             value = item.vibe,
                             onValueChange = { onUpdateCollaborationVibe(item.id, it) },
-                            label = { Text(stringResource(R.string.video_field_vibe)) },
+                            label = stringResource(R.string.video_field_vibe),
                             modifier = Modifier.fillMaxWidth(),
                         )
                         EditableImageFieldCard(
@@ -1482,22 +1485,22 @@ private fun VideoPublicConfigEditorCard(
                             onImageUrlChange = { onUpdateCollaborationImageUrl(item.id, it) },
                             onRemoveImage = { onRemoveCollaborationImage(item.id) },
                         )
-                        OutlinedTextField(
+                        SkydownPremiumTextField(
                             value = item.spotifyArtistId.orEmpty(),
                             onValueChange = { onUpdateCollaborationSpotifyArtistId(item.id, it) },
-                            label = { Text(stringResource(R.string.video_field_spotify_artist_id)) },
+                            label = stringResource(R.string.video_field_spotify_artist_id),
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        OutlinedTextField(
+                        SkydownPremiumTextField(
                             value = item.instagramUrl.orEmpty(),
                             onValueChange = { onUpdateCollaborationInstagramUrl(item.id, it) },
-                            label = { Text(stringResource(R.string.video_field_instagram_url)) },
+                            label = stringResource(R.string.video_field_instagram_url),
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        OutlinedTextField(
+                        SkydownPremiumTextField(
                             value = item.youtubeUrl.orEmpty(),
                             onValueChange = { onUpdateCollaborationYoutubeUrl(item.id, it) },
-                            label = { Text(stringResource(R.string.video_field_youtube_url)) },
+                            label = stringResource(R.string.video_field_youtube_url),
                             modifier = Modifier.fillMaxWidth(),
                         )
                         BrandActionButton(
@@ -1774,37 +1777,38 @@ private fun VideoUploadCard(
             VideoPill(text = stringResource(R.string.video_pill_external), isActive = false)
         }
 
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = uiState.videoTitle,
             onValueChange = onUpdateTitle,
-            label = { Text(stringResource(R.string.video_field_title)) },
+            label = stringResource(R.string.video_field_title),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
         )
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = uiState.projectName,
             onValueChange = onUpdateProjectName,
-            label = { Text(stringResource(R.string.video_field_project_artist)) },
+            label = stringResource(R.string.video_field_project_artist),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
         )
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = uiState.email,
             onValueChange = onUpdateEmail,
-            label = { Text(stringResource(R.string.video_field_contact_email)) },
+            label = stringResource(R.string.video_field_contact_email),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
         )
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = uiState.notes,
             onValueChange = onUpdateNotes,
-            label = { Text(stringResource(R.string.video_field_note)) },
+            label = stringResource(R.string.video_field_note),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
+            singleLine = false,
             minLines = 3,
         )
 
@@ -1826,13 +1830,14 @@ private fun VideoUploadCard(
             modifier = Modifier.padding(top = 14.dp),
         )
 
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = uiState.externalVideoUrl,
             onValueChange = onUpdateExternalVideoUrl,
-            label = { Text(stringResource(R.string.video_field_external_url_label)) },
+            label = stringResource(R.string.video_field_external_url_label),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 10.dp),
+            singleLine = false,
             minLines = 2,
         )
 
@@ -2236,24 +2241,24 @@ private fun VideoLibraryCard(
 
         when {
             uiState.isLoadingVideos -> {
-                Row(
+                SkydownPremiumStatePanel(
+                    title = stringResource(R.string.video_lib_loading),
+                    body = stringResource(R.string.video_lib_subtitle_guest, 0),
+                    icon = Icons.Default.Sync,
+                    accent = colorScheme.skydownAccentMystic(),
+                    loading = true,
                     modifier = Modifier.padding(top = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.5.dp,
-                    )
-                    Text(stringResource(R.string.video_lib_loading))
-                }
+                )
             }
 
             uiState.videos.isEmpty() -> {
-                Text(
-                    text = stringResource(R.string.video_lib_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                SkydownPremiumStatePanel(
+                    title = stringResource(R.string.video_lib_header_guest, 0),
+                    body = stringResource(R.string.video_lib_empty),
+                    icon = Icons.Default.Movie,
+                    accent = colorScheme.skydownAccentMystic(),
+                    actionLabel = if (uiState.isAdmin) stringResource(R.string.video_lib_new_video) else null,
+                    onAction = if (uiState.isAdmin) onCreateVideo else null,
                     modifier = Modifier.padding(top = 16.dp),
                 )
             }
@@ -2356,25 +2361,26 @@ private fun VideoOwnerEditPanel(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = title,
             onValueChange = { title = it.take(120) },
-            label = { Text(stringResource(R.string.video_field_title)) },
+            label = stringResource(R.string.video_field_title),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = projectName,
             onValueChange = { projectName = it.take(120) },
-            label = { Text(stringResource(R.string.video_field_project_artist)) },
+            label = stringResource(R.string.video_field_project_artist),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = notes,
             onValueChange = { notes = it.take(800) },
-            label = { Text(stringResource(R.string.video_field_notes)) },
+            label = stringResource(R.string.video_field_notes),
             modifier = Modifier.fillMaxWidth(),
+            singleLine = false,
             minLines = 2,
             maxLines = 4,
         )

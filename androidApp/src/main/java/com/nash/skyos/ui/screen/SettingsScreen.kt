@@ -59,12 +59,12 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -81,6 +81,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -93,6 +95,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -121,13 +124,16 @@ import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.EditableImageFieldCard
 import com.nash.skyos.ui.component.SectionHeader
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.dismissKeyboardOnTap
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
+import com.nash.skyos.ui.component.skydownCapsuleSurface
 import com.nash.skyos.ui.component.skydownContentPadding
+import com.nash.skyos.ui.component.skydownPanelSurface
 import com.nash.skyos.ui.component.skydownPressable
 import com.nash.skyos.ui.component.skydownScreenBrush
 import com.nash.skyos.ui.component.skydownTopBarColors
@@ -162,13 +168,12 @@ private fun SettingsSegmentSurface(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.skydownCapsuleSurface(
+            accent = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+            shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
+        ),
         shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-        color = if (selected) {
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-        } else {
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.66f)
-        },
+        color = Color.Transparent,
         border = if (!selected) {
             BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
         } else {
@@ -5427,6 +5432,49 @@ private enum class PaymentProviderKind {
 }
 
 @Composable
+private fun OutlinedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    readOnly: Boolean = false,
+    label: (@Composable () -> Unit)? = null,
+    placeholder: (@Composable () -> Unit)? = null,
+    supportingText: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
+    isError: Boolean = false,
+    singleLine: Boolean = false,
+    minLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    shape: Shape = MaterialTheme.shapes.large,
+    colors: TextFieldColors? = null,
+) {
+    @Suppress("UNUSED_VARIABLE")
+    val ignoredMaterialOverrides = shape to colors
+    SkydownPremiumTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        enabled = enabled,
+        readOnly = readOnly,
+        labelContent = label,
+        placeholderContent = placeholder,
+        supportingContent = supportingText,
+        trailingIcon = trailingIcon,
+        isError = isError,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
+        visualTransformation = visualTransformation,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+    )
+}
+
+@Composable
 private fun PremiumSettingsOutlinedTextField(
     value: String,
     onValueChange: (String) -> Unit,
@@ -5444,12 +5492,12 @@ private fun PremiumSettingsOutlinedTextField(
     val keyboardController = LocalSoftwareKeyboardController.current
     val imeAction = if (singleLine) ImeAction.Done else ImeAction.Default
 
-    OutlinedTextField(
+    SkydownPremiumTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
-        label = label,
-        placeholder = placeholder,
+        labelContent = label,
+        placeholderContent = placeholder,
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
@@ -6570,9 +6618,16 @@ private fun AdminWorkspaceListRow(
 ) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .skydownPanelSurface(
+                accent = MaterialTheme.colorScheme.primary,
+                cornerRadius = SkydownUiTokens.cardCornerRadius,
+                shadowRadius = SkydownUiTokens.elevationRaised,
+                shadowYOffset = SkydownUiTokens.stackSpacingTick,
+            ),
         shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
-        color = MaterialTheme.colorScheme.surface,
+        color = Color.Transparent,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)),
     ) {
         Row(

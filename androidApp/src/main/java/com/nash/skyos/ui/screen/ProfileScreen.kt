@@ -35,9 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -57,7 +55,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -69,6 +66,9 @@ import com.nash.skyos.R
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumLinearProgress
+import com.nash.skyos.ui.component.SkydownPremiumStatePanel
+import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.ToastHost
@@ -273,35 +273,36 @@ fun ProfileScreen(
                                 fontWeight = FontWeight.SemiBold,
                             )
 
-                            OutlinedTextField(
+                            SkydownPremiumTextField(
                                 value = uiState.username,
                                 onValueChange = viewModel::updateUsername,
-                                label = { Text(stringResource(R.string.settings_profile_username)) },
+                                label = stringResource(R.string.settings_profile_username),
                                 modifier = Modifier.fillMaxWidth(),
                             )
-                            OutlinedTextField(
+                            SkydownPremiumTextField(
                                 value = uiState.profileTagline,
                                 onValueChange = viewModel::updateProfileTagline,
-                                label = { Text(stringResource(R.string.settings_profile_tagline)) },
+                                label = stringResource(R.string.settings_profile_tagline),
                                 modifier = Modifier.fillMaxWidth(),
                             )
-                            OutlinedTextField(
+                            SkydownPremiumTextField(
                                 value = uiState.instagramHandle,
                                 onValueChange = viewModel::updateInstagramHandle,
-                                label = { Text(stringResource(R.string.settings_profile_instagram)) },
+                                label = stringResource(R.string.settings_profile_instagram),
                                 modifier = Modifier.fillMaxWidth(),
                             )
-                            OutlinedTextField(
+                            SkydownPremiumTextField(
                                 value = uiState.whatsApp,
                                 onValueChange = viewModel::updateWhatsApp,
-                                label = { Text(stringResource(R.string.settings_profile_whatsapp)) },
+                                label = stringResource(R.string.settings_profile_whatsapp),
                                 modifier = Modifier.fillMaxWidth(),
                             )
-                            OutlinedTextField(
+                            SkydownPremiumTextField(
                                 value = uiState.profileBio,
                                 onValueChange = viewModel::updateProfileBio,
-                                label = { Text(stringResource(R.string.settings_profile_bio)) },
+                                label = stringResource(R.string.settings_profile_bio),
                                 modifier = Modifier.fillMaxWidth(),
+                                singleLine = false,
                                 minLines = 4,
                             )
 
@@ -911,7 +912,10 @@ private fun ProfileUploadStatusCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                SkydownPremiumLinearProgress(
+                    modifier = Modifier.fillMaxWidth(),
+                    accent = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
@@ -921,32 +925,20 @@ private fun ProfileUploadStatusCard(
 private fun ProfileGalleryEmptyState(
     canEdit: Boolean,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.74f))
-            .padding(horizontal = 18.dp, vertical = 22.dp),
-        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(
-            imageVector = Icons.Default.PermMedia,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            text = if (canEdit) stringResource(R.string.profile_gallery_empty_editable_title) else stringResource(R.string.profile_gallery_empty_readonly_title),
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-                text = if (canEdit) stringResource(R.string.profile_gallery_empty_editable_subtitle) else stringResource(R.string.profile_gallery_empty_readonly_subtitle),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-    }
+    SkydownPremiumStatePanel(
+        title = if (canEdit) {
+            stringResource(R.string.profile_gallery_empty_editable_title)
+        } else {
+            stringResource(R.string.profile_gallery_empty_readonly_title)
+        },
+        body = if (canEdit) {
+            stringResource(R.string.profile_gallery_empty_editable_subtitle)
+        } else {
+            stringResource(R.string.profile_gallery_empty_readonly_subtitle)
+        },
+        icon = Icons.Default.PermMedia,
+        accent = MaterialTheme.colorScheme.primary,
+    )
 }
 
 @Composable

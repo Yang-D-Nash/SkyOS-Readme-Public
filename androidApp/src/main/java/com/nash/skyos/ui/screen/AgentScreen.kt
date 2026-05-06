@@ -69,7 +69,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.DropdownMenu
@@ -77,8 +76,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -131,6 +128,9 @@ import com.nash.skyos.ui.component.BrandStatusChip
 import com.nash.skyos.ui.component.AiConversationSessionStrip
 import com.nash.skyos.ui.component.AiConversationSessionsSheet
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumCircularProgress
+import com.nash.skyos.ui.component.SkydownPremiumLinearProgress
+import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.ToastHost
@@ -769,17 +769,18 @@ fun AgentScreen(
                         verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     ) {
                         Text(stringResource(R.string.notes_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        OutlinedTextField(
+                        SkydownPremiumTextField(
                             value = titleDraft,
                             onValueChange = { titleDraft = it },
-                            label = { Text(stringResource(R.string.notes_field_title)) },
+                            label = stringResource(R.string.notes_field_title),
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        OutlinedTextField(
+                        SkydownPremiumTextField(
                             value = contentDraft,
                             onValueChange = { contentDraft = it },
-                            label = { Text(stringResource(R.string.notes_field_content)) },
+                            label = stringResource(R.string.notes_field_content),
                             modifier = Modifier.fillMaxWidth(),
+                            singleLine = false,
                             minLines = 5,
                         )
                         Row(
@@ -1251,19 +1252,19 @@ private fun AgentTasksSection(
             }
         }
 
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = createTitle,
             onValueChange = { createTitle = it },
-            label = { Text(stringResource(R.string.tasks_input_title_hint)) },
+            label = stringResource(R.string.tasks_input_title_hint),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 6.dp),
             singleLine = true,
         )
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = createDescription,
             onValueChange = { createDescription = it },
-            label = { Text(stringResource(R.string.tasks_input_details_hint)) },
+            label = stringResource(R.string.tasks_input_details_hint),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 6.dp),
@@ -1400,22 +1401,23 @@ private fun AgentNotesSection(
                 Icon(imageVector = Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh), modifier = Modifier.size(16.dp))
             }
         }
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = createTitle,
             onValueChange = { createTitle = it },
-            label = { Text(stringResource(R.string.notes_input_title_hint)) },
+            label = stringResource(R.string.notes_input_title_hint),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 6.dp),
             singleLine = true,
         )
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = createContent,
             onValueChange = { createContent = it },
-            label = { Text(stringResource(R.string.notes_input_content_hint)) },
+            label = stringResource(R.string.notes_input_content_hint),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 6.dp),
+            singleLine = false,
             minLines = 2,
             maxLines = 4,
         )
@@ -1440,10 +1442,10 @@ private fun AgentNotesSection(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
             modifier = Modifier.padding(top = 2.dp),
         )
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = searchText,
             onValueChange = { searchText = it },
-            label = { Text(stringResource(R.string.common_search)) },
+            label = stringResource(R.string.common_search),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 6.dp),
@@ -1618,26 +1620,23 @@ private fun AgentThreadFollowUpBar(
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = draft,
             onValueChange = onDraftChanged,
+            label = stringResource(R.string.agent_prompt_label),
             enabled = !isWorking,
             modifier = Modifier
                 .weight(1f)
                 .testTag("agent.thread.followup.field"),
-            placeholder = {
+            placeholderContent = {
                 Text(
                     text = stringResource(R.string.agent_thread_followup_placeholder),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 )
             },
+            singleLine = false,
             minLines = 1,
             maxLines = 4,
-            shape = RoundedCornerShape(14.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = mystic.copy(alpha = 0.4f),
-                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-            ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(
                 onSend = {
@@ -1993,12 +1992,13 @@ private fun AgentPromptComposerSheet(
                     )
                 }
                 if (socialInstagramEnabled) {
-                    OutlinedTextField(
+                    SkydownPremiumTextField(
                         value = socialInstagramHandle,
                         onValueChange = onSocialInstagramHandleChanged,
+                        label = stringResource(R.string.agent_social_instagram),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text(stringResource(R.string.agent_social_instagram_hint)) },
+                        placeholderContent = { Text(stringResource(R.string.agent_social_instagram_hint)) },
                     )
                 }
 
@@ -2018,12 +2018,13 @@ private fun AgentPromptComposerSheet(
                     )
                 }
                 if (socialTiktokEnabled) {
-                    OutlinedTextField(
+                    SkydownPremiumTextField(
                         value = socialTiktokHandle,
                         onValueChange = onSocialTiktokHandleChanged,
+                        label = stringResource(R.string.agent_social_tiktok),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text(stringResource(R.string.agent_social_tiktok_hint)) },
+                        placeholderContent = { Text(stringResource(R.string.agent_social_tiktok_hint)) },
                     )
                 }
 
@@ -2043,12 +2044,13 @@ private fun AgentPromptComposerSheet(
                     )
                 }
                 if (socialYoutubeEnabled) {
-                    OutlinedTextField(
+                    SkydownPremiumTextField(
                         value = socialYoutubeHandle,
                         onValueChange = onSocialYoutubeHandleChanged,
+                        label = stringResource(R.string.agent_social_youtube),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text(stringResource(R.string.agent_social_youtube_hint)) },
+                        placeholderContent = { Text(stringResource(R.string.agent_social_youtube_hint)) },
                     )
                 }
 
@@ -2068,12 +2070,13 @@ private fun AgentPromptComposerSheet(
                     )
                 }
                 if (socialFacebookEnabled) {
-                    OutlinedTextField(
+                    SkydownPremiumTextField(
                         value = socialFacebookHandle,
                         onValueChange = onSocialFacebookHandleChanged,
+                        label = stringResource(R.string.agent_social_facebook),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text(stringResource(R.string.agent_social_facebook_hint)) },
+                        placeholderContent = { Text(stringResource(R.string.agent_social_facebook_hint)) },
                     )
                 }
 
@@ -2093,12 +2096,13 @@ private fun AgentPromptComposerSheet(
                     )
                 }
                 if (socialSpotifyEnabled) {
-                    OutlinedTextField(
+                    SkydownPremiumTextField(
                         value = socialSpotifyHandle,
                         onValueChange = onSocialSpotifyHandleChanged,
+                        label = stringResource(R.string.agent_social_spotify),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text(stringResource(R.string.agent_social_spotify_hint)) },
+                        placeholderContent = { Text(stringResource(R.string.agent_social_spotify_hint)) },
                     )
                     Text(
                         text = stringResource(R.string.agent_social_spotify_helper),
@@ -2116,15 +2120,17 @@ private fun AgentPromptComposerSheet(
             color = MaterialTheme.colorScheme.tertiary,
         )
 
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = draft,
             onValueChange = onDraftChanged,
+            label = stringResource(R.string.agent_prompt_label),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("agent.prompt.draft"),
-            placeholder = {
+            placeholderContent = {
                 Text(selectedMode.placeholder)
             },
+            singleLine = false,
             minLines = 4,
             maxLines = 8,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -2134,14 +2140,6 @@ private fun AgentPromptComposerSheet(
                 keyboardController?.hide()
                 onSend()
             }),
-            shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.72f),
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
-                focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
-                cursorColor = MaterialTheme.colorScheme.tertiary,
-            ),
         )
 
         Row(
@@ -2266,10 +2264,10 @@ private fun AgentPromptProgressBanner(
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CircularProgressIndicator(
+            SkydownPremiumCircularProgress(
                 modifier = Modifier.size(18.dp),
+                accent = accent,
                 strokeWidth = 2.dp,
-                color = accent,
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -2285,10 +2283,9 @@ private fun AgentPromptProgressBanner(
                 )
             }
         }
-        LinearProgressIndicator(
+        SkydownPremiumLinearProgress(
             modifier = Modifier.fillMaxWidth(),
-            color = accent,
-            trackColor = accent.copy(alpha = 0.16f),
+            accent = accent,
         )
     }
 }

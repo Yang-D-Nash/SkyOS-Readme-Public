@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -49,12 +50,18 @@ import com.nash.skyos.ui.theme.skydownText
 fun SkydownPremiumTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String,
+    label: String = "",
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    readOnly: Boolean = false,
     singleLine: Boolean = true,
+    minLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     isError: Boolean = false,
     supportingText: String? = null,
+    supportingContent: (@Composable () -> Unit)? = null,
+    labelContent: (@Composable () -> Unit)? = null,
+    placeholderContent: (@Composable () -> Unit)? = null,
     leadingIcon: ImageVector? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
@@ -74,15 +81,19 @@ fun SkydownPremiumTextField(
             .fillMaxWidth()
             .heightIn(min = 58.dp),
         enabled = enabled,
+        readOnly = readOnly,
         singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
         isError = isError,
         label = {
-            Text(
+            labelContent?.invoke() ?: Text(
                 text = label,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         },
+        placeholder = placeholderContent,
         leadingIcon = leadingIcon?.let { icon ->
             {
                 Icon(
@@ -93,7 +104,7 @@ fun SkydownPremiumTextField(
             }
         },
         trailingIcon = trailingIcon,
-        supportingText = supportingText?.takeIf { it.isNotBlank() }?.let { text ->
+        supportingText = supportingContent ?: supportingText?.takeIf { it.isNotBlank() }?.let { text ->
             {
                 Text(
                     text = text,
@@ -220,5 +231,31 @@ fun SkydownPremiumMicrocopy(
         } else {
             colorScheme.skydownSecondaryText().copy(alpha = 0.74f)
         },
+    )
+}
+
+@Composable
+fun SkydownPremiumLinearProgress(
+    modifier: Modifier = Modifier,
+    accent: Color = MaterialTheme.colorScheme.primary,
+) {
+    LinearProgressIndicator(
+        modifier = modifier.fillMaxWidth(),
+        color = accent,
+        trackColor = accent.copy(alpha = if (MaterialTheme.colorScheme.skydownIsDarkPalette()) 0.18f else 0.14f),
+    )
+}
+
+@Composable
+fun SkydownPremiumCircularProgress(
+    modifier: Modifier = Modifier,
+    accent: Color = MaterialTheme.colorScheme.primary,
+    strokeWidth: androidx.compose.ui.unit.Dp = 2.dp,
+) {
+    CircularProgressIndicator(
+        modifier = modifier,
+        strokeWidth = strokeWidth,
+        color = accent,
+        trackColor = accent.copy(alpha = if (MaterialTheme.colorScheme.skydownIsDarkPalette()) 0.18f else 0.14f),
     )
 }

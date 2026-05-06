@@ -21,7 +21,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +42,7 @@ import com.nash.skyos.ui.component.BrandHeroCard
 import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.SectionHeader
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.theme.SpotifyGreen
 
@@ -346,25 +346,26 @@ fun StudioPriceItemEditorDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
-                OutlinedTextField(
+                SkydownPremiumTextField(
                     value = titleField,
                     onValueChange = { titleField = it },
-                    label = { Text(stringResource(R.string.nicma_price_dialog_label_title)) },
+                    label = stringResource(R.string.nicma_price_dialog_label_title),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                SkydownPremiumTextField(
                     value = detailField,
                     onValueChange = { detailField = it },
-                    label = { Text(stringResource(R.string.nicma_price_dialog_label_details)) },
+                    label = stringResource(R.string.nicma_price_dialog_label_details),
+                    singleLine = false,
                     minLines = 1,
                     maxLines = 3,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                SkydownPremiumTextField(
                     value = priceField,
                     onValueChange = { priceField = it },
-                    label = { Text(stringResource(R.string.nicma_price_dialog_label_price)) },
+                    label = stringResource(R.string.nicma_price_dialog_label_price),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )

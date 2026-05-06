@@ -83,6 +83,8 @@ import com.nash.skyos.ui.component.skydownTween
 import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
+import com.nash.skyos.ui.component.skydownCapsuleSurface
+import com.nash.skyos.ui.component.skydownPanelSurface
 import com.nash.skyos.ui.component.skydownPressable
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.model.canonicalSpotifyArtistUrlForMusicArtist
@@ -471,12 +473,6 @@ private fun StaggeredArtistEinstiegRow(
     val interaction = remember(artist) { MutableInteractionSource() }
     val accent = musicCatalogEntryAccent(artist, colorScheme)
     val spotifyUrl = musicSpotifyUrlForArtist(artist)
-    val isDark = colorScheme.skydownIsDarkPalette()
-    val background = if (selected) {
-        accent.copy(alpha = if (isDark) 0.22f else 0.14f)
-    } else {
-        colorScheme.skydownSecondaryBackground()
-    }
     val borderAlpha = if (selected) 0.55f else 0.35f
     Surface(
         modifier = Modifier
@@ -487,7 +483,12 @@ private fun StaggeredArtistEinstiegRow(
                 translationY = (1f - appear) * liftPx
                 scaleX = 0.96f + 0.04f * appear
             }
-            .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
+            .skydownPanelSurface(
+                accent = accent,
+                cornerRadius = SkydownUiTokens.compactRadius,
+                shadowRadius = SkydownUiTokens.elevationRaised,
+                shadowYOffset = SkydownUiTokens.stackSpacingTick,
+            )
             .skydownPressable(interaction, pressedScale = 0.99f)
             .clickable(
                 interactionSource = interaction,
@@ -495,7 +496,7 @@ private fun StaggeredArtistEinstiegRow(
                 onClick = onOpen,
             ),
         shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-        color = background,
+        color = Color.Transparent,
         border = BorderStroke(1.dp, accent.copy(alpha = borderAlpha)),
     ) {
         Column(
@@ -549,9 +550,12 @@ private fun MusicEinstiegActionButton(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.skydownCapsuleSurface(
+            accent = tint,
+            shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
+        ),
         shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-        color = if (selected) tint.copy(alpha = 0.14f) else MaterialTheme.colorScheme.skydownSecondaryBackground(),
+        color = Color.Transparent,
         border = BorderStroke(1.dp, tint.copy(alpha = if (selected) 0.45f else 0.28f)),
     ) {
         Row(

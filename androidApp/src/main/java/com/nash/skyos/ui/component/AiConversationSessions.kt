@@ -23,7 +23,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -187,16 +186,14 @@ fun AiConversationSessionsSheet(
                         color = accent,
                         fontWeight = FontWeight.Bold,
                     )
-                    OutlinedTextField(
+                    SkydownPremiumTextField(
                         value = renameDraft,
                         onValueChange = onRenameDraftChanged,
+                        label = stringResource(R.string.ai_active_chat),
                         modifier = Modifier.fillMaxWidth(),
                         enabled = enabled,
-                        placeholder = {
-                            Text(activeSession.title)
-                        },
                         singleLine = true,
-                        shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius),
+                        supportingText = activeSession.title,
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),

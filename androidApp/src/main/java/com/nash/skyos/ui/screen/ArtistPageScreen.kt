@@ -33,7 +33,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -83,6 +82,7 @@ import com.nash.skyos.ui.component.EditableImageFieldCard
 import com.nash.skyos.ui.component.EditableVideoFieldCard
 import com.nash.skyos.ui.component.LocalSessionUser
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.ToastHost
@@ -1757,14 +1757,13 @@ private fun ArtistPageInput(
     onValueChange: (String) -> Unit,
     singleLine: Boolean = true,
 ) {
-    OutlinedTextField(
+    SkydownPremiumTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
-        label = { Text(title) },
+        label = title,
         singleLine = singleLine,
         minLines = if (singleLine) 1 else 4,
-        shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
     )
 }
 
@@ -1798,4 +1797,3 @@ private fun applyNicmaMusicPublicLinkDefaults(page: ArtistPageUi): ArtistPageUi 
         youtubeURL = page.youtubeURL?.trimmedOrNull(),
     )
 }
-

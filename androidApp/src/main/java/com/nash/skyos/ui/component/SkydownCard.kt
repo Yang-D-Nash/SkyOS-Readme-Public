@@ -53,7 +53,7 @@ fun SkydownCard(
             .fillMaxWidth()
             .skydownPanelSurface(
                 cornerRadius = SkydownUiTokens.cardCornerRadius,
-                shadowRadius = 10.dp,
+                shadowRadius = SkydownUiTokens.elevationPanel,
                 shadowYOffset = 5.dp,
             )
             .padding(contentPadding),
@@ -74,10 +74,10 @@ fun Modifier.skydownPanelSurface(
     val shape = RoundedCornerShape(cornerRadius)
 
     shadow(
-        elevation = 5.dp,
+        elevation = SkydownUiTokens.elevationRaised,
         shape = shape,
-        ambientColor = resolvedAccent.copy(alpha = if (isDarkPalette) 0.020f else 0.016f),
-        spotColor = resolvedAccent.copy(alpha = if (isDarkPalette) 0.020f else 0.016f),
+        ambientColor = resolvedAccent.copy(alpha = if (isDarkPalette) 0.026f else 0.018f),
+        spotColor = resolvedAccent.copy(alpha = if (isDarkPalette) 0.026f else 0.018f),
     )
         .shadow(
             elevation = shadowRadius,
@@ -89,10 +89,10 @@ fun Modifier.skydownPanelSurface(
         .drawWithContent {
             val baseBrush = Brush.linearGradient(
                 colors = listOf(
-                    colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.08f else 0.16f),
+                    colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.10f else 0.20f),
                     colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.965f else 0.990f),
-                    colorScheme.skydownSecondaryBackground().copy(alpha = if (isDarkPalette) 0.25f else 0.38f),
-                    colorScheme.skydownAccentHighlight().copy(alpha = if (isDarkPalette) 0.016f else 0.020f),
+                    colorScheme.skydownSecondaryBackground().copy(alpha = if (isDarkPalette) 0.28f else 0.34f),
+                    colorScheme.skydownAccentHighlight().copy(alpha = if (isDarkPalette) 0.020f else 0.026f),
                     resolvedAccent.copy(alpha = if (isDarkPalette) 0.014f else 0.012f),
                 ),
                 start = Offset(size.width * 0.06f, 0f),
@@ -126,7 +126,7 @@ fun Modifier.skydownPanelSurface(
             drawContent()
         }
         .border(
-            width = 0.9.dp,
+            width = SkydownUiTokens.elevationHairline,
             brush = Brush.linearGradient(
                 colors = listOf(
                     colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.10f else 0.18f),
@@ -153,7 +153,7 @@ fun Modifier.skydownCapsuleSurface(
     val resolvedAccent = accent ?: colorScheme.primary
 
     shadow(
-        elevation = 5.dp,
+        elevation = SkydownUiTokens.elevationRaised,
         shape = shape,
         ambientColor = Color.Black.copy(alpha = if (isDarkPalette) 0.13f else 0.075f),
         spotColor = Color.Black.copy(alpha = if (isDarkPalette) 0.13f else 0.075f),

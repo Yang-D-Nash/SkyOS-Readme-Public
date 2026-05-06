@@ -22,9 +22,17 @@ fun ColorScheme.skydownText(): Color = if (skydownIsDarkPalette()) TextDark else
 
 fun ColorScheme.skydownSecondaryText(): Color = if (skydownIsDarkPalette()) TextMutedDark else TextMutedLight
 
-fun ColorScheme.skydownLuminanceLift(): Color = if (skydownIsDarkPalette()) Color(0xFFF0EADF) else Color(0xFFFFFAF1)
+fun ColorScheme.skydownLuminanceLift(): Color = if (skydownIsDarkPalette()) PlatinumDark else PlatinumLight
 
-fun ColorScheme.skydownCinematicShadow(): Color = if (skydownIsDarkPalette()) Color(0xFF02060C) else Color(0xFF070D16)
+fun ColorScheme.skydownCinematicShadow(): Color = if (skydownIsDarkPalette()) Obsidian else Graphite
+
+fun ColorScheme.skydownAtmosphereTop(): Color = if (skydownIsDarkPalette()) Color(0xFF09111E) else Porcelain
+
+fun ColorScheme.skydownAtmosphereMid(): Color = if (skydownIsDarkPalette()) Color(0xFF101A28) else Color(0xFFF0F1F2)
+
+fun ColorScheme.skydownAtmosphereHorizon(): Color = if (skydownIsDarkPalette()) Color(0xFF1B293B) else Color(0xFFE4E8ED)
+
+fun ColorScheme.skydownPremiumAccent(): Color = if (skydownIsDarkPalette()) AuroraDark else Champagne
 
 fun ColorScheme.skydownSuccess(): Color = if (skydownIsDarkPalette()) SuccessDark else SuccessLight
 

@@ -63,16 +63,13 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDialog
@@ -165,6 +162,9 @@ import com.nash.skyos.ui.component.OriginalVideoViewerDialog
 import com.nash.skyos.ui.component.SkydownHapticKind
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownMotionTokens
+import com.nash.skyos.ui.component.SkydownPremiumCircularProgress
+import com.nash.skyos.ui.component.SkydownPremiumLinearProgress
+import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.SkydownPortalChip
 import com.nash.skyos.ui.component.skydownExitTween
@@ -827,10 +827,10 @@ fun HomeScreen(
                                 }
                                 Text(stringResource(R.string.home_quick_create_task), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                 Text(stringResource(R.string.home_sheet_task_hint), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
-                                OutlinedTextField(
+                                SkydownPremiumTextField(
                                     value = taskTitleDraft,
                                     onValueChange = { taskTitleDraft = it },
-                                    label = { Text(stringResource(R.string.tasks_input_title_hint)) },
+                                    label = stringResource(R.string.tasks_input_title_hint),
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -841,10 +841,10 @@ fun HomeScreen(
                                         },
                                     ),
                                 )
-                                OutlinedTextField(
+                                SkydownPremiumTextField(
                                     value = taskDetailDraft,
                                     onValueChange = { taskDetailDraft = it },
-                                    label = { Text(stringResource(R.string.tasks_input_details_hint)) },
+                                    label = stringResource(R.string.tasks_input_details_hint),
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -1041,10 +1041,10 @@ fun HomeScreen(
                             else -> {
                                 Text(stringResource(R.string.home_quick_create_note), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                 Text(stringResource(R.string.home_sheet_note_hint), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
-                                OutlinedTextField(
+                                SkydownPremiumTextField(
                                     value = noteTitleDraft,
                                     onValueChange = { noteTitleDraft = it },
-                                    label = { Text(stringResource(R.string.notes_input_title_hint)) },
+                                    label = stringResource(R.string.notes_input_title_hint),
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -1055,11 +1055,12 @@ fun HomeScreen(
                                         },
                                     ),
                                 )
-                                OutlinedTextField(
+                                SkydownPremiumTextField(
                                     value = noteContentDraft,
                                     onValueChange = { noteContentDraft = it },
-                                    label = { Text(stringResource(R.string.notes_input_content_hint)) },
+                                    label = stringResource(R.string.notes_input_content_hint),
                                     modifier = Modifier.fillMaxWidth(),
+                                    singleLine = false,
                                     minLines = 3,
                                     maxLines = 5,
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -1258,12 +1259,12 @@ private fun HomeManageableItemCard(
             exit = editRevealExit,
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
-                OutlinedTextField(
+                SkydownPremiumTextField(
                     value = draftTitle,
                     onValueChange = onDraftTitleChange,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    label = { Text(stringResource(R.string.home_manager_rename_placeholder)) },
+                    label = stringResource(R.string.home_manager_rename_placeholder),
                 )
                 BrandActionButton(
                     text = stringResource(R.string.common_save),
@@ -1408,10 +1409,10 @@ private fun HomeReminderCaptureSheet(
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
     )
-    OutlinedTextField(
+    SkydownPremiumTextField(
         value = titleDraft,
         onValueChange = onTitleChange,
-        label = { Text(stringResource(R.string.home_sheet_reminder_title_hint)) },
+        label = stringResource(R.string.home_sheet_reminder_title_hint),
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -2127,7 +2128,10 @@ private fun HomeOwnerWorkflowRow(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
         )
         if (founderBriefingModeInFlight != null) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            SkydownPremiumLinearProgress(
+                modifier = Modifier.fillMaxWidth(),
+                accent = MaterialTheme.colorScheme.primary,
+            )
             Text(
                 text = stringResource(R.string.home_owner_workflows_progress),
                 style = MaterialTheme.typography.labelSmall,
@@ -2346,9 +2350,10 @@ private fun HomeQuickActionChip(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             if (isLoading) {
-                CircularProgressIndicator(
-                    strokeWidth = 2.dp,
+                SkydownPremiumCircularProgress(
                     modifier = Modifier.size(12.dp),
+                    accent = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 2.dp,
                 )
             }
             if (icon != null) {

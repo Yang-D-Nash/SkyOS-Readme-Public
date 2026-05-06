@@ -172,9 +172,9 @@ fun BrandHeroCard(
                     } else {
                         Modifier.shadow(
                             elevation = when {
-                                edgeToEdge -> if (autoCompactDensity) 7.dp else 9.dp
+                                edgeToEdge -> if (autoCompactDensity) SkydownUiTokens.elevationRaised else 9.dp
                                 autoCompactDensity -> 13.dp
-                                else -> 18.dp
+                                else -> SkydownUiTokens.elevationHero
                             },
                             shape = shape,
                             ambientColor = secondaryAccent.copy(alpha = if (edgeToEdge) 0.025f else if (isDarkPalette) 0.04f else 0.07f),
@@ -733,7 +733,7 @@ fun BrandActionButton(
             modifier = modifier
                 .heightIn(min = minHeight)
                 .shadow(
-                    elevation = if (enabled) 10.dp else 0.dp,
+                    elevation = if (enabled) SkydownUiTokens.elevationPanel else 0.dp,
                     shape = shape,
                     ambientColor = accent.copy(alpha = 0.18f),
                     spotColor = accent.copy(alpha = 0.22f),

@@ -83,7 +83,7 @@ val SkydownCardTitleTextStyle = TextStyle(
     fontWeight = FontWeight.SemiBold,
     fontSize = 20.sp,
     lineHeight = 25.sp,
-    letterSpacing = (-0.10).sp,
+    letterSpacing = 0.sp,
     platformStyle = TightPlatformStyle,
 )
 
@@ -92,7 +92,7 @@ val SkydownSectionTitleTextStyle = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 26.sp,
     lineHeight = 30.sp,
-    letterSpacing = (-0.18).sp,
+    letterSpacing = 0.sp,
     platformStyle = TightPlatformStyle,
 )
 
@@ -101,7 +101,7 @@ val SkydownPanelTitleTextStyle = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 22.sp,
     lineHeight = 28.sp,
-    letterSpacing = (-0.08).sp,
+    letterSpacing = 0.sp,
     platformStyle = TightPlatformStyle,
 )
 
@@ -131,7 +131,7 @@ val Typography = Typography(
         fontWeight = FontWeight.ExtraBold,
         fontSize = 28.sp,
         lineHeight = 31.sp,
-        letterSpacing = (-0.24).sp,
+        letterSpacing = 0.sp,
         platformStyle = TightPlatformStyle,
     ),
     headlineSmall = TextStyle(
@@ -139,7 +139,7 @@ val Typography = Typography(
         fontWeight = FontWeight.Bold,
         fontSize = 23.sp,
         lineHeight = 27.sp,
-        letterSpacing = (-0.18).sp,
+        letterSpacing = 0.sp,
         platformStyle = TightPlatformStyle,
     ),
     titleLarge = TextStyle(
@@ -147,7 +147,7 @@ val Typography = Typography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 18.5.sp,
         lineHeight = 23.sp,
-        letterSpacing = (-0.08).sp,
+        letterSpacing = 0.sp,
         platformStyle = TightPlatformStyle,
     ),
     titleMedium = TextStyle(
@@ -155,7 +155,7 @@ val Typography = Typography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 20.sp,
-        letterSpacing = (-0.04).sp,
+        letterSpacing = 0.sp,
         platformStyle = TightPlatformStyle,
     ),
     titleSmall = TextStyle(

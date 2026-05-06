@@ -54,11 +54,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -109,6 +106,9 @@ import com.nash.skyos.ui.component.BrandStatusChip
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.AiConversationSessionStrip
 import com.nash.skyos.ui.component.AiConversationSessionsSheet
+import com.nash.skyos.ui.component.SkydownPremiumCircularProgress
+import com.nash.skyos.ui.component.SkydownPremiumLinearProgress
+import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.ToastHost
@@ -679,26 +679,23 @@ private fun AiThreadFollowUpBar(
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = draft,
             onValueChange = onDraftChanged,
+            label = stringResource(R.string.ai_composer_prompt),
             enabled = !isWorking,
             modifier = Modifier
                 .weight(1f)
                 .testTag("ai.thread.followup.field"),
-            placeholder = {
+            placeholderContent = {
                 Text(
                     text = stringResource(R.string.ai_thread_followup_placeholder),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 )
             },
+            singleLine = false,
             minLines = 1,
             maxLines = 4,
-            shape = RoundedCornerShape(14.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.42f),
-                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-            ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { submit() }),
         )
@@ -976,11 +973,12 @@ private fun AiPromptComposerSheet(
             color = composerAccent,
         )
 
-        OutlinedTextField(
+        SkydownPremiumTextField(
             value = draft,
             onValueChange = onDraftChanged,
+            label = stringResource(R.string.ai_composer_prompt),
             modifier = Modifier.fillMaxWidth(),
-            placeholder = {
+            placeholderContent = {
                 Text(
                     if (composerMode == AiComposerMode.Text) {
                         textMode.placeholder
@@ -989,6 +987,7 @@ private fun AiPromptComposerSheet(
                     },
                 )
             },
+            singleLine = false,
             minLines = 4,
             maxLines = 8,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -997,14 +996,6 @@ private fun AiPromptComposerSheet(
                     onSend()
                 }
             }),
-            shape = RoundedCornerShape(SkydownUiTokens.elevatedPanelRadius),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = composerAccent.copy(alpha = 0.72f),
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f),
-                focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
-                cursorColor = composerAccent,
-            ),
         )
 
         Row(
@@ -1046,10 +1037,10 @@ private fun PromptProgressBanner(
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CircularProgressIndicator(
+            SkydownPremiumCircularProgress(
                 modifier = Modifier.size(18.dp),
+                accent = accent,
                 strokeWidth = 2.dp,
-                color = accent,
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -1065,10 +1056,9 @@ private fun PromptProgressBanner(
                 )
             }
         }
-        LinearProgressIndicator(
+        SkydownPremiumLinearProgress(
             modifier = Modifier.fillMaxWidth(),
-            color = accent,
-            trackColor = accent.copy(alpha = 0.16f),
+            accent = accent,
         )
     }
 }

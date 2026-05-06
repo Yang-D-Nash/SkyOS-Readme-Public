@@ -30,7 +30,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -62,6 +61,7 @@ import com.nash.skyos.ui.component.AppTopBarSessionActions
 import com.nash.skyos.ui.component.SectionHeader
 import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.skydownContentSizeRevealSpec
@@ -579,15 +579,14 @@ private fun CartSingleLineField(
     labelRes: Int,
     topPadding: Dp = 12.dp,
 ) {
-    OutlinedTextField(
+    SkydownPremiumTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(stringResource(labelRes)) },
+        label = stringResource(labelRes),
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = topPadding),
         singleLine = true,
-        shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
     )
 }
 
@@ -598,15 +597,15 @@ private fun CartMessageField(
     labelRes: Int,
     topPadding: Dp = 12.dp,
 ) {
-    OutlinedTextField(
+    SkydownPremiumTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(stringResource(labelRes)) },
+        label = stringResource(labelRes),
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = topPadding),
+        singleLine = false,
         minLines = 4,
-        shape = RoundedCornerShape(SkydownUiTokens.cardCornerRadius),
     )
 }
 

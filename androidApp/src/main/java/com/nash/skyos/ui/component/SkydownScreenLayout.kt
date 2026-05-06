@@ -28,6 +28,9 @@ import com.nash.skyos.ui.theme.SkydownBodyCaptionTextStyle
 import com.nash.skyos.ui.theme.SkydownHeroEyebrowTextStyle
 import com.nash.skyos.ui.theme.SkydownPanelTitleTextStyle
 import com.nash.skyos.ui.theme.skydownAccentHighlight
+import com.nash.skyos.ui.theme.skydownAtmosphereHorizon
+import com.nash.skyos.ui.theme.skydownAtmosphereMid
+import com.nash.skyos.ui.theme.skydownAtmosphereTop
 import com.nash.skyos.ui.theme.skydownCardBackground
 import com.nash.skyos.ui.theme.skydownCinematicShadow
 import com.nash.skyos.ui.theme.skydownIsDarkPalette
@@ -39,17 +42,17 @@ import com.nash.skyos.ui.theme.skydownText
 
 object SkydownUiTokens {
     val screenHorizontalPadding = 20.dp
-    val screenTopPadding = 16.dp
+    val screenTopPadding = 18.dp
     val screenBottomPadding = 56.dp
-    val cardPadding = 16.dp
+    val cardPadding = 18.dp
     /// Größere Karten/Module (Music, Video, Profil) — iOS `SkydownLayout.panelPadding` Parität.
-    val panelPadding = 20.dp
+    val panelPadding = 22.dp
     val heroPadding = 20.dp
-    val cardCornerRadius = 22.dp
-    val heroCornerRadius = 32.dp
+    val cardCornerRadius = 20.dp
+    val heroCornerRadius = 28.dp
     val buttonCornerRadius = 14.dp
     val buttonCompactCornerRadius = 15.dp
-    val buttonStandardCornerRadius = 18.dp
+    val buttonStandardCornerRadius = 16.dp
     val buttonCompactMinHeight = 40.dp
     val buttonStandardMinHeight = 46.dp
     val buttonCompactIconSize = 16.dp
@@ -129,6 +132,11 @@ object SkydownUiTokens {
     val stackSpacingDockRow = 13.dp
     /// Parität iOS `SkydownLayout.layoutProminentInset` (Dock-Vertikal, betonte Schatten).
     val layoutProminentInset = 19.dp
+
+    val elevationHairline = 1.dp
+    val elevationRaised = 6.dp
+    val elevationPanel = 14.dp
+    val elevationHero = 18.dp
 }
 
 fun skydownContentPadding(innerPadding: PaddingValues): PaddingValues = PaddingValues(
@@ -158,9 +166,9 @@ fun skydownScreenBrush(
     val isDarkPalette = colorScheme.skydownIsDarkPalette()
 
     val luminanceLift = colorScheme.skydownLuminanceLift()
-    val topSky = if (isDarkPalette) Color(0xFF0D1522) else Color(0xFFFAF7F3)
-    val midSky = if (isDarkPalette) Color(0xFF121D2C) else Color(0xFFEEF0F3)
-    val horizonGlow = if (isDarkPalette) Color(0xFF1F2D40) else Color(0xFFE1E6EC)
+    val topSky = colorScheme.skydownAtmosphereTop()
+    val midSky = colorScheme.skydownAtmosphereMid()
+    val horizonGlow = colorScheme.skydownAtmosphereHorizon()
     val cinematicShadow = colorScheme.skydownCinematicShadow()
     val pearlWash = colorScheme.skydownCardBackground()
     val surfaceWash = colorScheme.skydownSecondaryBackground()
