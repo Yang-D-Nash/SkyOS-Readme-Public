@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-05-06 08:45 CEST (artist page routing rollout: iOS 10026 uploaded, Android 10029 built)
+Last updated: 2026-05-06 09:01 CEST (artist page routing rollout uploaded: iOS 10026, Android 10029)
 Owner: Release Engineering
 
 ## Build Identity
@@ -63,9 +63,9 @@ Owner: Release Engineering
 
 ### Google Upload Status
 - Release AAB build: SUCCEEDED for versionCode `10029` at 2026-05-06 08:35 CEST.
-- Play Console status: versionCode `10029` is built and verified locally, but not uploaded in this session because `SUPPLY_JSON_KEY` is not set and the local Play service-account JSON could not be found.
+- Play Console status: versionCode `10029` uploaded to the `internal` track as a draft through Fastlane at 2026-05-06 09:00 CEST.
 - Play upload automation: WORKING via Fastlane `upload_android_internal` when `SUPPLY_JSON_KEY` points at the local Play service-account JSON.
-- CLI validate-only attempt: not run for versionCode `10029` because `SUPPLY_JSON_KEY` is missing in this shell session.
+- CLI validate-only attempt: PASSED for versionCode `10029` at 2026-05-06 08:58 CEST.
 - Notes:
   - Fastlane used `release_status: draft`, so this did not start a production rollout.
   - VersionCode `10029` contains the Home-to-artist-page routing and exact MAVE/ThaDude public profile fixes.
@@ -98,9 +98,10 @@ Owner: Release Engineering
 21. Android clean release gate passed for version `1.0.0` / versionCode `10029`; AAB and APK were rebuilt at 2026-05-06 08:35 CEST.
 22. Android AAB SHA-256 for versionCode `10029`: `977f97fb7b591fb22ba273b37884da6289684ec940d4d383f1c1d91f9f516eed`.
 23. Android APK SHA-256 for versionCode `10029`: `491ae8587f419cbeadb125544c54a5109d31be131e0590cd25c9749f22056bf1`.
-24. Android Play upload for versionCode `10029` was blocked in this shell session because `SUPPLY_JSON_KEY` is unset and the local Play service-account JSON was not present.
+24. Fastlane `validate_android_internal` passed against Google Play for versionCode `10029` at 2026-05-06 08:58 CEST.
 25. iOS archive build `10026` succeeded at `build/ios/SkyOS-1.0.0-10026-20260506.xcarchive`, and release identity re-check passed against the archive.
 26. iOS build `10026` uploaded to App Store Connect successfully at 2026-05-06 08:43 CEST via `xcodebuild -exportArchive`; uploaded package is processing. Xcode reported missing vendor dSYMs for Firebase/gRPC binary frameworks, but the app package upload still succeeded.
+27. Fastlane `upload_android_internal` uploaded versionCode `10029` to Google Play internal testing as a draft at 2026-05-06 09:00 CEST.
 
 ## 2026-05-05 Verification Log
 
