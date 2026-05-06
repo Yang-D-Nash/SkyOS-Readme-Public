@@ -1,14 +1,18 @@
 package com.nash.skyos.ui.component
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -25,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,6 +42,9 @@ import com.nash.skyos.ui.theme.skydownError
 import com.nash.skyos.ui.theme.skydownIsDarkPalette
 import com.nash.skyos.ui.theme.skydownSecondaryBackground
 import com.nash.skyos.ui.theme.skydownSecondaryText
+import com.nash.skyos.ui.theme.skydownSheetScrim
+import com.nash.skyos.ui.theme.skydownSheetSurface
+import com.nash.skyos.ui.theme.skydownStateIconSurface
 import com.nash.skyos.ui.theme.skydownSuccess
 import com.nash.skyos.ui.theme.skydownText
 
@@ -160,30 +168,15 @@ fun SkydownPremiumStatePanel(
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
             verticalAlignment = Alignment.Top,
         ) {
-            Surface(
-                modifier = Modifier.size(42.dp),
-                shape = MaterialTheme.shapes.medium,
-                color = accent.copy(alpha = if (colorScheme.skydownIsDarkPalette()) 0.18f else 0.12f),
-                contentColor = accent,
-                border = BorderStroke(1.dp, accent.copy(alpha = 0.18f)),
-                shadowElevation = 3.dp,
-                tonalElevation = 0.dp,
+            SkydownPremiumIconSurface(
+                accent = accent,
+                loading = loading,
             ) {
-                androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) {
-                    if (loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = accent,
-                        )
-                    } else {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(SkydownUiTokens.stateIconContentSize),
+                )
             }
 
             Column(
@@ -213,6 +206,68 @@ fun SkydownPremiumStatePanel(
             }
         }
     }
+}
+
+@Composable
+fun SkydownPremiumIconSurface(
+    accent: Color,
+    modifier: Modifier = Modifier,
+    loading: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        modifier = modifier.size(SkydownUiTokens.stateIconSurfaceSize),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.skydownStateIconSurface(accent),
+        contentColor = accent,
+        border = BorderStroke(SkydownUiTokens.elevationHairline, accent.copy(alpha = 0.18f)),
+        shadowElevation = SkydownUiTokens.elevationStateIcon,
+        tonalElevation = 0.dp,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            if (loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(SkydownUiTokens.stateIconProgressSize),
+                    strokeWidth = 2.dp,
+                    color = accent,
+                )
+            } else {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+fun skydownPremiumSheetShape(): Shape = RoundedCornerShape(
+    topStart = SkydownUiTokens.sheetHeroRadius,
+    topEnd = SkydownUiTokens.sheetHeroRadius,
+)
+
+@Composable
+fun skydownPremiumSheetContainerColor(): Color = MaterialTheme.colorScheme.skydownSheetSurface()
+
+@Composable
+fun skydownPremiumSheetContentColor(): Color = MaterialTheme.colorScheme.skydownText()
+
+@Composable
+fun skydownPremiumSheetScrimColor(): Color = MaterialTheme.colorScheme.skydownSheetScrim()
+
+@Composable
+fun SkydownPremiumSheetDragHandle() {
+    Surface(
+        modifier = Modifier
+            .padding(top = SkydownUiTokens.stackSpacingToast, bottom = SkydownUiTokens.stackSpacingMicro)
+            .width(SkydownUiTokens.sheetDragHandleWidth)
+            .height(SkydownUiTokens.sheetDragHandleHeight),
+        shape = RoundedCornerShape(SkydownUiTokens.sheetDragHandleRadius),
+        color = MaterialTheme.colorScheme.skydownSecondaryText().copy(
+            alpha = if (MaterialTheme.colorScheme.skydownIsDarkPalette()) 0.32f else 0.24f,
+        ),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        content = {},
+    )
 }
 
 @Composable

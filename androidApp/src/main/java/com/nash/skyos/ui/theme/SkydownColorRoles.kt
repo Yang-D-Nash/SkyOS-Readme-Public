@@ -18,6 +18,28 @@ fun ColorScheme.skydownSecondaryBackground(): Color = if (skydownIsDarkPalette()
 
 fun ColorScheme.skydownCardBackground(): Color = if (skydownIsDarkPalette()) SurfaceDark.copy(alpha = 0.97f) else SurfaceLight
 
+fun ColorScheme.skydownChromeSurface(): Color = if (skydownIsDarkPalette()) {
+    SurfaceDark.copy(alpha = 0.72f)
+} else {
+    SurfaceLight.copy(alpha = 0.86f)
+}
+
+fun ColorScheme.skydownSheetSurface(): Color = if (skydownIsDarkPalette()) {
+    SurfaceDark.copy(alpha = 0.985f)
+} else {
+    SurfaceLight.copy(alpha = 0.995f)
+}
+
+fun ColorScheme.skydownSheetScrim(): Color = if (skydownIsDarkPalette()) {
+    Obsidian.copy(alpha = 0.76f)
+} else {
+    Graphite.copy(alpha = 0.34f)
+}
+
+fun ColorScheme.skydownStateIconSurface(accent: Color): Color = accent.copy(
+    alpha = if (skydownIsDarkPalette()) 0.18f else 0.12f,
+)
+
 fun ColorScheme.skydownText(): Color = if (skydownIsDarkPalette()) TextDark else TextLight
 
 fun ColorScheme.skydownSecondaryText(): Color = if (skydownIsDarkPalette()) TextMutedDark else TextMutedLight

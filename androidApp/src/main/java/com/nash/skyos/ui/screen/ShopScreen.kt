@@ -93,6 +93,7 @@ import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.MerchandiseCard
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownMotionTokens
+import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.skydownTween
@@ -103,6 +104,10 @@ import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.skydownContentPadding
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownPressable
+import com.nash.skyos.ui.component.skydownPremiumSheetContainerColor
+import com.nash.skyos.ui.component.skydownPremiumSheetContentColor
+import com.nash.skyos.ui.component.skydownPremiumSheetScrimColor
+import com.nash.skyos.ui.component.skydownPremiumSheetShape
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.theme.skydownAccentMystic
 import com.nash.skyos.ui.model.ShopUiState
@@ -987,16 +992,12 @@ private fun ShopCollectionDialog(
     ModalBottomSheet(
         onDismissRequest = onBack,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.background,
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .size(width = 44.dp, height = 5.dp)
-                    .clip(RoundedCornerShape(SkydownUiTokens.sheetDragHandleRadius))
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f)),
-            )
-        },
+        shape = skydownPremiumSheetShape(),
+        containerColor = skydownPremiumSheetContainerColor(),
+        contentColor = skydownPremiumSheetContentColor(),
+        scrimColor = skydownPremiumSheetScrimColor(),
+        tonalElevation = 0.dp,
+        dragHandle = { SkydownPremiumSheetDragHandle() },
         modifier = Modifier.clip(
             RoundedCornerShape(
                 topStart = SkydownUiTokens.heroCornerRadius,

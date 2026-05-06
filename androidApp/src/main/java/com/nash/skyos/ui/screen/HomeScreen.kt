@@ -164,6 +164,7 @@ import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownMotionTokens
 import com.nash.skyos.ui.component.SkydownPremiumCircularProgress
 import com.nash.skyos.ui.component.SkydownPremiumLinearProgress
+import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
 import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.SkydownPortalChip
@@ -176,6 +177,10 @@ import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.skydownPressable
 import com.nash.skyos.ui.component.skydownContentPadding
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
+import com.nash.skyos.ui.component.skydownPremiumSheetContainerColor
+import com.nash.skyos.ui.component.skydownPremiumSheetContentColor
+import com.nash.skyos.ui.component.skydownPremiumSheetScrimColor
+import com.nash.skyos.ui.component.skydownPremiumSheetShape
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.model.FeaturedVideoHighlight
 import com.nash.skyos.ui.model.HomeUiState
@@ -779,6 +784,12 @@ fun HomeScreen(
                 ModalBottomSheet(
                     onDismissRequest = { activeProductivitySheet = null },
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                    shape = skydownPremiumSheetShape(),
+                    containerColor = skydownPremiumSheetContainerColor(),
+                    contentColor = skydownPremiumSheetContentColor(),
+                    scrimColor = skydownPremiumSheetScrimColor(),
+                    tonalElevation = 0.dp,
+                    dragHandle = { SkydownPremiumSheetDragHandle() },
                 ) {
                     Column(
                         modifier = Modifier
@@ -1097,6 +1108,12 @@ fun HomeScreen(
                 ModalBottomSheet(
                     onDismissRequest = { founderBriefingSheet = null },
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                    shape = skydownPremiumSheetShape(),
+                    containerColor = skydownPremiumSheetContainerColor(),
+                    contentColor = skydownPremiumSheetContentColor(),
+                    scrimColor = skydownPremiumSheetScrimColor(),
+                    tonalElevation = 0.dp,
+                    dragHandle = { SkydownPremiumSheetDragHandle() },
                 ) {
                     Column(
                         modifier = Modifier

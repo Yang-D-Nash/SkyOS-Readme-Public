@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -99,10 +100,7 @@ class MainActivity : ComponentActivity() {
                 uiTestUser != null
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.auto(
-                AndroidColor.TRANSPARENT,
-                AndroidColor.TRANSPARENT,
-            ),
+            navigationBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
         )
         AppearancePreferences.initialize(applicationContext)
         AppFeatureFlagsStore.configureUiTestOverrides(
@@ -138,6 +136,20 @@ class MainActivity : ComponentActivity() {
                 AppearanceMode.Light -> false
                 AppearanceMode.Dark -> true
                 AppearanceMode.System -> isSystemInDarkTheme()
+            }
+            SideEffect {
+                val transparentSystemBarStyle = if (darkTheme) {
+                    SystemBarStyle.dark(AndroidColor.TRANSPARENT)
+                } else {
+                    SystemBarStyle.light(
+                        AndroidColor.TRANSPARENT,
+                        AndroidColor.TRANSPARENT,
+                    )
+                }
+                enableEdgeToEdge(
+                    statusBarStyle = transparentSystemBarStyle,
+                    navigationBarStyle = transparentSystemBarStyle,
+                )
             }
 
             SkydownTheme(darkTheme = darkTheme) {

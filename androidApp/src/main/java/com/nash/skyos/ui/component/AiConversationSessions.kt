@@ -158,7 +158,15 @@ fun AiConversationSessionsSheet(
 ) {
     val activeSession = sessions.firstOrNull { it.sessionId == activeSessionId }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = skydownPremiumSheetShape(),
+        containerColor = skydownPremiumSheetContainerColor(),
+        contentColor = skydownPremiumSheetContentColor(),
+        scrimColor = skydownPremiumSheetScrimColor(),
+        tonalElevation = 0.dp,
+        dragHandle = { SkydownPremiumSheetDragHandle() },
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

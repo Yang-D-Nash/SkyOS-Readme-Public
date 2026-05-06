@@ -57,9 +57,14 @@ import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.GoogleAuthButton
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownPremiumMicrocopy
+import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
 import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
+import com.nash.skyos.ui.component.skydownPremiumSheetContainerColor
+import com.nash.skyos.ui.component.skydownPremiumSheetContentColor
+import com.nash.skyos.ui.component.skydownPremiumSheetScrimColor
+import com.nash.skyos.ui.component.skydownPremiumSheetShape
 import com.nash.skyos.ui.component.ToastHost
 import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.model.SettingsLegalDocumentType
@@ -496,7 +501,12 @@ private fun RegistrationLegalDocumentSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.background,
+        shape = skydownPremiumSheetShape(),
+        containerColor = skydownPremiumSheetContainerColor(),
+        contentColor = skydownPremiumSheetContentColor(),
+        scrimColor = skydownPremiumSheetScrimColor(),
+        tonalElevation = 0.dp,
+        dragHandle = { SkydownPremiumSheetDragHandle() },
     ) {
         androidx.compose.foundation.lazy.LazyColumn(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(

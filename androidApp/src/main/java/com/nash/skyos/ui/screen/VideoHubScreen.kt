@@ -125,6 +125,7 @@ import com.nash.skyos.ui.component.SkydownFullscreenVideoControlBar
 import com.nash.skyos.ui.component.isLikelyDirectVideoUrl
 import com.nash.skyos.ui.component.seekByAppOffset
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
 import com.nash.skyos.ui.component.SkydownPremiumStatePanel
 import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownTopBarTitle
@@ -137,6 +138,10 @@ import com.nash.skyos.ui.component.rememberUsesCompactVisualDensity
 import com.nash.skyos.ui.component.skydownPressable
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownContentPadding
+import com.nash.skyos.ui.component.skydownPremiumSheetContainerColor
+import com.nash.skyos.ui.component.skydownPremiumSheetContentColor
+import com.nash.skyos.ui.component.skydownPremiumSheetScrimColor
+import com.nash.skyos.ui.component.skydownPremiumSheetShape
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.model.ProducedWithArtist
 import com.nash.skyos.ui.model.VideoEquipmentItem
@@ -568,7 +573,12 @@ fun VideoHubScreen(
             if (showUploadSheet && uiState.isAdmin) {
                 ModalBottomSheet(
                     onDismissRequest = { showUploadSheet = false },
-                    containerColor = MaterialTheme.colorScheme.background,
+                    shape = skydownPremiumSheetShape(),
+                    containerColor = skydownPremiumSheetContainerColor(),
+                    contentColor = skydownPremiumSheetContentColor(),
+                    scrimColor = skydownPremiumSheetScrimColor(),
+                    tonalElevation = 0.dp,
+                    dragHandle = { SkydownPremiumSheetDragHandle() },
                 ) {
                     LazyColumn(
                         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 24.dp),
@@ -611,7 +621,12 @@ fun VideoHubScreen(
             if (showAdminSheet && uiState.isAdmin) {
                 ModalBottomSheet(
                     onDismissRequest = { showAdminSheet = false },
-                    containerColor = MaterialTheme.colorScheme.background,
+                    shape = skydownPremiumSheetShape(),
+                    containerColor = skydownPremiumSheetContainerColor(),
+                    contentColor = skydownPremiumSheetContentColor(),
+                    scrimColor = skydownPremiumSheetScrimColor(),
+                    tonalElevation = 0.dp,
+                    dragHandle = { SkydownPremiumSheetDragHandle() },
                 ) {
                     LazyColumn(
                         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 24.dp),
@@ -1205,7 +1220,12 @@ private fun VideoEquipmentDetailSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.background,
+        shape = skydownPremiumSheetShape(),
+        containerColor = skydownPremiumSheetContainerColor(),
+        contentColor = skydownPremiumSheetContentColor(),
+        scrimColor = skydownPremiumSheetScrimColor(),
+        tonalElevation = 0.dp,
+        dragHandle = { SkydownPremiumSheetDragHandle() },
     ) {
         Column(
             modifier = Modifier

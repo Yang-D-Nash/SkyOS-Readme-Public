@@ -124,6 +124,7 @@ import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.EditableImageFieldCard
 import com.nash.skyos.ui.component.SectionHeader
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
 import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -135,6 +136,10 @@ import com.nash.skyos.ui.component.skydownCapsuleSurface
 import com.nash.skyos.ui.component.skydownContentPadding
 import com.nash.skyos.ui.component.skydownPanelSurface
 import com.nash.skyos.ui.component.skydownPressable
+import com.nash.skyos.ui.component.skydownPremiumSheetContainerColor
+import com.nash.skyos.ui.component.skydownPremiumSheetContentColor
+import com.nash.skyos.ui.component.skydownPremiumSheetScrimColor
+import com.nash.skyos.ui.component.skydownPremiumSheetShape
 import com.nash.skyos.ui.component.skydownScreenBrush
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.model.SettingsLegalDocumentType
@@ -5348,7 +5353,12 @@ fun SettingsScreen(
     if (showAdminWorkspaceSheet) {
         ModalBottomSheet(
             onDismissRequest = { showAdminWorkspaceSheet = false },
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+            shape = skydownPremiumSheetShape(),
+            containerColor = skydownPremiumSheetContainerColor(),
+            contentColor = skydownPremiumSheetContentColor(),
+            scrimColor = skydownPremiumSheetScrimColor(),
+            tonalElevation = 0.dp,
+            dragHandle = { SkydownPremiumSheetDragHandle() },
         ) {
             Box(
                 modifier = Modifier
@@ -6207,7 +6217,12 @@ private fun SettingsLegalDocumentSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.background,
+        shape = skydownPremiumSheetShape(),
+        containerColor = skydownPremiumSheetContainerColor(),
+        contentColor = skydownPremiumSheetContentColor(),
+        scrimColor = skydownPremiumSheetScrimColor(),
+        tonalElevation = 0.dp,
+        dragHandle = { SkydownPremiumSheetDragHandle() },
     ) {
         LazyColumn(
             contentPadding = PaddingValues(

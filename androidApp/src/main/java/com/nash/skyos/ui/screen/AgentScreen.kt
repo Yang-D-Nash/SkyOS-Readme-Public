@@ -130,6 +130,7 @@ import com.nash.skyos.ui.component.AiConversationSessionsSheet
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownPremiumCircularProgress
 import com.nash.skyos.ui.component.SkydownPremiumLinearProgress
+import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
 import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -140,6 +141,10 @@ import com.nash.skyos.ui.component.ToastType
 import com.nash.skyos.ui.component.rememberIsCompactAppLayout
 import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
+import com.nash.skyos.ui.component.skydownPremiumSheetContainerColor
+import com.nash.skyos.ui.component.skydownPremiumSheetContentColor
+import com.nash.skyos.ui.component.skydownPremiumSheetScrimColor
+import com.nash.skyos.ui.component.skydownPremiumSheetShape
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.theme.skydownAccent
 import com.nash.skyos.ui.theme.skydownAccentMystic
@@ -576,6 +581,12 @@ fun AgentScreen(
                         showPromptComposer = false
                     },
                     sheetState = promptSheetState,
+                    shape = skydownPremiumSheetShape(),
+                    containerColor = skydownPremiumSheetContainerColor(),
+                    contentColor = skydownPremiumSheetContentColor(),
+                    scrimColor = skydownPremiumSheetScrimColor(),
+                    tonalElevation = 0.dp,
+                    dragHandle = { SkydownPremiumSheetDragHandle() },
                 ) {
                     AgentPromptComposerSheet(
                         draft = uiState.draft,
@@ -659,6 +670,12 @@ fun AgentScreen(
                 ModalBottomSheet(
                     onDismissRequest = { showTasksSheet = false },
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                    shape = skydownPremiumSheetShape(),
+                    containerColor = skydownPremiumSheetContainerColor(),
+                    contentColor = skydownPremiumSheetContentColor(),
+                    scrimColor = skydownPremiumSheetScrimColor(),
+                    tonalElevation = 0.dp,
+                    dragHandle = { SkydownPremiumSheetDragHandle() },
                 ) {
                     Column(
                         modifier = Modifier
@@ -709,6 +726,12 @@ fun AgentScreen(
                 ModalBottomSheet(
                     onDismissRequest = { showNotesSheet = false },
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                    shape = skydownPremiumSheetShape(),
+                    containerColor = skydownPremiumSheetContainerColor(),
+                    contentColor = skydownPremiumSheetContentColor(),
+                    scrimColor = skydownPremiumSheetScrimColor(),
+                    tonalElevation = 0.dp,
+                    dragHandle = { SkydownPremiumSheetDragHandle() },
                 ) {
                     Column(
                         modifier = Modifier
@@ -759,6 +782,12 @@ fun AgentScreen(
                 ModalBottomSheet(
                     onDismissRequest = { selectedNote = null },
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                    shape = skydownPremiumSheetShape(),
+                    containerColor = skydownPremiumSheetContainerColor(),
+                    contentColor = skydownPremiumSheetContentColor(),
+                    scrimColor = skydownPremiumSheetScrimColor(),
+                    tonalElevation = 0.dp,
+                    dragHandle = { SkydownPremiumSheetDragHandle() },
                 ) {
                     var titleDraft by rememberSaveable(note.id) { mutableStateOf(note.title) }
                     var contentDraft by rememberSaveable(note.id) { mutableStateOf(note.content) }
@@ -1022,7 +1051,15 @@ private fun AiMembershipSheet(
     val proAvailable = proProduct?.let { it.monthly != null || it.yearly != null } == true
     val creatorAvailable = creatorProduct?.let { it.monthly != null || it.yearly != null } == true
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = skydownPremiumSheetShape(),
+        containerColor = skydownPremiumSheetContainerColor(),
+        contentColor = skydownPremiumSheetContentColor(),
+        scrimColor = skydownPremiumSheetScrimColor(),
+        tonalElevation = 0.dp,
+        dragHandle = { SkydownPremiumSheetDragHandle() },
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

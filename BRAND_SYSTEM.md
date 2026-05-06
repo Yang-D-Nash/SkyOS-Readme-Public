@@ -11,6 +11,7 @@ SkyOS wirkt wie ein ruhiges Atelier fuer digitale Musik-, Commerce- und Agent-Wo
 - Typografie hatte teils negative Letter-Spacing-Werte. Das erzeugt zwar Dichte, wirkt aber bei Dynamic Type und lokalisierten Texten riskant. Die Skala bleibt editorial, aber ohne kuenstliches Zusammendruecken.
 - Radius und Elevation waren an manchen Stellen weich und stark dekorativ. Die neue Richtung ist praeziser: kleinere Material-Radien, klarere Schattenrollen, weniger zufaellige Glow-Wirkung.
 - Empty-, Loading- und Feedback-Zustaende existieren, muessen aber konsequenter ueber `SkydownPremiumStatePanel`, Toasts und zentrale Button-Zustaende laufen.
+- Modal Sheets und sekundaere Overlays waren noch einer der sichtbarsten Brueche: mehrere Flows nutzten direkte `MaterialTheme.colorScheme.surface/background`, lokale Drag-Handle-Masse und Standard-Scrims. Das wirkt funktional, aber nicht wie ein zusammenhaengender Luxus-Chrome.
 - Final fehlende Premium-Assets: echte Hero-/Surface-Fotos oder Renderings, ein konsistentes Icon-Set fuer Produktbereiche, App-Icon-Finetuning, Motion-Spezifikation als Design-Reference.
 
 ## Visuelle Leitidee
@@ -35,6 +36,7 @@ Quiet precision: dunkle Tiefe, helle mineralische Flaechen, wenige warme Akzente
 - Buttons: gefuellt fuer primaere Entscheidung, outline fuer sekundaere Aktionen, Loading/Disabled integriert.
 - Cards: keine nackten Material-Cards in Screens; `SkydownCard`/`skydownPanelSurface` als Standard.
 - Inputs: `SkydownPremiumTextField` statt roher `OutlinedTextField`.
+- Sheets: `skydownPremiumSheet*` Defaults fuer Container, Content, Scrim, Shape und Drag Handle; keine lokalen Material-Defaults in wiederkehrenden Premium-Flows.
 - Motion: 150-320ms, kontrolliertes Deceleration-Easing, Reduce-Motion respektieren.
 
 ## Microcopy
@@ -60,3 +62,7 @@ Kurz, bestimmt, ruhig. Keine technische Erklaerprosa in UI-Chrome. Fehler nennen
 - ArtistPage, Home Quick Create und Settings werden ueber `SkydownPremiumTextField` geroutet; Material `OutlinedTextField` bleibt nur im zentralen Premium-Control als Implementierungsdetail.
 - Einfache Loading-Balken und kleine Spinner in Profile, Home, AI und Agent nutzen zentrale Premium-Progress-Komponenten.
 - Music Artist Rows, Music Action Buttons, Settings Segments und Admin Workspace Rows nutzen Premium Panel/Capsule Surfaces statt nackter Material-Flaechen.
+- Semantische Chrome-Rollen ergaenzt: `skydownChromeSurface`, `skydownSheetSurface`, `skydownSheetScrim` und `skydownStateIconSurface`.
+- Premium Sheet Defaults zentralisiert und auf Auth, Orders, Legal Documents, AI Sessions, Shop Collection, AI Composer, Agent Composer, Productivity, Founder Briefing, Video Admin/Upload, Video Equipment und Settings Admin Workspace angewendet.
+- State-Icon-Masse, Sheet-Handle-Masse und Icon-Elevation als `SkydownUiTokens` statt lokaler Einzelwerte gefuehrt.
+- `SkydownPremiumStatePanel` verwendet nun `SkydownPremiumIconSurface`; Loading- und Icon-Zustaende teilen sich damit dieselbe Materialitaet.

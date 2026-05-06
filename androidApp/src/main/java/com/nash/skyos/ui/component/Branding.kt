@@ -102,6 +102,7 @@ fun BrandHeroCard(
     title: String,
     subtitle: String,
     detail: String? = null,
+    modifier: Modifier = Modifier,
     backgroundImageUrl: String? = null,
     accent: Color = MaterialTheme.colorScheme.primary,
     secondaryAccent: Color = MaterialTheme.colorScheme.secondary,
@@ -161,7 +162,7 @@ fun BrandHeroCard(
         null
     }
     val surfaceHeaderInteraction = remember { MutableInteractionSource() }
-    Box(modifier = Modifier.fillMaxWidth()) {
+    Box(modifier = modifier.fillMaxWidth()) {
         val stageModifier = Modifier.fillMaxWidth()
 
         Box(
@@ -264,14 +265,18 @@ fun BrandHeroCard(
                 ),
         ) {
             if (hasBackgroundImage) {
-                AsyncImage(
-                    model = backgroundImageUrl,
-                    contentDescription = null,
+                Box(
                     modifier = Modifier
                         .matchParentSize()
                         .clip(shape),
-                    contentScale = ContentScale.Crop,
-                )
+                ) {
+                    AsyncImage(
+                        model = backgroundImageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
 
             Box(
                 modifier = Modifier

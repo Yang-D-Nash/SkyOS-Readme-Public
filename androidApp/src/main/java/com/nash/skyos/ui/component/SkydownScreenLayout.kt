@@ -57,6 +57,11 @@ object SkydownUiTokens {
     val buttonStandardMinHeight = 46.dp
     val buttonCompactIconSize = 16.dp
     val buttonStandardIconSize = 18.dp
+    val stateIconSurfaceSize = 42.dp
+    val stateIconContentSize = 20.dp
+    val stateIconProgressSize = 18.dp
+    val sheetDragHandleWidth = 52.dp
+    val sheetDragHandleHeight = 4.dp
     val buttonIconLabelSpacing = 8.dp
     val buttonCompactHorizontalPadding = 14.dp
     val buttonStandardHorizontalPadding = 16.dp
@@ -135,6 +140,7 @@ object SkydownUiTokens {
 
     val elevationHairline = 1.dp
     val elevationRaised = 6.dp
+    val elevationStateIcon = 3.dp
     val elevationPanel = 14.dp
     val elevationHero = 18.dp
 }

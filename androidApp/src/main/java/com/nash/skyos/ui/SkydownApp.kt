@@ -149,6 +149,7 @@ import com.nash.skyos.ui.component.LocalSessionUser
 import com.nash.skyos.ui.component.SkydownExitEasing
 import com.nash.skyos.ui.component.SkydownMotionTokens
 import com.nash.skyos.ui.component.SkydownStandardEasing
+import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.rememberIsCompactAppLayout
 import com.nash.skyos.ui.component.rememberSkydownReduceMotion
@@ -164,6 +165,10 @@ import com.nash.skyos.ui.component.skydownCapsuleSurface
 import com.nash.skyos.ui.component.skydownExitTween
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
+import com.nash.skyos.ui.component.skydownPremiumSheetContainerColor
+import com.nash.skyos.ui.component.skydownPremiumSheetContentColor
+import com.nash.skyos.ui.component.skydownPremiumSheetScrimColor
+import com.nash.skyos.ui.component.skydownPremiumSheetShape
 import com.nash.skyos.ui.component.skydownTopBarColors
 import com.nash.skyos.ui.component.skydownTween
 import com.nash.skyos.ui.screen.AiHubScreen
@@ -729,7 +734,12 @@ fun SkydownApp(
                     dismissAuthSheet()
                 },
                 sheetState = authSheetState,
-                containerColor = MaterialTheme.colorScheme.surface,
+                shape = skydownPremiumSheetShape(),
+                containerColor = skydownPremiumSheetContainerColor(),
+                contentColor = skydownPremiumSheetContentColor(),
+                scrimColor = skydownPremiumSheetScrimColor(),
+                tonalElevation = 0.dp,
+                dragHandle = { SkydownPremiumSheetDragHandle() },
             ) {
                 AnimatedContent(
                     targetState = sheet,
@@ -775,7 +785,12 @@ fun SkydownApp(
             ModalBottomSheet(
                 onDismissRequest = { showOrders = false },
                 sheetState = ordersSheetState,
-                containerColor = MaterialTheme.colorScheme.surface,
+                shape = skydownPremiumSheetShape(),
+                containerColor = skydownPremiumSheetContainerColor(),
+                contentColor = skydownPremiumSheetContentColor(),
+                scrimColor = skydownPremiumSheetScrimColor(),
+                tonalElevation = 0.dp,
+                dragHandle = { SkydownPremiumSheetDragHandle() },
             ) {
                 OrderScreen(
                     onClose = { showOrders = false },
@@ -2209,7 +2224,7 @@ private fun ZweizweiMusicLaneScreen(
                         state = hubListState,
                         contentPadding = PaddingValues(
                             start = resolvedHubHorizontalPadding,
-                            top = 0.dp,
+                            top = innerPadding.calculateTopPadding() + resolvedHubTopPadding,
                             end = resolvedHubHorizontalPadding,
                             bottom = innerPadding.calculateBottomPadding() + resolvedHubBottomPadding + hubBottomScrollReserve,
                         ),
@@ -2222,13 +2237,14 @@ private fun ZweizweiMusicLaneScreen(
                                 title = screenHeaderSettings.musicHubTitle.ifBlank { stringResource(R.string.tabs_music) },
                                 subtitle = screenHeaderSettings.musicHubSubtitle.ifBlank { stringResource(R.string.music_hub_subtitle) },
                                 detail = screenHeaderSettings.musicHubDetail.ifBlank { stringResource(R.string.music_hub_detail) },
+                                modifier = Modifier.heightIn(min = if (useCompactHubHero) 236.dp else 268.dp),
                                 backgroundImageUrl = screenHeaderSettings.musicHubImageUrl.ifBlank { null },
                                 accent = SpotifyGreen,
                                 secondaryAccent = MaterialTheme.colorScheme.secondary,
                                 marks = listOf(BrandArtwork.Zweizwei),
                                 compactVisualDensity = useCompactHubHero,
                                 edgeToEdge = true,
-                                topContentPadding = innerPadding.calculateTopPadding() + resolvedHubTopPadding,
+                                topContentPadding = 0.dp,
                                 onSurfaceClick = {
                                     catalogInitialArtist = "Janno"
                                     destination = ZweizweiMusicDestination.Catalog

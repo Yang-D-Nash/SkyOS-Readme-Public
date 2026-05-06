@@ -299,6 +299,7 @@ private fun MusicCatalogHero(
             title = screenHeader.musicHubTitle.ifBlank { "Music" },
             subtitle = screenHeader.musicHubSubtitle.ifBlank { "Ein Hub · drei Wege." },
             detail = screenHeader.musicHubDetail.ifBlank { "Katalog, Releases, Studio." },
+            modifier = Modifier.heightIn(min = if (compactVisualDensity) 196.dp else 224.dp),
             backgroundImageUrl = screenHeader.musicHubImageUrl.ifBlank { null },
             accent = SpotifyGreen,
             secondaryAccent = colorScheme.skydownAccent(),
