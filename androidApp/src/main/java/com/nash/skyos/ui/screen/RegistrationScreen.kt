@@ -11,26 +11,39 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -43,6 +56,8 @@ import com.nash.skyos.data.GoogleSignInManager
 import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.GoogleAuthButton
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumMicrocopy
+import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.ToastHost
@@ -123,6 +138,66 @@ fun RegistrationScreen(
     }
 
     val colorScheme = MaterialTheme.colorScheme
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    var attemptedSubmit by rememberSaveable { mutableStateOf(false) }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
+    val usernameValidationMessage = when {
+        !attemptedSubmit -> null
+        uiState.username.isBlank() -> stringResource(R.string.auth_validation_username_required)
+        else -> null
+    }
+    val emailValidationMessage = authEmailValidationMessage(
+        email = uiState.email,
+        attemptedSubmit = attemptedSubmit,
+    )
+    val passwordValidationMessage = when {
+        !attemptedSubmit -> null
+        uiState.password.isBlank() -> stringResource(R.string.auth_validation_password_required)
+        uiState.password.length < 6 -> stringResource(R.string.auth_validation_password_min_length)
+        else -> null
+    }
+    val confirmPasswordValidationMessage = when {
+        !attemptedSubmit -> null
+        uiState.confirmPassword.isBlank() -> stringResource(R.string.auth_validation_password_required)
+        uiState.password != uiState.confirmPassword -> stringResource(R.string.auth_validation_password_mismatch)
+        else -> null
+    }
+    val consentValidationMessage = when {
+        !attemptedSubmit -> null
+        !uiState.acceptedTerms || !uiState.acceptedPrivacyPolicy -> stringResource(R.string.auth_validation_consent_required)
+        else -> null
+    }
+    val canSubmitRegistration = usernameValidationMessage == null &&
+        emailValidationMessage == null &&
+        passwordValidationMessage == null &&
+        confirmPasswordValidationMessage == null &&
+        consentValidationMessage == null &&
+        uiState.username.isNotBlank() &&
+        uiState.email.trim().looksLikeEmailAddress() &&
+        uiState.password.length >= 6 &&
+        uiState.password == uiState.confirmPassword &&
+        uiState.acceptedTerms &&
+        uiState.acceptedPrivacyPolicy
+    val submitRegistration: () -> Unit = {
+        attemptedSubmit = true
+        if (canSubmitRegistration && !isAuthBusy) {
+            focusManager.clearFocus()
+            viewModel.register {
+                growthTracker.track("signup_complete", surface = "registration_sheet")
+                onClose()
+            }
+        }
+    }
+    val submitGoogleRegistration: () -> Unit = {
+        attemptedSubmit = true
+        if (consentValidationMessage == null && !isAuthBusy) {
+            viewModel.beginGoogleSignIn()
+            googleClient.signOut().addOnCompleteListener {
+                googleSignInLauncher.launch(googleClient.signInIntent)
+            }
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -188,47 +263,95 @@ fun RegistrationScreen(
                     style = MaterialTheme.typography.titleMedium,
                     color = colorScheme.skydownText(),
                 )
-                OutlinedTextField(
+                SkydownPremiumTextField(
                     value = uiState.username,
                     onValueChange = viewModel::updateUsername,
-                    label = { Text(stringResource(R.string.auth_username)) },
+                    label = stringResource(R.string.auth_username),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     singleLine = true,
-                    shape = MaterialTheme.shapes.large,
+                    enabled = !isAuthBusy,
+                    isError = usernameValidationMessage != null,
+                    supportingText = usernameValidationMessage,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 )
-                OutlinedTextField(
+                SkydownPremiumTextField(
                     value = uiState.email,
                     onValueChange = viewModel::updateEmail,
-                    label = { Text(stringResource(R.string.auth_email)) },
+                    label = stringResource(R.string.auth_email),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
                     singleLine = true,
-                    shape = MaterialTheme.shapes.large,
+                    enabled = !isAuthBusy,
+                    isError = emailValidationMessage != null,
+                    supportingText = emailValidationMessage,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next,
+                    ),
                 )
-                OutlinedTextField(
+                SkydownPremiumTextField(
                     value = uiState.password,
                     onValueChange = viewModel::updatePassword,
-                    label = { Text(stringResource(R.string.auth_password)) },
+                    label = stringResource(R.string.auth_password),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
                     singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    shape = MaterialTheme.shapes.large,
+                    enabled = !isAuthBusy,
+                    isError = passwordValidationMessage != null,
+                    supportingText = passwordValidationMessage,
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = stringResource(
+                                    if (passwordVisible) R.string.auth_password_hide else R.string.auth_password_show,
+                                ),
+                                tint = colorScheme.skydownSecondaryText().copy(alpha = 0.84f),
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next,
+                    ),
                 )
-                OutlinedTextField(
+                SkydownPremiumTextField(
                     value = uiState.confirmPassword,
                     onValueChange = viewModel::updateConfirmPassword,
-                    label = { Text(stringResource(R.string.auth_confirm_password)) },
+                    label = stringResource(R.string.auth_confirm_password),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
                     singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    shape = MaterialTheme.shapes.large,
+                    enabled = !isAuthBusy,
+                    isError = confirmPasswordValidationMessage != null,
+                    supportingText = confirmPasswordValidationMessage,
+                    visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                            Icon(
+                                imageVector = if (confirmPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = stringResource(
+                                    if (confirmPasswordVisible) R.string.auth_password_hide else R.string.auth_password_show,
+                                ),
+                                tint = colorScheme.skydownSecondaryText().copy(alpha = 0.84f),
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            submitRegistration()
+                        },
+                    ),
                 )
                 Text(
                     text = stringResource(
@@ -258,6 +381,12 @@ fun RegistrationScreen(
                     onCheckedChange = viewModel::updateAiConsentEnabled,
                     enabled = !isAuthBusy,
                 )
+                consentValidationMessage?.let { message ->
+                    SkydownPremiumMicrocopy(
+                        text = message,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
                 androidx.compose.foundation.layout.Row(
                     modifier = Modifier.padding(top = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
@@ -281,17 +410,12 @@ fun RegistrationScreen(
                 }
                 BrandActionButton(
                     text = if (uiState.isLoading) stringResource(R.string.auth_register_loading) else stringResource(R.string.auth_register),
-                    onClick = {
-                        viewModel.register {
-                            growthTracker.track("signup_complete", surface = "registration_sheet")
-                            onClose()
-                        }
-                    },
+                    onClick = submitRegistration,
                     accent = colorScheme.primary,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
-                    enabled = !isAuthBusy && uiState.acceptedTerms && uiState.acceptedPrivacyPolicy,
+                    enabled = !isAuthBusy,
                     isLoading = uiState.isLoading,
                 )
                 GoogleAuthButton(
@@ -301,19 +425,12 @@ fun RegistrationScreen(
                         stringResource(R.string.auth_register_google)
                     },
                     isLoading = uiState.isGoogleLoading,
-                    onClick = {
-                        viewModel.beginGoogleSignIn()
-                        googleClient.signOut().addOnCompleteListener {
-                            googleSignInLauncher.launch(googleClient.signInIntent)
-                        }
-                    },
+                    onClick = submitGoogleRegistration,
                     modifier = Modifier.padding(top = 12.dp),
-                    enabled = !isAuthBusy && uiState.acceptedTerms && uiState.acceptedPrivacyPolicy,
+                    enabled = !isAuthBusy,
                 )
-                Text(
+                SkydownPremiumMicrocopy(
                     text = stringResource(R.string.auth_register_google_hint),
-                    color = colorScheme.skydownSecondaryText().copy(alpha = 0.68f),
-                    style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
@@ -343,13 +460,21 @@ private fun RegistrationConsentRow(
     modifier: Modifier = Modifier,
 ) {
     androidx.compose.foundation.layout.Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = checked,
+                enabled = enabled,
+                role = Role.Checkbox,
+                onValueChange = onCheckedChange,
+            )
+            .padding(vertical = SkydownUiTokens.stackSpacingHairline),
         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(
             checked = checked,
-            onCheckedChange = onCheckedChange,
+            onCheckedChange = null,
             enabled = enabled,
         )
         Text(

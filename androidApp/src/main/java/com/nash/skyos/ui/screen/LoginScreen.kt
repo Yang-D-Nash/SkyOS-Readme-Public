@@ -15,21 +15,32 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -38,6 +49,8 @@ import com.nash.skyos.data.GoogleSignInManager
 import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.GoogleAuthButton
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumMicrocopy
+import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.ToastHost
@@ -117,6 +130,29 @@ fun LoginScreen(
     }
 
     val colorScheme = MaterialTheme.colorScheme
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    var attemptedSubmit by rememberSaveable { mutableStateOf(false) }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    val emailValidationMessage = authEmailValidationMessage(
+        email = uiState.email,
+        attemptedSubmit = attemptedSubmit,
+    )
+    val passwordValidationMessage = when {
+        !attemptedSubmit -> null
+        uiState.password.isBlank() -> stringResource(R.string.auth_validation_password_required)
+        else -> null
+    }
+    val canSubmitEmailLogin = emailValidationMessage == null &&
+        passwordValidationMessage == null &&
+        uiState.email.trim().looksLikeEmailAddress() &&
+        uiState.password.isNotBlank()
+    val submitEmailLogin: () -> Unit = {
+        attemptedSubmit = true
+        if (canSubmitEmailLogin && !isAuthBusy) {
+            focusManager.clearFocus()
+            viewModel.signIn(onClose)
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -212,30 +248,58 @@ fun LoginScreen(
                     color = colorScheme.skydownSecondaryText().copy(alpha = 0.76f),
                     modifier = Modifier.padding(top = 8.dp),
                 )
-                OutlinedTextField(
+                SkydownPremiumTextField(
                     value = uiState.email,
                     onValueChange = viewModel::updateEmail,
-                    label = { Text(stringResource(R.string.auth_email)) },
+                    label = stringResource(R.string.auth_email),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     singleLine = true,
-                    shape = MaterialTheme.shapes.large,
+                    enabled = !isAuthBusy,
+                    isError = emailValidationMessage != null,
+                    supportingText = emailValidationMessage,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next,
+                    ),
                 )
-                OutlinedTextField(
+                SkydownPremiumTextField(
                     value = uiState.password,
                     onValueChange = viewModel::updatePassword,
-                    label = { Text(stringResource(R.string.auth_password)) },
+                    label = stringResource(R.string.auth_password),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
                     singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    shape = MaterialTheme.shapes.large,
+                    enabled = !isAuthBusy,
+                    isError = passwordValidationMessage != null,
+                    supportingText = passwordValidationMessage,
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = stringResource(
+                                    if (passwordVisible) R.string.auth_password_hide else R.string.auth_password_show,
+                                ),
+                                tint = colorScheme.skydownSecondaryText().copy(alpha = 0.84f),
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            submitEmailLogin()
+                        },
+                    ),
                 )
                 BrandActionButton(
                     text = if (uiState.isLoading) stringResource(R.string.auth_login_loading) else stringResource(R.string.auth_sign_in),
-                    onClick = { viewModel.signIn(onClose) },
+                    onClick = submitEmailLogin,
                     accent = colorScheme.primary,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -255,13 +319,9 @@ fun LoginScreen(
                     modifier = Modifier.padding(top = 12.dp),
                     enabled = !isAuthBusy,
                 )
-                Text(
+                SkydownPremiumMicrocopy(
                     text = stringResource(R.string.auth_login_google_hint),
-                    color = colorScheme.skydownSecondaryText().copy(alpha = 0.68f),
-                    style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 8.dp),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 BrandActionButton(
                     text = stringResource(R.string.auth_no_account_register),
@@ -299,4 +359,28 @@ internal fun LoginInfoPill(text: String) {
             color = MaterialTheme.colorScheme.primary,
         )
     }
+}
+
+@Composable
+internal fun authEmailValidationMessage(
+    email: String,
+    attemptedSubmit: Boolean,
+): String? {
+    if (!attemptedSubmit) {
+        return null
+    }
+    val trimmedEmail = email.trim()
+    return when {
+        trimmedEmail.isBlank() -> stringResource(R.string.auth_validation_email_required)
+        !trimmedEmail.looksLikeEmailAddress() -> stringResource(R.string.auth_validation_email_invalid)
+        else -> null
+    }
+}
+
+internal fun String.looksLikeEmailAddress(): Boolean {
+    val trimmed = trim()
+    return trimmed.length >= 5 &&
+        trimmed.count { it == '@' } == 1 &&
+        trimmed.substringAfter('@').contains('.') &&
+        !trimmed.contains(' ')
 }

@@ -26,6 +26,14 @@ fun ColorScheme.skydownLuminanceLift(): Color = if (skydownIsDarkPalette()) Colo
 
 fun ColorScheme.skydownCinematicShadow(): Color = if (skydownIsDarkPalette()) Color(0xFF02060C) else Color(0xFF070D16)
 
+fun ColorScheme.skydownSuccess(): Color = if (skydownIsDarkPalette()) SuccessDark else SuccessLight
+
+fun ColorScheme.skydownSuccessContainer(): Color = if (skydownIsDarkPalette()) SuccessDarkContainer else SuccessLightContainer
+
+fun ColorScheme.skydownError(): Color = if (skydownIsDarkPalette()) ErrorDark else ErrorLight
+
+fun ColorScheme.skydownErrorContainer(): Color = if (skydownIsDarkPalette()) ErrorDarkContainer else ErrorLightContainer
+
 fun ColorScheme.skydownSpotify(): Color = SpotifyGreen
 
 fun ColorScheme.skydownSpotifySurface(): Color = skydownSpotify().copy(alpha = if (skydownIsDarkPalette()) 0.18f else 0.12f)

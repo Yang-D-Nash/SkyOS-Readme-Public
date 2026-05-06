@@ -164,6 +164,15 @@
     <string name="auth_sign_in_google">Mit Google anmelden</string>
     <string name="auth_login_google_hint">Google öffnet den nativen Android-Kontodialog für einen schnelleren Einstieg.</string>
     <string name="auth_no_account_register">Noch kein Konto? Registrieren</string>
+    <string name="auth_validation_email_required">Gib deine E-Mail-Adresse ein, um fortzufahren.</string>
+    <string name="auth_validation_email_invalid">Nutze eine gültige E-Mail-Adresse.</string>
+    <string name="auth_validation_password_required">Gib dein Passwort ein.</string>
+    <string name="auth_validation_username_required">Wähle einen Benutzernamen für dein Konto.</string>
+    <string name="auth_validation_password_min_length">Nutze mindestens 6 Zeichen.</string>
+    <string name="auth_validation_password_mismatch">Die Passwörter stimmen nicht überein.</string>
+    <string name="auth_validation_consent_required">Akzeptiere AGB und Datenschutz, bevor du fortfährst.</string>
+    <string name="auth_password_show">Passwort anzeigen</string>
+    <string name="auth_password_hide">Passwort verbergen</string>
     <string name="auth_google_signin_missing_token">Google-Anmeldung hat kein gültiges Token geliefert.</string>
     <string name="auth_google_signin_failed">Google-Anmeldung konnte nicht abgeschlossen werden.</string>
     <string name="auth_register_title">Registrieren</string>

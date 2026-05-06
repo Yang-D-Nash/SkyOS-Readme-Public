@@ -175,6 +175,15 @@
     <string name="auth_sign_in_google">Sign in with Google</string>
     <string name="auth_login_google_hint">Google opens the native Android account dialog for a faster sign-in.</string>
     <string name="auth_no_account_register">No account yet? Register</string>
+    <string name="auth_validation_email_required">Enter your email address to continue.</string>
+    <string name="auth_validation_email_invalid">Use a valid email address.</string>
+    <string name="auth_validation_password_required">Enter your password.</string>
+    <string name="auth_validation_username_required">Choose a username for your account.</string>
+    <string name="auth_validation_password_min_length">Use at least 6 characters.</string>
+    <string name="auth_validation_password_mismatch">Passwords do not match.</string>
+    <string name="auth_validation_consent_required">Accept AGB and Privacy before continuing.</string>
+    <string name="auth_password_show">Show password</string>
+    <string name="auth_password_hide">Hide password</string>
     <string name="auth_google_signin_missing_token">Google sign-in did not return a valid token.</string>
     <string name="auth_google_signin_failed">Google sign-in could not be completed.</string>
 

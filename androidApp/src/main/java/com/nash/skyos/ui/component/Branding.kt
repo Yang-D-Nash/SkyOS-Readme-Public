@@ -684,14 +684,24 @@ fun BrandActionButton(
     compact: Boolean = false,
     isLoading: Boolean = false,
 ) {
-    val shape = RoundedCornerShape(if (compact) 15.dp else 18.dp)
+    val shape = RoundedCornerShape(
+        if (compact) SkydownUiTokens.buttonCompactCornerRadius else SkydownUiTokens.buttonStandardCornerRadius,
+    )
     val interactionSource = remember { MutableInteractionSource() }
     val buttonEnabled = enabled && !isLoading
     val contentPadding = if (compact) {
-        PaddingValues(horizontal = 14.dp, vertical = 9.dp)
+        PaddingValues(
+            horizontal = SkydownUiTokens.buttonCompactHorizontalPadding,
+            vertical = SkydownUiTokens.buttonCompactVerticalPadding,
+        )
     } else {
-        PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+        PaddingValues(
+            horizontal = SkydownUiTokens.buttonStandardHorizontalPadding,
+            vertical = SkydownUiTokens.buttonStandardVerticalPadding,
+        )
     }
+    val minHeight = if (compact) SkydownUiTokens.buttonCompactMinHeight else SkydownUiTokens.buttonStandardMinHeight
+    val iconSize = if (compact) SkydownUiTokens.buttonCompactIconSize else SkydownUiTokens.buttonStandardIconSize
     val filledContentColor = if (accent.perceivedBrightness() < 0.58f) Color.White else MaterialTheme.colorScheme.skydownDeepInk()
     val filledBrush = Brush.linearGradient(
         colors = listOf(
@@ -721,7 +731,7 @@ fun BrandActionButton(
             onClick = onClick,
             enabled = buttonEnabled,
             modifier = modifier
-                .heightIn(min = if (compact) 40.dp else 46.dp)
+                .heightIn(min = minHeight)
                 .shadow(
                     elevation = if (enabled) 10.dp else 0.dp,
                     shape = shape,
@@ -748,7 +758,7 @@ fun BrandActionButton(
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                        modifier = Modifier.size(iconSize),
                         strokeWidth = 2.dp,
                         color = filledLabelColor,
                     )
@@ -757,7 +767,7 @@ fun BrandActionButton(
                         imageVector = icon,
                         contentDescription = null,
                         tint = filledLabelColor,
-                        modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                        modifier = Modifier.size(iconSize),
                     )
                 }
                 Text(
@@ -767,7 +777,9 @@ fun BrandActionButton(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = filledLabelColor,
-                    modifier = Modifier.padding(start = if (icon != null || isLoading) 8.dp else 0.dp),
+                    modifier = Modifier.padding(
+                        start = if (icon != null || isLoading) SkydownUiTokens.buttonIconLabelSpacing else 0.dp,
+                    ),
                 )
             }
         }
@@ -776,7 +788,7 @@ fun BrandActionButton(
             onClick = onClick,
             enabled = buttonEnabled,
             modifier = modifier
-                .heightIn(min = if (compact) 40.dp else 46.dp)
+                .heightIn(min = minHeight)
                 .clip(shape)
                 .background(outlineBrush)
                 .border(
@@ -802,7 +814,7 @@ fun BrandActionButton(
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                        modifier = Modifier.size(iconSize),
                         strokeWidth = 2.dp,
                         color = outlineLabelColor,
                     )
@@ -811,7 +823,7 @@ fun BrandActionButton(
                         imageVector = icon,
                         contentDescription = null,
                         tint = outlineLabelColor,
-                        modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+                        modifier = Modifier.size(iconSize),
                     )
                 }
                 Text(
@@ -821,7 +833,9 @@ fun BrandActionButton(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = outlineLabelColor,
-                    modifier = Modifier.padding(start = if (icon != null || isLoading) 8.dp else 0.dp),
+                    modifier = Modifier.padding(
+                        start = if (icon != null || isLoading) SkydownUiTokens.buttonIconLabelSpacing else 0.dp,
+                    ),
                 )
             }
         }

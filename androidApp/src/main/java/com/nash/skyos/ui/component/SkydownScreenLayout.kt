@@ -48,6 +48,17 @@ object SkydownUiTokens {
     val cardCornerRadius = 22.dp
     val heroCornerRadius = 32.dp
     val buttonCornerRadius = 14.dp
+    val buttonCompactCornerRadius = 15.dp
+    val buttonStandardCornerRadius = 18.dp
+    val buttonCompactMinHeight = 40.dp
+    val buttonStandardMinHeight = 46.dp
+    val buttonCompactIconSize = 16.dp
+    val buttonStandardIconSize = 18.dp
+    val buttonIconLabelSpacing = 8.dp
+    val buttonCompactHorizontalPadding = 14.dp
+    val buttonStandardHorizontalPadding = 16.dp
+    val buttonCompactVerticalPadding = 9.dp
+    val buttonStandardVerticalPadding = 12.dp
     val screenSectionSpacing = 22.dp
     val compactScreenSectionSpacing = 16.dp
     /// Sehr kleine Ecken (z. B. kompakte Menü-Clips).

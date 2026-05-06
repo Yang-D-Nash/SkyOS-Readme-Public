@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
 private val LightColors = lightColorScheme(
     primary = SkyLight,
@@ -24,9 +25,16 @@ private val LightColors = lightColorScheme(
     surfaceVariant = SurfaceVariantLight,
     outline = OutlineLight,
     outlineVariant = OutlineLight.copy(alpha = 0.72f),
+    error = ErrorLight,
+    errorContainer = ErrorLightContainer,
+    onError = Color.White,
+    onErrorContainer = TextLight,
     onBackground = TextLight,
     onSurface = TextLight,
     onSurfaceVariant = TextMutedLight,
+    inverseSurface = BackgroundDark,
+    inverseOnSurface = TextDark,
+    scrim = BackgroundDark.copy(alpha = 0.58f),
 )
 
 private val DarkColors = darkColorScheme(
@@ -47,9 +55,16 @@ private val DarkColors = darkColorScheme(
     surfaceVariant = SurfaceVariantDark,
     outline = OutlineDark,
     outlineVariant = OutlineDark.copy(alpha = 0.76f),
+    error = ErrorDark,
+    errorContainer = ErrorDarkContainer,
+    onError = BackgroundDark,
+    onErrorContainer = TextDark,
     onBackground = TextDark,
     onSurface = TextDark,
     onSurfaceVariant = TextMutedDark,
+    inverseSurface = SurfaceLight,
+    inverseOnSurface = TextLight,
+    scrim = Color.Black.copy(alpha = 0.74f),
 )
 
 @Composable

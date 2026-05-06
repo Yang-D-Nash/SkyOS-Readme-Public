@@ -8,14 +8,17 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearEasing
@@ -158,9 +161,11 @@ import com.nash.skyos.ui.component.skydownPanelSurface
 import com.nash.skyos.ui.component.skydownPressable
 import com.nash.skyos.ui.component.skydownSelectionFeedback
 import com.nash.skyos.ui.component.skydownCapsuleSurface
+import com.nash.skyos.ui.component.skydownExitTween
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
 import com.nash.skyos.ui.component.skydownTopBarColors
+import com.nash.skyos.ui.component.skydownTween
 import com.nash.skyos.ui.screen.AiHubScreen
 import com.nash.skyos.ui.screen.ArtistPageScreen
 import com.nash.skyos.ui.screen.CartScreen
@@ -718,6 +723,7 @@ fun SkydownApp(
         }
 
         authSheet?.let { sheet ->
+            val reduceAuthMotion = rememberSkydownReduceMotion()
             ModalBottomSheet(
                 onDismissRequest = {
                     dismissAuthSheet()
@@ -725,18 +731,42 @@ fun SkydownApp(
                 sheetState = authSheetState,
                 containerColor = MaterialTheme.colorScheme.surface,
             ) {
-                when (sheet) {
-                    AuthSheet.Login -> LoginScreen(
-                        onClose = { dismissAuthSheet() },
-                        onOpenRegistration = { authSheet = AuthSheet.Registration },
-                        onBusyStateChanged = { authSheetLocked = it },
-                        entryContext = authEntryContext,
-                    )
-                    AuthSheet.Registration -> RegistrationScreen(
-                        growthTracker = growthTracker,
-                        onClose = { dismissAuthSheet() },
-                        onBusyStateChanged = { authSheetLocked = it },
-                    )
+                AnimatedContent(
+                    targetState = sheet,
+                    label = "authSheetContent",
+                    transitionSpec = {
+                        if (reduceAuthMotion) {
+                            fadeIn(animationSpec = snap()) togetherWith fadeOut(animationSpec = snap())
+                        } else {
+                            fadeIn(
+                                animationSpec = skydownTween(
+                                    durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
+                                    delayMillis = SkydownMotionTokens.navFadeLeadMillis,
+                                ),
+                            ) togetherWith fadeOut(
+                                animationSpec = skydownExitTween(SkydownMotionTokens.statusExitDurationMillis),
+                            ) using SizeTransform(
+                                clip = false,
+                                sizeAnimationSpec = { _, _ ->
+                                    skydownTween(SkydownMotionTokens.contentRevealEnterMillis)
+                                },
+                            )
+                        }
+                    },
+                ) { targetSheet ->
+                    when (targetSheet) {
+                        AuthSheet.Login -> LoginScreen(
+                            onClose = { dismissAuthSheet() },
+                            onOpenRegistration = { authSheet = AuthSheet.Registration },
+                            onBusyStateChanged = { authSheetLocked = it },
+                            entryContext = authEntryContext,
+                        )
+                        AuthSheet.Registration -> RegistrationScreen(
+                            growthTracker = growthTracker,
+                            onClose = { dismissAuthSheet() },
+                            onBusyStateChanged = { authSheetLocked = it },
+                        )
+                    }
                 }
             }
         }

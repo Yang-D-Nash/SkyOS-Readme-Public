@@ -2,9 +2,11 @@ package com.nash.skyos.ui.component
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -38,29 +41,39 @@ fun GoogleAuthButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val buttonEnabled = enabled && !isLoading
     Surface(
         onClick = onClick,
-        enabled = enabled && !isLoading,
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        enabled = buttonEnabled,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = SkydownUiTokens.buttonStandardMinHeight)
+            .skydownPressable(interactionSource = interactionSource, pressedScale = 0.982f),
+        shape = RoundedCornerShape(SkydownUiTokens.buttonStandardCornerRadius),
         color = Color.White,
         border = BorderStroke(1.dp, GoogleBorder),
+        shadowElevation = if (buttonEnabled) 2.dp else 0.dp,
+        interactionSource = interactionSource,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(
+                    horizontal = SkydownUiTokens.buttonStandardHorizontalPadding,
+                    vertical = SkydownUiTokens.buttonStandardVerticalPadding,
+                ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(SkydownUiTokens.buttonStandardIconSize),
                     strokeWidth = 2.dp,
                     color = GoogleBlue,
                 )
             } else {
-                GoogleMark(modifier = Modifier.size(18.dp))
+                GoogleMark(modifier = Modifier.size(SkydownUiTokens.buttonStandardIconSize))
             }
 
             Text(
