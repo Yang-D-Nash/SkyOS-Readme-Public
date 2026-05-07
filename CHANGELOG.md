@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0 Premium brand-system RC - 2026-05-07
+
+- Premium UX: introduced the luxury-grade tokenized visual system across shared Compose surfaces, Android controls, and iOS settings/admin controls.
+- Brand system: aligned colors, spacing, typography, cards, button states, segmented controls, loading states, empty states, and release-facing README documentation.
+- Release identity: prepared the next clean rollout candidate as iOS build `10026` and Android versionCode `10029`.
+
 ## 1.0.0 Store review date refresh - 2026-05-05
 
 - Release review metadata: aligned Legal/Privacy/Terms last-updated labels to `5. Mai 2026` across iOS, Android, Functions, and static web pages.

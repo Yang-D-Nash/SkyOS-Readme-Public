@@ -1,6 +1,29 @@
-# Release Notes - 1.0.0 (2026-05-05 store review candidate)
+# Release Notes - 1.0.0
 
-Date: 2026-05-05
+## 2026-05-07 Premium rollout candidate
+
+Current prepared client identity:
+
+- iOS: `1.0.0` build `10026`
+- Android: `1.0.0` versionCode `10029`
+
+What changed since the previous store-review candidate:
+
+- Premium brand system added across shared KMP UI, Android surfaces, and iOS settings/admin controls.
+- Tokenized color, spacing, typography, radius, elevation, button, card, input, empty, loading, and motion patterns documented for maintainable rollout.
+- Public README mirror synchronized with the premium positioning and transparency model.
+
+Verification status:
+
+- Release identity check: pass (`./scripts/release_identity_check.sh`, 2026-05-07)
+- iOS archive present locally for build `10026`
+- iOS simulator compile check: pass (`xcodebuild ... CODE_SIGNING_ALLOWED=NO build`, 2026-05-07)
+- Android release gate: pass (`./scripts/android_release_gate.sh`, versionCode `10029`, AAB/APK rebuilt 2026-05-07 08:56 CEST)
+- Android Play AAB SHA-256: `661e20416b626c43481bd6813935e381539e43c0abab44b3df7e8287cb8435b7`
+- Android QA APK SHA-256: `3033c5227a4abe9e3a3c4d37ac4ec717a47e062bd7cc88c4b1958a24ad8cca8f`
+- Store upload for iOS build `10026` / Android versionCode `10029`: pending manual store-console upload/review step
+
+## 2026-05-05 store review candidate
 
 ## What was finalized
 
