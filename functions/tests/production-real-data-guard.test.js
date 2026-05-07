@@ -22,9 +22,10 @@ const productionContentFiles = [
 ];
 
 const approvedZweizweiArtists = [
-  "Janno",
-  "Mave",
+  "JANNO",
+  "MAVE040",
   "Tangajoe007",
+  "DANGU61",
   "Yang D. Nash",
   "ThaDude",
 ];

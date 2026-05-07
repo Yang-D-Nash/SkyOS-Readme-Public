@@ -6,6 +6,8 @@ import FirebaseFirestore
 protocol ArtistPagesServicing {
     func observePages(_ onChange: @escaping @MainActor (Result<[ArtistPage], Error>) -> Void) -> () -> Void
     func save(page: ArtistPage) async throws
+    func renameAndSave(previousPage: ArtistPage, updatedPage: ArtistPage) async throws
+    func delete(page: ArtistPage) async throws
 }
 
 final class FirebaseArtistPagesService: ArtistPagesServicing {
@@ -69,6 +71,19 @@ final class FirebaseArtistPagesService: ArtistPagesServicing {
         let documentID = artistPageDocumentID(brand: page.brand, artistName: page.artistName)
         try await firestore.collection(collectionName).document(documentID).setData(payload, merge: true)
         try await syncMirroredNicmaSocialLinksIfNeeded(page)
+    }
+
+    func renameAndSave(previousPage: ArtistPage, updatedPage: ArtistPage) async throws {
+        try await save(page: updatedPage)
+        let previousDocumentID = previousPage.slug
+        let updatedDocumentID = artistPageDocumentID(brand: updatedPage.brand, artistName: updatedPage.artistName)
+        if !previousPage.isPlaceholder, previousDocumentID != updatedDocumentID {
+            try await firestore.collection(collectionName).document(previousDocumentID).delete()
+        }
+    }
+
+    func delete(page: ArtistPage) async throws {
+        try await firestore.collection(collectionName).document(page.slug).delete()
     }
 
     private func syncMirroredNicmaSocialLinksIfNeeded(_ page: ArtistPage) async throws {
@@ -227,6 +242,16 @@ final class UITestArtistPagesService: ArtistPagesServicing {
         notifyObservers()
     }
 
+    func renameAndSave(previousPage: ArtistPage, updatedPage: ArtistPage) async throws {
+        pages.removeAll { $0.slug == previousPage.slug && $0.brand == previousPage.brand }
+        try await save(page: updatedPage)
+    }
+
+    func delete(page: ArtistPage) async throws {
+        pages.removeAll { $0.slug == page.slug && $0.brand == page.brand }
+        notifyObservers()
+    }
+
     private func notifyObservers() {
         for observer in observers.values {
             observer(.success(pages))
@@ -274,6 +299,14 @@ final class ArtistPagesStore: ObservableObject {
 
     func save(_ page: ArtistPage) async throws {
         try await service.save(page: page)
+    }
+
+    func renameAndSave(previousPage: ArtistPage, updatedPage: ArtistPage) async throws {
+        try await service.renameAndSave(previousPage: previousPage, updatedPage: updatedPage)
+    }
+
+    func delete(_ page: ArtistPage) async throws {
+        try await service.delete(page: page)
     }
 
     private func startObserving() {

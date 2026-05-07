@@ -9,9 +9,10 @@ import SwiftUI
 import UIKit
 
 let zweizweiCanonicalArtists = [
-    "Janno",
-    "Mave",
+    "JANNO",
+    "MAVE040",
     "Tangajoe007",
+    "DANGU61",
     "Yang D. Nash",
     "ThaDude"
 ]
@@ -24,20 +25,35 @@ func musicArtistKey(_ artist: String) -> String {
         .joined()
 }
 
+private func canonicalZweizweiArtistName(_ artist: String) -> String {
+    let key = musicArtistKey(artist)
+    switch key {
+    case "janno":
+        return "JANNO"
+    case "mave", "mave040":
+        return "MAVE040"
+    case "tangajoe", "tangajoe007":
+        return "Tangajoe007"
+    default:
+        return artist.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
 func mergeZweizweiArtists(_ liveArtists: [String]) -> [String] {
     var merged: [String: String] = [:]
     var order: [String] = []
 
     for artist in zweizweiCanonicalArtists {
-        let key = musicArtistKey(artist)
+        let canonical = canonicalZweizweiArtistName(artist)
+        let key = musicArtistKey(canonical)
         if merged[key] == nil {
             order.append(key)
         }
-        merged[key] = artist
+        merged[key] = canonical
     }
 
     for artist in liveArtists {
-        let trimmed = artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = canonicalZweizweiArtistName(artist)
         guard !trimmed.isEmpty else { continue }
         let key = musicArtistKey(trimmed)
         if merged[key] == nil {
@@ -397,14 +413,23 @@ struct MusicInstagramDestination: Identifiable {
 }
 
 let artistInstagramDestinations: [String: MusicInstagramDestination] = [
-    musicArtistKey("Yang D. Nash"): MusicInstagramDestination(
-        id: "artist_yang_d_nash",
-        title: "Yang D. Nash",
-        handle: "@y.d.nash",
-        urlString: "https://www.instagram.com/y.d.nash/",
+    musicArtistKey("JANNO"): MusicInstagramDestination(
+        id: "artist_janno",
+        title: "JANNO",
+        handle: "@janno_official_",
+        urlString: "https://www.instagram.com/janno_official_/",
         helper: "Artist aktuell ausgewaehlt",
-        spotifyURLString: "https://open.spotify.com/artist/63Sh0kQAWW3ZWn2aKDksbo",
-        artistPageName: "Yang D. Nash"
+        spotifyURLString: "https://open.spotify.com/artist/7hpiHzP9aLLb5liDLxtwhM",
+        artistPageName: "JANNO"
+    ),
+    musicArtistKey("MAVE040"): MusicInstagramDestination(
+        id: "artist_mave",
+        title: "MAVE040",
+        handle: "@mave040_official",
+        urlString: "https://www.instagram.com/mave040_official/",
+        helper: "Artist aktuell ausgewaehlt",
+        spotifyURLString: "https://open.spotify.com/artist/0GXymtRaIk2ngbXSkcHtsp",
+        artistPageName: "MAVE040"
     ),
     musicArtistKey("Tangajoe007"): MusicInstagramDestination(
         id: "artist_tangajoe007",
@@ -415,23 +440,23 @@ let artistInstagramDestinations: [String: MusicInstagramDestination] = [
         spotifyURLString: "https://open.spotify.com/artist/0OA5dgpVdwzI8K82m8FPxN",
         artistPageName: "Tangajoe007"
     ),
-    musicArtistKey("Janno"): MusicInstagramDestination(
-        id: "artist_janno",
-        title: "Janno",
-        handle: "@janno_official_",
-        urlString: "https://www.instagram.com/janno_official_/",
+    musicArtistKey("DANGU61"): MusicInstagramDestination(
+        id: "artist_dangu61",
+        title: "DANGU61",
+        handle: "@dangusechseins",
+        urlString: "https://www.instagram.com/dangusechseins/",
         helper: "Artist aktuell ausgewaehlt",
-        spotifyURLString: "https://open.spotify.com/artist/7hpiHzP9aLLb5liDLxtwhM",
-        artistPageName: "Janno"
+        spotifyURLString: "https://open.spotify.com/artist/08rIanUNO6en6coKEafyPO?si=iDnJKScMQYGZEB_ZHArkNQ",
+        artistPageName: "DANGU61"
     ),
-    musicArtistKey("Mave"): MusicInstagramDestination(
-        id: "artist_mave",
-        title: "Mave",
-        handle: "@mave040_official",
-        urlString: "https://www.instagram.com/mave040_official/",
+    musicArtistKey("Yang D. Nash"): MusicInstagramDestination(
+        id: "artist_yang_d_nash",
+        title: "Yang D. Nash",
+        handle: "@y.d.nash",
+        urlString: "https://www.instagram.com/y.d.nash/",
         helper: "Artist aktuell ausgewaehlt",
-        spotifyURLString: "https://open.spotify.com/artist/0GXymtRaIk2ngbXSkcHtsp",
-        artistPageName: "Mave"
+        spotifyURLString: "https://open.spotify.com/artist/63Sh0kQAWW3ZWn2aKDksbo",
+        artistPageName: "Yang D. Nash"
     ),
     musicArtistKey("ThaDude"): MusicInstagramDestination(
         id: "artist_thadude",

@@ -226,6 +226,10 @@ final class FirebaseAuthService: AuthServicing {
             canModerateProfiles: false
         )
 
+        let changeRequest = result.user.createProfileChangeRequest()
+        changeRequest.displayName = normalizedUsername
+        try await changeRequest.commitChanges()
+
         var payload = newUser.firestorePayload
         payload.merge(consentPayload(from: registrationConsent), uniquingKeysWith: { _, new in new })
         try await firestore.collection("users").document(result.user.uid).setData(payload)

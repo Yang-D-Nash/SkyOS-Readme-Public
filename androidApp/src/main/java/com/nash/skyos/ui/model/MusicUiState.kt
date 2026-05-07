@@ -19,7 +19,7 @@ data class MusicInstagramDestination(
 )
 
 data class MusicUiState(
-    val selectedArtist: String = "Janno",
+    val selectedArtist: String = "JANNO",
     val availableArtists: List<String> = defaultZweizweiMusicArtists,
     val tracks: List<Track> = emptyList(),
     val isSpotifyConnected: Boolean = false,
@@ -58,15 +58,20 @@ private val artistSocialProfiles = mapOf(
         handle = "@y.d.nash",
         instagramUrl = "https://www.instagram.com/y.d.nash/",
     ),
-    musicArtistKey("Janno") to ArtistSocialProfile(
-        artist = "Janno",
+    musicArtistKey("JANNO") to ArtistSocialProfile(
+        artist = "JANNO",
         handle = "@janno_official_",
         instagramUrl = "https://www.instagram.com/janno_official_/",
     ),
-    musicArtistKey("Mave") to ArtistSocialProfile(
-        artist = "Mave",
+    musicArtistKey("MAVE040") to ArtistSocialProfile(
+        artist = "MAVE040",
         handle = "@mave040_official",
         instagramUrl = "https://www.instagram.com/mave040_official/",
+    ),
+    musicArtistKey("DANGU61") to ArtistSocialProfile(
+        artist = "DANGU61",
+        handle = "@dangusechseins",
+        instagramUrl = "https://www.instagram.com/dangusechseins/",
     ),
     musicArtistKey("Tangajoe007") to ArtistSocialProfile(
         artist = "Tangajoe007",

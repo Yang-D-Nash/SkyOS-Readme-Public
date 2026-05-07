@@ -75,15 +75,26 @@ class AndroidAuthRepository(
     override suspend fun register(input: RegistrationInput): Result<User> {
         return runCatching {
             ensureRegistrationsOpen()
+            val normalizedEmail = input.email.trim().lowercase()
+            val normalizedUsername = sanitizedUsername(
+                username = input.username,
+                authUserDisplayName = null,
+                fallbackEmail = normalizedEmail,
+            )
             val authResult = auth.createUserWithEmailAndPassword(input.email, input.password).await()
             val firebaseUser = authResult.user ?: error(AppTextResolver.string(R.string.auth_error_user_not_created))
-            val registeredEmail = firebaseUser.email?.takeIf { it.isNotBlank() }?.lowercase() ?: input.email.trim().lowercase()
+            firebaseUser.updateProfile(
+                userProfileChangeRequest {
+                    displayName = normalizedUsername
+                },
+            ).await()
+            val registeredEmail = firebaseUser.email?.takeIf { it.isNotBlank() }?.lowercase() ?: normalizedEmail
             val resolvedRole = UserRole.User
             val quotaPlan = UserQuotaPlan.defaultPlanFor(resolvedRole)
             val user = User(
                 id = firebaseUser.uid,
                 email = registeredEmail,
-                username = input.username,
+                username = normalizedUsername,
                 whatsApp = input.whatsApp.ifBlank { null },
                 profileTagline = null,
                 profileBio = null,
@@ -555,9 +566,20 @@ private fun resolvedUsername(
     authUser: FirebaseUser,
     preferredUsername: String?,
 ): String {
-    val fallbackEmail = authUser.email.orEmpty()
-    val candidate = preferredUsername?.trim()?.takeIf { it.isNotEmpty() }
-        ?: authUser.displayName?.takeIf { it.isNotBlank() }
+    return sanitizedUsername(
+        username = preferredUsername,
+        authUserDisplayName = authUser.displayName,
+        fallbackEmail = authUser.email.orEmpty(),
+    )
+}
+
+private fun sanitizedUsername(
+    username: String?,
+    authUserDisplayName: String?,
+    fallbackEmail: String,
+): String {
+    val candidate = username?.trim()?.takeIf { it.isNotEmpty() }
+        ?: authUserDisplayName?.trim()?.takeIf { it.isNotEmpty() }
         ?: fallbackEmail.substringBefore("@").ifBlank { "SkyOS User" }
     return candidate.trim().take(32).trim().ifBlank { "SkyOS User" }
 }

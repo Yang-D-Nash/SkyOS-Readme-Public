@@ -18,6 +18,7 @@ struct ArtistPageView: View {
     let onNicmaProfileChange: ((String) -> Void)?
 
     @State private var isEditing = false
+    @State private var artistNameDraft = ""
     @State private var taglineDraft = ""
     @State private var bioDraft = ""
     @State private var profileImageURLDraft = ""
@@ -108,11 +109,16 @@ struct ArtistPageView: View {
 
     private var displayPage: ArtistPage {
         guard isEditing else { return page }
-        let stableId = artistPageDocumentID(brand: page.brand, artistName: routeArtistName)
+        let normalizedArtistName: String = {
+            let candidate = artistNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            if candidate.isEmpty { return routeArtistName }
+            return String(candidate.prefix(64))
+        }()
+        let stableId = artistPageDocumentID(brand: page.brand, artistName: normalizedArtistName)
         return ArtistPage(
             id: stableId,
             brand: page.brand,
-            artistName: routeArtistName,
+            artistName: normalizedArtistName,
             tagline: taglineDraft.trimmedNilIfEmpty,
             bio: bioDraft.trimmedNilIfEmpty,
             profileImageURL: profileImageURLDraft.trimmedNilIfEmpty,
@@ -1282,6 +1288,18 @@ struct ArtistPageView: View {
                 colorScheme: colorScheme
             )
 
+            if brand == .zweizwei {
+                ArtistPageInputField(
+                    title: "Artist-Name (22)",
+                    text: $artistNameDraft,
+                    placeholder: "z. B. JANNO",
+                    colorScheme: colorScheme
+                )
+                Text("Aendert Anzeigenamen und Artist-Page-Adresse.")
+                    .font(.caption)
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+            }
+
             ArtistPageMultilineInput(
                 title: "Bio",
                 text: $bioDraft,
@@ -1467,6 +1485,7 @@ struct ArtistPageView: View {
     }
 
     private func syncDrafts() {
+        artistNameDraft = page.artistName
         taglineDraft = page.tagline ?? ""
         bioDraft = page.bio ?? ""
         profileImageURLDraft = page.profileImageURL ?? ""
@@ -1486,11 +1505,16 @@ struct ArtistPageView: View {
         defer { isSaving = false }
 
         do {
-            let documentId = artistPageDocumentID(brand: page.brand, artistName: routeArtistName)
+            let normalizedArtistName: String = {
+                let candidate = artistNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                if candidate.isEmpty { return routeArtistName }
+                return String(candidate.prefix(64)).trimmingCharacters(in: .whitespacesAndNewlines)
+            }()
+            let documentId = artistPageDocumentID(brand: page.brand, artistName: normalizedArtistName)
             let updatedPage = ArtistPage(
                 id: documentId,
                 brand: page.brand,
-                artistName: routeArtistName,
+                artistName: normalizedArtistName,
                 tagline: taglineDraft.trimmedNilIfEmpty,
                 bio: bioDraft.trimmedNilIfEmpty,
                 profileImageURL: profileImageURLDraft.trimmedNilIfEmpty,
@@ -1506,7 +1530,13 @@ struct ArtistPageView: View {
                 isPlaceholder: false
             )
 
-            try await store.save(updatedPage)
+            let didRenameArtist = page.artistName.trimmingCharacters(in: .whitespacesAndNewlines)
+                != updatedPage.artistName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if didRenameArtist {
+                try await store.renameAndSave(previousPage: page, updatedPage: updatedPage)
+            } else {
+                try await store.save(updatedPage)
+            }
 
             let savedAssetURLs = Set([
                 updatedPage.profileImageURL,
@@ -1534,7 +1564,18 @@ struct ArtistPageView: View {
             editingBaseHeroImageURL = updatedPage.heroImageURL ?? ""
             editingBaseHeroVideoURL = updatedPage.heroVideoURL ?? ""
             isEditing = false
-            showToast("Artist-Seite gespeichert.", style: .success)
+            if didRenameArtist {
+                showToast("Artist umbenannt: \(updatedPage.artistName)", style: .success)
+            } else {
+                showToast("Artist-Seite gespeichert.", style: .success)
+            }
+            if didRenameArtist {
+                if let onBack {
+                    onBack()
+                } else {
+                    dismiss()
+                }
+            }
         } catch {
             showToast(error.localizedDescription, style: .error)
         }

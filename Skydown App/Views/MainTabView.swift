@@ -743,7 +743,7 @@ private struct ZweizweiTabView: View {
     @State private var destination: ZweizweiDestination = .hub
     @State private var catalogInitialArtist: String?
     @State private var catalogAutoPresentArtistPage = false
-    @State private var highlightedSocialArtist = "Janno"
+    @State private var highlightedSocialArtist = "JANNO"
     let artistPageRequest: String?
     let onConsumeArtistPageRequest: () -> Void
     let onOpenCart: () -> Void
@@ -785,7 +785,7 @@ private struct ZweizweiTabView: View {
                                     marks: [.zweizwei],
                                     edgeToEdge: true,
                                     onSurfaceTap: {
-                                        catalogInitialArtist = "Janno"
+                                        catalogInitialArtist = "JANNO"
                                         catalogAutoPresentArtistPage = false
                                         withAnimation(
                 SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
@@ -800,7 +800,7 @@ private struct ZweizweiTabView: View {
                                             colorScheme: colorScheme,
                                             tint: AppColors.spotify(for: colorScheme),
                                             onTap: {
-                                                catalogInitialArtist = "Janno"
+                                                catalogInitialArtist = "JANNO"
                                                 catalogAutoPresentArtistPage = false
                                                 withAnimation(
                 SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
@@ -849,7 +849,7 @@ private struct ZweizweiTabView: View {
                                         accent: AppColors.spotify(for: colorScheme),
                                         accessibilityID: "music.hub.open_catalog"
                                     ) {
-                                        catalogInitialArtist = "Janno"
+                                        catalogInitialArtist = "JANNO"
                                         catalogAutoPresentArtistPage = false
                                         withAnimation(
                 SkydownMotion.preferredScreenTransition(accessibilityReduceMotion: accessibilityReduceMotion)
@@ -877,7 +877,10 @@ private struct ZweizweiTabView: View {
                                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                                         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingDense) {
                                             ForEach(musicHubSocialDestinations, id: \.id) { destination in
-                                                compactMusicHubSocialLink(destination: destination)
+                                                compactMusicHubSocialLink(
+                                                    destination: destination,
+                                                    secondaryAction: .instagram
+                                                )
                                             }
                                         }
                                     }
@@ -1058,8 +1061,10 @@ private struct ZweizweiTabView: View {
             return AppColors.accent(for: colorScheme)
         case "yangdnash":
             return AppColors.accentHighlight(for: colorScheme)
-        case "mave":
+        case "mave040":
             return AppColors.accentHighlight(for: colorScheme)
+        case "dangu61":
+            return AppColors.accentMystic(for: colorScheme)
         case "thadude":
             return AppColors.accent(for: colorScheme)
         default:
@@ -1170,7 +1175,15 @@ private struct ZweizweiTabView: View {
         .skydownTactileAction()
     }
 
-    private func compactMusicHubSocialLink(destination: MusicInstagramDestination) -> some View {
+    private enum MusicHubSecondaryArtistAction {
+        case instagram
+        case spotify
+    }
+
+    private func compactMusicHubSocialLink(
+        destination: MusicInstagramDestination,
+        secondaryAction: MusicHubSecondaryArtistAction
+    ) -> some View {
         let accent = musicHubSocialAccent(for: destination)
         let isActive = destination.title == highlightedSocialArtist
         return HStack(alignment: .center, spacing: SkydownLayout.stackSpacingPill) {
@@ -1207,13 +1220,20 @@ private struct ZweizweiTabView: View {
                 }
 
                 compactMusicHubArtistAction(
-                    title: "Spotify",
-                    systemImage: "music.note",
-                    tint: AppColors.spotify(for: colorScheme),
-                    accessibilityID: "music.hub.spotify.\(destination.id)",
-                    isEnabled: destination.spotifyURL != nil
+                    title: secondaryAction == .instagram ? "Insta" : "Spotify",
+                    systemImage: secondaryAction == .instagram ? "arrow.up.right" : "music.note",
+                    tint: secondaryAction == .instagram ? accent : AppColors.spotify(for: colorScheme),
+                    accessibilityID: secondaryAction == .instagram
+                        ? "music.hub.instagram.\(destination.id)"
+                        : "music.hub.spotify.\(destination.id)",
+                    isEnabled: secondaryAction == .instagram || destination.spotifyURL != nil
                 ) {
-                    openMusicHubSpotify(for: destination)
+                    if secondaryAction == .instagram, let url = URL(string: destination.urlString) {
+                        highlightedSocialArtist = destination.title
+                        openURL(url)
+                    } else {
+                        openMusicHubSpotify(for: destination)
+                    }
                 }
             }
         }

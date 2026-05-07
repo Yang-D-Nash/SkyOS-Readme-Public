@@ -1387,7 +1387,22 @@ struct SettingsView: View {
     }
 
     private var managedShowcasePages: [ArtistPage] {
-        let existingPages = artistPagesStore.pages(for: .zweizwei) + artistPagesStore.pages(for: .nicma)
+        let existingZweizweiPages = artistPagesStore.pages(for: .zweizwei)
+        var zweizweiBySlug: [String: ArtistPage] = [:]
+        for page in existingZweizweiPages {
+            zweizweiBySlug[page.slug] = page
+        }
+        for artistName in zweizweiCanonicalArtists {
+            let draft = artistPagesStore.page(for: .zweizwei, artistName: artistName)
+            zweizweiBySlug[draft.slug] = zweizweiBySlug[draft.slug] ?? draft
+        }
+        let orderedZweizwei = mergeZweizweiArtists(
+            Array(Set(existingZweizweiPages.map(\.artistName) + zweizweiCanonicalArtists))
+        ).compactMap { artistName in
+            zweizweiBySlug[artistPageDocumentID(brand: .zweizwei, artistName: artistName)]
+        }
+
+        let existingPages = orderedZweizwei + artistPagesStore.pages(for: .nicma)
         let requiredNicmaPages = ["NICMA MUSIC", "NICMA STUDIO"].map { name in
             artistPagesStore.page(for: .nicma, artistName: name)
         }
@@ -1396,9 +1411,20 @@ struct SettingsView: View {
             pagesBySlug[page.slug] = page
         }
 
+        let zweizweiOrder = mergeZweizweiArtists(
+            Array(Set(orderedZweizwei.map(\.artistName) + zweizweiCanonicalArtists))
+        )
+        let zweizweiOrderIndex = Dictionary(uniqueKeysWithValues: zweizweiOrder.enumerated().map { ($1, $0) })
         return pagesBySlug.values.sorted { lhs, rhs in
             if lhs.brand != rhs.brand {
                 return lhs.brand.displayTitle < rhs.brand.displayTitle
+            }
+            if lhs.brand == .zweizwei {
+                let lhsIndex = zweizweiOrderIndex[lhs.artistName] ?? Int.max
+                let rhsIndex = zweizweiOrderIndex[rhs.artistName] ?? Int.max
+                if lhsIndex != rhsIndex {
+                    return lhsIndex < rhsIndex
+                }
             }
             return lhs.artistName.localizedCaseInsensitiveCompare(rhs.artistName) == .orderedAscending
         }
@@ -1857,13 +1883,20 @@ struct SettingsView: View {
                     }
 
                     VStack(spacing: SkydownLayout.stackSpacingCompact) {
+                        SettingsArtistPageCreateCard(colorScheme: effectiveColorScheme) { newPage in
+                            createArtistPage(newPage)
+                        }
+
                         ForEach(managedShowcasePages) { page in
                             SettingsArtistPageCard(
                                 page: page,
                                 users: adminUserManagementStore.users.filter { !$0.isPlatformOwner },
-                                colorScheme: effectiveColorScheme
+                                colorScheme: effectiveColorScheme,
+                                canDelete: page.brand == .zweizwei
                             ) { updatedPage in
-                                saveArtistPage(updatedPage)
+                                saveArtistPage(previousPage: page, updatedPage: updatedPage)
+                            } onDelete: {
+                                deleteArtistPage(page)
                             }
                             .id(page.slug + "-" + page.editorUids.joined(separator: ","))
                         }
@@ -4705,13 +4738,41 @@ struct SettingsView: View {
         }
     }
 
-    private func saveArtistPage(_ page: ArtistPage) {
+    private func saveArtistPage(previousPage: ArtistPage, updatedPage: ArtistPage) {
+        Task {
+            do {
+                try await artistPagesStore.renameAndSave(previousPage: previousPage, updatedPage: updatedPage)
+                let previousName = previousPage.artistName.trimmingCharacters(in: .whitespacesAndNewlines)
+                let updatedName = updatedPage.artistName.trimmingCharacters(in: .whitespacesAndNewlines)
+                if previousName.caseInsensitiveCompare(updatedName) != .orderedSame {
+                    showToastMessage("Artist umbenannt: \(updatedPage.artistName)", style: .success)
+                } else {
+                    showToastMessage("Artist gespeichert: \(updatedPage.artistName)", style: .success)
+                }
+            } catch {
+                showToastMessage("Artist-Seite konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func createArtistPage(_ page: ArtistPage) {
         Task {
             do {
                 try await artistPagesStore.save(page)
-                showToastMessage("\(page.artistName) gespeichert.", style: .success)
+                showToastMessage("Artist hinzugefuegt: \(page.artistName)", style: .success)
             } catch {
-                showToastMessage("Artist-Seite konnte nicht gespeichert werden: \(error.localizedDescription)", style: .error)
+                showToastMessage("Artist-Seite konnte nicht erstellt werden: \(error.localizedDescription)", style: .error)
+            }
+        }
+    }
+
+    private func deleteArtistPage(_ page: ArtistPage) {
+        Task {
+            do {
+                try await artistPagesStore.delete(page)
+                showToastMessage("Artist geloescht: \(page.artistName)", style: .success)
+            } catch {
+                showToastMessage("Artist-Seite konnte nicht geloescht werden: \(error.localizedDescription)", style: .error)
             }
         }
     }
@@ -7270,20 +7331,28 @@ private struct SettingsArtistPageCard: View {
     let page: ArtistPage
     let users: [User]
     let colorScheme: ColorScheme
+    let canDelete: Bool
     let onSave: (ArtistPage) -> Void
+    let onDelete: () -> Void
 
+    @State private var artistNameDraft: String
     @State private var selectedEditorUids: Set<String>
 
     init(
         page: ArtistPage,
         users: [User],
         colorScheme: ColorScheme,
-        onSave: @escaping (ArtistPage) -> Void
+        canDelete: Bool = false,
+        onSave: @escaping (ArtistPage) -> Void,
+        onDelete: @escaping () -> Void = {}
     ) {
         self.page = page
         self.users = users
         self.colorScheme = colorScheme
+        self.canDelete = canDelete
         self.onSave = onSave
+        self.onDelete = onDelete
+        _artistNameDraft = State(initialValue: page.artistName)
         let initialEditors = page.brand == .nicma ? Array(page.editorUids.prefix(1)) : page.editorUids
         _selectedEditorUids = State(initialValue: Set(initialEditors))
     }
@@ -7313,6 +7382,20 @@ private struct SettingsArtistPageCard: View {
                     )
                 }
             }
+
+            TextField("Artist-Name", text: $artistNameDraft)
+                .textInputAutocapitalization(.words)
+                .disableAutocorrection(true)
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(AppColors.cardBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
+                .onChange(of: artistNameDraft) { _, newValue in
+                    if newValue.count > 64 {
+                        artistNameDraft = String(newValue.prefix(64)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                }
 
             if users.isEmpty {
                 Text(AppLocalized.text("settings.roles.more_accounts_more_editors", fallback: "More accounts means more editors here."))
@@ -7370,7 +7453,7 @@ private struct SettingsArtistPageCard: View {
             }
 
             SkydownBrandActionButton(
-                title: AppLocalized.text("settings.roles.save_editors", fallback: "Save editors"),
+                title: AppLocalized.text("settings.roles.save_artist", fallback: "Save artist"),
                 systemImage: "person.crop.circle.badge.checkmark",
                 accent: AppColors.accent(for: colorScheme),
                 colorScheme: colorScheme,
@@ -7378,11 +7461,18 @@ private struct SettingsArtistPageCard: View {
                 cornerRadius: SkydownLayout.denseRadius,
                 verticalPadding: 11,
                 action: {
+                    let normalizedArtistName = String(
+                        artistNameDraft
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                            .prefix(64)
+                    )
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !normalizedArtistName.isEmpty else { return }
                     onSave(
                         ArtistPage(
-                            id: page.slug,
+                            id: artistPageDocumentID(brand: page.brand, artistName: String(normalizedArtistName)),
                             brand: page.brand,
-                            artistName: page.artistName,
+                            artistName: String(normalizedArtistName),
                             tagline: page.tagline,
                             bio: page.bio,
                             profileImageURL: page.profileImageURL,
@@ -7400,6 +7490,69 @@ private struct SettingsArtistPageCard: View {
                             isPlaceholder: false
                         )
                     )
+                }
+            )
+            .skydownInteractiveFeedback()
+
+            if canDelete {
+                SkydownBrandActionButton(
+                    title: "Artist loeschen",
+                    systemImage: "trash",
+                    accent: AppColors.error(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    font: .subheadline.weight(.semibold),
+                    cornerRadius: SkydownLayout.denseRadius,
+                    verticalPadding: 11,
+                    action: onDelete
+                )
+                .skydownInteractiveFeedback()
+            }
+        }
+        .padding(SkydownLayout.cardPadding)
+        .background(AppColors.secondaryBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
+    }
+}
+
+private struct SettingsArtistPageCreateCard: View {
+    let colorScheme: ColorScheme
+    let onCreate: (ArtistPage) -> Void
+
+    @State private var artistNameDraft = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+            Text("Neue Artist-Seite")
+                .font(.headline)
+                .foregroundColor(AppColors.text(for: colorScheme))
+
+            TextField("Artist-Name (22)", text: $artistNameDraft)
+                .textInputAutocapitalization(.words)
+                .disableAutocorrection(true)
+                .foregroundColor(AppColors.text(for: colorScheme))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(AppColors.cardBackground(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
+
+            Text("Wird direkt im Music Hub sichtbar.")
+                .font(.caption)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            SkydownBrandActionButton(
+                title: "Artist hinzufuegen",
+                systemImage: "plus",
+                accent: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                font: .subheadline.weight(.semibold),
+                cornerRadius: SkydownLayout.denseRadius,
+                verticalPadding: 11,
+                action: {
+                    let normalized = String(artistNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).prefix(64))
+                    guard !normalized.isEmpty else { return }
+                    onCreate(.draft(brand: .zweizwei, artistName: normalized))
+                    artistNameDraft = ""
                 }
             )
             .skydownInteractiveFeedback()

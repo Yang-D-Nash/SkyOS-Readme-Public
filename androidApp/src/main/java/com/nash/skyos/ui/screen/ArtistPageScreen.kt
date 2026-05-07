@@ -158,6 +158,7 @@ fun ArtistPageScreen(
     val postHeroScrollItemIndex = if (showNicmaProfileSwitch) 2 else 1
 
     var isEditing by rememberSaveable(page.slug) { mutableStateOf(false) }
+    var artistNameDraft by rememberSaveable(page.slug) { mutableStateOf(routeArtistName) }
     var taglineDraft by rememberSaveable(page.slug) { mutableStateOf(page.tagline.orEmpty()) }
     var bioDraft by rememberSaveable(page.slug) { mutableStateOf(page.bio.orEmpty()) }
     var profileImageDraft by rememberSaveable(page.slug) { mutableStateOf(page.profileImageURL.orEmpty()) }
@@ -193,9 +194,10 @@ fun ArtistPageScreen(
     val displayPage: ArtistPageUi = if (!isEditing) {
         page
     } else {
+        val normalizedArtistName = artistNameDraft.trim().take(64).trim().ifBlank { routeArtistName }
         page.copy(
-            slug = ArtistPagesStore.documentIdFor(brand, routeArtistName),
-            artistName = routeArtistName,
+            slug = ArtistPagesStore.documentIdFor(brand, normalizedArtistName),
+            artistName = normalizedArtistName,
             tagline = taglineDraft.trimmedOrNull(),
             bio = bioDraft.trimmedOrNull(),
             profileImageURL = profileImageDraft.trimmedOrNull(),
@@ -261,6 +263,7 @@ fun ArtistPageScreen(
     }
 
     fun resetDraftsFromPage() {
+        artistNameDraft = routeArtistName
         taglineDraft = page.tagline.orEmpty()
         bioDraft = page.bio.orEmpty()
         profileImageDraft = page.profileImageURL.orEmpty()
@@ -548,7 +551,12 @@ fun ArtistPageScreen(
                                                 .filter { it !in savedAssetUrls }
                                                 .forEach(::add)
                                         }
-                                        val result = ArtistPagesStore.save(updatedPage)
+                                        val didRenameArtist = page.artistName.trim() != updatedPage.artistName.trim()
+                                        val result = if (didRenameArtist) {
+                                            ArtistPagesStore.renameAndSave(page, updatedPage)
+                                        } else {
+                                            ArtistPagesStore.save(updatedPage)
+                                        }
                                         isSaving = false
                                         if (result.isSuccess) {
                                             cleanupUrls.forEach { assetUrl ->
@@ -562,8 +570,15 @@ fun ArtistPageScreen(
                                             activeImageUploadTarget = null
                                             isUploadingHeroVideo = false
                                             isEditing = false
-                                            feedbackMessage = resources.getString(R.string.artist_feedback_page_saved)
+                                            feedbackMessage = if (didRenameArtist) {
+                                                "Artist umbenannt: ${updatedPage.artistName}"
+                                            } else {
+                                                resources.getString(R.string.artist_feedback_page_saved)
+                                            }
                                             feedbackType = ToastType.Success
+                                            if (didRenameArtist) {
+                                                onBack()
+                                            }
                                         } else {
                                             feedbackMessage = result.exceptionOrNull()?.message
                                                 ?: resources.getString(R.string.artist_feedback_page_save_failed)
@@ -831,6 +846,14 @@ fun ArtistPageScreen(
                                         tag = stringResource(R.string.artist_admin_tag),
                                     )
                                     ArtistPageInput(title = stringResource(R.string.artist_field_tagline), value = taglineDraft, onValueChange = { taglineDraft = it })
+                                    if (brand == ArtistPageBrand.Zweizwei) {
+                                        ArtistPageInput(
+                                            title = "Artist-Name (22)",
+                                            value = artistNameDraft,
+                                            onValueChange = { artistNameDraft = it.take(64) },
+                                            supportingText = "Aendert Anzeigenamen und Artist-Page-Adresse.",
+                                        )
+                                    }
                                     ArtistPageInput(title = stringResource(R.string.artist_field_bio), value = bioDraft, onValueChange = { bioDraft = it }, singleLine = false)
                                     EditableImageFieldCard(
                                         title = stringResource(R.string.artist_field_profile_image),
@@ -1740,6 +1763,7 @@ private fun ArtistPageInput(
     value: String,
     onValueChange: (String) -> Unit,
     singleLine: Boolean = true,
+    supportingText: String? = null,
 ) {
     SkydownPremiumTextField(
         value = value,
@@ -1748,6 +1772,7 @@ private fun ArtistPageInput(
         label = title,
         singleLine = singleLine,
         minLines = if (singleLine) 1 else 4,
+        supportingText = supportingText,
     )
 }
 

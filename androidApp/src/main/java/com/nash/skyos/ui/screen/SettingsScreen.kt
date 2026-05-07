@@ -454,7 +454,15 @@ fun SettingsScreen(
     var legalSymbolicLeetCodeDraft by rememberSaveable { mutableStateOf("") }
     var legalSymbolicCodeExplanationDraft by rememberSaveable { mutableStateOf("") }
     val managedShowcasePages = remember(artistPages) {
-        val existingPages = ArtistPagesStore.pagesForBrand(com.nash.skyos.data.ArtistPageBrand.Zweizwei) +
+        val zweizweiPages = ArtistPagesStore.pagesForBrand(com.nash.skyos.data.ArtistPageBrand.Zweizwei)
+        val canonicalZweizweiPages = com.nash.skyos.ui.model.defaultZweizweiMusicArtists
+            .map { artistName ->
+                ArtistPagesStore.pageFor(
+                    brand = com.nash.skyos.data.ArtistPageBrand.Zweizwei,
+                    artistName = artistName,
+                )
+            }
+        val existingPages = (zweizweiPages + canonicalZweizweiPages) +
             ArtistPagesStore.pagesForBrand(com.nash.skyos.data.ArtistPageBrand.Nicma)
         val requiredNicmaPages = listOf("NICMA MUSIC", "NICMA STUDIO")
             .map { profileName ->
@@ -465,7 +473,20 @@ fun SettingsScreen(
             }
         (existingPages + requiredNicmaPages)
             .distinctBy { it.slug }
-            .sortedWith(compareBy<ArtistPageUi>({ it.brand.displayTitle }, { it.artistName.lowercase() }))
+            .sortedWith { lhs, rhs ->
+                if (lhs.brand != rhs.brand) {
+                    lhs.brand.displayTitle.compareTo(rhs.brand.displayTitle)
+                } else if (lhs.brand == ArtistPageBrand.Zweizwei) {
+                    val canonical = com.nash.skyos.ui.model.mergeZweizweiMusicArtists(
+                        existingPages.filter { it.brand == ArtistPageBrand.Zweizwei }.map { it.artistName },
+                    )
+                    val lhsIndex = canonical.indexOf(lhs.artistName).let { if (it < 0) Int.MAX_VALUE else it }
+                    val rhsIndex = canonical.indexOf(rhs.artistName).let { if (it < 0) Int.MAX_VALUE else it }
+                    if (lhsIndex != rhsIndex) lhsIndex - rhsIndex else lhs.artistName.lowercase().compareTo(rhs.artistName.lowercase())
+                } else {
+                    lhs.artistName.lowercase().compareTo(rhs.artistName.lowercase())
+                }
+            }
     }
     val assignedArtistPageCount = managedShowcasePages.count { it.editorUids.isNotEmpty() }
     val publishedArtistPageCount = managedShowcasePages.count { it.hasCustomPresentation }
@@ -1016,18 +1037,48 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
                 ) {
+                    ArtistPageCreateCard(
+                        onCreate = { newPage ->
+                            coroutineScope.launch {
+                                val result = ArtistPagesStore.save(newPage)
+                                feedbackMessage = if (result.isSuccess) {
+                                    "Artist hinzugefuegt: ${newPage.artistName}"
+                                } else {
+                                    result.exceptionOrNull()?.message
+                                        ?: resources.getString(R.string.settings_admin_artist_page_save_failed)
+                                }
+                                feedbackType = if (result.isSuccess) ToastType.Success else ToastType.Error
+                            }
+                        },
+                    )
+
                     for (page in managedShowcasePages) {
                         ArtistPageAdminCard(
                             page = page,
                             users = uiState.managedUsers.filterNot { it.isPlatformOwner },
+                            canDelete = page.brand == ArtistPageBrand.Zweizwei,
                             onSave = { updatedPage ->
                                 coroutineScope.launch {
-                                    val result = ArtistPagesStore.save(updatedPage)
+                                    val result = ArtistPagesStore.renameAndSave(page, updatedPage)
+                                    val didRenameArtist = page.artistName.trim().lowercase() != updatedPage.artistName.trim().lowercase()
                                     feedbackMessage = if (result.isSuccess) {
-                                        resources.getString(
-                                            R.string.settings_admin_artist_page_saved,
-                                            updatedPage.artistName,
-                                        )
+                                        if (didRenameArtist) {
+                                            "Artist umbenannt: ${updatedPage.artistName}"
+                                        } else {
+                                            "Artist gespeichert: ${updatedPage.artistName}"
+                                        }
+                                    } else {
+                                        result.exceptionOrNull()?.message
+                                            ?: resources.getString(R.string.settings_admin_artist_page_save_failed)
+                                    }
+                                    feedbackType = if (result.isSuccess) ToastType.Success else ToastType.Error
+                                }
+                            },
+                            onDelete = {
+                                coroutineScope.launch {
+                                    val result = ArtistPagesStore.delete(page)
+                                    feedbackMessage = if (result.isSuccess) {
+                                        "Artist geloescht: ${page.artistName}"
                                     } else {
                                         result.exceptionOrNull()?.message
                                             ?: resources.getString(R.string.settings_admin_artist_page_save_failed)
@@ -6911,8 +6962,13 @@ private fun AdminUserRoleGuideCard(
 private fun ArtistPageAdminCard(
     page: ArtistPageUi,
     users: List<User>,
+    canDelete: Boolean = false,
     onSave: (ArtistPageUi) -> Unit,
+    onDelete: () -> Unit = {},
 ) {
+    var artistNameDraft by rememberSaveable(page.slug, page.artistName) {
+        mutableStateOf(page.artistName)
+    }
     var selectedEditorUids by rememberSaveable(page.slug, page.editorUids) {
         mutableStateOf(
             if (page.brand == ArtistPageBrand.Nicma) {
@@ -6970,6 +7026,15 @@ private fun ArtistPageAdminCard(
                     )
                 }
             }
+
+            SkydownPremiumTextField(
+                value = artistNameDraft,
+                onValueChange = { artistNameDraft = it.take(64) },
+                label = "Artist-Name",
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                supportingText = "Aendert den sichtbaren Namen und die Artist-Page-Adresse.",
+            )
 
             if (users.isEmpty()) {
                 Text(
@@ -7033,10 +7098,15 @@ private fun ArtistPageAdminCard(
             }
 
             BrandActionButton(
-                text = stringResource(R.string.settings_save_editors),
+                text = "Artist speichern",
                 onClick = {
+                    val normalizedArtistName = artistNameDraft.trim().take(64).trim()
+                    if (normalizedArtistName.isBlank()) {
+                        return@BrandActionButton
+                    }
                     onSave(
                         page.copy(
+                            artistName = normalizedArtistName,
                             editorUids = if (page.brand == ArtistPageBrand.Nicma) {
                                 selectedEditorUids.take(1)
                             } else {
@@ -7048,6 +7118,57 @@ private fun ArtistPageAdminCard(
                     )
                 },
                 accent = MaterialTheme.colorScheme.skydownAccent(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            if (canDelete) {
+                BrandActionButton(
+                    text = "Artist loeschen",
+                    onClick = onDelete,
+                    accent = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ArtistPageCreateCard(
+    onCreate: (ArtistPageUi) -> Unit,
+) {
+    var artistNameDraft by rememberSaveable { mutableStateOf("") }
+    SkydownCard {
+        Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed)) {
+            Text(
+                text = "Neue Artist-Seite",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            SkydownPremiumTextField(
+                value = artistNameDraft,
+                onValueChange = { artistNameDraft = it.take(64) },
+                label = "Artist-Name (22)",
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                supportingText = "Wird direkt im Music Hub sichtbar.",
+            )
+            BrandActionButton(
+                text = "Artist hinzufuegen",
+                onClick = {
+                    val normalizedArtistName = artistNameDraft.trim().take(64).trim()
+                    if (normalizedArtistName.isBlank()) return@BrandActionButton
+                    onCreate(
+                        ArtistPageUi(
+                            slug = ArtistPagesStore.documentIdFor(ArtistPageBrand.Zweizwei, normalizedArtistName),
+                            brand = ArtistPageBrand.Zweizwei,
+                            artistName = normalizedArtistName,
+                            isPlaceholder = true,
+                        ),
+                    )
+                    artistNameDraft = ""
+                },
+                accent = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.fillMaxWidth(),
             )
         }

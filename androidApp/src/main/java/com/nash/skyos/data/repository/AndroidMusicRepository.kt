@@ -967,17 +967,21 @@ class AndroidMusicRepository : MusicRepository {
     }
 
     private val artistIds = mapOf(
-        "Yang D. Nash" to "63Sh0kQAWW3ZWn2aKDksbo",
-        "Janno" to "7hpiHzP9aLLb5liDLxtwhM",
+        // Canonical names used across Music Hub.
         "JANNO" to "7hpiHzP9aLLb5liDLxtwhM",
+        "MAVE040" to "0GXymtRaIk2ngbXSkcHtsp",
+        "Tangajoe007" to "0OA5dgpVdwzI8K82m8FPxN",
+        "DANGU61" to "08rIanUNO6en6coKEafyPO",
+        "Yang D. Nash" to "63Sh0kQAWW3ZWn2aKDksbo",
+        "ThaDude" to "0Jmb7DXFkKxxRjqD70vi0e",
+        "NICMA MUSIC" to "0OoRIo7pJjtLgg3qyf1oDS",
+        // Legacy aliases kept for compatibility with old data/content.
+        "Janno" to "7hpiHzP9aLLb5liDLxtwhM",
         "Mave" to "0GXymtRaIk2ngbXSkcHtsp",
         "MAVE" to "0GXymtRaIk2ngbXSkcHtsp",
         "Tangajoe" to "0OA5dgpVdwzI8K82m8FPxN",
-        "Tangajoe007" to "0OA5dgpVdwzI8K82m8FPxN",
         "TANGAJOE007" to "0OA5dgpVdwzI8K82m8FPxN",
-        "ThaDude" to "0Jmb7DXFkKxxRjqD70vi0e",
         "THADUDE" to "0Jmb7DXFkKxxRjqD70vi0e",
-        "NICMA MUSIC" to "0OoRIo7pJjtLgg3qyf1oDS",
         "NICMA" to "0OoRIo7pJjtLgg3qyf1oDS",
     )
 

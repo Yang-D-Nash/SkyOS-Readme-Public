@@ -195,6 +195,23 @@ object ArtistPagesStore {
         }
     }
 
+    suspend fun renameAndSave(previousPage: ArtistPageUi, updatedPage: ArtistPageUi): Result<Unit> {
+        return runCatching {
+            save(updatedPage).getOrThrow()
+            val previousDocumentId = previousPage.slug
+            val updatedDocumentId = artistPageDocumentId(updatedPage.brand, updatedPage.artistName)
+            if (!previousPage.isPlaceholder && previousDocumentId != updatedDocumentId) {
+                collection.document(previousDocumentId).delete().await()
+            }
+        }
+    }
+
+    suspend fun delete(page: ArtistPageUi): Result<Unit> {
+        return runCatching {
+            collection.document(page.slug).delete().await()
+        }
+    }
+
     private suspend fun syncMirroredNicmaSocialLinksIfNeeded(page: ArtistPageUi) {
         if (page.brand != ArtistPageBrand.Nicma) return
         val normalizedArtistName = page.artistName.trim().lowercase()

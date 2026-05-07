@@ -135,7 +135,7 @@ struct HomeArtistSocialLinksRow: View {
     private var entries: [ArtistSocialEntry] {
         let yangPage = artistPagesStore.page(for: .zweizwei, artistName: "Yang D. Nash")
         let skydownPage = artistPagesStore.page(for: .skydown, artistName: "Skydown")
-        let zweizweiPage = artistPagesStore.page(for: .zweizwei, artistName: "Janno")
+        let zweizweiPage = artistPagesStore.page(for: .zweizwei, artistName: "JANNO")
 
         return [
             ArtistSocialEntry(
