@@ -1351,6 +1351,15 @@ test("Owner darf keine ungueltigen Video-Provider speichern", async () => {
   }));
 });
 
+test("runtimeConfig nur fuer eingeloggte Clients lesbar", async () => {
+  await seedRuntimeConfig({lockdown: false});
+  const guestDb = testEnv.unauthenticatedContext().firestore();
+  const memberDb = testEnv.authenticatedContext("aliceRuntimeReader", {role: "user"}).firestore();
+
+  await assertFails(getDoc(doc(guestDb, "system", "runtimeConfig")));
+  await assertSucceeds(getDoc(doc(memberDb, "system", "runtimeConfig")));
+});
+
 test("Owner darf einen externen Beat-Link fuer alle User freigeben", async () => {
   const ownerDb = testEnv.authenticatedContext("owner", {role: "owner"}).firestore();
 

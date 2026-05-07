@@ -18,6 +18,7 @@
 		90F3D0012F2C100100112233 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 90F3D0022F2C100100112233 /* FirebaseFunctions */; };
 		90F4E0012F2D100100112233 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 90F4E0022F2D100100112233 /* FirebaseAppCheck */; };
 		90F5E0012F3E100100112233 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 90F5E0022F3E100100112233 /* FirebaseMessaging */; };
+		90F6E0012F4E100100112233 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 90F6E0022F4E100100112233 /* FirebaseCrashlytics */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +70,7 @@
 				90D1A0012F0A100100112233 /* FirebaseAI in Frameworks */,
 				90F4E0012F2D100100112233 /* FirebaseAppCheck in Frameworks */,
 				90F5E0012F3E100100112233 /* FirebaseMessaging in Frameworks */,
+				90F6E0012F4E100100112233 /* FirebaseCrashlytics in Frameworks */,
 				90F3D0012F2C100100112233 /* FirebaseFunctions in Frameworks */,
 				90E2B0012F1B100100112233 /* FirebaseRemoteConfig in Frameworks */,
 				905588FB2E31911F002FD576 /* FirebaseDatabase in Frameworks */,
@@ -140,6 +142,7 @@
 				90D1A0022F0A100100112233 /* FirebaseAI */,
 				90F4E0022F2D100100112233 /* FirebaseAppCheck */,
 				90F5E0022F3E100100112233 /* FirebaseMessaging */,
+				90F6E0022F4E100100112233 /* FirebaseCrashlytics */,
 				90F3D0022F2C100100112233 /* FirebaseFunctions */,
 				90E2B0022F1B100100112233 /* FirebaseRemoteConfig */,
 				905588F62E31911F002FD576 /* FirebaseAuth */,
@@ -712,6 +715,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseMessaging;
+		};
+		90F6E0022F4E100100112233 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 905588F52E31911F002FD576 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

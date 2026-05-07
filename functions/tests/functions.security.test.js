@@ -126,6 +126,24 @@ test("Activepieces workflow endpoints bind the documented SkyOS secret", () => {
   assert.match(indexSource, /request\.headers\["x-skyos-workflow-secret"\]/);
 });
 
+test("AI generation callables apply shared burst rate limits", () => {
+  const text = callableBlocks().find(({name}) => name === "generateAiText");
+  const visual = callableBlocks().find(({name}) => name === "generateAiVisual");
+  const agent = callableBlocks().find(({name}) => name === "skydownAgent");
+
+  assert.ok(text, "generateAiText callable should exist");
+  assert.ok(visual, "generateAiVisual callable should exist");
+  assert.ok(agent, "skydownAgent callable should exist");
+  assert.match(text.body, /assertAiGenerationBurstRateLimit\(/);
+  assert.match(visual.body, /assertAiGenerationBurstRateLimit\(/);
+  assert.match(agent.body, /assertAiGenerationBurstRateLimit\(/);
+});
+
+test("workflow automation HTTP ingest throttles per uid after auth", () => {
+  assert.match(indexSource, /async function assertWorkflowHttpRequest\(/);
+  assert.match(indexSource, /assertWorkflowUidBurstThrottle\(/);
+});
+
 test("agent-created productivity records use rule-compatible source values", () => {
   assert.doesNotMatch(indexSource, /source:\s*"agent_intent"/);
   assert.match(indexSource, /source:\s*"agent"/);

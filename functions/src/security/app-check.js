@@ -29,7 +29,7 @@ function assertAppCheck(request, runtimeConfig, functionName) {
     uid: request.auth?.uid || null,
   });
 
-  const aiSoftFailEnabled = runtimeConfig.appCheckAiSoftFailEnabled !== false;
+  const aiSoftFailEnabled = runtimeConfig.appCheckAiSoftFailEnabled === true;
   if (mode === APP_CHECK_MODES.enforce &&
     aiSoftFailEnabled &&
     APP_CHECK_SOFT_FAIL_FUNCTIONS.has(functionName)) {

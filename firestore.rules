@@ -1003,7 +1003,7 @@ service cloud.firestore {
     }
 
     match /system/runtimeConfig {
-      allow read: if true;
+      allow read: if signedIn();
       allow create, update, delete: if isOwner();
     }
 

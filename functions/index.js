@@ -649,6 +649,17 @@ const AI_USAGE_METRICS_DOCUMENT_PREFIX = "aiUsageDaily_";
 const AI_USAGE_MONTHLY_METRICS_DOCUMENT_PREFIX = "aiUsageMonthly_";
 const AI_USAGE_EVENTS_COLLECTION = "aiUsageEvents";
 const AI_MEMBERSHIP_EVENTS_COLLECTION = "aiMembershipEvents";
+const MEMBERSHIP_EVENT_TRUST_VERIFIED = "verified";
+const MEMBERSHIP_EVENT_TRUST_CLIENT = "client";
+const MANUS_API_KEY_MAX_LEN = 512;
+const AI_BURST_WINDOW_MS = 60_000;
+const AI_BURST_RATE_LIMIT_BY_CALLABLE = Object.freeze({
+  generateAiText: 48,
+  generateAiVisual: 16,
+  skydownAgent: 36,
+});
+const WORKFLOW_UID_BURST_WINDOW_MS = 60_000;
+const WORKFLOW_UID_BURST_MAX_REQUESTS_PER_WINDOW = 120;
 const AI_FAQ_INTELLIGENCE_DAILY_COLLECTION = "aiFaqIntelligenceDaily";
 const AI_MEMBERSHIP_RECOMMENDATION_LIFECYCLE_COLLECTION = "recommendationLifecycle";
 const AI_FAQ_REVIEW_CHANGE_LOG_COLLECTION = "aiFaqReviewChangeLog";
@@ -1192,6 +1203,7 @@ function resolveAiSubscriptionMetadata(stripeObject = {}) {
     plan: normalizeAiSubscriptionPlan(metadata.plan),
     priceId: nonEmptyString(metadata.priceId),
     platform: nonEmptyString(metadata.platform)?.toLowerCase() || "",
+    annual: asBoolean(metadata.annual, false),
   };
 }
 
@@ -2923,7 +2935,7 @@ function getWorkflowRequestBase(payload) {
   };
 }
 
-function assertWorkflowHttpRequest(request, response) {
+async function assertWorkflowHttpRequest(request, response) {
   if (request.method !== "POST") {
     response.status(405).json({ok: false, error: "method_not_allowed"});
     return null;
@@ -2943,6 +2955,20 @@ function assertWorkflowHttpRequest(request, response) {
     response.status(400).json({ok: false, error: "invalid_json_body"});
     return null;
   }
+
+  const throttleUid = nonEmptyString(request.body.uid);
+  if (throttleUid) {
+    try {
+      await assertWorkflowUidBurstThrottle(throttleUid);
+    } catch (error) {
+      if (error instanceof HttpsError && error.code === "resource-exhausted") {
+        response.status(429).json({ok: false, error: "rate_limited"});
+        return null;
+      }
+      throw error;
+    }
+  }
+
   return request.body;
 }
 
@@ -5639,6 +5665,198 @@ function rollingWindowRange(days) {
   };
 }
 
+function membershipEventCountsTowardOpsDashboard(eventData = {}) {
+  const trust = nonEmptyString(eventData.membershipEventTrust)?.toLowerCase();
+  if (trust === MEMBERSHIP_EVENT_TRUST_CLIENT) {
+    return false;
+  }
+  return true;
+}
+
+function inferAnnualFromProductId(productId) {
+  const id = nonEmptyString(productId)?.toLowerCase() || "";
+  if (!id) {
+    return false;
+  }
+  return id.includes("year") ||
+    id.includes("annual") ||
+    id.includes("jahr") ||
+    id.endsWith("_y") ||
+    id.includes("_yearly");
+}
+
+async function assertAiGenerationBurstRateLimit(auth, callableName, baseLimit) {
+  const uid = nonEmptyString(auth?.uid);
+  if (!uid) {
+    return;
+  }
+  const role = resolveRoleFromAuthClaims(auth);
+  if (role === USER_ROLES.owner) {
+    return;
+  }
+
+  let maxPerWindow =
+    typeof baseLimit === "number" && Number.isFinite(baseLimit) && baseLimit > 0 ?
+      Math.floor(baseLimit) :
+      30;
+  if (role === USER_ROLES.admin) {
+    maxPerWindow = Math.max(maxPerWindow * 4, maxPerWindow);
+  }
+
+  const ref = admin.firestore().collection(AI_USAGE_METRICS_COLLECTION)
+      .doc(`aiBurst_${callableName}_${uid}`);
+  const now = Date.now();
+
+  await admin.firestore().runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const prior = snapshot.data() || {};
+    let windowStart = Number(prior.windowStartEpochMs) || 0;
+    let count = Number(prior.count) || 0;
+    if (!windowStart || (now - windowStart) >= AI_BURST_WINDOW_MS) {
+      windowStart = now;
+      count = 0;
+    }
+
+    if (count >= maxPerWindow) {
+      throw new HttpsError(
+          "resource-exhausted",
+          "Zu viele KI-Anfragen in kurzer Zeit. Bitte gleich noch einmal probieren.",
+      );
+    }
+
+    transaction.set(ref, {
+      windowStartEpochMs: windowStart,
+      count: count + 1,
+      callableName,
+      uid,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+  });
+}
+
+async function assertWorkflowUidBurstThrottle(uid) {
+  const normalizedUid = nonEmptyString(uid);
+  if (!normalizedUid) {
+    return;
+  }
+
+  const ref = admin.firestore().collection(AI_USAGE_METRICS_COLLECTION)
+      .doc(`workflowBurst_${normalizedUid}`);
+  const now = Date.now();
+
+  await admin.firestore().runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const prior = snapshot.data() || {};
+    let windowStart = Number(prior.windowStartEpochMs) || 0;
+    let count = Number(prior.count) || 0;
+    if (!windowStart || (now - windowStart) >= WORKFLOW_UID_BURST_WINDOW_MS) {
+      windowStart = now;
+      count = 0;
+    }
+
+    if (count >= WORKFLOW_UID_BURST_MAX_REQUESTS_PER_WINDOW) {
+      throw new HttpsError(
+          "resource-exhausted",
+          "Workflow-Automation Tempolimit erreicht. Bitte kurz warten.",
+      );
+    }
+
+    transaction.set(ref, {
+      windowStartEpochMs: windowStart,
+      count: count + 1,
+      uid: normalizedUid,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+  });
+}
+
+async function assertManusApiKeyValidateThrottle(uid) {
+  const normalizedUid = nonEmptyString(uid);
+  if (!normalizedUid) {
+    return;
+  }
+  const throttleRef = admin.firestore().collection(AI_USAGE_METRICS_COLLECTION)
+      .doc(`manusKeyValidate_${normalizedUid}`);
+  const minIntervalMs = 30_000;
+  await admin.firestore().runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(throttleRef);
+    const lastAttempt = snapshot.exists ? Number(snapshot.data()?.lastAttemptAtEpochMs || 0) : 0;
+    const now = Date.now();
+    if (Number.isFinite(lastAttempt) && lastAttempt > 0 && (now - lastAttempt) < minIntervalMs) {
+      throw new HttpsError(
+          "resource-exhausted",
+          "Bitte warte kurz, bevor du den Manus-Key erneut pruefst.",
+      );
+    }
+    transaction.set(throttleRef, {
+      lastAttemptAtEpochMs: now,
+      uid: normalizedUid,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+  });
+}
+
+async function persistVerifiedMembershipMirrorEvent({
+  uid,
+  eventName,
+  platform,
+  plan,
+  annual = false,
+  surface = "subscription_sync",
+  reason = "verified_purchase",
+  currentPlan = null,
+  dedupeMaterials,
+  verificationSource,
+}) {
+  const normalizedUid = nonEmptyString(uid);
+  const normalizedEvent = normalizeMembershipEventName(eventName);
+  if (!normalizedUid || !normalizedEvent) {
+    return null;
+  }
+  const fingerprint = JSON.stringify({
+    uid: normalizedUid,
+    dedupeMaterials: dedupeMaterials || normalizedEvent,
+    eventName: normalizedEvent,
+  });
+  const eventId = `mbr_ver_${crypto.createHash("sha256").update(fingerprint).digest("hex").slice(0, 40)}`;
+  const createdAtEpochMillis = Date.now();
+  const payload = {
+    eventId,
+    uid: normalizedUid,
+    eventName: normalizedEvent,
+    platform: aiMetricKey(platform, "unknown"),
+    reason: normalizeMembershipReason(reason),
+    plan: normalizeMembershipPlan(plan),
+    annual: asBoolean(annual, false),
+    surface: normalizeMembershipSurface(surface),
+    currentPlan: currentPlan ?
+      normalizeMembershipPlan(currentPlan) :
+      normalizeMembershipPlan(USER_QUOTA_PLANS.free),
+    source: aiMetricKey("server", "server"),
+    membershipEventTrust: MEMBERSHIP_EVENT_TRUST_VERIFIED,
+    ingestionSource: nonEmptyString(verificationSource) || "server",
+    serverRecordedAtEpochMillis: createdAtEpochMillis,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAtEpochMillis,
+    dateKey: aiUsageDateKey(),
+    monthKey: aiUsageMonthKey(),
+  };
+
+  await admin.firestore()
+      .collection(AI_MEMBERSHIP_EVENTS_COLLECTION)
+      .doc(eventId)
+      .set(payload, {merge: true});
+
+  if (["purchase_success", "upgrade_after_warning", "upgrade_after_deny"].includes(normalizedEvent)) {
+    await attributeHintConversionToMembershipEvent({
+      uid: normalizedUid,
+      eventName: normalizedEvent,
+    });
+  }
+
+  return eventId;
+}
+
 function initMembershipCounters() {
   return {
     membershipOpens: 0,
@@ -5711,6 +5929,9 @@ function summarizeMembershipWindow(range, docs) {
   const counters = initMembershipCounters();
   for (const doc of docs) {
     const data = doc.data() || {};
+    if (!membershipEventCountsTowardOpsDashboard(data)) {
+      continue;
+    }
     const createdAtMs = Number(data.createdAtEpochMillis || 0);
     if (!Number.isFinite(createdAtMs) || createdAtMs < range.startMs || createdAtMs > range.endMs) {
       continue;
@@ -5776,6 +5997,9 @@ function buildMembershipDailySeries(days, docs) {
   const map = {};
   for (const doc of docs) {
     const data = doc.data() || {};
+    if (!membershipEventCountsTowardOpsDashboard(data)) {
+      continue;
+    }
     const createdAtMs = Number(data.createdAtEpochMillis || 0);
     if (!Number.isFinite(createdAtMs) || createdAtMs < range.startMs || createdAtMs > range.endMs) {
       continue;
@@ -7419,7 +7643,7 @@ exports.agentRunStatusCallback = onRequest({
     return;
   }
   const providedSecret = nonEmptyString(request.headers["x-skyos-run-callback-secret"]) || "";
-  if (!providedSecret || providedSecret !== expectedSecret) {
+  if (!isSecretMatch(providedSecret, expectedSecret)) {
     response.status(401).json({ok: false, error: "unauthorized"});
     return;
   }
@@ -7623,7 +7847,7 @@ exports.createReminderFromWorkflow = onRequest({
   timeoutSeconds: 30,
   secrets: [workflowApiSecret],
 }, async (request, response) => {
-  const payload = assertWorkflowHttpRequest(request, response);
+  const payload = await assertWorkflowHttpRequest(request, response);
   if (!payload) {
     return;
   }
@@ -7752,7 +7976,7 @@ exports.createTaskFromWorkflow = onRequest({
   timeoutSeconds: 30,
   secrets: [workflowApiSecret],
 }, async (request, response) => {
-  const payload = assertWorkflowHttpRequest(request, response);
+  const payload = await assertWorkflowHttpRequest(request, response);
   if (!payload) {
     return;
   }
@@ -7808,7 +8032,7 @@ exports.createNoteFromWorkflow = onRequest({
   timeoutSeconds: 30,
   secrets: [workflowApiSecret],
 }, async (request, response) => {
-  const payload = assertWorkflowHttpRequest(request, response);
+  const payload = await assertWorkflowHttpRequest(request, response);
   if (!payload) {
     return;
   }
@@ -8578,7 +8802,7 @@ exports.createFounderBriefingFromWorkflow = onRequest({
   memory: "512MiB",
   secrets: [workflowApiSecret],
 }, async (request, response) => {
-  const payload = assertWorkflowHttpRequest(request, response);
+  const payload = await assertWorkflowHttpRequest(request, response);
   if (!payload) {
     return;
   }
@@ -10664,6 +10888,7 @@ async function processAiSubscriptionCheckoutWebhook(eventType, stripeObject = {}
 
   const userData = userDocument.snapshot.data() || {};
   const role = resolveUserRole(userData.role, userData.isAdmin === true, userData.email);
+  const previouslySubscriptionActive = isAiSubscriptionStatusActive(userData.aiSubscriptionStatus);
   const plan = metadata.plan ||
     normalizeAiSubscriptionPlan(userData.aiSubscriptionPlan) ||
     normalizeAiSubscriptionPlan(userData.quotaPlan) ||
@@ -10700,6 +10925,36 @@ async function processAiSubscriptionCheckoutWebhook(eventType, stripeObject = {}
   }
 
   await userDocument.ref.set(updates, {merge: true});
+
+  if (
+    isAiSubscriptionStatusActive(status) &&
+    !previouslySubscriptionActive &&
+    role !== USER_ROLES.owner &&
+    nonEmptyString(stripeObject?.subscription)
+  ) {
+    const annualFromStripe = metadata.annual === true || inferAnnualFromProductId(metadata.priceId);
+    const stripeSubscriptionDedupe = nonEmptyString(stripeObject?.subscription) || "";
+    void persistVerifiedMembershipMirrorEvent({
+      uid: userDocument.ref.id,
+      eventName: "purchase_success",
+      platform: metadata.platform || "stripe",
+      plan,
+      annual: annualFromStripe,
+      surface: "stripe_checkout",
+      reason: "stripe_checkout_webhook",
+      currentPlan: userData.quotaPlan,
+      dedupeMaterials: {
+        verifiedPurchaseChannel: "stripe_subscription",
+        subscriptionId: stripeSubscriptionDedupe,
+      },
+      verificationSource: "stripe_checkout_webhook",
+    }).catch((error) => {
+      logger.error("verified membership mirror event skipped (stripe checkout).", {
+        uid: userDocument.ref.id,
+        message: error instanceof Error ? error.message : `${error}`,
+      });
+    });
+  }
 
   logger.info("AI subscription checkout webhook processed.", {
     eventType,
@@ -10738,6 +10993,7 @@ async function processAiSubscriptionLifecycleWebhook(eventType, stripeObject = {
 
   const userData = userDocument.snapshot.data() || {};
   const role = resolveUserRole(userData.role, userData.isAdmin === true, userData.email);
+  const previouslySubscriptionActive = isAiSubscriptionStatusActive(userData.aiSubscriptionStatus);
   const plan = metadata.plan ||
     normalizeAiSubscriptionPlan(userData.aiSubscriptionPlan) ||
     normalizeAiSubscriptionPlan(userData.quotaPlan) ||
@@ -10771,6 +11027,37 @@ async function processAiSubscriptionLifecycleWebhook(eventType, stripeObject = {
   }
 
   await userDocument.ref.set(updates, {merge: true});
+
+  const stripeSubscriptionId =
+    nonEmptyString(stripeObject?.id) || nonEmptyString(stripeObject?.subscription);
+  if (
+    stripeSubscriptionId &&
+    isAiSubscriptionStatusActive(status) &&
+    !previouslySubscriptionActive &&
+    role !== USER_ROLES.owner
+  ) {
+    const annualFromStripe = metadata.annual === true || inferAnnualFromProductId(metadata.priceId);
+    void persistVerifiedMembershipMirrorEvent({
+      uid: userDocument.ref.id,
+      eventName: "purchase_success",
+      platform: metadata.platform || "stripe",
+      plan,
+      annual: annualFromStripe,
+      surface: "stripe_subscription",
+      reason: `stripe_subscription_${eventType}`,
+      currentPlan: userData.quotaPlan,
+      dedupeMaterials: {
+        verifiedPurchaseChannel: "stripe_subscription",
+        subscriptionId: stripeSubscriptionId,
+      },
+      verificationSource: "stripe_subscription_lifecycle_webhook",
+    }).catch((error) => {
+      logger.error("verified membership mirror event skipped (stripe lifecycle).", {
+        uid: userDocument.ref.id,
+        message: error instanceof Error ? error.message : `${error}`,
+      });
+    });
+  }
 
   logger.info("AI subscription lifecycle webhook processed.", {
     eventType,
@@ -12803,6 +13090,7 @@ exports.syncAndroidAiSubscriptionStatus = onCall({
   }
 
   const role = resolveUserRole(userData.role, userData.isAdmin === true, userData.email);
+  const previouslySubscriptionActive = isAiSubscriptionStatusActive(userData.aiSubscriptionStatus);
   const currentProvider = nonEmptyString(userData.aiSubscriptionProvider)?.toLowerCase() || "";
   const userRef = admin.firestore().doc(`users/${uid}`);
   const updates = {
@@ -12898,6 +13186,37 @@ exports.syncAndroidAiSubscriptionStatus = onCall({
     status: resolvedState.status,
   });
 
+  if (
+    resolvedState.shouldGrantEntitlement &&
+    isAiSubscriptionStatusActive(resolvedState.status) &&
+    !previouslySubscriptionActive &&
+    role !== USER_ROLES.owner
+  ) {
+    const playDedupe =
+      nonEmptyString(resolvedState.purchaseReference) ||
+      `${purchaseToken.slice(-48)}_${resolvedState.productId || productId}`;
+    void persistVerifiedMembershipMirrorEvent({
+      uid,
+      eventName: "purchase_success",
+      platform: resolvedState.sourcePlatform || "android",
+      plan: resolvedState.plan || resolvedPlan || userData.quotaPlan,
+      annual: inferAnnualFromProductId(resolvedState.productId || productId),
+      surface: "play_store_sync",
+      reason: "play_store_subscription_sync",
+      currentPlan: userData.quotaPlan,
+      dedupeMaterials: {
+        verifiedPurchaseChannel: "play_store",
+        purchaseReference: playDedupe,
+      },
+      verificationSource: "sync_android_ai_subscription_status",
+    }).catch((error) => {
+      logger.error("verified membership mirror event skipped (android subscription sync).", {
+        uid,
+        message: error instanceof Error ? error.message : `${error}`,
+      });
+    });
+  }
+
   return {
     status: resolvedState.status,
     provider: resolvedState.provider,
@@ -12933,6 +13252,8 @@ exports.ingestRevenueCatAiEntitlementEvent = onCall({
       targetUserData?.isAdmin === true,
       targetUserData?.email,
   );
+  const previousEntitlement = await loadCanonicalAiEntitlement(normalized.uid);
+  const previouslySubscriptionActive = isAiSubscriptionStatusActive(previousEntitlement?.status);
   const saveResult = await saveCanonicalAiEntitlement(normalized.uid, {
     plan: normalized.plan,
     status: normalized.status,
@@ -12956,6 +13277,38 @@ exports.ingestRevenueCatAiEntitlementEvent = onCall({
     metadata: normalized.metadata,
     rawRef: "revenuecat_webhook_payload",
   });
+
+  if (
+    !saveResult.duplicated &&
+    isAiSubscriptionStatusActive(normalized.status) &&
+    !previouslySubscriptionActive &&
+    role !== USER_ROLES.owner
+  ) {
+    const rcDedupe =
+      nonEmptyString(normalized.externalEventId) ||
+      nonEmptyString(normalized.purchaseReference) ||
+      saveResult.eventId;
+    void persistVerifiedMembershipMirrorEvent({
+      uid: normalized.uid,
+      eventName: "purchase_success",
+      platform: normalized.source || "revenuecat",
+      plan: normalized.plan,
+      annual: inferAnnualFromProductId(normalized.productId),
+      surface: "revenuecat_ingest",
+      reason: `revenuecat_${normalized.eventType}`,
+      currentPlan: targetUserData?.quotaPlan,
+      dedupeMaterials: {
+        verifiedPurchaseChannel: "revenuecat",
+        externalEventId: rcDedupe,
+      },
+      verificationSource: "ingest_revenue_cat_ai_entitlement_event",
+    }).catch((error) => {
+      logger.error("verified membership mirror event skipped (revenuecat ingest).", {
+        uid: normalized.uid,
+        message: error instanceof Error ? error.message : `${error}`,
+      });
+    });
+  }
 
   return {
     uid: normalized.uid,
@@ -13273,6 +13626,7 @@ exports.syncIosAiSubscriptionStatus = onCall({
 
   const resolvedState = resolveAppStoreSubscriptionState(decodeResult.decodedTransactions);
   const role = resolveUserRole(userData.role, userData.isAdmin === true, userData.email);
+  const previouslySubscriptionActive = isAiSubscriptionStatusActive(userData.aiSubscriptionStatus);
   const currentProvider = nonEmptyString(userData.aiSubscriptionProvider)?.toLowerCase() || "";
   const userRef = admin.firestore().doc(`users/${uid}`);
   const updates = {
@@ -13349,6 +13703,37 @@ exports.syncIosAiSubscriptionStatus = onCall({
     },
     rawRef: "app_store_server_validation",
   });
+
+  if (
+    resolvedState.status === "active" &&
+    !previouslySubscriptionActive &&
+    role !== USER_ROLES.owner
+  ) {
+    const iosDedupeReference =
+      nonEmptyString(resolvedState.originalTransactionId) ||
+      nonEmptyString(resolvedState.transactionId) ||
+      `${uid}_${resolvedState.productId}`;
+    void persistVerifiedMembershipMirrorEvent({
+      uid,
+      eventName: "purchase_success",
+      platform: resolvedState.sourcePlatform || "ios",
+      plan: resolvedState.plan || userData.aiSubscriptionPlan || userData.quotaPlan,
+      annual: inferAnnualFromProductId(resolvedState.productId),
+      surface: "app_store_sync",
+      reason: "app_store_subscription_sync",
+      currentPlan: userData.quotaPlan,
+      dedupeMaterials: {
+        verifiedPurchaseChannel: "app_store",
+        purchaseReference: iosDedupeReference,
+      },
+      verificationSource: "sync_ios_ai_subscription_status",
+    }).catch((error) => {
+      logger.error("verified membership mirror event skipped (ios subscription sync).", {
+        uid,
+        message: error instanceof Error ? error.message : `${error}`,
+      });
+    });
+  }
 
   logger.info("iOS AI subscription status synced.", {
     uid,
@@ -13840,7 +14225,8 @@ exports.recordAiMembershipEvent = onCall({
   }
 
   const createdAtEpochMillis = Date.now();
-  const eventId = nonEmptyString(request.data?.eventId) || `mbr_${uid}_${createdAtEpochMillis}_${Math.random().toString(36).slice(2, 8)}`;
+  const randomSuffix = crypto.randomBytes(8).toString("hex");
+  const eventId = `mbr_c_${uid.slice(0, 12)}_${createdAtEpochMillis}_${randomSuffix}`;
   const payload = {
     eventId,
     uid,
@@ -13852,6 +14238,9 @@ exports.recordAiMembershipEvent = onCall({
     surface: normalizeMembershipSurface(request.data?.surface),
     currentPlan: normalizeMembershipPlan(request.data?.currentPlan),
     source: aiMetricKey(nonEmptyString(request.data?.source) || "client", "client"),
+    membershipEventTrust: MEMBERSHIP_EVENT_TRUST_CLIENT,
+    ingestionSource: "client_callable_mirror",
+    clientMirrorOfDeprecatedEventId: nonEmptyString(request.data?.eventId) || "",
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     createdAtEpochMillis,
     dateKey: aiUsageDateKey(),
@@ -13861,12 +14250,7 @@ exports.recordAiMembershipEvent = onCall({
   await admin.firestore()
       .collection(AI_MEMBERSHIP_EVENTS_COLLECTION)
       .doc(eventId)
-      .set(payload, {merge: true});
-
-  await attributeHintConversionToMembershipEvent({
-    uid,
-    eventName,
-  });
+      .set(payload, {merge: false});
 
   return {
     status: "recorded",
@@ -14446,7 +14830,9 @@ exports.getAiMembershipDashboard = onCall({
     },
     dataNotes: {
       membershipEventSource: AI_MEMBERSHIP_EVENTS_COLLECTION,
-      warning: "Dashboard basiert auf serverseitig gespiegelten Membership Events.",
+      warning:
+        "Dashboard basiert auf Events mit membershipEventTrust != \"client\" (verifiziert oder Legacy). " +
+        "Callable-Client-Spiegel (trust=client) werden in KPIs nicht gezaehlt.",
     },
   };
 });
@@ -15246,6 +15632,11 @@ exports.generateAiText = onCall({
       request.data,
       "Die KI-Anfrage konnte so nicht gestartet werden.",
   );
+  await assertAiGenerationBurstRateLimit(
+      request.auth,
+      "generateAiText",
+      AI_BURST_RATE_LIMIT_BY_CALLABLE.generateAiText,
+  );
   const aiLevel = normalizeAiExperienceLevel(input.aiLevel);
   const selectedModel = resolveAiTextModelForLevel(aiLevel, runtimeSettings);
   const usage = await authorizeAiUsage({
@@ -15310,6 +15701,11 @@ exports.generateAiVisual = onCall({
       aiVisualRequestSchema,
       request.data,
       "Die Visual-Anfrage konnte so nicht gestartet werden.",
+  );
+  await assertAiGenerationBurstRateLimit(
+      request.auth,
+      "generateAiVisual",
+      AI_BURST_RATE_LIMIT_BY_CALLABLE.generateAiVisual,
   );
   const aiLevel = normalizeAiExperienceLevel(input.aiLevel);
   const selectedModel = resolveAiVisualModelForLevel(aiLevel, runtimeSettings);
@@ -17263,9 +17659,16 @@ exports.validateManusApiKey = onCall({
       request.auth,
       "Bitte melde dich an, bevor du einen Manus API Key pruefst.",
   );
-  const rawKey = nonEmptyString(request.data?.apiKey) || "";
+  const uidForThrottle = nonEmptyString(request.auth.uid);
+  if (uidForThrottle) {
+    await assertManusApiKeyValidateThrottle(uidForThrottle);
+  }
+  const rawKey = `${request.data?.apiKey ?? ""}`.trim();
   if (!rawKey) {
     throw new HttpsError("invalid-argument", "Bitte gib einen Manus API Key an.");
+  }
+  if (rawKey.length > MANUS_API_KEY_MAX_LEN) {
+    throw new HttpsError("invalid-argument", "Manus API Key ist zu lang.");
   }
 
   try {
@@ -17308,6 +17711,11 @@ exports.skydownAgent = onCall({
     attachments: attachmentPayload.sanitized,
     attachmentSummary: attachmentPayload.summary,
   };
+  await assertAiGenerationBurstRateLimit(
+      request.auth,
+      "skydownAgent",
+      AI_BURST_RATE_LIMIT_BY_CALLABLE.skydownAgent,
+  );
   const runtimeSettings = await loadAiRuntimeSettings();
   const aiLevel = normalizeAiExperienceLevel(agentInput.aiLevel);
   const authorizationProvider = runtimeSettings.agentProvider;

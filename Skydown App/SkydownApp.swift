@@ -7,6 +7,7 @@
 import SwiftUI
 import FirebaseAppCheck
 import FirebaseCore
+import FirebaseCrashlytics
 import FirebaseFirestore
 import AVKit
 import GoogleSignIn
@@ -111,6 +112,7 @@ private extension SkydownApp {
         }
 
         guard FirebaseApp.app() != nil else { return }
+        Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(true)
         configureFirestoreCache()
         AppCheck.appCheck().isTokenAutoRefreshEnabled = true
     }
