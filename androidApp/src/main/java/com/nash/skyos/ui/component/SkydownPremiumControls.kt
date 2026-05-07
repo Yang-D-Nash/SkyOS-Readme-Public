@@ -101,7 +101,7 @@ fun SkydownPremiumTextField(
         onValueChange = onValueChange,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 58.dp),
+            .heightIn(min = SkydownUiTokens.inputMinHeight),
         enabled = enabled,
         readOnly = readOnly,
         singleLine = singleLine,
@@ -242,7 +242,7 @@ fun SkydownPremiumIconSurface(
             if (loading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(SkydownUiTokens.stateIconProgressSize),
-                    strokeWidth = 2.dp,
+                    strokeWidth = SkydownUiTokens.progressStrokeWidth,
                     color = accent,
                 )
             } else {
@@ -329,8 +329,8 @@ fun SkydownPremiumSwitch(
         },
         enabled = enabled,
         modifier = modifier
-            .width(50.dp)
-            .height(30.dp)
+            .width(SkydownUiTokens.switchTrackWidth)
+            .height(SkydownUiTokens.switchTrackHeight)
             .semantics {
                 role = Role.Switch
                 stateDescription = if (checked) "On" else "Off"
@@ -345,13 +345,13 @@ fun SkydownPremiumSwitch(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(3.dp),
+                .padding(SkydownUiTokens.switchTrackPadding),
             horizontalArrangement = if (checked) Arrangement.End else Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(SkydownUiTokens.switchKnobSize)
                     .clip(CircleShape)
                     .background(knobColor),
             )
@@ -509,7 +509,7 @@ fun SkydownPremiumLinearProgress(
 fun SkydownPremiumCircularProgress(
     modifier: Modifier = Modifier,
     accent: Color = MaterialTheme.colorScheme.primary,
-    strokeWidth: androidx.compose.ui.unit.Dp = 2.dp,
+    strokeWidth: androidx.compose.ui.unit.Dp = SkydownUiTokens.progressStrokeWidth,
 ) {
     CircularProgressIndicator(
         modifier = modifier,

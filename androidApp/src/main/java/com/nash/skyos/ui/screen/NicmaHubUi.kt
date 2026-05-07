@@ -154,7 +154,7 @@ fun NicmaProfileSelectorRow(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(6.dp)
+                                    .size(SkydownUiTokens.statusDotSize)
                                     .background(SpotifyGreen, CircleShape),
                             )
                             Text(

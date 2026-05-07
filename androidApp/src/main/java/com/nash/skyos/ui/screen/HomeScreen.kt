@@ -63,12 +63,10 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Switch
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDialog
 import androidx.compose.material3.rememberDatePickerState
@@ -2210,7 +2208,7 @@ private fun HomeProductivityTaskListRow(
             )
         }
         if (tasks.isEmpty()) {
-            Text(emptyText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.56f))
+            HomeProductivityEmptyLine(text = emptyText)
         } else {
             val visible = if (isExpanded) tasks else tasks.take(maxVisibleItems)
             visible.forEach { task ->
@@ -2281,7 +2279,7 @@ private fun HomeProductivityListRow(
             )
         }
         if (items.isEmpty()) {
-            Text(emptyText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.56f))
+            HomeProductivityEmptyLine(text = emptyText)
         } else {
             val visibleItems = if (isExpanded) items else items.take(maxVisibleItems)
             visibleItems.forEach { item ->
@@ -2306,6 +2304,43 @@ private fun HomeProductivityListRow(
                     modifier = Modifier.clickable { isExpanded = !isExpanded },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeProductivityEmptyLine(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    SkydownPremiumInlineSurface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SkydownUiTokens.pillSoftRadius),
+        accent = MaterialTheme.colorScheme.primary,
+        borderAlpha = 0.08f,
+        containerAlpha = 0.36f,
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = SkydownUiTokens.inlinePanelHorizontalPadding,
+                vertical = SkydownUiTokens.stackSpacingDense,
+            ),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(SkydownUiTokens.statusDotSize)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.58f)),
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

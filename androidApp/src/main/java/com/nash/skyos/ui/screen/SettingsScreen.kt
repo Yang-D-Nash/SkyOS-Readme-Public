@@ -86,6 +86,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -6296,9 +6298,16 @@ private fun SettingsToggleRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .skydownPanelSurface(
+                accent = MaterialTheme.colorScheme.primary,
+                cornerRadius = SkydownUiTokens.messageBubbleRadius,
+                shadowRadius = SkydownUiTokens.elevationRaised,
+                shadowYOffset = SkydownUiTokens.stackSpacingTick,
+            )
+            .padding(
+                horizontal = SkydownUiTokens.cardPadding,
+                vertical = SkydownUiTokens.stackSpacingCompact,
+            ),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -6331,65 +6340,69 @@ private fun AppearanceChoiceRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    SettingsSelectableRow(
+        selected = selected,
+        onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
+            .semantics { role = Role.RadioButton },
+        accent = MaterialTheme.colorScheme.primary,
+        cornerRadius = SkydownUiTokens.messageBubbleRadius,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    horizontal = SkydownUiTokens.cardPadding,
+                    vertical = SkydownUiTokens.stackSpacingCompact,
+                ),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            SettingsSelectionDot(selected = selected)
+        }
+    }
+}
+
+@Composable
+private fun SettingsSelectionDot(
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(SkydownUiTokens.selectionIndicatorSize)
+            .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
             .background(
                 if (selected) {
-                    MaterialTheme.colorScheme.primaryContainer
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                 } else {
-                    MaterialTheme.colorScheme.surface
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f)
                 },
             )
-            .selectable(
-                selected = selected,
-                onClick = onClick,
-                role = Role.RadioButton,
-            )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+            .border(
+                width = SkydownUiTokens.elevationHairline,
+                color = if (selected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.52f)
+                } else {
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.24f)
+                },
+                shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
+            ),
+        contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = title,
-            fontWeight = FontWeight.SemiBold,
-            color = if (selected) {
-                MaterialTheme.colorScheme.onPrimaryContainer
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-        )
-        Box(
-            modifier = Modifier
-                .size(22.dp)
-                .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
-                .background(
-                    if (selected) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f)
-                    },
-                )
-                .border(
-                    width = SkydownUiTokens.elevationHairline,
-                    color = if (selected) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.52f)
-                    } else {
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.24f)
-                    },
-                    shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
-                        .background(MaterialTheme.colorScheme.primary),
-                )
-            }
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .size(SkydownUiTokens.selectionIndicatorDotSize)
+                    .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
+                    .background(MaterialTheme.colorScheme.primary),
+            )
         }
     }
 }
@@ -6761,9 +6774,16 @@ private fun AdminWorkspaceSummaryCard(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .skydownPanelSurface(
+                accent = MaterialTheme.colorScheme.primary,
+                cornerRadius = SkydownUiTokens.messageBubbleRadius,
+                shadowRadius = SkydownUiTokens.elevationRaised,
+                shadowYOffset = SkydownUiTokens.stackSpacingTick,
+            )
+            .padding(
+                horizontal = SkydownUiTokens.cardPadding,
+                vertical = SkydownUiTokens.stackSpacingCompact,
+            ),
         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         verticalAlignment = Alignment.Top,
     ) {

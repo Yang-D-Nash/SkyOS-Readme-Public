@@ -7,11 +7,14 @@ SkyOS wirkt wie ein ruhiges Atelier fuer digitale Musik-, Commerce- und Agent-Wo
 ## Brand Audit
 
 - Die App besitzt bereits eigene Hero-, Card-, Motion- und Brand-Komponenten, aber die Premium-Sprache war noch fragmentiert: einzelne Screens nutzen starke Komponenten, andere fallen auf direkte Material-Flaechen, lokale `dp`/`Color`-Werte und heterogene Abstaende zurueck.
+- Der aktuelle Android-Compose-Stand ist deutlich weiter premiumisiert als eine Standard-Material-App: `BrandHeroCard`, `SkydownCard`, Premium Sheets, Premium Icon Actions, Premium Inputs, zentrale Progress-Komponenten und eigene Topbar-/Toast-Chrome sind vorhanden.
+- Die wichtigste verbleibende Qualitaetsluecke ist Rest-Streuung: Screen-Code enthaelt weiterhin viele lokale `dp`-Werte, lokale Alpha-Entscheidungen und einzelne direkte Material-Surfaces. Das ist nicht automatisch falsch, aber es macht die Wahrnehmung weniger kontrolliert und erschwert iOS/Android-Paritaet.
 - Die alte Palette war solide, aber zu generisch kuehl-blaugrau. Premium braucht staerkere semantische Spannung: Obsidian fuer Tiefe, Porzellan/Platin fuer Licht, Champagner als kontrollierter Akzent.
 - Typografie hatte teils negative Letter-Spacing-Werte. Das erzeugt zwar Dichte, wirkt aber bei Dynamic Type und lokalisierten Texten riskant. Die Skala bleibt editorial, aber ohne kuenstliches Zusammendruecken.
 - Radius und Elevation waren an manchen Stellen weich und stark dekorativ. Die neue Richtung ist praeziser: kleinere Material-Radien, klarere Schattenrollen, weniger zufaellige Glow-Wirkung.
 - Empty-, Loading- und Feedback-Zustaende existieren, muessen aber konsequenter ueber `SkydownPremiumStatePanel`, Toasts und zentrale Button-Zustaende laufen.
 - Modal Sheets und sekundaere Overlays waren noch einer der sichtbarsten Brueche: mehrere Flows nutzten direkte `MaterialTheme.colorScheme.surface/background`, lokale Drag-Handle-Masse und Standard-Scrims. Das wirkt funktional, aber nicht wie ein zusammenhaengender Luxus-Chrome.
+- Settings/Admin bleibt der groesste sichtbare Komplexitaetsbereich: viele Formulare sind funktional notwendig, brauchen aber konsequente Premium-Input-Rhythmik, verdichtete Gruppierung und bessere progressive Disclosure, damit der Bereich nicht nach Backoffice-Default wirkt.
 - Final fehlende Premium-Assets: echte Hero-/Surface-Fotos oder Renderings, ein konsistentes Icon-Set fuer Produktbereiche, App-Icon-Finetuning, Motion-Spezifikation als Design-Reference.
 
 ## Visuelle Leitidee
@@ -32,10 +35,10 @@ Quiet precision: dunkle Tiefe, helle mineralische Flaechen, wenige warme Akzente
 - Typografie: Awergy fuer ikonische Hero-Momente, Syne fuer UI und Editorial Copy.
 - Spacing: 4dp-basierte Rhythmik mit benannten Tokens in `SkydownUiTokens`.
 - Radius: 8/10/14/20/28dp Material-Slots plus produktbezogene Tokens fuer Cards, Hero, Sheets und Pills.
-- Elevation: `elevationHairline`, `elevationRaised`, `elevationPanel`, `elevationHero`.
+- Elevation: `elevationHairline`, `elevationRaised`, `elevationStateIcon`, `elevationPanel`, `elevationHero`.
 - Buttons: gefuellt fuer primaere Entscheidung, outline fuer sekundaere Aktionen, Loading/Disabled integriert.
 - Cards: keine nackten Material-Cards in Screens; `SkydownCard`/`skydownPanelSurface` als Standard.
-- Inputs: `SkydownPremiumTextField` statt roher `OutlinedTextField`.
+- Inputs: `SkydownPremiumTextField` statt roher `OutlinedTextField`; Mindesthoehe, Progress-Stroke und Switch-Masse werden ueber `SkydownUiTokens` gefuehrt.
 - Sheets: `skydownPremiumSheet*` Defaults fuer Container, Content, Scrim, Shape und Drag Handle; keine lokalen Material-Defaults in wiederkehrenden Premium-Flows.
 - Motion: 150-320ms, kontrolliertes Deceleration-Easing, Reduce-Motion respektieren.
 
@@ -109,5 +112,12 @@ Kurz, bestimmt, ruhig. Keine technische Erklaerprosa in UI-Chrome. Fehler nennen
 - Android App-Shell/Music-Hub Back-Chrome in `SkydownApp.kt` nutzt ebenfalls Premium Icon-Actions, damit Launch- und Feature-Navigation dieselbe taktile Brand-Sprache sprechen.
 - Android Settings Selection Controls sind weiter premiumisiert: `SkydownPremiumSwitch` ersetzt rohe Material-Switches, und Appearance-Auswahl nutzt einen ruhigen Brand-Indikator statt Standard-RadioButton.
 - Android AI, Agent, Home und Settings nutzen nun systemweit `SkydownPremiumSwitch`; `Switch(`-Treffer stammen nur noch vom zentralen Premium-Control selbst.
+- Android Premium-Control-Masse fuer Input-Hoehe, Progress-Stroke und Switch-Track/Knob liegen jetzt in `SkydownUiTokens`; die zentrale Komponente traegt keine magischen Produktmasse mehr.
+- Android Screen-Imports wurden bereinigt: Shop, Home, AI und Agent importieren keine rohen Material-`Switch`/`IconButton` Defaults mehr, wenn die Premium-Actions die tatsaechliche UI stellen.
+- Android Home Productivity Empty-Zeilen laufen ueber `HomeProductivityEmptyLine` und `SkydownPremiumInlineSurface`; kleine leere Zustaende wirken damit bewusst gesetzt statt wie nackte Text-Fallbacks.
+- Android Shop Message Cards verwenden `skydownPanelSurface` und zentrale Padding-/Icon-Tokens statt lokaler SurfaceVariant-/Border-Konstruktion; Commerce Empty-, Pause- und Filter-Zustaende wirken dadurch konsistenter mit dem restlichen Premium-Chrome.
+- Android kleine Statuspunkte verwenden `SkydownUiTokens.statusDotSize`; Home Empty Lines und Nicma Active Signals teilen damit dieselbe Mikro-Metrik.
+- Android Settings Toggle Rows und Admin Workspace Summary Cards verwenden `skydownPanelSurface` mit zentralem Padding und Elevation; dichte Admin-Controls wirken dadurch weniger nach Backoffice-Default und staerker nach kontrolliertem Produkt-Chrome.
+- Android Appearance-Auswahl nutzt `SettingsSelectableRow` und `SettingsSelectionDot`; Light/Dark/System ist damit keine lokale Surface-Sonderloesung mehr, sondern Teil derselben Premium-Auswahl-Sprache.
 - iOS `SkydownPremiumToggleStyle` fuehrt Toggle-Materialitaet zentral mit Brand-Track, Knob, Haptik und Light/Dark-Farben; Auth Consent, Agent Automation/Social, Profile AI Access, Home Due-Date und VideoHub Visibility nutzen diesen Stil.
 - iOS Settings Admin Toggles und Segmented Picker laufen nun ueber zentrale Premium Controls: `SkydownPremiumToggleStyle` fuer dichte Admin-Schalter und `SkydownPremiumSegmentedPicker` fuer Root-, Command-, Automation-, AI-Runtime- und Retention-Auswahlen.

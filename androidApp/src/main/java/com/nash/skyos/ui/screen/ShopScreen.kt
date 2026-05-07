@@ -50,7 +50,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -103,6 +102,7 @@ import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
 import com.nash.skyos.ui.component.skydownContentPadding
 import com.nash.skyos.ui.component.skydownAtmosphereBackground
+import com.nash.skyos.ui.component.skydownPanelSurface
 import com.nash.skyos.ui.component.skydownPressable
 import com.nash.skyos.ui.component.skydownPremiumSheetContainerColor
 import com.nash.skyos.ui.component.skydownPremiumSheetContentColor
@@ -1110,18 +1110,19 @@ private fun ShopMessageCard(
     onAction: (() -> Unit)? = null,
 ) {
     val bannerAccent = accent ?: MaterialTheme.colorScheme.primary
-    val shape = RoundedCornerShape(SkydownUiTokens.denseRadius)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f))
-            .border(
-                width = 1.dp,
-                color = bannerAccent.copy(alpha = 0.20f),
-                shape = shape,
+            .skydownPanelSurface(
+                accent = bannerAccent,
+                cornerRadius = SkydownUiTokens.denseRadius,
+                shadowRadius = SkydownUiTokens.elevationRaised,
+                shadowYOffset = SkydownUiTokens.stackSpacingTick,
             )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(
+                horizontal = SkydownUiTokens.cardPadding,
+                vertical = SkydownUiTokens.stackSpacingToast,
+            ),
         verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
     ) {
         Row(
@@ -1132,7 +1133,7 @@ private fun ShopMessageCard(
                 imageVector = icon,
                 contentDescription = null,
                 tint = bannerAccent,
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier.size(SkydownUiTokens.inlinePanelIconSize),
             )
             Text(
                 text = title,

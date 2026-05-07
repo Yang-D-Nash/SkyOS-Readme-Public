@@ -86,6 +86,15 @@ object SkydownUiTokens {
     val inlinePanelVerticalPadding = 8.dp
     val inlinePanelIconSize = 14.dp
     val inlinePanelMinHeight = 34.dp
+    val statusDotSize = 6.dp
+    val inputMinHeight = 58.dp
+    val progressStrokeWidth = 2.dp
+    val switchTrackWidth = 50.dp
+    val switchTrackHeight = 30.dp
+    val switchTrackPadding = 3.dp
+    val switchKnobSize = 24.dp
+    val selectionIndicatorSize = 22.dp
+    val selectionIndicatorDotSize = 10.dp
     val countBadgeHorizontalPadding = 6.dp
     val countBadgeVerticalPadding = 1.dp
     val editableImagePreviewHeight = 136.dp
