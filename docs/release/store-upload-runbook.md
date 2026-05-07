@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-05-07 17:06 CEST (premium music artist rollout candidate: iOS 10028 prepared, Android 10031 prepared)
+Last updated: 2026-05-07 CEST (Fastlane production + App Store Connect IPA lanes documented; historical build stamps below remain as-recorded.)
 Owner: Release Engineering
 
 ## Build Identity
@@ -18,6 +18,75 @@ Owner: Release Engineering
 - versionName: `1.0.0`
 - versionCode: `10031`
 - Play Billing Library: `8.3.0`
+
+## Fastlane: store upload lanes
+
+Definitions live in `fastlane/Fastfile`. Common prerequisite: repo root shell, **`fastlane`** on `PATH`, and a **fresh release AAB** at `androidApp/build/outputs/bundle/release/androidApp-release.aab` (after `./scripts/android_release_clean_build.sh` or equivalent). Every Android lane runs `scripts/verify_android_release_artifacts.sh` before talking to Play.
+
+Discover lanes anytime:
+
+```bash
+cd "$REPO_ROOT" && fastlane lanes
+```
+
+### Google Play — internal testing (`internal` track, draft release)
+
+Uses `SUPPLY_JSON_KEY` pointing at your Play Console **service-account JSON file** path (never commit that file).
+
+```bash
+export SUPPLY_JSON_KEY="/secure/path/play-service-account.json"
+cd "$REPO_ROOT"
+
+fastlane android validate_android_internal   # validates only — no upload
+fastlane android upload_android_internal      # uploads AAB as draft to internal testing
+```
+
+### Google Play — production track (soft / public rollout)
+
+Production lanes default to **`ANDROID_PLAY_TRACK=production`** and **`ANDROID_PLAY_RELEASE_STATUS=draft`** so the binary lands as a **Play Console draft** on the production track; you promote and publish from the console unless you deliberately override.
+
+```bash
+export SUPPLY_JSON_KEY="/secure/path/play-service-account.json"
+cd "$REPO_ROOT"
+
+fastlane android validate_android_production
+fastlane android upload_android_production
+```
+
+Optional overrides (see `Fastfile` for behavior):
+
+| Variable | Role |
+|---------|------|
+| `ANDROID_PLAY_TRACK` | Default `production`; set only if you use a named custom track deliberately. |
+| `ANDROID_PLAY_RELEASE_STATUS` | Default `draft`; set to `completed` or `inProgress` only when you intend an automated rollout state (know what you are doing in Play Console). |
+| `ANDROID_PLAY_ROLLOUT` | Phased rollout fraction (example `0.12` for **12%)** — only honoured when status is **`completed`** or **`inProgress`**. |
+
+Still skips metadata/screenshots/changelogs in Fastlane (`skip_upload_*` flags); listings remain edited in Play Console unless you extend the lane.
+
+### App Store Connect — binary upload via Fastlane (optional)
+
+Historical primary path remains **`xcodebuild -exportArchive` → `destination=upload`** using your `ExportOptions-*.plist` (see Upload Status notes below).
+
+Optional Fastlane lane **`upload_ios_app_store_connect`** uploads an **existing IPA** without submitting for review and without altering metadata/screenshots in App Store Connect.
+
+```bash
+cd "$REPO_ROOT"
+
+export IOS_IPA_PATH="build/ios/SkyOS.ipa"                 # repo-relative or absolute
+export ASC_KEY_ID="YOUR_KEY_ID"
+export ASC_ISSUER_ID="YOUR_ISSUER_UUID"
+export ASC_KEY_PATH="/secure/path/AuthKey_XXXXXXXXXX.p8"   # Download once from ASC → Users and Access → Keys
+
+fastlane ios precheck_ios_ipa
+fastlane ios precheck_ios_asc_credentials   # optional: env + .p8 path only
+fastlane ios upload_ios_app_store_connect   # uploads IPA; finalize review/submit in App Store Connect UI
+```
+
+`Fastfile` uses bundle id `com.skydown.ios` for this lane. Keep API keys **out of git** like `SUPPLY_JSON_KEY`.
+
+### Public legal / support URLs (reference)
+
+Hosting currently serves `site/` at **`https://skydown-a6add.web.app`** (privacy, terms, support). Paste the HTTPS URLs you expose **in storefront listings** under `docs/release/store-upload-runbook.md` → Metadata and URLs; do not leave placeholder domains live.
 
 ## Build Artifacts
 
@@ -291,12 +360,17 @@ Historical 2026-04-26 upload notes retained for traceability; current upload tar
 
 ## Metadata and URLs to Fill In Console
 
-- Privacy Policy URL: `<your-public-domain>/privacy.html`
-- Terms URL: `<your-public-domain>/terms.html`
-- Support URL: `<your-public-domain>/support.html`
-- App website URL (if required): `<your-public-domain>/`
+Use **HTTPS URLs** hosted from `site/` (Firebase Hosting):
 
-Do not submit with placeholder domains.
+- Firebase default host: **`https://skydown-a6add.web.app`**
+  - Privacy: `https://skydown-a6add.web.app/privacy.html`
+  - Terms: `https://skydown-a6add.web.app/terms.html`
+  - Support: `https://skydown-a6add.web.app/support.html`
+  - Home: `https://skydown-a6add.web.app/`
+
+If you map a custom domain in Firebase Hosting, swap the hostname but keep **`/privacy.html`**, **`/terms.html`**, **`/support.html`** (or update redirects alongside `firebase.json`).
+
+Do not submit with undeployed domains or placeholders.
 
 ## App Review Notes (Apple)
 
