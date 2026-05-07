@@ -446,6 +446,65 @@ struct SkydownPremiumToggleStyle: ToggleStyle {
     }
 }
 
+struct SkydownPremiumSegmentedPicker<Value: Equatable>: View {
+    let title: String
+    @Binding var selection: Value
+    let options: [(value: Value, title: String)]
+    let colorScheme: ColorScheme
+    var accent: Color? = nil
+
+    var body: some View {
+        HStack(spacing: SkydownLayout.stackSpacingNano) {
+            ForEach(options.indices, id: \.self) { index in
+                let option = options[index]
+                let selected = option.value == selection
+                Button {
+                    guard !selected else { return }
+                    SkydownHaptics.selection()
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
+                        selection = option.value
+                    }
+                } label: {
+                    Text(option.title)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.78)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(selected ? AppColors.primaryBackground(for: colorScheme) : AppColors.text(for: colorScheme))
+                        .frame(maxWidth: .infinity, minHeight: 34)
+                        .padding(.horizontal, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
+                                .fill(selected ? activeAccent.opacity(colorScheme == .dark ? 0.86 : 0.78) : Color.clear)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: SkydownLayout.tightRadius, style: .continuous)
+                                .stroke(selected ? activeAccent.opacity(0.32) : Color.clear, lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(option.title))
+                .accessibilityValue(selected ? Text("Selected") : Text(""))
+            }
+        }
+        .padding(3)
+        .background(
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
+                .fill(AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.58))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
+                .stroke(activeAccent.opacity(0.14), lineWidth: 1)
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text(title))
+    }
+
+    private var activeAccent: Color {
+        accent ?? AppColors.accent(for: colorScheme)
+    }
+}
+
 struct SkydownPremiumPromptTile: View {
     let title: String
     let tint: Color

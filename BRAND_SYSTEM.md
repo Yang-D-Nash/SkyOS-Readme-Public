@@ -110,3 +110,4 @@ Kurz, bestimmt, ruhig. Keine technische Erklaerprosa in UI-Chrome. Fehler nennen
 - Android Settings Selection Controls sind weiter premiumisiert: `SkydownPremiumSwitch` ersetzt rohe Material-Switches, und Appearance-Auswahl nutzt einen ruhigen Brand-Indikator statt Standard-RadioButton.
 - Android AI, Agent, Home und Settings nutzen nun systemweit `SkydownPremiumSwitch`; `Switch(`-Treffer stammen nur noch vom zentralen Premium-Control selbst.
 - iOS `SkydownPremiumToggleStyle` fuehrt Toggle-Materialitaet zentral mit Brand-Track, Knob, Haptik und Light/Dark-Farben; Auth Consent, Agent Automation/Social, Profile AI Access, Home Due-Date und VideoHub Visibility nutzen diesen Stil.
+- iOS Settings Admin Toggles und Segmented Picker laufen nun ueber zentrale Premium Controls: `SkydownPremiumToggleStyle` fuer dichte Admin-Schalter und `SkydownPremiumSegmentedPicker` fuer Root-, Command-, Automation-, AI-Runtime- und Retention-Auswahlen.

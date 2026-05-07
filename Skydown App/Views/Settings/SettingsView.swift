@@ -547,19 +547,14 @@ struct SettingsView: View {
                             title: AppLocalized.text("settings.experience_layer.title", fallback: "Experience Layer"),
                             colorScheme: effectiveColorScheme
                         )
-                        Picker(
-                            AppLocalized.text("settings.experience_layer.title", fallback: "Experience Layer"),
-                            selection: $activeSettingsRootArea
-                        ) {
-                            Text(AppLocalized.text("settings.root.personal", fallback: "Personal")).tag(SettingsRootArea.user)
-                            if authManager.userSession != nil {
-                                Text(AppLocalized.text("settings.root.studio", fallback: "Studio")).tag(SettingsRootArea.creatorOps)
-                            }
-                            if isOwnerUser {
-                                Text(AppLocalized.text("settings.root.command", fallback: "Command")).tag(SettingsRootArea.ownerConsole)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                        SkydownPremiumSegmentedPicker(
+                            title: AppLocalized.text("settings.experience_layer.title", fallback: "Experience Layer"),
+                            selection: $activeSettingsRootArea,
+                            options: [(SettingsRootArea.user, AppLocalized.text("settings.root.personal", fallback: "Personal"))]
+                                + (authManager.userSession != nil ? [(SettingsRootArea.creatorOps, AppLocalized.text("settings.root.studio", fallback: "Studio"))] : [])
+                                + (isOwnerUser ? [(SettingsRootArea.ownerConsole, AppLocalized.text("settings.root.command", fallback: "Command"))] : []),
+                            colorScheme: effectiveColorScheme
+                        )
                     }
 
                     if activeSettingsRootArea == .creatorOps {
@@ -1584,15 +1579,17 @@ struct SettingsView: View {
                         title: AppLocalized.text("settings.command_layer.title", fallback: "Command Layer"),
                         colorScheme: effectiveColorScheme
                     )
-                    Picker(
-                        AppLocalized.text("settings.command_layer.title", fallback: "Command Layer"),
-                        selection: $activeOwnerConsoleArea
-                    ) {
-                        Text(AppLocalized.text("settings.command.daily", fallback: "Daily")).tag(OwnerConsoleArea.ops)
-                        Text(AppLocalized.text("settings.command.lab", fallback: "Lab")).tag(OwnerConsoleArea.aiRuntime)
-                        Text(AppLocalized.text("settings.command.vault", fallback: "Vault")).tag(OwnerConsoleArea.governance)
-                    }
-                    .pickerStyle(.segmented)
+                    SkydownPremiumSegmentedPicker(
+                        title: AppLocalized.text("settings.command_layer.title", fallback: "Command Layer"),
+                        selection: $activeOwnerConsoleArea,
+                        options: [
+                            (OwnerConsoleArea.ops, AppLocalized.text("settings.command.daily", fallback: "Daily")),
+                            (OwnerConsoleArea.aiRuntime, AppLocalized.text("settings.command.lab", fallback: "Lab")),
+                            (OwnerConsoleArea.governance, AppLocalized.text("settings.command.vault", fallback: "Vault"))
+                        ],
+                        colorScheme: effectiveColorScheme,
+                        accent: AppColors.accentMystic(for: effectiveColorScheme)
+                    )
                     Text(ownerConsoleAreaHint)
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
@@ -2474,6 +2471,7 @@ struct SettingsView: View {
                             }
                         )
                     )
+                    .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentMystic(for: effectiveColorScheme)))
 
                     Text(AppLocalized.text("settings.visuals.local_sync_later_hint", fallback: "Stored locally. Link and notes for AI. Sync comes later."))
                         .font(.footnote)
@@ -2544,15 +2542,21 @@ struct SettingsView: View {
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                     Toggle(isOwnerUser ? "Globalen Activepieces-Flow aktivieren" : "Eigenen Workflow aktivieren", isOn: $automationEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentHighlight(for: effectiveColorScheme)))
 
                     Toggle("App-User-Kontext mitsenden", isOn: $automationSendsUserContextDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentHighlight(for: effectiveColorScheme)))
 
                     if !isOwnerUser {
-                        Picker("Provider", selection: $automationProviderDraft) {
-                            Text(AppLocalized.text("settings.automation.provider_activepieces", fallback: "Activepieces")).tag("activepieces")
-                            Text(AppLocalized.text("settings.automation.provider_n8n", fallback: "n8n")).tag("n8n")
-                        }
-                        .pickerStyle(.segmented)
+                        SkydownPremiumSegmentedPicker(
+                            title: "Provider",
+                            selection: $automationProviderDraft,
+                            options: [
+                                ("activepieces", AppLocalized.text("settings.automation.provider_activepieces", fallback: "Activepieces")),
+                                ("n8n", AppLocalized.text("settings.automation.provider_n8n", fallback: "n8n"))
+                            ],
+                            colorScheme: effectiveColorScheme
+                        )
                     }
 
                     SettingsInputField(
@@ -2668,6 +2672,7 @@ struct SettingsView: View {
                         .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                     Toggle("Eigenen Manus-Account verwenden", isOn: $manusByosEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentMystic(for: effectiveColorScheme)))
 
                     HStack(spacing: SkydownLayout.stackSpacingPill) {
                         SettingsBadge(
@@ -2970,7 +2975,7 @@ struct SettingsView: View {
                                     .foregroundColor(AppColors.secondaryText(for: effectiveColorScheme))
 
                                 Toggle(AppLocalized.text("settings.ai_studio.faq_base.toggle_published", fallback: "Published"), isOn: $entry.isPublished)
-                                    .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: effectiveColorScheme)))
+                                    .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
 
                                 SkydownBrandActionButton(
                                     title: AppLocalized.text("settings.ai_studio.faq_base.remove_entry", fallback: "Remove entry"),
@@ -3149,7 +3154,7 @@ struct SettingsView: View {
                                 )
 
                                 Toggle(AppLocalized.text("settings.ai_studio.owner_inspiration.toggle_published", fallback: "Published"), isOn: $entry.isPublished)
-                                    .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: effectiveColorScheme)))
+                                    .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
 
                                 SkydownBrandActionButton(
                                     title: AppLocalized.text("settings.ai_studio.owner_inspiration.remove_entry", fallback: "Remove entry"),
@@ -3536,11 +3541,15 @@ struct SettingsView: View {
                             title: AppLocalized.text("settings.ai_runtime.bot_picker.quality_mode", fallback: "Quality mode"),
                             colorScheme: effectiveColorScheme
                         )
-                        Picker(AppLocalized.text("settings.ai_runtime.bot_picker.quality_mode", fallback: "Quality mode"), selection: $aiBotQualityModeDraft) {
-                            Text(AppLocalized.text("common.balanced", fallback: "Balanced")).tag("balanced")
-                            Text(AppLocalized.text("common.high", fallback: "High")).tag("high")
-                        }
-                        .pickerStyle(.segmented)
+                        SkydownPremiumSegmentedPicker(
+                            title: AppLocalized.text("settings.ai_runtime.bot_picker.quality_mode", fallback: "Quality mode"),
+                            selection: $aiBotQualityModeDraft,
+                            options: [
+                                ("balanced", AppLocalized.text("common.balanced", fallback: "Balanced")),
+                                ("high", AppLocalized.text("common.high", fallback: "High"))
+                            ],
+                            colorScheme: effectiveColorScheme
+                        )
                     }
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
@@ -3548,12 +3557,16 @@ struct SettingsView: View {
                             title: AppLocalized.text("settings.ai_runtime.bot_picker.faq_mode", fallback: "FAQ mode"),
                             colorScheme: effectiveColorScheme
                         )
-                        Picker(AppLocalized.text("settings.ai_runtime.bot_picker.faq_mode", fallback: "FAQ mode"), selection: $aiBotFAQModeDraft) {
-                            Text(AppLocalized.text("common.off", fallback: "Off")).tag("off")
-                            Text(AppLocalized.text("common.auto", fallback: "Auto")).tag("auto")
-                            Text(AppLocalized.text("common.prefer", fallback: "Prefer")).tag("prefer_faq")
-                        }
-                        .pickerStyle(.segmented)
+                        SkydownPremiumSegmentedPicker(
+                            title: AppLocalized.text("settings.ai_runtime.bot_picker.faq_mode", fallback: "FAQ mode"),
+                            selection: $aiBotFAQModeDraft,
+                            options: [
+                                ("off", AppLocalized.text("common.off", fallback: "Off")),
+                                ("auto", AppLocalized.text("common.auto", fallback: "Auto")),
+                                ("prefer_faq", AppLocalized.text("common.prefer", fallback: "Prefer"))
+                            ],
+                            colorScheme: effectiveColorScheme
+                        )
                     }
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
@@ -3561,11 +3574,15 @@ struct SettingsView: View {
                             title: AppLocalized.text("settings.ai_runtime.bot_picker.owner_mode", fallback: "Owner mode"),
                             colorScheme: effectiveColorScheme
                         )
-                        Picker(AppLocalized.text("settings.ai_runtime.bot_picker.owner_mode", fallback: "Owner mode"), selection: $aiBotOwnerModeDraft) {
-                            Text(AppLocalized.text("common.standard", fallback: "Standard")).tag("standard")
-                            Text(AppLocalized.text("common.diagnostic", fallback: "Diagnostic")).tag("diagnostic")
-                        }
-                        .pickerStyle(.segmented)
+                        SkydownPremiumSegmentedPicker(
+                            title: AppLocalized.text("settings.ai_runtime.bot_picker.owner_mode", fallback: "Owner mode"),
+                            selection: $aiBotOwnerModeDraft,
+                            options: [
+                                ("standard", AppLocalized.text("common.standard", fallback: "Standard")),
+                                ("diagnostic", AppLocalized.text("common.diagnostic", fallback: "Diagnostic"))
+                            ],
+                            colorScheme: effectiveColorScheme
+                        )
                     }
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
@@ -3573,12 +3590,16 @@ struct SettingsView: View {
                             title: AppLocalized.text("settings.ai_runtime.bot_picker.answer_length", fallback: "Answer length"),
                             colorScheme: effectiveColorScheme
                         )
-                        Picker(AppLocalized.text("settings.ai_runtime.bot_picker.answer_length", fallback: "Answer length"), selection: $aiBotAnswerLengthDraft) {
-                            Text(AppLocalized.text("common.adaptive", fallback: "Adaptive")).tag("adaptive")
-                            Text(AppLocalized.text("common.short", fallback: "Short")).tag("short")
-                            Text(AppLocalized.text("common.detailed", fallback: "Detailed")).tag("detailed")
-                        }
-                        .pickerStyle(.segmented)
+                        SkydownPremiumSegmentedPicker(
+                            title: AppLocalized.text("settings.ai_runtime.bot_picker.answer_length", fallback: "Answer length"),
+                            selection: $aiBotAnswerLengthDraft,
+                            options: [
+                                ("adaptive", AppLocalized.text("common.adaptive", fallback: "Adaptive")),
+                                ("short", AppLocalized.text("common.short", fallback: "Short")),
+                                ("detailed", AppLocalized.text("common.detailed", fallback: "Detailed"))
+                            ],
+                            colorScheme: effectiveColorScheme
+                        )
                     }
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
@@ -3586,32 +3607,54 @@ struct SettingsView: View {
                             title: AppLocalized.text("settings.ai_runtime.bot_picker.diagnostics", fallback: "Diagnostics"),
                             colorScheme: effectiveColorScheme
                         )
-                        Picker(AppLocalized.text("settings.ai_runtime.bot_picker.diagnostics", fallback: "Diagnostics"), selection: $aiBotDiagnosticsModeDraft) {
-                            Text(AppLocalized.text("common.off", fallback: "Off")).tag("off")
-                            Text(AppLocalized.text("common.owner", fallback: "Owner")).tag("owner_only")
-                            Text(AppLocalized.text("common.verbose", fallback: "Verbose")).tag("verbose")
-                        }
-                        .pickerStyle(.segmented)
+                        SkydownPremiumSegmentedPicker(
+                            title: AppLocalized.text("settings.ai_runtime.bot_picker.diagnostics", fallback: "Diagnostics"),
+                            selection: $aiBotDiagnosticsModeDraft,
+                            options: [
+                                ("off", AppLocalized.text("common.off", fallback: "Off")),
+                                ("owner_only", AppLocalized.text("common.owner", fallback: "Owner")),
+                                ("verbose", AppLocalized.text("common.verbose", fallback: "Verbose"))
+                            ],
+                            colorScheme: effectiveColorScheme
+                        )
                     }
 
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.kill_switch", fallback: "Kill switch enabled"), isOn: $aiBotKillSwitchDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.error(for: effectiveColorScheme)))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.bot_cost_guard", fallback: "Bot cost guard enabled"), isOn: $aiBotCostGuardEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.prefer_brief_critical", fallback: "Short answers for critical guard"), isOn: $aiBotPreferBriefCriticalDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.prefer_faq_routing", fallback: "Prioritize FAQ on topic match"), isOn: $aiBotPreferFaqRoutingDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.prefer_product_guide", fallback: "Prefer product guide for new users"), isOn: $aiBotPreferProductGuideDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.allow_visual_generation", fallback: "Allow visual generation"), isOn: $aiBotAllowVisualGenerationDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.allow_text_fallback", fallback: "Allow text fallback"), isOn: $aiBotAllowTextFallbackDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.allow_visual_fallback", fallback: "Allow visual fallback"), isOn: $aiBotAllowVisualFallbackDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.expose_fallback_reason", fallback: "Show fallback reason"), isOn: $aiBotExposeFallbackReasonDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.safe_mode_enabled", fallback: "Safe mode enabled"), isOn: $aiBotSafeModeEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.strict_unknown_handling", fallback: "Strict unknown handling"), isOn: $aiBotStrictUnknownHandlingDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.block_speculative_faq", fallback: "Block speculative FAQ"), isOn: $aiBotBlockSpeculativeFAQDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.proactive_hints_enabled", fallback: "Proactive hints enabled"), isOn: $aiBotProactiveHintsEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.trigger_ai_limit_near", fallback: "Trigger: AI limit nearly reached"), isOn: $aiBotTriggerAiLimitNearEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentHighlight(for: effectiveColorScheme)))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.trigger_restore_available", fallback: "Trigger: restore available"), isOn: $aiBotTriggerRestoreAvailableEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentHighlight(for: effectiveColorScheme)))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.trigger_order_shipped", fallback: "Trigger: order shipped"), isOn: $aiBotTriggerOrderShippedEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentHighlight(for: effectiveColorScheme)))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.trigger_payment_methods_changed", fallback: "Trigger: payment method changed"), isOn: $aiBotTriggerPaymentMethodsChangedEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentHighlight(for: effectiveColorScheme)))
                     Toggle(AppLocalized.text("settings.ai_runtime.bot_toggle.trigger_usage_based_upgrade", fallback: "Trigger: usage-based upgrade"), isOn: $aiBotTriggerUsageBasedUpgradeEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentHighlight(for: effectiveColorScheme)))
 
                     SettingsInputField(
                         title: AppLocalized.text("settings.ai_runtime.bot_field.warning_threshold", fallback: "Proactive warning threshold (%)"),
@@ -3655,12 +3698,16 @@ struct SettingsView: View {
                             title: AppLocalized.text("settings.ai_runtime.bot_picker.faq_priority", fallback: "FAQ priority"),
                             colorScheme: effectiveColorScheme
                         )
-                        Picker(AppLocalized.text("settings.ai_runtime.bot_picker.faq_priority", fallback: "FAQ priority"), selection: $aiBotFaqPriorityModeDraft) {
-                            Text(AppLocalized.text("settings.ai_runtime.faq_priority_live_owner", fallback: "Live -> Owner -> Generic")).tag("live_owner_generic")
-                            Text(AppLocalized.text("settings.ai_runtime.faq_priority_owner_live", fallback: "Owner -> Live -> Generic")).tag("owner_live_generic")
-                            Text(AppLocalized.text("common.balanced", fallback: "Balanced")).tag("balanced")
-                        }
-                        .pickerStyle(.segmented)
+                        SkydownPremiumSegmentedPicker(
+                            title: AppLocalized.text("settings.ai_runtime.bot_picker.faq_priority", fallback: "FAQ priority"),
+                            selection: $aiBotFaqPriorityModeDraft,
+                            options: [
+                                ("live_owner_generic", AppLocalized.text("settings.ai_runtime.faq_priority_live_owner", fallback: "Live -> Owner -> Generic")),
+                                ("owner_live_generic", AppLocalized.text("settings.ai_runtime.faq_priority_owner_live", fallback: "Owner -> Live -> Generic")),
+                                ("balanced", AppLocalized.text("common.balanced", fallback: "Balanced"))
+                            ],
+                            colorScheme: effectiveColorScheme
+                        )
                     }
 
                     SettingsInputField(
@@ -3711,18 +3758,20 @@ struct SettingsView: View {
                         .padding(.vertical, 4)
 
                     Toggle(AppLocalized.text("settings.ai_runtime.toggle_cost_guard", fallback: "Cost guard enabled"), isOn: $aiCostGuardEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme))
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
                         SettingsFieldTitle(
                             title: AppLocalized.text("settings.ai_runtime.field.agent_provider", fallback: "Agent provider"),
                             colorScheme: effectiveColorScheme
                         )
-                        Picker(AppLocalized.text("settings.ai_runtime.field.agent_provider", fallback: "Agent provider"), selection: $aiAgentProviderDraft) {
-                            ForEach(AIRuntimeAgentProvider.allCases, id: \.self) { provider in
-                                Text(provider.displayTitle).tag(provider)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                        SkydownPremiumSegmentedPicker(
+                            title: AppLocalized.text("settings.ai_runtime.field.agent_provider", fallback: "Agent provider"),
+                            selection: $aiAgentProviderDraft,
+                            options: AIRuntimeAgentProvider.allCases.map { ($0, $0.displayTitle) },
+                            colorScheme: effectiveColorScheme,
+                            accent: AppColors.accentMystic(for: effectiveColorScheme)
+                        )
                     }
 
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
@@ -3730,15 +3779,17 @@ struct SettingsView: View {
                             title: AppLocalized.text("settings.ai_runtime.field.fallback_provider", fallback: "Fallback provider"),
                             colorScheme: effectiveColorScheme
                         )
-                        Picker(AppLocalized.text("settings.ai_runtime.field.fallback_provider", fallback: "Fallback provider"), selection: $aiFallbackAgentProviderDraft) {
-                            ForEach(AIRuntimeAgentProvider.allCases, id: \.self) { provider in
-                                Text(provider.displayTitle).tag(provider)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                        SkydownPremiumSegmentedPicker(
+                            title: AppLocalized.text("settings.ai_runtime.field.fallback_provider", fallback: "Fallback provider"),
+                            selection: $aiFallbackAgentProviderDraft,
+                            options: AIRuntimeAgentProvider.allCases.map { ($0, $0.displayTitle) },
+                            colorScheme: effectiveColorScheme,
+                            accent: AppColors.accentMystic(for: effectiveColorScheme)
+                        )
                     }
 
                     Toggle(AppLocalized.text("settings.ai_runtime.toggle_manus_enabled", fallback: "Enable Manus"), isOn: $aiManusEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentMystic(for: effectiveColorScheme)))
 
                     Text(AppLocalized.text("settings.ai_runtime.manus_heading", fallback: "Manus runtime (adminConfig/aiRuntime.manus)"))
                         .font(.subheadline.weight(.semibold))
@@ -3792,8 +3843,11 @@ struct SettingsView: View {
                     )
 
                     Toggle(AppLocalized.text("settings.ai_runtime.manus.toggle_auto_stop_waiting", fallback: "Auto-stop on waiting event"), isOn: $aiManusAutoStopOnWaitingDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentMystic(for: effectiveColorScheme)))
                     Toggle(AppLocalized.text("settings.ai_runtime.manus.toggle_block_high_credit", fallback: "Block high-credit events"), isOn: $aiManusBlockHighCreditEventsDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentMystic(for: effectiveColorScheme)))
                     Toggle(AppLocalized.text("settings.ai_runtime.manus.toggle_include_verbose", fallback: "Include verbose events"), isOn: $aiManusIncludeVerboseEventsDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentMystic(for: effectiveColorScheme)))
 
                     Divider()
                         .padding(.vertical, 4)
@@ -3803,8 +3857,11 @@ struct SettingsView: View {
                         .foregroundColor(AppColors.text(for: effectiveColorScheme))
 
                     Toggle(AppLocalized.text("settings.ai_runtime.knowledge.toggle_enabled", fallback: "Google Drive knowledge enabled"), isOn: $aiKnowledgeGoogleDriveEnabledDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentMystic(for: effectiveColorScheme)))
                     Toggle(AppLocalized.text("settings.ai_runtime.knowledge.toggle_strict_source_mode", fallback: "Strict source mode"), isOn: $aiKnowledgeGoogleDriveStrictSourceModeDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentMystic(for: effectiveColorScheme)))
                     Toggle(AppLocalized.text("settings.ai_runtime.knowledge.toggle_require_citations", fallback: "Require source citations"), isOn: $aiKnowledgeGoogleDriveRequireSourceCitationsDraft)
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: effectiveColorScheme, accent: AppColors.accentMystic(for: effectiveColorScheme)))
 
                     SettingsMultilineInputField(
                         title: AppLocalized.text("settings.ai_runtime.knowledge.allowed_shared_drive_ids", fallback: "Allowed shared drive IDs"),
@@ -6585,6 +6642,7 @@ private struct SettingsToggleCard: View {
             Toggle("", isOn: $isOn)
                 .labelsHidden()
                 .disabled(!isEnabled)
+                .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme))
         }
         .padding(14)
         .background(AppColors.secondaryBackground(for: colorScheme))
@@ -7552,13 +7610,18 @@ private struct SettingsAdminUserCard: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(AppColors.text(for: colorScheme))
 
-                Picker("History-Aufbewahrung", selection: $historyRetentionDays) {
-                    Text(AppLocalized.text("settings.user.retention_1_day", fallback: "1 day")).tag(1)
-                    Text(AppLocalized.text("settings.user.retention_3_days", fallback: "3 days")).tag(3)
-                    Text(AppLocalized.text("settings.user.retention_7_days", fallback: "7 days")).tag(7)
-                    Text(AppLocalized.text("settings.user.retention_30_days", fallback: "30 days")).tag(30)
-                }
-                .pickerStyle(.segmented)
+                SkydownPremiumSegmentedPicker(
+                    title: "History-Aufbewahrung",
+                    selection: $historyRetentionDays,
+                    options: [
+                        (1, AppLocalized.text("settings.user.retention_1_day", fallback: "1 day")),
+                        (3, AppLocalized.text("settings.user.retention_3_days", fallback: "3 days")),
+                        (7, AppLocalized.text("settings.user.retention_7_days", fallback: "7 days")),
+                        (30, AppLocalized.text("settings.user.retention_30_days", fallback: "30 days"))
+                    ],
+                    colorScheme: colorScheme,
+                    accent: AppColors.accentMystic(for: colorScheme)
+                )
             }
 
             SkydownBrandActionButton(
