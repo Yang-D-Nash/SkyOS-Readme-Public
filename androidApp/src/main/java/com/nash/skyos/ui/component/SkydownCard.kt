@@ -54,7 +54,7 @@ fun SkydownCard(
             .skydownPanelSurface(
                 cornerRadius = SkydownUiTokens.cardCornerRadius,
                 shadowRadius = SkydownUiTokens.elevationPanel,
-                shadowYOffset = 5.dp,
+                shadowYOffset = SkydownUiTokens.panelShadowYOffset,
             )
             .padding(contentPadding),
         content = content,
@@ -65,8 +65,8 @@ fun SkydownCard(
 fun Modifier.skydownPanelSurface(
     accent: Color? = null,
     cornerRadius: androidx.compose.ui.unit.Dp = SkydownUiTokens.cardCornerRadius,
-    shadowRadius: androidx.compose.ui.unit.Dp = 14.dp,
-    shadowYOffset: androidx.compose.ui.unit.Dp = 8.dp,
+    shadowRadius: androidx.compose.ui.unit.Dp = SkydownUiTokens.elevationPanel,
+    shadowYOffset: androidx.compose.ui.unit.Dp = SkydownUiTokens.panelShadowYOffsetRelaxed,
 ): Modifier = composed {
     val colorScheme = MaterialTheme.colorScheme
     val isDarkPalette = colorScheme.skydownIsDarkPalette()
@@ -155,8 +155,8 @@ fun Modifier.skydownCapsuleSurface(
     shadow(
         elevation = SkydownUiTokens.elevationRaised,
         shape = shape,
-        ambientColor = Color.Black.copy(alpha = if (isDarkPalette) 0.13f else 0.075f),
-        spotColor = Color.Black.copy(alpha = if (isDarkPalette) 0.13f else 0.075f),
+        ambientColor = colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.13f else 0.075f),
+        spotColor = colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.13f else 0.075f),
     )
         .clip(shape)
         .drawWithContent {
@@ -193,7 +193,7 @@ fun Modifier.skydownCapsuleSurface(
             drawContent()
         }
         .border(
-            width = 0.9.dp,
+            width = SkydownUiTokens.elevationBrandBorder,
             brush = Brush.linearGradient(
                 colors = listOf(
                     colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.12f else 0.22f),

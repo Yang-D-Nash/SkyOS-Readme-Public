@@ -137,9 +137,9 @@ fun BrandHeroCard(
     } else {
         colorScheme.skydownText().copy(alpha = 0.86f)
     }
-    val contentHorizontalPadding = if (autoCompactDensity) 16.dp else SkydownUiTokens.heroPadding
-    val contentVerticalPadding = if (autoCompactDensity) 15.dp else SkydownUiTokens.heroPadding + 1.dp
-    val contentSpacing = if (autoCompactDensity) 11.dp else 14.dp
+    val contentHorizontalPadding = if (autoCompactDensity) SkydownUiTokens.heroCompactHorizontalPadding else SkydownUiTokens.heroPadding
+    val contentVerticalPadding = if (autoCompactDensity) SkydownUiTokens.heroCompactVerticalPadding else SkydownUiTokens.heroPadding + SkydownUiTokens.stackSpacingSingle
+    val contentSpacing = if (autoCompactDensity) SkydownUiTokens.heroCompactContentSpacing else SkydownUiTokens.heroContentSpacing
     val eyebrowStyle = SkydownHeroEyebrowTextStyle
     val titleStyle = if (autoCompactDensity) SkydownCompactHeroTitleTextStyle else SkydownHeroTitleTextStyle
     val subtitleStyle = SkydownHeroSubtitleTextStyle
@@ -172,8 +172,8 @@ fun BrandHeroCard(
                     } else {
                         Modifier.shadow(
                             elevation = when {
-                                edgeToEdge -> if (autoCompactDensity) SkydownUiTokens.elevationRaised else 9.dp
-                                autoCompactDensity -> 13.dp
+                                edgeToEdge -> if (autoCompactDensity) SkydownUiTokens.elevationRaised else SkydownUiTokens.elevationHeroEdge
+                                autoCompactDensity -> SkydownUiTokens.elevationHeroCompact
                                 else -> SkydownUiTokens.elevationHero
                             },
                             shape = shape,
@@ -233,7 +233,7 @@ fun BrandHeroCard(
                         Modifier
                     } else {
                         Modifier.border(
-                            width = if (edgeToEdge) 0.55.dp else 0.9.dp,
+                            width = if (edgeToEdge) SkydownUiTokens.elevationFineHairline else SkydownUiTokens.elevationBrandBorder,
                             brush = Brush.linearGradient(
                                 colors = listOf(
                                     Color.White.copy(alpha = if (edgeToEdge) 0.10f else if (isDarkPalette) 0.18f else 0.24f),
@@ -327,16 +327,16 @@ fun BrandHeroCard(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(if (autoCompactDensity) 58.dp else 84.dp)
+                        .size(if (autoCompactDensity) SkydownUiTokens.heroCompactGlowSize else SkydownUiTokens.heroGlowSize)
                         .background(accent.copy(alpha = if (isDarkPalette) 0.03f else 0.05f), CircleShape)
-                        .blur(if (autoCompactDensity) 12.dp else 20.dp),
+                        .blur(if (autoCompactDensity) SkydownUiTokens.heroCompactGlowBlur else SkydownUiTokens.heroGlowBlur),
                 )
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .size(if (autoCompactDensity) 42.dp else 58.dp)
+                        .size(if (autoCompactDensity) SkydownUiTokens.heroCompactInnerGlowSize else SkydownUiTokens.heroInnerGlowSize)
                         .background(secondaryAccent.copy(alpha = if (isDarkPalette) 0.03f else 0.05f), CircleShape)
-                        .blur(if (autoCompactDensity) 10.dp else 16.dp),
+                        .blur(if (autoCompactDensity) SkydownUiTokens.heroCompactInnerGlowBlur else SkydownUiTokens.heroInnerGlowBlur),
                 )
 
                 Row(
@@ -378,8 +378,8 @@ fun BrandHeroCard(
                             }
                             Box(
                                 modifier = Modifier
-                                    .width(if (autoCompactDensity) 34.dp else 46.dp)
-                                    .height(3.dp)
+                                    .width(if (autoCompactDensity) SkydownUiTokens.heroCompactMarkSize else SkydownUiTokens.heroMarkSize)
+                                    .height(SkydownUiTokens.heroRuleHeight)
                                     .background(
                                         Brush.horizontalGradient(
                                             colors = listOf(
@@ -429,7 +429,7 @@ fun BrandHeroCard(
                         Column(
                             modifier = Modifier
                                 .width(
-                                    if (marks.size == 1) 118.dp else 96.dp,
+                                    if (marks.size == 1) SkydownUiTokens.heroSingleArtworkWidth else SkydownUiTokens.heroStackedArtworkWidth,
                                 ),
                             verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         ) {
@@ -445,7 +445,7 @@ fun BrandHeroCard(
                 }
             }
 
-            Column(modifier = Modifier.padding(top = 4.dp)) {
+            Column(modifier = Modifier.padding(top = SkydownUiTokens.stackSpacingNano)) {
                 footer()
             }
         }
@@ -473,11 +473,11 @@ fun BrandHeroMetricCard(
         modifier = modifier
             .skydownPanelSurface(
                 accent = resolvedAccent,
-                cornerRadius = 18.dp,
-                shadowRadius = 10.dp,
-                shadowYOffset = 5.dp,
+                cornerRadius = SkydownUiTokens.messageBubbleRadius,
+                shadowRadius = SkydownUiTokens.stackSpacingPill,
+                shadowYOffset = SkydownUiTokens.panelShadowYOffset,
             )
-            .padding(horizontal = 11.dp, vertical = 10.dp),
+            .padding(horizontal = SkydownUiTokens.stackSpacingToast, vertical = SkydownUiTokens.stackSpacingPill),
         verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
     ) {
         if (icon != null) {
@@ -487,7 +487,7 @@ fun BrandHeroMetricCard(
             ) {
                 Box(
                 modifier = Modifier
-                    .size(22.dp)
+                    .size(SkydownUiTokens.metricIconSurfaceSize)
                     .clip(CircleShape)
                     .background(resolvedAccent.copy(alpha = if (isActive) 0.14f else 0.08f)),
                 contentAlignment = Alignment.Center,
@@ -496,7 +496,7 @@ fun BrandHeroMetricCard(
                     imageVector = icon,
                     contentDescription = null,
                     tint = if (isActive) accent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(SkydownUiTokens.metricIconContentSize),
                 )
             }
                 Text(
@@ -745,7 +745,7 @@ fun BrandActionButton(
                 .clip(shape)
                 .background(filledBrush)
                 .border(
-                    width = 1.dp,
+                    width = SkydownUiTokens.elevationHairline,
                     brush = filledBorderBrush,
                     shape = shape,
                 )
@@ -764,7 +764,7 @@ fun BrandActionButton(
                     SkydownPremiumCircularProgress(
                         modifier = Modifier.size(iconSize),
                         accent = filledLabelColor,
-                        strokeWidth = 2.dp,
+                        strokeWidth = SkydownUiTokens.progressStrokeWidth,
                     )
                 } else if (icon != null) {
                     Icon(
@@ -796,7 +796,7 @@ fun BrandActionButton(
                 .clip(shape)
                 .background(outlineBrush)
                 .border(
-                    width = 1.2.dp,
+                    width = SkydownUiTokens.elevationProminentBorder,
                     brush = Brush.linearGradient(
                         colors = listOf(
                             Color.White.copy(alpha = if (buttonEnabled) 0.22f else 0.08f),
@@ -820,7 +820,7 @@ fun BrandActionButton(
                     SkydownPremiumCircularProgress(
                         modifier = Modifier.size(iconSize),
                         accent = outlineLabelColor,
-                        strokeWidth = 2.dp,
+                        strokeWidth = SkydownUiTokens.progressStrokeWidth,
                     )
                 } else if (icon != null) {
                     Icon(

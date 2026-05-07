@@ -1,60 +1,79 @@
 # SkyOS Premium Brand System
 
-## Positionierung
+## Brand Position
 
-SkyOS wirkt wie ein ruhiges Atelier fuer digitale Musik-, Commerce- und Agent-Workflows: reduziert, vertrauenswuerdig, praezise und bewusst exklusiv. Die Marke soll nicht laut nach Aufmerksamkeit greifen, sondern Qualitaet durch Materialitaet, Rhythmus und klare Entscheidungen ausstrahlen.
+SkyOS ist ein ruhiges Atelier fuer digitale Musik-, Commerce- und Agent-Workflows. Die Marke fuehlt sich nicht laut, ornamental oder tech-demohaft an, sondern wie ein hochwertiges Instrument: praezise, kontrolliert, taktil, vertrauenswuerdig und bewusst exklusiv.
 
 ## Brand Audit
 
-- Die App besitzt bereits eigene Hero-, Card-, Motion- und Brand-Komponenten, aber die Premium-Sprache war noch fragmentiert: einzelne Screens nutzen starke Komponenten, andere fallen auf direkte Material-Flaechen, lokale `dp`/`Color`-Werte und heterogene Abstaende zurueck.
-- Der aktuelle Android-Compose-Stand ist deutlich weiter premiumisiert als eine Standard-Material-App: `BrandHeroCard`, `SkydownCard`, Premium Sheets, Premium Icon Actions, Premium Inputs, zentrale Progress-Komponenten und eigene Topbar-/Toast-Chrome sind vorhanden.
-- Die wichtigste verbleibende Qualitaetsluecke ist Rest-Streuung: Screen-Code enthaelt weiterhin viele lokale `dp`-Werte, lokale Alpha-Entscheidungen und einzelne direkte Material-Surfaces. Das ist nicht automatisch falsch, aber es macht die Wahrnehmung weniger kontrolliert und erschwert iOS/Android-Paritaet.
-- Die alte Palette war solide, aber zu generisch kuehl-blaugrau. Premium braucht staerkere semantische Spannung: Obsidian fuer Tiefe, Porzellan/Platin fuer Licht, Champagner als kontrollierter Akzent.
-- Typografie hatte teils negative Letter-Spacing-Werte. Das erzeugt zwar Dichte, wirkt aber bei Dynamic Type und lokalisierten Texten riskant. Die Skala bleibt editorial, aber ohne kuenstliches Zusammendruecken.
-- Radius und Elevation waren an manchen Stellen weich und stark dekorativ. Die neue Richtung ist praeziser: kleinere Material-Radien, klarere Schattenrollen, weniger zufaellige Glow-Wirkung.
-- Empty-, Loading- und Feedback-Zustaende existieren, muessen aber konsequenter ueber `SkydownPremiumStatePanel`, Toasts und zentrale Button-Zustaende laufen.
-- Modal Sheets und sekundaere Overlays waren noch einer der sichtbarsten Brueche: mehrere Flows nutzten direkte `MaterialTheme.colorScheme.surface/background`, lokale Drag-Handle-Masse und Standard-Scrims. Das wirkt funktional, aber nicht wie ein zusammenhaengender Luxus-Chrome.
-- Settings/Admin bleibt der groesste sichtbare Komplexitaetsbereich: viele Formulare sind funktional notwendig, brauchen aber konsequente Premium-Input-Rhythmik, verdichtete Gruppierung und bessere progressive Disclosure, damit der Bereich nicht nach Backoffice-Default wirkt.
-- Final fehlende Premium-Assets: echte Hero-/Surface-Fotos oder Renderings, ein konsistentes Icon-Set fuer Produktbereiche, App-Icon-Finetuning, Motion-Spezifikation als Design-Reference.
+- Staerken: Die App besitzt bereits eigene Hero-, Card-, Motion-, Sheet-, Input-, Toast-, Icon-Action- und Progress-Komponenten. Android Compose und SwiftUI sprechen in vielen Kernflaechen schon eine erkennbare gemeinsame Sprache.
+- Premium-Leck 1: Einzelne Screen- und Komponentenbereiche enthalten weiterhin lokale `dp`-, Border-, Alpha- und Shadow-Entscheidungen. Das wirkt nicht sofort kaputt, aber es schwacht die kompromisslose Kontrolle.
+- Premium-Leck 2: Settings/Admin ist funktional stark, aber die Dichte kann noch wie Backoffice statt wie Command Center wirken. Prioritaet: progressive Disclosure, klarere Gruppenrhythmik, weniger gleichwertige Formularfelder.
+- Premium-Leck 3: Echte Premium-Assets fehlen noch. Die vorhandene Atmosphaere ist brauchbar, aber Weltklasse braucht spezifische Produkt-, Musik-, Commerce- und Agent-Visuals statt generischer Mood-Flaechen.
+- Premium-Leck 4: Motion ist technisch vorhanden, aber noch nicht als Design-Reference mit Szenen, Dauer, Easing und Reduce-Motion-Verhalten dokumentiert.
+- Premium-Leck 5: Einige native/Material-Bruecken bleiben absichtlich bestehen, muessen aber in Reviews klar als Implementierungsdetail erkennbar sein, nicht als sichtbarer UI-Default.
 
-## Visuelle Leitidee
+## Creative Direction
 
-Quiet precision: dunkle Tiefe, helle mineralische Flaechen, wenige warme Akzente, klare Haptik. Screens sollen wie ein hochwertiges Instrument wirken, nicht wie eine dekorierte Standard-App.
+Quiet Precision. Obsidian fuer Tiefe, Porcelain und Platinum fuer Licht, Mystic Steel fuer Struktur, Champagne fuer seltene Wertigkeit. Keine dekorative Ueberladung, keine laute Farbdramaturgie, keine Standard-Material-Anmutung. Jede Interaktion soll klein, ruhig und bewusst reagieren.
 
-## Farbrollen
+## Voice
 
-- Primary: Sky Ink, fuer Navigation, aktive Zustaende und starke CTA.
-- Secondary: Mystic Steel, fuer sekundaere Struktur und Metadaten.
-- Accent: Champagne, fuer Premium-Signale, Highlights und seltene Wertigkeit.
-- Background: Porcelain/Obsidian, fuer ruhige App-Raeume.
-- Surface: Platinum/Satin Graphite, fuer Karten und Sheets.
-- Success/Error: gedaempft, kontraststark, nie neon.
+Kurz, bestimmt, elegant. SkyOS sagt, was passiert, nicht wie clever die Technik ist. Fehler nennen Ursache und naechsten Schritt. Empty States zeigen Moeglichkeit statt Mangel. Admin-Copy bleibt sachlich, aber nicht kalt.
 
-## UI-System
+## Color System
 
-- Typografie: Awergy fuer ikonische Hero-Momente, Syne fuer UI und Editorial Copy.
-- Spacing: 4dp-basierte Rhythmik mit benannten Tokens in `SkydownUiTokens`.
-- Radius: 8/10/14/20/28dp Material-Slots plus produktbezogene Tokens fuer Cards, Hero, Sheets und Pills.
-- Elevation: `elevationHairline`, `elevationRaised`, `elevationStateIcon`, `elevationPanel`, `elevationHero`.
-- Buttons: gefuellt fuer primaere Entscheidung, outline fuer sekundaere Aktionen, Loading/Disabled integriert.
-- Cards: keine nackten Material-Cards in Screens; `SkydownCard`/`skydownPanelSurface` als Standard.
-- Inputs: `SkydownPremiumTextField` statt roher `OutlinedTextField`; Mindesthoehe, Progress-Stroke und Switch-Masse werden ueber `SkydownUiTokens` gefuehrt.
-- Sheets: `skydownPremiumSheet*` Defaults fuer Container, Content, Scrim, Shape und Drag Handle; keine lokalen Material-Defaults in wiederkehrenden Premium-Flows.
-- Motion: 150-320ms, kontrolliertes Deceleration-Easing, Reduce-Motion respektieren.
+- Primary: Sky Ink / Sky Light fuer Navigation, aktive Zustaende und starke CTA.
+- Secondary: Mystic Steel fuer Metadaten, Struktur und sekundare Aktion.
+- Accent: Champagne / Aurora fuer Wertigkeit, seltene Highlights und Premium-Signale.
+- Background: Porcelain im Light Mode, Obsidian im Dark Mode.
+- Surface: Platinum, Satin Graphite und tokenisierte Chrome-/Sheet-Rollen.
+- Success/Error: gedaempft, kontraststark, nie neon oder alarmistisch.
 
-## Microcopy
+## Type System
 
-Kurz, bestimmt, ruhig. Keine technische Erklaerprosa in UI-Chrome. Fehler nennen die Ursache und die naechste Handlung. Empty States zeigen Moeglichkeit statt Mangel.
+- Display: Awergy fuer ikonische Hero-Momente und Brand-Signaturen.
+- UI/Editorial: Syne fuer Interface, Labels, Body und Admin.
+- Skala: klare Hierarchie von Hero ueber Panel bis Caption, ohne negative Letter-Spacing-Werte.
+- Accessibility: Schriftgroessen bleiben `sp`, Texte werden ellipsiert oder umbrechen kontrolliert, keine viewport-basierte Font-Skalierung.
 
-## Naechste Premium-Iteration
+## Layout Tokens
 
-- Raw `OutlinedTextField`, `Surface`, lokale Farben und lokale Abstaende screenweise abbauen.
-- Home, AI, Shop, Music und Profile mit einem gemeinsamen Premium Empty/Loading Pattern angleichen.
-- Echte visuelle Assets fuer Hero-Flaechen definieren: Produkt-Signale, Musik/Commerce/Agent-Visuals, keine generischen Atmosphaeren.
-- Screenshot-basierte visuelle Regression fuer Light/Dark, Compact/Expanded und deutsche Lokalisierung etablieren.
+- Spacing: `SkydownUiTokens` fuehrt Screen-, Card-, Panel-, Hero-, Stack-, Button-, Input-, Sheet- und Media-Masse zentral.
+- Radius: kompakte 8-18dp fuer dichte Controls, 20-28dp fuer Cards/Hero/Spotlight, Capsule nur fuer echte Pills.
+- Elevation: `elevationHairline`, `elevationBrandBorder`, `elevationRaised`, `elevationStateIcon`, `elevationPanel`, `elevationHero`.
+- Chrome: Hero-Ornamente, Metric-Icons, Sheet-Handles, Button-Strokes und Progress-Strokes sind Tokens, nicht lokale Dekoration.
+
+## Component Rules
+
+- Buttons: `BrandActionButton` fuer Entscheidungen; gefuellt nur fuer primaere Handlung, outline fuer sekundare Handlung, Loading und Disabled integriert.
+- Icon Actions: `SkydownPremiumIconAction` fuer kleine Werkzeuge, inklusive Haptik, Border, Elevation und Press-Motion.
+- Cards: `SkydownCard` oder `skydownPanelSurface`; keine nackten Card-/Surface-Defaults in sichtbaren Premium-Flows.
+- Inputs: `SkydownPremiumTextField`; bestehende Settings-Wrapper duerfen nur als Migrationsbruecke existieren.
+- Empty/Loading: `SkydownPremiumStatePanel`, `SkydownPremiumLinearProgress`, `SkydownPremiumCircularProgress`.
+- Sheets: `skydownPremiumSheet*` Defaults fuer Shape, Container, Content, Scrim und Drag Handle.
+
+## Motion
+
+150-320ms, ruhige Deceleration, kleine Scale- und Alpha-Antworten, kein verspieltes Springen. Haptik nur bei bewussten Auswahl- und Press-Momenten. Reduce Motion wird respektiert.
+
+## Asset Needs
+
+- Finales App-Icon-System fuer Light/Dark und Store-Kontexte.
+- Hero-/Surface-Visuals je Produktbereich: Home, AI, Agent, Music, Video, Shop, Membership.
+- Einheitliches Icon-Set fuer Produktmodule und Admin-Aktionen.
+- Screenshot-Set fuer Light/Dark, Compact/Expanded, Deutsch/Englisch und Store-Captures.
+
+## Next Premium Iteration
+
+- Settings/Admin in Command-Center-Gruppen schneiden: weniger sichtbare Felder pro Ebene, mehr klare Save-/Review-Zustaende.
+- Restliche lokale `dp`/Alpha/Color-Entscheidungen screenweise abbauen.
+- Motion-Spec als testbare Referenz mit Szenen und Timing dokumentieren.
+- Visuelle Regression fuer Top-Screens in Light/Dark und Deutsch etablieren.
 
 ## Implementierte Iteration
 
+- Android Settings/Membership Ops fuehrt `AdminCommandPanel` als Command-Center-Baustein ein: Dashboard- und Experiment-Cluster nutzen Premium Icon-Surface, Panel-Materialitaet, tokenisierten Rhythmus und zentrale Progress-Masse statt loser Text-/Formularbloecke.
 - Zentrale Light/Dark-Palette auf Obsidian, Porcelain, Platinum und Champagne verfeinert.
 - `SkydownUiTokens` um praezisere Radius-, Spacing- und Elevation-Rollen erweitert.
 - Cards, Hero-Flaechen und Brand Buttons an die neuen Elevation-Rollen angebunden.

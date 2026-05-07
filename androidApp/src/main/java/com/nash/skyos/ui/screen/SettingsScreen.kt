@@ -122,6 +122,7 @@ import com.nash.skyos.ui.component.SectionHeader
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownPremiumCircularProgress
 import com.nash.skyos.ui.component.SkydownPremiumIconAction
+import com.nash.skyos.ui.component.SkydownPremiumIconSurface
 import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
 import com.nash.skyos.ui.component.SkydownPremiumSwitch
 import com.nash.skyos.ui.component.SkydownPremiumTextField
@@ -3898,9 +3899,9 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         SkydownPremiumCircularProgress(
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(SkydownUiTokens.stateIconProgressSize),
                             accent = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 2.dp,
+                            strokeWidth = SkydownUiTokens.progressStrokeWidth,
                         )
                         Text(stringResource(R.string.settings_membership_ops_loading))
                     }
@@ -3911,26 +3912,29 @@ fun SettingsScreen(
                             val d7 = windows["d7"] as? Map<*, *> ?: emptyMap<Any, Any>()
                             val alerts = membershipDashboard["alerts"] as? List<*> ?: emptyList<Any>()
                             val costOverlay = membershipDashboard["costOverlay"] as? Map<*, *> ?: emptyMap<Any, Any>()
-                            Text(
-                                text = stringResource(
-                                    R.string.settings_membership_dashboard_7d,
-                                    (d7["membershipOpens"] as? Number)?.toInt() ?: 0,
-                                    (d7["purchaseSuccess"] as? Number)?.toInt() ?: 0,
-                                    (d7["cvr"] as? Number)?.toDouble() ?: 0.0,
-                                ),
-                                modifier = Modifier.padding(top = 14.dp),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            Text(
-                                text = stringResource(
+                            AdminCommandPanel(
+                                title = stringResource(R.string.settings_membership_ops_subtitle),
+                                body = stringResource(
                                     R.string.settings_membership_dashboard_alerts,
                                     alerts.size,
                                     (costOverlay["freePlanLoadRatio"] as? Number)?.toDouble() ?: 0.0,
                                 ),
                                 modifier = Modifier.padding(top = 8.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+                                icon = Icons.Filled.CheckCircle,
+                                accent = MaterialTheme.colorScheme.skydownAccent(),
+                            ) {
+                                Text(
+                                    text = stringResource(
+                                        R.string.settings_membership_dashboard_7d,
+                                        (d7["membershipOpens"] as? Number)?.toInt() ?: 0,
+                                        (d7["purchaseSuccess"] as? Number)?.toInt() ?: 0,
+                                        (d7["cvr"] as? Number)?.toDouble() ?: 0.0,
+                                    ),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
                         }
 
                         MembershipOpsTab.Recommendations -> {
@@ -4015,71 +4019,73 @@ fun SettingsScreen(
                         }
 
                         MembershipOpsTab.Experiments -> {
-                            Text(
-                                text = stringResource(R.string.settings_membership_ops_complete_title),
+                            AdminCommandPanel(
+                                title = stringResource(R.string.settings_membership_ops_complete_title),
+                                body = stringResource(R.string.settings_membership_ops_subtitle),
                                 modifier = Modifier.padding(top = 14.dp),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            OutlinedTextField(
-                                value = experimentLifecycleIdDraft,
-                                onValueChange = { experimentLifecycleIdDraft = it },
-                                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-                                label = { Text(stringResource(R.string.settings_experiment_lifecycle_id)) },
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = experimentLearningsDraft,
-                                onValueChange = { experimentLearningsDraft = it.take(1000) },
-                                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-                                label = { Text(stringResource(R.string.settings_membership_ops_learnings)) },
-                                minLines = 2,
-                                maxLines = 5,
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro), modifier = Modifier.padding(top = 10.dp)) {
-                                OutlinedTextField(value = experimentCvrDeltaDraft, onValueChange = { experimentCvrDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_cvr_delta)) }, singleLine = true)
-                                OutlinedTextField(value = experimentAnnualDeltaDraft, onValueChange = { experimentAnnualDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_annual_delta)) }, singleLine = true)
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro), modifier = Modifier.padding(top = 10.dp)) {
-                                OutlinedTextField(value = experimentCreatorDeltaDraft, onValueChange = { experimentCreatorDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_creator_delta)) }, singleLine = true)
-                                OutlinedTextField(value = experimentCancelDeltaDraft, onValueChange = { experimentCancelDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_cancel_delta)) }, singleLine = true)
-                            }
-                            OutlinedTextField(
-                                value = experimentObservedDaysDraft,
-                                onValueChange = { experimentObservedDaysDraft = it },
-                                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-                                label = { Text(stringResource(R.string.settings_experiment_observed_window_days)) },
-                                singleLine = true,
-                            )
-                            BrandActionButton(
-                                text = stringResource(R.string.settings_membership_ops_complete_experiment),
-                                onClick = {
-                                    coroutineScope.launch {
-                                        runCatching {
-                                            membershipOpsRepository.completeExperiment(
-                                                lifecycleId = experimentLifecycleIdDraft.trim(),
-                                                cvrDelta = experimentCvrDeltaDraft.toDoubleOrNull() ?: 0.0,
-                                                annualDelta = experimentAnnualDeltaDraft.toDoubleOrNull() ?: 0.0,
-                                                creatorDelta = experimentCreatorDeltaDraft.toDoubleOrNull() ?: 0.0,
-                                                cancelDelta = experimentCancelDeltaDraft.toDoubleOrNull() ?: 0.0,
-                                                observedWindowDays = experimentObservedDaysDraft.toIntOrNull() ?: 14,
-                                                success = (experimentCvrDeltaDraft.toDoubleOrNull() ?: 0.0) > 0,
-                                                learnings = experimentLearningsDraft,
-                                            )
-                                        }.onSuccess {
-                                            feedbackMessage = membershipOpsExperimentCompletedMessage
-                                            feedbackType = ToastType.Success
-                                        }.onFailure { error ->
-                                            feedbackMessage = error.localizedMessage
-                                                ?: membershipOpsExperimentCompleteFailedMessage
-                                            feedbackType = ToastType.Error
-                                        }
-                                    }
-                                },
+                                icon = Icons.Filled.Bolt,
                                 accent = MaterialTheme.colorScheme.skydownAccent(),
-                                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                                compact = true,
-                            )
+                            ) {
+                                OutlinedTextField(
+                                    value = experimentLifecycleIdDraft,
+                                    onValueChange = { experimentLifecycleIdDraft = it },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    label = { Text(stringResource(R.string.settings_experiment_lifecycle_id)) },
+                                    singleLine = true,
+                                )
+                                OutlinedTextField(
+                                    value = experimentLearningsDraft,
+                                    onValueChange = { experimentLearningsDraft = it.take(1000) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    label = { Text(stringResource(R.string.settings_membership_ops_learnings)) },
+                                    minLines = 2,
+                                    maxLines = 5,
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
+                                    OutlinedTextField(value = experimentCvrDeltaDraft, onValueChange = { experimentCvrDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_cvr_delta)) }, singleLine = true)
+                                    OutlinedTextField(value = experimentAnnualDeltaDraft, onValueChange = { experimentAnnualDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_annual_delta)) }, singleLine = true)
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
+                                    OutlinedTextField(value = experimentCreatorDeltaDraft, onValueChange = { experimentCreatorDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_creator_delta)) }, singleLine = true)
+                                    OutlinedTextField(value = experimentCancelDeltaDraft, onValueChange = { experimentCancelDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_cancel_delta)) }, singleLine = true)
+                                }
+                                OutlinedTextField(
+                                    value = experimentObservedDaysDraft,
+                                    onValueChange = { experimentObservedDaysDraft = it },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    label = { Text(stringResource(R.string.settings_experiment_observed_window_days)) },
+                                    singleLine = true,
+                                )
+                                BrandActionButton(
+                                    text = stringResource(R.string.settings_membership_ops_complete_experiment),
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            runCatching {
+                                                membershipOpsRepository.completeExperiment(
+                                                    lifecycleId = experimentLifecycleIdDraft.trim(),
+                                                    cvrDelta = experimentCvrDeltaDraft.toDoubleOrNull() ?: 0.0,
+                                                    annualDelta = experimentAnnualDeltaDraft.toDoubleOrNull() ?: 0.0,
+                                                    creatorDelta = experimentCreatorDeltaDraft.toDoubleOrNull() ?: 0.0,
+                                                    cancelDelta = experimentCancelDeltaDraft.toDoubleOrNull() ?: 0.0,
+                                                    observedWindowDays = experimentObservedDaysDraft.toIntOrNull() ?: 14,
+                                                    success = (experimentCvrDeltaDraft.toDoubleOrNull() ?: 0.0) > 0,
+                                                    learnings = experimentLearningsDraft,
+                                                )
+                                            }.onSuccess {
+                                                feedbackMessage = membershipOpsExperimentCompletedMessage
+                                                feedbackType = ToastType.Success
+                                            }.onFailure { error ->
+                                                feedbackMessage = error.localizedMessage
+                                                    ?: membershipOpsExperimentCompleteFailedMessage
+                                                feedbackType = ToastType.Error
+                                            }
+                                        }
+                                    },
+                                    accent = MaterialTheme.colorScheme.skydownAccent(),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    compact = true,
+                                )
+                            }
                         }
 
                         MembershipOpsTab.Learnings -> {
@@ -6764,6 +6770,63 @@ private fun AdminWorkspaceRailButton(
         compact = true,
         modifier = modifier.fillMaxWidth(),
     )
+}
+
+@Composable
+private fun AdminCommandPanel(
+    title: String,
+    body: String,
+    modifier: Modifier = Modifier,
+    icon: ImageVector = Icons.Filled.Settings,
+    accent: Color = MaterialTheme.colorScheme.primary,
+    content: @Composable () -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .skydownPanelSurface(
+                accent = accent,
+                cornerRadius = SkydownUiTokens.cardCornerRadius,
+                shadowRadius = SkydownUiTokens.elevationPanel,
+                shadowYOffset = SkydownUiTokens.panelShadowYOffset,
+            )
+            .padding(SkydownUiTokens.panelPadding),
+        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingRelaxed),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
+            verticalAlignment = Alignment.Top,
+        ) {
+            SkydownPremiumIconSurface(accent = accent) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(SkydownUiTokens.stateIconContentSize),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = body,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                )
+            }
+        }
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+            content = { content() },
+        )
+    }
 }
 
 @Composable

@@ -48,6 +48,23 @@ object SkydownUiTokens {
     /// Größere Karten/Module (Music, Video, Profil) — iOS `SkydownLayout.panelPadding` Parität.
     val panelPadding = 22.dp
     val heroPadding = 20.dp
+    val heroCompactHorizontalPadding = 16.dp
+    val heroCompactVerticalPadding = 15.dp
+    val heroCompactContentSpacing = 11.dp
+    val heroContentSpacing = 14.dp
+    val heroCompactMarkSize = 34.dp
+    val heroMarkSize = 46.dp
+    val heroRuleHeight = 3.dp
+    val heroCompactGlowSize = 58.dp
+    val heroGlowSize = 84.dp
+    val heroCompactInnerGlowSize = 42.dp
+    val heroInnerGlowSize = 58.dp
+    val heroCompactGlowBlur = 12.dp
+    val heroGlowBlur = 20.dp
+    val heroCompactInnerGlowBlur = 10.dp
+    val heroInnerGlowBlur = 16.dp
+    val heroSingleArtworkWidth = 118.dp
+    val heroStackedArtworkWidth = 96.dp
     val cardCornerRadius = 20.dp
     val heroCornerRadius = 28.dp
     val buttonCornerRadius = 14.dp
@@ -86,7 +103,10 @@ object SkydownUiTokens {
     val inlinePanelVerticalPadding = 8.dp
     val inlinePanelIconSize = 14.dp
     val inlinePanelMinHeight = 34.dp
+    val metricIconSurfaceSize = 22.dp
+    val metricIconContentSize = 12.dp
     val statusDotSize = 6.dp
+    val topBarMetaDotSize = 7.dp
     val inputMinHeight = 58.dp
     val progressStrokeWidth = 2.dp
     val switchTrackWidth = 50.dp
@@ -179,10 +199,17 @@ object SkydownUiTokens {
     val layoutProminentInset = 19.dp
 
     val elevationHairline = 1.dp
+    val elevationFineHairline = 0.55.dp
+    val elevationBrandBorder = 0.9.dp
+    val elevationProminentBorder = 1.2.dp
     val elevationRaised = 6.dp
     val elevationStateIcon = 3.dp
     val elevationPanel = 14.dp
     val elevationHero = 18.dp
+    val elevationHeroEdge = 9.dp
+    val elevationHeroCompact = 13.dp
+    val panelShadowYOffset = 5.dp
+    val panelShadowYOffsetRelaxed = 8.dp
 }
 
 fun skydownContentPadding(innerPadding: PaddingValues): PaddingValues = PaddingValues(
@@ -305,7 +332,7 @@ fun SkydownTopBarTitle(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(7.dp)
+                        .size(SkydownUiTokens.topBarMetaDotSize)
                         .background(accent.copy(alpha = 0.90f), CircleShape),
                 )
                 Text(
