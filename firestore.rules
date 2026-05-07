@@ -1144,24 +1144,26 @@ service cloud.firestore {
       allow delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
     }
 
+    // Writes are performed by privileged Cloud Functions (Admin SDK bypasses rules) or Owner tools.
+    // Denying self client writes prevents arbitrarily large payloads and wallet DoS via the mobile/web SDK.
     match /users/{uid}/memoryProfile/{documentId} {
       allow read: if isSelf(uid) || isOwner();
-      allow create, update, delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+      allow create, update, delete: if isOwner();
     }
 
     match /users/{uid}/goals/{goalId} {
       allow read: if isSelf(uid) || isOwner();
-      allow create, update, delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+      allow create, update, delete: if isOwner();
     }
 
     match /users/{uid}/habits/{habitId} {
       allow read: if isSelf(uid) || isOwner();
-      allow create, update, delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+      allow create, update, delete: if isOwner();
     }
 
     match /users/{uid}/moodLogs/{logId} {
       allow read: if isSelf(uid) || isOwner();
-      allow create, update, delete: if (isSelf(uid) && regularUserWriteAllowed()) || isOwner();
+      allow create, update, delete: if isOwner();
     }
 
     match /userProfiles/{uid} {

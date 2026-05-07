@@ -52,3 +52,7 @@ App Icon.png
 Skydown AppUITests/skydown-e2e-accounts.local.json
 .shopify/
 shopify.app*.toml
+
+# Fastlane local run output (often contains absolute machine paths)
+fastlane/report.xml
+fastlane/Preview.html
