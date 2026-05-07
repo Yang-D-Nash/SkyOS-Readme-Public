@@ -4,6 +4,13 @@ SkyOS is a native creative operating app for music, media, merch, membership, an
 It brings the artist, community, shop, and creative command layer into one product experience across
 Apple and Android platforms.
 
+## Product Quality
+
+SkyOS is being shaped as a premium native product, not a generic mobile shell. The current app uses a
+shared brand system across Apple and Android with controlled typography, spacing, color, elevation,
+loading states, empty states, icon actions, toggles, segmented controls, and admin surfaces. The goal
+is a calm, precise, trustworthy experience for creative work, commerce, membership, and AI workflows.
+
 ## What SkyOS Brings Together
 
 | Area | Purpose |
@@ -18,7 +25,8 @@ Apple and Android platforms.
 ## Product Principles
 
 - One clear brand system across product, store, and support surfaces.
-- Native-first mobile experience with calm navigation and direct actions.
+- Native-first mobile experience with calm navigation, precise hierarchy, and direct actions.
+- Premium UI controls instead of generic defaults where product trust and repeat use matter.
 - Transparent membership and restore flows before any paid user commitment.
 - AI features that keep user intent, limits, and disclosure visible.
 - Legal, privacy, and support access that are reachable from the app.
@@ -29,6 +37,9 @@ Apple and Android platforms.
 
 SkyOS is built for iOS, iPadOS, Android, and Mac Catalyst with shared product logic where it helps
 consistency and native UI where it matters for platform quality.
+
+The public product surface is expected to stay visually aligned across platforms while still honoring
+native Apple and Android behavior, accessibility, motion preferences, and platform-specific controls.
 
 ## Public Status
 

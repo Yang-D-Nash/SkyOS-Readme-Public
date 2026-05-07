@@ -50,6 +50,7 @@ SkyOS löst ein konkretes Produktproblem: kreative Arbeit, KI-Ausführung, Erinn
 
 - [Repository-Status](#repository-status)
 - [Transparenzmodell](#transparenzmodell)
+- [Premium Brand System](#premium-brand-system)
 - [Feature-Übersicht](#feature-übersicht)
 - [Nutzen](#nutzen)
 - [Screenshots](#screenshots)
@@ -78,6 +79,19 @@ Gleichzeitig ist das Projekt bewusst transparent dokumentiert: Die öffentliche 
 | Produktbeschreibung, Architekturüberblick, reale Features, Screenshots, Tech Stack, Qualitäts- und Release-Prozess | Quellcode-Zugriff, produktive Secrets, Keystores, Service-Accounts, Store-Konsolen, Live-Nutzerdaten, interne Betriebsentscheidungen |
 | README-Mirror und ausgewählte verlinkte Dokumentation | Schreibzugriff, Fork-/PR-Prozess, Wiederveröffentlichung oder kommerzielle Nutzung des Codes |
 
+## Premium Brand System
+
+SkyOS wurde auf ein zentrales Premium-Brand-System gehoben, damit Apple- und Android-Client dieselbe ruhige, präzise und hochwertige Produktsprache tragen. Die Leitidee ist nicht generische Material-/System-UI, sondern eine native Oberfläche mit kontrollierter Reduktion, klarer Hierarchie, wertigen Interaktionen und wiedererkennbarer Skydown-Materialität.
+
+| Ebene | Stand |
+| --- | --- |
+| Design Tokens | Zentrale Farben, Spacing-, Radius-, Elevation-, Icon- und Motion-Rollen sind in den nativen Design-System-Dateien gebündelt. |
+| Android | Compose-Flächen nutzen Premium Cards, Brand Actions, Icon Actions, Progress, Switches, Sheet Defaults und zentrale Textfelder statt verstreuter Material-Defaults. |
+| Apple | SwiftUI-Flächen nutzen `SkydownBrandActionButton`, Premium Icon-/Link-/Inline-Surfaces, Progress-Komponenten, Toggle Style und Segmented Picker. |
+| Admin UX | Dichte Owner-/Settings-Flächen wurden auf konsistente Premium Controls umgestellt, inklusive iOS Settings Admin Toggles und Segment-Auswahlen. |
+| Accessibility | Kontrast, Dynamic Type/Scaling, reduzierte Motion, Haptik und klare Zustände bleiben Teil der Design-System-Definition. |
+| Dokumentation | Das interne Konzept ist in `BRAND_SYSTEM.md` dokumentiert; öffentliche Dokumentation beschreibt die Produktqualität ohne interne Implementierungsdetails offenzulegen. |
+
 ## Feature-Übersicht
 
 | Bereich | Belegbarer Stand im Repository |
@@ -94,6 +108,7 @@ Gleichzeitig ist das Projekt bewusst transparent dokumentiert: Die öffentliche 
 | Owner/Admin | Rollenvergabe, Runtime-Lockdown, KI-Prompts, Shopify-/Payment-Konfiguration, Membership-Operations und geschützte Betriebsflächen. |
 | Externe Workflows | Activepieces/n8n-Konfigurationen, Secret-geschützte HTTP-Endpunkte und Agent-Bridge-Auditpfade. |
 | Statische Website | Firebase-Hosting-Seiten in `site/` für Datenschutz, Nutzungsbedingungen und Support. |
+| Premium UI System | Gemeinsame Premium-Controls, Token, Loading-/Empty-/Error-Zustände und ruhige Admin-Komponenten für iOS und Android. |
 
 ## Nutzen
 
