@@ -5,8 +5,10 @@ default_platform(:android)
 ROOT_DIR = File.expand_path("..", __dir__)
 AAB_PATH = File.join(ROOT_DIR, "androidApp/build/outputs/bundle/release/androidApp-release.aab")
 ANDROID_PACKAGE = "com.nash.skyos"
-PLAY_TRACK = "internal"
-RELEASE_STATUS = "draft"
+IOS_BUNDLE_ID = "com.skydown.ios"
+
+PLAY_TRACK_INTERNAL = "internal"
+RELEASE_STATUS_DRAFT = "draft"
 
 def run_android_release_artifact_verify!
   verify = File.expand_path(File.join("..", "scripts", "verify_android_release_artifacts.sh"), __dir__)
@@ -14,44 +16,144 @@ def run_android_release_artifact_verify!
   sh("bash", verify)
 end
 
+# @param rollout [String, nil] e.g. "0.15" for 15 percent when releasing (Google Play phased)
+def android_supply!(track:, release_status:, validate_only:, rollout: nil)
+  run_android_release_artifact_verify!
+  ensure_env_vars(env_vars: ["SUPPLY_JSON_KEY"])
+  UI.user_error!("AAB not found at #{AAB_PATH}") unless File.exist?(AAB_PATH)
+
+  params = {
+    package_name: ANDROID_PACKAGE,
+    json_key: ENV["SUPPLY_JSON_KEY"],
+    aab: AAB_PATH,
+    track: track,
+    release_status: release_status,
+    skip_upload_metadata: true,
+    skip_upload_images: true,
+    skip_upload_screenshots: true,
+    skip_upload_changelogs: true,
+    validate_only: validate_only
+  }
+
+  unless validate_only || rollout.nil? || rollout.to_s.strip.empty?
+    rs = release_status.to_s.strip
+    if %w[completed inProgress].include?(rs)
+      params[:rollout] = rollout.to_s.strip
+    else
+      UI.important!(
+        "Skipping ANDROID_PLAY_ROLLOUT for release_status=#{rs.inspect} — use completed/inProgress for phased rollout."
+      )
+    end
+  end
+
+  supply(params)
+end
+
 platform :android do
   desc "Validate SkyOS Android AAB upload for Google Play internal testing"
   lane :validate_android_internal do
-    run_android_release_artifact_verify!
-    ensure_env_vars(env_vars: ["SUPPLY_JSON_KEY"])
-    UI.user_error!("AAB not found at #{AAB_PATH}") unless File.exist?(AAB_PATH)
-
-    supply(
-      package_name: ANDROID_PACKAGE,
-      json_key: ENV["SUPPLY_JSON_KEY"],
-      aab: AAB_PATH,
-      track: PLAY_TRACK,
-      release_status: RELEASE_STATUS,
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
-      skip_upload_changelogs: true,
+    android_supply!(
+      track: PLAY_TRACK_INTERNAL,
+      release_status: RELEASE_STATUS_DRAFT,
       validate_only: true
     )
   end
 
   desc "Upload SkyOS Android AAB to Google Play internal testing"
   lane :upload_android_internal do
-    run_android_release_artifact_verify!
-    ensure_env_vars(env_vars: ["SUPPLY_JSON_KEY"])
-    UI.user_error!("AAB not found at #{AAB_PATH}") unless File.exist?(AAB_PATH)
-
-    supply(
-      package_name: ANDROID_PACKAGE,
-      json_key: ENV["SUPPLY_JSON_KEY"],
-      aab: AAB_PATH,
-      track: PLAY_TRACK,
-      release_status: RELEASE_STATUS,
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
-      skip_upload_changelogs: true,
+    android_supply!(
+      track: PLAY_TRACK_INTERNAL,
+      release_status: RELEASE_STATUS_DRAFT,
       validate_only: false
     )
   end
+
+  desc <<~DESC
+    Validate SkyOS Android AAB for Google Play **production** (no upload).
+
+    Overrides (optional): ANDROID_PLAY_TRACK (default production), ANDROID_PLAY_RELEASE_STATUS (default draft).
+    For phased release after rollout: ANDROID_PLAY_RELEASE_STATUS=completed ANDROID_PLAY_ROLLOUT=0.1
+  DESC
+  lane :validate_android_production do
+    android_supply!(
+      track: ENV.fetch("ANDROID_PLAY_TRACK", "production"),
+      release_status: ENV.fetch("ANDROID_PLAY_RELEASE_STATUS", "draft"),
+      validate_only: true,
+      rollout: ENV["ANDROID_PLAY_ROLLOUT"]
+    )
+  end
+
+  desc <<~DESC
+    Upload SkyOS Android AAB to Google Play **production** track.
+
+    Default release_status is **draft**: review/publish in Play Console as usual — safer soft launch.
+
+    Env: SUPPLY_JSON_KEY (required), optional ANDROID_PLAY_TRACK, ANDROID_PLAY_RELEASE_STATUS, ANDROID_PLAY_ROLLOUT.
+  DESC
+  lane :upload_android_production do
+    android_supply!(
+      track: ENV.fetch("ANDROID_PLAY_TRACK", "production"),
+      release_status: ENV.fetch("ANDROID_PLAY_RELEASE_STATUS", "draft"),
+      validate_only: false,
+      rollout: ENV["ANDROID_PLAY_ROLLOUT"]
+    )
+  end
+end
+
+platform :ios do
+  desc <<~DESC
+    Only checks that IOS_IPA_PATH exists (no App Store Connect access).
+  DESC
+  lane :precheck_ios_ipa do
+    ipa = ios_resolved_ipa_path!
+    UI.success!("IPA OK: #{ipa}")
+  end
+
+  desc <<~DESC
+    Upload an App Store IPA to App Store Connect (metadata/screenshots unchanged here).
+
+    Required env:
+    - IOS_IPA_PATH (relative to repo root or absolute path to .ipa)
+    - ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_PATH (path to AuthKey_XXXXXXXX.p8)
+
+    Uses API key upload only; submit_for_review and automatic_release are **false**.
+    Listing + screenshots still happen in App Store Connect.
+  DESC
+  lane :upload_ios_app_store_connect do
+    ipa = ios_resolved_ipa_path!
+    UI.user_error!("IPA not found: #{ipa}") unless File.exist?(ipa)
+
+    ensure_env_vars(env_vars: %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_PATH])
+    UI.user_error!("Missing .p8 at ASC_KEY_PATH: #{ENV.fetch('ASC_KEY_PATH', '')}") unless File.exist?(ENV["ASC_KEY_PATH"])
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_KEY_PATH"),
+      in_house: false
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      app_identifier: IOS_BUNDLE_ID,
+      ipa: ipa,
+      skip_metadata: true,
+      skip_screenshots: true,
+      precheck_include_in_app_purchases: false,
+      submit_for_review: false,
+      automatic_release: false,
+      phased_release: false
+    )
+  end
+
+  lane :precheck_ios_asc_credentials do
+    ensure_env_vars(env_vars: %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_PATH])
+    UI.user_error!("Missing .p8 at ASC_KEY_PATH") unless File.exist?(ENV.fetch("ASC_KEY_PATH"))
+    UI.success!("ASC credential paths look OK.")
+  end
+end
+
+def ios_resolved_ipa_path!
+  raw = ENV.fetch("IOS_IPA_PATH") { UI.user_error!("Set IOS_IPA_PATH to your .ipa (repo-relative or absolute).") }
+  File.expand_path(raw, ROOT_DIR)
 end
