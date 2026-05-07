@@ -32,9 +32,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PermMedia
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -66,6 +64,7 @@ import com.nash.skyos.R
 import com.nash.skyos.data.AppContainer
 import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
 import com.nash.skyos.ui.component.SkydownPremiumLinearProgress
 import com.nash.skyos.ui.component.SkydownPremiumStatePanel
 import com.nash.skyos.ui.component.SkydownPremiumTextField
@@ -152,9 +151,15 @@ fun ProfileScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
-                    }
+                    SkydownPremiumIconAction(
+                        icon = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.common_back),
+                        onClick = onBack,
+                        modifier = Modifier.padding(start = 4.dp),
+                        accent = MaterialTheme.colorScheme.primary,
+                        size = 40.dp,
+                        iconSize = 19.dp,
+                    )
                 },
                 colors = skydownTopBarColors(),
             )
@@ -843,26 +848,16 @@ private fun ProfileHeroFab(
     onClick: () -> Unit,
     enabled: Boolean = true,
 ) {
-    FloatingActionButton(
-        onClick = {
-            if (enabled) {
-                onClick()
-            }
-        },
-        modifier = Modifier
-            .size(48.dp)
-            .alpha(if (enabled) 1f else 0.58f),
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = if (enabled) 0.88f else 0.72f),
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 0.dp,
-            focusedElevation = 0.dp,
-            hoveredElevation = 0.dp,
-        ),
-    ) {
-        Icon(icon, contentDescription = contentDescription)
-    }
+    SkydownPremiumIconAction(
+        icon = icon,
+        contentDescription = contentDescription,
+        onClick = onClick,
+        modifier = Modifier.alpha(if (enabled) 1f else 0.58f),
+        accent = MaterialTheme.colorScheme.primary,
+        enabled = enabled,
+        size = 48.dp,
+        iconSize = 20.dp,
+    )
 }
 
 @Composable
@@ -1006,20 +1001,18 @@ private fun GalleryTile(
         }
 
         if (canDelete && onDelete != null) {
-            IconButton(
+            SkydownPremiumIconAction(
+                icon = Icons.Default.Delete,
+                contentDescription = stringResource(R.string.common_remove),
                 onClick = onDelete,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .clip(CircleShape)
-                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.52f)),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = stringResource(R.string.common_remove),
-                    tint = androidx.compose.ui.graphics.Color.White,
-                )
-            }
+                    .padding(8.dp),
+                accent = Color.White,
+                size = 40.dp,
+                iconSize = 18.dp,
+                shape = CircleShape,
+            )
         }
     }
 }

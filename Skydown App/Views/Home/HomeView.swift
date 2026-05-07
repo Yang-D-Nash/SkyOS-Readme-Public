@@ -439,10 +439,23 @@ struct HomeViewContent: View {
             if founderBriefingModeInFlight != nil {
                 ZStack {
                     Color.black.opacity(0.12).ignoresSafeArea()
-                    ProgressView(AppLocalized.text("home.owner.founder.progress", fallback: "Composing your intelligence briefing…"))
-                        .padding(14)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    SkydownPremiumInlineSurface(
+                        colorScheme: colorScheme,
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        cornerRadius: SkydownLayout.compactRadius
+                    ) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
+                            SkydownPremiumCircularProgress(
+                                tint: AppColors.accentMystic(for: colorScheme),
+                                colorScheme: colorScheme,
+                                scale: 0.76
+                            )
+                            Text(AppLocalized.text("home.owner.founder.progress", fallback: "Composing your intelligence briefing…"))
+                                .font(.footnote.weight(.semibold))
+                                .foregroundColor(AppColors.text(for: colorScheme))
+                        }
+                    }
+                    .padding(.horizontal, SkydownLayout.cardPadding)
                 }
             }
         }
@@ -888,14 +901,18 @@ private struct HomeManageableItemRow: View {
                     .skydownInteractiveFeedback()
                     .accessibilityLabel(editAccessibilityLabel)
 
-                    Button(role: .destructive, action: onDelete) {
-                        Image(systemName: "trash")
-                            .font(.caption.weight(.semibold))
-                            .frame(width: 44, height: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
+                    SkydownBrandActionButton(
+                        title: "",
+                        systemImage: "trash",
+                        accent: AppColors.error(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: false,
+                        action: onDelete
+                    )
                     .accessibilityLabel(deleteAccessibilityLabel)
                 }
             }
@@ -1186,7 +1203,7 @@ private struct HomeTaskComposerSheet: View {
                     AppLocalized.text("home.task.due_sublabel", fallback: "Due (optional)"),
                     isOn: $useDueAt
                 )
-                .tint(AppColors.accentMystic(for: colorScheme))
+                .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme, accent: AppColors.accentMystic(for: colorScheme)))
                 if useDueAt {
                     DatePicker(
                         AppLocalized.text("home.task.due_sublabel", fallback: "Due (optional)"),
@@ -2039,8 +2056,11 @@ private struct HomeOwnerWorkflowSection: View {
 
             if founderBriefingModeInFlight != nil {
                 HStack(spacing: 6) {
-                    ProgressView()
-                        .controlSize(.small)
+                    SkydownPremiumCircularProgress(
+                        tint: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme,
+                        scale: 0.62
+                    )
                     Text(AppLocalized.text("home.owner.founder.progress", fallback: "Composing your intelligence briefing…"))
                         .font(.caption2.weight(.semibold))
                         .foregroundColor(AppColors.accentMystic(for: colorScheme))
@@ -2050,7 +2070,7 @@ private struct HomeOwnerWorkflowSection: View {
                     .font(.caption2.weight(.semibold))
                     .foregroundColor(
                         founderBriefingFeedbackStyle == .error ?
-                            Color.red.opacity(0.86) :
+                            AppColors.error(for: colorScheme) :
                             AppColors.accentMystic(for: colorScheme)
                     )
             }
@@ -2281,8 +2301,11 @@ private struct HomeQuickActionButton: View {
         Button(action: onTap) {
             HStack(spacing: 6) {
                 if isLoading {
-                    ProgressView()
-                        .controlSize(.mini)
+                    SkydownPremiumCircularProgress(
+                        tint: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        scale: 0.54
+                    )
                 }
                 if let systemImage {
                     Image(systemName: systemImage)

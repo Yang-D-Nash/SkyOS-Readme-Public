@@ -54,11 +54,8 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -125,6 +122,8 @@ import com.nash.skyos.ui.component.SkydownFullscreenVideoControlBar
 import com.nash.skyos.ui.component.isLikelyDirectVideoUrl
 import com.nash.skyos.ui.component.seekByAppOffset
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumCircularProgress
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
 import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
 import com.nash.skyos.ui.component.SkydownPremiumStatePanel
 import com.nash.skyos.ui.component.SkydownPremiumTextField
@@ -372,21 +371,24 @@ fun VideoHubScreen(
                 },
                 actions = {
                     if (uiState.isUploading) {
-                        CircularProgressIndicator(
+                        SkydownPremiumCircularProgress(
                             modifier = Modifier
                                 .padding(end = 8.dp)
                                 .size(20.dp),
+                            accent = videoMysticAccent,
                             strokeWidth = 2.dp,
                         )
                     }
 
                     if (uiState.isAdmin) {
-                        IconButton(onClick = { showUploadSheet = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Movie,
-                                contentDescription = stringResource(R.string.video_cd_open_upload),
-                            )
-                        }
+                        SkydownPremiumIconAction(
+                            icon = Icons.Default.Movie,
+                            contentDescription = stringResource(R.string.video_cd_open_upload),
+                            onClick = { showUploadSheet = true },
+                            accent = videoMysticAccent,
+                            size = 40.dp,
+                            iconSize = 19.dp,
+                        )
                     }
 
                     if (onOpenSettings != null) {
@@ -401,12 +403,15 @@ fun VideoHubScreen(
                 },
                 navigationIcon = if (onBack != null) {
                     {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.video_cd_back),
-                            )
-                        }
+                        SkydownPremiumIconAction(
+                            icon = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.video_cd_back),
+                            onClick = onBack,
+                            modifier = Modifier.padding(start = 4.dp),
+                            accent = videoMysticAccent,
+                            size = 40.dp,
+                            iconSize = 19.dp,
+                        )
                     }
                 } else {
                     {}
@@ -420,18 +425,16 @@ fun VideoHubScreen(
                 horizontalAlignment = Alignment.End,
             ) {
                 if (uiState.isAdmin) {
-                    FloatingActionButton(
+                    SkydownPremiumIconAction(
+                        icon = Icons.Default.Movie,
+                        contentDescription = stringResource(R.string.video_cd_fab_upload),
                         onClick = {
                             showUploadSheet = true
                         },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Movie,
-                            contentDescription = stringResource(R.string.video_cd_fab_upload),
-                        )
-                    }
+                        accent = videoMysticAccent,
+                        size = 56.dp,
+                        iconSize = 22.dp,
+                    )
                 }
 
             }
@@ -3244,10 +3247,10 @@ private fun VideoReelViewerDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
-                    CircularProgressIndicator(
+                    SkydownPremiumCircularProgress(
                         modifier = Modifier.size(16.dp),
+                        accent = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
                     )
                     Text(
                         text = stringResource(R.string.video_reel_preparing),

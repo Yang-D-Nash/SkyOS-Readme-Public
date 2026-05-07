@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,7 +20,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.nash.skyos.R
 
 @Composable
@@ -51,7 +49,7 @@ fun EditableVideoFieldCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(148.dp)
+                .height(SkydownUiTokens.editableVideoPreviewHeight)
                 .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
                 .background(
                     Brush.linearGradient(
@@ -66,7 +64,7 @@ fun EditableVideoFieldCard(
             Column(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = SkydownUiTokens.mediaOverlayHorizontalPadding),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             ) {
@@ -106,11 +104,14 @@ fun EditableVideoFieldCard(
                     modifier = Modifier
                         .align(Alignment.Center)
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
+                        .padding(horizontal = SkydownUiTokens.mediaOverlayHorizontalPadding),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                 ) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    SkydownPremiumLinearProgress(
+                        modifier = Modifier.fillMaxWidth(),
+                        accent = MaterialTheme.colorScheme.primary,
+                    )
                     Text(
                         text = resolvedUploadStatusText,
                         style = MaterialTheme.typography.bodySmall,

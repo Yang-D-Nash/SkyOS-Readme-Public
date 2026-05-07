@@ -155,8 +155,11 @@ struct VideoHubView: View {
 
             ToolbarItemGroup(placement: .topBarTrailing) {
                 if viewModel.isUploading {
-                    ProgressView()
-                        .controlSize(.small)
+                    SkydownPremiumCircularProgress(
+                        tint: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        scale: 0.72
+                    )
                 }
 
                 if viewModel.isAdmin {
@@ -632,7 +635,7 @@ struct VideoHubView: View {
             if let validationMessage = viewModel.validationMessage {
                 Text(validationMessage)
                     .font(.footnote)
-                    .foregroundColor(.red)
+                    .foregroundColor(AppColors.error(for: colorScheme))
             }
 
             SkydownBrandActionButton(
@@ -902,8 +905,11 @@ struct VideoHubView: View {
 
             if viewModel.isLoadingVideos {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
-                    ProgressView()
-                        .controlSize(.small)
+                    SkydownPremiumCircularProgress(
+                        tint: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        scale: 0.72
+                    )
                     Text(AppLocalized.text("videohub.library.loading", fallback: "Videos werden vorbereitet…"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -1421,10 +1427,18 @@ private struct VideoHubLibraryRow: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
-                        Button(role: .destructive, action: onDelete) {
-                            Label(AppLocalized.text("videohub.action.delete", fallback: "Loeschen"), systemImage: "trash")
-                                .frame(maxWidth: .infinity)
-                        }
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("videohub.action.delete", fallback: "Loeschen"),
+                            systemImage: "trash",
+                            accent: AppColors.error(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: true,
+                            action: onDelete
+                        )
                     }
                 }
             }
@@ -1579,10 +1593,18 @@ private struct VideoHubLibraryRow: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
-                    Button(role: .destructive, action: onDelete) {
-                        Label(AppLocalized.text("videohub.action.delete", fallback: "Loeschen"), systemImage: "trash")
-                            .frame(maxWidth: .infinity)
-                    }
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("videohub.action.delete", fallback: "Loeschen"),
+                        systemImage: "trash",
+                        accent: AppColors.error(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .caption.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 8,
+                        expandToFullWidth: true,
+                        action: onDelete
+                    )
                 }
             }
         }
@@ -1732,7 +1754,7 @@ private struct VideoOwnerEditPanel: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(AppColors.text(for: colorScheme))
             }
-            .tint(AppColors.accent(for: colorScheme))
+            .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme))
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
                 SkydownBrandActionButton(
@@ -1960,15 +1982,32 @@ private struct VideoReelViewer: View {
 
                 if isTransitioning {
                     VStack(spacing: SkydownLayout.stackSpacingPill) {
-                        ProgressView()
-                            .tint(.white)
+                        SkydownPremiumCircularProgress(
+                            tint: .white,
+                            colorScheme: .dark,
+                            scale: 0.78
+                        )
                         Text(AppLocalized.text("videohub.reel.preparing", fallback: "Clip wird vorbereitet…"))
                             .font(.caption.weight(.semibold))
                             .foregroundColor(.white.opacity(0.86))
                     }
                     .padding(.horizontal, SkydownLayout.cardPadding)
                     .padding(.vertical, 12)
-                    .background(Color.black.opacity(0.46), in: RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(0.58),
+                                Color.white.opacity(0.10)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        in: RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
+                            .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                    )
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .transition(.opacity)
                     .zIndex(12)
@@ -2143,44 +2182,19 @@ private struct VideoHubQuickActionDock: View {
 
     var body: some View {
         VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingPill) {
-            VideoHubQuickActionButton(
-                title: isUploadOpen
-                    ? AppLocalized.text("common.close", fallback: "Schliessen")
-                    : AppLocalized.text("videohub.dock.upload", fallback: "Upload"),
+            SkydownPremiumIconAction(
                 systemImage: isUploadOpen ? "xmark.circle.fill" : "arrow.up.circle.fill",
                 tint: AppColors.accent(for: colorScheme),
-                textColor: .white,
+                colorScheme: colorScheme,
+                isSelected: isUploadOpen,
+                size: 54,
+                iconSize: 22,
+                accessibilityLabel: isUploadOpen
+                    ? AppLocalized.text("common.close", fallback: "Schliessen")
+                    : AppLocalized.text("videohub.dock.upload", fallback: "Upload"),
                 action: onOpenUpload
             )
         }
-    }
-}
-
-private struct VideoHubQuickActionButton: View {
-    let title: String
-    let systemImage: String
-    let tint: Color
-    let textColor: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: SkydownLayout.stackSpacingPill) {
-                Image(systemName: systemImage)
-                    .font(.headline.weight(.bold))
-
-                Text(title)
-                    .font(.subheadline.weight(.bold))
-            }
-            .foregroundColor(textColor)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
-            .background(tint)
-            .clipShape(Capsule())
-            .shadow(color: tint.opacity(0.22), radius: 14, y: 8)
-        }
-        .buttonStyle(.plain)
-        .skydownTactileAction()
     }
 }
 
@@ -2651,30 +2665,14 @@ struct VideoYouTubeRow: View {
 
             Spacer()
 
-            Button(action: onPlay) {
-                Label(AppLocalized.text("videohub.youtube_row.play", fallback: "YouTube"), systemImage: "play.rectangle.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        LinearGradient(
-                            colors: [
-                                AppColors.youtube(for: colorScheme),
-                                AppColors.youtubeDeep(for: colorScheme)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay(
-                        Capsule()
-                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                    )
-                    .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
-            .skydownTactileAction()
+            SkydownPremiumLinkSurface(
+                title: AppLocalized.text("videohub.youtube_row.play", fallback: "YouTube"),
+                systemImage: "play.rectangle.fill",
+                tint: AppColors.youtube(for: colorScheme),
+                colorScheme: colorScheme,
+                isExpanded: false,
+                action: onPlay
+            )
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -2739,12 +2737,18 @@ struct VideoPublicConfigEditorCard: View {
                             onPickImage: { pendingUploadTarget = .equipment(item.id) },
                             onRemoveImage: { removeEditableImage(for: .equipment(item.id)) }
                         )
-                        Button(role: .destructive) {
-                            viewModel.removeEquipmentItem(item.id)
-                        } label: {
-                            Label(AppLocalized.text("videohub.editor.remove_entry", fallback: "Remove entry"), systemImage: "trash")
-                                .font(.caption.weight(.semibold))
-                        }
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("videohub.editor.remove_entry", fallback: "Remove entry"),
+                            systemImage: "trash",
+                            accent: AppColors.error(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: true,
+                            action: { viewModel.removeEquipmentItem(item.id) }
+                        )
                     }
                     .padding(14)
                     .background(AppColors.secondaryBackground(for: colorScheme))
@@ -2844,12 +2848,18 @@ struct VideoPublicConfigEditorCard: View {
                             keyboard: .URL,
                             autocapitalization: .never
                         )
-                        Button(role: .destructive) {
-                            viewModel.removeCollaborationItem(item.id)
-                        } label: {
-                            Label(AppLocalized.text("videohub.editor.remove_collab", fallback: "Kollaboration entfernen"), systemImage: "trash")
-                                .font(.caption.weight(.semibold))
-                        }
+                        SkydownBrandActionButton(
+                            title: AppLocalized.text("videohub.editor.remove_collab", fallback: "Kollaboration entfernen"),
+                            systemImage: "trash",
+                            accent: AppColors.error(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            font: .caption.weight(.semibold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 8,
+                            expandToFullWidth: true,
+                            action: { viewModel.removeCollaborationItem(item.id) }
+                        )
                     }
                     .padding(14)
                     .background(AppColors.secondaryBackground(for: colorScheme))
@@ -3020,14 +3030,13 @@ struct SkydownSelectedVideoRow: View {
 
     var body: some View {
         HStack(spacing: SkydownLayout.stackSpacingCompact) {
-            ZStack {
-                Circle()
-                    .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
-                    .frame(width: 42, height: 42)
-
-                Image(systemName: "video.fill")
-                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
-            }
+            SkydownPremiumIconSurface(
+                systemImage: "video.fill",
+                tint: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                size: SkydownLayout.iconActionSurfaceSize,
+                iconSize: 15
+            )
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text(file.fileName)
@@ -3042,13 +3051,31 @@ struct SkydownSelectedVideoRow: View {
 
             Spacer()
 
-            Button(role: .destructive, action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title3)
-            }
+            SkydownPremiumIconAction(
+                systemImage: "xmark",
+                tint: AppColors.error(for: colorScheme),
+                colorScheme: colorScheme,
+                size: SkydownLayout.iconActionCompactSurfaceSize,
+                iconSize: 12,
+                accessibilityLabel: AppLocalized.text("common.remove", fallback: "Remove"),
+                action: onRemove
+            )
         }
         .padding(12)
-        .background(AppColors.secondaryBackground(for: colorScheme))
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.78 : 0.62),
+                    AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
+        )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
     }
 }
@@ -3351,28 +3378,15 @@ struct SkydownVideoFullscreenCloseButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            ZStack {
-                Circle()
-                    .fill(Color.black.opacity(0.62))
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.72)
-                Image(systemName: "xmark")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.white)
-            }
-            .frame(width: 52, height: 52)
-            .overlay(
-                Circle()
-                    .stroke(Color.white.opacity(0.30), lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.50), radius: 18, x: 0, y: 7)
-        }
-        .buttonStyle(.plain)
-        .contentShape(Circle())
-        .skydownTactileAction()
-        .accessibilityLabel(AppLocalized.text("videohub.a11y.close_video", fallback: "Close video"))
+        SkydownPremiumIconAction(
+            systemImage: "xmark",
+            tint: .white,
+            colorScheme: .dark,
+            size: 52,
+            iconSize: 18,
+            accessibilityLabel: AppLocalized.text("videohub.a11y.close_video", fallback: "Close video"),
+            action: action
+        )
         .accessibilityIdentifier("video.fullscreen.close")
     }
 }
@@ -3466,26 +3480,22 @@ private struct SkydownVideoFullscreenIconButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: isProminent ? 15 : 14, weight: .bold))
-                .foregroundColor(.white.opacity(isEnabled ? 0.96 : 0.38))
-                .frame(width: isProminent ? 40 : 36, height: 36)
-                .background(
-                    Circle()
-                        .fill(isProminent ? Color.white.opacity(0.16) : Color.white.opacity(0.08))
-                )
-        }
-        .buttonStyle(.plain)
-        .contentShape(Circle())
-        .disabled(!isEnabled)
-        .opacity(isEnabled ? 1 : 0.48)
-        .skydownTactileAction()
-        .accessibilityLabel(accessibilityLabel)
+        SkydownPremiumIconAction(
+            systemImage: systemImage,
+            tint: .white,
+            colorScheme: .dark,
+            isSelected: isProminent,
+            isEnabled: isEnabled,
+            size: isProminent ? 40 : 36,
+            iconSize: isProminent ? 15 : 14,
+            accessibilityLabel: accessibilityLabel,
+            action: action
+        )
     }
 }
 
 private struct SkydownViewerToolbarButton: View {
+    @Environment(\.colorScheme) private var colorScheme
     let title: String
     let systemImage: String
     let isPrimary: Bool
@@ -3493,26 +3503,19 @@ private struct SkydownViewerToolbarButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.footnote.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
-                        .fill(isPrimary ? Color.white : Color.white.opacity(0.12))
-                )
-                .foregroundColor(isPrimary ? .black : .white)
-                .overlay(
-                    RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
-                        .stroke(Color.white.opacity(isPrimary ? 0 : 0.18), lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-        .skydownTactileAction()
-        .disabled(!isEnabled)
-        .opacity(isEnabled ? 1 : 0.46)
+        SkydownBrandActionButton(
+            title: title,
+            systemImage: systemImage,
+            accent: isPrimary ? AppColors.accentHighlight(for: colorScheme) : .white,
+            colorScheme: .dark,
+            role: isPrimary ? .primary : .muted,
+            isEnabled: isEnabled,
+            font: .footnote.weight(.semibold),
+            cornerRadius: SkydownLayout.denseRadius,
+            verticalPadding: 12,
+            expandToFullWidth: true,
+            action: action
+        )
     }
 }
 

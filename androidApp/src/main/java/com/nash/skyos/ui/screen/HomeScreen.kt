@@ -11,11 +11,9 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -163,8 +161,12 @@ import com.nash.skyos.ui.component.SkydownHapticKind
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownMotionTokens
 import com.nash.skyos.ui.component.SkydownPremiumCircularProgress
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
+import com.nash.skyos.ui.component.SkydownPremiumInlineSurface
 import com.nash.skyos.ui.component.SkydownPremiumLinearProgress
+import com.nash.skyos.ui.component.SkydownPremiumLinkSurface
 import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
+import com.nash.skyos.ui.component.SkydownPremiumSwitch
 import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.rememberSkydownReduceMotion
 import com.nash.skyos.ui.component.SkydownPortalChip
@@ -191,7 +193,6 @@ import com.nash.skyos.ui.theme.skydownAccentHighlight
 import com.nash.skyos.ui.theme.skydownAccentMystic
 import com.nash.skyos.ui.theme.skydownCardBackground
 import com.nash.skyos.ui.theme.skydownIsDarkPalette
-import com.nash.skyos.ui.theme.skydownSecondaryBackground
 import com.nash.skyos.ui.theme.skydownSpotify
 import com.nash.skyos.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
@@ -414,28 +415,17 @@ fun HomeScreen(
                         onOpenSettings = onOpenSettings,
                         onGuestSignIn = onGuestSignIn,
                     ) {
-                        val interactionSource = remember { MutableInteractionSource() }
-                        Surface(
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.68f),
+                        SkydownPremiumIconAction(
+                            icon = if (onOpenWorkflow != null) {
+                                Icons.Default.AutoAwesome
+                            } else {
+                                Icons.Default.Refresh
+                            },
+                            contentDescription = topBarActionDescription,
+                            onClick = onOpenWorkflow ?: viewModel::refresh,
+                            accent = MaterialTheme.colorScheme.primary,
                             shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
-                            tonalElevation = 4.dp,
-                            modifier = Modifier.skydownPressable(interactionSource),
-                        ) {
-                            IconButton(
-                                onClick = onOpenWorkflow ?: viewModel::refresh,
-                                interactionSource = interactionSource,
-                            ) {
-                                Icon(
-                                    imageVector = if (onOpenWorkflow != null) {
-                                        Icons.Default.AutoAwesome
-                                    } else {
-                                        Icons.Default.Refresh
-                                    },
-                                    contentDescription = topBarActionDescription,
-                                )
-                            }
-                        }
+                        )
                     }
                 },
                 colors = skydownTopBarColors(),
@@ -875,7 +865,7 @@ fun HomeScreen(
                                         stringResource(R.string.home_task_due_sublabel),
                                         style = MaterialTheme.typography.labelMedium,
                                     )
-                                    androidx.compose.material3.Switch(
+                                    SkydownPremiumSwitch(
                                         checked = taskUseDue,
                                         onCheckedChange = { taskUseDue = it },
                                     )
@@ -1142,9 +1132,10 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.52f),
                             )
                         }
-                        Surface(
+                        SkydownPremiumInlineSurface(
                             shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
+                            accent = MaterialTheme.colorScheme.primary,
+                            containerAlpha = 0.48f,
                         ) {
                             val scrollState = rememberScrollState()
                             Column(
@@ -1152,7 +1143,7 @@ fun HomeScreen(
                                     .fillMaxWidth()
                                     .heightIn(min = 180.dp, max = 420.dp)
                                     .verticalScroll(scrollState)
-                                    .padding(12.dp),
+                                    .padding(SkydownUiTokens.segmentHorizontalPadding),
                             ) {
                                 FounderBriefingReadableBody(raw = sheet.body)
                             }
@@ -1253,21 +1244,23 @@ private fun HomeManageableItemCard(
                     )
                 }
             }
-            Row {
-                IconButton(onClick = onEdit) {
-                    Icon(
-                        imageVector = Icons.Outlined.Edit,
-                        contentDescription = stringResource(R.string.common_edit),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.92f),
-                    )
-                }
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Outlined.Delete,
-                        contentDescription = stringResource(R.string.common_delete),
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.72f),
-                    )
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
+                SkydownPremiumIconAction(
+                    icon = Icons.Outlined.Edit,
+                    contentDescription = stringResource(R.string.common_edit),
+                    onClick = onEdit,
+                    accent = MaterialTheme.colorScheme.primary.copy(alpha = 0.92f),
+                    size = 40.dp,
+                    iconSize = 18.dp,
+                )
+                SkydownPremiumIconAction(
+                    icon = Icons.Outlined.Delete,
+                    contentDescription = stringResource(R.string.common_delete),
+                    onClick = onDelete,
+                    accent = MaterialTheme.colorScheme.error.copy(alpha = 0.86f),
+                    size = 40.dp,
+                    iconSize = 18.dp,
+                )
             }
         }
         AnimatedVisibility(
@@ -1755,36 +1748,26 @@ private fun HomeArtistSocialButton(
     onClick: () -> Unit,
 ) {
     val pillShape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius)
-    Surface(
+    SkydownPremiumLinkSurface(
         onClick = onClick,
-        modifier = modifier
-            .clip(pillShape)
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.skydownSecondaryBackground().copy(alpha = 0.76f),
-                        tint.copy(alpha = 0.18f),
-                        tint.copy(alpha = 0.10f),
-                    ),
-                    start = Offset.Zero,
-                    end = Offset.Infinite,
-                ),
-            ),
+        accent = tint,
+        modifier = modifier,
         shape = pillShape,
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, tint.copy(alpha = 0.30f)),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 7.dp),
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                .padding(
+                    horizontal = SkydownUiTokens.linkCompactHorizontalPadding,
+                    vertical = SkydownUiTokens.linkCompactVerticalPadding,
+                ),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.linkCompactContentSpacing),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(12.dp),
+                modifier = Modifier.size(SkydownUiTokens.linkCompactIconSize),
                 tint = tint,
             )
             Text(
@@ -1859,15 +1842,17 @@ private fun HomeProductivityOverviewCard(
         )
         if (syncPaused || !recoverableError.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(6.dp))
-            Surface(
+            SkydownPremiumInlineSurface(
                 shape = RoundedCornerShape(SkydownUiTokens.pillSoftRadius),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                accent = MaterialTheme.colorScheme.primary,
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                        .padding(
+                            horizontal = SkydownUiTokens.inlinePanelHorizontalPadding,
+                            vertical = SkydownUiTokens.inlinePanelVerticalPadding,
+                        ),
                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -1875,7 +1860,7 @@ private fun HomeProductivityOverviewCard(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.84f),
-                        modifier = Modifier.size(14.dp),
+                        modifier = Modifier.size(SkydownUiTokens.inlinePanelIconSize),
                     )
                     Text(
                         text = recoverableError?.takeIf { it.isNotBlank() }
@@ -1896,15 +1881,17 @@ private fun HomeProductivityOverviewCard(
         }
         if (hasNoProductivitySignals) {
             Spacer(modifier = Modifier.height(6.dp))
-            Surface(
+            SkydownPremiumInlineSurface(
                 shape = RoundedCornerShape(SkydownUiTokens.pillSoftRadius),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.58f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                accent = MaterialTheme.colorScheme.primary,
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                        .padding(
+                            horizontal = SkydownUiTokens.inlinePanelHorizontalPadding,
+                            vertical = SkydownUiTokens.inlinePanelVerticalPadding,
+                        ),
                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -1912,7 +1899,7 @@ private fun HomeProductivityOverviewCard(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.84f),
-                        modifier = Modifier.size(14.dp),
+                        modifier = Modifier.size(SkydownUiTokens.inlinePanelIconSize),
                     )
                     Text(
                         text = stringResource(R.string.home_productivity_empty_prompt),
@@ -2092,23 +2079,24 @@ private fun HomeCollapsedMetricChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val view = LocalView.current
-    Surface(
+    SkydownPremiumInlineSurface(
         modifier = modifier
-            .defaultMinSize(minHeight = 34.dp)
+            .defaultMinSize(minHeight = SkydownUiTokens.inlinePanelMinHeight)
             .semantics { contentDescription = "$title, $count" },
         shape = RoundedCornerShape(SkydownUiTokens.pillSoftRadius),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)),
+        accent = MaterialTheme.colorScheme.onSurface,
+        containerAlpha = 0.62f,
         onClick = {
-            view.performSkydownHaptic(SkydownHapticKind.Selection)
             onClick()
         },
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 7.dp),
+                .padding(
+                    horizontal = SkydownUiTokens.segmentCenteredHorizontalPadding,
+                    vertical = SkydownUiTokens.linkCompactVerticalPadding,
+                ),
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingTick),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -2231,15 +2219,11 @@ private fun HomeProductivityTaskListRow(
                     append(task.title)
                     task.dueAt?.let { append(" • ").append(dayFormatter.format(it)) }
                 }
-                val bg = if (showDueBanner) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                } else {
-                    Color.Transparent
-                }
-                Surface(
-                    color = bg,
+                SkydownPremiumInlineSurface(
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth(),
+                    accent = MaterialTheme.colorScheme.primary,
+                    containerAlpha = if (showDueBanner) 0.16f else 0f,
                 ) {
                     Text(
                         text = "• $line",
@@ -2247,7 +2231,10 @@ private fun HomeProductivityTaskListRow(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(
+                            horizontal = SkydownUiTokens.countBadgeHorizontalPadding,
+                            vertical = SkydownUiTokens.stackSpacingNano,
+                        ),
                     )
                 }
             }
@@ -2325,16 +2312,20 @@ private fun HomeProductivityListRow(
 
 @Composable
 private fun HomeCountBadge(count: Int) {
-    Surface(
+    SkydownPremiumInlineSurface(
         shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f),
+        accent = MaterialTheme.colorScheme.onSurface,
+        containerAlpha = 0.10f,
     ) {
         Text(
             text = count.toString(),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+            modifier = Modifier.padding(
+                horizontal = SkydownUiTokens.countBadgeHorizontalPadding,
+                vertical = SkydownUiTokens.countBadgeVerticalPadding,
+            ),
         )
     }
 }
@@ -2352,13 +2343,14 @@ private fun HomeQuickActionChip(
     val accessibilityLabel = remember(text, countBadge) {
         if (countBadge != null) "$text, $countBadge" else text
     }
-    Surface(
+    SkydownPremiumInlineSurface(
         modifier = modifier
             .defaultMinSize(minHeight = 44.dp)
             .semantics { contentDescription = accessibilityLabel },
         shape = RoundedCornerShape(SkydownUiTokens.pillSoftRadius),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
         onClick = onClick,
+        accent = MaterialTheme.colorScheme.primary,
+        containerAlpha = if (enabled) 0.62f else 0.38f,
         enabled = enabled,
     ) {
         Row(
@@ -2475,29 +2467,39 @@ private fun HomeLiveSignalSurface(
         contentFederatedLine?.let { add(it) }
     }
     val colorScheme = MaterialTheme.colorScheme
-    Column(
+    SkydownPremiumInlineSurface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 2.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
+        accent = colorScheme.primary,
+        containerAlpha = 0.36f,
+        shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
     ) {
-        Text(
-            text = stringResource(R.string.home_status_signals),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
-            color = colorScheme.onSurface.copy(alpha = 0.50f),
-        )
-        Text(nowText, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurface.copy(alpha = 0.66f))
-        Text(nextText, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurface.copy(alpha = 0.58f))
-        riskText?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurface.copy(alpha = 0.55f))
-        }
-        federatedSignals.takeIf { it.isNotEmpty() }?.forEach { signal ->
+        Column(
+            modifier = Modifier.padding(
+                horizontal = SkydownUiTokens.inlinePanelHorizontalPadding,
+                vertical = SkydownUiTokens.inlinePanelVerticalPadding,
+            ),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
+        ) {
             Text(
-                text = signal,
-                style = MaterialTheme.typography.bodySmall,
-                color = colorScheme.onSurface.copy(alpha = 0.52f),
+                text = stringResource(R.string.home_status_signals),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Medium,
+                color = colorScheme.onSurface.copy(alpha = 0.50f),
             )
+            Text(nowText, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurface.copy(alpha = 0.66f))
+            Text(nextText, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurface.copy(alpha = 0.58f))
+            riskText?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurface.copy(alpha = 0.55f))
+            }
+            federatedSignals.takeIf { it.isNotEmpty() }?.forEach { signal ->
+                Text(
+                    text = signal,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorScheme.onSurface.copy(alpha = 0.52f),
+                )
+            }
         }
     }
 }
@@ -2583,76 +2585,86 @@ private fun HomeDailyOpsStrip(
         }
     }
 
-    Column(
+    SkydownPremiumInlineSurface(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
+            .fillMaxWidth(),
+        accent = priorityAccent,
+        shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
+        borderAlpha = 0.14f,
+        containerAlpha = 0.34f,
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(
+                horizontal = SkydownUiTokens.inlinePanelHorizontalPadding,
+                vertical = SkydownUiTokens.inlinePanelVerticalPadding,
+            ),
+            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
         ) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = null,
-                tint = priorityAccent.copy(alpha = 0.45f),
-                modifier = Modifier.size(12.dp),
-            )
-            Text(
-                text = stringResource(R.string.home_dailyops_current_focus),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Normal,
-                color = colorScheme.onSurface.copy(alpha = 0.58f),
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(
-                onClick = {
-                    view.performSkydownHaptic(SkydownHapticKind.Success)
-                    onRefresh()
-                },
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    imageVector = Icons.Default.Refresh,
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = priorityAccent.copy(alpha = 0.45f),
+                    modifier = Modifier.size(SkydownUiTokens.linkCompactIconSize),
+                )
+                Text(
+                    text = stringResource(R.string.home_dailyops_current_focus),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Normal,
+                    color = colorScheme.onSurface.copy(alpha = 0.58f),
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                SkydownPremiumIconAction(
+                    icon = Icons.Default.Refresh,
                     contentDescription = stringResource(R.string.home_dailyops_refresh_a11y),
-                    tint = priorityAccent.copy(alpha = 0.5f),
+                    onClick = {
+                        view.performSkydownHaptic(SkydownHapticKind.Success)
+                        onRefresh()
+                    },
+                    accent = priorityAccent,
+                    size = SkydownUiTokens.iconActionCompactSurfaceSize,
+                    iconSize = SkydownUiTokens.buttonStandardIconSize,
+                    shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
+                )
+                Text(
+                    text = stringResource(R.string.home_dailyops_live_count, activeSignalCount, totalSignalCount),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = priorityAccent.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Medium,
                 )
             }
+
             Text(
-                text = stringResource(R.string.home_dailyops_live_count, activeSignalCount, totalSignalCount),
-                style = MaterialTheme.typography.labelSmall,
-                color = priorityAccent.copy(alpha = 0.7f),
-                fontWeight = FontWeight.Medium,
+                text = stringResource(R.string.home_dailyops_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = colorScheme.onSurface.copy(alpha = 0.55f),
+            )
+
+            BrandActionButton(
+                text = priorityTitle,
+                onClick = {
+                    view.performSkydownHaptic(SkydownHapticKind.Selection)
+                    when (priorityTarget) {
+                        "music" -> onOpenRelease()
+                        else -> onOpenVideo()
+                    }
+                },
+                accent = priorityAccent,
+                compact = true,
+                filled = true,
+                modifier = Modifier.fillMaxWidth(),
+                icon = Icons.Default.AutoAwesome,
+            )
+
+            Text(
+                text = priorityHint,
+                style = MaterialTheme.typography.bodySmall,
+                color = colorScheme.onSurface.copy(alpha = 0.52f),
             )
         }
-
-        Text(
-            text = stringResource(R.string.home_dailyops_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = colorScheme.onSurface.copy(alpha = 0.55f),
-        )
-
-        BrandActionButton(
-            text = priorityTitle,
-            onClick = {
-                view.performSkydownHaptic(SkydownHapticKind.Selection)
-                when (priorityTarget) {
-                    "music" -> onOpenRelease()
-                    else -> onOpenVideo()
-                }
-            },
-            accent = priorityAccent,
-            compact = true,
-            filled = true,
-            modifier = Modifier.fillMaxWidth(),
-            icon = Icons.Default.AutoAwesome,
-        )
-
-        Text(
-            text = priorityHint,
-            style = MaterialTheme.typography.bodySmall,
-            color = colorScheme.onSurface.copy(alpha = 0.52f),
-        )
     }
 }
 
@@ -2862,60 +2874,65 @@ private fun HomeSectionBanner(
     accent: Color,
     tag: String? = null,
 ) {
-    Row(
+    SkydownPremiumInlineSurface(
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f))
-            .border(
-                width = 1.dp,
-                color = accent.copy(alpha = 0.16f),
-                shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
-            )
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
-        verticalAlignment = Alignment.CenterVertically,
+            .fillMaxWidth(),
+        accent = accent,
+        shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
+        borderAlpha = 0.16f,
+        containerAlpha = 0.62f,
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(accent.copy(alpha = 0.14f)),
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .padding(
+                    horizontal = SkydownUiTokens.inlinePanelHorizontalPadding,
+                    vertical = SkydownUiTokens.inlinePanelVerticalPadding,
+                ),
+            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(14.dp),
-            )
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        tag?.takeIf { it.isNotBlank() }?.let { label ->
-            BrandStatusChip(
-                text = label,
-                accent = accent,
-                isActive = true,
-            )
+            Box(
+                modifier = Modifier
+                    .size(SkydownUiTokens.portalChipIconSurfaceSize)
+                    .clip(CircleShape)
+                    .background(accent.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(SkydownUiTokens.inlinePanelIconSize),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingHairline),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            tag?.takeIf { it.isNotBlank() }?.let { label ->
+                BrandStatusChip(
+                    text = label,
+                    accent = accent,
+                    isActive = true,
+                )
+            }
         }
     }
 }

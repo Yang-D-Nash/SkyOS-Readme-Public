@@ -384,60 +384,55 @@ struct ProfileView: View {
 
             if viewModel.canEditCurrentProfile {
                 VStack(alignment: .trailing, spacing: SkydownLayout.stackSpacingPill) {
-                    Button(viewModel.isEditing ? "Fertig" : "Bearbeiten") {
+                    SkydownBrandActionButton(
+                        title: viewModel.isEditing ? "Fertig" : "Bearbeiten",
+                        systemImage: viewModel.isEditing ? "checkmark" : "pencil",
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        colorScheme: colorScheme,
+                        font: .subheadline.weight(.bold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 10,
+                        expandToFullWidth: false
+                    ) {
                         viewModel.setEditing(!viewModel.isEditing)
                     }
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                    .modifier(
-                        ProfileActionCapsuleModifier(
-                            tint: AppColors.accentMystic(for: colorScheme),
-                            textColor: .white
-                        )
-                    )
-                        .accessibilityIdentifier("profile.edit.toggle")
+                    .accessibilityIdentifier("profile.edit.toggle")
 
-                    Button {
-                        pendingImagePickerTarget = .avatar
-                    } label: {
-                        ProfileActionCapsuleLabel(
-                            title: isUploadingAvatar ? "Avatar..." : "Avatar",
-                            systemImage: "camera.fill"
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .skydownTactileAction()
-                    .modifier(
-                        ProfileActionCapsuleModifier(
-                            tint: AppColors.accent(for: colorScheme),
-                            textColor: .white
-                        )
+                    SkydownBrandActionButton(
+                        title: isUploadingAvatar ? "Avatar..." : "Avatar",
+                        systemImage: "camera.fill",
+                        accent: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        isEnabled: !isUploadingImageFlow,
+                        font: .subheadline.weight(.bold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 10,
+                        expandToFullWidth: false,
+                        action: {
+                            pendingImagePickerTarget = .avatar
+                        }
                     )
-                    .disabled(isUploadingImageFlow)
-                        .accessibilityIdentifier("profile.avatar.upload")
+                    .accessibilityIdentifier("profile.avatar.upload")
 
                     if let currentAvatar = viewModel.currentUser?.profileImageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
                        !currentAvatar.isEmpty {
-                        Button {
-                            Task {
-                                await viewModel.deleteAvatar()
+                        SkydownBrandActionButton(
+                            title: isUploadingAvatar ? "Entferne..." : "Avatar loeschen",
+                            systemImage: "trash.fill",
+                            accent: AppColors.error(for: colorScheme),
+                            colorScheme: colorScheme,
+                            isEnabled: !isUploadingImageFlow,
+                            font: .subheadline.weight(.bold),
+                            cornerRadius: SkydownLayout.denseRadius,
+                            verticalPadding: 10,
+                            expandToFullWidth: false,
+                            action: {
+                                Task {
+                                    await viewModel.deleteAvatar()
+                                }
                             }
-                        } label: {
-                            ProfileActionCapsuleLabel(
-                                title: isUploadingAvatar ? "Entferne..." : "Avatar loeschen",
-                                systemImage: "trash.fill"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
-                        .modifier(
-                            ProfileActionCapsuleModifier(
-                                tint: Color.red.opacity(0.84),
-                                textColor: .white
-                            )
                         )
-                        .disabled(isUploadingImageFlow)
-                            .accessibilityIdentifier("profile.avatar.delete")
+                        .accessibilityIdentifier("profile.avatar.delete")
                     }
 
                 }
@@ -733,6 +728,7 @@ struct ProfileView: View {
                             .foregroundColor(AppColors.secondaryText(for: colorScheme))
                     }
                 }
+                .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme))
                 .padding(14)
                 .background(AppColors.cardBackground(for: colorScheme))
                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
@@ -830,8 +826,11 @@ private struct ProfileUploadStatusCard: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: SkydownLayout.stackSpacingRelaxed) {
-            ProgressView()
-                .tint(AppColors.accent(for: colorScheme))
+            SkydownPremiumCircularProgress(
+                tint: AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme,
+                scale: 0.76
+            )
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text(title)
@@ -998,38 +997,6 @@ private struct ProfileLinkPill: View {
     }
 }
 
-private struct ProfileActionCapsuleLabel: View {
-    let title: String
-    let systemImage: String
-
-    var body: some View {
-        HStack(spacing: SkydownLayout.stackSpacingPill) {
-            Image(systemName: systemImage)
-                .font(.headline.weight(.bold))
-            Text(title)
-                .font(.subheadline.weight(.bold))
-        }
-    }
-}
-
-private struct ProfileActionCapsuleModifier: ViewModifier {
-    let tint: Color
-    let textColor: Color
-
-    func body(content: Content) -> some View {
-        content
-            .foregroundColor(textColor)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(tint.opacity(0.92))
-            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
-                    .stroke(Color.white.opacity(0.16), lineWidth: 1)
-            )
-    }
-}
-
 private struct ProfileCompactActionPill: View {
     let title: String
     let systemImage: String
@@ -1138,16 +1105,15 @@ private struct ProfileMediaGridTile: View {
             .accessibilityIdentifier("profile.gallery.item.\(item.id ?? "unknown")")
 
             if canDelete, let onDelete {
-                Button(action: onDelete) {
-                    Image(systemName: "trash.fill")
-                        .font(.caption.weight(.bold))
-                        .foregroundColor(.white)
-                        .padding(10)
-                        .background(Color.black.opacity(0.58))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .skydownTactileAction()
+                SkydownPremiumIconAction(
+                    systemImage: "trash.fill",
+                    tint: AppColors.error(for: colorScheme),
+                    colorScheme: colorScheme,
+                    size: SkydownLayout.iconActionCompactSurfaceSize,
+                    iconSize: 13,
+                    accessibilityLabel: AppLocalized.text("profile.gallery.delete", fallback: "Delete media"),
+                    action: onDelete
+                )
                 .padding(10)
                 .accessibilityIdentifier("profile.gallery.delete.\(item.id ?? "unknown")")
             }
@@ -1203,8 +1169,11 @@ private struct ProfileGalleryMediaViewerSheet: View {
                             .padding(.top, max(proxy.safeAreaInsets.top + 72, 96))
                             .padding(.bottom, max(proxy.safeAreaInsets.bottom + 24, 40))
                     } placeholder: {
-                        ProgressView()
-                            .tint(.white)
+                        SkydownPremiumCircularProgress(
+                            tint: .white,
+                            colorScheme: .dark,
+                            scale: 0.82
+                        )
                     }
                 } else {
                     VStack(spacing: SkydownLayout.stackSpacingPill) {
@@ -1235,21 +1204,15 @@ private struct ProfileGalleryMediaViewerSheet: View {
 
                         Spacer()
 
-                        Button(action: { dismiss() }, label: {
-                            Label(AppLocalized.text("common.close", fallback: "Close"), systemImage: "xmark")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 14)
-                                .frame(height: 48)
-                                .background(Color.black.opacity(0.42))
-                                .clipShape(Capsule())
-                                .overlay(
-                                    Capsule()
-                                        .stroke(Color.white.opacity(0.22), lineWidth: 1)
-                                )
-                        })
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
+                        SkydownPremiumIconAction(
+                            systemImage: "xmark",
+                            tint: .white,
+                            colorScheme: .dark,
+                            size: SkydownLayout.iconActionCompactSurfaceSize,
+                            iconSize: 13,
+                            accessibilityLabel: AppLocalized.text("common.close", fallback: "Close"),
+                            action: { dismiss() }
+                        )
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, max(proxy.safeAreaInsets.top, 12))

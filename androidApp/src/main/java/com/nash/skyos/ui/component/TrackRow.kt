@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -594,15 +593,15 @@ private fun SpotifyEmbedDialog(
                         )
                     }
 
-                    IconButton(
+                    SkydownPremiumIconAction(
+                        icon = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.common_close),
                         onClick = onDismiss,
                         modifier = Modifier.testTag("music.track.spotify.close"),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(R.string.common_close),
-                        )
-                    }
+                        accent = MaterialTheme.colorScheme.onSurface,
+                        size = 40.dp,
+                        iconSize = 19.dp,
+                    )
                 }
 
                 if (embedUrl != null) {

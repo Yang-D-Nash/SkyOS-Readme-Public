@@ -41,6 +41,17 @@ struct AppColors {
         }
     }
 
+    static func error(for colorScheme: ColorScheme) -> Color {
+        switch colorScheme {
+        case .light:
+            return Color(red: 174/255, green: 47/255, blue: 64/255)
+        case .dark:
+            return Color(red: 255/255, green: 126/255, blue: 141/255)
+        @unknown default:
+            return Color(red: 174/255, green: 47/255, blue: 64/255)
+        }
+    }
+
     static func primaryBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .light:

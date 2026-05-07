@@ -255,14 +255,13 @@ struct NicmaSelectedFileRow: View {
 
     var body: some View {
         HStack(spacing: SkydownLayout.stackSpacingCompact) {
-            ZStack {
-                Circle()
-                    .fill(AppColors.accentMystic(for: colorScheme).opacity(0.16))
-                    .frame(width: 42, height: 42)
-
-                Image(systemName: "waveform")
-                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
-            }
+            SkydownPremiumIconSurface(
+                systemImage: "waveform",
+                tint: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                size: SkydownLayout.iconActionSurfaceSize,
+                iconSize: 15
+            )
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
                 Text(file.fileName)
@@ -277,13 +276,31 @@ struct NicmaSelectedFileRow: View {
 
             Spacer()
 
-            Button(role: .destructive, action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title3)
-            }
+            SkydownPremiumIconAction(
+                systemImage: "xmark",
+                tint: AppColors.error(for: colorScheme),
+                colorScheme: colorScheme,
+                size: SkydownLayout.iconActionCompactSurfaceSize,
+                iconSize: 12,
+                accessibilityLabel: AppLocalized.text("common.remove", fallback: "Remove"),
+                action: onRemove
+            )
         }
         .padding(12)
-        .background(AppColors.secondaryBackground(for: colorScheme))
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.78 : 0.62),
+                    AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.16), lineWidth: 1)
+        )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
     }
 }

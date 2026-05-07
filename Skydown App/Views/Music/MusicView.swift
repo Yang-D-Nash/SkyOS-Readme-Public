@@ -205,12 +205,19 @@ struct MusicView: View {
                         }
                     } else if viewModel.isSpotifyConnected {
                         ToolbarItem(placement: .topBarTrailing) {
-                            Button(role: .destructive) {
-                                viewModel.disconnectSpotify()
-                            } label: {
-                                Image(systemName: "rectangle.portrait.and.arrow.right")
-                                    .font(.subheadline.weight(.bold))
-                            }
+                            SkydownBrandActionButton(
+                                title: "",
+                                systemImage: "rectangle.portrait.and.arrow.right",
+                                accent: AppColors.error(for: colorScheme),
+                                colorScheme: colorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.bold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 8,
+                                expandToFullWidth: false,
+                                action: { viewModel.disconnectSpotify() }
+                            )
+                            .accessibilityLabel(AppLocalized.text("music.spotify.disconnect", fallback: "Disconnect Spotify"))
                         }
                     }
                 }

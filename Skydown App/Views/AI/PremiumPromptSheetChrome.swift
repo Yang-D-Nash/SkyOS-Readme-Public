@@ -19,19 +19,15 @@ struct PremiumPromptSheetHeader: View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingSnug) {
             HStack(alignment: .top) {
                 Spacer(minLength: 0)
-                Button(action: onDismiss) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .frame(width: 32, height: 32)
-                        .background(
-                            Circle()
-                                .fill(AppColors.secondaryBackground(for: colorScheme).opacity(0.85))
-                        )
-                }
-                .buttonStyle(.plain)
-                .skydownTactileAction()
-                .accessibilityLabel(AppLocalized.text("common.close", fallback: "Close"))
+                SkydownPremiumIconAction(
+                    systemImage: "xmark",
+                    tint: AppColors.secondaryText(for: colorScheme),
+                    colorScheme: colorScheme,
+                    size: SkydownLayout.iconActionCompactSurfaceSize,
+                    iconSize: 13,
+                    accessibilityLabel: AppLocalized.text("common.close", fallback: "Close"),
+                    action: onDismiss
+                )
             }
 
             HStack(alignment: .center, spacing: SkydownLayout.stackSpacingLoft) {
@@ -103,9 +99,11 @@ struct PremiumPromptProgressBanner: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: SkydownLayout.stackSpacingPill) {
-            ProgressView()
-                .tint(accent)
-                .scaleEffect(0.92)
+            SkydownPremiumCircularProgress(
+                tint: accent,
+                colorScheme: colorScheme,
+                scale: 0.84
+            )
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
@@ -126,8 +124,15 @@ struct PremiumPromptProgressBanner: View {
         .padding(SkydownLayout.compactRadius)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
-                .fill(accent.opacity(0.12))
+            LinearGradient(
+                colors: [
+                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.70 : 0.52),
+                    accent.opacity(colorScheme == .dark ? 0.16 : 0.10)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous))
         )
         .overlay(
             RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)

@@ -121,6 +121,7 @@ extension View {
 struct HomeArtistSocialLinksRow: View {
     let colorScheme: ColorScheme
     let onOpenArtistPage: (String) -> Void
+    @Environment(\.openURL) private var openURL
     @ObservedObject private var artistPagesStore = ArtistPagesStore.shared
 
     private struct ArtistSocialEntry: Identifiable {
@@ -229,102 +230,25 @@ struct HomeArtistSocialLinksRow: View {
     @ViewBuilder
     private func socialButton(title: String, icon: String, urlString: String, tint: Color) -> some View {
         if let url = URL(string: urlString) {
-            Link(destination: url) {
-                HStack(spacing: SkydownLayout.stackSpacingTick) {
-                    Image(systemName: icon)
-                        .font(.caption2.weight(.semibold))
-                    Text(title)
-                        .font(.caption2.weight(.bold))
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 7)
-                .padding(.horizontal, 9)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.78 : 0.66),
-                                    tint.opacity(colorScheme == .dark ? 0.22 : 0.14),
-                                    tint.opacity(colorScheme == .dark ? 0.12 : 0.08)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                )
-                .overlay(
-                    Capsule(style: .continuous)
-                        .stroke(tint.opacity(0.30), lineWidth: 1)
-                )
-                .overlay(
-                    Capsule(style: .continuous)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    .white.opacity(colorScheme == .dark ? 0.16 : 0.28),
-                                    tint.opacity(0.18)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.8
-                        )
-                )
+            SkydownPremiumLinkSurface(
+                title: title,
+                systemImage: icon,
+                tint: tint,
+                colorScheme: colorScheme
+            ) {
+                openURL(url)
             }
-            .buttonStyle(.plain)
-            .foregroundColor(tint)
         }
     }
 
     private func artistPageButton(title: String, icon: String, tint: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: SkydownLayout.stackSpacingTick) {
-                Image(systemName: icon)
-                    .font(.caption2.weight(.semibold))
-                Text(title)
-                    .font(.caption2.weight(.bold))
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 7)
-            .padding(.horizontal, 9)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.78 : 0.66),
-                                tint.opacity(colorScheme == .dark ? 0.22 : 0.14),
-                                tint.opacity(colorScheme == .dark ? 0.12 : 0.08)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(tint.opacity(0.30), lineWidth: 1)
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                .white.opacity(colorScheme == .dark ? 0.16 : 0.28),
-                                tint.opacity(0.18)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.8
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-        .foregroundColor(tint)
+        SkydownPremiumLinkSurface(
+            title: title,
+            systemImage: icon,
+            tint: tint,
+            colorScheme: colorScheme,
+            action: action
+        )
     }
 
     private func resolvedURL(_ value: String?, fallback: String) -> String {

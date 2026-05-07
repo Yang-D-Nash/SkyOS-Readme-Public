@@ -50,13 +50,11 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -107,8 +105,10 @@ import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.AiConversationSessionStrip
 import com.nash.skyos.ui.component.AiConversationSessionsSheet
 import com.nash.skyos.ui.component.SkydownPremiumCircularProgress
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
 import com.nash.skyos.ui.component.SkydownPremiumLinearProgress
 import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
+import com.nash.skyos.ui.component.SkydownPremiumSwitch
 import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -710,27 +710,23 @@ private fun AiThreadFollowUpBar(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { submit() }),
         )
-        IconButton(onClick = onOpenFullComposer) {
-            Icon(
-                imageVector = Icons.Filled.Settings,
-                contentDescription = stringResource(R.string.ai_thread_open_full_composer_a11y),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-        }
-        IconButton(
+        SkydownPremiumIconAction(
+            icon = Icons.Filled.Settings,
+            contentDescription = stringResource(R.string.ai_thread_open_full_composer_a11y),
+            onClick = onOpenFullComposer,
+            accent = MaterialTheme.colorScheme.primary,
+            size = 40.dp,
+            iconSize = 19.dp,
+        )
+        SkydownPremiumIconAction(
+            icon = Icons.AutoMirrored.Filled.Send,
+            contentDescription = stringResource(R.string.ai_thread_send_a11y),
             onClick = submit,
+            accent = MaterialTheme.colorScheme.primary,
             enabled = canSend && !isWorking,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = stringResource(R.string.ai_thread_send_a11y),
-                tint = if (canSend && !isWorking) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                },
-            )
-        }
+            size = 40.dp,
+            iconSize = 19.dp,
+        )
     }
 }
 
@@ -739,47 +735,16 @@ private fun AiPromptFab(
     isWorking: Boolean,
     onOpen: () -> Unit,
 ) {
-    FloatingActionButton(
+    BrandActionButton(
+        text = if (isWorking) stringResource(R.string.ai_fab_working) else stringResource(R.string.ai_composer_prompt),
         onClick = onOpen,
+        accent = MaterialTheme.colorScheme.primary,
         modifier = Modifier
             .widthIn(min = 132.dp)
             .height(58.dp),
-        shape = RoundedCornerShape(SkydownUiTokens.sheetHeroRadius),
-        containerColor = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSnug),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (isWorking) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = stringResource(R.string.ai_prompt_open),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Text(
-                text = if (isWorking) stringResource(R.string.ai_fab_working) else stringResource(R.string.ai_composer_prompt),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Black,
-            )
-            if (!isWorking) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-    }
+        icon = Icons.Default.AutoAwesome,
+        isLoading = isWorking,
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -860,16 +825,14 @@ private fun AiPromptComposerSheet(
                 accent = composerAccent,
                 isActive = true,
             )
-            IconButton(
+            SkydownPremiumIconAction(
+                icon = Icons.Default.Close,
+                contentDescription = stringResource(R.string.ai_prompt_close),
                 onClick = onDismiss,
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(R.string.ai_prompt_close),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+                accent = MaterialTheme.colorScheme.onSurface,
+                size = 40.dp,
+                iconSize = 19.dp,
+            )
         }
 
         if (botPhase.isBusy) {
@@ -1313,7 +1276,7 @@ private fun AiMembershipSheet(
             Text(stringResource(R.string.ai_membership_creator_detail), style = MaterialTheme.typography.labelMedium)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                 Text(stringResource(R.string.membership_annual_option), style = MaterialTheme.typography.labelMedium)
-                androidx.compose.material3.Switch(
+                SkydownPremiumSwitch(
                     checked = state.selectedAnnual,
                     onCheckedChange = onToggleAnnual,
                 )
@@ -1902,8 +1865,9 @@ fun AiMessageBubble(
                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CircularProgressIndicator(
+                    SkydownPremiumCircularProgress(
                         modifier = Modifier.size(16.dp),
+                        accent = MaterialTheme.colorScheme.primary,
                         strokeWidth = 2.dp,
                     )
                     Text(

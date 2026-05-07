@@ -51,13 +51,16 @@ fun SkydownPortalChip(
         border = BorderStroke(1.dp, tint.copy(alpha = 0.22f)),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp),
+            modifier = Modifier.padding(
+                horizontal = SkydownUiTokens.portalChipHorizontalPadding,
+                vertical = SkydownUiTokens.portalChipVerticalPadding,
+            ),
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingDense),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(SkydownUiTokens.portalChipIconSurfaceSize)
                     .clip(CircleShape)
                     .background(tint.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
@@ -65,7 +68,7 @@ fun SkydownPortalChip(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(13.dp),
+                    modifier = Modifier.size(SkydownUiTokens.portalChipIconContentSize),
                     tint = tint,
                 )
             }

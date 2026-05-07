@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayCircleFilled
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -82,6 +81,9 @@ import com.nash.skyos.ui.component.EditableImageFieldCard
 import com.nash.skyos.ui.component.EditableVideoFieldCard
 import com.nash.skyos.ui.component.LocalSessionUser
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
+import com.nash.skyos.ui.component.SkydownPremiumInlineSurface
+import com.nash.skyos.ui.component.SkydownPremiumLinkSurface
 import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.SkydownTopBarTitle
@@ -497,12 +499,15 @@ fun ArtistPageScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.common_back),
-                        )
-                    }
+                    SkydownPremiumIconAction(
+                        icon = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.common_back),
+                        onClick = onBack,
+                        modifier = Modifier.padding(start = 4.dp),
+                        accent = MaterialTheme.colorScheme.primary,
+                        size = 40.dp,
+                        iconSize = 19.dp,
+                    )
                 },
                 actions = {
                     if (canEdit) {
@@ -572,15 +577,15 @@ fun ArtistPageScreen(
                                 isLoading = isSaving,
                             )
                         } else {
-                            IconButton(
+                            SkydownPremiumIconAction(
+                                icon = Icons.Filled.Edit,
+                                contentDescription = stringResource(R.string.artist_action_edit),
                                 onClick = ::beginEditing,
                                 enabled = !isSaving,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Edit,
-                                    contentDescription = stringResource(R.string.artist_action_edit),
-                                )
-                            }
+                                accent = MaterialTheme.colorScheme.primary,
+                                size = 40.dp,
+                                iconSize = 19.dp,
+                            )
                         }
                     }
                 },
@@ -1016,26 +1021,16 @@ private fun ArtistNowPlayingMiniBar(
     isPlaying: Boolean,
     onStop: () -> Unit,
 ) {
-    Surface(
+    SkydownPremiumInlineSurface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, SpotifyGreen.copy(alpha = 0.20f)),
+        accent = SpotifyGreen,
+        borderAlpha = 0.20f,
+        containerAlpha = 0.72f,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f),
-                            SpotifyGreen.copy(alpha = 0.10f),
-                        ),
-                        start = Offset.Zero,
-                        end = Offset.Infinite,
-                    ),
-                )
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
             verticalAlignment = Alignment.CenterVertically,
@@ -1061,26 +1056,33 @@ private fun ArtistNowPlayingMiniBar(
                     maxLines = 1,
                 )
             }
-            IconButton(onClick = onPlayPause) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Filled.GraphicEq else Icons.Filled.PlayCircleFilled,
-                    contentDescription = if (isPlaying) "Pause preview" else "Play preview",
-                    tint = SpotifyGreen,
-                )
-            }
-            IconButton(onClick = onOpenSpotify) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                    contentDescription = "Open in Spotify",
-                    tint = SpotifyGreen,
-                )
-            }
-            IconButton(onClick = onStop) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Stop preview",
-                )
-            }
+            SkydownPremiumIconAction(
+                icon = if (isPlaying) Icons.Filled.GraphicEq else Icons.Filled.PlayCircleFilled,
+                contentDescription = if (isPlaying) "Pause preview" else "Play preview",
+                onClick = onPlayPause,
+                accent = SpotifyGreen,
+                size = SkydownUiTokens.iconActionCompactSurfaceSize,
+                iconSize = SkydownUiTokens.buttonStandardIconSize,
+                shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
+            )
+            SkydownPremiumIconAction(
+                icon = Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = "Open in Spotify",
+                onClick = onOpenSpotify,
+                accent = SpotifyGreen,
+                size = SkydownUiTokens.iconActionCompactSurfaceSize,
+                iconSize = SkydownUiTokens.buttonStandardIconSize,
+                shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
+            )
+            SkydownPremiumIconAction(
+                icon = Icons.Default.Close,
+                contentDescription = "Stop preview",
+                onClick = onStop,
+                accent = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                size = SkydownUiTokens.iconActionCompactSurfaceSize,
+                iconSize = SkydownUiTokens.buttonStandardIconSize,
+                shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
+            )
         }
     }
 }
@@ -1160,37 +1162,27 @@ private fun ArtistPageLinksCard(
                         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     ) {
                         primaryLinks.forEach { link ->
-                            Surface(
+                            SkydownPremiumLinkSurface(
                                 onClick = { openExternalLink(context, link.url) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
-                                    .background(
-                                        Brush.linearGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.surface.copy(alpha = 0.70f),
-                                                link.backgroundColor.copy(alpha = 0.24f),
-                                                link.accentColor.copy(alpha = 0.12f),
-                                            ),
-                                            start = Offset.Zero,
-                                            end = Offset.Infinite,
-                                        ),
-                                    ),
+                                accent = link.accentColor,
+                                modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
-                                color = Color.Transparent,
-                                border = BorderStroke(1.dp, link.accentColor.copy(alpha = 0.30f)),
+                                baseColor = link.backgroundColor.copy(alpha = 0.70f),
                             ) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 10.dp, vertical = 7.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                        .padding(
+                                            horizontal = SkydownUiTokens.linkCompactHorizontalPadding,
+                                            vertical = SkydownUiTokens.linkCompactVerticalPadding,
+                                        ),
+                                    horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.linkCompactContentSpacing),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Icon(
                                         imageVector = link.icon,
                                         contentDescription = null,
-                                        modifier = Modifier.size(12.dp),
+                                        modifier = Modifier.size(SkydownUiTokens.linkCompactIconSize),
                                         tint = link.accentColor,
                                     )
                                     Text(
@@ -1209,7 +1201,7 @@ private fun ArtistPageLinksCard(
 
                 secondaryLinks.forEach { link ->
                     val linkShape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius)
-                    Surface(
+                    SkydownPremiumLinkSurface(
                         onClick = {
                             if (link.kind == ArtistPageLinkKind.YouTube) {
                                 onOpenYouTube(
@@ -1224,28 +1216,19 @@ private fun ArtistPageLinksCard(
                                 openExternalLink(context, link.url)
                             }
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(linkShape)
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
-                                        link.backgroundColor.copy(alpha = 0.22f),
-                                        link.accentColor.copy(alpha = 0.10f),
-                                    ),
-                                    start = Offset.Zero,
-                                    end = Offset.Infinite,
-                                ),
-                            ),
+                        accent = link.accentColor,
+                        modifier = Modifier.fillMaxWidth(),
                         shape = linkShape,
-                        color = Color.Transparent,
-                        border = BorderStroke(1.dp, link.accentColor.copy(alpha = 0.22f)),
+                        borderAlpha = 0.22f,
+                        baseColor = link.backgroundColor.copy(alpha = 0.62f),
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                                .padding(
+                                    horizontal = SkydownUiTokens.linkStandardHorizontalPadding,
+                                    vertical = SkydownUiTokens.linkStandardVerticalPadding,
+                                ),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(link.icon, contentDescription = null, tint = link.accentColor)
@@ -1474,13 +1457,14 @@ private fun ArtistCompactTrackRow(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
             )
         }
-        IconButton(onClick = onPlayToggle) {
-            Icon(
-                imageVector = if (isPlaying) Icons.Filled.GraphicEq else Icons.Filled.PlayCircleFilled,
-                contentDescription = if (isPlaying) "Pause preview" else "Play preview",
-                tint = SpotifyGreen,
-            )
-        }
+        SkydownPremiumIconAction(
+            icon = if (isPlaying) Icons.Filled.GraphicEq else Icons.Filled.PlayCircleFilled,
+            contentDescription = if (isPlaying) "Pause preview" else "Play preview",
+            onClick = onPlayToggle,
+            accent = SpotifyGreen,
+            size = 40.dp,
+            iconSize = 20.dp,
+        )
     }
 }
 

@@ -277,9 +277,11 @@ private struct MerchGalleryImage: View {
                 AsyncImage(url: url, transaction: Transaction(animation: nil)) { phase in
                     switch phase {
                     case .empty:
-                        ProgressView()
-                            .tint(.white)
-                            .scaleEffect(0.9)
+                        SkydownPremiumCircularProgress(
+                            tint: .white,
+                            colorScheme: .dark,
+                            scale: 0.82
+                        )
                     case .success(let image):
                         image
                             .resizable()

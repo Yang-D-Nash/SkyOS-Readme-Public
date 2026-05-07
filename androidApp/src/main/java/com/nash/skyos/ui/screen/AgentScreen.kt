@@ -64,7 +64,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TableChart
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -73,7 +72,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Scaffold
@@ -129,8 +127,10 @@ import com.nash.skyos.ui.component.AiConversationSessionStrip
 import com.nash.skyos.ui.component.AiConversationSessionsSheet
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownPremiumCircularProgress
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
 import com.nash.skyos.ui.component.SkydownPremiumLinearProgress
 import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
+import com.nash.skyos.ui.component.SkydownPremiumSwitch
 import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -1078,7 +1078,7 @@ private fun AiMembershipSheet(
             Text(stringResource(R.string.ai_membership_creator_detail), style = MaterialTheme.typography.labelMedium)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
                 Text(stringResource(R.string.membership_annual_option), style = MaterialTheme.typography.labelMedium)
-                androidx.compose.material3.Switch(
+                SkydownPremiumSwitch(
                     checked = state.selectedAnnual,
                     onCheckedChange = onToggleAnnual,
                 )
@@ -1284,9 +1284,15 @@ private fun AgentTasksSection(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
             )
-            IconButton(onClick = onRefresh, modifier = Modifier.size(28.dp)) {
-                Icon(imageVector = Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh), modifier = Modifier.size(16.dp))
-            }
+            SkydownPremiumIconAction(
+                icon = Icons.Default.Refresh,
+                contentDescription = stringResource(R.string.common_refresh),
+                onClick = onRefresh,
+                modifier = Modifier.size(28.dp),
+                accent = MaterialTheme.colorScheme.primary,
+                size = 28.dp,
+                iconSize = 16.dp,
+            )
         }
 
         SkydownPremiumTextField(
@@ -1434,9 +1440,15 @@ private fun AgentNotesSection(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
             )
-            IconButton(onClick = onRefresh, modifier = Modifier.size(28.dp)) {
-                Icon(imageVector = Icons.Default.Refresh, contentDescription = stringResource(R.string.common_refresh), modifier = Modifier.size(16.dp))
-            }
+            SkydownPremiumIconAction(
+                icon = Icons.Default.Refresh,
+                contentDescription = stringResource(R.string.common_refresh),
+                onClick = onRefresh,
+                modifier = Modifier.size(28.dp),
+                accent = MaterialTheme.colorScheme.primary,
+                size = 28.dp,
+                iconSize = 16.dp,
+            )
         }
         SkydownPremiumTextField(
             value = createTitle,
@@ -1681,29 +1693,23 @@ private fun AgentThreadFollowUpBar(
                 },
             ),
         )
-        IconButton(
+        SkydownPremiumIconAction(
+            icon = Icons.Filled.Settings,
+            contentDescription = stringResource(R.string.agent_thread_open_full_composer_a11y),
             onClick = onOpenFullComposer,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Settings,
-                contentDescription = stringResource(R.string.agent_thread_open_full_composer_a11y),
-                tint = mystic,
-            )
-        }
-        IconButton(
+            accent = mystic,
+            size = 40.dp,
+            iconSize = 19.dp,
+        )
+        SkydownPremiumIconAction(
+            icon = Icons.AutoMirrored.Filled.Send,
+            contentDescription = stringResource(R.string.agent_thread_send_a11y),
             onClick = submit,
+            accent = mystic,
             enabled = canSend && !isWorking,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = stringResource(R.string.agent_thread_send_a11y),
-                tint = if (canSend && !isWorking) {
-                    mystic
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                },
-            )
-        }
+            size = 40.dp,
+            iconSize = 19.dp,
+        )
     }
 }
 
@@ -1712,51 +1718,20 @@ private fun AgentPromptFab(
     isWorking: Boolean,
     onOpen: () -> Unit,
 ) {
-    FloatingActionButton(
+    BrandActionButton(
+        text = if (isWorking) {
+            stringResource(R.string.agent_fab_working)
+        } else {
+            stringResource(R.string.agent_topbar_title)
+        },
         onClick = onOpen,
+        accent = MaterialTheme.colorScheme.tertiary,
         modifier = Modifier
             .widthIn(min = 132.dp)
             .height(58.dp),
-        shape = RoundedCornerShape(SkydownUiTokens.sheetHeroRadius),
-        containerColor = MaterialTheme.colorScheme.tertiary,
-        contentColor = MaterialTheme.colorScheme.onTertiary,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingSnug),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (isWorking) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onTertiary,
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = stringResource(R.string.agent_prompt_open),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Text(
-                text = if (isWorking) {
-                    stringResource(R.string.agent_fab_working)
-                } else {
-                    stringResource(R.string.agent_topbar_title)
-                },
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Black,
-            )
-            if (!isWorking) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-    }
+        icon = Icons.Default.AutoAwesome,
+        isLoading = isWorking,
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -1866,16 +1841,14 @@ private fun AgentPromptComposerSheet(
                 accent = MaterialTheme.colorScheme.tertiary,
                 isActive = true,
             )
-            IconButton(
+            SkydownPremiumIconAction(
+                icon = Icons.Default.Close,
+                contentDescription = stringResource(R.string.agent_prompt_close),
                 onClick = onDismiss,
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(R.string.agent_prompt_close),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+                accent = MaterialTheme.colorScheme.onSurface,
+                size = 40.dp,
+                iconSize = 19.dp,
+            )
         }
 
         if (sheetBusy) {
@@ -2023,7 +1996,7 @@ private fun AgentPromptComposerSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    androidx.compose.material3.Switch(
+                    SkydownPremiumSwitch(
                         checked = socialInstagramEnabled,
                         onCheckedChange = onSocialInstagramEnabledChanged,
                     )
@@ -2049,7 +2022,7 @@ private fun AgentPromptComposerSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    androidx.compose.material3.Switch(
+                    SkydownPremiumSwitch(
                         checked = socialTiktokEnabled,
                         onCheckedChange = onSocialTiktokEnabledChanged,
                     )
@@ -2075,7 +2048,7 @@ private fun AgentPromptComposerSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    androidx.compose.material3.Switch(
+                    SkydownPremiumSwitch(
                         checked = socialYoutubeEnabled,
                         onCheckedChange = onSocialYoutubeEnabledChanged,
                     )
@@ -2101,7 +2074,7 @@ private fun AgentPromptComposerSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    androidx.compose.material3.Switch(
+                    SkydownPremiumSwitch(
                         checked = socialFacebookEnabled,
                         onCheckedChange = onSocialFacebookEnabledChanged,
                     )
@@ -2127,7 +2100,7 @@ private fun AgentPromptComposerSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    androidx.compose.material3.Switch(
+                    SkydownPremiumSwitch(
                         checked = socialSpotifyEnabled,
                         onCheckedChange = onSocialSpotifyEnabledChanged,
                     )
@@ -2183,13 +2156,14 @@ private fun AgentPromptComposerSheet(
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onAddFiles) {
-                Icon(
-                    imageVector = Icons.Default.AttachFile,
-                    contentDescription = stringResource(R.string.agent_files_add),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
+            SkydownPremiumIconAction(
+                icon = Icons.Default.AttachFile,
+                contentDescription = stringResource(R.string.agent_files_add),
+                onClick = onAddFiles,
+                accent = MaterialTheme.colorScheme.primary,
+                size = 40.dp,
+                iconSize = 19.dp,
+            )
             Text(
                 text = if (attachments.isEmpty()) {
                     stringResource(R.string.agent_files_none)
@@ -2227,16 +2201,15 @@ private fun AgentPromptComposerSheet(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        IconButton(
+                        SkydownPremiumIconAction(
+                            icon = Icons.Default.Close,
+                            contentDescription = stringResource(R.string.common_remove),
                             onClick = { onRemoveAttachment(attachment) },
                             modifier = Modifier.size(28.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = stringResource(R.string.common_remove),
-                                modifier = Modifier.size(16.dp),
-                            )
-                        }
+                            accent = MaterialTheme.colorScheme.error,
+                            size = 28.dp,
+                            iconSize = 16.dp,
+                        )
                     }
                 }
                 BrandActionButton(
@@ -2674,8 +2647,9 @@ private fun AgentMessageBubble(
                     horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingPill),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CircularProgressIndicator(
+                    SkydownPremiumCircularProgress(
                         modifier = Modifier.size(16.dp),
+                        accent = MaterialTheme.colorScheme.tertiary,
                         strokeWidth = 2.dp,
                     )
                     Text(
@@ -3281,9 +3255,10 @@ private fun AgentWorkflowResultCard(
         )
         summary.progressPercent?.let { progress ->
             Column(verticalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
-                androidx.compose.material3.LinearProgressIndicator(
+                SkydownPremiumLinearProgress(
                     progress = { progress.coerceIn(0, 100) / 100f },
                     modifier = Modifier.fillMaxWidth(),
+                    accent = MaterialTheme.colorScheme.tertiary,
                 )
                 Text(
                     text = "$progress%",

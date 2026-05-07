@@ -38,7 +38,12 @@ struct AIConversationSessionStrip: View {
 
     var body: some View {
         HStack(spacing: SkydownLayout.stackSpacingSnug) {
-            Button(action: onOpenSessions) {
+            SkydownPremiumInlineSurface(
+                colorScheme: colorScheme,
+                accent: accent,
+                cornerRadius: SkydownLayout.sheetHeroRadius,
+                action: onOpenSessions
+            ) {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                         Text(title)
@@ -57,57 +62,29 @@ struct AIConversationSessionStrip: View {
                         .font(.caption.weight(.bold))
                         .foregroundColor(accent)
                 }
-                .padding(.horizontal, 15)
-                .padding(.vertical, 13)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    LinearGradient(
-                        colors: [
-                            AppColors.cardBackground(for: colorScheme).opacity(0.96),
-                            AppColors.secondaryBackground(for: colorScheme).opacity(0.86)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
-                        .stroke(accent.opacity(0.14), lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
             }
-            .buttonStyle(.plain)
             .disabled(isBusy)
 
             if showsManagementActions {
-                SkydownBrandActionButton(
-                    title: "",
+                SkydownPremiumIconAction(
                     systemImage: "arrow.clockwise",
-                    accent: accent,
+                    tint: accent,
                     colorScheme: colorScheme,
-                    role: .muted,
                     isEnabled: !isBusy,
-                    font: .subheadline.weight(.semibold),
-                    cornerRadius: SkydownLayout.denseRadius,
-                    verticalPadding: 8,
-                    expandToFullWidth: false,
+                    accessibilityLabel: AppLocalized.text("ai.sessions.a11y.refresh", fallback: "Refresh chat"),
                     action: onRefreshChat
                 )
-                .skydownInteractiveFeedback()
-                .accessibilityLabel(AppLocalized.text("ai.sessions.a11y.refresh", fallback: "Refresh chat"))
             }
 
             if showsManagementActions {
-                Button(role: .destructive, action: onDeleteChat) {
-                    Image(systemName: "trash")
-                        .font(.subheadline.weight(.bold))
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .disabled(isBusy || !canDelete)
-                .opacity(canDelete ? 1 : 0.46)
-                .skydownTactileAction()
-                .accessibilityLabel(AppLocalized.text("ai.sessions.a11y.delete", fallback: "Delete chat"))
+                SkydownPremiumIconAction(
+                    systemImage: "trash",
+                    tint: .red.opacity(0.82),
+                    colorScheme: colorScheme,
+                    isEnabled: !isBusy && canDelete,
+                    accessibilityLabel: AppLocalized.text("ai.sessions.a11y.delete", fallback: "Delete chat"),
+                    action: onDeleteChat
+                )
             }
         }
     }
@@ -150,11 +127,16 @@ struct AIConversationSessionsSheet: View {
                                 .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
 
                             HStack(spacing: SkydownLayout.stackSpacingPill) {
-                                Button(role: .destructive, action: onDeleteActiveSession) {
-                                    Text(AppLocalized.text("ai.sessions.delete", fallback: "Delete"))
-                                        .font(.caption.weight(.bold))
-                                }
-                                .disabled(isBusy)
+                                SkydownPremiumIconAction(
+                                    systemImage: "trash",
+                                    tint: .red.opacity(0.82),
+                                    colorScheme: colorScheme,
+                                    isEnabled: !isBusy,
+                                    size: SkydownLayout.iconActionCompactSurfaceSize,
+                                    iconSize: 14,
+                                    accessibilityLabel: AppLocalized.text("ai.sessions.delete", fallback: "Delete"),
+                                    action: onDeleteActiveSession
+                                )
 
                                 Spacer(minLength: 0)
 
@@ -272,12 +254,19 @@ private struct AIConversationSessionRow: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            (isSelected ? accent.opacity(0.08) : AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
+            LinearGradient(
+                colors: [
+                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.74 : 0.58),
+                    accent.opacity(isSelected ? 0.12 : 0.06)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
         )
         .overlay(
             RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
-                .stroke(isSelected ? accent.opacity(0.16) : Color.clear, lineWidth: 1)
+                .stroke(isSelected ? accent.opacity(0.24) : accent.opacity(0.10), lineWidth: 1)
         )
     }
 }

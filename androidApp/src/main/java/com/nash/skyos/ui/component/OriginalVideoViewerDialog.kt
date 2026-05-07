@@ -34,8 +34,8 @@ import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -425,28 +425,29 @@ internal fun SkydownFullscreenChromeIconButton(
     isProminent: Boolean = false,
     isEnabled: Boolean = true,
 ) {
-    IconButton(
+    Surface(
         onClick = onClick,
         enabled = isEnabled,
         modifier = modifier
             .size(if (isProminent) 42.dp else 38.dp)
-            .clip(CircleShape)
-            .background(
-                Color.White.copy(
-                    alpha = when {
-                        !isEnabled -> 0.05f
-                        isProminent -> 0.16f
-                        else -> 0.09f
-                    },
-                ),
-            ),
+            .clip(CircleShape),
+        shape = CircleShape,
+        color = Color.White.copy(
+            alpha = when {
+                !isEnabled -> 0.05f
+                isProminent -> 0.16f
+                else -> 0.09f
+            },
+        ),
+        contentColor = Color.White.copy(alpha = if (isEnabled) 0.96f else 0.38f),
     ) {
-        Icon(
-            imageVector = imageVector,
-            contentDescription = contentDescription,
-            tint = Color.White.copy(alpha = if (isEnabled) 0.96f else 0.38f),
-            modifier = Modifier.size(if (isProminent) 20.dp else 18.dp),
-        )
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(if (isProminent) 20.dp else 18.dp),
+            )
+        }
     }
 }
 

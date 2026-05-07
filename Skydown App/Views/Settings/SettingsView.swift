@@ -594,12 +594,17 @@ struct SettingsView: View {
                                 .accessibilityIdentifier("settings.open_profile_editor")
 
                                 VStack(spacing: SkydownLayout.stackSpacingPill) {
-                                    Button(role: .destructive) {
-                                        activeAlert = .logout
-                                    } label: {
-                                        Label(AppLocalized.text("settings.logout", fallback: "Log out"), systemImage: "person.crop.circle.badge.xmark")
-                                            .frame(maxWidth: .infinity)
-                                    }
+                                    SkydownBrandActionButton(
+                                        title: AppLocalized.text("settings.logout", fallback: "Log out"),
+                                        systemImage: "person.crop.circle.badge.xmark",
+                                        accent: AppColors.error(for: effectiveColorScheme),
+                                        colorScheme: effectiveColorScheme,
+                                        role: .muted,
+                                        font: .subheadline.weight(.semibold),
+                                        cornerRadius: SkydownLayout.denseRadius,
+                                        verticalPadding: 11,
+                                        action: { activeAlert = .logout }
+                                    )
                                     .skydownInteractiveFeedback()
                                     .accessibilityIdentifier("settings.logout")
 
@@ -623,12 +628,17 @@ struct SettingsView: View {
                                     .skydownInteractiveFeedback()
                                     .accessibilityIdentifier("settings.switch_account")
 
-                                    Button(role: .destructive) {
-                                        activeAlert = .deleteAccount
-                                    } label: {
-                                        Label(AppLocalized.text("settings.delete_account", fallback: "Delete account"), systemImage: "person.fill.xmark")
-                                            .frame(maxWidth: .infinity)
-                                    }
+                                    SkydownBrandActionButton(
+                                        title: AppLocalized.text("settings.delete_account", fallback: "Delete account"),
+                                        systemImage: "person.fill.xmark",
+                                        accent: AppColors.error(for: effectiveColorScheme),
+                                        colorScheme: effectiveColorScheme,
+                                        role: .muted,
+                                        font: .subheadline.weight(.semibold),
+                                        cornerRadius: SkydownLayout.denseRadius,
+                                        verticalPadding: 11,
+                                        action: { activeAlert = .deleteAccount }
+                                    )
                                     .skydownInteractiveFeedback()
                                 }
                             }
@@ -2962,11 +2972,18 @@ struct SettingsView: View {
                                 Toggle(AppLocalized.text("settings.ai_studio.faq_base.toggle_published", fallback: "Published"), isOn: $entry.isPublished)
                                     .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: effectiveColorScheme)))
 
-                                Button(role: .destructive) {
-                                    removeAIStudioFAQEntry(entry.id)
-                                } label: {
-                                    Label(AppLocalized.text("settings.ai_studio.faq_base.remove_entry", fallback: "Remove entry"), systemImage: "trash")
-                                }
+                                SkydownBrandActionButton(
+                                    title: AppLocalized.text("settings.ai_studio.faq_base.remove_entry", fallback: "Remove entry"),
+                                    systemImage: "trash",
+                                    accent: AppColors.error(for: effectiveColorScheme),
+                                    colorScheme: effectiveColorScheme,
+                                    role: .muted,
+                                    font: .caption.weight(.semibold),
+                                    cornerRadius: SkydownLayout.tightRadius,
+                                    verticalPadding: 9,
+                                    expandToFullWidth: false,
+                                    action: { removeAIStudioFAQEntry(entry.id) }
+                                )
                                 .skydownInteractiveFeedback()
                             }
                             .padding(12)
@@ -3009,7 +3026,7 @@ struct SettingsView: View {
                                 )
                             )
                                 .font(.footnote)
-                                .foregroundColor(.red)
+                                .foregroundColor(AppColors.error(for: effectiveColorScheme))
                         }
                     }
 
@@ -3134,11 +3151,18 @@ struct SettingsView: View {
                                 Toggle(AppLocalized.text("settings.ai_studio.owner_inspiration.toggle_published", fallback: "Published"), isOn: $entry.isPublished)
                                     .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: effectiveColorScheme)))
 
-                                Button(role: .destructive) {
-                                    removeAIOwnerInspirationEntry(entry.id)
-                                } label: {
-                                    Label(AppLocalized.text("settings.ai_studio.owner_inspiration.remove_entry", fallback: "Remove entry"), systemImage: "trash")
-                                }
+                                SkydownBrandActionButton(
+                                    title: AppLocalized.text("settings.ai_studio.owner_inspiration.remove_entry", fallback: "Remove entry"),
+                                    systemImage: "trash",
+                                    accent: AppColors.error(for: effectiveColorScheme),
+                                    colorScheme: effectiveColorScheme,
+                                    role: .muted,
+                                    font: .caption.weight(.semibold),
+                                    cornerRadius: SkydownLayout.tightRadius,
+                                    verticalPadding: 9,
+                                    expandToFullWidth: false,
+                                    action: { removeAIOwnerInspirationEntry(entry.id) }
+                                )
                                 .skydownInteractiveFeedback()
                             }
                             .padding(12)
@@ -3176,7 +3200,7 @@ struct SettingsView: View {
                                 )
                             )
                                 .font(.footnote)
-                                .foregroundColor(.red)
+                                .foregroundColor(AppColors.error(for: effectiveColorScheme))
                         }
                     }
 
@@ -3223,8 +3247,11 @@ struct SettingsView: View {
                                 .foregroundColor(AppColors.text(for: effectiveColorScheme))
                             Spacer()
                             if aiFaqOwnerReviewLoopStore.isLoading {
-                                ProgressView()
-                                    .controlSize(.small)
+                                SkydownPremiumCircularProgress(
+                                    tint: AppColors.accent(for: effectiveColorScheme),
+                                    colorScheme: effectiveColorScheme,
+                                    scale: 0.72
+                                )
                             } else {
                                 SkydownBrandActionButton(
                                     title: AppLocalized.text("common.refresh", fallback: "Refresh"),
@@ -3258,7 +3285,7 @@ struct SettingsView: View {
                         if let errorMessage = aiFaqOwnerReviewLoopStore.lastErrorMessage, !errorMessage.isEmpty {
                             Text("\(AppLocalized.text("settings.ai_runtime.review_loop_load_failed", fallback: "Review loop could not be loaded")): \(errorMessage)")
                                 .font(.footnote)
-                                .foregroundColor(.red)
+                                .foregroundColor(AppColors.error(for: effectiveColorScheme))
                         } else {
                             HStack(spacing: SkydownLayout.stackSpacingMicro) {
                                 SettingsBadge(
@@ -5876,12 +5903,16 @@ private struct NativeAISubscriptionStatusCard: View {
             if let purchaseDisabledReason {
                 Text(purchaseDisabledReason)
                     .font(.footnote)
-                    .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
+                    .foregroundColor(AppColors.error(for: colorScheme))
             }
 
             if isLoadingProducts || isSyncing {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
-                    ProgressView()
+                    SkydownPremiumCircularProgress(
+                        tint: AppColors.accent(for: colorScheme),
+                        colorScheme: colorScheme,
+                        scale: 0.76
+                    )
                     Text(isLoadingProducts ? "StoreKit-Produkte werden geladen..." : "KI-Abo wird synchronisiert...")
                         .font(.footnote)
                         .foregroundColor(AppColors.secondaryText(for: colorScheme))
@@ -5937,17 +5968,17 @@ private struct NativeAISubscriptionStatusCard: View {
             } else if isStorefrontReady {
                 Text(AppLocalized.text("settings.ai_subscriptions.storekit_active_no_products", fallback: "StoreKit is active, but this build has no AI products."))
                     .font(.footnote)
-                    .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
+                    .foregroundColor(AppColors.error(for: colorScheme))
             } else {
                 Text(AppLocalized.text("settings.ai_subscriptions.coming_soon_ids_pending", fallback: "Subscriptions are in preparation. IDs are pending."))
                     .font(.footnote)
-                    .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
+                    .foregroundColor(AppColors.error(for: colorScheme))
             }
 
             if let lastErrorMessage, !lastErrorMessage.isEmpty {
                 Text(lastErrorMessage)
                     .font(.footnote)
-                    .foregroundColor(Color(red: 214 / 255, green: 43 / 255, blue: 84 / 255))
+                    .foregroundColor(AppColors.error(for: colorScheme))
             }
 
             HStack(spacing: SkydownLayout.stackSpacingPill) {
@@ -6657,7 +6688,7 @@ private struct SettingsLockedHintCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
-                .fill(Color.red.opacity(colorScheme == .dark ? 0.34 : 0.76))
+                .fill(AppColors.error(for: colorScheme).opacity(colorScheme == .dark ? 0.34 : 0.76))
         )
         .overlay(
             RoundedRectangle(cornerRadius: SkydownLayout.compactRadius, style: .continuous)
@@ -7567,7 +7598,7 @@ private struct SettingsAdminUserCard: View {
             if let saveErrorMessage {
                 Text(saveErrorMessage)
                     .font(.footnote.weight(.semibold))
-                    .foregroundColor(.red)
+                    .foregroundColor(AppColors.error(for: colorScheme))
             } else if isSaving {
                 Text(AppLocalized.text("settings.user.syncing_role_rights_limits", fallback: "Role, permissions, and AI limits are syncing server-side."))
                     .font(.footnote)
@@ -7587,9 +7618,12 @@ private struct SettingsAdminUserCard: View {
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
         .overlay(alignment: .topTrailing) {
             if isSaving {
-                ProgressView()
-                    .tint(AppColors.accent(for: colorScheme))
-                    .padding(14)
+                SkydownPremiumCircularProgress(
+                    tint: AppColors.accent(for: colorScheme),
+                    colorScheme: colorScheme,
+                    scale: 0.74
+                )
+                .padding(10)
             }
         }
         .onChange(of: draftRole) { _, newRole in

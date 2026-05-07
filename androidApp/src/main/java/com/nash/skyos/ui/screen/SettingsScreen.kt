@@ -50,19 +50,13 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonColors
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TopAppBarDefaults
@@ -124,7 +118,10 @@ import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.EditableImageFieldCard
 import com.nash.skyos.ui.component.SectionHeader
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumCircularProgress
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
 import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
+import com.nash.skyos.ui.component.SkydownPremiumSwitch
 import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -170,11 +167,12 @@ private fun SettingsSegmentSurface(
     text: String,
     modifier: Modifier = Modifier,
     centerLabel: Boolean = false,
+    accent: Color = MaterialTheme.colorScheme.primary,
 ) {
     Surface(
         onClick = onClick,
         modifier = modifier.skydownCapsuleSurface(
-            accent = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+            accent = if (selected) accent else MaterialTheme.colorScheme.secondary,
             shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
         ),
         shape = RoundedCornerShape(SkydownUiTokens.compactRadius),
@@ -189,7 +187,10 @@ private fun SettingsSegmentSurface(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                    .padding(
+                        horizontal = SkydownUiTokens.segmentCenteredHorizontalPadding,
+                        vertical = SkydownUiTokens.segmentCenteredVerticalPadding,
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -203,7 +204,10 @@ private fun SettingsSegmentSurface(
         } else {
             Text(
                 text = text,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                modifier = Modifier.padding(
+                    horizontal = SkydownUiTokens.segmentHorizontalPadding,
+                    vertical = SkydownUiTokens.segmentVerticalPadding,
+                ),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -212,26 +216,44 @@ private fun SettingsSegmentSurface(
 }
 
 @Composable
-private fun IconButton(
+private fun SettingsSelectableRow(
+    selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    colors: IconButtonColors = IconButtonDefaults.iconButtonColors(),
-    interactionSource: MutableInteractionSource? = null,
+    accent: Color = MaterialTheme.colorScheme.primary,
+    cornerRadius: Dp = SkydownUiTokens.denseRadius,
+    solidSelected: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val resolvedInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
-    androidx.compose.material3.IconButton(
+    val shape = RoundedCornerShape(cornerRadius)
+    Surface(
         onClick = onClick,
-        modifier = modifier.skydownPressable(
-            interactionSource = resolvedInteractionSource,
-            pressedScale = 0.97f,
+        modifier = modifier.skydownCapsuleSurface(
+            accent = if (selected) accent else MaterialTheme.colorScheme.secondary,
+            shape = shape,
         ),
-        enabled = enabled,
-        colors = colors,
-        interactionSource = resolvedInteractionSource,
-        content = content,
-    )
+        shape = shape,
+        color = if (selected && solidSelected) accent else Color.Transparent,
+        contentColor = if (selected && solidSelected) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        },
+        border = if (selected && solidSelected) {
+            null
+        } else {
+            BorderStroke(
+                width = SkydownUiTokens.elevationHairline,
+                color = if (selected) {
+                    accent.copy(alpha = 0.42f)
+                } else {
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
+                },
+            )
+        },
+    ) {
+        content()
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1490,7 +1512,8 @@ fun SettingsScreen(
 
                         filteredCollections.forEach { collection ->
                             val isSelected = selectedHandles.contains(collection.handle)
-                            Surface(
+                            SettingsSelectableRow(
+                                selected = isSelected,
                                 onClick = {
                                     val updatedHandles = selectedHandles.toMutableList().apply {
                                         if (contains(collection.handle)) {
@@ -1502,20 +1525,8 @@ fun SettingsScreen(
                                     shopifyCollectionHandlesDraft = updatedHandles.joinToString(", ")
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                                color = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                },
-                                border = BorderStroke(
-                                    width = 1.dp,
-                                    color = if (isSelected) {
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)
-                                    } else {
-                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
-                                    },
-                                ),
+                                accent = MaterialTheme.colorScheme.primary,
+                                cornerRadius = SkydownUiTokens.messageBubbleRadius,
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -1996,52 +2007,22 @@ fun SettingsScreen(
                             .padding(top = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                     ) {
-                        Surface(
+                        SettingsSegmentSurface(
+                            selected = automationProviderDraft == "activepieces",
                             onClick = { automationProviderDraft = "activepieces" },
+                            text = stringResource(R.string.settings_automation_activepieces),
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(
-                                width = 1.dp,
-                                color = if (automationProviderDraft == "activepieces") {
-                                    MaterialTheme.colorScheme.tertiary
-                                } else {
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.32f)
-                                },
-                            ),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(stringResource(R.string.settings_automation_activepieces))
-                            }
-                        }
-                        Surface(
+                            centerLabel = true,
+                            accent = MaterialTheme.colorScheme.tertiary,
+                        )
+                        SettingsSegmentSurface(
+                            selected = automationProviderDraft == "n8n",
                             onClick = { automationProviderDraft = "n8n" },
+                            text = stringResource(R.string.settings_automation_n8n),
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(
-                                width = 1.dp,
-                                color = if (automationProviderDraft == "n8n") {
-                                    MaterialTheme.colorScheme.tertiary
-                                } else {
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.32f)
-                                },
-                            ),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(stringResource(R.string.settings_automation_n8n))
-                            }
-                        }
+                            centerLabel = true,
+                            accent = MaterialTheme.colorScheme.tertiary,
+                        )
                     }
                 }
                 OutlinedTextField(
@@ -2639,7 +2620,7 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(stringResource(R.string.settings_owner_inspiration_published_toggle), style = MaterialTheme.typography.labelMedium)
-                            Switch(
+                            SkydownPremiumSwitch(
                                 checked = entry.isPublished,
                                 onCheckedChange = { checked ->
                                     aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.toMutableList().also {
@@ -2748,10 +2729,11 @@ fun SettingsScreen(
                 }
 
                 if (aiFaqReviewLoopLoading) {
-                    CircularProgressIndicator(
+                    SkydownPremiumCircularProgress(
                         modifier = Modifier
                             .padding(top = 10.dp)
                             .size(18.dp),
+                        accent = MaterialTheme.colorScheme.primary,
                         strokeWidth = 2.dp,
                     )
                 } else if (aiFaqReviewLoopError.isNotBlank()) {
@@ -3913,7 +3895,11 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        SkydownPremiumCircularProgress(
+                            modifier = Modifier.size(18.dp),
+                            accent = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 2.dp,
+                        )
                         Text(stringResource(R.string.settings_membership_ops_loading))
                     }
                 } else {
@@ -4366,12 +4352,15 @@ fun SettingsScreen(
                 },
                 navigationIcon = {
                     onClose?.let { close ->
-                        IconButton(onClick = close) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.common_close),
-                            )
-                        }
+                        SkydownPremiumIconAction(
+                            icon = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_close),
+                            onClick = close,
+                            modifier = Modifier.padding(start = 4.dp),
+                            accent = MaterialTheme.colorScheme.primary,
+                            size = 40.dp,
+                            iconSize = 19.dp,
+                        )
                     }
                 },
                 colors = skydownTopBarColors(),
@@ -6327,7 +6316,7 @@ private fun SettingsToggleRow(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
         }
-        Switch(
+        SkydownPremiumSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled,
@@ -6371,10 +6360,37 @@ private fun AppearanceChoiceRow(
                 MaterialTheme.colorScheme.onSurface
             },
         )
-        RadioButton(
-            selected = selected,
-            onClick = onClick,
-        )
+        Box(
+            modifier = Modifier
+                .size(22.dp)
+                .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
+                .background(
+                    if (selected) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f)
+                    },
+                )
+                .border(
+                    width = SkydownUiTokens.elevationHairline,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.52f)
+                    } else {
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.24f)
+                    },
+                    shape = RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
+                        .background(MaterialTheme.colorScheme.primary),
+                )
+            }
+        }
     }
 }
 
@@ -6890,7 +6906,8 @@ private fun ArtistPageAdminCard(
                         val userId = user.id.orEmpty()
                         val isSelected = selectedEditorUids.contains(userId)
 
-                        Surface(
+                        SettingsSelectableRow(
+                            selected = isSelected,
                             onClick = {
                                 selectedEditorUids = if (page.brand == ArtistPageBrand.Nicma) {
                                     if (isSelected) emptySet() else setOf(userId)
@@ -6899,17 +6916,8 @@ private fun ArtistPageAdminCard(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(SkydownUiTokens.denseRadius),
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            },
-                            border = if (isSelected) {
-                                null
-                            } else {
-                                BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                            },
+                            accent = MaterialTheme.colorScheme.primary,
+                            solidSelected = true,
                         ) {
                             Row(
                                 modifier = Modifier
@@ -7117,8 +7125,9 @@ private fun AdminManagedUserCard(
                         horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        androidx.compose.material3.CircularProgressIndicator(
+                        SkydownPremiumCircularProgress(
                             modifier = Modifier.size(16.dp),
+                            accent = MaterialTheme.colorScheme.primary,
                             strokeWidth = 2.dp,
                         )
                         Text(

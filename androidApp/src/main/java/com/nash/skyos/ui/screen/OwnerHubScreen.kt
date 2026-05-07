@@ -20,7 +20,6 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -37,6 +36,7 @@ import com.nash.skyos.R
 import com.skydown.shared.text.OwnerHubPrompts
 import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.rememberSkydownScreenSectionSpacing
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.component.skydownContentPadding
@@ -71,12 +71,15 @@ fun OwnerHubScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.common_back),
-                        )
-                    }
+                    SkydownPremiumIconAction(
+                        icon = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.common_back),
+                        onClick = onBack,
+                        modifier = Modifier.padding(start = 4.dp),
+                        accent = MaterialTheme.colorScheme.primary,
+                        size = 40.dp,
+                        iconSize = 19.dp,
+                    )
                 },
                 colors = skydownTopBarColors(),
             )

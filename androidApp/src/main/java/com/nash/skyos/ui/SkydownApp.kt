@@ -71,7 +71,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -150,6 +149,7 @@ import com.nash.skyos.ui.component.SkydownExitEasing
 import com.nash.skyos.ui.component.SkydownMotionTokens
 import com.nash.skyos.ui.component.SkydownStandardEasing
 import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.rememberIsCompactAppLayout
 import com.nash.skyos.ui.component.rememberSkydownReduceMotion
@@ -2145,12 +2145,14 @@ private fun ZweizweiMusicLaneScreen(
                     },
                     navigationIcon = if (onBackToLanding != null) {
                         {
-                            IconButton(onClick = onBackToLanding) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(R.string.common_back),
-                                )
-                            }
+                            SkydownPremiumIconAction(
+                                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.common_back),
+                                onClick = onBackToLanding,
+                                modifier = Modifier.padding(start = 8.dp),
+                                size = SkydownUiTokens.iconActionCompactSurfaceSize,
+                                iconSize = SkydownUiTokens.buttonCompactIconSize,
+                            )
                         }
                     } else {
                         {}

@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -99,44 +97,26 @@ fun AiConversationSessionStrip(
             }
         }
         if (showsManagementActions) {
-            Surface(
+            SkydownPremiumIconAction(
+                icon = Icons.Default.Refresh,
+                contentDescription = stringResource(R.string.ai_session_refresh),
                 onClick = onRefreshChat,
+                accent = accent,
                 enabled = enabled,
-                modifier = Modifier.size(46.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = stringResource(R.string.ai_session_refresh),
-                    )
-                }
-            }
+                size = 46.dp,
+                iconSize = SkydownUiTokens.iconActionContentSize,
+            )
         }
         if (showsManagementActions) {
-            Surface(
+            SkydownPremiumIconAction(
+                icon = Icons.Default.Delete,
+                contentDescription = stringResource(R.string.ai_session_delete),
                 onClick = onDeleteChat,
+                accent = MaterialTheme.colorScheme.error,
                 enabled = enabled && canDelete,
-                modifier = Modifier.size(46.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.ai_session_delete),
-                    )
-                }
-            }
+                size = 46.dp,
+                iconSize = SkydownUiTokens.iconActionContentSize,
+            )
         }
     }
 }

@@ -64,8 +64,16 @@ struct OrderView: View {
                             title: AppLocalized.text("orders.loading.title", fallback: "Updating")
                         ) {
                             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
-                                ProgressView(AppLocalized.text("orders.loading.progress", fallback: "Loading orders…"))
-                                    .tint(AppColors.accent(for: colorScheme))
+                                HStack(spacing: SkydownLayout.stackSpacingPill) {
+                                    SkydownPremiumCircularProgress(
+                                        tint: AppColors.accent(for: colorScheme),
+                                        colorScheme: colorScheme,
+                                        scale: 0.74
+                                    )
+                                    Text(AppLocalized.text("orders.loading.progress", fallback: "Loading orders…"))
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundColor(AppColors.text(for: colorScheme))
+                                }
 
                                 Text(AppLocalized.text("orders.loading.hint", fallback: "Your orders are refreshed securely."))
                                     .font(.footnote.weight(.medium))

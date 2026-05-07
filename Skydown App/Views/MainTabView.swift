@@ -455,9 +455,11 @@ private struct DeferredSettingsPresentation: View {
                     .ignoresSafeArea()
 
                     VStack(spacing: SkydownLayout.stackSpacingRelaxed) {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .tint(AppColors.accent(for: effectiveColorScheme))
+                        SkydownPremiumCircularProgress(
+                            tint: AppColors.accent(for: effectiveColorScheme),
+                            colorScheme: effectiveColorScheme,
+                            scale: 0.92
+                        )
 
                         Text(AppLocalized.text("settings.loading", fallback: "Loading settings"))
                             .font(.headline)
@@ -1869,10 +1871,11 @@ private struct AIHubAgentWarmupView: View {
     var body: some View {
         VStack {
             Spacer(minLength: 56)
-            ProgressView()
-                .progressViewStyle(.circular)
-                .tint(AppColors.accentMystic(for: colorScheme))
-                .scaleEffect(1.08)
+            SkydownPremiumCircularProgress(
+                tint: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                scale: 0.96
+            )
                 .accessibilityIdentifier("agent.surface.warmup")
             Spacer(minLength: 56)
         }

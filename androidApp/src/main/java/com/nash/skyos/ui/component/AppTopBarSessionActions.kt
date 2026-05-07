@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -318,27 +317,17 @@ private fun SessionIconAction(
     accentColor: androidx.compose.ui.graphics.Color,
     badgeCount: Int = 0,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-
-    Box(
-        modifier = Modifier
-            .skydownCapsuleSurface(accent = accentColor, shape = CircleShape)
-            .skydownPressable(interactionSource),
-    ) {
-        IconButton(
+    Box {
+        SkydownPremiumIconAction(
+            icon = imageVector,
+            contentDescription = contentDescription,
             onClick = onClick,
-            modifier = Modifier
-                .size(40.dp)
-                .padding(TopBarPreset.actionIconInset(compactLayout = compactLayout, dense = dense))
-                .testTag(testTag),
-            interactionSource = interactionSource,
-        ) {
-            Icon(
-                imageVector = imageVector,
-                contentDescription = contentDescription,
-                tint = accentColor.copy(alpha = 0.94f),
-            )
-        }
+            modifier = Modifier.testTag(testTag),
+            accent = accentColor.copy(alpha = 0.94f),
+            size = 40.dp,
+            iconSize = if (TopBarPreset.useDense(compactLayout, dense)) 17.dp else 19.dp,
+            shape = CircleShape,
+        )
         if (badgeCount > 0) {
             Box(
                 modifier = Modifier

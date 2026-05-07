@@ -18,8 +18,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -56,6 +54,7 @@ import com.nash.skyos.data.GoogleSignInManager
 import com.nash.skyos.ui.component.BrandActionButton
 import com.nash.skyos.ui.component.GoogleAuthButton
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
 import com.nash.skyos.ui.component.SkydownPremiumMicrocopy
 import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
 import com.nash.skyos.ui.component.SkydownPremiumTextField
@@ -310,15 +309,16 @@ fun RegistrationScreen(
                     supportingText = passwordValidationMessage,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(
-                                imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                contentDescription = stringResource(
-                                    if (passwordVisible) R.string.auth_password_hide else R.string.auth_password_show,
-                                ),
-                                tint = colorScheme.skydownSecondaryText().copy(alpha = 0.84f),
-                            )
-                        }
+                        SkydownPremiumIconAction(
+                            icon = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = stringResource(
+                                if (passwordVisible) R.string.auth_password_hide else R.string.auth_password_show,
+                            ),
+                            onClick = { passwordVisible = !passwordVisible },
+                            accent = colorScheme.skydownSecondaryText().copy(alpha = 0.84f),
+                            size = 36.dp,
+                            iconSize = 18.dp,
+                        )
                     },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
@@ -338,15 +338,16 @@ fun RegistrationScreen(
                     supportingText = confirmPasswordValidationMessage,
                     visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                            Icon(
-                                imageVector = if (confirmPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                contentDescription = stringResource(
-                                    if (confirmPasswordVisible) R.string.auth_password_hide else R.string.auth_password_show,
-                                ),
-                                tint = colorScheme.skydownSecondaryText().copy(alpha = 0.84f),
-                            )
-                        }
+                        SkydownPremiumIconAction(
+                            icon = if (confirmPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = stringResource(
+                                if (confirmPasswordVisible) R.string.auth_password_hide else R.string.auth_password_show,
+                            ),
+                            onClick = { confirmPasswordVisible = !confirmPasswordVisible },
+                            accent = colorScheme.skydownSecondaryText().copy(alpha = 0.84f),
+                            size = 36.dp,
+                            iconSize = 18.dp,
+                        )
                     },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,

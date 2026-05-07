@@ -676,6 +676,7 @@ struct AgentView: View {
                     HStack {
                         Spacer(minLength: 0)
                         AgentPromptFab(
+                            colorScheme: colorScheme,
                             isWorking: viewModel.phase.shouldBlockComposerChrome,
                             onOpen: { showingPromptComposer = true }
                         )
@@ -793,8 +794,11 @@ private struct AgentRevenueUsageCard: View {
                     .font(.caption2.weight(.bold))
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
-            ProgressView(value: progress)
-                .tint(usage.warningLevel == "critical" ? .red : AppColors.accentHighlight(for: colorScheme))
+            SkydownPremiumLinearProgress(
+                progress: progress,
+                tint: usage.warningLevel == "critical" ? .red : AppColors.accentHighlight(for: colorScheme),
+                colorScheme: colorScheme
+            )
             if usage.warningLevel != "ok" {
                 Text(
                     usage.warningLevel == "critical"
@@ -1568,12 +1572,24 @@ private struct AgentNoteDetailSheet: View {
                     .background(AppColors.cardBackground(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous))
                 HStack {
-                    Button(AppLocalized.text("common.delete", fallback: "Loeschen"), role: .destructive) {
-                        Task {
-                            try? await onDelete()
-                            dismiss()
+                    SkydownBrandActionButton(
+                        title: AppLocalized.text("common.delete", fallback: "Loeschen"),
+                        systemImage: "trash",
+                        accent: AppColors.error(for: colorScheme),
+                        colorScheme: colorScheme,
+                        role: .muted,
+                        font: .subheadline.weight(.semibold),
+                        cornerRadius: SkydownLayout.denseRadius,
+                        verticalPadding: 10,
+                        expandToFullWidth: false,
+                        action: {
+                            Task {
+                                try? await onDelete()
+                                dismiss()
+                            }
                         }
-                    }
+                    )
+                    .skydownInteractiveFeedback()
                     Spacer()
                     SkydownBrandActionButton(
                         title: AppLocalized.text("common.save", fallback: "Speichern"),
@@ -1725,52 +1741,27 @@ private struct AgentInputAttachment: Identifiable, Equatable {
 }
 
 private struct AgentPromptFab: View {
+    let colorScheme: ColorScheme
     let isWorking: Bool
     let onOpen: () -> Void
 
     var body: some View {
-        Button(action: onOpen) {
-            HStack(spacing: SkydownLayout.stackSpacingPill) {
-                ZStack {
-                    Circle()
-                        .fill(.thinMaterial)
-                        .frame(width: 34, height: 34)
-
-                    if isWorking {
-                        ProgressView()
-                            .scaleEffect(0.68)
-                    } else {
-                        Image(systemName: "wand.and.stars")
-                            .font(.subheadline.weight(.black))
-                    }
-                }
-
-                Text(
-                    isWorking
-                        ? AppLocalized.text("agent.fab.state.working", fallback: "Arbeitet")
-                        : AppLocalized.text("agent.fab.state.idle", fallback: "Agent")
-                )
-                    .font(.subheadline.weight(.black))
-                    .lineLimit(1)
-
-                Image(systemName: "plus")
-                    .font(.caption.weight(.black))
-                    .opacity(isWorking ? 0 : 0.86)
-            }
-            .foregroundColor(.primary)
-            .padding(.leading, 10)
-            .padding(.trailing, 15)
-            .frame(height: 58)
-            .background(.ultraThinMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
-                    .stroke(.white.opacity(0.18), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
-            .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 10)
-        }
-        .buttonStyle(.plain)
-        .skydownTactileAction()
+        SkydownBrandActionButton(
+            title: isWorking
+                ? AppLocalized.text("agent.fab.state.working", fallback: "Arbeitet")
+                : AppLocalized.text("agent.fab.state.idle", fallback: "Agent"),
+            systemImage: isWorking ? nil : "wand.and.stars",
+            accent: AppColors.accentMystic(for: colorScheme),
+            colorScheme: colorScheme,
+            role: isWorking ? .muted : .primary,
+            isEnabled: !isWorking,
+            isLoading: isWorking,
+            font: .subheadline.weight(.black),
+            cornerRadius: SkydownLayout.sheetHeroRadius,
+            verticalPadding: 16,
+            expandToFullWidth: false,
+            action: onOpen
+        )
         .accessibilityLabel(AppLocalized.text("agent.a11y.open_prompt", fallback: "Prompt oeffnen"))
         .accessibilityIdentifier("agent.prompt.open")
     }
@@ -1973,7 +1964,7 @@ private struct AgentPromptComposerSheet: View {
             }
             .labelsHidden()
             .pickerStyle(.menu)
-            .tint(agentAccent)
+            .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme, accent: agentAccent))
             .disabled(interactionPhase.shouldBlockComposerChrome)
         }
         .padding(.horizontal, 12)
@@ -2183,7 +2174,7 @@ private struct AgentPromptComposerSheet: View {
                                 Text(AppLocalized.text("agent.platform.instagram", fallback: "Instagram"))
                                     .font(.subheadline.weight(.semibold))
                             }
-                            .tint(agentAccent)
+                            .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme, accent: agentAccent))
                             if socialInstagramEnabled {
                                 SocialHandleTextField(
                                     colorScheme: colorScheme,
@@ -2199,7 +2190,7 @@ private struct AgentPromptComposerSheet: View {
                                 Text(AppLocalized.text("agent.platform.tiktok", fallback: "TikTok"))
                                     .font(.subheadline.weight(.semibold))
                             }
-                            .tint(agentAccent)
+                            .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme, accent: agentAccent))
                             if socialTiktokEnabled {
                                 SocialHandleTextField(
                                     colorScheme: colorScheme,
@@ -2215,7 +2206,7 @@ private struct AgentPromptComposerSheet: View {
                                 Text(AppLocalized.text("agent.platform.youtube", fallback: "YouTube"))
                                     .font(.subheadline.weight(.semibold))
                             }
-                            .tint(agentAccent)
+                            .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme, accent: agentAccent))
                             if socialYoutubeEnabled {
                                 SocialHandleTextField(
                                     colorScheme: colorScheme,
@@ -2231,7 +2222,7 @@ private struct AgentPromptComposerSheet: View {
                                 Text(AppLocalized.text("agent.platform.facebook_meta", fallback: "Facebook / Meta"))
                                     .font(.subheadline.weight(.semibold))
                             }
-                            .tint(agentAccent)
+                            .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme, accent: agentAccent))
                             if socialFacebookEnabled {
                                 SocialHandleTextField(
                                     colorScheme: colorScheme,
@@ -2247,7 +2238,7 @@ private struct AgentPromptComposerSheet: View {
                                 Text(AppLocalized.text("agent.platform.spotify", fallback: "Spotify"))
                                     .font(.subheadline.weight(.semibold))
                             }
-                            .tint(agentAccent)
+                            .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme, accent: agentAccent))
                             if socialSpotifyEnabled {
                                 SocialHandleTextField(
                                     colorScheme: colorScheme,
@@ -2298,22 +2289,14 @@ private struct AgentPromptComposerSheet: View {
                     )
                     PremiumPromptCard(colorScheme: colorScheme) {
                         HStack(spacing: SkydownLayout.stackSpacingPill) {
-                            Button(action: onAddFiles) {
-                                HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                                    Image(systemName: "paperclip")
-                                        .font(.subheadline.weight(.semibold))
-                                    Text(AppLocalized.text("agent.attachments.add", fallback: "Add"))
-                                        .font(.subheadline.weight(.semibold))
-                                }
-                                .foregroundColor(agentAccent)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(
-                                    RoundedRectangle(cornerRadius: SkydownLayout.pillSoftRadius, style: .continuous)
-                                        .fill(agentAccent.opacity(0.12))
-                                )
-                            }
-                            .buttonStyle(.plain)
+                            SkydownPremiumLinkSurface(
+                                title: AppLocalized.text("agent.attachments.add", fallback: "Add"),
+                                systemImage: "paperclip",
+                                tint: agentAccent,
+                                colorScheme: colorScheme,
+                                isExpanded: false,
+                                action: onAddFiles
+                            )
                             .accessibilityLabel(AppLocalized.text("agent.a11y.add_files", fallback: "Add files"))
 
                             Text(
@@ -2331,25 +2314,41 @@ private struct AgentPromptComposerSheet: View {
                         if !attachments.isEmpty {
                             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
                                 ForEach(attachments) { attachment in
-                                    HStack(spacing: SkydownLayout.stackSpacingMicro) {
-                                        Image(systemName: attachment.kind.iconName)
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundColor(AppColors.accent(for: colorScheme))
-                                        Text(attachment.name)
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundColor(AppColors.text(for: colorScheme))
-                                            .lineLimit(1)
-                                        Spacer(minLength: 0)
-                                        Button { onRemoveAttachment(attachment) } label: {
-                                            Image(systemName: "xmark")
-                                                .font(.caption2.weight(.bold))
+                                    SkydownPremiumInlineSurface(
+                                        colorScheme: colorScheme,
+                                        accent: agentAccent,
+                                        cornerRadius: SkydownLayout.compactRadius
+                                    ) {
+                                        HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                                            Image(systemName: attachment.kind.iconName)
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundColor(agentAccent)
+                                            Text(attachment.name)
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundColor(AppColors.text(for: colorScheme))
+                                                .lineLimit(1)
+                                            Spacer(minLength: 0)
+                                            SkydownPremiumIconAction(
+                                                systemImage: "xmark",
+                                                tint: AppColors.secondaryText(for: colorScheme),
+                                                colorScheme: colorScheme,
+                                                size: SkydownLayout.iconActionCompactSurfaceSize,
+                                                iconSize: 12,
+                                                accessibilityLabel: AppLocalized.text("agent.attachments.remove", fallback: "Remove attachment")
+                                            ) {
+                                                onRemoveAttachment(attachment)
+                                            }
                                         }
-                                        .buttonStyle(.plain)
                                     }
                                 }
-                                Button(AppLocalized.text("agent.attachments.remove_all", fallback: "Remove all"), action: onClearAttachments)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundColor(AppColors.accent(for: colorScheme))
+                                SkydownPremiumLinkSurface(
+                                    title: AppLocalized.text("agent.attachments.remove_all", fallback: "Remove all"),
+                                    systemImage: "trash",
+                                    tint: .red.opacity(0.82),
+                                    colorScheme: colorScheme,
+                                    isExpanded: false,
+                                    action: onClearAttachments
+                                )
                             }
                             .padding(.top, 8)
                         }
@@ -2483,33 +2482,14 @@ private struct AgentQuickPromptCard: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ForEach(Array(prompts.enumerated()), id: \.element) { index, prompt in
-                        Button(action: { onPromptSelected(prompt) }, label: {
-                            Text(prompt)
-                                .font(.subheadline.weight(.semibold))
-                                .multilineTextAlignment(.leading)
-                                .foregroundColor(AppColors.text(for: colorScheme))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 12)
-                                .frame(width: 230, alignment: .leading)
-                                .background(
-                                    LinearGradient(
-                                        colors: [
-                                            AppColors.cardBackground(for: colorScheme).opacity(0.96),
-                                            AppColors.accentMystic(for: colorScheme).opacity(0.1)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
-                                        .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
-                                )
-                        })
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
-                        .accessibilityLabel(prompt)
+                        SkydownPremiumPromptTile(
+                            title: prompt,
+                            tint: AppColors.accentMystic(for: colorScheme),
+                            colorScheme: colorScheme,
+                            width: 230
+                        ) {
+                            onPromptSelected(prompt)
+                        }
                         .accessibilityIdentifier("agent.quick_prompt.\(index)")
                     }
                 }
@@ -2634,13 +2614,21 @@ private struct AgentMessageBubble: View {
                     .foregroundColor(isUser ? .white.opacity(0.9) : AppColors.accentMystic(for: colorScheme))
 
                 if message.resultType == .progress {
-                    HStack(spacing: SkydownLayout.stackSpacingPill) {
-                        ProgressView()
-                            .tint(AppColors.accentMystic(for: colorScheme))
+                    SkydownPremiumInlineSurface(
+                        colorScheme: colorScheme,
+                        accent: AppColors.accentMystic(for: colorScheme)
+                    ) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
+                            SkydownPremiumCircularProgress(
+                                tint: AppColors.accentMystic(for: colorScheme),
+                                colorScheme: colorScheme,
+                                scale: 0.72
+                            )
 
-                        Text(AppLocalized.text("agent.progress.structuring", fallback: "SkyOS Agent is structuring the answer…"))
-                            .font(.subheadline)
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            Text(AppLocalized.text("agent.progress.structuring", fallback: "SkyOS Agent is structuring the answer…"))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        }
                     }
                 } else {
                     if !isUser, let workflowSummary = message.workflowSummary {
@@ -2873,12 +2861,13 @@ private struct AgentResultCard<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingPill) {
             HStack(spacing: SkydownLayout.stackSpacingSnug) {
-                Image(systemName: systemImage)
-                    .font(.caption.weight(.black))
-                    .foregroundColor(AppColors.accentMystic(for: colorScheme))
-                    .frame(width: 24, height: 24)
-                    .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
-                    .clipShape(Circle())
+                SkydownPremiumIconSurface(
+                    systemImage: systemImage,
+                    tint: AppColors.accentMystic(for: colorScheme),
+                    colorScheme: colorScheme,
+                    size: SkydownLayout.iconActionCompactSurfaceSize,
+                    iconSize: 13
+                )
 
                 VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingHairline) {
                     Text(title)
@@ -2899,11 +2888,20 @@ private struct AgentResultCard<Content: View>: View {
             content
         }
         .padding(10)
-        .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.9))
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.74 : 0.58),
+                    AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
-                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.12), lineWidth: 1)
+                .stroke(AppColors.accentMystic(for: colorScheme).opacity(0.14), lineWidth: 1)
         )
     }
 }
@@ -2925,7 +2923,11 @@ private struct AgentImageResultCard: View {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:
-                        ProgressView()
+                        SkydownPremiumCircularProgress(
+                            tint: AppColors.accentMystic(for: colorScheme),
+                            colorScheme: colorScheme,
+                            scale: 0.86
+                        )
                             .frame(maxWidth: .infinity, minHeight: 160)
                     case .success(let image):
                         image
@@ -3036,23 +3038,24 @@ private struct AgentInlineAudioPlayer: View {
 
     var body: some View {
         HStack(spacing: SkydownLayout.stackSpacingCompact) {
-            Button {
+            SkydownPremiumIconAction(
+                systemImage: isPlaying ? "pause.fill" : "play.fill",
+                tint: AppColors.accentMystic(for: colorScheme),
+                colorScheme: colorScheme,
+                isSelected: isPlaying,
+                size: SkydownLayout.iconActionSurfaceSize,
+                iconSize: 16,
+                accessibilityLabel: isPlaying
+                    ? AppLocalized.text("agent.audio.pause", fallback: "Pause audio")
+                    : AppLocalized.text("agent.audio.play", fallback: "Play audio")
+            ) {
                 if isPlaying {
                     player.pause()
                 } else {
                     player.play()
                 }
                 isPlaying.toggle()
-            } label: {
-                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                    .font(.headline.weight(.black))
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(AppColors.accentMystic(for: colorScheme))
-                    .clipShape(Circle())
             }
-            .buttonStyle(.plain)
-            .skydownTactileAction()
 
             VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingTick) {
                 Text(title)
@@ -3067,7 +3070,16 @@ private struct AgentInlineAudioPlayer: View {
             Spacer(minLength: 0)
         }
         .padding(10)
-        .background(AppColors.cardBackground(for: colorScheme).opacity(0.76))
+        .background(
+            LinearGradient(
+                colors: [
+                    AppColors.cardBackground(for: colorScheme).opacity(0.86),
+                    AppColors.accentMystic(for: colorScheme).opacity(colorScheme == .dark ? 0.10 : 0.06)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.messageBubbleRadius, style: .continuous))
         .onDisappear {
             player.pause()
@@ -3130,28 +3142,26 @@ private struct AgentOpenResultButton: View {
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        Button {
+        Group {
             if let url = result.agentURL {
+                SkydownPremiumLinkSurface(
+                    title: title,
+                    systemImage: "arrow.up.right",
+                    tint: AppColors.accentMystic(for: colorScheme),
+                    colorScheme: colorScheme
+                ) {
                 openURL(url)
-            }
-        } label: {
-            HStack(spacing: SkydownLayout.stackSpacingMicro) {
+                }
+            } else {
                 Text(title)
                     .font(.caption.weight(.bold))
-                    .lineLimit(1)
-                Image(systemName: "arrow.up.right")
-                    .font(.caption.weight(.black))
+                    .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(AppColors.secondaryBackground(for: colorScheme).opacity(0.54))
+                    .clipShape(Capsule(style: .continuous))
             }
-            .foregroundColor(AppColors.accentMystic(for: colorScheme))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background(AppColors.accentMystic(for: colorScheme).opacity(0.12))
-            .clipShape(Capsule(style: .continuous))
         }
-        .buttonStyle(.plain)
-        .disabled(result.agentURL == nil)
-        .opacity(result.agentURL == nil ? 0.55 : 1)
-        .skydownTactileAction()
     }
 }
 

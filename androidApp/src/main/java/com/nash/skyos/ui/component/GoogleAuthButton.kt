@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,7 +52,7 @@ fun GoogleAuthButton(
         shape = RoundedCornerShape(SkydownUiTokens.buttonStandardCornerRadius),
         color = Color.White,
         border = BorderStroke(1.dp, GoogleBorder),
-        shadowElevation = if (buttonEnabled) 2.dp else 0.dp,
+        shadowElevation = if (buttonEnabled) SkydownUiTokens.elevationStateIcon else 0.dp,
         interactionSource = interactionSource,
     ) {
         Row(
@@ -67,10 +66,10 @@ fun GoogleAuthButton(
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingCompact),
         ) {
             if (isLoading) {
-                CircularProgressIndicator(
+                SkydownPremiumCircularProgress(
                     modifier = Modifier.size(SkydownUiTokens.buttonStandardIconSize),
+                    accent = GoogleBlue,
                     strokeWidth = 2.dp,
-                    color = GoogleBlue,
                 )
             } else {
                 GoogleMark(modifier = Modifier.size(SkydownUiTokens.buttonStandardIconSize))

@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -762,10 +761,10 @@ fun BrandActionButton(
                 horizontalArrangement = Arrangement.Start,
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(
+                    SkydownPremiumCircularProgress(
                         modifier = Modifier.size(iconSize),
+                        accent = filledLabelColor,
                         strokeWidth = 2.dp,
-                        color = filledLabelColor,
                     )
                 } else if (icon != null) {
                     Icon(
@@ -818,10 +817,10 @@ fun BrandActionButton(
                 horizontalArrangement = Arrangement.Start,
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(
+                    SkydownPremiumCircularProgress(
                         modifier = Modifier.size(iconSize),
+                        accent = outlineLabelColor,
                         strokeWidth = 2.dp,
-                        color = outlineLabelColor,
                     )
                 } else if (icon != null) {
                     Icon(

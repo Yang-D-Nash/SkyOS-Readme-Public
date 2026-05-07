@@ -73,6 +73,14 @@ enum SkydownLayout {
     static let elevatedPanelRadius: CGFloat = 24
     static let sheetHeroRadius: CGFloat = 26
     static let spotlightRadius: CGFloat = 28
+    static let iconActionCompactSurfaceSize: CGFloat = 36
+    static let iconActionSurfaceSize: CGFloat = 44
+    static let iconActionContentSize: CGFloat = 17
+    static let linkSurfaceHorizontalPadding: CGFloat = 9
+    static let linkSurfaceVerticalPadding: CGFloat = 7
+    static let inlineSurfacePadding: CGFloat = 12
+    static let countBadgeHorizontalPadding: CGFloat = 8
+    static let countBadgeVerticalPadding: CGFloat = 4
     static let sheetDragHandleRadius: CGFloat = 99
     /// Volle Pille in `RoundedRectangle`-Form (SwiftUI).
     static let fullCapsuleRadius: CGFloat = 999

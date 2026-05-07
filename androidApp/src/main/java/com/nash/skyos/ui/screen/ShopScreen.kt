@@ -45,7 +45,6 @@ import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -93,6 +92,7 @@ import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.MerchandiseCard
 import com.nash.skyos.ui.component.SkydownCard
 import com.nash.skyos.ui.component.SkydownMotionTokens
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
 import com.nash.skyos.ui.component.SkydownPremiumSheetDragHandle
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -206,15 +206,15 @@ fun ShopScreen(
                         onOpenSettings = onOpenSettings,
                         onGuestSignIn = onGuestSignIn,
                     ) {
-                        IconButton(
+                        SkydownPremiumIconAction(
+                            icon = Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.shop_cd_refresh),
                             onClick = viewModel::refresh,
                             enabled = !uiState.isCatalogLoading && !uiState.isSyncingCatalog,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = stringResource(R.string.shop_cd_refresh),
-                            )
-                        }
+                            accent = MaterialTheme.colorScheme.tertiary,
+                            size = 40.dp,
+                            iconSize = 19.dp,
+                        )
                     }
                 },
                 colors = skydownTopBarColors(),
@@ -1017,12 +1017,15 @@ private fun ShopCollectionDialog(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = stringResource(R.string.common_back),
-                            )
-                        }
+                        SkydownPremiumIconAction(
+                            icon = Icons.Default.Close,
+                            contentDescription = stringResource(R.string.common_back),
+                            onClick = onBack,
+                            modifier = Modifier.padding(start = 4.dp),
+                            accent = MaterialTheme.colorScheme.primary,
+                            size = 40.dp,
+                            iconSize = 19.dp,
+                        )
                     },
                     colors = skydownTopBarColors(),
                 )
@@ -1924,20 +1927,19 @@ private fun MerchandiseDetailSheet(
                     }
                 }
 
-                IconButton(
+                SkydownPremiumIconAction(
+                    icon = Icons.Default.Close,
+                    contentDescription = stringResource(R.string.common_close),
                     onClick = onDismiss,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(12.dp)
-                        .testTag("shop.merch.detail.close")
-                        .clip(RoundedCornerShape(SkydownUiTokens.messageBubbleRadius))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(R.string.common_close),
-                    )
-                }
+                        .testTag("shop.merch.detail.close"),
+                    accent = MaterialTheme.colorScheme.onSurface,
+                    size = 40.dp,
+                    iconSize = 19.dp,
+                    shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
+                )
 
                 BrandActionButton(
                     text = stringResource(R.string.shop_detail_fullscreen),

@@ -53,19 +53,19 @@ struct RegistrationSheet: View {
                     Toggle(isOn: $viewModel.acceptedTerms) {
                         Text(localized("auth.register.legal.terms", "I accept the Terms (AGB)."))
                     }
-                    .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: colorScheme)))
+                    .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme))
                     .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
                     Toggle(isOn: $viewModel.acceptedPrivacyPolicy) {
                         Text(localized("auth.register.legal.privacy", "I accept the Privacy Policy."))
                     }
-                    .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: colorScheme)))
+                    .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme))
                     .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
                     Toggle(isOn: $viewModel.aiConsentEnabled) {
                         Text(localized("auth.register.legal.ai", "Enable AI (change anytime in Settings)."))
                     }
-                    .toggleStyle(SwitchToggleStyle(tint: AppColors.accent(for: colorScheme)))
+                    .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme))
                     .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
                     HStack(spacing: SkydownLayout.stackSpacingCompact) {
@@ -102,7 +102,7 @@ struct RegistrationSheet: View {
 
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppColors.error(for: colorScheme))
                         .listRowBackground(Color.clear)
                 }
 

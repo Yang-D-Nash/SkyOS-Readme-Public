@@ -2,7 +2,6 @@ package com.nash.skyos.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -71,18 +70,18 @@ fun ToastHost(
                 initialOffsetY = { it / 2 },
                 animationSpec = tween(
                     durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
-                    easing = LinearOutSlowInEasing,
+                    easing = SkydownStandardEasing,
                 ),
             ) + fadeIn(
                 animationSpec = tween(
                     durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
-                    easing = LinearOutSlowInEasing,
+                    easing = SkydownStandardEasing,
                 ),
             ) + scaleIn(
                 initialScale = 0.97f,
                 animationSpec = tween(
                     durationMillis = SkydownMotionTokens.statusEnterDurationMillis,
-                    easing = LinearOutSlowInEasing,
+                    easing = SkydownStandardEasing,
                 ),
             )
         }
@@ -128,7 +127,7 @@ fun ToastHost(
                 .fillMaxWidth()
                 .padding(SkydownUiTokens.cardPadding)
                 .shadow(
-                    elevation = 14.dp,
+                    elevation = SkydownUiTokens.elevationPanel,
                     shape = shape,
                     ambientColor = Color.Black.copy(alpha = 0.16f),
                     spotColor = Color.Black.copy(alpha = 0.20f),
@@ -153,14 +152,17 @@ fun ToastHost(
                 .semantics {
                     liveRegion = LiveRegionMode.Polite
                 }
-                .padding(horizontal = 12.dp, vertical = 11.dp)
+                .padding(
+                    horizontal = SkydownUiTokens.toastHorizontalPadding,
+                    vertical = SkydownUiTokens.toastVerticalPadding,
+                )
                 .height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingToast),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .width(3.dp)
+                    .width(SkydownUiTokens.toastAccentRailWidth)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(SkydownUiTokens.fullCapsuleRadius))
                     .background(
@@ -175,7 +177,7 @@ fun ToastHost(
 
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(SkydownUiTokens.toastIconSurfaceSize)
                     .clip(RoundedCornerShape(SkydownUiTokens.compactRadius))
                     .background(type.accent.copy(alpha = 0.13f))
                     .border(
@@ -190,7 +192,7 @@ fun ToastHost(
                     tint = type.accent,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(22.dp),
+                        .size(SkydownUiTokens.toastIconContentSize),
                 )
             }
 

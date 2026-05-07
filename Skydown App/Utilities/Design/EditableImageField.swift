@@ -49,8 +49,11 @@ struct EditableImageField: View {
                                 .resizable()
                                 .scaledToFill()
                         case .empty:
-                            ProgressView()
-                                .tint(AppColors.text(for: colorScheme))
+                            SkydownPremiumCircularProgress(
+                                tint: AppColors.text(for: colorScheme),
+                                colorScheme: colorScheme,
+                                scale: 0.78
+                            )
                         default:
                             placeholder
                         }
@@ -95,8 +98,11 @@ struct EditableImageField: View {
                         .fill(Color.black.opacity(0.62))
 
                     VStack(spacing: SkydownLayout.stackSpacingPill) {
-                        ProgressView()
-                            .tint(.white)
+                        SkydownPremiumCircularProgress(
+                            tint: .white,
+                            colorScheme: .dark,
+                            scale: 0.82
+                        )
                         Text(uploadStatusText)
                             .font(.caption.weight(.semibold))
                             .foregroundColor(.white.opacity(0.92))
@@ -122,15 +128,25 @@ struct EditableImageField: View {
             )
 
             if !imageURL.isEmpty {
-                Button(AppLocalized.text("media.remove_image", fallback: "Remove image"), role: .destructive) {
-                    if let onRemoveImage {
-                        onRemoveImage()
-                    } else {
-                        imageURL = ""
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("media.remove_image", fallback: "Remove image"),
+                    systemImage: "trash",
+                    accent: AppColors.error(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    isEnabled: !isUploading,
+                    font: .footnote.weight(.semibold),
+                    cornerRadius: SkydownLayout.tightRadius,
+                    verticalPadding: 9,
+                    expandToFullWidth: false,
+                    action: {
+                        if let onRemoveImage {
+                            onRemoveImage()
+                        } else {
+                            imageURL = ""
+                        }
                     }
-                }
-                .font(.footnote.weight(.semibold))
-                .disabled(isUploading)
+                )
             }
         }
     }

@@ -282,6 +282,7 @@ struct AIView: View {
                     HStack {
                         Spacer(minLength: 0)
                         AIPromptFab(
+                            colorScheme: colorScheme,
                             isWorking: viewModel.phase.isBusy,
                             onOpen: { showingPromptComposer = true }
                         )
@@ -407,8 +408,11 @@ private struct AIRevenueUsageCard: View {
                     .foregroundColor(AppColors.secondaryText(for: colorScheme))
             }
 
-            ProgressView(value: progress)
-                .tint(usage.warningLevel == "critical" ? .red : AppColors.accent(for: colorScheme))
+            SkydownPremiumLinearProgress(
+                progress: progress,
+                tint: usage.warningLevel == "critical" ? .red : AppColors.accent(for: colorScheme),
+                colorScheme: colorScheme
+            )
 
             if usage.warningLevel != "ok" {
                 Text(
@@ -526,7 +530,7 @@ private struct AIDecisionTransparencyCard: View {
             if decision.blocked && !decision.blockReason.isEmpty {
                 Text(String(format: AppLocalized.text("ai.decision.block_format", fallback: "Block: %@"), decision.blockReason))
                     .font(.caption)
-                    .foregroundColor(.red)
+                    .foregroundColor(AppColors.error(for: colorScheme))
             }
 
             if decision.retryable && !decision.retryReason.isEmpty {
@@ -938,32 +942,14 @@ private struct AIQuickPromptCard: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ForEach(prompts, id: \.self) { prompt in
-                        Button(action: { onPromptSelected(prompt) }, label: {
-                            Text(prompt)
-                                .font(.subheadline.weight(.semibold))
-                                .multilineTextAlignment(.leading)
-                                .foregroundColor(AppColors.text(for: colorScheme))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 12)
-                                .frame(width: 230, alignment: .leading)
-                                .background(
-                                    LinearGradient(
-                                        colors: [
-                                            AppColors.cardBackground(for: colorScheme).opacity(0.96),
-                                            AppColors.accent(for: colorScheme).opacity(0.08)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
-                                        .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
-                                )
-                        })
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
+                        SkydownPremiumPromptTile(
+                            title: prompt,
+                            tint: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            width: 230
+                        ) {
+                            onPromptSelected(prompt)
+                        }
                     }
                 }
             }
@@ -1001,32 +987,14 @@ private struct AIVisualPromptCard: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: SkydownLayout.stackSpacingPill) {
                     ForEach(prompts) { prompt in
-                        Button(action: { onPromptSelected(prompt.prompt) }, label: {
-                            Text(prompt.label)
-                                .font(.subheadline.weight(.semibold))
-                                .multilineTextAlignment(.leading)
-                                .foregroundColor(AppColors.text(for: colorScheme))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 12)
-                                .frame(width: 170, alignment: .leading)
-                                .background(
-                                    LinearGradient(
-                                        colors: [
-                                            AppColors.cardBackground(for: colorScheme).opacity(0.96),
-                                            AppColors.accentHighlight(for: colorScheme).opacity(0.1)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: SkydownLayout.elevatedPanelRadius, style: .continuous)
-                                        .stroke(AppColors.accentHighlight(for: colorScheme).opacity(0.14), lineWidth: 1)
-                                )
-                        })
-                        .buttonStyle(.plain)
-                        .skydownTactileAction()
+                        SkydownPremiumPromptTile(
+                            title: prompt.label,
+                            tint: AppColors.accentHighlight(for: colorScheme),
+                            colorScheme: colorScheme,
+                            width: 170
+                        ) {
+                            onPromptSelected(prompt.prompt)
+                        }
                     }
                 }
             }
@@ -1066,13 +1034,21 @@ private struct AIMessageBubble: View {
                     .foregroundColor(isUser ? .white.opacity(0.9) : AppColors.accent(for: colorScheme))
 
                 if message.isStreaming && message.text.isEmpty {
-                    HStack(spacing: SkydownLayout.stackSpacingPill) {
-                        ProgressView()
-                            .tint(AppColors.accent(for: colorScheme))
+                    SkydownPremiumInlineSurface(
+                        colorScheme: colorScheme,
+                        accent: AppColors.accent(for: colorScheme)
+                    ) {
+                        HStack(spacing: SkydownLayout.stackSpacingPill) {
+                            SkydownPremiumCircularProgress(
+                                tint: AppColors.accent(for: colorScheme),
+                                colorScheme: colorScheme,
+                                scale: 0.72
+                            )
 
-                        Text(AppLocalized.text("ai.bot.progress.building", fallback: "SkyOS Bot is drafting a calm answer…"))
-                            .font(.subheadline)
-                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                            Text(AppLocalized.text("ai.bot.progress.building", fallback: "SkyOS Bot is drafting a calm answer…"))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                        }
                     }
                 } else {
                     Text(message.text)
@@ -1091,20 +1067,12 @@ private struct AIMessageBubble: View {
                                     .frame(height: 220)
                                     .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
 
-                                Label(
-                                    AppLocalized.text("ai.visual.fullscreen.open", fallback: "Open large"),
-                                    systemImage: "arrow.up.left.and.arrow.down.right"
-                                )
-                                .font(.caption2.weight(.bold))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.82)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 7)
-                                .background(.black.opacity(0.58), in: Capsule())
-                                .overlay(
-                                    Capsule()
-                                        .stroke(.white.opacity(0.24), lineWidth: 1)
+                                SkydownPremiumIconSurface(
+                                    systemImage: "arrow.up.left.and.arrow.down.right",
+                                    tint: .white,
+                                    colorScheme: colorScheme,
+                                    size: SkydownLayout.iconActionCompactSurfaceSize,
+                                    iconSize: 13
                                 )
                                 .padding(10)
                             }
@@ -1252,24 +1220,15 @@ private struct AIGeneratedVisualViewer: View {
 
                     Spacer(minLength: 12)
 
-                    Button {
-                        dismiss()
-                    } label: {
-                        Label(
-                            AppLocalized.text("ai.visual.fullscreen.close", fallback: "Close"),
-                            systemImage: "xmark"
-                        )
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 13)
-                        .padding(.vertical, 10)
-                        .background(.white.opacity(0.10), in: Capsule())
-                        .overlay(
-                            Capsule()
-                                .stroke(.white.opacity(0.18), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
+                    SkydownPremiumIconAction(
+                        systemImage: "xmark",
+                        tint: .white,
+                        colorScheme: colorScheme,
+                        size: SkydownLayout.iconActionCompactSurfaceSize,
+                        iconSize: 13,
+                        accessibilityLabel: AppLocalized.text("ai.visual.fullscreen.close", fallback: "Close"),
+                        action: { dismiss() }
+                    )
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 18)
@@ -1384,52 +1343,27 @@ private struct AIThreadFollowUpBar: View {
 }
 
 private struct AIPromptFab: View {
+    let colorScheme: ColorScheme
     let isWorking: Bool
     let onOpen: () -> Void
 
     var body: some View {
-        Button(action: onOpen) {
-            HStack(spacing: SkydownLayout.stackSpacingPill) {
-                ZStack {
-                    Circle()
-                        .fill(.thinMaterial)
-                        .frame(width: 34, height: 34)
-
-                    if isWorking {
-                        ProgressView()
-                            .scaleEffect(0.68)
-                    } else {
-                        Image(systemName: "sparkles")
-                            .font(.subheadline.weight(.black))
-                    }
-                }
-
-                Text(
-                    isWorking
-                        ? AppLocalized.text("ai.fab.state.working", fallback: "Working")
-                        : AppLocalized.text("ai.fab.state.prompt", fallback: "Prompt")
-                )
-                    .font(.subheadline.weight(.black))
-                    .lineLimit(1)
-
-                Image(systemName: "plus")
-                    .font(.caption.weight(.black))
-                    .opacity(isWorking ? 0 : 0.86)
-            }
-            .foregroundColor(.primary)
-            .padding(.leading, 10)
-            .padding(.trailing, 15)
-            .frame(height: 58)
-            .background(.ultraThinMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous)
-                    .stroke(.white.opacity(0.18), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.sheetHeroRadius, style: .continuous))
-            .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 10)
-        }
-        .buttonStyle(.plain)
-        .skydownTactileAction()
+        SkydownBrandActionButton(
+            title: isWorking
+                ? AppLocalized.text("ai.fab.state.working", fallback: "Working")
+                : AppLocalized.text("ai.fab.state.prompt", fallback: "Prompt"),
+            systemImage: isWorking ? nil : "sparkles",
+            accent: AppColors.accent(for: colorScheme),
+            colorScheme: colorScheme,
+            role: isWorking ? .muted : .primary,
+            isEnabled: !isWorking,
+            isLoading: isWorking,
+            font: .subheadline.weight(.black),
+            cornerRadius: SkydownLayout.sheetHeroRadius,
+            verticalPadding: 16,
+            expandToFullWidth: false,
+            action: onOpen
+        )
         .accessibilityLabel(AppLocalized.text("agent.a11y.open_prompt", fallback: "Open prompt"))
     }
 }

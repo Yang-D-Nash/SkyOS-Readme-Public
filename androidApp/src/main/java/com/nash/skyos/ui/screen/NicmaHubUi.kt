@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -42,6 +41,7 @@ import com.nash.skyos.ui.component.BrandHeroCard
 import com.nash.skyos.ui.component.BrandPill
 import com.nash.skyos.ui.component.SectionHeader
 import com.nash.skyos.ui.component.SkydownCard
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
 import com.nash.skyos.ui.component.SkydownPremiumTextField
 import com.nash.skyos.ui.component.SkydownUiTokens
 import com.nash.skyos.ui.theme.SpotifyGreen
@@ -275,25 +275,25 @@ fun NicmaPriceListEditorCard(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                         )
-                        Row {
-                            IconButton(
+                        Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingNano)) {
+                            SkydownPremiumIconAction(
+                                icon = Icons.Filled.Edit,
+                                contentDescription = stringResource(R.string.artist_action_edit),
                                 onClick = { onEdit(index) },
                                 enabled = enabled,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Edit,
-                                    contentDescription = stringResource(R.string.artist_action_edit),
-                                )
-                            }
-                            IconButton(
+                                accent = MaterialTheme.colorScheme.primary,
+                                size = 40.dp,
+                                iconSize = 18.dp,
+                            )
+                            SkydownPremiumIconAction(
+                                icon = Icons.Filled.Delete,
+                                contentDescription = stringResource(R.string.common_remove),
                                 onClick = { onDelete(index) },
                                 enabled = enabled,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Delete,
-                                    contentDescription = stringResource(R.string.common_remove),
-                                )
-                            }
+                                accent = MaterialTheme.colorScheme.error,
+                                size = 40.dp,
+                                iconSize = 18.dp,
+                            )
                         }
                     }
                 }

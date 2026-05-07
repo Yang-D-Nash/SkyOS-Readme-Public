@@ -83,7 +83,7 @@ struct LoginView: View {
 
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppColors.error(for: colorScheme))
                         .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
                         .multilineTextAlignment(.center)
                         .accessibilityIdentifier("login.error")

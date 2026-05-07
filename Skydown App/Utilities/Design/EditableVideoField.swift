@@ -77,8 +77,11 @@ struct EditableVideoField: View {
                         .fill(Color.black.opacity(0.62))
 
                     VStack(spacing: SkydownLayout.stackSpacingPill) {
-                        ProgressView()
-                            .tint(.white)
+                        SkydownPremiumCircularProgress(
+                            tint: .white,
+                            colorScheme: .dark,
+                            scale: 0.82
+                        )
                         Text(uploadStatusText)
                             .font(.caption.weight(.semibold))
                             .foregroundColor(.white.opacity(0.92))
@@ -104,15 +107,25 @@ struct EditableVideoField: View {
             .accessibilityIdentifier(accessibilityIDPrefix.map { "\($0).pick" } ?? "")
 
             if videoURL.trimmedNilIfEmpty != nil {
-                Button(AppLocalized.text("media.remove_video", fallback: "Remove video"), role: .destructive) {
-                    if let onRemoveVideo {
-                        onRemoveVideo()
-                    } else {
-                        videoURL = ""
+                SkydownBrandActionButton(
+                    title: AppLocalized.text("media.remove_video", fallback: "Remove video"),
+                    systemImage: "trash",
+                    accent: AppColors.error(for: colorScheme),
+                    colorScheme: colorScheme,
+                    role: .muted,
+                    isEnabled: !isUploading,
+                    font: .footnote.weight(.semibold),
+                    cornerRadius: SkydownLayout.tightRadius,
+                    verticalPadding: 9,
+                    expandToFullWidth: false,
+                    action: {
+                        if let onRemoveVideo {
+                            onRemoveVideo()
+                        } else {
+                            videoURL = ""
+                        }
                     }
-                }
-                .font(.footnote.weight(.semibold))
-                .disabled(isUploading)
+                )
                 .accessibilityIdentifier(accessibilityIDPrefix.map { "\($0).remove" } ?? "")
             }
         }

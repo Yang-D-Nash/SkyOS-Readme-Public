@@ -65,7 +65,21 @@ struct SettingsMembershipCommandCenterView: View {
             }
 
             if store.isLoading {
-                ProgressView(t("settings.membership_ops.loading", "Loading membership control..."))
+                SkydownPremiumInlineSurface(
+                    colorScheme: colorScheme,
+                    accent: AppColors.accent(for: colorScheme)
+                ) {
+                    HStack(spacing: SkydownLayout.stackSpacingPill) {
+                        SkydownPremiumCircularProgress(
+                            tint: AppColors.accent(for: colorScheme),
+                            colorScheme: colorScheme,
+                            scale: 0.78
+                        )
+                        Text(t("settings.membership_ops.loading", "Loading membership control..."))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AppColors.text(for: colorScheme))
+                    }
+                }
             } else {
                 switch selectedTab {
                 case .dashboard:

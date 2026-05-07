@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -76,6 +75,7 @@ import com.nash.skyos.ui.component.AppTopBarSessionActions
 import com.nash.skyos.ui.component.BrandArtwork
 import com.nash.skyos.ui.component.BrandHeroCard
 import com.nash.skyos.ui.component.BrandPill
+import com.nash.skyos.ui.component.SkydownPremiumIconAction
 import com.nash.skyos.ui.component.SkydownTopBarTitle
 import com.nash.skyos.ui.component.SkydownMotionTokens
 import com.nash.skyos.ui.component.SkydownUiTokens
@@ -170,35 +170,38 @@ fun MusicScreen(
                             dense = compactVisualDensity,
                         ) {
                             if (uiState.isSpotifyConnected) {
-                                IconButton(
+                                SkydownPremiumIconAction(
+                                    icon = Icons.AutoMirrored.Filled.Logout,
+                                    contentDescription = stringResource(R.string.music_disconnect_spotify_cd),
                                     onClick = { viewModel.disconnectSpotify() },
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Logout,
-                                        contentDescription = stringResource(R.string.music_disconnect_spotify_cd),
-                                    )
-                                }
+                                    accent = MaterialTheme.colorScheme.error,
+                                    size = 40.dp,
+                                    iconSize = 19.dp,
+                                )
                             }
                         }
                     } else if (uiState.isSpotifyConnected) {
-                        IconButton(
+                        SkydownPremiumIconAction(
+                            icon = Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = stringResource(R.string.music_disconnect_spotify_cd),
                             onClick = { viewModel.disconnectSpotify() },
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Logout,
-                                contentDescription = stringResource(R.string.music_disconnect_spotify_cd),
-                            )
-                        }
+                            accent = MaterialTheme.colorScheme.error,
+                            size = 40.dp,
+                            iconSize = 19.dp,
+                        )
                     }
                 },
                 navigationIcon = if (onBack != null) {
                     {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.common_back),
-                            )
-                        }
+                        SkydownPremiumIconAction(
+                            icon = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back),
+                            onClick = onBack,
+                            modifier = Modifier.padding(start = 4.dp),
+                            accent = MaterialTheme.colorScheme.primary,
+                            size = 40.dp,
+                            iconSize = 19.dp,
+                        )
                     }
                 } else {
                     {}
