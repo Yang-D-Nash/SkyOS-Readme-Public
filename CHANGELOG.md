@@ -4,7 +4,7 @@
 
 - Premium UX: introduced the luxury-grade tokenized visual system across shared Compose surfaces, Android controls, and iOS settings/admin controls.
 - Brand system: aligned colors, spacing, typography, cards, button states, segmented controls, loading states, empty states, and release-facing README documentation.
-- Release identity: prepared the next clean rollout candidate as iOS build `10026` and Android versionCode `10029`.
+- Release identity: prepared the next clean upload candidate as iOS build `10027` and Android versionCode `10030`.
 
 ## 1.0.0 Store review date refresh - 2026-05-05
 

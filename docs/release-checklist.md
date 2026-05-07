@@ -5,9 +5,9 @@ trust paths, backend authority, and support readiness all line up at the same ti
 
 ## Current RC Snapshot
 
-Status as of 2026-05-07 08:45 CEST: backend Meta/social live-data setup remains deployed, and the previous
+Status as of 2026-05-07 09:01 CEST: backend Meta/social live-data setup remains deployed, and the previous
 AI visual fullscreen / Android display hotfix RC is superseded by the premium brand-system rollout candidate.
-Current prepared client identity is iOS build `10026` and Android versionCode `10029`. The duplicate top
+Current prepared client identity is iOS build `10027` and Android versionCode `10030`. The duplicate top
 `22 Music`/Zweizwei social entry remains removed so the hub shows only the five canonical artists, AI-generated
 visuals open full-screen on both platforms, and the iOS/Android settings/admin surfaces now use the premium
 tokenized control system.
@@ -16,8 +16,8 @@ items in [release/store-upload-runbook.md](release/store-upload-runbook.md) are 
 
 Known open release gates:
 
-- App Store Connect: archive/upload iOS build `10026`, wait for processing, then attach it to Internal TestFlight testers.
-- Google Play: build/upload Android versionCode `10029` to Internal Testing as a draft, review it, then roll it to internal testers.
+- App Store Connect: wait for uploaded iOS build `10027` to finish processing, then attach it to Internal TestFlight testers.
+- Google Play: export `SUPPLY_JSON_KEY` or use Play Console manually, upload Android versionCode `10030` to Internal Testing as a draft, review it, then roll it to internal testers.
 - Store assets: upload/map the generated iPhone, iPad, Play-compliant Android screenshots, and Play listing graphics.
 - Store URLs and legal: replace placeholder console URLs with final hosted pages and confirm final legal approval.
 - QA: complete real-device smoke from uploaded store artifacts on iPhone and Android.
