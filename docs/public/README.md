@@ -16,7 +16,7 @@ is a calm, precise, trustworthy experience for creative work, commerce, membersh
 | Area | Purpose |
 | --- | --- |
 | AI Studio | Text, visual, agent, and guided creative workflows |
-| Music | Artist profile, tracks, releases, and media context |
+| Music | Artist profile, tracks, releases, media context, and owner-managed artist page updates |
 | Video | Clips, visuals, collaborations, and featured content |
 | Merch | Product discovery, checkout entry points, and order support |
 | Membership | Plans, entitlements, restore paths, and usage transparency |
@@ -45,6 +45,11 @@ native Apple and Android behavior, accessibility, motion preferences, and platfo
 
 SkyOS is preparing its first public release. Store availability, supported regions, pricing, and
 official policy URLs will be announced through the live store listings and public support channels.
+
+## Current Rollout Update
+
+- Latest rollout candidate keeps app version `1.0.0` and advances build identities to iOS build `10028` and Android versionCode `10031`.
+- Music hub artist management was updated to support premium artist-page operations: canonical artist ordering, owner CRUD, and in-app rename flows with clear confirmation feedback.
 
 ## Transparency
 

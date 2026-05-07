@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-05-07 09:14 CEST (premium brand-system upload candidate: iOS 10027 uploaded, Android 10030 built)
+Last updated: 2026-05-07 17:06 CEST (premium music artist rollout candidate: iOS 10028 prepared, Android 10031 prepared)
 Owner: Release Engineering
 
 ## Build Identity
@@ -9,14 +9,14 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10027` (current project version; 2026-05-07 premium brand-system rollout)
+- Build: `10028` (current project version; 2026-05-07 premium music artist rollout)
 - Team ID: `F3BNLG6L7P`
 
 ### Android
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10030`
+- versionCode: `10031`
 - Play Billing Library: `8.3.0`
 
 ## Build Artifacts
@@ -66,13 +66,13 @@ Owner: Release Engineering
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: SUCCEEDED for versionCode `10030` at 2026-05-07 09:07 CEST.
-- Play Console status: versionCode `10030` not uploaded from this machine because `SUPPLY_JSON_KEY` is unset.
+- Release AAB build: SUCCEEDED for versionCode `10031` (local verification pending Play upload because `SUPPLY_JSON_KEY` is unset).
+- Play Console status: versionCode `10031` not uploaded from this machine because `SUPPLY_JSON_KEY` is unset.
 - Play upload automation: WORKING via Fastlane `upload_android_internal` when `SUPPLY_JSON_KEY` points at the local Play service-account JSON.
-- CLI validate/upload attempt: BLOCKED for versionCode `10030` at 2026-05-07 09:14 CEST because `SUPPLY_JSON_KEY` is unset; artifact verification passed before Fastlane stopped.
+- CLI validate/upload attempt: BLOCKED for versionCode `10031` because `SUPPLY_JSON_KEY` is unset; artifact verification passed before Fastlane stopped.
 - Notes:
   - Fastlane used `release_status: draft`, so this did not start a production rollout.
-  - VersionCode `10030` contains the premium brand-system rollout and iOS/Android settings/admin control refinement.
+  - VersionCode `10031` contains the premium music artist rollout with owner CRUD + rename flows and canonical artist ordering.
   - VersionCode `10029` contains the Home-to-artist-page routing and exact MAVE/ThaDude public profile fixes.
   - VersionCode `10028` contains the Android AI generated-visual display hotfix: robust base64/data-URL decoding, ByteArray-backed image rendering, and a fullscreen viewer assertion in Android UI-test code.
   - Earlier versionCode `10027` was uploaded to the Play internal draft at 2026-05-05 23:37 CEST and is superseded by this fresh versionCode `10028` rollout.

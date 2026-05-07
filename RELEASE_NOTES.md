@@ -1,5 +1,26 @@
 # Release Notes - 1.0.0
 
+## 2026-05-07 premium music artist rollout
+
+Current prepared client identity:
+
+- iOS: `1.0.0` build `10028`
+- Android: `1.0.0` versionCode `10031`
+
+What changed for this rollout increment:
+
+- Added new 22 artist `DANGU61` and enforced canonical artist ordering across iOS and Android.
+- Unified music-hub social entry behavior so artist links consistently expose artist page + Instagram entry points.
+- Added owner CRUD for artist pages and in-page artist rename flows on both platforms.
+- Aligned premium feedback language for artist add/save/rename/delete actions.
+- Updated internal README and public README mirror with the latest rollout and music artist-management status.
+
+Verification status:
+
+- Production data guard tests: pass (`node --test functions/tests/production-real-data-guard.test.js`)
+- Android compile gate: pass (`./gradlew :androidApp:compileDebugKotlin`)
+- iOS simulator compile check: pass (`xcodebuild -project "Skydown App.xcodeproj" -scheme "Skydown App" -configuration Debug -destination "generic/platform=iOS Simulator" build`)
+
 ## 2026-05-07 Premium rollout candidate
 
 Current prepared client identity:

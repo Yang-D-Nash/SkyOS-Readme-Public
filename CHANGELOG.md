@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0 Premium music artist rollout - 2026-05-07
+
+- Music: added `DANGU61`, enforced canonical 22 artist ordering, and removed duplicate alias rendering (`MAVE` -> `MAVE040`).
+- Artist pages: enabled owner CRUD plus in-page artist rename flows on iOS and Android.
+- UX polish: unified premium artist action feedback (`hinzugefuegt`, `gespeichert`, `umbenannt`, `geloescht`) and clarified artist-name helper texts.
+- Release identity: prepared the next rollout candidate as iOS build `10028` and Android versionCode `10031`.
+- Docs: updated internal `README.md`, public mirror `docs/public/README.md`, and release notes for this rollout.
+
 ## 1.0.0 Premium brand-system RC - 2026-05-07
 
 - Premium UX: introduced the luxury-grade tokenized visual system across shared Compose surfaces, Android controls, and iOS settings/admin controls.

@@ -38,10 +38,10 @@ SkyOS löst ein konkretes Produktproblem: kreative Arbeit, KI-Ausführung, Erinn
 | Feld | Stand im Checkout |
 | --- | --- |
 | Produktversion | `1.0.0` in `VERSION`, Android `versionName`, iOS `MARKETING_VERSION` und `functions/package.json` |
-| Android | `applicationId` `com.nash.skyos`, `versionCode` `10030`, SDK 36, minSdk 26 |
-| Apple | Bundle-ID `com.skydown.ios`, Build `10027`, Mac Catalyst im Xcode-Projekt aktiviert |
+| Android | `applicationId` `com.nash.skyos`, `versionCode` `10031`, SDK 36, minSdk 26 |
+| Apple | Bundle-ID `com.skydown.ios`, Build `10028`, Mac Catalyst im Xcode-Projekt aktiviert |
 | Backend | Firebase Functions in `us-central1`, 64 Exports laut `npm run list-exports --prefix functions` |
-| Interner Store-Test | iOS Build `10027` ist in App Store Connect hochgeladen; Android versionCode `10030` ist gebaut/verifiziert, Play-Upload wartet auf `SUPPLY_JSON_KEY` |
+| Interner Store-Test | iOS Build `10028` und Android versionCode `10031` sind als naechster Rollout-Kandidat vorbereitet; Play-Upload wartet weiterhin auf `SUPPLY_JSON_KEY` |
 | Lokale Qualität | `./scripts/ci_local_gate.sh` bündelt Shared-Tests, Android-Checks und Functions-/Rules-Tests |
 | Veröffentlichungsmodell | Closed Source mit öffentlicher README-/Dokumentationsspiegelung für Transparenz |
 | Offene Projektangaben | Finale Produktions-URLs und formaler Security-Kontaktprozess sind als TODO markiert |
@@ -99,7 +99,7 @@ SkyOS wurde auf ein zentrales Premium-Brand-System gehoben, damit Apple- und And
 | Home | Native Startfläche mit Produkt-Signalen, Einstieg in Workflows und Navigationszentrale. |
 | AI und Agent | Text-, Visual- und Agent-Flächen mit serverseitiger Ausführung, Nutzungsgrenzen, Membership-Gating und Verlaufssynchronisierung. |
 | Reminder, Tasks, Notes | Live ausgewiesene Produktivitätsfläche. Reminder werden serverseitig verarbeitet und per Push zugestellt; Tasks und Notes sind in der App und über Workflow-Endpunkte nutzbar. |
-| Music | ZweiZwei/22-Musikbereich mit Tracks, Artist Pages, Beat-/Producer-Flächen, externen Links und Spotify-Anbindung. |
+| Music | ZweiZwei/22-Musikbereich mit Tracks, Artist Pages, Beat-/Producer-Flächen, externen Links und Spotify-Anbindung inklusive Owner-CRUD und In-App-Rename fuer Artist Pages. |
 | Video | Video Hub mit öffentlichen Konfigurationen, Player-/WebView-Komponenten und Owner/Admin-Verwaltungslogik. |
 | Shop, Cart, Orders | Merch-Katalog, Warenkorb, serverseitige Bestelllogik, gehosteter Checkout, Stripe/Klarna-Pfade, Shopify-Sync und Order-Ansichten. |
 | Membership | KI-Mitgliedschaften mit StoreKit auf iOS, Google Play Billing auf Android, Restore-Pfaden und Backend-Sync. |
