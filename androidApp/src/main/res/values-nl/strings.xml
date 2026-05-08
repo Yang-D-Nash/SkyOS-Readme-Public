@@ -667,7 +667,7 @@
     <string name="video_lib_subtitle_admin">%1$d videos in the list. The list, Home focus, edit, and delete are owner-only.</string>
     <string name="video_lib_subtitle_guest">%1$d videos are available.</string>
     <string name="video_lib_new_video">Create new video</string>
-    <string name="video_lib_loading">Video's worden voorbereid…</string>
+    <string name="video_lib_loading">Videos worden voorbereid…</string>
     <string name="video_lib_empty">No videos are visible right now. Please check back later.</string>
     <string name="video_edit_heading">Edit video</string>
     <string name="video_field_notes">Notes</string>
