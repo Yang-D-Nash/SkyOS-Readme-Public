@@ -1,6 +1,6 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-05-07 CEST (Fastlane production + App Store Connect IPA lanes documented; historical build stamps below remain as-recorded.)
+Last updated: 2026-05-08 CEST (premium brand release prep; Android Play upload moved to versionCode 10032 because 10031 was already used.)
 Owner: Release Engineering
 
 ## Build Identity
@@ -16,7 +16,7 @@ Owner: Release Engineering
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10031`
+- versionCode: `10032`
 - Play Billing Library: `8.3.0`
 
 ## Fastlane: store upload lanes
@@ -94,8 +94,8 @@ Hosting currently serves `site/` at **`https://skydown-a6add.web.app`** (privacy
 - iOS UI test evidence: latest full fresh UI-test evidence remains `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.xcresult` and raw log `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.log`; build `10020` contains the refreshed keyboard dismissal and Agent new-conversation UX after that gate.
 - iOS upload evidence: `xcodebuild -exportArchive` with `build/ios/ExportOptions-app-store-upload-10027.plist` ended with `Upload succeeded` and `** EXPORT SUCCEEDED **` at 2026-05-07 09:13 CEST.
 - iOS upload status: UPLOADED for build `10027`; package processing started in App Store Connect.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-05-07 09:07 CEST, versionCode `10030`, SHA-256 `5a74d34c3850825b547de25561eebca3d2d518978f5bb8c52400ba53031677a9`)
-- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-05-07 09:07 CEST, versionCode `10030`, SHA-256 `4cfd7b578d1f19977a62076fd3121010cdc2f7d8cbd25d7b8a66ac997be1de07`)
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-05-08 16:53 CEST, versionCode `10032`, SHA-256 `f9ace56a1955c25aa5eec2d839d51c28947007a7cf86d7fe8aa3000880536656`)
+- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-05-08 16:53 CEST, versionCode `10032`, SHA-256 `aa10fac80914b90111670ced9d899503a19fec2cc6e492275dacfd9021819a91`)
 
 ## Upload Status
 
@@ -135,12 +135,12 @@ Hosting currently serves `site/` at **`https://skydown-a6add.web.app`** (privacy
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: SUCCEEDED for versionCode `10031` (local verification pending Play upload because `SUPPLY_JSON_KEY` is unset).
-- Play Console status: versionCode `10031` not uploaded from this machine because `SUPPLY_JSON_KEY` is unset.
+- Release AAB build: SUCCEEDED for versionCode `10031`, but Google Play rejected validation because that versionCode had already been used.
+- Active upload candidate is versionCode `10032`; clean release gate passed locally at 2026-05-08 16:53 CEST.
 - Play upload automation: WORKING via Fastlane `upload_android_internal` when `SUPPLY_JSON_KEY` points at the local Play service-account JSON.
-- CLI validate/upload attempt: BLOCKED for versionCode `10031` because `SUPPLY_JSON_KEY` is unset; artifact verification passed before Fastlane stopped.
 - Notes:
   - Fastlane used `release_status: draft`, so this did not start a production rollout.
+  - VersionCode `10032` supersedes `10031` for the premium brand release prep upload after Play reported `10031` as already used.
   - VersionCode `10031` contains the premium music artist rollout with owner CRUD + rename flows and canonical artist ordering.
   - VersionCode `10029` contains the Home-to-artist-page routing and exact MAVE/ThaDude public profile fixes.
   - VersionCode `10028` contains the Android AI generated-visual display hotfix: robust base64/data-URL decoding, ByteArray-backed image rendering, and a fullscreen viewer assertion in Android UI-test code.

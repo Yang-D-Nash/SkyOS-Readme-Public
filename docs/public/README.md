@@ -48,7 +48,7 @@ official policy URLs will be announced through the live store listings and publi
 
 ## Current Rollout Update
 
-- Latest rollout candidate keeps app version `1.0.0` and advances build identities to iOS build `10028` and Android versionCode `10031`.
+- Latest rollout candidate keeps app version `1.0.0` and advances build identities to iOS build `10028` and Android versionCode `10032`.
 - Music hub artist management was updated to support premium artist-page operations: canonical artist ordering, owner CRUD, and in-app rename flows with clear confirmation feedback.
 
 ## Transparency
