@@ -410,7 +410,7 @@ private struct AIRevenueUsageCard: View {
 
             SkydownPremiumLinearProgress(
                 progress: progress,
-                tint: usage.warningLevel == "critical" ? .red : AppColors.accent(for: colorScheme),
+                tint: usage.warningLevel == "critical" ? AppColors.error(for: colorScheme) : AppColors.accent(for: colorScheme),
                 colorScheme: colorScheme
             )
 

@@ -1340,7 +1340,7 @@ struct ArtistPageView: View {
 
             if isUITestMode {
                 SkydownBrandActionButton(
-                    title: "UI Test: Hero-Video Fixture",
+                    title: "Hero-Video Fixture",
                     systemImage: "video.fill",
                     accent: artistSecondaryAccent,
                     colorScheme: colorScheme,
@@ -1402,7 +1402,7 @@ struct ArtistPageView: View {
             let url = "https://ui-tests.skydown.local/assets/artist-hero-video-fixture.mp4"
             registerTemporaryAsset(previousURL: previousURL, newURL: url)
             heroVideoURLDraft = url
-            showToast("Hero-Video Fixture hochgeladen.", style: .success)
+            showToast("Hero-Video vorbereitet.", style: .success)
             return
         }
 
@@ -1420,7 +1420,7 @@ struct ArtistPageView: View {
             )
             registerTemporaryAsset(previousURL: previousURL, newURL: url)
             heroVideoURLDraft = url
-            showToast("Hero-Video Fixture hochgeladen.", style: .success)
+            showToast("Hero-Video vorbereitet.", style: .success)
         } catch {
             showToast("Fixture Upload fehlgeschlagen: \(error.localizedDescription)", style: .error)
         }

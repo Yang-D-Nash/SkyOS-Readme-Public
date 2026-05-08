@@ -24,3 +24,9 @@ The authoritative screenshot production and upload process is documented in:
 
 - `docs/store/screenshots.md`
 - `docs/release/store-upload-runbook.md`
+
+Before public upload, run:
+
+```bash
+python3 scripts/audit_store_screenshots.py
+```

@@ -195,7 +195,7 @@ class MainActivity : ComponentActivity() {
 
     private fun createUiTestSignedInUser(platformOwner: Boolean): User {
         val email = if (platformOwner) UserRole.OWNER_EMAIL else "creator@skydown.app"
-        val username = if (platformOwner) "SkyOS Owner (UI test)" else "SkyOS Creator"
+        val username = if (platformOwner) "SkyOS Owner" else "SkyOS Creator"
         val quotaPlan = if (platformOwner) UserQuotaPlan.OwnerUnlimited else UserQuotaPlan.Free
         return User(
             id = if (platformOwner) "ui-test-owner" else "ui-test-user",

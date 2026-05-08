@@ -100,8 +100,8 @@
 "profile.ai_toggle.title" = "AI enabled for my account";
 "profile.ai_toggle.subtitle" = "Off pauses bot, visuals, and agent.";
 "profile.gallery.load_failed" = "Image could not be loaded.";
-"profile.ui_test.title" = "UI test";
-"profile.ui_test.subtitle" = "Only visible during UI tests.";
+"profile.ui_test.title" = "Studio fixtures";
+"profile.ui_test.subtitle" = "Only visible in internal review mode.";
 "profile.ui_test.avatar_fixture" = "Avatar fixture";
 "profile.ui_test.gallery_fixture" = "Gallery fixture";
 "common.done" = "Done";
@@ -1041,7 +1041,7 @@
 "videohub.library.owner_subtitle" = "Browse the list, set the home video, edit or delete clips.";
 "videohub.library.new" = "New";
 "videohub.library.new_a11y" = "Create new video";
-"videohub.library.loading" = "Preparing videos…";
+"videohub.library.loading" = "Opening video library…";
 "videohub.library.empty_admin" = "No videos in the hub yet. New uploads appear here automatically.";
 "videohub.library.empty_guest" = "No videos are published yet. Please check back later.";
 "videohub.route.reel" = "Inline reel";
@@ -1092,7 +1092,7 @@
 "videohub.reel.brand_title" = "SkyOS Video";
 "videohub.reel.position_format" = "%1$d of %2$d";
 "videohub.reel.swipe_hint" = "Swipe vertically through all clips.";
-"videohub.reel.preparing" = "Preparing clip…";
+"videohub.reel.preparing" = "Loading clip…";
 "videohub.equipment.section_title" = "Equipment & software";
 "videohub.equipment.section_subtitle" = "Visual stack for shoot, edit, and finish.";
 "videohub.equipment.empty" = "Equipment is being prepared and will appear here soon.";

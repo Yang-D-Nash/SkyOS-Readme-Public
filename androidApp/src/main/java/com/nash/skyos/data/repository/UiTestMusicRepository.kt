@@ -12,7 +12,7 @@ object UiTestMusicRepository : MusicRepository {
                 spotifyArtistId = "7hpiHzP9aLLb5liDLxtwhM",
                 spotifyTrackId = "73HRKI6lyEEdBUFpHybBi9",
                 artistName = "JANNO",
-                trackName = "UI Test Night Drive",
+                trackName = "Night Drive Signal",
                 collectionName = "Skydown Device Flow",
                 externalUrl = "https://open.spotify.com/track/73HRKI6lyEEdBUFpHybBi9",
                 wrapperType = "track",

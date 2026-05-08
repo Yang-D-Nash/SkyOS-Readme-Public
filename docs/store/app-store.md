@@ -1,59 +1,95 @@
-# SkyOS App Store Listing
+# Skydown App Store Listing
 
-This document defines the recommended App Store presence for SkyOS on iPhone.
+This document defines the App Store presence for the Skydown product experience powered by SkyOS.
+It follows the naming lock in `docs/store-listing.md`.
 
 ## Positioning
 
 Use one clear sentence everywhere:
 
-> SkyOS brings AI, reminders, tasks, notes, workflow automation, creator media, merch, and membership into one calm native iPhone experience.
+> Skydown runs on SkyOS: AI, Music, Video, Merch, reminders, tasks, notes, and workflow automation in one calm native product.
+
+## Brand Roles
+
+| Name | Public role |
+| --- | --- |
+| `Skydown` | App/product experience users install and use daily |
+| `SkyOS` | System layer, launcher identity, design language, and platform quality signal |
+| `ZweiZwei / 22` | Music and sound identity only |
+| `Skydown x 22` | Merch and commerce context only |
 
 ## Recommended Metadata
 
 ### English
 
-- App Name: `SkyOS`
-- Subtitle: `AI workflows for creators`
+- App Name: `Skydown`
+- Subtitle: `AI, Music, Video, Merch`
 - Promotional Text:
 
-  `SkyOS brings AI, reminders, tasks, notes, workflow automation, media, merch, and membership into one calm native app.`
+  `Skydown runs on SkyOS: one premium space for AI, Music, Video, and Merch with clear workflows, calm design, and trusted account controls.`
 
 - Keywords:
 
-  `ai,agent,reminder,tasks,notes,workflow,creator,music,media,merch`
+  `skydown,skyos,ai,music,video,merch,workspace,creator,artist,shop`
 
 ### Full Description
 
-SkyOS is a native mobile product that brings AI, reminders, tasks, notes, workflow automation,
-creator media, merch, and membership into one clear system.
+Skydown is the everyday app experience powered by SkyOS.
 
-Use SkyOS to write, plan, and generate with assistant-grade AI, create reminders with push
-notifications, manage tasks and notes, move between creator media surfaces, discover merch, and
-keep billing and account control readable in one place.
+It brings AI, Music, Video, Merch, reminders, tasks, notes, and workflow automation into one calm
+native product flow so users can move faster without switching between disconnected apps.
 
-SkyOS is built for people who want one app instead of disconnected tools. AI, productivity,
-media, membership, and commerce live inside the same product flow, so the experience stays calm
-instead of fragmented.
+Reminder workflows are already end-to-end live: users can create a timed reminder in natural
+language and receive an automatic push notification on signed-in iPhone or Android devices at the
+scheduled time.
 
-What you can do in SkyOS:
+AI and Agent are built as focused workspaces for prompts, responses, and guided execution. Music is
+curated as a dedicated ZweiZwei / 22 environment. Video stays integrated into the Skydown
+experience. Merch is organized as Skydown x 22 with a guided path from discovery to cart.
 
-- work with AI for writing, visual generation, and guided agent-style tasks
-- create reminders and receive push notifications at the scheduled time
-- capture, edit, and manage tasks and notes
-- connect workflow automation through the documented Activepieces HTTP flow
-- stay close to music, video, and creator media in one native experience
-- browse merch, prepare checkout, and follow important order paths
-- manage your plan, restore purchases, and keep account controls visible
-- access a product built with security rules, clear ownership, and ongoing updates in mind
+Tasks and Notes are live for structured capture, storage, and management in the app, and can also be
+created from the Activepieces workflow API.
 
-Paid plans are positioned around capability, not token packs. Depending on the active plan and
-release setup, membership can unlock more reach, stronger AI and agent depth, and access to premium
-outputs.
+SkyOS provides the system foundation behind this experience: visual consistency, motion language,
+and reliable interaction patterns across supported platforms.
 
-Some features depend on account state, membership tier, connected workflow setup, or release
-configuration. Longer-lived memory and deeper automations are being expanded after launch.
+Skydown also includes account, settings, support, and legal surfaces to keep trust visible inside
+the app.
 
-### What's New Template
+### German
+
+- App Name: `Skydown`
+- Subtitle: `KI, Music, Video, Merch`
+- Promotional Text:
+
+  `Skydown basiert auf SkyOS: ein Premium-Ort fuer KI, Music, Video und Merch mit klaren Workflows, ruhigem Design und verlaesslichen Kontrollen.`
+
+### Vollbeschreibung
+
+Skydown ist die taegliche App-Erfahrung, die auf SkyOS laeuft.
+
+Die App bringt KI, Music, Video, Merch, Reminder, Tasks, Notes und Workflow-Automation in einem
+ruhigen nativen Produktfluss zusammen, damit Nutzer schneller arbeiten koennen, ohne zwischen
+getrennten Apps zu springen.
+
+Reminder sind bereits Ende zu Ende live: Nutzer koennen einen zeitgesteuerten Reminder in
+natuerlicher Sprache erstellen und auf angemeldeten iPhone- oder Android-Geraeten automatisch eine
+Push-Benachrichtigung zur geplanten Zeit erhalten.
+
+AI und Agent sind fokussierte Workspaces fuer Eingaben, Antworten und strukturierte Umsetzung.
+Music ist als dedizierte ZweiZwei / 22 Umgebung kuratiert. Video bleibt Teil der Skydown-Erfahrung.
+Merch erscheint als Skydown x 22 mit einem gefuehrten Weg von Entdeckung bis Warenkorb.
+
+Tasks und Notes sind live fuer strukturierte Erfassung, Speicherung und Verwaltung in der App; die
+Erstellung ueber die Activepieces Workflow API ist ebenfalls moeglich.
+
+SkyOS liefert die Systemebene dahinter: visuelle Konsistenz, Bewegungslogik und verlaessliche
+Interaktionsmuster ueber unterstuetzte Plattformen hinweg.
+
+Skydown enthaelt ausserdem Konto-, Settings-, Support- und Legal-Flaechen, damit Vertrauen direkt in
+der App sichtbar bleibt.
+
+## What's New Template
 
 Use this structure for every release:
 
@@ -63,79 +99,10 @@ Use this structure for every release:
 - `One meaningful quality or performance improvement`
 - `One trust or reliability improvement when applicable`
 
-Example:
-
-`New in this version:`
-
-- `Live reminders, tasks, notes, and workflow creation for a clearer daily flow`
-- `Refined AI and Agent outputs for a calmer, faster experience`
-- `Polished membership, settings, and reliability details throughout the app`
-
-### German
-
-- App Name: `SkyOS`
-- Subtitle: `KI-Workflows fuer Creator`
-- Promotional Text:
-
-  `SkyOS bringt KI, Reminder, Tasks, Notes, Workflow-Automation, Media, Merch und Membership in eine ruhige native App.`
-
-- Keywords:
-
-  `ki,agent,reminder,tasks,notes,workflow,creator,musik,media,merch`
-
-### Vollbeschreibung
-
-SkyOS ist ein natives Mobile-Produkt, das KI, Reminder, Tasks, Notes, Workflow-Automation,
-Creator-Media, Merch und Membership in einem klaren System zusammenbringt.
-
-Mit SkyOS kannst du schreiben, planen und visuelle Ideen mit KI entwickeln, Reminder mit Push
-anlegen, Tasks und Notes verwalten, zwischen Creator-Flaechen wechseln, Merch entdecken und
-Billing sowie Konto-Steuerung an einem Ort sauber halten.
-
-SkyOS ist fuer Menschen gedacht, die nicht fuenf getrennte Tools brauchen. KI, Productivity,
-Media, Membership und Commerce liegen im selben Produktfluss, damit sich alles wie eine einzige
-App anfuehlt statt wie ein zusammengebauter Stack.
-
-Was du mit SkyOS machen kannst:
-
-- KI fuer Text, Visuals und gefuehrte Agent-Aufgaben nutzen
-- Reminder erstellen und zur gesetzten Zeit Push-Benachrichtigungen erhalten
-- Tasks und Notes erfassen, bearbeiten und verwalten
-- Workflow-Automation ueber den dokumentierten Activepieces HTTP Flow anbinden
-- Musik, Video und Creator-Media in einer nativen App erleben
-- Merch entdecken, Checkout vorbereiten und wichtige Order-Pfade im Blick behalten
-- Plan, Restore und Konto-Klarheit an einem Ort verwalten
-- ein Produkt nutzen, das mit Sicherheitsregeln, klarer Governance und laufenden Updates gebaut ist
-
-Bezahlte Plaene sind als Capability-Upgrade positioniert, nicht als Token-Shop. Je nach aktivem
-Plan und Release-Setup schaltet Membership mehr Reichweite, staerkere KI-/Agent-Tiefe und Premium
-Outputs frei.
-
-Einzelne Funktionen koennen vom Kontostatus, Plan, verbundenem Workflow-Setup oder aktuellen
-Release-Setup abhaengen. Laengerfristige Memory und tiefere Automationen werden nach Launch
-ausgebaut.
-
-### Was-ist-neu-Vorlage
-
-Nutze fuer jedes Release diese Struktur:
-
-`Neu in dieser Version:`
-
-- `Klarste sichtbare Produktverbesserung`
-- `Eine relevante Qualitaets- oder Performance-Verbesserung`
-- `Ein Vertrauens- oder Stabilitaets-Update, wenn passend`
-
-Beispiel:
-
-`Neu in dieser Version:`
-
-- `Live Reminder, Tasks, Notes und Workflow-Erstellung fuer einen klareren Tagesfluss`
-- `Verfeinerte KI- und Agent-Ausgaben fuer einen ruhigeren, schnelleren Ablauf`
-- `Mehr Feinschliff bei Membership, Settings und Stabilitaet in der ganzen App`
-
 ## App Store Rules
 
-- Keep the title as `SkyOS`; do not dilute it with operator or infrastructure names.
+- Keep the App Store product name as `Skydown`.
+- Use `SkyOS` only as the system/platform layer, not as a competing app name in metadata.
 - Do not explain internal providers in primary public copy unless the user truly needs that detail.
 - Mention payment or membership with clarity, never with urgency pressure.
 - If a feature is gated by plan or rollout state, describe it honestly.

@@ -691,33 +691,51 @@ struct ProfileView: View {
             }
 
             VStack(spacing: SkydownLayout.stackSpacingCompact) {
-                TextField(localized("profile.field.username", "Username"), text: $viewModel.usernameDraft)
-                    .textInputAutocapitalization(.never)
-                    .padding(14)
-                    .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
+                SkydownPremiumTextInput(
+                    title: localized("profile.field.username", "Username"),
+                    text: $viewModel.usernameDraft,
+                    colorScheme: colorScheme,
+                    systemImage: "person.fill",
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    autocapitalization: .never
+                )
 
-                TextField(localized("profile.field.tagline", "Tagline"), text: $viewModel.taglineDraft)
-                    .padding(14)
-                    .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
+                SkydownPremiumTextInput(
+                    title: localized("profile.field.tagline", "Tagline"),
+                    text: $viewModel.taglineDraft,
+                    colorScheme: colorScheme,
+                    systemImage: "quote.bubble.fill",
+                    accent: AppColors.accentMystic(for: colorScheme)
+                )
 
-                TextField(localized("profile.field.instagram", "Instagram"), text: $viewModel.instagramDraft)
-                    .textInputAutocapitalization(.never)
-                    .padding(14)
-                    .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
+                SkydownPremiumTextInput(
+                    title: localized("profile.field.instagram", "Instagram"),
+                    text: $viewModel.instagramDraft,
+                    colorScheme: colorScheme,
+                    systemImage: "at",
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    keyboardType: .URL,
+                    autocapitalization: .never
+                )
 
-                TextField(localized("profile.field.whatsapp", "WhatsApp"), text: $viewModel.whatsAppDraft)
-                    .padding(14)
-                    .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
+                SkydownPremiumTextInput(
+                    title: localized("profile.field.whatsapp", "WhatsApp"),
+                    text: $viewModel.whatsAppDraft,
+                    colorScheme: colorScheme,
+                    systemImage: "phone.fill",
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    keyboardType: .phonePad
+                )
 
-                TextField(localized("profile.field.bio", "Bio"), text: $viewModel.bioDraft, axis: .vertical)
-                    .lineLimit(4...6)
-                    .padding(14)
-                    .background(AppColors.cardBackground(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
+                SkydownPremiumTextInput(
+                    title: localized("profile.field.bio", "Bio"),
+                    text: $viewModel.bioDraft,
+                    colorScheme: colorScheme,
+                    systemImage: "text.alignleft",
+                    accent: AppColors.accentMystic(for: colorScheme),
+                    minLines: 4,
+                    maxLines: 6
+                )
 
                 Toggle(isOn: $viewModel.aiAccessEnabledDraft) {
                     VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingNano) {
@@ -758,12 +776,12 @@ struct ProfileView: View {
 
     private var uiTestActionsSection: some View {
         VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
-            Text(localized("profile.ui_test.title", "UI test"))
+            Text(localized("profile.ui_test.title", "Studio fixtures"))
                 .font(.headline)
                 .foregroundColor(AppColors.text(for: colorScheme))
                 .accessibilityIdentifier("ui_test.profile.section")
 
-            Text(localized("profile.ui_test.subtitle", "Only visible during UI tests."))
+            Text(localized("profile.ui_test.subtitle", "Only visible in internal review mode."))
                 .font(.footnote)
                 .foregroundColor(AppColors.secondaryText(for: colorScheme))
 

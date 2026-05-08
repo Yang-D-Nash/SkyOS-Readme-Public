@@ -63,21 +63,27 @@ struct LoginView: View {
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
 
                 VStack(spacing: SkydownLayout.stackSpacingLoft) {
-                    TextField(localized("auth.email", "Email"), text: $viewModel.email)
-                        .padding()
-                        .background(AppColors.secondaryBackground(for: colorScheme))
-                        .cornerRadius(SkydownLayout.cardCornerRadius)
-                        .keyboardType(.emailAddress)
-                        .textInputAutocapitalization(.never)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .accessibilityIdentifier("login.email")
+                    SkydownPremiumTextInput(
+                        title: localized("auth.email", "Email"),
+                        text: $viewModel.email,
+                        colorScheme: colorScheme,
+                        systemImage: "envelope.fill",
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        keyboardType: .emailAddress,
+                        autocapitalization: .never,
+                        accessibilityIdentifier: "login.email"
+                    )
 
-                    SecureField(localized("auth.password", "Password"), text: $viewModel.password)
-                        .padding()
-                        .background(AppColors.secondaryBackground(for: colorScheme))
-                        .cornerRadius(SkydownLayout.cardCornerRadius)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .accessibilityIdentifier("login.password")
+                    SkydownPremiumTextInput(
+                        title: localized("auth.password", "Password"),
+                        text: $viewModel.password,
+                        colorScheme: colorScheme,
+                        systemImage: "lock.fill",
+                        accent: AppColors.accentMystic(for: colorScheme),
+                        isSecure: true,
+                        autocapitalization: .never,
+                        accessibilityIdentifier: "login.password"
+                    )
                 }
                 .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
 

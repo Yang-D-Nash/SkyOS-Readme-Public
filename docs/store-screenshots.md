@@ -8,6 +8,8 @@ This playbook defines the creative direction, sequence, and capture standards fo
 
 Status as of 2026-05-05: capture foundations and final screenshot sets exist; final console attachment and store listing approval remain external release gates.
 
+Update 2026-05-08: `scripts/audit_store_screenshots.py` is the automated screenshot gate. It must pass before App Store Connect or Play Console upload.
+
 | Set | Current files | Release read |
 | --- | --- | --- |
 | iPhone raw | `store-assets/ios/raw/`, 7 files at `1320x2868` | Usable capture base |

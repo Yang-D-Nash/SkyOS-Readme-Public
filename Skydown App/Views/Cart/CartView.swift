@@ -1462,22 +1462,25 @@ private struct CartInputField: View {
     var autocapitalization: TextInputAutocapitalization = .sentences
 
     var body: some View {
-        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(AppColors.text(for: colorScheme))
+        SkydownPremiumTextInput(
+            title: title,
+            text: $text,
+            colorScheme: colorScheme,
+            systemImage: iconName,
+            accent: AppColors.accent(for: colorScheme),
+            keyboardType: keyboard,
+            autocapitalization: autocapitalization
+        )
+    }
 
-            TextField(title, text: $text)
-                .keyboardType(keyboard)
-                .textInputAutocapitalization(autocapitalization)
-                .padding(14)
-                .background(AppColors.secondaryBackground(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: SkydownLayout.cardCornerRadius, style: .continuous)
-                        .stroke(AppColors.accent(for: colorScheme).opacity(0.12), lineWidth: 1)
-                )
-                .foregroundColor(AppColors.text(for: colorScheme))
+    private var iconName: String {
+        switch keyboard {
+        case .emailAddress:
+            return "envelope.fill"
+        case .phonePad:
+            return "phone.fill"
+        default:
+            return "person.text.rectangle.fill"
         }
     }
 }

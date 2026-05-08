@@ -1155,7 +1155,7 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 16.dp),
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = homeHeaderEyebrowDraft,
                     onValueChange = { homeHeaderEyebrowDraft = it },
                     modifier = Modifier
@@ -1166,7 +1166,7 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = homeHeaderTitleDraft,
                     onValueChange = { homeHeaderTitleDraft = it },
                     modifier = Modifier
@@ -1177,7 +1177,7 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = homeHeaderSubtitleDraft,
                     onValueChange = { homeHeaderSubtitleDraft = it },
                     modifier = Modifier
@@ -1188,7 +1188,7 @@ fun SettingsScreen(
                     minLines = 2,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = homeHeaderDetailDraft,
                     onValueChange = { homeHeaderDetailDraft = it },
                     modifier = Modifier
@@ -1221,7 +1221,7 @@ fun SettingsScreen(
                     },
                     modifier = Modifier.padding(top = 10.dp),
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = musicHubHeaderEyebrowDraft,
                     onValueChange = { musicHubHeaderEyebrowDraft = it },
                     modifier = Modifier
@@ -1231,7 +1231,7 @@ fun SettingsScreen(
                     placeholder = { Text(stringResource(R.string.settings_admin_headers_music_eyebrow_placeholder)) },
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = musicHubHeaderTitleDraft,
                     onValueChange = { musicHubHeaderTitleDraft = it },
                     modifier = Modifier
@@ -1241,7 +1241,7 @@ fun SettingsScreen(
                     placeholder = { Text(stringResource(R.string.settings_admin_headers_music_title_placeholder)) },
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = musicHubHeaderSubtitleDraft,
                     onValueChange = { musicHubHeaderSubtitleDraft = it },
                     modifier = Modifier
@@ -1252,7 +1252,7 @@ fun SettingsScreen(
                     minLines = 2,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = musicHubHeaderDetailDraft,
                     onValueChange = { musicHubHeaderDetailDraft = it },
                     modifier = Modifier
@@ -1285,7 +1285,7 @@ fun SettingsScreen(
                     },
                     modifier = Modifier.padding(top = 10.dp),
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = shopHeaderEyebrowDraft,
                     onValueChange = { shopHeaderEyebrowDraft = it },
                     modifier = Modifier
@@ -1295,7 +1295,7 @@ fun SettingsScreen(
                     placeholder = { Text(stringResource(R.string.settings_admin_headers_shop_eyebrow_placeholder)) },
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = shopHeaderTitleDraft,
                     onValueChange = { shopHeaderTitleDraft = it },
                     modifier = Modifier
@@ -1305,7 +1305,7 @@ fun SettingsScreen(
                     placeholder = { Text(stringResource(R.string.settings_admin_headers_shop_title_placeholder)) },
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = shopHeaderSubtitleDraft,
                     onValueChange = { shopHeaderSubtitleDraft = it },
                     modifier = Modifier
@@ -1316,7 +1316,7 @@ fun SettingsScreen(
                     minLines = 2,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = shopHeaderDetailDraft,
                     onValueChange = { shopHeaderDetailDraft = it },
                     modifier = Modifier
@@ -1349,7 +1349,7 @@ fun SettingsScreen(
                     },
                     modifier = Modifier.padding(top = 10.dp),
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = videoHeaderHeroVideoUrlDraft,
                     onValueChange = { videoHeaderHeroVideoUrlDraft = it },
                     modifier = Modifier
@@ -1359,7 +1359,7 @@ fun SettingsScreen(
                     placeholder = { Text(stringResource(R.string.settings_admin_headers_video_hero_video_url_placeholder)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = videoHeaderEyebrowDraft,
                     onValueChange = { videoHeaderEyebrowDraft = it },
                     modifier = Modifier
@@ -1369,7 +1369,7 @@ fun SettingsScreen(
                     placeholder = { Text(stringResource(R.string.settings_admin_headers_video_eyebrow_placeholder)) },
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = videoHeaderTitleDraft,
                     onValueChange = { videoHeaderTitleDraft = it },
                     modifier = Modifier
@@ -1379,7 +1379,7 @@ fun SettingsScreen(
                     placeholder = { Text(stringResource(R.string.settings_admin_headers_video_title_placeholder)) },
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = videoHeaderSubtitleDraft,
                     onValueChange = { videoHeaderSubtitleDraft = it },
                     modifier = Modifier
@@ -1390,7 +1390,7 @@ fun SettingsScreen(
                     minLines = 2,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = videoHeaderDetailDraft,
                     onValueChange = { videoHeaderDetailDraft = it },
                     modifier = Modifier
@@ -1471,7 +1471,7 @@ fun SettingsScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = shopifyStoreDomainDraft,
                     onValueChange = { shopifyStoreDomainDraft = it },
                     modifier = Modifier
@@ -1481,7 +1481,7 @@ fun SettingsScreen(
                     placeholder = { Text(stringResource(R.string.settings_shopify_store_domain_sample)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = shopifyStorefrontAccessTokenDraft,
                     onValueChange = { shopifyStorefrontAccessTokenDraft = it },
                     modifier = Modifier
@@ -1491,7 +1491,7 @@ fun SettingsScreen(
                     placeholder = { Text(stringResource(R.string.settings_shopify_token_placeholder)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = shopifyCollectionHandlesDraft,
                     onValueChange = { shopifyCollectionHandlesDraft = it },
                     modifier = Modifier
@@ -1526,7 +1526,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.SemiBold,
                     )
 
-                    OutlinedTextField(
+                    SettingsPremiumTextField(
                         value = shopifyCollectionSearchDraft,
                         onValueChange = { shopifyCollectionSearchDraft = it },
                         modifier = Modifier
@@ -1806,7 +1806,7 @@ fun SettingsScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = domesticShippingDraft,
                     onValueChange = { domesticShippingDraft = it },
                     modifier = Modifier
@@ -1815,7 +1815,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_shipping_de)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = euShippingDraft,
                     onValueChange = { euShippingDraft = it },
                     modifier = Modifier
@@ -1824,7 +1824,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_shipping_eu)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = internationalShippingDraft,
                     onValueChange = { internationalShippingDraft = it },
                     modifier = Modifier
@@ -1833,7 +1833,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_shipping_intl)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = freeShippingThresholdDraft,
                     onValueChange = { freeShippingThresholdDraft = it },
                     modifier = Modifier
@@ -1842,7 +1842,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_shipping_free_from)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = shippingNotesDraft,
                     onValueChange = { shippingNotesDraft = it },
                     modifier = Modifier
@@ -1860,7 +1860,7 @@ fun SettingsScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = invoiceCompanyNameDraft,
                     onValueChange = { invoiceCompanyNameDraft = it },
                     modifier = Modifier
@@ -1869,7 +1869,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_invoice_company_name)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = invoiceCompanyAddressDraft,
                     onValueChange = { invoiceCompanyAddressDraft = it },
                     modifier = Modifier
@@ -1879,7 +1879,7 @@ fun SettingsScreen(
                     minLines = 2,
                     maxLines = 3,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = invoiceTaxNumberDraft,
                     onValueChange = { invoiceTaxNumberDraft = it },
                     modifier = Modifier
@@ -1888,7 +1888,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_invoice_tax_number)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = invoiceVatIdDraft,
                     onValueChange = { invoiceVatIdDraft = it },
                     modifier = Modifier
@@ -1897,7 +1897,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_invoice_vat_id)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = invoiceTaxRateDraft,
                     onValueChange = { invoiceTaxRateDraft = it },
                     modifier = Modifier
@@ -1906,7 +1906,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_invoice_vat_rate)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = invoicePrefixDraft,
                     onValueChange = { invoicePrefixDraft = it },
                     modifier = Modifier
@@ -1915,7 +1915,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_invoice_prefix)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = invoiceSupportEmailDraft,
                     onValueChange = { invoiceSupportEmailDraft = it },
                     modifier = Modifier
@@ -1982,7 +1982,7 @@ fun SettingsScreen(
                     onCheckedChange = viewModel::updateAiVisualReferenceEnabled,
                     modifier = Modifier.padding(top = 10.dp),
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = uiState.aiVisualReferenceLibrary.storageLink,
                     onValueChange = viewModel::updateAiVisualStorageLink,
                     modifier = Modifier
@@ -1992,7 +1992,7 @@ fun SettingsScreen(
                     placeholder = { Text(stringResource(R.string.settings_ref_drive_link_placeholder)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = uiState.aiVisualReferenceLibrary.namingPrefix,
                     onValueChange = viewModel::updateAiVisualNamingPrefix,
                     modifier = Modifier
@@ -2003,7 +2003,7 @@ fun SettingsScreen(
                     singleLine = true,
                 )
                 uiState.aiVisualReferenceLibrary.referenceHints.forEachIndexed { index, referenceHint ->
-                    OutlinedTextField(
+                    SettingsPremiumTextField(
                         value = referenceHint,
                         onValueChange = { value ->
                             viewModel.updateAiVisualReferenceHint(index, value)
@@ -2079,7 +2079,7 @@ fun SettingsScreen(
                         )
                     }
                 }
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = automationWorkflowNameDraft,
                     onValueChange = { automationWorkflowNameDraft = it },
                     modifier = Modifier
@@ -2090,7 +2090,7 @@ fun SettingsScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = automationBaseUrlDraft,
                     onValueChange = { automationBaseUrlDraft = it },
                     modifier = Modifier
@@ -2101,7 +2101,7 @@ fun SettingsScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = automationWebhookPathDraft,
                     onValueChange = { automationWebhookPathDraft = it },
                     modifier = Modifier
@@ -2112,7 +2112,7 @@ fun SettingsScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = automationAuthHeaderNameDraft,
                     onValueChange = { automationAuthHeaderNameDraft = it },
                     modifier = Modifier
@@ -2123,7 +2123,7 @@ fun SettingsScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = automationAuthHeaderValueDraft,
                     onValueChange = { automationAuthHeaderValueDraft = it },
                     modifier = Modifier
@@ -2134,7 +2134,7 @@ fun SettingsScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(SkydownUiTokens.messageBubbleRadius),
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = automationKnowledgeContextDraft,
                     onValueChange = { automationKnowledgeContextDraft = it },
                     modifier = Modifier
@@ -2245,7 +2245,7 @@ fun SettingsScreen(
                     )
                 }
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = manusByosApiKeyDraft,
                     onValueChange = { manusByosApiKeyDraft = it.take(1024) },
                     modifier = Modifier
@@ -2338,7 +2338,7 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 10.dp),
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = agentRoleLabelDraft,
                     onValueChange = { agentRoleLabelDraft = it.take(240) },
                     modifier = Modifier
@@ -2349,7 +2349,7 @@ fun SettingsScreen(
                     minLines = 2,
                     maxLines = 4,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = agentSkillProfileDraft,
                     onValueChange = { agentSkillProfileDraft = it.take(12000) },
                     modifier = Modifier
@@ -2362,7 +2362,7 @@ fun SettingsScreen(
                     minLines = 4,
                     maxLines = 12,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = agentOutputFormatDraft,
                     onValueChange = { agentOutputFormatDraft = it.take(4000) },
                     modifier = Modifier
@@ -2373,7 +2373,7 @@ fun SettingsScreen(
                     minLines = 3,
                     maxLines = 8,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = agentGuardrailsDraft,
                     onValueChange = { agentGuardrailsDraft = it.take(4000) },
                     modifier = Modifier
@@ -2384,7 +2384,7 @@ fun SettingsScreen(
                     minLines = 3,
                     maxLines = 8,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = agentKnowledgeContextDraft,
                     onValueChange = { agentKnowledgeContextDraft = it.take(4000) },
                     modifier = Modifier
@@ -2469,7 +2469,7 @@ fun SettingsScreen(
                     }
                 }
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiTextInstructionDraft,
                     onValueChange = { aiTextInstructionDraft = it.take(12000) },
                     modifier = Modifier
@@ -2480,7 +2480,7 @@ fun SettingsScreen(
                     maxLines = 14,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiVisualInstructionDraft,
                     onValueChange = { aiVisualInstructionDraft = it.take(12000) },
                     modifier = Modifier
@@ -2491,7 +2491,7 @@ fun SettingsScreen(
                     maxLines = 14,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiAgentSystemInstructionDraft,
                     onValueChange = { aiAgentSystemInstructionDraft = it.take(12000) },
                     modifier = Modifier
@@ -2502,7 +2502,7 @@ fun SettingsScreen(
                     maxLines = 16,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiFaqInstructionDraft,
                     onValueChange = { aiFaqInstructionDraft = it.take(12000) },
                     modifier = Modifier
@@ -2513,7 +2513,7 @@ fun SettingsScreen(
                     maxLines = 12,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiFaqKnowledgeBaseDraft,
                     onValueChange = { aiFaqKnowledgeBaseDraft = it.take(12000) },
                     modifier = Modifier
@@ -2524,7 +2524,7 @@ fun SettingsScreen(
                     maxLines = 16,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiAssetLibraryLinkDraft,
                     onValueChange = { aiAssetLibraryLinkDraft = it.take(2000) },
                     modifier = Modifier
@@ -2625,7 +2625,7 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = if (entry.isPublished) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f),
                         )
-                        OutlinedTextField(
+                        SettingsPremiumTextField(
                             value = entry.title,
                             onValueChange = { value ->
                                 aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.toMutableList().also {
@@ -2639,7 +2639,7 @@ fun SettingsScreen(
                             placeholder = { Text(stringResource(R.string.settings_owner_inspiration_title_placeholder)) },
                             singleLine = true,
                         )
-                        OutlinedTextField(
+                        SettingsPremiumTextField(
                             value = entry.details,
                             onValueChange = { value ->
                                 aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.toMutableList().also {
@@ -2653,7 +2653,7 @@ fun SettingsScreen(
                             minLines = 3,
                             maxLines = 8,
                         )
-                        OutlinedTextField(
+                        SettingsPremiumTextField(
                             value = entry.tags.joinToString(", "),
                             onValueChange = { value ->
                                 aiOwnerInspirationEntriesDraft = aiOwnerInspirationEntriesDraft.toMutableList().also {
@@ -2706,7 +2706,7 @@ fun SettingsScreen(
                         .padding(top = 10.dp),
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiAssetReferenceNotesDraft,
                     onValueChange = { aiAssetReferenceNotesDraft = it.take(12000) },
                     modifier = Modifier
@@ -3054,7 +3054,7 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Medium,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotPromptVersionDraft,
                     onValueChange = { aiBotPromptVersionDraft = it.take(120) },
                     modifier = Modifier
@@ -3064,7 +3064,7 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotPersonalityStyleDraft,
                     onValueChange = { aiBotPersonalityStyleDraft = it.take(160) },
                     modifier = Modifier
@@ -3074,7 +3074,7 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotLoggingLevelDraft,
                     onValueChange = { aiBotLoggingLevelDraft = it.take(80) },
                     modifier = Modifier
@@ -3371,7 +3371,7 @@ fun SettingsScreen(
                     modifier = Modifier.padding(top = 8.dp),
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotWarningThresholdPercentDraft,
                     onValueChange = { aiBotWarningThresholdPercentDraft = it.take(3) },
                     modifier = Modifier
@@ -3381,7 +3381,7 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotCriticalThresholdPercentDraft,
                     onValueChange = { aiBotCriticalThresholdPercentDraft = it.take(3) },
                     modifier = Modifier
@@ -3391,7 +3391,7 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotUpgradeHintFreeToProTextDraft,
                     onValueChange = { aiBotUpgradeHintFreeToProTextDraft = it.take(220) },
                     modifier = Modifier
@@ -3403,7 +3403,7 @@ fun SettingsScreen(
                     maxLines = 3,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotUpgradeHintProToCreatorTextDraft,
                     onValueChange = { aiBotUpgradeHintProToCreatorTextDraft = it.take(220) },
                     modifier = Modifier
@@ -3415,7 +3415,7 @@ fun SettingsScreen(
                     maxLines = 3,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotPromptVersionAliasDraft,
                     onValueChange = { aiBotPromptVersionAliasDraft = it.take(120) },
                     modifier = Modifier
@@ -3454,7 +3454,7 @@ fun SettingsScreen(
                     }
                 }
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotTextPrimaryModelDraft,
                     onValueChange = { aiBotTextPrimaryModelDraft = it.take(120) },
                     modifier = Modifier
@@ -3464,7 +3464,7 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotTextFallbackModelDraft,
                     onValueChange = { aiBotTextFallbackModelDraft = it.take(120) },
                     modifier = Modifier
@@ -3474,7 +3474,7 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotVisualPrimaryModelDraft,
                     onValueChange = { aiBotVisualPrimaryModelDraft = it.take(120) },
                     modifier = Modifier
@@ -3484,7 +3484,7 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotVisualFallbackModelDraft,
                     onValueChange = { aiBotVisualFallbackModelDraft = it.take(120) },
                     modifier = Modifier
@@ -3494,7 +3494,7 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotShortAnswerMaxTokensDraft,
                     onValueChange = { aiBotShortAnswerMaxTokensDraft = it },
                     modifier = Modifier
@@ -3504,7 +3504,7 @@ fun SettingsScreen(
                     singleLine = true,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiBotStandardAnswerMaxTokensDraft,
                     onValueChange = { aiBotStandardAnswerMaxTokensDraft = it },
                     modifier = Modifier
@@ -3590,7 +3590,7 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodySmall,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiManusRequestTimeoutMsDraft,
                     onValueChange = { aiManusRequestTimeoutMsDraft = it },
                     modifier = Modifier
@@ -3599,7 +3599,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_ai_request_timeout_ms)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiManusPollIntervalMsDraft,
                     onValueChange = { aiManusPollIntervalMsDraft = it },
                     modifier = Modifier
@@ -3608,7 +3608,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_ai_poll_interval_ms)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiManusMaxPollAttemptsDraft,
                     onValueChange = { aiManusMaxPollAttemptsDraft = it },
                     modifier = Modifier
@@ -3617,7 +3617,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_ai_max_poll_attempts)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiManusListMessagesLimitDraft,
                     onValueChange = { aiManusListMessagesLimitDraft = it },
                     modifier = Modifier
@@ -3626,7 +3626,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_ai_list_messages_limit)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiManusMaxPromptCharsDraft,
                     onValueChange = { aiManusMaxPromptCharsDraft = it },
                     modifier = Modifier
@@ -3635,7 +3635,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_ai_max_prompt_chars)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiManusMaxHistoryTurnsDraft,
                     onValueChange = { aiManusMaxHistoryTurnsDraft = it },
                     modifier = Modifier
@@ -3694,7 +3694,7 @@ fun SettingsScreen(
                     onCheckedChange = { aiKnowledgeGoogleDriveRequireSourceCitationsDraft = it },
                     modifier = Modifier.padding(top = 8.dp),
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiKnowledgeGoogleDriveAllowedSharedDriveIdsDraft,
                     onValueChange = { aiKnowledgeGoogleDriveAllowedSharedDriveIdsDraft = it },
                     modifier = Modifier
@@ -3704,7 +3704,7 @@ fun SettingsScreen(
                     supportingText = { Text(stringResource(R.string.settings_knowledge_drive_ids_hint)) },
                     minLines = 3,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiKnowledgeGoogleDriveAllowedFolderIdsDraft,
                     onValueChange = { aiKnowledgeGoogleDriveAllowedFolderIdsDraft = it },
                     modifier = Modifier
@@ -3715,7 +3715,7 @@ fun SettingsScreen(
                     minLines = 3,
                 )
 
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiHardTextLimitDraft,
                     onValueChange = { aiHardTextLimitDraft = it },
                     modifier = Modifier
@@ -3724,7 +3724,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_ai_hard_cap_text)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiHardVisualLimitDraft,
                     onValueChange = { aiHardVisualLimitDraft = it },
                     modifier = Modifier
@@ -3733,7 +3733,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_ai_hard_cap_visual)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiHardAgentLimitDraft,
                     onValueChange = { aiHardAgentLimitDraft = it },
                     modifier = Modifier
@@ -3742,7 +3742,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_ai_hard_cap_agent)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiGlobalTextLimitDraft,
                     onValueChange = { aiGlobalTextLimitDraft = it },
                     modifier = Modifier
@@ -3751,7 +3751,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_ai_global_cap_text)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiGlobalVisualLimitDraft,
                     onValueChange = { aiGlobalVisualLimitDraft = it },
                     modifier = Modifier
@@ -3760,7 +3760,7 @@ fun SettingsScreen(
                     label = { Text(stringResource(R.string.settings_ai_global_cap_visual)) },
                     singleLine = true,
                 )
-                OutlinedTextField(
+                SettingsPremiumTextField(
                     value = aiGlobalAgentLimitDraft,
                     onValueChange = { aiGlobalAgentLimitDraft = it },
                     modifier = Modifier
@@ -4077,14 +4077,14 @@ fun SettingsScreen(
                                 icon = Icons.Filled.Bolt,
                                 accent = MaterialTheme.colorScheme.skydownAccent(),
                             ) {
-                                OutlinedTextField(
+                                SettingsPremiumTextField(
                                     value = experimentLifecycleIdDraft,
                                     onValueChange = { experimentLifecycleIdDraft = it },
                                     modifier = Modifier.fillMaxWidth(),
                                     label = { Text(stringResource(R.string.settings_experiment_lifecycle_id)) },
                                     singleLine = true,
                                 )
-                                OutlinedTextField(
+                                SettingsPremiumTextField(
                                     value = experimentLearningsDraft,
                                     onValueChange = { experimentLearningsDraft = it.take(1000) },
                                     modifier = Modifier.fillMaxWidth(),
@@ -4093,14 +4093,14 @@ fun SettingsScreen(
                                     maxLines = 5,
                                 )
                                 Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
-                                    OutlinedTextField(value = experimentCvrDeltaDraft, onValueChange = { experimentCvrDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_cvr_delta)) }, singleLine = true)
-                                    OutlinedTextField(value = experimentAnnualDeltaDraft, onValueChange = { experimentAnnualDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_annual_delta)) }, singleLine = true)
+                                    SettingsPremiumTextField(value = experimentCvrDeltaDraft, onValueChange = { experimentCvrDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_cvr_delta)) }, singleLine = true)
+                                    SettingsPremiumTextField(value = experimentAnnualDeltaDraft, onValueChange = { experimentAnnualDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_annual_delta)) }, singleLine = true)
                                 }
                                 Row(horizontalArrangement = Arrangement.spacedBy(SkydownUiTokens.stackSpacingMicro)) {
-                                    OutlinedTextField(value = experimentCreatorDeltaDraft, onValueChange = { experimentCreatorDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_creator_delta)) }, singleLine = true)
-                                    OutlinedTextField(value = experimentCancelDeltaDraft, onValueChange = { experimentCancelDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_cancel_delta)) }, singleLine = true)
+                                    SettingsPremiumTextField(value = experimentCreatorDeltaDraft, onValueChange = { experimentCreatorDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_creator_delta)) }, singleLine = true)
+                                    SettingsPremiumTextField(value = experimentCancelDeltaDraft, onValueChange = { experimentCancelDeltaDraft = it }, modifier = Modifier.weight(1f), label = { Text(stringResource(R.string.settings_experiment_cancel_delta)) }, singleLine = true)
                                 }
-                                OutlinedTextField(
+                                SettingsPremiumTextField(
                                     value = experimentObservedDaysDraft,
                                     onValueChange = { experimentObservedDaysDraft = it },
                                     modifier = Modifier.fillMaxWidth(),
@@ -4180,7 +4180,7 @@ fun SettingsScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
                                 )
-                                OutlinedTextField(
+                                SettingsPremiumTextField(
                                     value = hygieneCooldownCompletedDraft,
                                     onValueChange = { hygieneCooldownCompletedDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
@@ -4188,7 +4188,7 @@ fun SettingsScreen(
                                     supportingText = { Text(stringResource(R.string.settings_hygiene_cooldown_days_completed_help)) },
                                     singleLine = true,
                                 )
-                                OutlinedTextField(
+                                SettingsPremiumTextField(
                                     value = hygieneCooldownRejectedDraft,
                                     onValueChange = { hygieneCooldownRejectedDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -4196,7 +4196,7 @@ fun SettingsScreen(
                                     supportingText = { Text(stringResource(R.string.settings_hygiene_cooldown_days_rejected_help)) },
                                     singleLine = true,
                                 )
-                                OutlinedTextField(
+                                SettingsPremiumTextField(
                                     value = hygieneCooldownProposedDraft,
                                     onValueChange = { hygieneCooldownProposedDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -4204,7 +4204,7 @@ fun SettingsScreen(
                                     supportingText = { Text(stringResource(R.string.settings_hygiene_cooldown_days_proposed_help)) },
                                     singleLine = true,
                                 )
-                                OutlinedTextField(
+                                SettingsPremiumTextField(
                                     value = hygieneSimilarityStrictnessDraft,
                                     onValueChange = { hygieneSimilarityStrictnessDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -4212,7 +4212,7 @@ fun SettingsScreen(
                                     supportingText = { Text(stringResource(R.string.settings_hygiene_similarity_strictness_help)) },
                                     singleLine = true,
                                 )
-                                OutlinedTextField(
+                                SettingsPremiumTextField(
                                     value = hygieneRecurringPenaltyDraft,
                                     onValueChange = { hygieneRecurringPenaltyDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -4220,7 +4220,7 @@ fun SettingsScreen(
                                     supportingText = { Text(stringResource(R.string.settings_hygiene_recurring_penalty_help)) },
                                     singleLine = true,
                                 )
-                                OutlinedTextField(
+                                SettingsPremiumTextField(
                                     value = hygieneFreshnessFloorDraft,
                                     onValueChange = { hygieneFreshnessFloorDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -4228,7 +4228,7 @@ fun SettingsScreen(
                                     supportingText = { Text(stringResource(R.string.settings_hygiene_freshness_floor_help)) },
                                     singleLine = true,
                                 )
-                                OutlinedTextField(
+                                SettingsPremiumTextField(
                                     value = hygieneDuplicateMergeWindowDraft,
                                     onValueChange = { hygieneDuplicateMergeWindowDraft = it },
                                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -5241,7 +5241,7 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             )
 
-                            OutlinedTextField(
+                            SettingsPremiumTextField(
                                 value = legalBrandNameDraft,
                                 onValueChange = { legalBrandNameDraft = it },
                                 modifier = Modifier
@@ -5252,7 +5252,7 @@ fun SettingsScreen(
                                 singleLine = true,
                             )
 
-                            OutlinedTextField(
+                            SettingsPremiumTextField(
                                 value = legalOperatorNameDraft,
                                 onValueChange = { legalOperatorNameDraft = it },
                                 modifier = Modifier
@@ -5263,7 +5263,7 @@ fun SettingsScreen(
                                 singleLine = true,
                             )
 
-                            OutlinedTextField(
+                            SettingsPremiumTextField(
                                 value = legalRightsHolderNameDraft,
                                 onValueChange = { legalRightsHolderNameDraft = it },
                                 modifier = Modifier
@@ -5274,7 +5274,7 @@ fun SettingsScreen(
                                 singleLine = true,
                             )
 
-                            OutlinedTextField(
+                            SettingsPremiumTextField(
                                 value = legalSupportEmailDraft,
                                 onValueChange = { legalSupportEmailDraft = it },
                                 modifier = Modifier
@@ -5285,7 +5285,7 @@ fun SettingsScreen(
                                 singleLine = true,
                             )
 
-                            OutlinedTextField(
+                            SettingsPremiumTextField(
                                 value = legalLastUpdatedLabelDraft,
                                 onValueChange = { legalLastUpdatedLabelDraft = it },
                                 modifier = Modifier
@@ -5296,7 +5296,7 @@ fun SettingsScreen(
                                 singleLine = true,
                             )
 
-                            OutlinedTextField(
+                            SettingsPremiumTextField(
                                 value = legalImprintReferenceDraft,
                                 onValueChange = { legalImprintReferenceDraft = it },
                                 modifier = Modifier
@@ -5306,7 +5306,7 @@ fun SettingsScreen(
                                 minLines = 3,
                             )
 
-                            OutlinedTextField(
+                            SettingsPremiumTextField(
                                 value = legalMasterNumberMeaningDraft,
                                 onValueChange = { legalMasterNumberMeaningDraft = it },
                                 modifier = Modifier
@@ -5316,7 +5316,7 @@ fun SettingsScreen(
                                 minLines = 3,
                             )
 
-                            OutlinedTextField(
+                            SettingsPremiumTextField(
                                 value = legalBrandManifestoDraft,
                                 onValueChange = { legalBrandManifestoDraft = it },
                                 modifier = Modifier
@@ -5326,7 +5326,7 @@ fun SettingsScreen(
                                 minLines = 6,
                             )
 
-                            OutlinedTextField(
+                            SettingsPremiumTextField(
                                 value = legalSymbolicNumericCodeDraft,
                                 onValueChange = { legalSymbolicNumericCodeDraft = it },
                                 modifier = Modifier
@@ -5337,7 +5337,7 @@ fun SettingsScreen(
                                 singleLine = true,
                             )
 
-                            OutlinedTextField(
+                            SettingsPremiumTextField(
                                 value = legalSymbolicLeetCodeDraft,
                                 onValueChange = { legalSymbolicLeetCodeDraft = it },
                                 modifier = Modifier
@@ -5348,7 +5348,7 @@ fun SettingsScreen(
                                 singleLine = true,
                             )
 
-                            OutlinedTextField(
+                            SettingsPremiumTextField(
                                 value = legalSymbolicCodeExplanationDraft,
                                 onValueChange = { legalSymbolicCodeExplanationDraft = it },
                                 modifier = Modifier
@@ -5490,7 +5490,7 @@ private enum class PaymentProviderKind {
 }
 
 @Composable
-private fun OutlinedTextField(
+private fun SettingsPremiumTextField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -5533,7 +5533,7 @@ private fun OutlinedTextField(
 }
 
 @Composable
-private fun PremiumSettingsOutlinedTextField(
+private fun PremiumSettingsTextField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -5636,7 +5636,7 @@ private fun PaymentProviderAdminCard(
             )
         }
 
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = accountHint,
             onValueChange = onAccountHintChange,
             modifier = Modifier
@@ -5777,7 +5777,7 @@ private fun StripeBackendSecretsAdminCard(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         )
 
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = stripeSecretKey,
             onValueChange = onStripeSecretKeyChange,
             modifier = Modifier
@@ -5789,7 +5789,7 @@ private fun StripeBackendSecretsAdminCard(
             visualTransformation = PasswordVisualTransformation(),
         )
 
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = stripeWebhookSecret,
             onValueChange = onStripeWebhookSecretChange,
             modifier = Modifier
@@ -5869,7 +5869,7 @@ private fun BankTransferAdminCard(
             )
         }
 
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = accountHolder,
             onValueChange = onAccountHolderChange,
             modifier = Modifier
@@ -5878,7 +5878,7 @@ private fun BankTransferAdminCard(
             label = { Text(stringResource(R.string.settings_payments_account_holder)) },
             singleLine = true,
         )
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = iban,
             onValueChange = onIbanChange,
             modifier = Modifier
@@ -5887,7 +5887,7 @@ private fun BankTransferAdminCard(
             label = { Text(stringResource(R.string.settings_payments_iban)) },
             singleLine = true,
         )
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = bic,
             onValueChange = onBicChange,
             modifier = Modifier
@@ -5896,7 +5896,7 @@ private fun BankTransferAdminCard(
             label = { Text(stringResource(R.string.settings_payments_bic)) },
             singleLine = true,
         )
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = bankName,
             onValueChange = onBankNameChange,
             modifier = Modifier
@@ -5905,7 +5905,7 @@ private fun BankTransferAdminCard(
             label = { Text(stringResource(R.string.settings_payments_bank_name)) },
             singleLine = true,
         )
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = paymentInstructions,
             onValueChange = onPaymentInstructionsChange,
             modifier = Modifier
@@ -5985,21 +5985,21 @@ private fun ProfileEditorCard(
             }
         }
 
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = username,
             onValueChange = onUsernameChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.settings_profile_username)) },
             singleLine = true,
         )
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = profileTagline,
             onValueChange = onProfileTaglineChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.settings_profile_tagline)) },
             singleLine = true,
         )
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = profileBio,
             onValueChange = onProfileBioChange,
             modifier = Modifier.fillMaxWidth(),
@@ -6007,14 +6007,14 @@ private fun ProfileEditorCard(
             minLines = 3,
             maxLines = 5,
         )
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = instagramHandle,
             onValueChange = onInstagramHandleChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.settings_profile_instagram)) },
             singleLine = true,
         )
-        PremiumSettingsOutlinedTextField(
+        PremiumSettingsTextField(
             value = whatsApp,
             onValueChange = onWhatsAppChange,
             modifier = Modifier.fillMaxWidth(),
@@ -7511,7 +7511,7 @@ private fun AdminManagedUserCard(
             fontWeight = FontWeight.SemiBold,
         )
 
-        OutlinedTextField(
+        SettingsPremiumTextField(
             value = textLimitDraft,
             onValueChange = { textLimitDraft = it },
             modifier = Modifier
@@ -7520,7 +7520,7 @@ private fun AdminManagedUserCard(
             label = { Text(stringResource(R.string.settings_admin_limit_bot)) },
             singleLine = true,
         )
-        OutlinedTextField(
+        SettingsPremiumTextField(
             value = visualLimitDraft,
             onValueChange = { visualLimitDraft = it },
             modifier = Modifier
@@ -7529,7 +7529,7 @@ private fun AdminManagedUserCard(
             label = { Text(stringResource(R.string.settings_admin_limit_visuals)) },
             singleLine = true,
         )
-        OutlinedTextField(
+        SettingsPremiumTextField(
             value = agentLimitDraft,
             onValueChange = { agentLimitDraft = it },
             modifier = Modifier

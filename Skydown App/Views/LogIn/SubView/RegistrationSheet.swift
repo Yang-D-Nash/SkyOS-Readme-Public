@@ -22,136 +22,165 @@ struct RegistrationSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section(header: Text(localized("auth.register.section", "Create account"))) {
-                    TextField(localized("auth.username", "Username"), text: $viewModel.username)
-                        .autocapitalization(.none)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
-
-                    TextField(localized("auth.email", "Email"), text: $viewModel.email)
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
-
-                    SecureField(localized("auth.password", "Password"), text: $viewModel.password)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
-
-                    SecureField(localized("auth.confirm_password", "Confirm password"), text: $viewModel.confirmPassword)
-                        .foregroundColor(AppColors.text(for: colorScheme))
-                        .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
-                }
-
-                Section(header: Text(localized("auth.register.legal.header", "Legal consent"))) {
-                    Text(localized("auth.register.legal.version", "Legal version: \(legalContentStore.settings.resolvedLastUpdatedLabel)"))
-                        .font(.footnote)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .listRowBackground(AppColors.primaryBackground(for: colorScheme))
-
-                    Toggle(isOn: $viewModel.acceptedTerms) {
-                        Text(localized("auth.register.legal.terms", "I accept the Terms (AGB)."))
-                    }
-                    .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme))
-                    .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
-
-                    Toggle(isOn: $viewModel.acceptedPrivacyPolicy) {
-                        Text(localized("auth.register.legal.privacy", "I accept the Privacy Policy."))
-                    }
-                    .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme))
-                    .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
-
-                    Toggle(isOn: $viewModel.aiConsentEnabled) {
-                        Text(localized("auth.register.legal.ai", "Enable AI (change anytime in Settings)."))
-                    }
-                    .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme))
-                    .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
-
-                    HStack(spacing: SkydownLayout.stackSpacingCompact) {
-                        SkydownBrandActionButton(
-                            title: localized("auth.register.legal.open_terms", "Open AGB"),
-                            accent: AppColors.accent(for: colorScheme),
+            ScrollView {
+                VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingRelaxed) {
+                    SkydownRegistrationPanel(
+                        title: localized("auth.register.section", "Create account"),
+                        colorScheme: colorScheme,
+                        accent: AppColors.accentMystic(for: colorScheme)
+                    ) {
+                        SkydownPremiumTextInput(
+                            title: localized("auth.username", "Username"),
+                            text: $viewModel.username,
                             colorScheme: colorScheme,
-                            role: .muted,
-                            font: .subheadline.weight(.semibold),
-                            cornerRadius: SkydownLayout.denseRadius,
-                            verticalPadding: 10,
-                            expandToFullWidth: true,
-                            action: { activeLegalDocument = .terms }
+                            systemImage: "person.fill",
+                            accent: AppColors.accentMystic(for: colorScheme),
+                            autocapitalization: .never
                         )
-                        .skydownInteractiveFeedback()
-                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                        SkydownBrandActionButton(
-                            title: localized("auth.register.legal.open_privacy", "Open Privacy"),
-                            accent: AppColors.accent(for: colorScheme),
+                        SkydownPremiumTextInput(
+                            title: localized("auth.email", "Email"),
+                            text: $viewModel.email,
                             colorScheme: colorScheme,
-                            role: .muted,
-                            font: .subheadline.weight(.semibold),
-                            cornerRadius: SkydownLayout.denseRadius,
-                            verticalPadding: 10,
-                            expandToFullWidth: true,
-                            action: { activeLegalDocument = .privacy }
+                            systemImage: "envelope.fill",
+                            accent: AppColors.accentMystic(for: colorScheme),
+                            keyboardType: .emailAddress,
+                            autocapitalization: .never
                         )
-                        .skydownInteractiveFeedback()
-                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        SkydownPremiumTextInput(
+                            title: localized("auth.password", "Password"),
+                            text: $viewModel.password,
+                            colorScheme: colorScheme,
+                            systemImage: "lock.fill",
+                            accent: AppColors.accentMystic(for: colorScheme),
+                            isSecure: true,
+                            autocapitalization: .never
+                        )
+
+                        SkydownPremiumTextInput(
+                            title: localized("auth.confirm_password", "Confirm password"),
+                            text: $viewModel.confirmPassword,
+                            colorScheme: colorScheme,
+                            systemImage: "checkmark.shield.fill",
+                            accent: AppColors.accentMystic(for: colorScheme),
+                            isSecure: true,
+                            autocapitalization: .never
+                        )
                     }
-                    .listRowBackground(AppColors.primaryBackground(for: colorScheme))
-                }
 
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(AppColors.error(for: colorScheme))
-                        .listRowBackground(Color.clear)
-                }
+                    SkydownRegistrationPanel(
+                        title: localized("auth.register.legal.header", "Legal consent"),
+                        colorScheme: colorScheme,
+                        accent: AppColors.accent(for: colorScheme)
+                    ) {
+                        Text(localized("auth.register.legal.version", "Legal version: \(legalContentStore.settings.resolvedLastUpdatedLabel)"))
+                            .font(.footnote)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
 
-                SkydownBrandActionButton(
-                    title: localized("auth.register", "Register"),
-                    accent: AppColors.accent(for: colorScheme),
-                    colorScheme: colorScheme,
-                    isEnabled: !viewModel.isRegistrationButtonDisabled,
-                    isLoading: viewModel.isLoading,
-                    action: {
-                        Task {
-                            if await viewModel.registerUser() {
-                                dismiss()
-                            }
+                        Toggle(isOn: $viewModel.acceptedTerms) {
+                            Text(localized("auth.register.legal.terms", "I accept the Terms (AGB)."))
+                        }
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme))
+
+                        Toggle(isOn: $viewModel.acceptedPrivacyPolicy) {
+                            Text(localized("auth.register.legal.privacy", "I accept the Privacy Policy."))
+                        }
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme))
+
+                        Toggle(isOn: $viewModel.aiConsentEnabled) {
+                            Text(localized("auth.register.legal.ai", "Enable AI (change anytime in Settings)."))
+                        }
+                        .toggleStyle(SkydownPremiumToggleStyle(colorScheme: colorScheme))
+
+                        VStack(spacing: SkydownLayout.stackSpacingCompact) {
+                            SkydownBrandActionButton(
+                                title: localized("auth.register.legal.open_terms", "Open AGB"),
+                                accent: AppColors.accent(for: colorScheme),
+                                colorScheme: colorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 10,
+                                expandToFullWidth: true,
+                                action: { activeLegalDocument = .terms }
+                            )
+                            .skydownInteractiveFeedback()
+
+                            SkydownBrandActionButton(
+                                title: localized("auth.register.legal.open_privacy", "Open Privacy"),
+                                accent: AppColors.accent(for: colorScheme),
+                                colorScheme: colorScheme,
+                                role: .muted,
+                                font: .subheadline.weight(.semibold),
+                                cornerRadius: SkydownLayout.denseRadius,
+                                verticalPadding: 10,
+                                expandToFullWidth: true,
+                                action: { activeLegalDocument = .privacy }
+                            )
+                            .skydownInteractiveFeedback()
                         }
                     }
-                )
-                .skydownInteractiveFeedback()
-                .listRowBackground(AppColors.primaryBackground(for: colorScheme))
 
-                Section {
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundColor(AppColors.error(for: colorScheme))
+                            .padding(SkydownLayout.inlineSurfacePadding)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppColors.error(for: colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.09))
+                            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
+                    }
+
                     SkydownBrandActionButton(
-                        title: localized("auth.register_google", "Register with Google"),
-                        systemImage: "globe",
-                        accent: AppColors.accentMystic(for: colorScheme),
+                        title: localized("auth.register", "Register"),
+                        accent: AppColors.accent(for: colorScheme),
                         colorScheme: colorScheme,
-                        role: .muted,
-                        isEnabled: !viewModel.isLoading,
+                        isEnabled: !viewModel.isRegistrationButtonDisabled,
+                        isLoading: viewModel.isLoading,
                         action: {
                             Task {
-                                if await viewModel.signInWithGoogle() {
+                                if await viewModel.registerUser() {
                                     dismiss()
                                 }
                             }
                         }
                     )
                     .skydownInteractiveFeedback()
-                    .listRowBackground(AppColors.secondaryBackground(for: colorScheme))
 
-                    Text(localized("auth.register.google_hint", "Google: account on first sign-in."))
-                        .font(.footnote)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .listRowBackground(AppColors.primaryBackground(for: colorScheme))
+                    SkydownRegistrationPanel(
+                        title: nil,
+                        colorScheme: colorScheme,
+                        accent: AppColors.accentMystic(for: colorScheme)
+                    ) {
+                        SkydownBrandActionButton(
+                            title: localized("auth.register_google", "Register with Google"),
+                            systemImage: "globe",
+                            accent: AppColors.accentMystic(for: colorScheme),
+                            colorScheme: colorScheme,
+                            role: .muted,
+                            isEnabled: !viewModel.isLoading,
+                            action: {
+                                Task {
+                                    if await viewModel.signInWithGoogle() {
+                                        dismiss()
+                                    }
+                                }
+                            }
+                        )
+                        .skydownInteractiveFeedback()
 
-                    Text(localized("auth.register.username_hint", "Username above → your profile."))
-                        .font(.footnote)
-                        .foregroundColor(AppColors.secondaryText(for: colorScheme))
-                        .listRowBackground(AppColors.primaryBackground(for: colorScheme))
+                        Text(localized("auth.register.google_hint", "Google: account on first sign-in."))
+                            .font(.footnote)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+                        Text(localized("auth.register.username_hint", "Username above → your profile."))
+                            .font(.footnote)
+                            .foregroundColor(AppColors.secondaryText(for: colorScheme))
+                    }
                 }
+                .padding(.horizontal, SkydownLayout.screenHorizontalPadding)
+                .padding(.vertical, SkydownLayout.sectionSpacing)
             }
             .navigationTitle(localized("auth.register.title", "New account"))
             .navigationBarTitleDisplayMode(.inline)
@@ -175,7 +204,6 @@ struct RegistrationSheet: View {
             .skydownKeyboardDismissToolbar()
             .scrollDismissesKeyboard(.interactively)
             .skydownDismissKeyboardOnTap()
-            .scrollContentBackground(.hidden)
             .background(AppColors.primaryBackground(for: colorScheme).ignoresSafeArea())
         }
         .onChange(of: legalContentStore.settings.resolvedLastUpdatedLabel) { _, newValue in
@@ -218,6 +246,33 @@ private enum RegistrationLegalDocument: String, Identifiable {
     case privacy
 
     var id: String { rawValue }
+}
+
+private struct SkydownRegistrationPanel<Content: View>: View {
+    let title: String?
+    let colorScheme: ColorScheme
+    let accent: Color
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingCompact) {
+            if let title, !title.isEmpty {
+                Text(title)
+                    .font(AppTypography.sectionHeadline)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+            }
+
+            content
+        }
+        .padding(SkydownLayout.cardPadding)
+        .skydownPanelSurface(
+            colorScheme: colorScheme,
+            accent: accent,
+            cornerRadius: SkydownLayout.cardCornerRadius,
+            shadowRadius: 9,
+            shadowYOffset: 4
+        )
+    }
 }
 
 #Preview {

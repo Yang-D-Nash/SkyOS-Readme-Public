@@ -70,6 +70,15 @@ Current in-repo capture coverage exists for:
 - `screenshots/final/google-play/android-phone/`: 7 Play-compliant Android phone captures at `1242x2424`
 - `store-assets/fold/raw/`: 7 foldable captures at `1812x2176`
 
+Run the automated release gate before uploading screenshots:
+
+```bash
+python3 scripts/audit_store_screenshots.py
+```
+
+This check validates expected counts, dimensions, alpha safety, Google Play side-ratio compliance,
+pixel duplicates inside each set, and low-detail blue debug-placeholder blocks.
+
 That is a strong base, but it is not a complete public upload set until the console mapping and
 final story/order review are closed.
 

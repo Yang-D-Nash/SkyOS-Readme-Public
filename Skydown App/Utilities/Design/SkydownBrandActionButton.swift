@@ -348,6 +348,133 @@ struct SkydownPremiumInlineSurface<Content: View>: View {
     }
 }
 
+struct SkydownPremiumTextInput: View {
+    let title: String
+    @Binding var text: String
+    let colorScheme: ColorScheme
+    var placeholder: String? = nil
+    var systemImage: String? = nil
+    var accent: Color? = nil
+    var isSecure: Bool = false
+    var keyboardType: UIKeyboardType = .default
+    var autocapitalization: TextInputAutocapitalization = .sentences
+    var autocorrectionDisabled: Bool = false
+    var minLines: Int = 1
+    var maxLines: Int = 1
+    var accessibilityIdentifier: String? = nil
+
+    private var resolvedAccent: Color {
+        accent ?? AppColors.accent(for: colorScheme)
+    }
+
+    private var resolvedPlaceholder: String {
+        placeholder ?? title
+    }
+
+    private var isMultiline: Bool {
+        maxLines > 1
+    }
+
+    private var disablesAutocorrection: Bool {
+        autocorrectionDisabled || isSecure || keyboardType == .emailAddress || keyboardType == .URL
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SkydownLayout.stackSpacingMicro) {
+            Text(title)
+                .font(AppTypography.editorialFootnote)
+                .tracking(0.18)
+                .foregroundColor(AppColors.secondaryText(for: colorScheme))
+
+            HStack(alignment: isMultiline ? .top : .center, spacing: SkydownLayout.stackSpacingSnug) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(resolvedAccent.opacity(0.88))
+                        .frame(width: 20, height: 24)
+                        .padding(.top, isMultiline ? 2 : 0)
+                }
+
+                inputField
+                    .font(AppTypography.body)
+                    .foregroundColor(AppColors.text(for: colorScheme))
+                    .textInputAutocapitalization(autocapitalization)
+                    .keyboardType(keyboardType)
+                    .autocorrectionDisabled(disablesAutocorrection)
+                    .textFieldStyle(.plain)
+                    .submitLabel(.done)
+                    .modifier(SkydownOptionalAccessibilityIdentifier(identifier: accessibilityIdentifier))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, isMultiline ? 12 : 13)
+            .background(surfaceFill)
+            .overlay(surfaceStroke)
+            .clipShape(RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous))
+            .shadow(
+                color: AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.045),
+                radius: 7,
+                y: 3
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var inputField: some View {
+        if isSecure {
+            SecureField(resolvedPlaceholder, text: $text)
+        } else if isMultiline {
+            TextField(resolvedPlaceholder, text: $text, axis: .vertical)
+                .lineLimit(minLines...maxLines)
+        } else {
+            TextField(resolvedPlaceholder, text: $text)
+        }
+    }
+
+    private var surfaceFill: some View {
+        RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.06 : 0.16),
+                        AppColors.cardBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.94 : 0.98),
+                        AppColors.secondaryBackground(for: colorScheme).opacity(colorScheme == .dark ? 0.48 : 0.56),
+                        resolvedAccent.opacity(colorScheme == .dark ? 0.035 : 0.025)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+    }
+
+    private var surfaceStroke: some View {
+        RoundedRectangle(cornerRadius: SkydownLayout.denseRadius, style: .continuous)
+            .stroke(
+                LinearGradient(
+                    colors: [
+                        AppColors.luminanceLift(for: colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.32),
+                        resolvedAccent.opacity(colorScheme == .dark ? 0.18 : 0.15),
+                        AppColors.cinematicShadow(for: colorScheme).opacity(colorScheme == .dark ? 0.04 : 0.035)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                lineWidth: 0.8
+            )
+    }
+}
+
+private struct SkydownOptionalAccessibilityIdentifier: ViewModifier {
+    let identifier: String?
+
+    func body(content: Content) -> some View {
+        if let identifier, !identifier.isEmpty {
+            content.accessibilityIdentifier(identifier)
+        } else {
+            content
+        }
+    }
+}
+
 struct SkydownPremiumCircularProgress: View {
     let tint: Color
     let colorScheme: ColorScheme

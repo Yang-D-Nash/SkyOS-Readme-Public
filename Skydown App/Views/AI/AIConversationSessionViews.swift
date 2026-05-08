@@ -79,7 +79,7 @@ struct AIConversationSessionStrip: View {
             if showsManagementActions {
                 SkydownPremiumIconAction(
                     systemImage: "trash",
-                    tint: .red.opacity(0.82),
+                    tint: AppColors.error(for: colorScheme).opacity(0.82),
                     colorScheme: colorScheme,
                     isEnabled: !isBusy && canDelete,
                     accessibilityLabel: AppLocalized.text("ai.sessions.a11y.delete", fallback: "Delete chat"),
@@ -129,7 +129,7 @@ struct AIConversationSessionsSheet: View {
                             HStack(spacing: SkydownLayout.stackSpacingPill) {
                                 SkydownPremiumIconAction(
                                     systemImage: "trash",
-                                    tint: .red.opacity(0.82),
+                                    tint: AppColors.error(for: colorScheme).opacity(0.82),
                                     colorScheme: colorScheme,
                                     isEnabled: !isBusy,
                                     size: SkydownLayout.iconActionCompactSurfaceSize,

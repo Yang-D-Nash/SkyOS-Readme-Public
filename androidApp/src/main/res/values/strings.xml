@@ -702,7 +702,7 @@
     <string name="video_lib_subtitle_admin">%1$d videos in the list. The list, Home focus, edit, and delete are owner-only.</string>
     <string name="video_lib_subtitle_guest">%1$d videos are available.</string>
     <string name="video_lib_new_video">Create new video</string>
-    <string name="video_lib_loading">Preparing videos…</string>
+    <string name="video_lib_loading">Opening video library…</string>
     <string name="video_lib_empty">No videos are visible right now. Please check back later.</string>
     <string name="video_edit_heading">Edit video</string>
     <string name="video_field_notes">Notes</string>
@@ -733,7 +733,7 @@
     <string name="video_reel_title_video">SkyOS video</string>
     <string name="video_reel_page_of">%1$d of %2$d</string>
     <string name="video_reel_swipe_hint">Swipe vertically through all clips</string>
-    <string name="video_reel_preparing">Preparing clip…</string>
+    <string name="video_reel_preparing">Loading clip…</string>
     <string name="video_cd_close_video">Close video</string>
     <string name="video_image_preview_title">Image preview</string>
     <string name="video_size_gb">%1$.2f GB</string>
@@ -1361,7 +1361,7 @@ Message:
     <string name="cart_select_payment_subtitle">Choose the payment method for this order.</string>
     <string name="cart_selected">Selected</string>
     <string name="cart_available">Available</string>
-    <string name="cart_zero_eur_no_payment">No payment is opened for this 0-EUR test item.</string>
+    <string name="cart_zero_eur_no_payment">No payment is opened for this 0-EUR order.</string>
     <string name="cart_klarna_checkout_hint">After submitting, Klarna opens a secure live checkout via Stripe.</string>
     <string name="cart_stripe_checkout_hint">On compatible devices, Stripe automatically shows the safest available options such as card or wallets.</string>
     <string name="cart_safety_title">Security before checkout</string>
@@ -1398,7 +1398,7 @@ Message:
     <string name="cart_total_detail_zero_payment">%1$s · no payment amount</string>
     <string name="cart_total_detail_shipping_included">%1$s incl. shipping</string>
     <string name="cart_checkout_title">Checkout</string>
-    <string name="cart_checkout_zero_eur_hint">No payment is required for this 0-EUR test item.</string>
+    <string name="cart_checkout_zero_eur_hint">No payment is required for this 0-EUR order.</string>
     <string name="cart_checkout_stripe_live_hint">Stripe opens secure live checkout afterwards.</string>
     <string name="cart_checkout_followup_hint">We follow up afterwards via email or WhatsApp.</string>
     <string name="cart_action_preparing">Preparing…</string>
@@ -1418,7 +1418,7 @@ Message:
     <string name="cart_payment_info_paypal_body">PayPal is used here as a secure manual handoff. For a direct flow, it is best to provide a PayPal.Me link.</string>
     <string name="cart_payment_info_paypal_missing">No PayPal.Me link or business email is stored in the admin area yet.</string>
     <string name="cart_payment_info_bank_body">Bank transfer runs directly without gateway costs. The stored details apply to this order.</string>
-    <string name="cart_payment_info_stripe_zero_eur">No payment is required for this 0-EUR test item. The order is confirmed directly.</string>
+    <string name="cart_payment_info_stripe_zero_eur">No payment is required for this 0-EUR order. The order is confirmed directly.</string>
     <string name="cart_payment_info_klarna_body">After submit, Klarna starts secure live checkout via Stripe and confirms payment automatically in the backend.</string>
     <string name="cart_payment_info_stripe_body">After submit, Stripe starts secure live checkout. On compatible devices, cards and wallets such as Apple Pay or Google Pay may appear.</string>
     <string name="cart_route_stripe">Secure live checkout for cards and compatible wallets.</string>

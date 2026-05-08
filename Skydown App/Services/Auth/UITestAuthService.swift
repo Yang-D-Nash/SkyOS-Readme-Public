@@ -148,14 +148,14 @@ final class UITestAuthService: @preconcurrency AuthServicing {
             && username == nil
             && whatsApp == nil
         if platformOwnerSession {
-            let resolvedUsername = "SkyOS Owner (UI test)"
+            let resolvedUsername = "SkyOS Owner"
             return User(
                 id: "ui-test-owner",
                 email: UserRole.ownerEmail,
                 username: resolvedUsername,
                 profileImageURL: nil,
                 whatsApp: whatsApp,
-                profileTagline: "Owner UI test session.",
+                profileTagline: "Owner review session.",
                 profileBio: "UITest session for owner hub.",
                 instagramHandle: "@skyos",
                 registrationDate: Date(timeIntervalSince1970: 1_756_000_000),
