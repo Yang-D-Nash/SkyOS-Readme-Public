@@ -796,7 +796,7 @@ private struct AgentRevenueUsageCard: View {
             }
             SkydownPremiumLinearProgress(
                 progress: progress,
-                tint: usage.warningLevel == "critical" ? .red : AppColors.accentHighlight(for: colorScheme),
+                tint: usage.warningLevel == "critical" ? AppColors.error(for: colorScheme) : AppColors.accentHighlight(for: colorScheme),
                 colorScheme: colorScheme
             )
             if usage.warningLevel != "ok" {
@@ -2344,7 +2344,7 @@ private struct AgentPromptComposerSheet: View {
                                 SkydownPremiumLinkSurface(
                                     title: AppLocalized.text("agent.attachments.remove_all", fallback: "Remove all"),
                                     systemImage: "trash",
-                                    tint: .red.opacity(0.82),
+                                    tint: AppColors.error(for: colorScheme).opacity(0.82),
                                     colorScheme: colorScheme,
                                     isExpanded: false,
                                     action: onClearAttachments
@@ -3435,7 +3435,7 @@ private struct AgentWorkflowResultCard: View {
             HStack(spacing: SkydownLayout.stackSpacingMicro) {
                 Image(systemName: isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                     .font(.caption.weight(.bold))
-                    .foregroundColor(isError ? .red : AppColors.accentMystic(for: colorScheme))
+                    .foregroundColor(isError ? AppColors.error(for: colorScheme) : AppColors.accentMystic(for: colorScheme))
                 Text(summary.workflowName)
                     .font(.caption.weight(.bold))
                     .foregroundColor(AppColors.text(for: colorScheme))

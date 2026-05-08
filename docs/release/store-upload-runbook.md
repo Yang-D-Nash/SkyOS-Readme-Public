@@ -1,7 +1,10 @@
 # SkyOS Store Upload Runbook
 
-Last updated: 2026-05-07 CEST (Fastlane production + App Store Connect IPA lanes documented; historical build stamps below remain as-recorded.)
+Last updated: 2026-05-08 CEST (Android internal upload done on 10032; iOS 10029 uploaded and processing; USB/Mac-reset handover added.)
 Owner: Release Engineering
+
+Single source of truth for current release state: this file.
+If any other release note conflicts with this runbook, follow this runbook.
 
 ## Build Identity
 
@@ -9,14 +12,14 @@ Owner: Release Engineering
 - Bundle ID: `com.skydown.ios`
 - Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10028` (current project version; 2026-05-07 premium music artist rollout)
+- Build: `10029` (current project version; premium release candidate)
 - Team ID: `F3BNLG6L7P`
 
 ### Android
 - Application ID: `com.nash.skyos`
 - App Label: `SkyOS`
 - versionName: `1.0.0`
-- versionCode: `10031`
+- versionCode: `10032`
 - Play Billing Library: `8.3.0`
 
 ## Fastlane: store upload lanes
@@ -90,24 +93,23 @@ Hosting currently serves `site/` at **`https://skydown-a6add.web.app`** (privacy
 
 ## Build Artifacts
 
-- iOS archive: `build/ios/SkyOS-1.0.0-10027-20260507.xcarchive` (created and identity-checked on 2026-05-07; verified as `SkyOS` / `com.skydown.ios` / `1.0.0` / `10027`)
+- iOS archive: `build/ios/SkyOS-1.0.0-10029-20260508.xcarchive` (created 2026-05-08, identity target `SkyOS` / `com.skydown.ios` / `1.0.0` / `10029`)
 - iOS UI test evidence: latest full fresh UI-test evidence remains `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.xcresult` and raw log `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.log`; build `10020` contains the refreshed keyboard dismissal and Agent new-conversation UX after that gate.
-- iOS upload evidence: `xcodebuild -exportArchive` with `build/ios/ExportOptions-app-store-upload-10027.plist` ended with `Upload succeeded` and `** EXPORT SUCCEEDED **` at 2026-05-07 09:13 CEST.
-- iOS upload status: UPLOADED for build `10027`; package processing started in App Store Connect.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-05-07 09:07 CEST, versionCode `10030`, SHA-256 `5a74d34c3850825b547de25561eebca3d2d518978f5bb8c52400ba53031677a9`)
-- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-05-07 09:07 CEST, versionCode `10030`, SHA-256 `4cfd7b578d1f19977a62076fd3121010cdc2f7d8cbd25d7b8a66ac997be1de07`)
+- iOS upload evidence: `xcodebuild -exportArchive` using `build/ios/ExportOptions-app-store-upload-10029.plist` completed with `Upload succeeded` and `** EXPORT SUCCEEDED **` at 2026-05-08 17:16 CEST.
+- iOS upload status: UPLOADED for build `10029`; package processing started in App Store Connect.
+- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-05-08 16:53 CEST, versionCode `10032`, SHA-256 `f9ace56a1955c25aa5eec2d839d51c28947007a7cf86d7fe8aa3000880536656`)
+- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-05-08 16:53 CEST, versionCode `10032`, SHA-256 `aa10fac80914b90111670ced9d899503a19fec2cc6e492275dacfd9021819a91`)
 
 ## Upload Status
 
 ### iOS Upload Status
-- Archive build: SUCCEEDED for current build `10027` at `build/ios/SkyOS-1.0.0-10027-20260507.xcarchive`
-- App Store Connect upload: SUCCEEDED for build `10027` at 2026-05-07 09:13 CEST
-- Processing status: after build `10027` appears in TestFlight, attach it to Internal Testers.
+- Archive build: SUCCEEDED for current build `10029` at `build/ios/SkyOS-1.0.0-10029-20260508.xcarchive`.
+- App Store Connect upload: SUCCEEDED for build `10029` at 2026-05-08 17:16 CEST.
+- Processing status: after build `10029` appears in TestFlight, attach it to Internal Testers.
 - Notes:
-  - `CURRENT_PROJECT_VERSION` is set to `10027` for the premium brand-system rollout.
-  - Build `10027` supersedes `10026` for the premium iOS settings/admin control refinement and tokenized UI rollout.
-  - Export/upload used `build/ios/ExportOptions-app-store-upload-10027.plist` with `manageAppVersionAndBuildNumber=false`; archive distribution output ended with `Upload succeeded` and `** EXPORT SUCCEEDED **`.
-  - Xcode again reported missing dSYMs for FirebaseFirestoreInternal, absl, grpc, grpcpp, and openssl_grpc binary frameworks during symbol upload; app package upload still succeeded.
+  - Target upload build `10029` is now uploaded; continue with TestFlight processing and internal tester assignment.
+  - Keep `manageAppVersionAndBuildNumber=false` in ExportOptions for reproducible build-number control.
+  - Xcode reported missing dSYMs for FirebaseFirestoreInternal, absl, grpc, grpcpp, and openssl_grpc during symbol upload; app package upload still succeeded.
   - Previous build `10026` uploaded successfully on 2026-05-06 for the artist page routing rollout.
   - Build `10026` supersedes `10025` after the Home-to-artist-page routing and exact MAVE/ThaDude public profile fixes.
   - Export/upload used `build/ios/ExportOptions-app-store-upload-10026.plist` with `manageAppVersionAndBuildNumber=false`; archive distribution output ended with `Upload succeeded` and `** EXPORT SUCCEEDED **`.
@@ -120,7 +122,7 @@ Hosting currently serves `site/` at **`https://skydown-a6add.web.app`** (privacy
   - Export/upload used `build/ios/ExportOptions-app-store-upload-10010.plist` with `manageAppVersionAndBuildNumber=false`.
   - Build `10023` uploaded successfully on 2026-05-05, but was superseded by build `10024` for the legal/store-review date refresh.
   - Build `10022` uploaded successfully on 2026-05-04, but was superseded by build `10023` for the Music Hub duplicate-brand cleanup.
-  - Build `10009` was archived and identity-checked locally on 2026-04-27, but its upload was intentionally stopped before success after the iOS Agent tap crash report; it was superseded by build `10010` at the time and by the current build `10027`.
+  - Build `10009` was archived and identity-checked locally on 2026-04-27, but its upload was intentionally stopped before success after the iOS Agent tap crash report; it was superseded by build `10010` at the time and by the current build `10029`.
   - Build `10008` uploaded successfully on 2026-04-27, but was superseded by build `10010` for the iOS Music Studio split fix and Agent tap hardening.
   - Export/upload for build `10008` used `build/ios/ExportOptions-app-store-upload-10008.plist` with `manageAppVersionAndBuildNumber=false`.
   - Xcode reported missing dSYMs for FirebaseFirestoreInternal, absl, grpc, grpcpp, and openssl_grpc binary frameworks during symbol upload; app package upload still succeeded.
@@ -135,12 +137,14 @@ Hosting currently serves `site/` at **`https://skydown-a6add.web.app`** (privacy
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
-- Release AAB build: SUCCEEDED for versionCode `10031` (local verification pending Play upload because `SUPPLY_JSON_KEY` is unset).
-- Play Console status: versionCode `10031` not uploaded from this machine because `SUPPLY_JSON_KEY` is unset.
+- Release AAB build: SUCCEEDED for versionCode `10031`, but Google Play rejected validation because that versionCode had already been used.
+- Active upload candidate versionCode `10032` passed clean release gate locally at 2026-05-08 16:53 CEST.
+- Fastlane `validate_android_internal` passed against Google Play for versionCode `10032` at 2026-05-08 16:56 CEST.
+- Fastlane `upload_android_internal` uploaded versionCode `10032` to Google Play internal testing as a draft at 2026-05-08 16:58 CEST.
 - Play upload automation: WORKING via Fastlane `upload_android_internal` when `SUPPLY_JSON_KEY` points at the local Play service-account JSON.
-- CLI validate/upload attempt: BLOCKED for versionCode `10031` because `SUPPLY_JSON_KEY` is unset; artifact verification passed before Fastlane stopped.
 - Notes:
   - Fastlane used `release_status: draft`, so this did not start a production rollout.
+  - VersionCode `10032` supersedes `10031` for the premium brand release prep upload after Play reported `10031` as already used.
   - VersionCode `10031` contains the premium music artist rollout with owner CRUD + rename flows and canonical artist ordering.
   - VersionCode `10029` contains the Home-to-artist-page routing and exact MAVE/ThaDude public profile fixes.
   - VersionCode `10028` contains the Android AI generated-visual display hotfix: robust base64/data-URL decoding, ByteArray-backed image rendering, and a fullscreen viewer assertion in Android UI-test code.
@@ -293,7 +297,7 @@ Hosting currently serves `site/` at **`https://skydown-a6add.web.app`** (privacy
 6. iOS UI screenshot test passed through the Agent tap path and waited for `agent.screen.root`.
 7. iOS build `10010` archived at `build/ios/SkyOS-1.0.0-10010-20260427.xcarchive`; archive identity verified as `SkyOS` / `com.skydown.ios` / `1.0.0` / `10010`.
 8. iOS build `10010` uploaded to App Store Connect successfully at 2026-04-27 23:48 CEST; uploaded package is processing.
-9. Previous iOS build `10008` uploaded to App Store Connect successfully; build `10009` was superseded before successful upload; that pass used build `10010`, now superseded by current build `10027`.
+9. Previous iOS build `10008` uploaded to App Store Connect successfully; build `10009` was superseded before successful upload; that pass used build `10010`, now superseded by current build `10029`.
 10. Local CI gate passed: shared tests, Android lint, Functions tests, Firestore rules tests, and Storage rules tests.
 11. Detekt passed with `./gradlew detektAll --no-daemon`.
 12. Release identity preflight passed: iOS `SkyOS 1.0.0 (10010)` / `com.skydown.ios`; Android `SkyOS 1.0.0 (10016)` / `com.nash.skyos`.
@@ -404,7 +408,7 @@ Suggested review note text:
 
 1. Confirm final legal approval for public privacy/terms wording.
 2. Confirm final production domain and replace URL placeholders in App Store Connect and Play Console.
-3. Verify subscription product setup status for uploaded iOS build `10027`, plus Android versionCode `10030` after it is uploaded to a Play internal draft.
+3. Verify subscription product setup status for iOS build `10029` after upload, plus Android versionCode `10032` in Play internal draft.
 4. Update production Firestore `appConfig/legalContent` and `appConfig/commerceSettings` if old remote operator/legal values still exist.
 5. Firestore/Storage rules were deployed on 2026-04-25; fixed owner Firebase Auth account was verified with `emailVerified=true`.
 6. Verify data safety/privacy forms reflect actual SDK usage:
@@ -416,13 +420,13 @@ Suggested review note text:
    - Not used by current binaries: precise/coarse location, camera capture, microphone, contacts, calendar. Photo/video selection uses system pickers; Android `WRITE_EXTERNAL_STORAGE` is capped to API 28 only for saving generated images.
 7. Upload and map final screenshot sets for iPhone, iPad, and Android phone form factors. Use `screenshots/final/ipad/` for iPad, `screenshots/final/google-play/android-phone/` for Play phone screenshots, and `docs/assets/google-play/` for the Play icon/feature graphic.
 8. Set age rating/content rating questionnaires in both consoles.
-9. Build numbers are current for the 2026-05-07 premium follow-up: iOS build `10027` is uploaded and processing; Android `10030` is built and verified but still needs Play upload after `SUPPLY_JSON_KEY` is available.
+9. Build numbers are current for the premium follow-up: iOS build `10029` is uploaded and processing; Android `10032` is uploaded to Play internal draft.
 
 ## Go/No-Go Checklist
 
-- [x] iOS build `10027` uploaded to App Store Connect and processing
-- [x] Android release `10030` built and verified locally
-- [ ] Android release `10030` uploaded to Play Console internal testing as a draft
+- [x] iOS build `10029` uploaded to App Store Connect and processing
+- [x] Android release `10032` built and verified locally
+- [x] Android release `10032` uploaded to Play Console internal testing as a draft
 - [ ] Privacy, terms, support URLs point to final public domain
 - [ ] Legal text approved for store/public use
 - [ ] Subscription metadata, pricing, and restore behavior validated
@@ -436,9 +440,9 @@ Suggested review note text:
 1. Open [App Store Connect](https://appstoreconnect.apple.com/).
 2. Go to **My Apps** -> select/create app for bundle `com.skydown.ios`.
 3. Open **TestFlight** tab.
-4. Wait for uploaded build `10027` to finish processing.
-5. Under **Builds**, click **+** and select build `10027`.
-6. Assign build `10027` to Internal Testers first.
+4. Wait for uploaded build `10029` to finish processing.
+5. Under **Builds**, click **+** and select build `10029`.
+6. Assign build `10029` to Internal Testers first.
 7. Fill **App Information** and **App Privacy** sections.
 8. Fill **Pricing and Availability** (manual business decision required).
 9. Fill **App Review Information** with support contact + reviewer login instructions (Google sign-in; no seeded release test account).
@@ -449,7 +453,7 @@ Suggested review note text:
 1. Open [Google Play Console](https://play.google.com/console/).
 2. Select app with package `com.nash.skyos`.
 3. Go to **Testing** -> **Internal testing**.
-4. Upload or review the internal draft release containing versionCode `10030`.
+4. Review the internal draft release containing versionCode `10032`.
 5. Confirm release notes and save.
 6. Go to **Store presence** and complete store listing fields.
 7. Go to **App content** and complete:

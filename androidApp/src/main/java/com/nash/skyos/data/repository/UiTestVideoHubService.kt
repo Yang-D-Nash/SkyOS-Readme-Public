@@ -14,12 +14,12 @@ class UiTestVideoHubService : VideoHubService() {
                 listOf(
                     VideoHubItem(
                         id = "ui-test-video",
-                        title = "UI Test Reel",
+                        title = "Midnight Visual Cut",
                         projectName = "Skydown",
                         fileName = "ui-test-video.html",
                         downloadUrl = "",
                         notes = "Reproduzierbarer Android-Video-Hub-Flow fuer den echten Geraetetest.",
-                        uploaderName = "UI Test",
+                        uploaderName = "Skydown Studio",
                         uploaderEmail = "ui-test@skydown.app",
                         uploaderId = "ui-test-user",
                         mimeType = "text/html",

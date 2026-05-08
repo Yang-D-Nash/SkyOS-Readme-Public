@@ -9,9 +9,9 @@ object UiTestMerchandiseRepository : MerchandiseRepository {
         listOf(
             MerchandiseItem(
                 id = "ui-test-merch-item",
-                name = "Skydown Test Hoodie",
+                name = "Skydown Atelier Hoodie",
                 price = 89.0,
-                description = "Stabiles Mock-Produkt fuer den echten Android-Merch-Flow.",
+                description = "Schwerer Signature-Drop fuer den Android-Merch-Flow.",
                 imageUrls = listOf(
                     "https://picsum.photos/seed/skydown-merch-1/1080/1440",
                     "https://picsum.photos/seed/skydown-merch-2/1080/1440",
@@ -19,11 +19,11 @@ object UiTestMerchandiseRepository : MerchandiseRepository {
                 available = true,
                 source = "shopify",
                 featured = true,
-                customBadge = "TEST",
-                category = "Essentials",
+                customBadge = "ATELIER",
+                category = "Signature",
                 collabPartner = "Skydown",
                 shopifyProductId = "gid://shopify/Product/ui-test-merch",
-                shopifyHandle = "skydown-test-hoodie",
+                shopifyHandle = "skydown-atelier-hoodie",
                 variants = listOf(
                     MerchandiseVariant(
                         id = "ui-test-variant-black-m",
@@ -31,7 +31,7 @@ object UiTestMerchandiseRepository : MerchandiseRepository {
                         size = "M",
                         color = "Black",
                         shopifyVariantId = "gid://shopify/ProductVariant/ui-test-merch-black-m",
-                        sku = "SKY-TEST-HOODIE-BLK-M",
+                        sku = "SKY-ATELIER-HOODIE-BLK-M",
                         price = 89.0,
                     ),
                 ),

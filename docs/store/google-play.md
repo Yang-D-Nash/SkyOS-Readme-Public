@@ -1,101 +1,93 @@
-# SkyOS Google Play Listing
+# Skydown Google Play Listing
 
-This document defines the recommended Google Play presence for SkyOS on Android.
+This document defines the Google Play presence for the Skydown Android product experience powered by
+SkyOS. It follows the naming lock in `docs/store-listing.md`.
 
 ## Positioning
 
-Use one sentence that explains the app immediately:
+Use one sentence that explains the product immediately:
 
-> SkyOS is a native Android platform for AI, reminders, tasks, notes, workflow automation, creator media, merch, and membership in one calm product.
+> Skydown runs on SkyOS: AI, Music, Video, Merch, reminders, tasks, notes, and workflows in one calm Android experience.
+
+## Brand Roles
+
+| Name | Public role |
+| --- | --- |
+| `Skydown` | Google Play product name and everyday app experience |
+| `SkyOS` | System layer, launcher identity, design language, and quality signal |
+| `ZweiZwei / 22` | Music and sound identity only |
+| `Skydown x 22` | Merch and commerce context only |
 
 ## Recommended Metadata
 
 ### English
 
-- Title: `SkyOS`
+- Title: `Skydown`
 - Short Description:
 
-  `AI, reminders, tasks, notes, workflows, media, merch, and membership.`
+  `Skydown on SkyOS: AI, Music, Video, and Merch in one premium flow.`
 
 ### Long Description
 
-SkyOS brings AI, reminders, tasks, notes, workflow automation, creator media, merch, and
-membership into one native Android experience.
+Skydown is a premium product experience built on SkyOS.
 
-Instead of splitting your workflow across separate apps, SkyOS keeps assistant utility,
-productivity, media, commerce, and account control in one product flow. The goal is clarity: one
-calm place to create, manage, and move forward.
+Instead of fragmented tools, Skydown combines AI, Music, Video, Merch, reminders, tasks, notes, and
+workflow automation in one clear structure with a calm interface and consistent interaction
+patterns.
 
-With SkyOS, you can:
+Reminder is already fully operational end to end: users can create reminders in natural language and
+get automatic push notifications on signed-in devices at the right time.
 
-- use AI for writing, idea development, visual generation, and guided agent-style tasks
-- create reminders and receive push notifications at the scheduled time
-- capture, edit, and manage tasks and notes
-- connect workflow automation through the documented Activepieces HTTP flow
-- move through music, video, and creator media without leaving the same native app
-- discover merch, prepare checkout, and stay close to important order and support paths
-- manage your membership, restore purchases, and keep billing information understandable
-- rely on a product built with security rules, privacy-conscious design, and ongoing updates
+AI and Agent are designed as practical workspaces for input, context, and results. Music is
+presented in a dedicated ZweiZwei / 22 environment. Video stays integrated into the Skydown
+experience. Merch appears as Skydown x 22 with a guided commerce flow from product view to cart.
 
-SkyOS is not positioned as a credit shop. Paid plans are framed around capability. Depending on the
-active plan and release setup, membership can unlock more AI reach, stronger agent depth, and
-priority access to premium outputs.
+Tasks and Notes are live for structured capture, storage, and management in the app, with
+Activepieces creation available through the workflow API.
 
-Why people use SkyOS:
+SkyOS powers the system layer behind the app: design language, visual hierarchy, motion rhythm, and
+cross-platform continuity.
 
-- to create faster with AI
-- to keep reminders, tasks, notes, content, merch, and membership inside one system
-- to avoid jumping between disconnected creator tools
-- to stay close to support, privacy, and account clarity
-
-Some features depend on account state, plan, connected workflow setup, or release configuration.
-Longer-lived memory and deeper automations are being expanded after launch.
+Skydown includes settings, support, and legal access points so users can understand account and
+policy context directly inside the app.
 
 ### German
 
-- Title: `SkyOS`
+- Title: `Skydown`
 - Short Description:
 
-  `KI, Reminder, Tasks, Notes, Workflows, Media, Merch und Membership.`
+  `Skydown auf SkyOS: KI, Music, Video und Merch in einem Premium-Flow.`
 
 ### Long Description
 
-SkyOS bringt KI, Reminder, Tasks, Notes, Workflow-Automation, Creator-Media, Merch und Membership
-in eine native Android-App.
+Skydown ist eine Premium-Produkterfahrung auf SkyOS.
 
-Statt deinen Flow ueber mehrere Apps zu verteilen, haelt SkyOS Assistant-Nutzen, Productivity,
-Media, Commerce und Konto-Steuerung in einem Produkt zusammen. Das Ziel ist Klarheit: ein ruhiger
-Ort zum Arbeiten, Verwalten und Weiterkommen.
+Statt fragmentierter Tools verbindet Skydown KI, Music, Video, Merch, Reminder, Tasks, Notes und
+Workflow-Automation in einer klaren Struktur mit ruhiger Oberflaeche und konsistenten
+Interaktionsmustern.
 
-Mit SkyOS kannst du:
+Reminder funktionieren bereits Ende zu Ende: Nutzer koennen Erinnerungen in natuerlicher Sprache
+erstellen und auf angemeldeten Geraeten zur richtigen Zeit automatische Push-Benachrichtigungen
+erhalten.
 
-- KI fuer Text, Ideen, Visuals und gefuehrte Agent-Aufgaben nutzen
-- Reminder erstellen und zur gesetzten Zeit Push-Benachrichtigungen erhalten
-- Tasks und Notes erfassen, bearbeiten und verwalten
-- Workflow-Automation ueber den dokumentierten Activepieces HTTP Flow anbinden
-- zwischen Musik, Video und Creator-Media wechseln, ohne aus der App zu springen
-- Merch entdecken, Checkout vorbereiten und wichtige Order- und Support-Pfade im Blick behalten
-- Membership, Restore und Billing-Verstaendnis an einem Ort sauber halten
-- ein Produkt nutzen, das mit Sicherheitsregeln, datensensiblem Design und laufenden Updates gebaut ist
+AI und Agent sind praktische Workspaces fuer Input, Kontext und Ergebnisse. Music erscheint als
+dedizierte ZweiZwei / 22 Umgebung. Video bleibt in die Skydown-Erfahrung integriert. Merch erscheint
+als Skydown x 22 mit einem gefuehrten Commerce-Flow vom Produkt bis zum Warenkorb.
 
-SkyOS ist nicht als Credit-Shop positioniert. Bezahlte Plaene stehen fuer mehr Capability. Je nach
-aktivem Plan und Release-Setup schaltet Membership mehr KI-Reichweite, staerkere Agent-Tiefe und
-Zugang zu Premium-Outputs frei.
+Tasks und Notes sind live fuer strukturierte Erfassung, Speicherung und Verwaltung in der App; die
+Erstellung ueber die Activepieces Workflow API ist ebenfalls verfuegbar.
 
-Warum Nutzer SkyOS herunterladen:
+SkyOS liefert die Systemebene hinter der App: Designsprache, visuelle Hierarchie, Bewegungsrhythmus
+und plattformuebergreifende Kontinuitaet.
 
-- um mit KI schneller voranzukommen
-- um Reminder, Tasks, Notes, Content, Merch und Membership in einem System zu halten
-- um nicht zwischen getrennten Creator-Tools zu springen
-- um Support, Datenschutz und Konto-Klarheit direkt erreichbar zu haben
-
-Einzelne Funktionen koennen vom Kontostatus, Plan, verbundenem Workflow-Setup oder aktuellen
-Release-Setup abhaengen. Laengerfristige Memory und tiefere Automationen werden nach Launch
-ausgebaut.
+Skydown enthaelt Settings, Support und Legal-Zugaenge, damit Nutzer Konto- und Richtlinienkontext
+direkt in der App verstehen koennen.
 
 ## Google Play Rules
 
+- Keep the Google Play product name as `Skydown`.
+- Use `SkyOS` as the system/platform layer, not as a competing store title.
 - Keep SEO natural; do not stuff repeated terms into the title or opening lines.
-- The first two lines must explain the value, not the infrastructure.
-- Mention Android quality and large-screen readiness when screenshots support it.
+- The first two lines must explain user value, not internal infrastructure.
+- Mention Android quality and large-screen readiness only when screenshots support it.
 - Keep subscription language aligned with the in-app wording: capability-first, clear restore, clear management.

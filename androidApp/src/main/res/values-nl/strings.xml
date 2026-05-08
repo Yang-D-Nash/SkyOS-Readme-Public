@@ -667,7 +667,7 @@
     <string name="video_lib_subtitle_admin">%1$d videos in the list. The list, Home focus, edit, and delete are owner-only.</string>
     <string name="video_lib_subtitle_guest">%1$d videos are available.</string>
     <string name="video_lib_new_video">Create new video</string>
-    <string name="video_lib_loading">Preparing videos…</string>
+    <string name="video_lib_loading">Videos worden voorbereid…</string>
     <string name="video_lib_empty">No videos are visible right now. Please check back later.</string>
     <string name="video_edit_heading">Edit video</string>
     <string name="video_field_notes">Notes</string>
@@ -698,7 +698,7 @@
     <string name="video_reel_title_video">SkyOS video</string>
     <string name="video_reel_page_of">%1$d of %2$d</string>
     <string name="video_reel_swipe_hint">Swipe vertically through all clips</string>
-    <string name="video_reel_preparing">Preparing clip…</string>
+    <string name="video_reel_preparing">Clip wordt voorbereid…</string>
     <string name="video_cd_close_video">Close video</string>
     <string name="video_image_preview_title">Image preview</string>
     <string name="video_size_gb">%1$.2f GB</string>
@@ -1323,7 +1323,7 @@ Bericht:
     <string name="cart_select_payment_subtitle">Selecteer de betaalmethode voor deze bestelling.</string>
     <string name="cart_selected">Geselecteerd</string>
     <string name="cart_available">Beschikbaar</string>
-    <string name="cart_zero_eur_no_payment">Geen betaling voor dit 0-EUR testartikel.</string>
+    <string name="cart_zero_eur_no_payment">Geen betaling voor deze 0-EUR bestelling.</string>
     <string name="cart_klarna_checkout_hint">Na verzenden opent Klarna een veilige live-checkout via Stripe.</string>
     <string name="cart_stripe_checkout_hint">Op compatibele apparaten toont Stripe de veiligste opties (kaart of wallets).</string>
     <string name="cart_safety_title">Veiligheid vóór afrekenen</string>
@@ -1360,7 +1360,7 @@ Bericht:
     <string name="cart_total_detail_zero_payment">%1$s · geen betaalbedrag</string>
     <string name="cart_total_detail_shipping_included">%1$s incl. verzending</string>
     <string name="cart_checkout_title">Afrekenen</string>
-    <string name="cart_checkout_zero_eur_hint">Geen betaling nodig voor dit 0-EUR testartikel.</string>
+    <string name="cart_checkout_zero_eur_hint">Geen betaling nodig voor deze 0-EUR bestelling.</string>
     <string name="cart_checkout_stripe_live_hint">Stripe opent daarna een veilige live-checkout.</string>
     <string name="cart_checkout_followup_hint">We nemen daarna contact op via e-mail of WhatsApp.</string>
     <string name="cart_action_preparing">Bezig…</string>
@@ -1377,7 +1377,7 @@ Bericht:
     <string name="cart_payment_info_paypal_body">PayPal is hier een veilige handmatige overdracht. Voor directe flow: PayPal.Me-link.</string>
     <string name="cart_payment_info_paypal_missing">Nog geen PayPal.Me of zakelijke e-mail in admin.</string>
     <string name="cart_payment_info_bank_body">Overschrijving direct zonder gatewaykosten. Opgeslagen gegevens gelden voor deze bestelling.</string>
-    <string name="cart_payment_info_stripe_zero_eur">Geen betaling voor 0-EUR testartikel; bestelling direct bevestigd.</string>
+    <string name="cart_payment_info_stripe_zero_eur">Geen betaling voor deze 0-EUR bestelling; bestelling direct bevestigd.</string>
     <string name="cart_payment_info_klarna_body">Na verzenden start Klarna veilige checkout via Stripe en bevestigt betaling in backend.</string>
     <string name="cart_payment_info_stripe_body">Na verzenden start Stripe veilige checkout. Kaarten en wallets kunnen verschijnen.</string>
     <string name="cart_route_stripe">Veilige live-checkout voor kaarten en compatibele wallets.</string>

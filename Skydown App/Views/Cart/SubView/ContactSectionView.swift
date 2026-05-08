@@ -11,15 +11,34 @@ struct ContactSectionView: View {
     @Binding var name: String
     @Binding var email: String
     @Binding var whatsApp: String
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Section("Deine Kontaktdaten") {
-            TextField("Name*", text: $name)
-            TextField("E-Mail*", text: $email)
-                .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-            TextField("WhatsApp Nummer (optional)", text: $whatsApp)
-                .keyboardType(.phonePad)
+            SkydownPremiumTextInput(
+                title: "Name*",
+                text: $name,
+                colorScheme: colorScheme,
+                systemImage: "person.fill",
+                accent: AppColors.accent(for: colorScheme)
+            )
+            SkydownPremiumTextInput(
+                title: "E-Mail*",
+                text: $email,
+                colorScheme: colorScheme,
+                systemImage: "envelope.fill",
+                accent: AppColors.accent(for: colorScheme),
+                keyboardType: .emailAddress,
+                autocapitalization: .never
+            )
+            SkydownPremiumTextInput(
+                title: "WhatsApp Nummer (optional)",
+                text: $whatsApp,
+                colorScheme: colorScheme,
+                systemImage: "phone.fill",
+                accent: AppColors.accent(for: colorScheme),
+                keyboardType: .phonePad
+            )
         }
     }
 }

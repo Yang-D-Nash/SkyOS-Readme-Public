@@ -2,7 +2,9 @@ package com.nash.skyos.ui.component
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -24,12 +27,13 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +42,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
@@ -45,15 +50,16 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.nash.skyos.ui.theme.SkydownBodyCaptionTextStyle
 import com.nash.skyos.ui.theme.SkydownCardTitleTextStyle
 import com.nash.skyos.ui.theme.SkydownEditorialCaptionTextStyle
 import com.nash.skyos.ui.theme.skydownCardBackground
+import com.nash.skyos.ui.theme.skydownCinematicShadow
 import com.nash.skyos.ui.theme.skydownError
 import com.nash.skyos.ui.theme.skydownIsDarkPalette
+import com.nash.skyos.ui.theme.skydownLuminanceLift
 import com.nash.skyos.ui.theme.skydownSecondaryBackground
 import com.nash.skyos.ui.theme.skydownSecondaryText
 import com.nash.skyos.ui.theme.skydownSheetScrim
@@ -65,7 +71,7 @@ import com.nash.skyos.ui.theme.skydownText
 /**
  * Central form field for the premium brand system.
  *
- * Screens should prefer this over raw OutlinedTextField so focus, contrast,
+ * Screens should prefer this over raw text fields so focus, contrast,
  * shape, helper copy, and dense vertical rhythm stay consistent.
  */
 @Composable
@@ -92,73 +98,140 @@ fun SkydownPremiumTextField(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val isDarkPalette = colorScheme.skydownIsDarkPalette()
-    val borderIdle = colorScheme.outline.copy(alpha = if (isDarkPalette) 0.62f else 0.74f)
-    val borderFocused = colorScheme.primary.copy(alpha = if (isDarkPalette) 0.92f else 0.86f)
-    val container = colorScheme.skydownCardBackground().copy(alpha = if (isDarkPalette) 0.76f else 0.82f)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val activeAccent = if (isError) colorScheme.skydownError() else colorScheme.primary
+    val labelColor = when {
+        !enabled -> colorScheme.skydownSecondaryText().copy(alpha = 0.42f)
+        isError -> colorScheme.skydownError()
+        isFocused -> activeAccent
+        else -> colorScheme.skydownSecondaryText().copy(alpha = if (isDarkPalette) 0.82f else 0.78f)
+    }
+    val textColor = if (enabled) colorScheme.skydownText() else colorScheme.skydownSecondaryText().copy(alpha = 0.54f)
+    val borderAlpha = when {
+        !enabled -> 0.10f
+        isError -> 0.62f
+        isFocused -> if (isDarkPalette) 0.46f else 0.38f
+        else -> if (isDarkPalette) 0.18f else 0.15f
+    }
+    val hasLabel = label.isNotBlank() || labelContent != null
+    val fieldShape = RoundedCornerShape(SkydownUiTokens.buttonStandardCornerRadius)
+    val rowAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top
+    val fieldVerticalPadding = if (singleLine) 0.dp else 12.dp
+    val inputTopPadding = if (singleLine) 0.dp else 2.dp
 
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = SkydownUiTokens.inputMinHeight),
-        enabled = enabled,
-        readOnly = readOnly,
-        singleLine = singleLine,
-        minLines = minLines,
-        maxLines = maxLines,
-        isError = isError,
-        label = {
-            labelContent?.invoke() ?: Text(
-                text = label,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        placeholder = placeholderContent,
-        leadingIcon = leadingIcon?.let { icon ->
-            {
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (hasLabel) {
+            Box(
+                modifier = Modifier.padding(horizontal = 2.dp),
+            ) {
+                CompositionLocalProvider(LocalContentColor provides labelColor) {
+                    labelContent?.invoke() ?: Text(
+                        text = label,
+                        style = SkydownEditorialCaptionTextStyle,
+                        color = labelColor,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = SkydownUiTokens.inputMinHeight)
+                .skydownPanelSurface(
+                    accent = activeAccent,
+                    cornerRadius = SkydownUiTokens.buttonStandardCornerRadius,
+                    shadowRadius = if (isFocused) SkydownUiTokens.elevationPanel else SkydownUiTokens.elevationRaised,
+                    shadowYOffset = SkydownUiTokens.panelShadowYOffset,
+                )
+                .border(
+                    width = SkydownUiTokens.elevationHairline,
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            colorScheme.skydownLuminanceLift().copy(alpha = if (isDarkPalette) 0.18f else 0.36f),
+                            activeAccent.copy(alpha = borderAlpha),
+                            colorScheme.skydownCinematicShadow().copy(alpha = if (isDarkPalette) 0.05f else 0.035f),
+                        ),
+                        start = Offset.Zero,
+                        end = Offset(320f, 320f),
+                    ),
+                    shape = fieldShape,
+                )
+                .padding(horizontal = 14.dp, vertical = fieldVerticalPadding),
+            verticalAlignment = rowAlignment,
+        ) {
+            if (leadingIcon != null) {
                 Icon(
-                    imageVector = icon,
+                    imageVector = leadingIcon,
                     contentDescription = null,
-                    tint = colorScheme.primary.copy(alpha = if (enabled) 0.82f else 0.38f),
+                    tint = activeAccent.copy(alpha = if (enabled) 0.82f else 0.34f),
+                    modifier = Modifier
+                        .padding(top = inputTopPadding)
+                        .size(20.dp),
                 )
             }
-        },
-        trailingIcon = trailingIcon,
-        supportingText = supportingContent ?: supportingText?.takeIf { it.isNotBlank() }?.let { text ->
-            {
+
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(
+                        start = if (leadingIcon != null) SkydownUiTokens.buttonIconLabelSpacing else 0.dp,
+                        end = if (trailingIcon != null) SkydownUiTokens.buttonIconLabelSpacing else 0.dp,
+                        top = inputTopPadding,
+                    ),
+                enabled = enabled,
+                readOnly = readOnly,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = textColor),
+                singleLine = singleLine,
+                minLines = minLines,
+                maxLines = maxLines,
+                visualTransformation = visualTransformation,
+                keyboardOptions = keyboardOptions,
+                keyboardActions = keyboardActions,
+                cursorBrush = SolidColor(activeAccent),
+                interactionSource = interactionSource,
+                decorationBox = { innerTextField ->
+                    Box {
+                        if (value.isEmpty() && placeholderContent != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(end = SkydownUiTokens.buttonIconLabelSpacing),
+                            ) {
+                                CompositionLocalProvider(
+                                    LocalContentColor provides colorScheme.skydownSecondaryText().copy(alpha = 0.58f),
+                                ) {
+                                    placeholderContent()
+                                }
+                            }
+                        }
+                        innerTextField()
+                    }
+                },
+            )
+
+            trailingIcon?.invoke()
+        }
+
+        supportingContent?.invoke()
+            ?: supportingText?.takeIf { it.isNotBlank() }?.let { text ->
                 Text(
                     text = text,
+                    modifier = Modifier.padding(horizontal = 2.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (isError) colorScheme.skydownError() else colorScheme.skydownSecondaryText(),
                 )
             }
-        },
-        visualTransformation = visualTransformation,
-        keyboardOptions = keyboardOptions,
-        keyboardActions = keyboardActions,
-        shape = MaterialTheme.shapes.large,
-        textStyle = MaterialTheme.typography.bodyMedium,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = colorScheme.skydownText(),
-            unfocusedTextColor = colorScheme.skydownText(),
-            disabledTextColor = colorScheme.skydownSecondaryText().copy(alpha = 0.48f),
-            cursorColor = colorScheme.primary,
-            focusedBorderColor = borderFocused,
-            unfocusedBorderColor = borderIdle,
-            disabledBorderColor = borderIdle.copy(alpha = 0.34f),
-            errorBorderColor = colorScheme.skydownError(),
-            focusedContainerColor = container,
-            unfocusedContainerColor = container.copy(alpha = 0.76f),
-            disabledContainerColor = colorScheme.skydownSecondaryBackground().copy(alpha = 0.46f),
-            errorContainerColor = colorScheme.errorContainer.copy(alpha = if (isDarkPalette) 0.28f else 0.34f),
-            focusedLabelColor = colorScheme.primary,
-            unfocusedLabelColor = colorScheme.skydownSecondaryText().copy(alpha = 0.80f),
-            disabledLabelColor = colorScheme.skydownSecondaryText().copy(alpha = 0.42f),
-            errorLabelColor = colorScheme.skydownError(),
-        ),
-    )
+    }
 }
 
 @Composable

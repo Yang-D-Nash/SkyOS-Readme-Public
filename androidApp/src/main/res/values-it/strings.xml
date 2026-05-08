@@ -667,7 +667,7 @@
     <string name="video_lib_subtitle_admin">%1$d videos in the list. The list, Home focus, edit, and delete are owner-only.</string>
     <string name="video_lib_subtitle_guest">%1$d videos are available.</string>
     <string name="video_lib_new_video">Create new video</string>
-    <string name="video_lib_loading">Preparing videos…</string>
+    <string name="video_lib_loading">Preparazione dei video…</string>
     <string name="video_lib_empty">No videos are visible right now. Please check back later.</string>
     <string name="video_edit_heading">Edit video</string>
     <string name="video_field_notes">Notes</string>
@@ -698,7 +698,7 @@
     <string name="video_reel_title_video">SkyOS video</string>
     <string name="video_reel_page_of">%1$d of %2$d</string>
     <string name="video_reel_swipe_hint">Swipe vertically through all clips</string>
-    <string name="video_reel_preparing">Preparing clip…</string>
+    <string name="video_reel_preparing">Preparazione del clip…</string>
     <string name="video_cd_close_video">Close video</string>
     <string name="video_image_preview_title">Image preview</string>
     <string name="video_size_gb">%1$.2f GB</string>

@@ -11,16 +11,16 @@ final class UITestMerchandiseService: MerchandiseServicing {
             onChange(.success([
                 MerchandiseItem(
                     id: "ui-test-merch-item",
-                    name: "UI Test Hoodie",
+                    name: "Skydown Atelier Hoodie",
                     price: 79.0,
-                    description: "Stabiler Test-Drop fuer den Merch-Vollbild-Flow.",
+                    description: "Schwerer Signature-Drop fuer den Merch-Vollbild-Flow.",
                     imageURLs: [
                         "https://example.com/ui-test-merch-1.jpg",
                         "https://example.com/ui-test-merch-2.jpg",
                     ],
                     available: true,
                     shopifyProductId: "gid://shopify/Product/ui-test-merch",
-                    shopifyHandle: "ui-test-hoodie",
+                    shopifyHandle: "skydown-atelier-hoodie",
                     variants: [
                         MerchandiseVariant(
                             id: "ui-test-variant-black-m",
@@ -28,16 +28,16 @@ final class UITestMerchandiseService: MerchandiseServicing {
                             size: "M",
                             color: "Black",
                             shopifyVariantId: "gid://shopify/ProductVariant/ui-test-merch-black-m",
-                            sku: "SKY-TEST-HOODIE-BLK-M",
+                            sku: "SKY-ATELIER-HOODIE-BLK-M",
                             price: 79.0
                         ),
                     ],
                     source: "shopify",
                     featured: true,
-                    customBadge: "UI Test",
-                    category: "QA Drop",
+                    customBadge: "Atelier",
+                    category: "Signature Drop",
                     collabPartner: "Skydown",
-                    shopifyCollectionHandles: ["ui-test"]
+                    shopifyCollectionHandles: ["signature"]
                 ),
             ]))
         }
