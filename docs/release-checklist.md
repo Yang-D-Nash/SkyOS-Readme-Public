@@ -2,12 +2,13 @@
 
 Use this checklist for every release candidate. SkyOS is only release-ready when product behavior,
 trust paths, backend authority, and support readiness all line up at the same time.
+Single source of truth for live release state is `docs/release/store-upload-runbook.md`.
 
 ## Current RC Snapshot
 
 Status as of 2026-05-08 CEST: backend Meta/social live-data setup remains deployed, and the previous
 AI visual fullscreen / Android display hotfix RC is superseded by the premium brand-system release prep candidate.
-Current prepared client identity is iOS build `10028` and Android versionCode `10032`. The duplicate top
+Current prepared client identity is iOS build `10029` and Android versionCode `10032`. The duplicate top
 `22 Music`/Zweizwei social entry remains removed so the hub shows only the five canonical artists, AI-generated
 visuals open full-screen on both platforms, and the iOS/Android settings/admin surfaces now use the premium
 tokenized control system.
@@ -16,11 +17,12 @@ items in [release/store-upload-runbook.md](release/store-upload-runbook.md) are 
 
 Known open release gates:
 
-- App Store Connect: wait for uploaded iOS build `10028` to finish processing, then attach it to Internal TestFlight testers.
-- Google Play: upload Android versionCode `10032` to Internal Testing as a draft, review it, then roll it to internal testers.
+- App Store Connect: iOS build `10029` uploaded; wait for processing, then attach it to Internal TestFlight testers.
+- Google Play: Android versionCode `10032` is uploaded as Internal Testing draft; review and roll it to internal testers.
 - Store assets: upload/map the generated iPhone, iPad, Play-compliant Android screenshots, and Play listing graphics.
 - Store URLs and legal: replace placeholder console URLs with final hosted pages and confirm final legal approval.
 - QA: complete real-device smoke from uploaded store artifacts on iPhone and Android.
+- Handover/ops: complete USB + Mac reset handover checklist in `docs/release/mac-reset-usb-handover.md`.
 
 Post-release automation note:
 
