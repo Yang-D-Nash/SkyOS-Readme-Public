@@ -136,7 +136,9 @@ Hosting currently serves `site/` at **`https://skydown-a6add.web.app`** (privacy
 
 ### Google Upload Status
 - Release AAB build: SUCCEEDED for versionCode `10031`, but Google Play rejected validation because that versionCode had already been used.
-- Active upload candidate is versionCode `10032`; clean release gate passed locally at 2026-05-08 16:53 CEST.
+- Active upload candidate versionCode `10032` passed clean release gate locally at 2026-05-08 16:53 CEST.
+- Fastlane `validate_android_internal` passed against Google Play for versionCode `10032` at 2026-05-08 16:56 CEST.
+- Fastlane `upload_android_internal` uploaded versionCode `10032` to Google Play internal testing as a draft at 2026-05-08 16:58 CEST.
 - Play upload automation: WORKING via Fastlane `upload_android_internal` when `SUPPLY_JSON_KEY` points at the local Play service-account JSON.
 - Notes:
   - Fastlane used `release_status: draft`, so this did not start a production rollout.
@@ -421,8 +423,8 @@ Suggested review note text:
 ## Go/No-Go Checklist
 
 - [x] iOS build `10027` uploaded to App Store Connect and processing
-- [x] Android release `10030` built and verified locally
-- [ ] Android release `10030` uploaded to Play Console internal testing as a draft
+- [x] Android release `10032` built and verified locally
+- [x] Android release `10032` uploaded to Play Console internal testing as a draft
 - [ ] Privacy, terms, support URLs point to final public domain
 - [ ] Legal text approved for store/public use
 - [ ] Subscription metadata, pricing, and restore behavior validated
@@ -449,7 +451,7 @@ Suggested review note text:
 1. Open [Google Play Console](https://play.google.com/console/).
 2. Select app with package `com.nash.skyos`.
 3. Go to **Testing** -> **Internal testing**.
-4. Upload or review the internal draft release containing versionCode `10030`.
+4. Review the internal draft release containing versionCode `10032`.
 5. Confirm release notes and save.
 6. Go to **Store presence** and complete store listing fields.
 7. Go to **App content** and complete:
