@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="docs/assets/skyos-logo-original.png" alt="SkyOS Logo" width="320" />
+  <img src="docs/assets/skyos-logo-original.png" alt="22kydwn Logo" width="320" />
 </p>
 
-<h1 align="center">SkyOS</h1>
+<h1 align="center">22kydwn</h1>
 
 <p align="center">
-  Native Produkt- und Automationsplattform für Skydown: KI, Agent-Workflows, Reminder,
-  Tasks, Notes, Creator-Medien, Merch-Commerce und vertrauenswürdige Kontosteuerung.
+  Dachmarke für Creator-Workflows: KI, Agent, Reminder, Tasks, Notes, Medien und Commerce —
+  mit <strong>Skydown Entertainment</strong> (Video), <strong>ZweiZwei</strong> (Musik) und bestehenden Merch-Linien darunter.
 </p>
 
 <p align="center">
@@ -19,17 +19,17 @@
 
 ## Kurzbeschreibung
 
-**SkyOS** ist der technische Systemkern hinter der Skydown-App. Das Repository bündelt native Apple- und Android-Clients, ein Kotlin-Multiplatform-Modul, Firebase-Backend, Cloud Functions, Sicherheitsregeln, Store-Assets und Release-Dokumentation in einem Monorepo.
+**22kydwn** ist die Dachmarke und der technische Systemkern der nativen App. Darunter laufen **Skydown Entertainment** (Video), **ZweiZwei** (Musik) und die bestehenden Merch-Identitäten. Das Repository bündelt Apple- und Android-Clients, Kotlin Multiplatform, Firebase-Backend, Functions, Store-Assets und Release-Dokumentation in einem Monorepo.
 
 Die App richtet sich an Creator, Betreiber und Power-User, die KI, Medien, Produktivität, Commerce und Kontensteuerung nicht in getrennten Werkzeugen verwalten möchten, sondern in einer ruhigen, nativen Oberfläche mit klaren Rollen, Grenzen und Support-Pfaden.
 
 ## Hero
 
-SkyOS löst ein konkretes Produktproblem: kreative Arbeit, KI-Ausführung, Erinnerungen, Aufgaben, Notizen, Medienflächen, Merch und Mitgliedschaften liegen normalerweise in vielen getrennten Systemen. Dieses Projekt führt diese Bereiche in einer nativen App zusammen und verlagert sensible Entscheidungen wie Rollen, Zahlungen, Upload-Freigaben, KI-Nutzung und Runtime-Sperren in ein Firebase-Backend.
+22kydwn löst ein konkretes Produktproblem: kreative Arbeit, KI-Ausführung, Erinnerungen, Aufgaben, Notizen, Medienflächen, Merch und Mitgliedschaften liegen normalerweise in vielen getrennten Systemen. Dieses Projekt führt diese Bereiche in einer nativen App zusammen und verlagert sensible Entscheidungen wie Rollen, Zahlungen, Upload-Freigaben, KI-Nutzung und Runtime-Sperren in ein Firebase-Backend.
 
 | Frage | Antwort |
 | --- | --- |
-| Was macht die App? | Skydown auf SkyOS verbindet Home, AI, Agent, Music, Video, Shop, Cart, Orders, Profile, Settings und Owner/Admin-Flächen. |
+| Was macht die App? | **22kydwn** verbindet Home, AI, Agent, Music (ZweiZwei), Video (Skydown Entertainment), Shop, Cart, Orders, Profile, Settings und Owner/Admin in einem Flow. |
 | Für wen ist sie? | Für Creator-Workflows, Skydown-Betrieb, Team-/Owner-Rollen, Testende und Entwickler, die ein natives Produkt mit Backend-Autorität betreiben. |
 | Welches Problem löst sie? | Weniger fragmentierte Tools, mehr nachvollziehbare Aktionen: Reminder mit Push, Tasks, Notes, KI-/Agent-Ausgaben, Medien, Shop und Trust-Flächen in einem System. |
 
@@ -38,10 +38,11 @@ SkyOS löst ein konkretes Produktproblem: kreative Arbeit, KI-Ausführung, Erinn
 | Feld | Stand im Checkout |
 | --- | --- |
 | Produktversion | `1.0.0` in `VERSION`, Android `versionName`, iOS `MARKETING_VERSION` und `functions/package.json` |
-| Android | `applicationId` `com.nash.skyos`, `versionCode` `10031`, SDK 36, minSdk 26 |
-| Apple | Bundle-ID `com.skydown.ios`, Build `10028`, Mac Catalyst im Xcode-Projekt aktiviert |
+| Android | `applicationId` `com.nash.skyos`, `versionCode` `10036`, SDK 36, minSdk 26 |
+| Apple | Bundle-ID `com.skydown.ios`, Build `10032`, Display Name `22kydwn`, Mac Catalyst aktiviert |
 | Backend | Firebase Functions in `us-central1`, 64 Exports laut `npm run list-exports --prefix functions` |
-| Interner Store-Test | iOS Build `10028` und Android versionCode `10031` sind als naechster Rollout-Kandidat vorbereitet; Play-Upload wartet weiterhin auf `SUPPLY_JSON_KEY` |
+| Release-Kandidat | iOS `22kydwn 1.0.0 (10032)` und Android `22kydwn 1.0.0 (10036)` — Identity-Check grün; Store-Copy in `docs/store-listing.md` |
+| Marke | Dachmarke `22kydwn`; Video `Skydown Entertainment`; Musik `ZweiZwei`; Merch-Linien unveraendert |
 | Lokale Qualität | `./scripts/ci_local_gate.sh` bündelt Shared-Tests, Android-Checks und Functions-/Rules-Tests |
 | Veröffentlichungsmodell | Closed Source mit öffentlicher README-/Dokumentationsspiegelung für Transparenz |
 | Offene Projektangaben | Finale Produktions-URLs und formaler Security-Kontaktprozess sind als TODO markiert |
@@ -70,7 +71,7 @@ SkyOS löst ein konkretes Produktproblem: kreative Arbeit, KI-Ausführung, Erinn
 
 ## Transparenzmodell
 
-SkyOS ist **kein Open-Source-Projekt**. Der Quellcode, produktive Konfigurationen, Secrets, Store-Zugänge und operative Infrastruktur bleiben geschlossen.
+22kydwn ist **kein Open-Source-Projekt**. Der Quellcode, produktive Konfigurationen, Secrets, Store-Zugänge und operative Infrastruktur bleiben geschlossen.
 
 Gleichzeitig ist das Projekt bewusst transparent dokumentiert: Die öffentliche README-Spiegelung erklärt Zweck, Architektur, reale Funktionen, Tech Stack, Sicherheitsgrenzen, Release-Qualität, bekannte TODOs und Kontaktwege. Ziel ist Nachvollziehbarkeit für Nutzer, Reviewer, Partner und technische Stakeholder, ohne Nutzungsrechte am privaten Code zu vergeben oder produktive Betriebsdaten offenzulegen.
 
@@ -81,7 +82,7 @@ Gleichzeitig ist das Projekt bewusst transparent dokumentiert: Die öffentliche 
 
 ## Premium Brand System
 
-SkyOS wurde auf ein zentrales Premium-Brand-System gehoben, damit Apple- und Android-Client dieselbe ruhige, präzise und hochwertige Produktsprache tragen. Die Leitidee ist nicht generische Material-/System-UI, sondern eine native Oberfläche mit kontrollierter Reduktion, klarer Hierarchie, wertigen Interaktionen und wiedererkennbarer Skydown-Materialität.
+22kydwn wurde auf ein zentrales Premium-Brand-System gehoben, damit Apple- und Android-Client dieselbe ruhige, präzise und hochwertige Produktsprache tragen. Die Leitidee ist nicht generische Material-/System-UI, sondern eine native Oberfläche mit kontrollierter Reduktion, klarer Hierarchie, wertigen Interaktionen und wiedererkennbarer Skydown-Materialität.
 
 | Ebene | Stand |
 | --- | --- |
@@ -99,8 +100,8 @@ SkyOS wurde auf ein zentrales Premium-Brand-System gehoben, damit Apple- und And
 | Home | Native Startfläche mit Produkt-Signalen, Einstieg in Workflows und Navigationszentrale. |
 | AI und Agent | Text-, Visual- und Agent-Flächen mit serverseitiger Ausführung, Nutzungsgrenzen, Membership-Gating und Verlaufssynchronisierung. |
 | Reminder, Tasks, Notes | Live ausgewiesene Produktivitätsfläche. Reminder werden serverseitig verarbeitet und per Push zugestellt; Tasks und Notes sind in der App und über Workflow-Endpunkte nutzbar. |
-| Music | ZweiZwei/22-Musikbereich mit Tracks, Artist Pages, Beat-/Producer-Flächen, externen Links und Spotify-Anbindung inklusive Owner-CRUD und In-App-Rename fuer Artist Pages. |
-| Video | Video Hub mit öffentlichen Konfigurationen, Player-/WebView-Komponenten und Owner/Admin-Verwaltungslogik. |
+| Music | **ZweiZwei** unter 22kydwn: Tracks, Artist Pages, Beat-/Producer-Flächen, externe Links und Spotify-Anbindung inklusive Owner-CRUD. |
+| Video | **Skydown Entertainment** unter 22kydwn: Video Hub, Player-/WebView-Komponenten und Owner/Admin-Verwaltungslogik. |
 | Shop, Cart, Orders | Merch-Katalog, Warenkorb, serverseitige Bestelllogik, gehosteter Checkout, Stripe/Klarna-Pfade, Shopify-Sync und Order-Ansichten. |
 | Membership | KI-Mitgliedschaften mit StoreKit auf iOS, Google Play Billing auf Android, Restore-Pfaden und Backend-Sync. |
 | Profil und Galerie | Profilpflege, Profilbild/Galerie, abgesicherte Upload-Slots, Storage-Regeln und Moderationsrechte. |
@@ -125,11 +126,11 @@ Im Repository liegen validierte Screenshot-Sets für iOS, iPad, Android und Goog
 
 | Home | AI | Music |
 | --- | --- | --- |
-| <img src="screenshots/final/ios/01_home.png" alt="SkyOS iOS Home" width="220" /> | <img src="screenshots/final/ios/02_ai.png" alt="SkyOS iOS AI" width="220" /> | <img src="screenshots/final/ios/03_music.png" alt="SkyOS iOS Music" width="220" /> |
+| <img src="screenshots/final/ios/01_home.png" alt="22kydwn iOS Home" width="220" /> | <img src="screenshots/final/ios/02_ai.png" alt="22kydwn iOS AI" width="220" /> | <img src="screenshots/final/ios/03_music.png" alt="22kydwn iOS Music" width="220" /> |
 
 | Video | Merch | Legal |
 | --- | --- | --- |
-| <img src="screenshots/final/android/04_video.png" alt="SkyOS Android Video" width="220" /> | <img src="screenshots/final/android/05_merch.png" alt="SkyOS Android Merch" width="220" /> | <img src="screenshots/final/android/06_legal.png" alt="SkyOS Android Legal" width="220" /> |
+| <img src="screenshots/final/android/04_video.png" alt="22kydwn Android Video" width="220" /> | <img src="screenshots/final/android/05_merch.png" alt="22kydwn Android Merch" width="220" /> | <img src="screenshots/final/android/06_legal.png" alt="22kydwn Android Legal" width="220" /> |
 
 ## Tech Stack
 
@@ -411,7 +412,7 @@ firebase deploy --only hosting
 
 ## Mitwirken
 
-SkyOS ist aktuell nicht für öffentliche Code-Beiträge geöffnet. Externe Rückmeldungen, Security-Hinweise, Review-Fragen oder Produktfeedback laufen über den Kontakt im Abschnitt [Kontakt und Autor](#kontakt-und-autor).
+22kydwn ist aktuell nicht für öffentliche Code-Beiträge geöffnet. Externe Rückmeldungen, Security-Hinweise, Review-Fragen oder Produktfeedback laufen über den Kontakt im Abschnitt [Kontakt und Autor](#kontakt-und-autor).
 
 Für interne Mitarbeit gilt ein konservativer Ablauf:
 
@@ -425,7 +426,7 @@ Für interne Mitarbeit gilt ein konservativer Ablauf:
 
 ## Lizenz
 
-SkyOS ist **Closed Source**. Soweit keine separate schriftliche Lizenz oder Vereinbarung vorliegt, sind Quellcode, Assets, Dokumentation, Marken, Produkttexte und Build-/Betriebsartefakte nicht zur Nutzung, Weitergabe, Veränderung oder kommerziellen Verwertung freigegeben.
+22kydwn ist **Closed Source**. Soweit keine separate schriftliche Lizenz oder Vereinbarung vorliegt, sind Quellcode, Assets, Dokumentation, Marken, Produkttexte und Build-/Betriebsartefakte nicht zur Nutzung, Weitergabe, Veränderung oder kommerziellen Verwertung freigegeben.
 
 Die öffentlich sichtbaren Inhalte dürfen gelesen und verlinkt werden. Eine Nutzung, Vervielfältigung, Bearbeitung, Wiederveröffentlichung oder kommerzielle Verwertung ist ohne ausdrückliche schriftliche Zustimmung nicht gestattet.
 
@@ -438,7 +439,9 @@ Die öffentliche README-Spiegelung dient Transparenz und Projektvertrauen. Sie i
 | Betreiber | Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown) |
 | Anschrift | Erich-Plate-Weg 44, 22419 Hamburg, Deutschland |
 | Support | [skydownent@gmail.com](mailto:skydownent@gmail.com) |
-| Produkt | SkyOS / Skydown |
+| Dachmarke | 22kydwn |
+| Betreiber | Skydown |
+| Sub-Marken | Skydown Entertainment (Video), ZweiZwei (Musik) |
 | Version | `1.0.0` |
 
 Rechtliche und operative Basisdokumente:

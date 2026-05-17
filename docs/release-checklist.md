@@ -1,32 +1,25 @@
-# SkyOS Release Checklist
+# 22kydwn Release Checklist
 
-Use this checklist for every release candidate. SkyOS is only release-ready when product behavior,
-trust paths, backend authority, and support readiness all line up at the same time.
+Use this checklist for every release candidate. 22kydwn is only release-ready when product behavior,
+trust paths, backend authority, branding, and support readiness all line up at the same time.
 Single source of truth for live release state is `docs/release/store-upload-runbook.md`.
 
 ## Current RC Snapshot
 
-Status as of 2026-05-08 CEST: backend Meta/social live-data setup remains deployed, and the previous
-AI visual fullscreen / Android display hotfix RC is superseded by the premium brand-system release prep candidate.
-Current prepared client identity is iOS build `10029` and Android versionCode `10032`. The duplicate top
-`22 Music`/Zweizwei social entry remains removed so the hub shows only the five canonical artists, AI-generated
-visuals open full-screen on both platforms, and the iOS/Android settings/admin surfaces now use the premium
-tokenized control system.
-Public store rollout remains `no-go` until the open
-items in [release/store-upload-runbook.md](release/store-upload-runbook.md) are closed.
+Status as of 2026-05-17 CEST:
 
-Known open release gates:
+- Umbrella rebrand to **22kydwn** is in code, legal, store copy, and README.
+- Sub-brands: **Skydown Entertainment** (video), **ZweiZwei** (music); merch line artwork unchanged.
+- Identity preflight **PASSED**: iOS `22kydwn 1.0.0 (10032)`, Android `22kydwn 1.0.0 (10036)`.
+- Store copy: `docs/store-listing.md` · Console paste sheet: `docs/release/store-console-submission-worksheet.md`.
 
-- App Store Connect: iOS build `10029` uploaded; wait for processing, then attach it to Internal TestFlight testers.
-- Google Play: Android versionCode `10032` is uploaded as Internal Testing draft; review and roll it to internal testers.
-- Store assets: upload/map the generated iPhone, iPad, Play-compliant Android screenshots, and Play listing graphics.
-- Store URLs and legal: replace placeholder console URLs with final hosted pages and confirm final legal approval.
-- QA: complete real-device smoke from uploaded store artifacts on iPhone and Android.
-- Handover/ops: complete USB + Mac reset handover checklist in `docs/release/mac-reset-usb-handover.md`.
+Before upload:
 
-Post-release automation note:
-
-- Google Play automated upload is working through Fastlane with the local Play service-account JSON; keep that key out of git and rotate it if it is ever exposed.
+1. `./scripts/release_identity_check.sh`
+2. Fresh iOS archive + Android release AAB for the build numbers above
+3. Paste store text; map screenshots to `22kydwn`
+4. Device smoke: Home, AI, Agent, ZweiZwei, Skydown Entertainment video, Shop, Settings/Legal
+5. Trigger or verify public README sync (`Sync public README` workflow on `main`)
 
 ## 1. Source and Hygiene
 

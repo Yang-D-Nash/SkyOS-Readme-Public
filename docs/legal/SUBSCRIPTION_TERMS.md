@@ -1,11 +1,11 @@
-# SkyOS Subscription Terms
+# 22kydwn Subscription Terms
 
 Status: release operator baseline. Subscription wording is aligned with the current launch package;
 active billing setup and store-provider wording must stay in sync before any paid plan is enabled.
 
 ## 1. Scope
 
-SkyOS can offer recurring membership access for AI and related capability tiers. The exact plans,
+22kydwn can offer recurring membership access for AI and related capability tiers. The exact plans,
 names, pricing, and billing cadence depend on the currently active product configuration.
 
 ## 2. Pricing and Billing
@@ -23,12 +23,12 @@ owns the subscription transaction.
 
 ## 4. Restore
 
-SkyOS should provide a restore path for existing entitlements where supported by the active billing
+22kydwn should provide a restore path for existing entitlements where supported by the active billing
 method. Restore visibility is part of product trust and should not be hidden.
 
 ## 5. Capability Model
 
-SkyOS positions memberships as capability access, not as a token marketplace. Plans may differ by:
+22kydwn positions memberships as capability access, not as a token marketplace. Plans may differ by:
 
 - AI quota
 - workflow depth

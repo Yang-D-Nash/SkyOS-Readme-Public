@@ -1,120 +1,62 @@
-# SkyOS Branding Standard
+# 22kydwn Branding Standard
 
-SkyOS is the primary system identity for this repository.  
-All public communication, visual language, and platform assets should reinforce one rule: **SkyOS is the foundation and operating core**.
+22kydwn is the umbrella brand for this repository.  
+All public communication should reinforce one rule: **22kydwn is the roof; Skydown and ZweiZwei are fused sub-brands underneath.**
 
 ## 1) Brand hierarchy
 
 | Brand | Role | Scope |
 | --- | --- | --- |
-| `SkyOS` | system, platform, visual operating language | primary naming in README, product communication, design narrative |
-| `Skydown` | app/operator identity inside SkyOS | product surfaces, support and operational context |
-| `ZweiZwei / 22` | music and creative sub-brand | only for music-specific moments |
-| `Skydown x 22` | merch and commerce mark | only for shop/merch communication |
+| `22kydwn` | umbrella / platform / app product name | README, app display name, legal product name, AI/system copy |
+| `Skydown` | operator + video / execution identity | Skydown Entertainment (video), support context, merch line |
+| `ZweiZwei` | music sub-brand | music hub, music merch, creative music moments |
+| `Skydown x 22` | merch combination mark | shop/merch communication only (existing combo artwork) |
 
-## 2) Naming rules (public copy)
+## 2) Surface rules
+
+| Surface | Primary mark | Secondary mark | Rule |
+| --- | --- | --- | --- |
+| Home / system entry | `22kydwn` | `Skydown` | platform first, never music-first |
+| AI / Agent | `22kydwn` | `Skydown` context | product language, not music marks |
+| Video | `Skydown Entertainment` | `22kydwn` | video keeps the existing entertainment line |
+| Music | `ZweiZwei` | `22kydwn` | music keeps its own identity under the umbrella |
+| Shop / Merch | existing merch marks | `22kydwn` optional | do not replace registered merch artwork; label lines clearly |
+| App icon / launcher | `22kydwn` mark | none | launcher follows umbrella identity |
+
+## 3) Naming rules (public copy)
 
 Preferred labels:
 
-- `SkyOS`
-- `Home`
-- `AI`
-- `Agent`
-- `Music`
-- `Video`
-- `Shop`
-- `Membership`
-- `Settings`
-- `Owner` / `Admin`
+- `22kydwn`
+- `Skydown Entertainment` (video)
+- `ZweiZwei` (music)
+- `Home`, `AI`, `Agent`, `Music`, `Video`, `Shop`, `Settings`
 
 Avoid unless strictly necessary:
 
-- legacy mixed product labels
-- `Skydown OS`
-- `Command Center`
-- `Revenue Ops`
-- `Runtime` as a user-facing tab label
-- provider-first copy (`n8n`, Stripe, etc.) where user value can be explained without vendor names
+- `SkyOS` as a user-facing product name (legacy internal naming only)
+- legacy mixed labels that imply three unrelated apps
+- provider-first copy where user value can be explained without vendor names
 
-## 3) Voice and tone
+## 4) Legal note (non-advice)
 
-SkyOS communication should be:
-
-- clear
-- premium
-- calm
-- direct
-- trustworthy
-
-It should never sound:
-
-- overhyped
-- internal-only
-- vague
-- aggressively sales-driven
-- unfinished
-
-## 4) Copy quality checklist
-
-- Lead with user value, not implementation detail.
-- Keep labels short and consistent across macOS, iOS, and Android.
-- Avoid mixing internal tooling names into user-visible actions.
-- Explicitly mark role-restricted features.
-- State legal or plan-based constraints in plain language.
+- Umbrella trademark target: `22kydwn` (DPMA/EUIPO planned)
+- `Skydown` / `ZweiZwei` merch wordmarks may exist without registration; designs remain protected by copyright
+- Merch combination artwork is a separate asset; keep shop labeling aligned with the operator imprint
 
 ## 5) Official icon and asset sources
 
-Primary documentation assets:
-
-- `docs/assets/skyos-logo.png`
-- `docs/assets/skyos-app-icon.png` (Galerie-Vorschau, skaliert, entspricht iOS-Master)
-- `docs/assets/skyos-app-icon-1024.png` (1024×1024 **voll** — transparenter Master; Apple `AppIcon.appiconset` ist daraus als opaque PNG ohne Alpha exportiert)
-- `docs/assets/skyos-app-icon-1024-android-padded.png` (1024×1024 Android-Spiegel des transparenten Masters; auf 78% skaliert, damit Adaptive-Icon-Masken nichts abschneiden; liegende Datei: `ic_launcher_foreground_src.png`)
-- `docs/assets/skyos-22-mark.png`
-
-Project icon assets (the three core logos):
-
-- `Skydown App/Assets.xcassets/SkyOSBrandMark.imageset/skyos-mark.png`
+- `docs/assets/22kyos-brand-logo-1024.png` / `docs/assets/skyos-logo-original.png` — umbrella round mark (README)
 - `Skydown App/Assets.xcassets/SkydownBrandLogo.imageset/skydown-logo.png`
 - `Skydown App/Assets.xcassets/ZweiZweiBrandLogo.imageset/zweizwei-logo.png`
-
-Additional mark:
-
-- `Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png`
-
-Freisteller (liegen in `docs/assets/`, als PNG normalisiert; für Schritt 2: iOS Image-Sets / Android / README):
-
-- `docs/assets/skydown-mark-freisteller.png`
-- `docs/assets/zweizwei-mark-freisteller.png`
-- `docs/assets/skydown-x-22-mark-freisteller.png`
+- `Skydown App/Assets.xcassets/Sky22BrandLogo.imageset/22-logo.png` — umbrella mark in-app
+- Merch combo assets: `docs/assets/skydown-x-22-mark-freisteller.png`
 
 ## 6) Trust rule
 
-In SkyOS, branding quality includes legal and operational quality:
+Branding quality includes legal and operational quality:
 
 - legal naming is consistent
 - support and ownership context is credible
 - copy reflects actual product behavior
 - visual polish is backed by technical reliability
-
-If a phrase sounds impressive but reduces clarity, remove it.
-
-## 7) Product integration matrix
-
-Brand usage in product must stay scoped and consistent:
-
-| Surface | Primary mark | Secondary mark | Rule |
-| --- | --- | --- | --- |
-| Home / system entry | `SkyOS` | `Skydown` | Home communicates system + product entry, never music-first |
-| AI / Agent / Video | `Skydown` | `SkyOS` context only | Keep execution/product language, avoid music marks |
-| Music | `ZweiZwei / 22` | `Skydown` | Music keeps its own identity inside SkyOS |
-| Shop / Merch | `Skydown x 22` | `Skydown` | Commerce mark is scoped to merch only |
-| App icon / launcher | `SkyOS` | none | Launcher identity stays system-first |
-
-## 8) Source logos provided by brand
-
-The latest source files are stored for traceable reuse:
-
-- `docs/assets/skyos-logo-original.png`
-- `docs/assets/skydown-logo-original.png`
-- `docs/assets/zweizwei-logo-original.png`

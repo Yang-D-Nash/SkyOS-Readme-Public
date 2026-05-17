@@ -1,4 +1,4 @@
-# SkyOS Privacy Policy (Compatibility Note)
+# 22kydwn Privacy Policy (Compatibility Note)
 
 The canonical privacy document now lives in [privacy.md](privacy.md).
 

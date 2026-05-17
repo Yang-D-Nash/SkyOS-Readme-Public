@@ -1,16 +1,16 @@
-# SkyOS AI Usage Notice
+# 22kydwn AI Usage Notice
 
 Status: release operator baseline. This notice is aligned with the current Terms, Privacy, and
-Imprint package for the SkyOS / Skydown launch.
+Imprint package for the 22kydwn / Skydown launch.
 
 ## 1. Assistive System
 
-SkyOS AI is designed to assist with ideas, drafting, visuals, FAQ help, and structured workflows.
+22kydwn AI is designed to assist with ideas, drafting, visuals, FAQ help, and structured workflows.
 It can still be wrong, incomplete, or unsuitable for a given context.
 
 ## 2. Not Professional Advice
 
-SkyOS AI does not provide guaranteed legal, medical, tax, financial, or safety advice. Users are
+22kydwn AI does not provide guaranteed legal, medical, tax, financial, or safety advice. Users are
 responsible for reviewing outputs before relying on them.
 
 ## 3. Sensitive Data
@@ -20,7 +20,7 @@ data into prompts or external automation fields.
 
 ## 4. Guardrails and Limits
 
-SkyOS may apply:
+22kydwn may apply:
 
 - request limits
 - plan-aware access controls
@@ -33,13 +33,13 @@ These controls are part of platform safety and cost management.
 
 ## 5. External Providers and Automation
 
-If enabled, SkyOS may route work through the owner-managed Activepieces workflow gateway, optional
+If enabled, 22kydwn may route work through the owner-managed Activepieces workflow gateway, optional
 user-owned Activepieces/n8n workflows, or optional Manus BYOS. These routes should remain transparent,
 backend-gated, and governed by the current role, plan, runtime, and cost settings.
 
 ## 6. Misuse
 
-SkyOS AI may not be used to:
+22kydwn AI may not be used to:
 
 - break the law
 - violate third-party rights
@@ -47,4 +47,4 @@ SkyOS AI may not be used to:
 - impersonate protected authority or expertise
 - automate harmful or deceptive behavior
 
-SkyOS may restrict access when misuse or platform risk is detected.
+22kydwn may restrict access when misuse or platform risk is detected.

@@ -1,4 +1,4 @@
-# SkyOS Imprint
+# 22kydwn Imprint
 
 Status: release operator baseline. Operator details are set from the current owner-provided launch
 data; any outside legal review can continue alongside the release and should update this package if
@@ -16,8 +16,12 @@ Current repository baseline:
 
 ## Product
 
-- Product name: `SkyOS`
-- Ecosystem / operator context: `Skydown`
+- Umbrella product name: `22kydwn`
+- Operator / ecosystem context: `Skydown`
+- Sub-brands under `22kydwn`:
+  - `Skydown Entertainment` — video
+  - `ZweiZwei` — music
+  - Merch lines use existing `Skydown` / `ZweiZwei` / combination artwork
 
 ## Contact
 
@@ -25,6 +29,6 @@ Current repository baseline:
 
 ## Important Note
 
-This document is the repo's canonical imprint baseline for the current SkyOS / Skydown launch
+This document is the repo's canonical imprint baseline for the current 22kydwn / Skydown launch
 package. It documents the operator identity used by app, website, store, support, and compliance
 materials.

@@ -1,6 +1,6 @@
-# SkyOS Screenshot Story
+# 22kydwn Screenshot Story
 
-Screenshots should sell one idea: SkyOS feels like one premium product, not a bag of modules.
+Screenshots should sell one idea: 22kydwn feels like one premium product, not a bag of modules.
 
 ## Core Principle
 
@@ -8,7 +8,7 @@ Do not capture random pretty screens.
 
 Build a story:
 
-1. what SkyOS is
+1. what 22kydwn is
 2. how AI helps
 3. how Agent and workflows add leverage
 4. how reminders, tasks, and notes keep the day usable
@@ -29,7 +29,7 @@ Build a story:
 
 | # | Story role | Preferred source | EN overlay | DE overlay | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Welcome to SkyOS | Home | `One app for AI, workflows, and media` | `Eine App fuer KI, Workflows und Media` | Use the cleanest Home hero with strong hierarchy and no owner controls |
+| 1 | Welcome to 22kydwn | Home | `One app for AI, workflows, and media` | `Eine App fuer KI, Workflows und Media` | Use the cleanest Home hero with strong hierarchy and no owner controls |
 | 2 | Your AI Assistant | AI | `Write, plan, and create faster` | `Schneller schreiben, planen und erstellen` | Show AI in a clear empty or active state, not a cluttered debug state |
 | 3 | Smart Agent Actions | Agent | `Turn prompts into usable workflows` | `Aus Prompts werden nutzbare Workflows` | Prefer an agent screen with structure, not a noisy long transcript |
 | 4 | Productivity Core | Home or Agent/Productivity | `Reminders, tasks, and notes stay live` | `Reminder, Tasks und Notes bleiben live` | Use a screen that proves real utility without owner-only controls |

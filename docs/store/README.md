@@ -1,12 +1,12 @@
-# SkyOS Store Presence
+# 22kydwn Store Presence
 
-This folder is the source of truth for how SkyOS should appear in the App Store and Google Play.
+This folder is the source of truth for how 22kydwn should appear in the App Store and Google Play.
 It is not only marketing copy. It is part of product quality, trust, conversion, and release
 readiness.
 
 ## Current Honest Read
 
-SkyOS already has real product substance: native apps, AI, reminders, tasks, notes, workflow
+22kydwn already has real product substance: native apps, AI, reminders, tasks, notes, workflow
 automation, media, merch, membership, and owner controls. What was missing before this pass was
 the outer packaging:
 
@@ -19,11 +19,11 @@ the outer packaging:
 
 Primary positioning line:
 
-> SkyOS is a native mobile platform that combines AI, reminders, tasks, notes, workflow automation, creator media, merch, and membership in one controlled product.
+> 22kydwn is the umbrella app that unifies AI, productivity, ZweiZwei music, Skydown Entertainment video, and established merch lines in one calm native product.
 
 Short public variant:
 
-> AI, workflows, productivity, media, merch, and membership in one calm native app.
+> 22kydwn — AI, workflows, ZweiZwei music, Skydown Entertainment video, and merch in one app.
 
 ## Store System
 
@@ -48,7 +48,7 @@ is not complete until console upload/mapping and final story/order approval are 
 
 ## Trust Rules
 
-Store copy for SkyOS must always:
+Store copy for 22kydwn must always:
 
 - match real product behavior
 - avoid internal operator jargon

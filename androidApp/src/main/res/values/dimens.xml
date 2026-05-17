@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Small margin for OEM squircle/circle masks. A few dp insets the bitmap so the mark is not edge-to-edge. -->
-    <dimen name="ic_launcher_foreground_inset">4dp</dimen>
-</resources>

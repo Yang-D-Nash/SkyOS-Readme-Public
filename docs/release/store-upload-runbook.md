@@ -1,6 +1,6 @@
-# SkyOS Store Upload Runbook
+# 22kydwn Store Upload Runbook
 
-Last updated: 2026-05-08 CEST (Android internal upload done on 10032; iOS 10029 uploaded and processing; USB/Mac-reset handover added.)
+Last updated: 2026-05-17 CEST (release rebrand pass: visible app label and public copy changed from SkyOS to 22kydwn; bundle IDs remain stable.)
 Owner: Release Engineering
 
 Single source of truth for current release state: this file.
@@ -10,17 +10,29 @@ If any other release note conflicts with this runbook, follow this runbook.
 
 ### iOS
 - Bundle ID: `com.skydown.ios`
-- Display Name: `SkyOS` (from `SkydownApp-Info.plist`)
+- Display Name: `22kydwn` (from `SkydownApp-Info.plist`)
 - Version: `1.0.0`
-- Build: `10029` (current project version; premium release candidate)
+- Build: `10032` (current project version; premium production calculator/support funnel release candidate)
 - Team ID: `F3BNLG6L7P`
 
 ### Android
 - Application ID: `com.nash.skyos`
-- App Label: `SkyOS`
+- App Label: `22kydwn`
 - versionName: `1.0.0`
-- versionCode: `10032`
+- versionCode: `10036`
 - Play Billing Library: `8.3.0`
+
+## Current Release Status
+
+- Branding pass complete (2026-05-17 CEST): public product name **22kydwn**; video **Skydown Entertainment**; music **ZweiZwei**; merch line artwork unchanged.
+- Current upload candidates: iOS **22kydwn 1.0.0 (10032)** and Android **22kydwn 1.0.0 (10036)**. Supersede any older SkyOS-labelled store binaries before wider rollout.
+- `./scripts/release_identity_check.sh` passes against the build identity block above.
+- Store copy source: `docs/store-listing.md` (App Store + Play descriptions and keywords).
+- Previously shipped store identities before this pass may still show older labels until new binaries are approved.
+- Android hotfix candidate: versionCode `10034` corrects the German Payments provider copy (`Stripe`, not `Streifen`) and German close labels. It was uploaded to Google Play internal testing as a draft at 2026-05-12 14:28 CEST, later completed on the internal track, and is not production/public.
+- Google Play API status at 2026-05-12 15:15 CEST: internal track contains `10034` with status `completed`; production, beta, and alpha tracks have no releases. The Samsung Fold installed Play package `versionCode=10034` at 2026-05-12 17:03 CEST and passed the Play-installed hotfix smoke.
+- Previous store uploads iOS `10029` and Android `10032` are superseded and must not be selected for tester/public rollout.
+- Post-release mode is active: monitor crashes, first-session analytics, purchase/restore behavior, auth, AI, Music, Video, Shop, Orders, Settings, push permission, and reminders from installed store builds.
 
 ## Fastlane: store upload lanes
 
@@ -75,7 +87,7 @@ Optional Fastlane lane **`upload_ios_app_store_connect`** uploads an **existing 
 ```bash
 cd "$REPO_ROOT"
 
-export IOS_IPA_PATH="build/ios/SkyOS.ipa"                 # repo-relative or absolute
+export IOS_IPA_PATH="build/ios/22kydwn.ipa"                # repo-relative or absolute
 export ASC_KEY_ID="YOUR_KEY_ID"
 export ASC_ISSUER_ID="YOUR_ISSUER_UUID"
 export ASC_KEY_PATH="/secure/path/AuthKey_XXXXXXXXXX.p8"   # Download once from ASC → Users and Access → Keys
@@ -93,21 +105,27 @@ Hosting currently serves `site/` at **`https://skydown-a6add.web.app`** (privacy
 
 ## Build Artifacts
 
-- iOS archive: `build/ios/SkyOS-1.0.0-10029-20260508.xcarchive` (created 2026-05-08, identity target `SkyOS` / `com.skydown.ios` / `1.0.0` / `10029`)
+- iOS archive: pending for the new `22kydwn` build `10032`. The previous `SkyOS` archive `build/ios/SkyOS-1.0.0-10031-20260516.xcarchive` is superseded for rollout.
 - iOS UI test evidence: latest full fresh UI-test evidence remains `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.xcresult` and raw log `build/ios/Skydown-App-10018-ui-tests-fresh-20260428-170034.log`; build `10020` contains the refreshed keyboard dismissal and Agent new-conversation UX after that gate.
-- iOS upload evidence: `xcodebuild -exportArchive` using `build/ios/ExportOptions-app-store-upload-10029.plist` completed with `Upload succeeded` and `** EXPORT SUCCEEDED **` at 2026-05-08 17:16 CEST.
-- iOS upload status: UPLOADED for build `10029`; package processing started in App Store Connect.
-- Android AAB: `androidApp/build/outputs/bundle/release/androidApp-release.aab` (rebuilt 2026-05-08 16:53 CEST, versionCode `10032`, SHA-256 `f9ace56a1955c25aa5eec2d839d51c28947007a7cf86d7fe8aa3000880536656`)
-- Android APK: `androidApp/build/outputs/apk/release/androidApp-release.apk` (rebuilt 2026-05-08 16:53 CEST, versionCode `10032`, SHA-256 `aa10fac80914b90111670ced9d899503a19fec2cc6e492275dacfd9021819a91`)
+- iOS upload evidence: pending for build `10032`; previous build `10031` upload evidence remains valid only for the superseded SkyOS-labelled candidate.
+- iOS upload status: PENDING for build `10032`. Build `10030` is the currently released/superseded baseline for this follow-up.
+- Android AAB: pending rebuild for versionCode `10036`.
+- Android APK: pending rebuild for versionCode `10036`.
 
 ## Upload Status
 
 ### iOS Upload Status
-- Archive build: SUCCEEDED for current build `10029` at `build/ios/SkyOS-1.0.0-10029-20260508.xcarchive`.
-- App Store Connect upload: SUCCEEDED for build `10029` at 2026-05-08 17:16 CEST.
-- Processing status: after build `10029` appears in TestFlight, attach it to Internal Testers.
+- Archive build: PENDING for current build `10032` after the 22kydwn rename pass.
+- App Store Connect upload: PENDING for current build `10032`; previous build `10031` was uploaded at 2026-05-16 23:15 CEST with the old SkyOS label and should be superseded.
+- Archive build: SUCCEEDED for current build `10030` at `build/ios/SkyOS-1.0.0-10030-20260512.xcarchive`.
+- App Store IPA export: SUCCEEDED for current build `10030` at `build/ios/export-10030/SkyOS.ipa`.
+- App Store Connect upload: SUCCEEDED for current build `10030` at 2026-05-12 13:15 CEST.
+- Processing/status follow-up: release owner confirmed the app is out at 2026-05-12 13:24 CEST; continue monitoring App Store Connect status for build `10030`.
 - Notes:
-  - Target upload build `10029` is now uploaded; continue with TestFlight processing and internal tester assignment.
+  - Target upload build `10032` contains the 22kydwn rename pass, premium Video production calculator, unified request/support sheet, and `submitAppRequest` backend callable.
+  - Previous build `10031` upload used `build/ios/ExportOptions-app-store-upload-10031.plist` with `destination=upload` and `manageAppVersionAndBuildNumber=false`.
+  - Target upload build `10030` is required because build `10029` does not contain the 2026-05-12 localization, notification, exact-alarm, and dependency hardening changes.
+  - Upload used `build/ios/ExportOptions-app-store-upload-10030.plist` with `destination=upload` and `manageAppVersionAndBuildNumber=false`.
   - Keep `manageAppVersionAndBuildNumber=false` in ExportOptions for reproducible build-number control.
   - Xcode reported missing dSYMs for FirebaseFirestoreInternal, absl, grpc, grpcpp, and openssl_grpc during symbol upload; app package upload still succeeded.
   - Previous build `10026` uploaded successfully on 2026-05-06 for the artist page routing rollout.
@@ -137,13 +155,30 @@ Hosting currently serves `site/` at **`https://skydown-a6add.web.app`** (privacy
   - Previous build `10003` had resolved the Apple AppIcon alpha rejection (`90717`) by converting active AppIcon PNGs to opaque RGB.
 
 ### Google Upload Status
+- Active upload candidate versionCode `10036` passed clean Android release gate locally at 2026-05-16 22:18 CEST.
+- Fastlane `validate_android_internal` passed against Google Play for versionCode `10036` at 2026-05-16 22:20 CEST.
+- Fastlane `upload_android_internal` uploaded versionCode `10036` to Google Play internal testing as a draft at 2026-05-16 22:28 CEST. This did not start a production rollout.
 - Release AAB build: SUCCEEDED for versionCode `10031`, but Google Play rejected validation because that versionCode had already been used.
+- Active hotfix candidate versionCode `10034` passed release identity check and clean Android release gate locally at 2026-05-12 14:24 CEST.
+- Fastlane `validate_android_internal` passed against Google Play for versionCode `10034` at 2026-05-12 14:26 CEST.
+- Fastlane `upload_android_internal` uploaded versionCode `10034` to Google Play internal testing as a draft at 2026-05-12 14:28 CEST. This did not start a production rollout.
+- Fastlane/Google Play validate-only promotion attempt for existing versionCode `10034` (`track=internal`, `release_status=completed`, `version_code=10034`, `rollout=1`, `skip_upload_aab=true`) failed safely at 2026-05-12 14:51 CEST with `Only releases with status draft may be created on draft app`; no edit was committed.
+- Google Play API track read at 2026-05-12 14:52 CEST found internal `10034` as `draft`, internal `10033` as `completed`, and no production/beta/alpha releases.
+- Google Play API track read at 2026-05-12 15:15 CEST found internal `10034` as `completed` and no production/beta/alpha releases.
+- Owner approved widening at 2026-05-12 17:28 CEST. Fastlane/Google Play validate-only promotion attempts for `10034` from `internal` to `production` (`completed` and `draft`) and `beta` (`completed`) all failed safely with `FAILED_PRECONDITION`; no edit was committed and no public/closed rollout was started.
+- Play API detail read after the failed widening attempt returned default language `de-DE`, uploaded bundle `10034` with SHA-256 `ba9adc71291d734bbc12b13114a953b30c2b99bf5b0e3002ec7932eacd65dd92`, production country availability `{}`, and beta/alpha country availability synced with production. Finish the Play Console setup/review/country availability tasks before retrying public or closed-track widening.
+- Active upload candidate versionCode `10033` passed clean release gate locally at 2026-05-12 12:11 CEST.
+- Fastlane `validate_android_internal` passed against Google Play for versionCode `10033` at 2026-05-12 13:11 CEST.
+- Fastlane `upload_android_internal` uploaded versionCode `10033` to Google Play internal testing as a draft at 2026-05-12 13:12 CEST.
 - Active upload candidate versionCode `10032` passed clean release gate locally at 2026-05-08 16:53 CEST.
 - Fastlane `validate_android_internal` passed against Google Play for versionCode `10032` at 2026-05-08 16:56 CEST.
 - Fastlane `upload_android_internal` uploaded versionCode `10032` to Google Play internal testing as a draft at 2026-05-08 16:58 CEST.
 - Play upload automation: WORKING via Fastlane `upload_android_internal` when `SUPPLY_JSON_KEY` points at the local Play service-account JSON.
 - Notes:
   - Fastlane used `release_status: draft`, so this did not start a production rollout.
+  - VersionCode `10035` contains the premium Video production calculator, live quote breakdown, support/request submission flow, and `submitAppRequest` backend integration.
+  - VersionCode `10034` supersedes `10033` as an Android internal hotfix candidate for German Payments/close-label copy only. It is completed on the Play internal track and passed a Play-installed tester smoke. Owner approved widening, but Play API blocks production/closed promotion until console prerequisites are resolved.
+  - VersionCode `10033` is required for the 2026-05-12 release-hardening follow-up; previous draft `10032` is superseded.
   - VersionCode `10032` supersedes `10031` for the premium brand release prep upload after Play reported `10031` as already used.
   - VersionCode `10031` contains the premium music artist rollout with owner CRUD + rename flows and canonical artist ordering.
   - VersionCode `10029` contains the Home-to-artist-page routing and exact MAVE/ThaDude public profile fixes.
@@ -404,11 +439,37 @@ Suggested review note text:
 - Video Hub player flow replaces the public video list; owner controls stay admin-only.
 - General reliability and navigation polish.
 
+## Post-Release Monitoring
+
+Run these checks from the shipped store builds, not from local debug builds:
+
+1. Install/update iOS build `10030` from the store/TestFlight channel used for release and complete a real-device smoke pass.
+2. Install/update Android versionCode `10033` from Play internal/closed/public channel used for release and complete a real-device smoke pass.
+3. Watch Crashlytics for new fatal/non-fatal clusters for the first 2 hours, then again after 24 hours.
+4. Verify Analytics/Firebase events for app open, onboarding, signup/login, AI use, membership views, purchase/restore outcomes, and first value.
+5. Verify one successful auth path, one AI text path, one Music path, one Video path, one Shop/Orders path, Settings legal/support, notification permission, and one reminder notification.
+6. Confirm StoreKit/Google Play subscription metadata, pricing, entitlement unlock, and restore behavior from sandbox/license-test users before widening rollout.
+7. Record any console review messages or policy warnings here before increasing distribution.
+
+### 2026-05-12 Device Smoke Attempt
+
+- Android basic smoke: PASS on device `SM_F946B` / `RFCW70AHR6X`. Installed package `com.nash.skyos` reports `versionName=1.0.0`, `versionCode=10033`, `targetSdk=36`, installer `com.android.vending`, and `lastUpdateTime=2026-05-12 13:20:09`. Launch succeeded, `com.nash.skyos/.MainActivity` stayed foreground, UI dump showed `SkyOS` / `WILLKOMMEN`, notification app-op is `allow`, and captured Logcat had no `FATAL EXCEPTION` / `AndroidRuntime` crash lines after launch.
+- Android expanded navigation smoke: PASS on the Play-installed `10033` artifact. Checked Music, Video, Merch, KI, More menu, Settings, Datenschutz/Privacy content, Orders, and Payments. Each surface rendered expected user-visible labels and the app process stayed alive with no app-specific Logcat fatal/crash lines during the checks.
+- Android post-release finding: the released German Android Payments screen renders `Stripe` as `Streifen` in the provider title. This is not a crash or store-blocking policy issue, but it is a brand/copy defect. Local source was corrected after release in `androidApp/src/main/res/values-de/strings.xml`; before uploading a hotfix, bump Android `versionCode` above `10033`, rebuild, and upload a new Play artifact.
+- Android post-release text hotfix validation: `./gradlew :androidApp:lintRelease` passed after correcting German `Stripe`, `common_close`, and `order_action_close` strings.
+- Android hotfix upload: PASS for versionCode `10034`. `./scripts/release_identity_check.sh` and `./scripts/android_release_gate.sh` passed; AAB SHA-256 is `ba9adc71291d734bbc12b13114a953b30c2b99bf5b0e3002ec7932eacd65dd92`, APK SHA-256 is `0d7a2ee20b2ff6f1013aa0aecd3cd3197aa7cda727865204579f75568429c40b`. AAPT resource dump confirmed German `settings_payment_method_stripe = Stripe`, `common_close = Schließen`, and `order_action_close = Schließen`. Google Play validation passed and versionCode `10034` was uploaded to internal testing as a draft at 2026-05-12 14:28 CEST; no production rollout was started. A later API check confirmed `10034` completed on the internal track, with no production/beta/alpha release.
+- Android Play Store availability check: at 2026-05-12 15:02 CEST, Samsung Fold `SM_F946B` / `RFCW70AHR6X` was connected by USB. Play Store opened `market://details?id=com.nash.skyos` and showed `com.nash.skyos (unreviewed)` with buttons `Deinstallieren` and `Öffnen`, but no `Aktualisieren`. Installed package still reports Play-installed `versionCode=10033`, so `10034` is not tester-available yet.
+- Android Play Store recheck: at 2026-05-12 15:15 CEST, Google Play API had advanced internal `10034` to `completed`, but Android Package Manager on the Samsung Fold still reported `package:com.nash.skyos versionCode:10033`, `installerPackageName=com.android.vending`, `lastUpdateTime=2026-05-12 15:15:04`. The Play Store page still showed `Öffnen`, not `Aktualisieren`, through 15:20 CEST. Local release APK badging confirmed the candidate artifact itself was `versionCode=10034`.
+- Android Play-installed hotfix smoke: PASS at 2026-05-12 17:17 CEST on Samsung Fold `SM_F946B` / `RFCW70AHR6X`. Android Package Manager reports `com.nash.skyos` `versionCode=10034`, `versionName=1.0.0`, `installerPackageName=com.android.vending`, `lastUpdateTime=2026-05-12 17:03:47`. The installed base APK badging reports `versionCode='10034'`, and the installed German split confirms `settings_payment_method_stripe = Stripe`, `common_close = Schließen`, and `order_action_close = Schließen`. Smoke covered launch/main shell, Merch, Musik, Video (screenshot evidence `build/android-10034-video-final.png` because UIAutomator idle detection is blocked by the active video surface), KI account gate, Settings, Datenschutz, and Orders. Recent Logcat scan had no `FATAL EXCEPTION` / app crash signature.
+- iOS basic smoke: PASS on `iPhone von Yang D. Nash` / `9FFBA1FD-0734-5E66-9A33-A07D00BF5A54`. Device is paired, connected over USB, Developer Mode is enabled, and lock state reports `unlockedSinceBoot=true`. Installed app list reports `SkyOS` / `com.skydown.ios` / `1.0.0` / build `10030`. Launch of `com.skydown.ios` succeeded, and the process list showed `/Skydown App.app/Skydown App` running after launch (confirmed again at 2026-05-12 13:51 CEST with PID `682`).
+- iOS expanded store-build navigation smoke: PASS at 2026-05-12 14:12 CEST using a destination-artifacts XCUITest runner against the already-installed `com.skydown.ios` store/TestFlight artifact. Result bundle: `build/ios/StoreSmokeDerived/Results-store-installed-navigation.xcresult`. Summary: iPhone 16 Pro / iOS `26.4.2`, 1 test executed, 1 passed, 0 failed. Checked launch/main shell, Merch, Music, Video, AI, Settings, and Privacy/Datenschutz visibility, with kept screenshots `store-smoke-01-shell` through `store-smoke-06-settings-legal`. The temporary `com.skydown.iosUITests.xctrunner` app was removed afterward, and `SkyOS` remained installed as `1.0.0 (10030)`.
+- iOS note: `iPhone von Darinka` still has the superseded `SkyOS 1.0.0 (10029)` installed and should not be used as release-build evidence until updated to build `10030`.
+
 ## Manual Remaining Tasks
 
 1. Confirm final legal approval for public privacy/terms wording.
 2. Confirm final production domain and replace URL placeholders in App Store Connect and Play Console.
-3. Verify subscription product setup status for iOS build `10029` after upload, plus Android versionCode `10032` in Play internal draft.
+3. Verify subscription product setup status for iOS build `10030` and Android versionCode `10034` in the tester channel before widening Android beyond internal testing.
 4. Update production Firestore `appConfig/legalContent` and `appConfig/commerceSettings` if old remote operator/legal values still exist.
 5. Firestore/Storage rules were deployed on 2026-04-25; fixed owner Firebase Auth account was verified with `emailVerified=true`.
 6. Verify data safety/privacy forms reflect actual SDK usage:
@@ -420,46 +481,84 @@ Suggested review note text:
    - Not used by current binaries: precise/coarse location, camera capture, microphone, contacts, calendar. Photo/video selection uses system pickers; Android `WRITE_EXTERNAL_STORAGE` is capped to API 28 only for saving generated images.
 7. Upload and map final screenshot sets for iPhone, iPad, and Android phone form factors. Use `screenshots/final/ipad/` for iPad, `screenshots/final/google-play/android-phone/` for Play phone screenshots, and `docs/assets/google-play/` for the Play icon/feature graphic.
 8. Set age rating/content rating questionnaires in both consoles.
-9. Build numbers are current for the premium follow-up: iOS build `10029` is uploaded and processing; Android `10032` is uploaded to Play internal draft.
+9. Build numbers are current for the post-hardening release plus Android copy hotfix: iOS build `10030` and Android `10034` are the active project/upload candidates. The currently confirmed released Android build remains `10033` until `10034` is promoted. Previous uploads `10029`/`10032` are superseded.
+
+Use `docs/release/store-console-submission-worksheet.md` while filling App Store Connect and Google
+Play Console. It contains reviewer notes, Data Safety/App Privacy draft categories, Exact Alarm
+status, public URL values, and the localization language decision for this RC.
+
+### 2026-05-12 Local Release Audit Addendum
+
+- Release owner confirmed the app is out at 2026-05-12 13:24 CEST; post-release monitoring is active.
+- Localization guard passed after moving the reported Settings literals into localized resources.
+- iOS `Localizable.strings` files validate with `plutil -lint`.
+- Release identity check passed after the build identity bump to iOS `SkyOS 1.0.0 (10030)` / `com.skydown.ios` and Android `SkyOS 1.0.0 (10033)` / `com.nash.skyos`, including the new local iOS archive.
+- iOS App Store export passed without uploading; IPA SHA-256 is `53763455354820e7945abd3868f97dcd6fc2a89910843e3d9a96efd1a59d9b7f`.
+- iOS App Store Connect upload succeeded for build `10030` at 2026-05-12 13:15 CEST; package processing started. Xcode still reported missing dSYMs for FirebaseFirestoreInternal, absl, grpc, grpcpp, and openssl_grpc, but the app package upload succeeded.
+- Store screenshot audit passed.
+- Fresh Android release gate passed for versionCode `10033`; AAB SHA-256 is `231b6c5819e1ecb05822a852fefde98695d9855b30ac40ab679960d04bd112f7`, APK SHA-256 is `73ea590606f1ca093dfa30ba87e59da092e60a2d4c7dffb9fedbb4602587dfb7`.
+- Google Play `validate_android_internal` passed and `upload_android_internal` uploaded versionCode `10033` as an internal-testing draft at 2026-05-12 13:12 CEST. This did not start a production rollout.
+- Android hotfix versionCode `10034` passed release identity, clean release gate, Google Play validation, internal draft upload at 2026-05-12 14:28 CEST, internal track completion at 2026-05-12 15:15 CEST, and Play-installed Samsung Fold smoke at 2026-05-12 17:17 CEST. This did not start a production rollout.
+- Final Android APK permission dump confirms `targetSdkVersion 36` and no `SCHEDULE_EXACT_ALARM` / `USE_EXACT_ALARM` permission.
+- Full local CI gate passed after the build identity bump: shared tests, Android lint/detekt, Functions syntax build, 36 Node tests, and 86 Firestore/Storage rules tests. The run still warns that local Node is `v24.13.1` while Functions declares Node `22`.
+- Android exact-alarm release risk removed from source by dropping `SCHEDULE_EXACT_ALARM`; reminders now use the inexact `setAndAllowWhileIdle(...)` scheduling path.
+- Cold-launch notification prompts removed; notification permission is now requested from contextual settings/notification flows, while iOS only registers at launch if permission already exists.
+- Functions dependency lockfile was updated with non-breaking audit fixes (`firebase-admin` `13.9.0`, `fast-uri` `3.1.2`, `fast-xml-builder` `1.2.0`, `uuid` `11.1.1`, `@tootallnate/once` `2.0.1`). Full audit is reduced from 27 to 24 findings; production-only audit is reduced from 23 to 20 findings. Remaining production findings are no-fix transitive chains through Genkit / OpenTelemetry / Google Cloud and must be accepted or tracked separately before public production.
+- Broader localization audit still reports legacy hardcoded UI literals. For the fastest RC, keep store metadata languages limited to reviewed languages, recommended English and German, or complete a full 10-language UI localization pass before public production.
 
 ## Go/No-Go Checklist
 
-- [x] iOS build `10029` uploaded to App Store Connect and processing
-- [x] Android release `10032` built and verified locally
-- [x] Android release `10032` uploaded to Play Console internal testing as a draft
+- [x] Release owner confirmed app is out
+- [x] iOS build `10030` archived locally
+- [x] iOS build `10030` exported locally as App Store IPA
+- [x] iOS build `10030` uploaded to App Store Connect
+- [x] Android release `10033` built and verified locally
+- [x] Android release `10033` uploaded to Play Console internal testing as a draft
+- [x] Android hotfix `10034` built, verified, validated, and uploaded to Play Console internal testing as a draft
+- [x] Android hotfix `10034` Play API status verified as internal `completed`; no production/beta/alpha rollout exists
+- [x] Android hotfix `10034` Play internal track completed and Play-installed tester smoke passed
+- [x] Basic post-release launch smoke passed on Android `10033` and iOS `10030`
+- [x] Android post-release functional navigation smoke passed from the Play-installed `10033` artifact
+- [x] iOS post-release functional navigation smoke passed from the installed store/TestFlight `10030` artifact
 - [ ] Privacy, terms, support URLs point to final public domain
 - [ ] Legal text approved for store/public use
 - [ ] Subscription metadata, pricing, and restore behavior validated
 - [ ] Data safety/privacy questionnaire completed and consistent with app behavior
 - [ ] Content/Age rating completed
 - [ ] Screenshots and listing metadata complete in target languages, including uploaded iPad and Google Play assets
-- [ ] Internal smoke test passed on real iOS and Android devices from uploaded store artifacts
+- [x] Play Console review/submission completed so Android hotfix `10034` leaves draft state
+- [x] Android hotfix `10034` Play-installed tester smoke passed after it becomes available
 
 ## Exact Next Clicks: App Store Connect
 
 1. Open [App Store Connect](https://appstoreconnect.apple.com/).
 2. Go to **My Apps** -> select/create app for bundle `com.skydown.ios`.
 3. Open **TestFlight** tab.
-4. Wait for uploaded build `10029` to finish processing.
-5. Under **Builds**, click **+** and select build `10029`.
-6. Assign build `10029` to Internal Testers first.
+4. Confirm build `10030` is the active released/tester build and record its current status.
+5. Review any processing/review/policy warnings for build `10030`.
+6. Confirm internal tester or public availability matches the intended release scope.
 7. Fill **App Information** and **App Privacy** sections.
 8. Fill **Pricing and Availability** (manual business decision required).
 9. Fill **App Review Information** with support contact + reviewer login instructions (Google sign-in; no seeded release test account).
-10. Save draft; do not submit for external/public review without explicit approval.
+10. Keep production/public changes aligned with the confirmed release scope; do not widen rollout without explicit approval.
 
 ## Exact Next Clicks: Google Play Console
 
 1. Open [Google Play Console](https://play.google.com/console/).
 2. Select app with package `com.nash.skyos`.
-3. Go to **Testing** -> **Internal testing**.
-4. Review the internal draft release containing versionCode `10032`.
-5. Confirm release notes and save.
-6. Go to **Store presence** and complete store listing fields.
-7. Go to **App content** and complete:
+3. Go to **Dashboard** and resolve any remaining setup tasks that block wider rollout.
+4. Go to **Store presence** and complete store listing fields.
+5. Go to **App content** and complete:
    - Privacy policy URL
    - Data safety
    - Ads declaration (if applicable)
    - Content rating questionnaire
-8. Go to **Monetize** for in-app products/subscriptions validation.
-9. Roll out to internal/closed testers only; do not start production rollout without explicit approval.
+6. Go to **Pricing and availability** and select target production countries/regions. API read currently returns empty production country availability.
+7. Go to **Monetize** for in-app products/subscriptions validation.
+8. Go to **Release** -> **Production**. If **Create new release** is disabled, follow the listed Play Console blocker.
+9. Use versionCode `10034` from the app bundle library, review release notes, and continue to **Preview and confirm**.
+10. If the page shows **Errors summary**, expand it and resolve the required items before rollout.
+11. If changes land in **Publishing overview**, send the ready changes for review there and record the resulting status.
+12. Keep public changes aligned with the confirmed release scope; the API validation has not committed any production/closed release.
+
+Google references for the console flow: [Prepare and roll out a release](https://support.google.com/googleplay/android-developer/answer/9859348/prepare-and-roll-out-a-release?hl=en-GB), [Set up an internal test](https://support.google.com/googleplay/android-developer/answer/9845334?hl=en), and [Publishing overview/review control](https://support.google.com/googleplay/android-developer/answer/9859654?hl=en).

@@ -1,4 +1,4 @@
-# SkyOS Privacy
+# 22kydwn Privacy
 
 Status: release operator baseline for product and implementation alignment. Operator details are
 finalized for the current launch package; outside legal review can continue as a business process
@@ -6,18 +6,18 @@ and should update this package if wording changes.
 
 ## 1. Controller / Operator
 
-The repository currently identifies the operator contact for SkyOS as:
+The repository currently identifies the operator contact for 22kydwn as:
 
 - `Nguyen Phuong Ngoc Anh (Yang D. Nash - Skydown)`
 - `Erich-Plate-Weg 44, 22419 Hamburg, Germany`
 - `skydownent@gmail.com`
 
 This document describes the current data-handling baseline reflected in the repository and related
-compliance notes for the current SkyOS / Skydown launch package.
+compliance notes for the current 22kydwn / Skydown launch package.
 
 ## 2. Data We Process
 
-Depending on the active features and the user's actions, SkyOS can process:
+Depending on the active features and the user's actions, 22kydwn can process:
 
 - account and authentication data
 - profile data
@@ -79,7 +79,7 @@ Final release disclosures should map legal bases precisely for the active market
 
 ## 7. Retention
 
-Retention in SkyOS is purpose-based and feature-dependent. Examples visible in the repo include:
+Retention in 22kydwn is purpose-based and feature-dependent. Examples visible in the repo include:
 
 - account-related data retained while the account is active, plus any required legal or technical period
 - AI history retention controlled by plan-aware settings where implemented
@@ -105,7 +105,7 @@ The repo includes several concrete safeguards:
 - server-side authority for privileged mutations
 - secret management outside the repo for sensitive credentials
 
-No security measure is absolute, but SkyOS is designed to avoid treating UI hiding as real security.
+No security measure is absolute, but 22kydwn is designed to avoid treating UI hiding as real security.
 
 ## 10. User Rights
 

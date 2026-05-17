@@ -1,4 +1,4 @@
-# SkyOS Terms of Service (Compatibility Note)
+# 22kydwn Terms of Service (Compatibility Note)
 
 The canonical terms document now lives in [terms.md](terms.md).
 

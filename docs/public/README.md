@@ -1,17 +1,17 @@
-# SkyOS
+# 22kydwn
 
-SkyOS is a native creative operating app for music, media, merch, membership, and AI-assisted work.
+22kydwn is a native creative operating app for music, media, merch, membership, and AI-assisted work.
 It brings the artist, community, shop, and creative command layer into one product experience across
 Apple and Android platforms.
 
 ## Product Quality
 
-SkyOS is being shaped as a premium native product, not a generic mobile shell. The current app uses a
+22kydwn is being shaped as a premium native product, not a generic mobile shell. The current app uses a
 shared brand system across Apple and Android with controlled typography, spacing, color, elevation,
 loading states, empty states, icon actions, toggles, segmented controls, and admin surfaces. The goal
 is a calm, precise, trustworthy experience for creative work, commerce, membership, and AI workflows.
 
-## What SkyOS Brings Together
+## What 22kydwn Brings Together
 
 | Area | Purpose |
 | --- | --- |
@@ -35,7 +35,7 @@ is a calm, precise, trustworthy experience for creative work, commerce, membersh
 
 ## Platform Direction
 
-SkyOS is built for iOS, iPadOS, Android, and Mac Catalyst with shared product logic where it helps
+22kydwn is built for iOS, iPadOS, Android, and Mac Catalyst with shared product logic where it helps
 consistency and native UI where it matters for platform quality.
 
 The public product surface is expected to stay visually aligned across platforms while still honoring
@@ -43,12 +43,12 @@ native Apple and Android behavior, accessibility, motion preferences, and platfo
 
 ## Public Status
 
-SkyOS is preparing its first public release. Store availability, supported regions, pricing, and
+22kydwn is preparing its first public release. Store availability, supported regions, pricing, and
 official policy URLs will be announced through the live store listings and public support channels.
 
 ## Current Rollout Update
 
-- Latest rollout candidate keeps app version `1.0.0` and advances build identities to iOS build `10029` and Android versionCode `10032`.
+- Latest released build keeps app version `1.0.0` and advances build identities to iOS build `10030` and Android versionCode `10033`.
 - Music hub artist management was updated to support premium artist-page operations: canonical artist ordering, owner CRUD, and in-app rename flows with clear confirmation feedback.
 
 ## Transparency
@@ -62,4 +62,4 @@ canonical source.
 
 ## Support
 
-For public support, use the support link provided in the live app listing once SkyOS is available.
+For public support, use the support link provided in the live app listing once 22kydwn is available.

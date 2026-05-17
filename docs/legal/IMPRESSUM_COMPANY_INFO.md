@@ -1,4 +1,4 @@
-# SkyOS Impressum / Company Info (Compatibility Note)
+# 22kydwn Impressum / Company Info (Compatibility Note)
 
 The canonical imprint document now lives in [imprint.md](imprint.md).
 
